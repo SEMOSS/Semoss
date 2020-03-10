@@ -6,410 +6,14 @@
          "values":[
             [
                0,
-               14818176,
-               0,
-               0.44,
-               0.38,
-               "The_Substitute",
-               "N",
-               "Orion_Pictures",
-               "Action-Adventure"
-            ],
-            [
-               0,
-               25473352,
-               24010000,
-               0.37,
-               0.45,
-               "Dark_Water",
-               "N",
-               "Buena_Vista",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               74283625,
-               97343541,
-               0.84,
-               0.95,
-               "No_Country_for_Old_Men",
-               "Y",
-               "Miramax",
-               "Drama"
-            ],
-            [
-               0,
-               136492681,
-               173000000,
-               0.61,
-               0.73,
-               "Ransom",
-               "N",
-               "Buena_Vista",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               51733921,
-               0,
-               0.81,
-               0.62,
-               "Tyler_Perrys_I_Can_Do_Bad_All_By_Myself",
-               "N",
-               "Lionsgate",
-               "Drama"
-            ],
-            [
-               0,
-               35892330,
-               0,
-               0.89,
-               0.91,
-               "Shine",
-               "Y",
-               "Fine_Line",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               5318679,
-               3159755,
-               0.83,
-               0.71,
-               "Bread_and_Tulips",
-               "N",
-               "First",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               57247384,
-               171600000,
-               0.96,
-               0.8,
-               "Life_is_Beautiful",
-               "Y",
-               "Miramax",
-               "Action-Adventure"
-            ],
-            [
-               0,
-               13040527,
-               55787,
-               0.5,
-               0.58,
-               "How_To_Eat_Fried_Worms",
-               "N",
-               "New_Line",
-               "Family-Animation"
-            ],
-            [
-               0,
-               41797066,
-               87087428,
-               0.37,
-               0.12,
-               "Aliens_Vs._Predator_-_Requiem",
-               "N",
-               "Fox",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               10224116,
-               0,
-               0.41,
-               0.06,
-               "Air_Bud:_Golden_Reciever",
-               "N",
-               "Miramax",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               52802140,
-               48389744,
-               0.63,
-               0.43,
-               "The_Recruit",
-               "N",
-               "Buena_Vista",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               20255281,
-               1153747,
-               0.48,
-               0.14,
-               "Our_Family_Wedding",
-               "N",
-               "Fox",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               23249000,
-               0,
-               0.85,
-               0.94,
-               "Her",
-               "Y",
-               "WB",
-               "Drama"
-            ],
-            [
-               0,
-               7638241,
-               59488554,
-               0.68,
-               0.7,
-               "The_Girl_Who_Played_with_Fire",
-               "N",
-               "Music_Box_Films",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               8341087,
-               0,
-               0.73,
-               0.71,
-               "Return_to_Paradise",
-               "N",
-               "Polygram",
-               "Family-Animation"
-            ],
-            [
-               0,
-               16101000,
-               924000,
-               0.89,
-               0.94,
-               "Fruitvale_Station",
-               "N",
-               "Weinstein_Company",
-               "Drama"
-            ],
-            [
-               0,
-               21250683,
-               10869677,
-               0.84,
-               0.7,
-               "Amazing_Grace",
-               "N",
-               "IDP",
-               "Drama"
-            ],
-            [
-               0,
-               18301610,
-               0,
-               0.3,
-               0.13,
-               "That_Darn_Cat",
-               "N",
-               "Buena_Vista",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               32752215,
-               12534013,
-               0.55,
-               0.41,
-               "The_Last_House_on_the_Left",
-               "N",
-               "Universal",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               66308518,
-               25800000,
-               0.67,
-               0.85,
-               "The_Parent_Trap",
-               "N",
-               "Buena_Vista",
-               "Drama"
-            ],
-            [
-               0,
-               9255027,
-               0,
-               0.31,
-               0.09,
-               "Celtic_Pride",
-               "N",
-               "Buena_Vista",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               9228768,
-               22201566,
-               0.65,
-               0.89,
-               "A_Serious_Man",
-               "Y",
-               "Focus",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               25605015,
-               0,
-               0.59,
-               0.44,
-               "Cant_Hardly_Wait",
-               "N",
-               "Sony",
-               "Action-Adventure"
-            ],
-            [
-               0,
-               124115725,
-               83400000,
-               0.81,
+               138433435,
+               87500000,
                0.92,
-               "Traffic",
+               0.97,
+               "Good_Will_Hunting",
                "Y",
-               "USA",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               9362785,
-               48134914,
-               0.27,
-               0.14,
-               "Dragonball_Evolution",
-               "N",
-               "Fox",
-               "Action-Adventure"
-            ],
-            [
-               0,
-               12844057,
-               0,
-               0.53,
-               0.28,
-               "The_Associate",
-               "N",
-               "Buena_Vista",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               14842388,
-               0,
-               0.86,
-               0.8,
-               "Eves_Bayou",
-               "N",
-               "Trimark",
-               "Family-Animation"
-            ],
-            [
-               0,
-               63150991,
-               0,
-               0.56,
-               0.41,
-               "The_Sorcerers_Apprentice",
-               "N",
-               "Buena_Vista",
-               "Action-Adventure"
-            ],
-            [
-               0,
-               19145198,
-               0,
-               0.63,
-               0.91,
-               "Mother",
-               "N",
-               "Paramount",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               25143818,
-               0,
-               0.64,
-               0.85,
-               "Fly_Away_Home",
-               "N",
-               "Sony",
-               "Family-Animation"
-            ],
-            [
-               0,
-               749766139,
-               2021767547,
-               0.92,
-               0.83,
-               "Avatar",
-               "Y",
-               "Fox",
-               "Action-Adventure"
-            ],
-            [
-               0,
-               10010209,
-               16002944,
-               0.51,
-               0.07,
-               "BRATZ",
-               "N",
-               "Lionsgate",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               31480418,
-               0,
-               0.54,
-               0.14,
-               "Beverly_Hills_Ninja",
-               "N",
-               "Sony",
+               "Miramax",
                "Drama"
-            ],
-            [
-               0,
-               32619671,
-               18292763,
-               0.73,
-               0.42,
-               "Just_Friends",
-               "N",
-               "New_Line",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               64167069,
-               72100407,
-               0.7,
-               0.55,
-               "17_Again",
-               "N",
-               "WB",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               42779261,
-               0,
-               0.3,
-               0.21,
-               "Gullivers_Travels",
-               "N",
-               "Fox",
-               "Comedy-Musical"
             ],
             [
                0,
@@ -424,35 +28,13 @@
             ],
             [
                0,
-               6112613,
-               0,
-               0.35,
-               0.26,
-               "Kull_the_Conqueror",
+               7638241,
+               59488554,
+               0.68,
+               0.7,
+               "The_Girl_Who_Played_with_Fire",
                "N",
-               "Universal",
-               "Drama"
-            ],
-            [
-               0,
-               138433435,
-               87500000,
-               0.92,
-               0.97,
-               "Good_Will_Hunting",
-               "Y",
-               "Miramax",
-               "Drama"
-            ],
-            [
-               0,
-               64616940,
-               61600000,
-               0.9,
-               0.99,
-               "L.A._Confidential",
-               "Y",
-               "WB",
+               "Music_Box_Films",
                "Thriller-Horror"
             ],
             [
@@ -468,6 +50,17 @@
             ],
             [
                0,
+               64616940,
+               61600000,
+               0.9,
+               0.99,
+               "L.A._Confidential",
+               "Y",
+               "WB",
+               "Thriller-Horror"
+            ],
+            [
+               0,
                21569000,
                2021767547,
                0.55,
@@ -479,14 +72,91 @@
             ],
             [
                0,
-               6678894,
-               43425851,
-               0.75,
-               0.86,
-               "The_Closet",
+               20255281,
+               1153747,
+               0.48,
+               0.14,
+               "Our_Family_Wedding",
                "N",
-               "Miramax",
+               "Fox",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               9228768,
+               22201566,
+               0.65,
+               0.89,
+               "A_Serious_Man",
+               "Y",
+               "Focus",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               9255027,
+               0,
+               0.31,
+               0.09,
+               "Celtic_Pride",
+               "N",
+               "Buena_Vista",
                "Thriller-Horror"
+            ],
+            [
+               0,
+               66308518,
+               25800000,
+               0.67,
+               0.85,
+               "The_Parent_Trap",
+               "N",
+               "Buena_Vista",
+               "Drama"
+            ],
+            [
+               0,
+               32752215,
+               12534013,
+               0.55,
+               0.41,
+               "The_Last_House_on_the_Left",
+               "N",
+               "Universal",
+               "Thriller-Horror"
+            ],
+            [
+               0,
+               18301610,
+               0,
+               0.3,
+               0.13,
+               "That_Darn_Cat",
+               "N",
+               "Buena_Vista",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               6112613,
+               0,
+               0.35,
+               0.26,
+               "Kull_the_Conqueror",
+               "N",
+               "Universal",
+               "Drama"
+            ],
+            [
+               0,
+               19440089,
+               0,
+               0.41,
+               0.26,
+               "Dougs_First_Movie",
+               "N",
+               "Buena_Vista",
+               "Drama"
             ],
             [
                0,
@@ -512,6 +182,17 @@
             ],
             [
                0,
+               9362785,
+               48134914,
+               0.27,
+               0.14,
+               "Dragonball_Evolution",
+               "N",
+               "Fox",
+               "Action-Adventure"
+            ],
+            [
+               0,
                28084357,
                0,
                0.84,
@@ -523,14 +204,36 @@
             ],
             [
                0,
-               19440089,
+               12844057,
                0,
-               0.41,
-               0.26,
-               "Dougs_First_Movie",
+               0.53,
+               0.28,
+               "The_Associate",
                "N",
                "Buena_Vista",
-               "Drama"
+               "Thriller-Horror"
+            ],
+            [
+               0,
+               14842388,
+               0,
+               0.86,
+               0.8,
+               "Eves_Bayou",
+               "N",
+               "Trimark",
+               "Family-Animation"
+            ],
+            [
+               0,
+               6678894,
+               43425851,
+               0.75,
+               0.86,
+               "The_Closet",
+               "N",
+               "Miramax",
+               "Thriller-Horror"
             ],
             [
                0,
@@ -578,61 +281,6 @@
             ],
             [
                0,
-               55389516,
-               22138216,
-               0.51,
-               0.17,
-               "The_Haunting_in_Connecticut",
-               "N",
-               "Lionsgate",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               26420672,
-               29073394,
-               0.75,
-               0.38,
-               "Great_Expectations",
-               "N",
-               "Fox",
-               "Comedy-Musical"
-            ],
-            [
-               0,
-               5711695,
-               0,
-               0.45,
-               0.3,
-               "Screamers",
-               "N",
-               "Sony",
-               "Drama"
-            ],
-            [
-               0,
-               9534258,
-               7440201,
-               0.62,
-               0.2,
-               "Death_Sentence",
-               "N",
-               "Fox",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               90508336,
-               0,
-               0.74,
-               0.28,
-               "Tyler_Perrys_Madea_Goes_to_Jail",
-               "N",
-               "Lionsgate",
-               "Comedy-Musical"
-            ],
-            [
-               0,
                50927067,
                78338994,
                0.79,
@@ -641,6 +289,314 @@
                "Y",
                "Focus",
                "Drama"
+            ],
+            [
+               0,
+               16101000,
+               924000,
+               0.89,
+               0.94,
+               "Fruitvale_Station",
+               "N",
+               "Weinstein_Company",
+               "Drama"
+            ],
+            [
+               0,
+               42779261,
+               0,
+               0.3,
+               0.21,
+               "Gullivers_Travels",
+               "N",
+               "Fox",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               64167069,
+               72100407,
+               0.7,
+               0.55,
+               "17_Again",
+               "N",
+               "WB",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               25605015,
+               0,
+               0.59,
+               0.44,
+               "Cant_Hardly_Wait",
+               "N",
+               "Sony",
+               "Action-Adventure"
+            ],
+            [
+               0,
+               32619671,
+               18292763,
+               0.73,
+               0.42,
+               "Just_Friends",
+               "N",
+               "New_Line",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               21250683,
+               10869677,
+               0.84,
+               0.7,
+               "Amazing_Grace",
+               "N",
+               "IDP",
+               "Drama"
+            ],
+            [
+               0,
+               31480418,
+               0,
+               0.54,
+               0.14,
+               "Beverly_Hills_Ninja",
+               "N",
+               "Sony",
+               "Drama"
+            ],
+            [
+               0,
+               10010209,
+               16002944,
+               0.51,
+               0.07,
+               "BRATZ",
+               "N",
+               "Lionsgate",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               749766139,
+               2021767547,
+               0.92,
+               0.83,
+               "Avatar",
+               "Y",
+               "Fox",
+               "Action-Adventure"
+            ],
+            [
+               0,
+               8341087,
+               0,
+               0.73,
+               0.71,
+               "Return_to_Paradise",
+               "N",
+               "Polygram",
+               "Family-Animation"
+            ],
+            [
+               0,
+               124115725,
+               83400000,
+               0.81,
+               0.92,
+               "Traffic",
+               "Y",
+               "USA",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               5318679,
+               3159755,
+               0.83,
+               0.71,
+               "Bread_and_Tulips",
+               "N",
+               "First",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               25143818,
+               0,
+               0.64,
+               0.85,
+               "Fly_Away_Home",
+               "N",
+               "Sony",
+               "Family-Animation"
+            ],
+            [
+               0,
+               35892330,
+               0,
+               0.89,
+               0.91,
+               "Shine",
+               "Y",
+               "Fine_Line",
+               "Thriller-Horror"
+            ],
+            [
+               0,
+               19145198,
+               0,
+               0.63,
+               0.91,
+               "Mother",
+               "N",
+               "Paramount",
+               "Thriller-Horror"
+            ],
+            [
+               0,
+               74283625,
+               97343541,
+               0.84,
+               0.95,
+               "No_Country_for_Old_Men",
+               "Y",
+               "Miramax",
+               "Drama"
+            ],
+            [
+               0,
+               51733921,
+               0,
+               0.81,
+               0.62,
+               "Tyler_Perrys_I_Can_Do_Bad_All_By_Myself",
+               "N",
+               "Lionsgate",
+               "Drama"
+            ],
+            [
+               0,
+               23249000,
+               0,
+               0.85,
+               0.94,
+               "Her",
+               "Y",
+               "WB",
+               "Drama"
+            ],
+            [
+               0,
+               14818176,
+               0,
+               0.44,
+               0.38,
+               "The_Substitute",
+               "N",
+               "Orion_Pictures",
+               "Action-Adventure"
+            ],
+            [
+               0,
+               52802140,
+               48389744,
+               0.63,
+               0.43,
+               "The_Recruit",
+               "N",
+               "Buena_Vista",
+               "Thriller-Horror"
+            ],
+            [
+               0,
+               136492681,
+               173000000,
+               0.61,
+               0.73,
+               "Ransom",
+               "N",
+               "Buena_Vista",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               10224116,
+               0,
+               0.41,
+               0.06,
+               "Air_Bud:_Golden_Reciever",
+               "N",
+               "Miramax",
+               "Comedy-Musical"
+            ],
+            [
+               0,
+               63150991,
+               0,
+               0.56,
+               0.41,
+               "The_Sorcerers_Apprentice",
+               "N",
+               "Buena_Vista",
+               "Action-Adventure"
+            ],
+            [
+               0,
+               41797066,
+               87087428,
+               0.37,
+               0.12,
+               "Aliens_Vs._Predator_-_Requiem",
+               "N",
+               "Fox",
+               "Thriller-Horror"
+            ],
+            [
+               0,
+               25473352,
+               24010000,
+               0.37,
+               0.45,
+               "Dark_Water",
+               "N",
+               "Buena_Vista",
+               "Thriller-Horror"
+            ],
+            [
+               0,
+               57247384,
+               171600000,
+               0.96,
+               0.8,
+               "Life_is_Beautiful",
+               "Y",
+               "Miramax",
+               "Action-Adventure"
+            ],
+            [
+               0,
+               13040527,
+               55787,
+               0.5,
+               0.58,
+               "How_To_Eat_Fried_Worms",
+               "N",
+               "New_Line",
+               "Family-Animation"
+            ],
+            [
+               0,
+               55389516,
+               22138216,
+               0.51,
+               0.17,
+               "The_Haunting_in_Connecticut",
+               "N",
+               "Lionsgate",
+               "Thriller-Horror"
             ],
             [
                0,
@@ -677,36 +633,14 @@
             ],
             [
                0,
-               6008677,
-               17561000,
-               0.61,
-               0.62,
-               "Hitchcock",
+               26420672,
+               29073394,
+               0.75,
+               0.38,
+               "Great_Expectations",
                "N",
-               "Fox_Searchlight",
-               "Drama"
-            ],
-            [
-               0,
-               28596818,
-               13027228,
-               0.52,
-               0.32,
-               "The_Uninvited",
-               "N",
-               "Paramount",
-               "Thriller-Horror"
-            ],
-            [
-               0,
-               82272442,
-               55314621,
-               0.71,
-               0.84,
-               "Bridge_to_Terabithia",
-               "N",
-               "Buena_Vista",
-               "Action-Adventure"
+               "Fox",
+               "Comedy-Musical"
             ],
             [
                0,
@@ -718,17 +652,6 @@
                "N",
                "New_Line",
                "Comedy-Musical"
-            ],
-            [
-               0,
-               6033999,
-               0,
-               0.65,
-               0.0,
-               "Foolish",
-               "N",
-               "Artisan",
-               "Drama"
             ],
             [
                0,
@@ -776,6 +699,17 @@
             ],
             [
                0,
+               5711695,
+               0,
+               0.45,
+               0.3,
+               "Screamers",
+               "N",
+               "Sony",
+               "Drama"
+            ],
+            [
+               0,
                295983305,
                660416406,
                0.87,
@@ -784,6 +718,72 @@
                "N",
                "WB",
                "Action-Adventure"
+            ],
+            [
+               0,
+               6033999,
+               0,
+               0.65,
+               0.0,
+               "Foolish",
+               "N",
+               "Artisan",
+               "Drama"
+            ],
+            [
+               0,
+               82272442,
+               55314621,
+               0.71,
+               0.84,
+               "Bridge_to_Terabithia",
+               "N",
+               "Buena_Vista",
+               "Action-Adventure"
+            ],
+            [
+               0,
+               28596818,
+               13027228,
+               0.52,
+               0.32,
+               "The_Uninvited",
+               "N",
+               "Paramount",
+               "Thriller-Horror"
+            ],
+            [
+               0,
+               6008677,
+               17561000,
+               0.61,
+               0.62,
+               "Hitchcock",
+               "N",
+               "Fox_Searchlight",
+               "Drama"
+            ],
+            [
+               0,
+               9534258,
+               7440201,
+               0.62,
+               0.2,
+               "Death_Sentence",
+               "N",
+               "Fox",
+               "Thriller-Horror"
+            ],
+            [
+               0,
+               90508336,
+               0,
+               0.74,
+               0.28,
+               "Tyler_Perrys_Madea_Goes_to_Jail",
+               "N",
+               "Lionsgate",
+               "Comedy-Musical"
             ],
             [
                500000,
@@ -809,17 +809,6 @@
             ],
             [
                1000000,
-               9706328,
-               2649406,
-               0.75,
-               0.88,
-               "Blue_Valentine",
-               "N",
-               "Weinstein_Company",
-               "Drama"
-            ],
-            [
-               1000000,
                10047674,
                5537821,
                0.56,
@@ -828,6 +817,17 @@
                "N",
                "Rogue_Pictures",
                "Thriller-Horror"
+            ],
+            [
+               1000000,
+               9706328,
+               2649406,
+               0.75,
+               0.88,
+               "Blue_Valentine",
+               "N",
+               "Weinstein_Company",
+               "Drama"
             ],
             [
                1700000,
@@ -919,17 +919,6 @@
             ],
             [
                4000000,
-               44585453,
-               75138403,
-               0.84,
-               0.95,
-               "Lost_in_Translation",
-               "Y",
-               "Focus",
-               "Comedy-Musical"
-            ],
-            [
-               4000000,
                15778152,
                0,
                0.76,
@@ -938,6 +927,17 @@
                "N",
                "Sony",
                "Drama"
+            ],
+            [
+               4000000,
+               44585453,
+               75138403,
+               0.84,
+               0.95,
+               "Lost_in_Translation",
+               "Y",
+               "Focus",
+               "Comedy-Musical"
             ],
             [
                4500000,
@@ -952,17 +952,6 @@
             ],
             [
                5000000,
-               24356000,
-               6000000,
-               0.92,
-               0.94,
-               "Dallas_Buyers_Club",
-               "Y",
-               "Focus",
-               "Drama"
-            ],
-            [
-               5000000,
                21506000,
                43886362,
                0.85,
@@ -973,14 +962,14 @@
                "Comedy-Musical"
             ],
             [
+               5000000,
+               24356000,
                6000000,
-               26238243,
-               18465752,
-               0.86,
-               0.98,
-               "The_Wrestler",
-               "N",
-               "Fox",
+               0.92,
+               0.94,
+               "Dallas_Buyers_Club",
+               "Y",
+               "Focus",
                "Drama"
             ],
             [
@@ -992,17 +981,6 @@
                "Bend_It_Like_Beckham",
                "N",
                "Fox",
-               "Comedy-Musical"
-            ],
-            [
-               6000000,
-               24477000,
-               5973000,
-               0.63,
-               0.81,
-               "Don_Jon",
-               "N",
-               "Relativity",
                "Comedy-Musical"
             ],
             [
@@ -1039,6 +1017,28 @@
                "Comedy-Musical"
             ],
             [
+               6000000,
+               26238243,
+               18465752,
+               0.86,
+               0.98,
+               "The_Wrestler",
+               "N",
+               "Fox",
+               "Drama"
+            ],
+            [
+               6000000,
+               24477000,
+               5973000,
+               0.63,
+               0.81,
+               "Don_Jon",
+               "N",
+               "Relativity",
+               "Comedy-Musical"
+            ],
+            [
                6500000,
                54580300,
                43829761,
@@ -1047,28 +1047,6 @@
                "Crash",
                "Y",
                "Lionsgate",
-               "Drama"
-            ],
-            [
-               7000000,
-               24611975,
-               36000000,
-               0.91,
-               0.94,
-               "Fargo",
-               "Y",
-               "Gramercy",
-               "Drama"
-            ],
-            [
-               7000000,
-               28750530,
-               20482631,
-               0.73,
-               0.9,
-               "Capote",
-               "Y",
-               "Sony",
                "Drama"
             ],
             [
@@ -1084,6 +1062,17 @@
             ],
             [
                7000000,
+               28750530,
+               20482631,
+               0.73,
+               0.9,
+               "Capote",
+               "Y",
+               "Sony",
+               "Drama"
+            ],
+            [
+               7000000,
                23249649,
                146400,
                0.65,
@@ -1092,6 +1081,17 @@
                "N",
                "Fox",
                "Comedy-Musical"
+            ],
+            [
+               7000000,
+               24611975,
+               36000000,
+               0.91,
+               0.94,
+               "Fargo",
+               "Y",
+               "Gramercy",
+               "Drama"
             ],
             [
                7500000,
@@ -1113,17 +1113,6 @@
                "Juno",
                "Y",
                "Fox",
-               "Drama"
-            ],
-            [
-               8000000,
-               35014192,
-               4173591,
-               0.89,
-               0.93,
-               "50-50",
-               "N",
-               "Summit_Entertainment",
                "Drama"
             ],
             [
@@ -1150,14 +1139,14 @@
             ],
             [
                8000000,
-               14018296,
-               2837828,
-               0.53,
-               0.81,
-               "The_Good_Girl",
+               35014192,
+               4173591,
+               0.89,
+               0.93,
+               "50-50",
                "N",
-               "Fox",
-               "Thriller-Horror"
+               "Summit_Entertainment",
+               "Drama"
             ],
             [
                8000000,
@@ -1171,6 +1160,17 @@
                "Comedy-Musical"
             ],
             [
+               8000000,
+               14018296,
+               2837828,
+               0.53,
+               0.81,
+               "The_Good_Girl",
+               "N",
+               "Fox",
+               "Thriller-Horror"
+            ],
+            [
                8500000,
                6255000,
                0,
@@ -1179,6 +1179,17 @@
                "All_is_Lost",
                "N",
                "Roadside_Attractions",
+               "Drama"
+            ],
+            [
+               10000000,
+               28564995,
+               5846245,
+               0.36,
+               0.14,
+               "SwimFan",
+               "N",
+               "Fox",
                "Drama"
             ],
             [
@@ -1205,17 +1216,6 @@
             ],
             [
                10000000,
-               28564995,
-               5846245,
-               0.36,
-               0.14,
-               "SwimFan",
-               "N",
-               "Fox",
-               "Drama"
-            ],
-            [
-               10000000,
                8359717,
                0,
                0.0,
@@ -1238,25 +1238,14 @@
             ],
             [
                12000000,
-               91547000,
-               4523000,
-               0.8,
+               16703799,
+               226963,
                0.53,
-               "Think_Like_a_Man",
+               0.11,
+               "Catch_that_Kid",
                "N",
-               "Sony",
-               "Comedy-Musical"
-            ],
-            [
-               12000000,
-               63118386,
-               0,
-               0.61,
-               0.71,
-               "Beavis_and_Butt-head_Do_America",
-               "N",
-               "Paramount",
-               "Thriller-Horror"
+               "Fox",
+               "Family-Animation"
             ],
             [
                12000000,
@@ -1271,17 +1260,6 @@
             ],
             [
                12000000,
-               16703799,
-               226963,
-               0.53,
-               0.11,
-               "Catch_that_Kid",
-               "N",
-               "Fox",
-               "Family-Animation"
-            ],
-            [
-               12000000,
                8008000,
                7000000,
                0.4,
@@ -1290,6 +1268,28 @@
                "N",
                "Open_Road_Films",
                "Action-Adventure"
+            ],
+            [
+               12000000,
+               63118386,
+               0,
+               0.61,
+               0.71,
+               "Beavis_and_Butt-head_Do_America",
+               "N",
+               "Paramount",
+               "Thriller-Horror"
+            ],
+            [
+               12000000,
+               91547000,
+               4523000,
+               0.8,
+               0.53,
+               "Think_Like_a_Man",
+               "N",
+               "Sony",
+               "Comedy-Musical"
             ],
             [
                12500000,
@@ -1315,17 +1315,6 @@
             ],
             [
                13000000,
-               22235901,
-               155549,
-               0.81,
-               0.43,
-               "Two_Can_Play_That_Game",
-               "N",
-               "Sony",
-               "Comedy-Musical"
-            ],
-            [
-               13000000,
                106954678,
                222443368,
                0.86,
@@ -1337,13 +1326,13 @@
             ],
             [
                13000000,
-               5985690,
-               0,
-               0.75,
-               0.38,
-               "Light_it_Up",
+               22235901,
+               155549,
+               0.81,
+               0.43,
+               "Two_Can_Play_That_Game",
                "N",
-               "Fox",
+               "Sony",
                "Comedy-Musical"
             ],
             [
@@ -1355,6 +1344,17 @@
                "Admission",
                "N",
                "Focus",
+               "Comedy-Musical"
+            ],
+            [
+               13000000,
+               5985690,
+               0,
+               0.75,
+               0.38,
+               "Light_it_Up",
+               "N",
+               "Fox",
                "Comedy-Musical"
             ],
             [
@@ -1381,28 +1381,6 @@
             ],
             [
                14000000,
-               35025000,
-               553000,
-               0.77,
-               0.31,
-               "Tyler_Perrys_Good_Deeds",
-               "N",
-               "Lionsgate",
-               "Drama"
-            ],
-            [
-               14000000,
-               16298046,
-               13314091,
-               0.47,
-               0.12,
-               "An_American_Haunting",
-               "N",
-               "Freestyle",
-               "Thriller-Horror"
-            ],
-            [
-               14000000,
                15515460,
                7337178,
                0.5,
@@ -1411,6 +1389,17 @@
                "N",
                "Universal",
                "Thriller-Horror"
+            ],
+            [
+               14000000,
+               9409000,
+               2007000,
+               0.48,
+               0.25,
+               "Fun_Size",
+               "N",
+               "Paramount",
+               "Comedy-Musical"
             ],
             [
                14000000,
@@ -1425,24 +1414,24 @@
             ],
             [
                14000000,
-               9409000,
-               2007000,
-               0.48,
-               0.25,
-               "Fun_Size",
+               16298046,
+               13314091,
+               0.47,
+               0.12,
+               "An_American_Haunting",
                "N",
-               "Paramount",
-               "Comedy-Musical"
+               "Freestyle",
+               "Thriller-Horror"
             ],
             [
-               14500000,
-               9047000,
-               25516000,
-               0.64,
-               0.67,
-               "Salmon_Fishing_in_the_Yemen",
+               14000000,
+               35025000,
+               553000,
+               0.77,
+               0.31,
+               "Tyler_Perrys_Good_Deeds",
                "N",
-               "CBS",
+               "Lionsgate",
                "Drama"
             ],
             [
@@ -1457,36 +1446,25 @@
                "Family-Animation"
             ],
             [
-               15000000,
-               33772838,
-               7090880,
-               0.76,
-               0.35,
-               "Where_the_Heart_Is",
+               14500000,
+               9047000,
+               25516000,
+               0.64,
+               0.67,
+               "Salmon_Fishing_in_the_Yemen",
                "N",
-               "Fox",
-               "Comedy-Musical"
-            ],
-            [
-               15000000,
-               141319928,
-               236590616,
-               0.9,
-               0.94,
-               "Slumdog_Millionaire",
-               "Y",
-               "Fox",
+               "CBS",
                "Drama"
             ],
             [
                15000000,
-               135453143,
-               275414100,
-               0.93,
-               0.95,
-               "The_Kings_Speech",
+               56441711,
+               66942417,
+               0.74,
+               0.97,
+               "The_Queen",
                "Y",
-               "Weinstein_Company",
+               "Miramax",
                "Drama"
             ],
             [
@@ -1502,28 +1480,6 @@
             ],
             [
                15000000,
-               56441711,
-               66942417,
-               0.74,
-               0.97,
-               "The_Queen",
-               "Y",
-               "Miramax",
-               "Drama"
-            ],
-            [
-               15000000,
-               44671682,
-               88761174,
-               0.89,
-               0.98,
-               "The_Artist",
-               "Y",
-               "Weinstein_Company",
-               "Drama"
-            ],
-            [
-               15000000,
                17017811,
                32212961,
                0.83,
@@ -1535,14 +1491,25 @@
             ],
             [
                15000000,
-               15024000,
-               4398000,
-               0.71,
-               0.83,
-               "Seven_Psychopaths",
+               33772838,
+               7090880,
+               0.76,
+               0.35,
+               "Where_the_Heart_Is",
                "N",
-               "CBS",
-               "Action-Adventure"
+               "Fox",
+               "Comedy-Musical"
+            ],
+            [
+               15000000,
+               135453143,
+               275414100,
+               0.93,
+               0.95,
+               "The_Kings_Speech",
+               "Y",
+               "Weinstein_Company",
+               "Drama"
             ],
             [
                15000000,
@@ -1553,39 +1520,6 @@
                "American_Beauty",
                "Y",
                "Dreamworks",
-               "Drama"
-            ],
-            [
-               15000000,
-               20804166,
-               16662372,
-               0.5,
-               0.11,
-               "The_Hills_Have_Eyes_2",
-               "N",
-               "Fox",
-               "Thriller-Horror"
-            ],
-            [
-               15000000,
-               20218921,
-               310273,
-               0.53,
-               0.22,
-               "Country_Strong",
-               "N",
-               "Sony",
-               "Drama"
-            ],
-            [
-               15000000,
-               21403000,
-               14082000,
-               0.75,
-               0.81,
-               "The_Place_Beyond_the_Pines",
-               "N",
-               "Focus",
                "Drama"
             ],
             [
@@ -1611,6 +1545,72 @@
                "Drama"
             ],
             [
+               15000000,
+               141319928,
+               236590616,
+               0.9,
+               0.94,
+               "Slumdog_Millionaire",
+               "Y",
+               "Fox",
+               "Drama"
+            ],
+            [
+               15000000,
+               21403000,
+               14082000,
+               0.75,
+               0.81,
+               "The_Place_Beyond_the_Pines",
+               "N",
+               "Focus",
+               "Drama"
+            ],
+            [
+               15000000,
+               20218921,
+               310273,
+               0.53,
+               0.22,
+               "Country_Strong",
+               "N",
+               "Sony",
+               "Drama"
+            ],
+            [
+               15000000,
+               44671682,
+               88761174,
+               0.89,
+               0.98,
+               "The_Artist",
+               "Y",
+               "Weinstein_Company",
+               "Drama"
+            ],
+            [
+               15000000,
+               20804166,
+               16662372,
+               0.5,
+               0.11,
+               "The_Hills_Have_Eyes_2",
+               "N",
+               "Fox",
+               "Thriller-Horror"
+            ],
+            [
+               15000000,
+               15024000,
+               4398000,
+               0.71,
+               0.83,
+               "Seven_Psychopaths",
+               "N",
+               "CBS",
+               "Action-Adventure"
+            ],
+            [
                15564000,
                11670971,
                19795818,
@@ -1634,28 +1634,6 @@
             ],
             [
                16000000,
-               14190750,
-               631596,
-               0.58,
-               0.18,
-               "Soul_Plane",
-               "N",
-               "MGM",
-               "Comedy-Musical"
-            ],
-            [
-               16000000,
-               16204793,
-               15351268,
-               0.37,
-               0.43,
-               "Jennifers_Body",
-               "N",
-               "Fox",
-               "Comedy-Musical"
-            ],
-            [
-               16000000,
                68540777,
                51213510,
                0.68,
@@ -1663,28 +1641,6 @@
                "Road_Trip",
                "N",
                "Dreamworks",
-               "Comedy-Musical"
-            ],
-            [
-               16000000,
-               19068240,
-               36964649,
-               0.69,
-               0.28,
-               "Remember_Me",
-               "N",
-               "Summit",
-               "Drama"
-            ],
-            [
-               16000000,
-               71503593,
-               38203338,
-               0.77,
-               0.96,
-               "Sideways",
-               "Y",
-               "Fox",
                "Comedy-Musical"
             ],
             [
@@ -1710,6 +1666,50 @@
                "Thriller-Horror"
             ],
             [
+               16000000,
+               19068240,
+               36964649,
+               0.69,
+               0.28,
+               "Remember_Me",
+               "N",
+               "Summit",
+               "Drama"
+            ],
+            [
+               16000000,
+               71503593,
+               38203338,
+               0.77,
+               0.96,
+               "Sideways",
+               "Y",
+               "Fox",
+               "Comedy-Musical"
+            ],
+            [
+               16000000,
+               14190750,
+               631596,
+               0.58,
+               0.18,
+               "Soul_Plane",
+               "N",
+               "MGM",
+               "Comedy-Musical"
+            ],
+            [
+               16000000,
+               16204793,
+               15351268,
+               0.37,
+               0.43,
+               "Jennifers_Body",
+               "N",
+               "Fox",
+               "Comedy-Musical"
+            ],
+            [
                16500000,
                18670946,
                18640726,
@@ -1719,17 +1719,6 @@
                "N",
                "Miramax",
                "Drama"
-            ],
-            [
-               17000000,
-               86058055,
-               42984816,
-               0.66,
-               0.83,
-               "Mean_Girls",
-               "N",
-               "Paramount",
-               "Comedy-Musical"
             ],
             [
                17000000,
@@ -1755,14 +1744,14 @@
             ],
             [
                17000000,
-               27865571,
-               968438,
-               0.48,
-               0.2,
-               "Beastly",
+               86058055,
+               42984816,
+               0.66,
+               0.83,
+               "Mean_Girls",
                "N",
-               "CBS",
-               "Action-Adventure"
+               "Paramount",
+               "Comedy-Musical"
             ],
             [
                17000000,
@@ -1773,6 +1762,28 @@
                "Midnight_in_Paris",
                "Y",
                "Sony",
+               "Comedy-Musical"
+            ],
+            [
+               17000000,
+               27865571,
+               968438,
+               0.48,
+               0.2,
+               "Beastly",
+               "N",
+               "CBS",
+               "Action-Adventure"
+            ],
+            [
+               18000000,
+               41011711,
+               27812815,
+               0.74,
+               0.25,
+               "John_Tucker_Must_Die",
+               "N",
+               "Fox",
                "Comedy-Musical"
             ],
             [
@@ -1788,14 +1799,14 @@
             ],
             [
                18000000,
-               41011711,
-               27812815,
+               25594957,
+               31698758,
+               0.64,
                0.74,
-               0.25,
-               "John_Tucker_Must_Die",
+               "The_Mist",
                "N",
-               "Fox",
-               "Comedy-Musical"
+               "MGM-UA",
+               "Thriller-Horror"
             ],
             [
                18000000,
@@ -1809,17 +1820,6 @@
                "Drama"
             ],
             [
-               18000000,
-               25594957,
-               31698758,
-               0.64,
-               0.74,
-               "The_Mist",
-               "N",
-               "MGM-UA",
-               "Thriller-Horror"
-            ],
-            [
                18500000,
                18451251,
                13955256,
@@ -1828,17 +1828,6 @@
                "The_Invention_of_Lying",
                "N",
                "WB",
-               "Comedy-Musical"
-            ],
-            [
-               19000000,
-               8402485,
-               10353451,
-               0.6,
-               0.46,
-               "Sex_Drive",
-               "N",
-               "Summit",
                "Comedy-Musical"
             ],
             [
@@ -1854,17 +1843,6 @@
             ],
             [
                19000000,
-               27779426,
-               22051181,
-               0.44,
-               0.51,
-               "The_Switch",
-               "N",
-               "Miramax",
-               "Comedy-Musical"
-            ],
-            [
-               19000000,
                10055859,
                264869236,
                0.95,
@@ -1873,17 +1851,6 @@
                "N",
                "Buena_Vista",
                "Action-Adventure"
-            ],
-            [
-               19000000,
-               65233369,
-               42813762,
-               0.64,
-               0.24,
-               "The_Amityville_Horror",
-               "N",
-               "MGM",
-               "Thriller-Horror"
             ],
             [
                19000000,
@@ -1919,6 +1886,39 @@
                "Action-Adventure"
             ],
             [
+               19000000,
+               27779426,
+               22051181,
+               0.44,
+               0.51,
+               "The_Switch",
+               "N",
+               "Miramax",
+               "Comedy-Musical"
+            ],
+            [
+               19000000,
+               65233369,
+               42813762,
+               0.64,
+               0.24,
+               "The_Amityville_Horror",
+               "N",
+               "MGM",
+               "Thriller-Horror"
+            ],
+            [
+               19000000,
+               8402485,
+               10353451,
+               0.6,
+               0.46,
+               "Sex_Drive",
+               "N",
+               "Summit",
+               "Comedy-Musical"
+            ],
+            [
                19800000,
                41308615,
                46445429,
@@ -1927,105 +1927,6 @@
                "Gosford_Park",
                "Y",
                "USA",
-               "Drama"
-            ],
-            [
-               20000000,
-               12785432,
-               7286740,
-               0.75,
-               0.62,
-               "I_Heart_Huckabees",
-               "N",
-               "Fox",
-               "Comedy-Musical"
-            ],
-            [
-               20000000,
-               110230332,
-               50616000,
-               0.6,
-               0.88,
-               "Freaky_Friday",
-               "N",
-               "Buena_Vista",
-               "Comedy-Musical"
-            ],
-            [
-               20000000,
-               26004000,
-               0,
-               0.73,
-               0.89,
-               "The_Worlds_End",
-               "N",
-               "Focus",
-               "Comedy-Musical"
-            ],
-            [
-               20000000,
-               48352000,
-               0,
-               0.92,
-               0.96,
-               "12_Years_a_Slave",
-               "Y",
-               "Fox_Searchlight",
-               "Drama"
-            ],
-            [
-               20000000,
-               21170563,
-               0,
-               0.81,
-               0.63,
-               "ATL",
-               "N",
-               "WB",
-               "Drama"
-            ],
-            [
-               20000000,
-               6719864,
-               17155263,
-               0.96,
-               0.82,
-               "American_History_X",
-               "N",
-               "New_Line",
-               "Drama"
-            ],
-            [
-               20000000,
-               15618626,
-               2786080,
-               0.0,
-               0.0,
-               "Loser",
-               "N",
-               "Sony",
-               "Drama"
-            ],
-            [
-               20000000,
-               82584160,
-               94659025,
-               0.79,
-               0.89,
-               "The_Descendants",
-               "Y",
-               "Fox",
-               "Drama"
-            ],
-            [
-               20000000,
-               31841299,
-               22745285,
-               0.88,
-               0.94,
-               "Milk",
-               "Y",
-               "Focus_Features",
                "Drama"
             ],
             [
@@ -2041,14 +1942,14 @@
             ],
             [
                20000000,
-               62950384,
-               26091272,
-               0.65,
-               0.19,
-               "The_Last_Song",
+               12785432,
+               7286740,
+               0.75,
+               0.62,
+               "I_Heart_Huckabees",
                "N",
-               "Buena_Vista",
-               "Drama"
+               "Fox",
+               "Comedy-Musical"
             ],
             [
                20000000,
@@ -2063,25 +1964,25 @@
             ],
             [
                20000000,
-               39263506,
-               5390131,
-               0.43,
-               0.46,
-               "Lakeview_Terrace",
+               26004000,
+               0,
+               0.73,
+               0.89,
+               "The_Worlds_End",
                "N",
-               "Sony",
-               "Thriller-Horror"
+               "Focus",
+               "Comedy-Musical"
             ],
             [
                20000000,
-               36661504,
-               43886362,
-               0.31,
-               0.04,
-               "Vampires_Suck",
-               "N",
+               82584160,
+               94659025,
+               0.79,
+               0.89,
+               "The_Descendants",
+               "Y",
                "Fox",
-               "Comedy-Musical"
+               "Drama"
             ],
             [
                20000000,
@@ -2096,14 +1997,14 @@
             ],
             [
                20000000,
-               14363397,
-               3073112,
-               0.72,
-               0.75,
-               "Capitalism:_A_Love_Story",
+               15618626,
+               2786080,
+               0.0,
+               0.0,
+               "Loser",
                "N",
-               "Overture_Films",
-               "Documentary"
+               "Sony",
+               "Drama"
             ],
             [
                20000000,
@@ -2118,14 +2019,47 @@
             ],
             [
                20000000,
-               28549298,
-               19572602,
-               0.75,
-               0.55,
-               "Mr._Brooks",
+               6719864,
+               17155263,
+               0.96,
+               0.82,
+               "American_History_X",
                "N",
-               "MGM",
-               "Thriller-Horror"
+               "New_Line",
+               "Drama"
+            ],
+            [
+               20000000,
+               21170563,
+               0,
+               0.81,
+               0.63,
+               "ATL",
+               "N",
+               "WB",
+               "Drama"
+            ],
+            [
+               20000000,
+               31841299,
+               22745285,
+               0.88,
+               0.94,
+               "Milk",
+               "Y",
+               "Focus_Features",
+               "Drama"
+            ],
+            [
+               20000000,
+               9257103,
+               0,
+               0.19,
+               0.25,
+               "Ringmaster",
+               "N",
+               "Artisan",
+               "Action-Adventure"
             ],
             [
                20000000,
@@ -2140,14 +2074,80 @@
             ],
             [
                20000000,
-               9257103,
-               0,
-               0.19,
-               0.25,
-               "Ringmaster",
+               28549298,
+               19572602,
+               0.75,
+               0.55,
+               "Mr._Brooks",
                "N",
-               "Artisan",
-               "Action-Adventure"
+               "MGM",
+               "Thriller-Horror"
+            ],
+            [
+               20000000,
+               62950384,
+               26091272,
+               0.65,
+               0.19,
+               "The_Last_Song",
+               "N",
+               "Buena_Vista",
+               "Drama"
+            ],
+            [
+               20000000,
+               14363397,
+               3073112,
+               0.72,
+               0.75,
+               "Capitalism:_A_Love_Story",
+               "N",
+               "Overture_Films",
+               "Documentary"
+            ],
+            [
+               20000000,
+               39263506,
+               5390131,
+               0.43,
+               0.46,
+               "Lakeview_Terrace",
+               "N",
+               "Sony",
+               "Thriller-Horror"
+            ],
+            [
+               20000000,
+               48352000,
+               0,
+               0.92,
+               0.96,
+               "12_Years_a_Slave",
+               "Y",
+               "Fox_Searchlight",
+               "Drama"
+            ],
+            [
+               20000000,
+               36661504,
+               43886362,
+               0.31,
+               0.04,
+               "Vampires_Suck",
+               "N",
+               "Fox",
+               "Comedy-Musical"
+            ],
+            [
+               20000000,
+               110230332,
+               50616000,
+               0.6,
+               0.88,
+               "Freaky_Friday",
+               "N",
+               "Buena_Vista",
+               "Comedy-Musical"
             ],
             [
                21000000,
@@ -2173,17 +2173,6 @@
             ],
             [
                22000000,
-               20158000,
-               12700000,
-               0.64,
-               0.41,
-               "Homefront",
-               "N",
-               "Open_Road_Films",
-               "Action-Adventure"
-            ],
-            [
-               22000000,
                11576464,
                8323902,
                0.5,
@@ -2194,15 +2183,26 @@
                "Comedy-Musical"
             ],
             [
-               24000000,
-               9662284,
-               20889211,
-               0.32,
-               0.17,
-               "I_Dont_Know_How_She_Does_It",
+               22000000,
+               20158000,
+               12700000,
+               0.64,
+               0.41,
+               "Homefront",
                "N",
-               "Weinstein_Company",
-               "Comedy-Musical"
+               "Open_Road_Films",
+               "Action-Adventure"
+            ],
+            [
+               24000000,
+               101363301,
+               71000000,
+               0.54,
+               0.81,
+               "Scream_2",
+               "N",
+               "Dimension_Films",
+               "Drama"
             ],
             [
                24000000,
@@ -2217,6 +2217,17 @@
             ],
             [
                24000000,
+               9662284,
+               20889211,
+               0.32,
+               0.17,
+               "I_Dont_Know_How_She_Does_It",
+               "N",
+               "Weinstein_Company",
+               "Comedy-Musical"
+            ],
+            [
+               24000000,
                11829959,
                0,
                0.5,
@@ -2225,193 +2236,6 @@
                "N",
                "Sony",
                "Comedy-Musical"
-            ],
-            [
-               24000000,
-               101363301,
-               71000000,
-               0.54,
-               0.81,
-               "Scream_2",
-               "N",
-               "Dimension_Films",
-               "Drama"
-            ],
-            [
-               25000000,
-               19490041,
-               7631999,
-               0.42,
-               0.38,
-               "The_Eagle",
-               "N",
-               "Focus",
-               "Action-Adventure"
-            ],
-            [
-               25000000,
-               18877153,
-               21259326,
-               0.23,
-               0.16,
-               "Shark_Night_3D",
-               "N",
-               "Relativity",
-               "Thriller-Horror"
-            ],
-            [
-               25000000,
-               34302837,
-               101027345,
-               0.76,
-               0.69,
-               "Babel",
-               "Y",
-               "Paramount",
-               "Drama"
-            ],
-            [
-               25000000,
-               11273517,
-               2138440,
-               0.8,
-               0.55,
-               "Lords_of_Dogtown",
-               "N",
-               "Sony",
-               "Drama"
-            ],
-            [
-               25000000,
-               66528000,
-               29734000,
-               0.58,
-               0.51,
-               "Contraband",
-               "N",
-               "Universal",
-               "Thriller-Horror"
-            ],
-            [
-               25000000,
-               83823381,
-               83091358,
-               0.76,
-               0.91,
-               "Up_in_the_Air",
-               "Y",
-               "Paramount",
-               "Drama"
-            ],
-            [
-               25000000,
-               71509363,
-               81190583,
-               0.82,
-               0.63,
-               "Chocolat",
-               "Y",
-               "Miramax",
-               "Action-Adventure"
-            ],
-            [
-               25000000,
-               100317794,
-               189000000,
-               0.76,
-               0.93,
-               "Shakespeare_in_Love",
-               "Y",
-               "Miramax",
-               "Drama"
-            ],
-            [
-               25000000,
-               17266359,
-               12668118,
-               0.54,
-               0.67,
-               "Small_Time_Crooks",
-               "N",
-               "Dreamworks",
-               "Thriller-Horror"
-            ],
-            [
-               25000000,
-               17294293,
-               1340361,
-               0.41,
-               0.29,
-               "Max_Keebles_Big_Move",
-               "N",
-               "Buena_Vista",
-               "Action-Adventure"
-            ],
-            [
-               25000000,
-               51680613,
-               65085943,
-               0.84,
-               0.83,
-               "Finding_Neverland",
-               "Y",
-               "Miramax",
-               "Drama"
-            ],
-            [
-               25000000,
-               70662220,
-               77118220,
-               0.55,
-               0.49,
-               "No_Strings_Attached",
-               "N",
-               "Paramount",
-               "Comedy-Musical"
-            ],
-            [
-               25000000,
-               93617009,
-               35573860,
-               0.88,
-               0.9,
-               "The_Fighter",
-               "Y",
-               "Paramount",
-               "Drama"
-            ],
-            [
-               25000000,
-               13657115,
-               9400000,
-               0.93,
-               0.83,
-               "Warrior",
-               "N",
-               "Lionsgate",
-               "Action-Adventure"
-            ],
-            [
-               25000000,
-               36611066,
-               32284369,
-               0.6,
-               0.1,
-               "Taxi",
-               "N",
-               "Fox",
-               "Comedy-Musical"
-            ],
-            [
-               25000000,
-               18622031,
-               8804304,
-               0.86,
-               0.92,
-               "Frost-Nixon",
-               "Y",
-               "Universal",
-               "Drama"
             ],
             [
                25000000,
@@ -2448,35 +2272,13 @@
             ],
             [
                25000000,
-               23591432,
-               5788291,
-               0.54,
-               0.49,
-               "The_Losers",
-               "N",
-               "WB",
-               "Action-Adventure"
-            ],
-            [
-               25000000,
-               14161590,
-               13523426,
-               0.71,
-               0.22,
-               "Dirty_Dancing:_Havana_Nights",
-               "N",
-               "Lionsgate",
-               "Drama"
-            ],
-            [
-               25000000,
-               169708112,
-               41900000,
+               93617009,
+               35573860,
+               0.88,
                0.9,
-               0.76,
-               "The_Help",
+               "The_Fighter",
                "Y",
-               "Buena_Vista",
+               "Paramount",
                "Drama"
             ],
             [
@@ -2492,6 +2294,17 @@
             ],
             [
                25000000,
+               70662220,
+               77118220,
+               0.55,
+               0.49,
+               "No_Strings_Attached",
+               "N",
+               "Paramount",
+               "Comedy-Musical"
+            ],
+            [
+               25000000,
                10727683,
                1574536,
                0.36,
@@ -2503,6 +2316,28 @@
             ],
             [
                25000000,
+               17266359,
+               12668118,
+               0.54,
+               0.67,
+               "Small_Time_Crooks",
+               "N",
+               "Dreamworks",
+               "Thriller-Horror"
+            ],
+            [
+               25000000,
+               100317794,
+               189000000,
+               0.76,
+               0.93,
+               "Shakespeare_in_Love",
+               "Y",
+               "Miramax",
+               "Drama"
+            ],
+            [
+               25000000,
                40222514,
                35959031,
                0.84,
@@ -2511,6 +2346,171 @@
                "Y",
                "Paramount",
                "Drama"
+            ],
+            [
+               25000000,
+               71509363,
+               81190583,
+               0.82,
+               0.63,
+               "Chocolat",
+               "Y",
+               "Miramax",
+               "Action-Adventure"
+            ],
+            [
+               25000000,
+               169708112,
+               41900000,
+               0.9,
+               0.76,
+               "The_Help",
+               "Y",
+               "Buena_Vista",
+               "Drama"
+            ],
+            [
+               25000000,
+               14161590,
+               13523426,
+               0.71,
+               0.22,
+               "Dirty_Dancing:_Havana_Nights",
+               "N",
+               "Lionsgate",
+               "Drama"
+            ],
+            [
+               25000000,
+               66528000,
+               29734000,
+               0.58,
+               0.51,
+               "Contraband",
+               "N",
+               "Universal",
+               "Thriller-Horror"
+            ],
+            [
+               25000000,
+               11273517,
+               2138440,
+               0.8,
+               0.55,
+               "Lords_of_Dogtown",
+               "N",
+               "Sony",
+               "Drama"
+            ],
+            [
+               25000000,
+               18622031,
+               8804304,
+               0.86,
+               0.92,
+               "Frost-Nixon",
+               "Y",
+               "Universal",
+               "Drama"
+            ],
+            [
+               25000000,
+               36611066,
+               32284369,
+               0.6,
+               0.1,
+               "Taxi",
+               "N",
+               "Fox",
+               "Comedy-Musical"
+            ],
+            [
+               25000000,
+               34302837,
+               101027345,
+               0.76,
+               0.69,
+               "Babel",
+               "Y",
+               "Paramount",
+               "Drama"
+            ],
+            [
+               25000000,
+               18877153,
+               21259326,
+               0.23,
+               0.16,
+               "Shark_Night_3D",
+               "N",
+               "Relativity",
+               "Thriller-Horror"
+            ],
+            [
+               25000000,
+               83823381,
+               83091358,
+               0.76,
+               0.91,
+               "Up_in_the_Air",
+               "Y",
+               "Paramount",
+               "Drama"
+            ],
+            [
+               25000000,
+               51680613,
+               65085943,
+               0.84,
+               0.83,
+               "Finding_Neverland",
+               "Y",
+               "Miramax",
+               "Drama"
+            ],
+            [
+               25000000,
+               17294293,
+               1340361,
+               0.41,
+               0.29,
+               "Max_Keebles_Big_Move",
+               "N",
+               "Buena_Vista",
+               "Action-Adventure"
+            ],
+            [
+               25000000,
+               23591432,
+               5788291,
+               0.54,
+               0.49,
+               "The_Losers",
+               "N",
+               "WB",
+               "Action-Adventure"
+            ],
+            [
+               25000000,
+               19490041,
+               7631999,
+               0.42,
+               0.38,
+               "The_Eagle",
+               "N",
+               "Focus",
+               "Action-Adventure"
+            ],
+            [
+               25000000,
+               13657115,
+               9400000,
+               0.93,
+               0.83,
+               "Warrior",
+               "N",
+               "Lionsgate",
+               "Action-Adventure"
             ],
             [
                25100000,
@@ -2525,17 +2525,6 @@
             ],
             [
                26000000,
-               13261851,
-               14928128,
-               0.42,
-               0.23,
-               "Case_39",
-               "N",
-               "Paramount",
-               "Thriller-Horror"
-            ],
-            [
-               26000000,
                16008000,
                13649000,
                0.46,
@@ -2543,17 +2532,6 @@
                "The_Raven",
                "N",
                "Relativity",
-               "Thriller-Horror"
-            ],
-            [
-               26000000,
-               40168080,
-               27750578,
-               0.36,
-               0.2,
-               "Legion",
-               "N",
-               "Sony",
                "Thriller-Horror"
             ],
             [
@@ -2568,6 +2546,28 @@
                "Comedy-Musical"
             ],
             [
+               26000000,
+               40168080,
+               27750578,
+               0.36,
+               0.2,
+               "Legion",
+               "N",
+               "Sony",
+               "Thriller-Horror"
+            ],
+            [
+               26000000,
+               13261851,
+               14928128,
+               0.42,
+               0.23,
+               "Case_39",
+               "N",
+               "Paramount",
+               "Thriller-Horror"
+            ],
+            [
                27000000,
                78676425,
                153300000,
@@ -2576,17 +2576,6 @@
                "The_English_Patient",
                "Y",
                "Miramax",
-               "Comedy-Musical"
-            ],
-            [
-               28000000,
-               63890000,
-               62922000,
-               0.62,
-               0.47,
-               "Last_Vegas",
-               "N",
-               "CBS",
                "Comedy-Musical"
             ],
             [
@@ -2601,6 +2590,17 @@
                "Thriller-Horror"
             ],
             [
+               28000000,
+               63890000,
+               62922000,
+               0.62,
+               0.47,
+               "Last_Vegas",
+               "N",
+               "CBS",
+               "Comedy-Musical"
+            ],
+            [
                29000000,
                255959475,
                53248834,
@@ -2613,6 +2613,61 @@
             ],
             [
                30000000,
+               70099045,
+               110850000,
+               0.76,
+               0.85,
+               "Kill_Bill_Vol._1",
+               "N",
+               "Miramax",
+               "Action-Adventure"
+            ],
+            [
+               30000000,
+               26692846,
+               6460000,
+               0.78,
+               0.91,
+               "Winnie_the_Pooh",
+               "N",
+               "Buena_Vista",
+               "Family-Animation"
+            ],
+            [
+               30000000,
+               115646235,
+               95173376,
+               0.81,
+               0.91,
+               "District_9",
+               "Y",
+               "Sony",
+               "Action-Adventure"
+            ],
+            [
+               30000000,
+               35608245,
+               115904636,
+               0.43,
+               0.35,
+               "Larry_Crowne",
+               "N",
+               "Universal",
+               "Comedy-Musical"
+            ],
+            [
+               30000000,
+               42073000,
+               24412000,
+               0.73,
+               0.92,
+               "Cabin_in_the_Woods",
+               "N",
+               "Lionsgate",
+               "Thriller-Horror"
+            ],
+            [
+               30000000,
                100492203,
                116271443,
                0.87,
@@ -2621,17 +2676,6 @@
                "Y",
                "WB",
                "Drama"
-            ],
-            [
-               30000000,
-               18535812,
-               12534399,
-               0.42,
-               0.09,
-               "Ultraviolet",
-               "N",
-               "Sony",
-               "Thriller-Horror"
             ],
             [
                30000000,
@@ -2668,61 +2712,6 @@
             ],
             [
                30000000,
-               35608245,
-               115904636,
-               0.43,
-               0.35,
-               "Larry_Crowne",
-               "N",
-               "Universal",
-               "Comedy-Musical"
-            ],
-            [
-               30000000,
-               115646235,
-               95173376,
-               0.81,
-               0.91,
-               "District_9",
-               "Y",
-               "Sony",
-               "Action-Adventure"
-            ],
-            [
-               30000000,
-               70099045,
-               110850000,
-               0.76,
-               0.85,
-               "Kill_Bill_Vol._1",
-               "N",
-               "Miramax",
-               "Action-Adventure"
-            ],
-            [
-               30000000,
-               42073000,
-               24412000,
-               0.73,
-               0.92,
-               "Cabin_in_the_Woods",
-               "N",
-               "Lionsgate",
-               "Thriller-Horror"
-            ],
-            [
-               30000000,
-               26692846,
-               6460000,
-               0.78,
-               0.91,
-               "Winnie_the_Pooh",
-               "N",
-               "Buena_Vista",
-               "Family-Animation"
-            ],
-            [
-               30000000,
                16316273,
                0,
                0.75,
@@ -2733,15 +2722,26 @@
                "Drama"
             ],
             [
+               30000000,
+               18535812,
+               12534399,
+               0.42,
+               0.09,
+               "Ultraviolet",
+               "N",
+               "Sony",
+               "Thriller-Horror"
+            ],
+            [
                32000000,
-               13303319,
-               41000000,
-               0.6,
-               0.84,
-               "The_Tree_of_Life",
-               "Y",
-               "Fox",
-               "Drama"
+               101470000,
+               0,
+               0.73,
+               0.83,
+               "This_is_the_End",
+               "N",
+               "Sony",
+               "Comedy-Musical"
             ],
             [
                32000000,
@@ -2756,14 +2756,14 @@
             ],
             [
                32000000,
-               101470000,
-               0,
-               0.73,
-               0.83,
-               "This_is_the_End",
-               "N",
-               "Sony",
-               "Comedy-Musical"
+               13303319,
+               41000000,
+               0.6,
+               0.84,
+               "The_Tree_of_Life",
+               "Y",
+               "Fox",
+               "Drama"
             ],
             [
                32000000,
@@ -2800,68 +2800,13 @@
             ],
             [
                35000000,
-               16500786,
-               1088919,
-               0.33,
-               0.09,
-               "Eye_of_the_Beholder",
+               25881068,
+               45356283,
+               0.36,
+               0.16,
+               "Superhero_Movie",
                "N",
-               "Destination",
-               "Comedy-Musical"
-            ],
-            [
-               35000000,
-               59713955,
-               537416,
-               0.76,
-               0.64,
-               "Secretariat",
-               "N",
-               "Buena_Vista",
-               "Drama"
-            ],
-            [
-               35000000,
-               82012000,
-               17900000,
-               0.88,
-               0.8,
-               "Saving_Mr._Banks",
-               "N",
-               "Buena_Vista",
-               "Drama"
-            ],
-            [
-               35000000,
-               13342790,
-               336123,
-               0.67,
-               0.14,
-               "American_Outlaws",
-               "N",
-               "WB",
-               "Family-Animation"
-            ],
-            [
-               35000000,
-               32572577,
-               87500000,
-               0.94,
-               0.96,
-               "The_Pianist",
-               "Y",
-               "Focus",
-               "Drama"
-            ],
-            [
-               35000000,
-               39046489,
-               21137332,
-               0.48,
-               0.15,
-               "Something_Borrowed",
-               "N",
-               "WB",
+               "MGM-UA",
                "Comedy-Musical"
             ],
             [
@@ -2877,50 +2822,6 @@
             ],
             [
                35000000,
-               40689393,
-               44727512,
-               0.36,
-               0.16,
-               "Max_Payne",
-               "N",
-               "Fox",
-               "Action-Adventure"
-            ],
-            [
-               35000000,
-               25881068,
-               45356283,
-               0.36,
-               0.16,
-               "Superhero_Movie",
-               "N",
-               "MGM-UA",
-               "Comedy-Musical"
-            ],
-            [
-               35000000,
-               63856929,
-               0,
-               0.48,
-               0.73,
-               "In_&_Out",
-               "N",
-               "Paramount",
-               "Comedy-Musical"
-            ],
-            [
-               35000000,
-               16990825,
-               1021272,
-               0.38,
-               0.3,
-               "The_Country_Bears",
-               "N",
-               "Buena_Vista",
-               "Action-Adventure"
-            ],
-            [
-               35000000,
                45802315,
                45551186,
                0.68,
@@ -2929,6 +2830,17 @@
                "N",
                "Sony",
                "Thriller-Horror"
+            ],
+            [
+               35000000,
+               39046489,
+               21137332,
+               0.48,
+               0.15,
+               "Something_Borrowed",
+               "N",
+               "WB",
+               "Comedy-Musical"
             ],
             [
                35000000,
@@ -2953,15 +2865,92 @@
                "Thriller-Horror"
             ],
             [
-               36000000,
-               13323144,
-               0,
-               0.64,
-               0.46,
-               "Ghosts_of_Mississippi",
+               35000000,
+               13342790,
+               336123,
+               0.67,
+               0.14,
+               "American_Outlaws",
                "N",
-               "Sony",
+               "WB",
+               "Family-Animation"
+            ],
+            [
+               35000000,
+               63856929,
+               0,
+               0.48,
+               0.73,
+               "In_&_Out",
+               "N",
+               "Paramount",
+               "Comedy-Musical"
+            ],
+            [
+               35000000,
+               82012000,
+               17900000,
+               0.88,
+               0.8,
+               "Saving_Mr._Banks",
+               "N",
+               "Buena_Vista",
                "Drama"
+            ],
+            [
+               35000000,
+               40689393,
+               44727512,
+               0.36,
+               0.16,
+               "Max_Payne",
+               "N",
+               "Fox",
+               "Action-Adventure"
+            ],
+            [
+               35000000,
+               59713955,
+               537416,
+               0.76,
+               0.64,
+               "Secretariat",
+               "N",
+               "Buena_Vista",
+               "Drama"
+            ],
+            [
+               35000000,
+               16500786,
+               1088919,
+               0.33,
+               0.09,
+               "Eye_of_the_Beholder",
+               "N",
+               "Destination",
+               "Comedy-Musical"
+            ],
+            [
+               35000000,
+               32572577,
+               87500000,
+               0.94,
+               0.96,
+               "The_Pianist",
+               "Y",
+               "Focus",
+               "Drama"
+            ],
+            [
+               35000000,
+               16990825,
+               1021272,
+               0.38,
+               0.3,
+               "The_Country_Bears",
+               "N",
+               "Buena_Vista",
+               "Action-Adventure"
             ],
             [
                36000000,
@@ -2975,15 +2964,15 @@
                "Thriller-Horror"
             ],
             [
-               37000000,
-               60355347,
-               103364722,
+               36000000,
+               13323144,
+               0,
                0.64,
-               0.78,
-               "Burn_After_Ridiculous",
+               0.46,
+               "Ghosts_of_Mississippi",
                "N",
-               "Focus",
-               "Comedy-Musical"
+               "Sony",
+               "Drama"
             ],
             [
                37000000,
@@ -2995,6 +2984,39 @@
                "N",
                "Fox",
                "Action-Adventure"
+            ],
+            [
+               37000000,
+               60355347,
+               103364722,
+               0.64,
+               0.78,
+               "Burn_After_Ridiculous",
+               "N",
+               "Focus",
+               "Comedy-Musical"
+            ],
+            [
+               38000000,
+               88915214,
+               116383693,
+               0.68,
+               0.13,
+               "The_Ugly_Truth",
+               "N",
+               "Sony",
+               "Comedy-Musical"
+            ],
+            [
+               38000000,
+               31811527,
+               17047091,
+               0.47,
+               0.22,
+               "Push",
+               "N",
+               "Summit",
+               "Thriller-Horror"
             ],
             [
                38000000,
@@ -3017,28 +3039,6 @@
                "Y",
                "Paramount",
                "Action-Adventure"
-            ],
-            [
-               38000000,
-               31811527,
-               17047091,
-               0.47,
-               0.22,
-               "Push",
-               "N",
-               "Summit",
-               "Thriller-Horror"
-            ],
-            [
-               38000000,
-               88915214,
-               116383693,
-               0.68,
-               0.13,
-               "The_Ugly_Truth",
-               "N",
-               "Sony",
-               "Comedy-Musical"
             ],
             [
                39000000,
@@ -3064,146 +3064,14 @@
             ],
             [
                40000000,
-               119000000,
-               0,
-               0.9,
-               0.74,
-               "Lone_Survivor",
-               "N",
-               "Universal",
-               "Action-Adventure"
-            ],
-            [
-               40000000,
-               293506292,
-               379300000,
-               0.87,
-               0.85,
-               "The_Sixth_Sense",
-               "Y",
-               "Buena_Vista",
-               "Family-Animation"
-            ],
-            [
-               40000000,
-               176591618,
-               182534404,
-               0.75,
-               0.67,
-               "Karate_Kid",
-               "N",
-               "Sony",
-               "Drama"
-            ],
-            [
-               40000000,
-               41152000,
-               43231000,
-               0.48,
-               0.22,
-               "What_to_Expect_When_Youre_Expecting",
-               "N",
-               "Lionsgate",
-               "Comedy-Musical"
-            ],
-            [
-               40000000,
-               95720000,
-               37100000,
-               0.8,
-               0.93,
-               "Zero_Dark_Thirty",
-               "Y",
-               "Sony",
-               "Thriller-Horror"
-            ],
-            [
-               40000000,
-               21002919,
-               25468104,
-               0.81,
-               0.93,
-               "Fantastic_Mr._Fox",
-               "N",
-               "Fox",
-               "Family-Animation"
-            ],
-            [
-               40000000,
-               46012734,
-               59950026,
-               0.61,
-               0.14,
-               "Made_of_Honor",
-               "N",
-               "Sony",
-               "Comedy-Musical"
-            ],
-            [
-               40000000,
-               141870000,
-               61761739,
-               0.78,
-               0.93,
-               "American_Hustle",
-               "Y",
-               "Sony",
-               "Drama"
-            ],
-            [
-               40000000,
-               57806952,
-               673876,
-               0.74,
-               0.71,
-               "Invincible",
-               "N",
-               "Buena_Vista",
-               "Drama"
-            ],
-            [
-               40000000,
-               75331600,
-               49399934,
-               0.87,
-               0.81,
-               "Ray",
-               "Y",
-               "Universal",
-               "Drama"
-            ],
-            [
-               40000000,
-               96962694,
-               127957621,
-               0.89,
-               0.96,
-               "The_Social_Network",
-               "Y",
-               "Sony",
-               "Drama"
-            ],
-            [
-               40000000,
-               23649127,
-               15105946,
-               0.27,
-               0.15,
-               "The_Wicker_Man",
+               16328471,
+               9827310,
+               0.49,
+               0.04,
+               "The_Whole_Ten_Yards",
                "N",
                "WB",
-               "Thriller-Horror"
-            ],
-            [
-               40000000,
-               108766007,
-               43500000,
-               0.83,
-               0.67,
-               "A_Time_to_Kill",
-               "N",
-               "WB",
-               "Action-Adventure"
+               "Comedy-Musical"
             ],
             [
                40000000,
@@ -3218,14 +3086,14 @@
             ],
             [
                40000000,
-               16328471,
-               9827310,
-               0.49,
-               0.04,
-               "The_Whole_Ten_Yards",
+               108766007,
+               43500000,
+               0.83,
+               0.67,
+               "A_Time_to_Kill",
                "N",
                "WB",
-               "Comedy-Musical"
+               "Action-Adventure"
             ],
             [
                40000000,
@@ -3262,6 +3130,105 @@
             ],
             [
                40000000,
+               119000000,
+               0,
+               0.9,
+               0.74,
+               "Lone_Survivor",
+               "N",
+               "Universal",
+               "Action-Adventure"
+            ],
+            [
+               40000000,
+               293506292,
+               379300000,
+               0.87,
+               0.85,
+               "The_Sixth_Sense",
+               "Y",
+               "Buena_Vista",
+               "Family-Animation"
+            ],
+            [
+               40000000,
+               96962694,
+               127957621,
+               0.89,
+               0.96,
+               "The_Social_Network",
+               "Y",
+               "Sony",
+               "Drama"
+            ],
+            [
+               40000000,
+               176591618,
+               182534404,
+               0.75,
+               0.67,
+               "Karate_Kid",
+               "N",
+               "Sony",
+               "Drama"
+            ],
+            [
+               40000000,
+               75331600,
+               49399934,
+               0.87,
+               0.81,
+               "Ray",
+               "Y",
+               "Universal",
+               "Drama"
+            ],
+            [
+               40000000,
+               57806952,
+               673876,
+               0.74,
+               0.71,
+               "Invincible",
+               "N",
+               "Buena_Vista",
+               "Drama"
+            ],
+            [
+               40000000,
+               141870000,
+               61761739,
+               0.78,
+               0.93,
+               "American_Hustle",
+               "Y",
+               "Sony",
+               "Drama"
+            ],
+            [
+               40000000,
+               46012734,
+               59950026,
+               0.61,
+               0.14,
+               "Made_of_Honor",
+               "N",
+               "Sony",
+               "Comedy-Musical"
+            ],
+            [
+               40000000,
+               95720000,
+               37100000,
+               0.8,
+               0.93,
+               "Zero_Dark_Thirty",
+               "Y",
+               "Sony",
+               "Thriller-Horror"
+            ],
+            [
+               40000000,
                31011732,
                2773448,
                0.52,
@@ -3273,6 +3240,17 @@
             ],
             [
                40000000,
+               23649127,
+               15105946,
+               0.27,
+               0.15,
+               "The_Wicker_Man",
+               "N",
+               "WB",
+               "Thriller-Horror"
+            ],
+            [
+               40000000,
                42587643,
                115300000,
                0.52,
@@ -3281,6 +3259,28 @@
                "N",
                "WB",
                "Thriller-Horror"
+            ],
+            [
+               40000000,
+               41152000,
+               43231000,
+               0.48,
+               0.22,
+               "What_to_Expect_When_Youre_Expecting",
+               "N",
+               "Lionsgate",
+               "Comedy-Musical"
+            ],
+            [
+               40000000,
+               21002919,
+               25468104,
+               0.81,
+               0.93,
+               "Fantastic_Mr._Fox",
+               "N",
+               "Fox",
+               "Family-Animation"
             ],
             [
                42000000,
@@ -3350,39 +3350,6 @@
             ],
             [
                50000000,
-               27100031,
-               31800000,
-               0.56,
-               0.28,
-               "The_Story_of_Us",
-               "N",
-               "Universal",
-               "Drama"
-            ],
-            [
-               50000000,
-               57386607,
-               121826827,
-               0.88,
-               0.76,
-               "Moulin_Rouge!",
-               "Y",
-               "Fox",
-               "Drama"
-            ],
-            [
-               50000000,
-               153952592,
-               119600000,
-               0.72,
-               0.85,
-               "Jerry_Maguire",
-               "Y",
-               "Sony",
-               "Drama"
-            ],
-            [
-               50000000,
                66023816,
                78123000,
                0.54,
@@ -3391,28 +3358,6 @@
                "N",
                "Buena_Vista",
                "Comedy-Musical"
-            ],
-            [
-               50000000,
-               58360760,
-               11474055,
-               0.65,
-               0.69,
-               "Curious_George",
-               "N",
-               "Universal",
-               "Family-Animation"
-            ],
-            [
-               50000000,
-               127004179,
-               132932498,
-               0.78,
-               0.82,
-               "Super_8",
-               "N",
-               "Paramount",
-               "Action-Adventure"
             ],
             [
                50000000,
@@ -3438,14 +3383,58 @@
             ],
             [
                50000000,
-               25450527,
-               34710864,
-               0.39,
-               0.59,
-               "The_International",
-               "N",
+               153952592,
+               119600000,
+               0.72,
+               0.85,
+               "Jerry_Maguire",
+               "Y",
                "Sony",
-               "Thriller-Horror"
+               "Drama"
+            ],
+            [
+               50000000,
+               57386607,
+               121826827,
+               0.88,
+               0.76,
+               "Moulin_Rouge!",
+               "Y",
+               "Fox",
+               "Drama"
+            ],
+            [
+               50000000,
+               75605492,
+               34600724,
+               0.86,
+               0.95,
+               "Moneyball",
+               "Y",
+               "Sony",
+               "Drama"
+            ],
+            [
+               50000000,
+               27100031,
+               31800000,
+               0.56,
+               0.28,
+               "The_Story_of_Us",
+               "N",
+               "Universal",
+               "Drama"
+            ],
+            [
+               50000000,
+               127004179,
+               132932498,
+               0.78,
+               0.82,
+               "Super_8",
+               "N",
+               "Paramount",
+               "Action-Adventure"
             ],
             [
                50000000,
@@ -3471,14 +3460,25 @@
             ],
             [
                50000000,
-               75605492,
-               34600724,
-               0.86,
-               0.95,
-               "Moneyball",
-               "Y",
+               58360760,
+               11474055,
+               0.65,
+               0.69,
+               "Curious_George",
+               "N",
+               "Universal",
+               "Family-Animation"
+            ],
+            [
+               50000000,
+               25450527,
+               34710864,
+               0.39,
+               0.59,
+               "The_International",
+               "N",
                "Sony",
-               "Drama"
+               "Thriller-Horror"
             ],
             [
                52000000,
@@ -3526,17 +3526,6 @@
             ],
             [
                55000000,
-               36895141,
-               28769580,
-               0.6,
-               0.55,
-               "16_Blocks",
-               "N",
-               "WB",
-               "Thriller-Horror"
-            ],
-            [
-               55000000,
                166244045,
                164200000,
                0.79,
@@ -3545,6 +3534,17 @@
                "N",
                "Universal",
                "Comedy-Musical"
+            ],
+            [
+               55000000,
+               36895141,
+               28769580,
+               0.6,
+               0.55,
+               "16_Blocks",
+               "N",
+               "WB",
+               "Thriller-Horror"
             ],
             [
                55000000,
@@ -3603,39 +3603,6 @@
             ],
             [
                60000000,
-               43337279,
-               19020621,
-               0.31,
-               0.14,
-               "Year_One",
-               "N",
-               "Sony",
-               "Comedy-Musical"
-            ],
-            [
-               60000000,
-               14594226,
-               0,
-               0.45,
-               0.1,
-               "Soldier",
-               "N",
-               "WB",
-               "Action-Adventure"
-            ],
-            [
-               60000000,
-               50877145,
-               36070820,
-               0.46,
-               0.56,
-               "The_Tale_of_Despereaux",
-               "N",
-               "Universal",
-               "Family-Animation"
-            ],
-            [
-               60000000,
                93354851,
                105688391,
                0.63,
@@ -3658,14 +3625,14 @@
             ],
             [
                60000000,
-               60128566,
-               236093097,
-               0.51,
-               0.24,
-               "Resident_Evil:_Afterlife",
+               50877145,
+               36070820,
+               0.46,
+               0.56,
+               "The_Tale_of_Despereaux",
                "N",
-               "Sony",
-               "Thriller-Horror"
+               "Universal",
+               "Family-Animation"
             ],
             [
                60000000,
@@ -3680,22 +3647,11 @@
             ],
             [
                60000000,
-               35763000,
-               13200000,
-               0.67,
-               0.51,
-               "Trouble_with_the_Curve",
-               "N",
-               "WB",
-               "Drama"
-            ],
-            [
-               60000000,
-               75658097,
-               59800000,
-               0.61,
-               0.84,
-               "Contagion",
+               14594226,
+               0,
+               0.45,
+               0.1,
+               "Soldier",
                "N",
                "WB",
                "Action-Adventure"
@@ -3709,6 +3665,17 @@
                "The_Green_Mile",
                "Y",
                "WB",
+               "Thriller-Horror"
+            ],
+            [
+               60000000,
+               60128566,
+               236093097,
+               0.51,
+               0.24,
+               "Resident_Evil:_Afterlife",
+               "N",
+               "Sony",
                "Thriller-Horror"
             ],
             [
@@ -3731,6 +3698,39 @@
                "The_Terminal",
                "N",
                "Dreamworks",
+               "Drama"
+            ],
+            [
+               60000000,
+               75658097,
+               59800000,
+               0.61,
+               0.84,
+               "Contagion",
+               "N",
+               "WB",
+               "Action-Adventure"
+            ],
+            [
+               60000000,
+               43337279,
+               19020621,
+               0.31,
+               0.14,
+               "Year_One",
+               "N",
+               "Sony",
+               "Comedy-Musical"
+            ],
+            [
+               60000000,
+               35763000,
+               13200000,
+               0.67,
+               0.51,
+               "Trouble_with_the_Curve",
+               "N",
+               "WB",
                "Drama"
             ],
             [
@@ -3779,17 +3779,6 @@
             ],
             [
                65000000,
-               90464773,
-               38419359,
-               0.5,
-               0.79,
-               "Space_Cowboys",
-               "N",
-               "WB",
-               "Comedy-Musical"
-            ],
-            [
-               65000000,
                52411906,
                76493460,
                0.7,
@@ -3801,14 +3790,14 @@
             ],
             [
                65000000,
-               19551067,
-               20335919,
-               0.53,
-               0.49,
-               "Astro_Boy",
+               90464773,
+               38419359,
+               0.5,
+               0.79,
+               "Space_Cowboys",
                "N",
-               "Summit",
-               "Family-Animation"
+               "WB",
+               "Comedy-Musical"
             ],
             [
                65000000,
@@ -3820,6 +3809,17 @@
                "Y",
                "Buena_Vista",
                "Drama"
+            ],
+            [
+               65000000,
+               19551067,
+               20335919,
+               0.53,
+               0.49,
+               "Astro_Boy",
+               "N",
+               "Summit",
+               "Family-Animation"
             ],
             [
                66000000,
@@ -3856,39 +3856,6 @@
             ],
             [
                70000000,
-               23159305,
-               0,
-               0.72,
-               0.97,
-               "The_Iron_Giant",
-               "N",
-               "WB",
-               "Action-Adventure"
-            ],
-            [
-               70000000,
-               83552429,
-               128266925,
-               0.49,
-               0.35,
-               "Battle:_Los_Angeles",
-               "N",
-               "Sony",
-               "Action-Adventure"
-            ],
-            [
-               70000000,
-               47403685,
-               82955226,
-               0.78,
-               0.78,
-               "Munich",
-               "Y",
-               "Universal",
-               "Thriller-Horror"
-            ],
-            [
-               70000000,
                48475290,
                21246676,
                0.31,
@@ -3911,13 +3878,35 @@
             ],
             [
                70000000,
-               216540909,
-               265300000,
-               0.92,
-               0.93,
-               "Savng_Private_Ryan",
+               47403685,
+               82955226,
+               0.78,
+               0.78,
+               "Munich",
                "Y",
-               "Dreamworks",
+               "Universal",
+               "Thriller-Horror"
+            ],
+            [
+               70000000,
+               83552429,
+               128266925,
+               0.49,
+               0.35,
+               "Battle:_Los_Angeles",
+               "N",
+               "Sony",
+               "Action-Adventure"
+            ],
+            [
+               70000000,
+               23159305,
+               0,
+               0.72,
+               0.97,
+               "The_Iron_Giant",
+               "N",
+               "WB",
                "Action-Adventure"
             ],
             [
@@ -3944,17 +3933,6 @@
             ],
             [
                70000000,
-               142109382,
-               135339000,
-               0.69,
-               0.48,
-               "XXX",
-               "N",
-               "Sony",
-               "Action-Adventure"
-            ],
-            [
-               70000000,
                11263966,
                0,
                0.36,
@@ -3976,23 +3954,23 @@
                "Comedy-Musical"
             ],
             [
-               75000000,
-               38518000,
-               20900000,
-               0.55,
-               0.41,
-               "Rock_of_Ages",
-               "N",
-               "WB",
-               "Comedy-Musical"
+               70000000,
+               216540909,
+               265300000,
+               0.92,
+               0.93,
+               "Savng_Private_Ryan",
+               "Y",
+               "Dreamworks",
+               "Action-Adventure"
             ],
             [
-               75000000,
-               46464023,
-               95936042,
-               0.61,
-               0.26,
-               "The_Legend_of_Zorro",
+               70000000,
+               142109382,
+               135339000,
+               0.69,
+               0.48,
+               "XXX",
                "N",
                "Sony",
                "Action-Adventure"
@@ -4010,6 +3988,17 @@
             ],
             [
                75000000,
+               46464023,
+               95936042,
+               0.61,
+               0.26,
+               "The_Legend_of_Zorro",
+               "N",
+               "Sony",
+               "Action-Adventure"
+            ],
+            [
+               75000000,
                43734876,
                42733286,
                0.72,
@@ -4018,6 +4007,17 @@
                "N",
                "Sony",
                "Drama"
+            ],
+            [
+               75000000,
+               38518000,
+               20900000,
+               0.55,
+               0.41,
+               "Rock_of_Ages",
+               "N",
+               "WB",
+               "Comedy-Musical"
             ],
             [
                78000000,
@@ -4032,14 +4032,14 @@
             ],
             [
                80000000,
-               162001186,
-               109429003,
-               0.59,
-               0.1,
-               "Grown_Ups",
+               43313890,
+               37810239,
+               0.56,
+               0.58,
+               "Edge_of_Darkness",
                "N",
-               "Sony",
-               "Comedy-Musical"
+               "WB",
+               "Thriller-Horror"
             ],
             [
                80000000,
@@ -4054,17 +4054,6 @@
             ],
             [
                80000000,
-               43313890,
-               37810239,
-               0.56,
-               0.58,
-               "Edge_of_Darkness",
-               "N",
-               "WB",
-               "Thriller-Horror"
-            ],
-            [
-               80000000,
                128012934,
                166791261,
                0.73,
@@ -4076,17 +4065,6 @@
             ],
             [
                80000000,
-               17480890,
-               15983079,
-               0.31,
-               0.14,
-               "Red_Planet",
-               "N",
-               "WB",
-               "Action-Adventure"
-            ],
-            [
-               80000000,
                17626234,
                0,
                0.51,
@@ -4095,6 +4073,28 @@
                "N",
                "WB",
                "Drama"
+            ],
+            [
+               80000000,
+               162001186,
+               109429003,
+               0.59,
+               0.1,
+               "Grown_Ups",
+               "N",
+               "Sony",
+               "Comedy-Musical"
+            ],
+            [
+               80000000,
+               17480890,
+               15983079,
+               0.31,
+               0.14,
+               "Red_Planet",
+               "N",
+               "WB",
+               "Action-Adventure"
             ],
             [
                80000000,
@@ -4131,14 +4131,25 @@
             ],
             [
                85000000,
-               34562556,
-               0,
-               0.16,
-               0.46,
-               "Jack_Frost",
+               40077257,
+               38305176,
+               0.33,
+               0.18,
+               "Collateral_Damage",
                "N",
                "WB",
                "Comedy-Musical"
+            ],
+            [
+               85000000,
+               183417150,
+               267300000,
+               0.76,
+               0.82,
+               "Oceans_Eleven",
+               "N",
+               "WB",
+               "Drama"
             ],
             [
                85000000,
@@ -4153,11 +4164,11 @@
             ],
             [
                85000000,
-               40077257,
-               38305176,
-               0.33,
-               0.18,
-               "Collateral_Damage",
+               34562556,
+               0,
+               0.16,
+               0.46,
+               "Jack_Frost",
                "N",
                "WB",
                "Comedy-Musical"
@@ -4172,17 +4183,6 @@
                "N",
                "Buena_Vista",
                "Thriller-Horror"
-            ],
-            [
-               85000000,
-               183417150,
-               267300000,
-               0.76,
-               0.82,
-               "Oceans_Eleven",
-               "N",
-               "WB",
-               "Drama"
             ],
             [
                87000000,
@@ -4208,17 +4208,6 @@
             ],
             [
                90000000,
-               6719973,
-               3652318,
-               0.17,
-               0.13,
-               "Town_&_Country",
-               "N",
-               "New_Line",
-               "Action-Adventure"
-            ],
-            [
-               90000000,
                33479698,
                10405206,
                0.41,
@@ -4227,17 +4216,6 @@
                "N",
                "New_Line",
                "Comedy-Musical"
-            ],
-            [
-               90000000,
-               81526121,
-               80100000,
-               0.67,
-               0.53,
-               "Payback",
-               "N",
-               "Paramount",
-               "Family-Animation"
             ],
             [
                90000000,
@@ -4252,6 +4230,17 @@
             ],
             [
                90000000,
+               6719973,
+               3652318,
+               0.17,
+               0.13,
+               "Town_&_Country",
+               "N",
+               "New_Line",
+               "Action-Adventure"
+            ],
+            [
+               90000000,
                33602376,
                32297873,
                0.7,
@@ -4260,6 +4249,17 @@
                "N",
                "Paramount",
                "Action-Adventure"
+            ],
+            [
+               90000000,
+               81526121,
+               80100000,
+               0.67,
+               0.53,
+               "Payback",
+               "N",
+               "Paramount",
+               "Family-Animation"
             ],
             [
                92000000,
@@ -4406,17 +4406,6 @@
             ],
             [
                110000000,
-               102610330,
-               111131129,
-               0.73,
-               0.87,
-               "The_Aviator",
-               "Y",
-               "Miramax",
-               "Drama"
-            ],
-            [
-               110000000,
                142614158,
                421135165,
                0.46,
@@ -4425,6 +4414,17 @@
                "N",
                "Sony",
                "Family-Animation"
+            ],
+            [
+               110000000,
+               102610330,
+               111131129,
+               0.73,
+               0.87,
+               "The_Aviator",
+               "Y",
+               "Miramax",
+               "Drama"
             ],
             [
                115000000,
@@ -4472,28 +4472,6 @@
             ],
             [
                130000000,
-               171091819,
-               277100000,
-               0.63,
-               0.88,
-               "Tarzan",
-               "N",
-               "Buena_Vista",
-               "Action-Adventure"
-            ],
-            [
-               130000000,
-               60522000,
-               0,
-               0.38,
-               0.11,
-               "After_Earth",
-               "N",
-               "Sony",
-               "Action-Adventure"
-            ],
-            [
-               130000000,
                126477000,
                276877000,
                0.69,
@@ -4523,6 +4501,28 @@
                "The_Hunger_Games:_Catching_Fire",
                "N",
                "Lionsgate",
+               "Action-Adventure"
+            ],
+            [
+               130000000,
+               60522000,
+               0,
+               0.38,
+               0.11,
+               "After_Earth",
+               "N",
+               "Sony",
+               "Action-Adventure"
+            ],
+            [
+               130000000,
+               171091819,
+               277100000,
+               0.63,
+               0.88,
+               "Tarzan",
+               "N",
+               "Buena_Vista",
                "Action-Adventure"
             ],
             [
@@ -4571,17 +4571,6 @@
             ],
             [
                140000000,
-               130444603,
-               155000000,
-               0.7,
-               0.52,
-               "Lethal_Weapon_4",
-               "N",
-               "WB",
-               "Family-Animation"
-            ],
-            [
-               140000000,
                201578182,
                352131606,
                0.77,
@@ -4603,25 +4592,14 @@
                "Action-Adventure"
             ],
             [
-               150000000,
-               93927920,
-               118083191,
-               0.75,
-               0.85,
-               "Master_and_Commander:_The_Far_Side_of_the_World",
-               "Y",
-               "Fox",
-               "Action-Adventure"
-            ],
-            [
-               150000000,
-               135386665,
-               179046172,
-               0.56,
-               0.36,
-               "Chicken_Little",
+               140000000,
+               130444603,
+               155000000,
+               0.7,
+               0.52,
+               "Lethal_Weapon_4",
                "N",
-               "Buena_Vista",
+               "WB",
                "Family-Animation"
             ],
             [
@@ -4637,13 +4615,24 @@
             ],
             [
                150000000,
-               131772187,
-               187941694,
-               0.42,
-               0.06,
-               "The_Last_Airbender",
+               135386665,
+               179046172,
+               0.56,
+               0.36,
+               "Chicken_Little",
                "N",
-               "Paramount",
+               "Buena_Vista",
+               "Family-Animation"
+            ],
+            [
+               150000000,
+               93927920,
+               118083191,
+               0.75,
+               0.85,
+               "Master_and_Commander:_The_Far_Side_of_the_World",
+               "Y",
+               "Fox",
                "Action-Adventure"
             ],
             [
@@ -4656,6 +4645,17 @@
                "Y",
                "Paramount",
                "Drama"
+            ],
+            [
+               150000000,
+               131772187,
+               187941694,
+               0.42,
+               0.06,
+               "The_Last_Airbender",
+               "N",
+               "Paramount",
+               "Action-Adventure"
             ],
             [
                160000000,
@@ -4714,17 +4714,6 @@
             ],
             [
                175000000,
-               293004164,
-               438338580,
-               0.86,
-               0.98,
-               "Up",
-               "Y",
-               "Buena_Vista",
-               "Family-Animation"
-            ],
-            [
-               175000000,
                38362000,
                104700000,
                0.55,
@@ -4733,6 +4722,17 @@
                "N",
                "Universal",
                "Action-Adventure"
+            ],
+            [
+               175000000,
+               293004164,
+               438338580,
+               0.86,
+               0.98,
+               "Up",
+               "Y",
+               "Buena_Vista",
+               "Family-Animation"
             ],
             [
                185000000,
@@ -4769,17 +4769,6 @@
             ],
             [
                200000000,
-               415004880,
-               648167031,
-               0.91,
-               0.99,
-               "Toy_Story_3",
-               "Y",
-               "Buena_Vista",
-               "Family-Animation"
-            ],
-            [
-               200000000,
                600788188,
                1526700000,
                0.69,
@@ -4788,6 +4777,17 @@
                "Y",
                "Paramount",
                "Comedy-Musical"
+            ],
+            [
+               200000000,
+               415004880,
+               648167031,
+               0.91,
+               0.99,
+               "Toy_Story_3",
+               "Y",
+               "Buena_Vista",
+               "Family-Animation"
             ],
             [
                200000000,
@@ -4970,7 +4970,7 @@
       "filterInfo":[
 
       ],
-      "taskId":"task5"
+      "taskId":"task3"
    },
    "operationType":[
       "TASK_DATA"

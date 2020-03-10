@@ -41,7 +41,7 @@
                "Thriller-Horror"
             ],
             [
-               "Alejandro_Gonz�lez_I��rritu",
+               "Alejandro_González_Iñárritu",
                25000000,
                34302837,
                101027345,
@@ -66,18 +66,6 @@
             ],
             [
                "Alexander_Payne",
-               12000000,
-               15895000,
-               0,
-               0.87,
-               0.92,
-               "Nebraska",
-               "Y",
-               "Paramount",
-               "Drama"
-            ],
-            [
-               "Alexander_Payne",
                20000000,
                82584160,
                94659025,
@@ -86,6 +74,18 @@
                "The_Descendants",
                "Y",
                "Fox",
+               "Drama"
+            ],
+            [
+               "Alexander_Payne",
+               12000000,
+               15895000,
+               0,
+               0.87,
+               0.92,
+               "Nebraska",
+               "Y",
+               "Paramount",
                "Drama"
             ],
             [
@@ -101,7 +101,7 @@
                "Comedy-Musical"
             ],
             [
-               "Alfonso_Cuar�n",
+               "Alfonso_Cuarón",
                0,
                26420672,
                29073394,
@@ -113,7 +113,7 @@
                "Comedy-Musical"
             ],
             [
-               "Alfonso_Cuar�n",
+               "Alfonso_Cuarón",
                100000000,
                268167000,
                431000000,
@@ -150,18 +150,6 @@
             ],
             [
                "Andrew_Davis",
-               85000000,
-               40077257,
-               38305176,
-               0.33,
-               0.18,
-               "Collateral_Damage",
-               "N",
-               "WB",
-               "Comedy-Musical"
-            ],
-            [
-               "Andrew_Davis",
                20000000,
                67406573,
                4000000,
@@ -170,6 +158,18 @@
                "Holes",
                "N",
                "Buena_Vista",
+               "Comedy-Musical"
+            ],
+            [
+               "Andrew_Davis",
+               85000000,
+               40077257,
+               38305176,
+               0.33,
+               0.18,
+               "Collateral_Damage",
+               "N",
+               "WB",
                "Comedy-Musical"
             ],
             [
@@ -210,6 +210,30 @@
             ],
             [
                "Ang_Lee",
+               120000000,
+               124987000,
+               484029000,
+               0.85,
+               0.87,
+               "Life_of_Pi",
+               "Y",
+               "Fox",
+               "Action-Adventure"
+            ],
+            [
+               "Ang_Lee",
+               14000000,
+               83043761,
+               95081998,
+               0.77,
+               0.87,
+               "Brokeback_Mountain",
+               "Y",
+               "Focus",
+               "Action-Adventure"
+            ],
+            [
+               "Ang_Lee",
                137000000,
                132177234,
                113183246,
@@ -231,30 +255,6 @@
                "Y",
                "Sony",
                "Drama"
-            ],
-            [
-               "Ang_Lee",
-               14000000,
-               83043761,
-               95081998,
-               0.77,
-               0.87,
-               "Brokeback_Mountain",
-               "Y",
-               "Focus",
-               "Action-Adventure"
-            ],
-            [
-               "Ang_Lee",
-               120000000,
-               124987000,
-               484029000,
-               0.85,
-               0.87,
-               "Life_of_Pi",
-               "Y",
-               "Fox",
-               "Action-Adventure"
             ],
             [
                "Angela_Robinson",
@@ -414,24 +414,24 @@
             ],
             [
                "Bennett_Miller",
-               50000000,
-               75605492,
-               34600724,
-               0.86,
-               0.95,
-               "Moneyball",
-               "Y",
-               "Sony",
-               "Drama"
-            ],
-            [
-               "Bennett_Miller",
                7000000,
                28750530,
                20482631,
                0.73,
                0.9,
                "Capote",
+               "Y",
+               "Sony",
+               "Drama"
+            ],
+            [
+               "Bennett_Miller",
+               50000000,
+               75605492,
+               34600724,
+               0.86,
+               0.95,
+               "Moneyball",
                "Y",
                "Sony",
                "Drama"
@@ -726,12 +726,12 @@
             ],
             [
                "Clint_Eastwood",
-               35000000,
-               25105255,
-               0,
-               0.63,
-               0.47,
-               "Midnight_in_the_Garden_of_Good_and_Evil",
+               65000000,
+               90464773,
+               38419359,
+               0.5,
+               0.79,
+               "Space_Cowboys",
                "N",
                "WB",
                "Comedy-Musical"
@@ -750,30 +750,6 @@
             ],
             [
                "Clint_Eastwood",
-               30000000,
-               100492203,
-               116271443,
-               0.87,
-               0.92,
-               "Million_Dollar_Baby",
-               "Y",
-               "WB",
-               "Drama"
-            ],
-            [
-               "Clint_Eastwood",
-               65000000,
-               90464773,
-               38419359,
-               0.5,
-               0.79,
-               "Space_Cowboys",
-               "N",
-               "WB",
-               "Comedy-Musical"
-            ],
-            [
-               "Clint_Eastwood",
                25000000,
                90135191,
                66686829,
@@ -786,6 +762,18 @@
             ],
             [
                "Clint_Eastwood",
+               35000000,
+               25105255,
+               0,
+               0.63,
+               0.47,
+               "Midnight_in_the_Garden_of_Good_and_Evil",
+               "N",
+               "WB",
+               "Comedy-Musical"
+            ],
+            [
+               "Clint_Eastwood",
                19000000,
                13756082,
                54917146,
@@ -795,6 +783,18 @@
                "Y",
                "WB",
                "Action-Adventure"
+            ],
+            [
+               "Clint_Eastwood",
+               30000000,
+               100492203,
+               116271443,
+               0.87,
+               0.92,
+               "Million_Dollar_Baby",
+               "Y",
+               "WB",
+               "Drama"
             ],
             [
                "Colin_and_Greg_Strause",
@@ -1026,18 +1026,6 @@
             ],
             [
                "David_O._Russell",
-               40000000,
-               141870000,
-               61761739,
-               0.78,
-               0.93,
-               "American_Hustle",
-               "Y",
-               "Sony",
-               "Drama"
-            ],
-            [
-               "David_O._Russell",
                20000000,
                12785432,
                7286740,
@@ -1047,6 +1035,18 @@
                "N",
                "Fox",
                "Comedy-Musical"
+            ],
+            [
+               "David_O._Russell",
+               40000000,
+               141870000,
+               61761739,
+               0.78,
+               0.93,
+               "American_Hustle",
+               "Y",
+               "Sony",
+               "Drama"
             ],
             [
                "David_R._Ellis",
@@ -1159,23 +1159,23 @@
             [
                "Dennis_Dugan",
                80000000,
-               133668525,
-               59800000,
-               0.55,
-               0.07,
-               "Grown_Ups_2",
+               162001186,
+               109429003,
+               0.59,
+               0.1,
+               "Grown_Ups",
                "N",
                "Sony",
                "Comedy-Musical"
             ],
             [
                "Dennis_Dugan",
-               33000000,
-               59843754,
-               5113537,
-               0.71,
-               0.11,
-               "The_Benchwarmers",
+               80000000,
+               133668525,
+               59800000,
+               0.55,
+               0.07,
+               "Grown_Ups_2",
                "N",
                "Sony",
                "Comedy-Musical"
@@ -1194,12 +1194,12 @@
             ],
             [
                "Dennis_Dugan",
-               80000000,
-               162001186,
-               109429003,
-               0.59,
-               0.1,
-               "Grown_Ups",
+               33000000,
+               59843754,
+               5113537,
+               0.71,
+               0.11,
+               "The_Benchwarmers",
                "N",
                "Sony",
                "Comedy-Musical"
@@ -1314,18 +1314,6 @@
             ],
             [
                "Edgar_Wright",
-               0,
-               13542874,
-               16496518,
-               0.91,
-               0.91,
-               "Shaun_of_the_Dead",
-               "N",
-               "Rogue_Pictures",
-               "Comedy-Musical"
-            ],
-            [
-               "Edgar_Wright",
                20000000,
                26004000,
                0,
@@ -1334,6 +1322,18 @@
                "The_Worlds_End",
                "N",
                "Focus",
+               "Comedy-Musical"
+            ],
+            [
+               "Edgar_Wright",
+               0,
+               13542874,
+               16496518,
+               0.91,
+               0.91,
+               "Shaun_of_the_Dead",
+               "N",
+               "Rogue_Pictures",
                "Comedy-Musical"
             ],
             [
@@ -1637,7 +1637,7 @@
                "Drama"
             ],
             [
-               "G�bor_Csup�",
+               "Gábor_Csupó",
                0,
                82272442,
                55314621,
@@ -1710,18 +1710,6 @@
             ],
             [
                "Howard_Deutch",
-               50000000,
-               44737059,
-               5317452,
-               0.7,
-               0.4,
-               "The_Replacements",
-               "N",
-               "WB",
-               "Thriller-Horror"
-            ],
-            [
-               "Howard_Deutch",
                40000000,
                16328471,
                9827310,
@@ -1731,6 +1719,18 @@
                "N",
                "WB",
                "Comedy-Musical"
+            ],
+            [
+               "Howard_Deutch",
+               50000000,
+               44737059,
+               5317452,
+               0.7,
+               0.4,
+               "The_Replacements",
+               "N",
+               "WB",
+               "Thriller-Horror"
             ],
             [
                "Hugh_Johnson",
@@ -1818,18 +1818,6 @@
             ],
             [
                "James_Cameron",
-               200000000,
-               600788188,
-               1526700000,
-               0.69,
-               0.87,
-               "Titanic",
-               "Y",
-               "Paramount",
-               "Comedy-Musical"
-            ],
-            [
-               "James_Cameron",
                0,
                749766139,
                2021767547,
@@ -1839,6 +1827,18 @@
                "Y",
                "Fox",
                "Action-Adventure"
+            ],
+            [
+               "James_Cameron",
+               200000000,
+               600788188,
+               1526700000,
+               0.69,
+               0.87,
+               "Titanic",
+               "Y",
+               "Paramount",
+               "Comedy-Musical"
             ],
             [
                "James_Ivory",
@@ -1925,7 +1925,7 @@
                "Action-Adventure"
             ],
             [
-               "Jan_Sv?r�k",
+               "Jan_Sv?rák",
                0,
                5770254,
                0,
@@ -1950,18 +1950,6 @@
             ],
             [
                "Jason_Reitman",
-               25000000,
-               83823381,
-               83091358,
-               0.76,
-               0.91,
-               "Up_in_the_Air",
-               "Y",
-               "Paramount",
-               "Drama"
-            ],
-            [
-               "Jason_Reitman",
                7500000,
                143495265,
                87916319,
@@ -1970,6 +1958,18 @@
                "Juno",
                "Y",
                "Fox",
+               "Drama"
+            ],
+            [
+               "Jason_Reitman",
+               25000000,
+               83823381,
+               83091358,
+               0.76,
+               0.91,
+               "Up_in_the_Air",
+               "Y",
+               "Paramount",
                "Drama"
             ],
             [
@@ -2082,18 +2082,6 @@
             ],
             [
                "Joel_&_Ethan_Coen",
-               37000000,
-               60355347,
-               103364722,
-               0.64,
-               0.78,
-               "Burn_After_Ridiculous",
-               "N",
-               "Focus",
-               "Comedy-Musical"
-            ],
-            [
-               "Joel_&_Ethan_Coen",
                38000000,
                171243005,
                79880786,
@@ -2103,6 +2091,18 @@
                "Y",
                "Paramount",
                "Action-Adventure"
+            ],
+            [
+               "Joel_&_Ethan_Coen",
+               37000000,
+               60355347,
+               103364722,
+               0.64,
+               0.78,
+               "Burn_After_Ridiculous",
+               "N",
+               "Focus",
+               "Comedy-Musical"
             ],
             [
                "Joel_Schumacher",
@@ -2131,18 +2131,6 @@
             [
                "Joel_and_Ethan_Coen",
                0,
-               74283625,
-               97343541,
-               0.84,
-               0.95,
-               "No_Country_for_Old_Men",
-               "Y",
-               "Miramax",
-               "Drama"
-            ],
-            [
-               "Joel_and_Ethan_Coen",
-               0,
                9228768,
                22201566,
                0.65,
@@ -2151,6 +2139,18 @@
                "Y",
                "Focus",
                "Comedy-Musical"
+            ],
+            [
+               "Joel_and_Ethan_Coen",
+               0,
+               74283625,
+               97343541,
+               0.84,
+               0.95,
+               "No_Country_for_Old_Men",
+               "Y",
+               "Miramax",
+               "Drama"
             ],
             [
                "John_Carpenter",
@@ -2190,18 +2190,6 @@
             ],
             [
                "John_Lee_Hancock",
-               29000000,
-               255959475,
-               53248834,
-               0.9,
-               0.66,
-               "The_Blind_Side",
-               "Y",
-               "WB",
-               "Drama"
-            ],
-            [
-               "John_Lee_Hancock",
                35000000,
                82012000,
                17900000,
@@ -2210,6 +2198,18 @@
                "Saving_Mr._Banks",
                "N",
                "Buena_Vista",
+               "Drama"
+            ],
+            [
+               "John_Lee_Hancock",
+               29000000,
+               255959475,
+               53248834,
+               0.9,
+               0.66,
+               "The_Blind_Side",
+               "Y",
+               "WB",
                "Drama"
             ],
             [
@@ -2358,18 +2358,6 @@
             ],
             [
                "Jonathan_Liebesman",
-               16000000,
-               39517763,
-               12246643,
-               0.64,
-               0.12,
-               "The_Texas_Chainsaw_Massacre:_The_Beginning",
-               "N",
-               "New_Line",
-               "Thriller-Horror"
-            ],
-            [
-               "Jonathan_Liebesman",
                70000000,
                83552429,
                128266925,
@@ -2379,6 +2367,18 @@
                "N",
                "Sony",
                "Action-Adventure"
+            ],
+            [
+               "Jonathan_Liebesman",
+               16000000,
+               39517763,
+               12246643,
+               0.64,
+               0.12,
+               "The_Texas_Chainsaw_Massacre:_The_Beginning",
+               "N",
+               "New_Line",
+               "Thriller-Horror"
             ],
             [
                "Jonathan_Mostow",
@@ -2502,18 +2502,6 @@
             ],
             [
                "Kathryn_Bigelow",
-               40000000,
-               95720000,
-               37100000,
-               0.8,
-               0.93,
-               "Zero_Dark_Thirty",
-               "Y",
-               "Sony",
-               "Thriller-Horror"
-            ],
-            [
-               "Kathryn_Bigelow",
                15000000,
                17017811,
                32212961,
@@ -2523,6 +2511,18 @@
                "Y",
                "Summit",
                "Action-Adventure"
+            ],
+            [
+               "Kathryn_Bigelow",
+               40000000,
+               95720000,
+               37100000,
+               0.8,
+               0.93,
+               "Zero_Dark_Thirty",
+               "Y",
+               "Sony",
+               "Thriller-Horror"
             ],
             [
                "Keenan_Ivory_Wayans",
@@ -2610,18 +2610,6 @@
             ],
             [
                "Kirk_Jones",
-               21000000,
-               9208876,
-               7234733,
-               0.54,
-               0.46,
-               "Everybodys_Fine",
-               "N",
-               "Miramax",
-               "Comedy-Musical"
-            ],
-            [
-               "Kirk_Jones",
                40000000,
                41152000,
                43231000,
@@ -2630,6 +2618,18 @@
                "What_to_Expect_When_Youre_Expecting",
                "N",
                "Lionsgate",
+               "Comedy-Musical"
+            ],
+            [
+               "Kirk_Jones",
+               21000000,
+               9208876,
+               7234733,
+               0.54,
+               0.46,
+               "Everybodys_Fine",
+               "N",
+               "Miramax",
                "Comedy-Musical"
             ],
             [
@@ -2645,7 +2645,7 @@
                "Thriller-Horror"
             ],
             [
-               "Lasse_Hallstr�m",
+               "Lasse_Hallström",
                25000000,
                71509363,
                81190583,
@@ -2657,7 +2657,7 @@
                "Action-Adventure"
             ],
             [
-               "Lasse_Hallstr�m",
+               "Lasse_Hallström",
                24000000,
                57545092,
                31000000,
@@ -2669,7 +2669,7 @@
                "Drama"
             ],
             [
-               "Lasse_Hallstr�m",
+               "Lasse_Hallström",
                14500000,
                9047000,
                25516000,
@@ -2790,18 +2790,6 @@
             ],
             [
                "M._Night_Shyamalan",
-               150000000,
-               131772187,
-               187941694,
-               0.42,
-               0.06,
-               "The_Last_Airbender",
-               "N",
-               "Paramount",
-               "Action-Adventure"
-            ],
-            [
-               "M._Night_Shyamalan",
                130000000,
                60522000,
                0,
@@ -2810,6 +2798,18 @@
                "After_Earth",
                "N",
                "Sony",
+               "Action-Adventure"
+            ],
+            [
+               "M._Night_Shyamalan",
+               150000000,
+               131772187,
+               187941694,
+               0.42,
+               0.06,
+               "The_Last_Airbender",
+               "N",
+               "Paramount",
                "Action-Adventure"
             ],
             [
@@ -2910,18 +2910,6 @@
             ],
             [
                "Mark_Waters",
-               17000000,
-               86058055,
-               42984816,
-               0.66,
-               0.83,
-               "Mean_Girls",
-               "N",
-               "Paramount",
-               "Comedy-Musical"
-            ],
-            [
-               "Mark_Waters",
                20000000,
                110230332,
                50616000,
@@ -2930,6 +2918,18 @@
                "Freaky_Friday",
                "N",
                "Buena_Vista",
+               "Comedy-Musical"
+            ],
+            [
+               "Mark_Waters",
+               17000000,
+               86058055,
+               42984816,
+               0.66,
+               0.83,
+               "Mean_Girls",
+               "N",
+               "Paramount",
                "Comedy-Musical"
             ],
             [
@@ -2946,18 +2946,6 @@
             ],
             [
                "Martin_Campbell",
-               80000000,
-               43313890,
-               37810239,
-               0.56,
-               0.58,
-               "Edge_of_Darkness",
-               "N",
-               "WB",
-               "Thriller-Horror"
-            ],
-            [
-               "Martin_Campbell",
                200000000,
                116601172,
                103250000,
@@ -2967,6 +2955,18 @@
                "N",
                "WB",
                "Action-Adventure"
+            ],
+            [
+               "Martin_Campbell",
+               80000000,
+               43313890,
+               37810239,
+               0.56,
+               0.58,
+               "Edge_of_Darkness",
+               "N",
+               "WB",
+               "Thriller-Horror"
             ],
             [
                "Martin_McDonagh",
@@ -2982,26 +2982,14 @@
             ],
             [
                "Martin_Scorsese",
-               170000000,
-               73864507,
-               111905653,
-               0.79,
-               0.94,
-               "Hugo",
+               90000000,
+               132384315,
+               157463039,
+               0.92,
+               0.93,
+               "The_Departed",
                "Y",
-               "Paramount",
-               "Family-Animation"
-            ],
-            [
-               "Martin_Scorsese",
-               80000000,
-               128012934,
-               166791261,
-               0.73,
-               0.69,
-               "Shutter_Island",
-               "N",
-               "Paramount",
+               "WB",
                "Drama"
             ],
             [
@@ -3018,14 +3006,14 @@
             ],
             [
                "Martin_Scorsese",
-               90000000,
-               132384315,
-               157463039,
-               0.92,
-               0.93,
-               "The_Departed",
-               "Y",
-               "WB",
+               80000000,
+               128012934,
+               166791261,
+               0.73,
+               0.69,
+               "Shutter_Island",
+               "N",
+               "Paramount",
                "Drama"
             ],
             [
@@ -3042,6 +3030,18 @@
             ],
             [
                "Martin_Scorsese",
+               55000000,
+               16797191,
+               0,
+               0.64,
+               0.71,
+               "Bringing_Out_the_Dead",
+               "N",
+               "Paramount",
+               "Family-Animation"
+            ],
+            [
+               "Martin_Scorsese",
                110000000,
                102610330,
                111131129,
@@ -3054,13 +3054,13 @@
             ],
             [
                "Martin_Scorsese",
-               55000000,
-               16797191,
-               0,
-               0.64,
-               0.71,
-               "Bringing_Out_the_Dead",
-               "N",
+               170000000,
+               73864507,
+               111905653,
+               0.79,
+               0.94,
+               "Hugo",
+               "Y",
                "Paramount",
                "Family-Animation"
             ],
@@ -3126,18 +3126,6 @@
             ],
             [
                "Michael_Apted",
-               135000000,
-               126943684,
-               234888716,
-               0.58,
-               0.51,
-               "The_World_Is_Not_Enough",
-               "N",
-               "MGM",
-               "Comedy-Musical"
-            ],
-            [
-               "Michael_Apted",
                0,
                21250683,
                10869677,
@@ -3147,6 +3135,18 @@
                "N",
                "IDP",
                "Drama"
+            ],
+            [
+               "Michael_Apted",
+               135000000,
+               126943684,
+               234888716,
+               0.58,
+               0.51,
+               "The_World_Is_Not_Enough",
+               "N",
+               "MGM",
+               "Comedy-Musical"
             ],
             [
                "Michael_Bay",
@@ -3366,18 +3366,6 @@
             ],
             [
                "Neil_LaBute",
-               20000000,
-               39263506,
-               5390131,
-               0.43,
-               0.46,
-               "Lakeview_Terrace",
-               "N",
-               "Sony",
-               "Thriller-Horror"
-            ],
-            [
-               "Neil_LaBute",
                40000000,
                23649127,
                15105946,
@@ -3386,6 +3374,18 @@
                "The_Wicker_Man",
                "N",
                "WB",
+               "Thriller-Horror"
+            ],
+            [
+               "Neil_LaBute",
+               20000000,
+               39263506,
+               5390131,
+               0.43,
+               0.46,
+               "Lakeview_Terrace",
+               "N",
+               "Sony",
                "Thriller-Horror"
             ],
             [
@@ -3522,18 +3522,6 @@
             ],
             [
                "Paul_Thomas_Anderson",
-               25000000,
-               40222514,
-               35959031,
-               0.84,
-               0.91,
-               "There_Will_Be_Blood",
-               "Y",
-               "Paramount",
-               "Drama"
-            ],
-            [
-               "Paul_Thomas_Anderson",
                32000000,
                16377000,
                11880000,
@@ -3542,6 +3530,18 @@
                "The_Master",
                "N",
                "Weinstein_Company",
+               "Drama"
+            ],
+            [
+               "Paul_Thomas_Anderson",
+               25000000,
+               40222514,
+               35959031,
+               0.84,
+               0.91,
+               "There_Will_Be_Blood",
+               "Y",
+               "Paramount",
                "Drama"
             ],
             [
@@ -3559,18 +3559,6 @@
             [
                "Paul_W._S._Anderson",
                60000000,
-               14594226,
-               0,
-               0.45,
-               0.1,
-               "Soldier",
-               "N",
-               "WB",
-               "Action-Adventure"
-            ],
-            [
-               "Paul_W._S._Anderson",
-               60000000,
                60128566,
                236093097,
                0.51,
@@ -3579,6 +3567,18 @@
                "N",
                "Sony",
                "Thriller-Horror"
+            ],
+            [
+               "Paul_W._S._Anderson",
+               60000000,
+               14594226,
+               0,
+               0.45,
+               0.1,
+               "Soldier",
+               "N",
+               "WB",
+               "Action-Adventure"
             ],
             [
                "Paul_Weiland",
@@ -3690,6 +3690,18 @@
             ],
             [
                "Peter_Jackson",
+               94000000,
+               377027325,
+               742083616,
+               0.83,
+               0.94,
+               "The_Lord_of_the_Rings:_The_Return_of_the_King",
+               "Y",
+               "New_Line",
+               "Action-Adventure"
+            ],
+            [
+               "Peter_Jackson",
                93000000,
                313364114,
                555985574,
@@ -3699,18 +3711,6 @@
                "Y",
                "New_Line",
                "Comedy-Musical"
-            ],
-            [
-               "Peter_Jackson",
-               94000000,
-               339789881,
-               583495746,
-               0.92,
-               0.96,
-               "The_Lord_of_the_Rings:_The_Two_Towers",
-               "Y",
-               "New_Line",
-               "Action-Adventure"
             ],
             [
                "Peter_Jackson",
@@ -3727,11 +3727,11 @@
             [
                "Peter_Jackson",
                94000000,
-               377027325,
-               742083616,
-               0.83,
-               0.94,
-               "The_Lord_of_the_Rings:_The_Return_of_the_King",
+               339789881,
+               583495746,
+               0.92,
+               0.96,
+               "The_Lord_of_the_Rings:_The_Two_Towers",
                "Y",
                "New_Line",
                "Action-Adventure"
@@ -4230,27 +4230,15 @@
             ],
             [
                "Ron_Howard",
-               25000000,
-               18622031,
-               8804304,
-               0.86,
-               0.92,
-               "Frost-Nixon",
-               "Y",
-               "Universal",
-               "Drama"
-            ],
-            [
-               "Ron_Howard",
-               58000000,
-               170742341,
-               142800000,
-               0.91,
-               0.78,
-               "A_Beautiful_Mind",
-               "Y",
-               "Universal",
-               "Drama"
+               0,
+               136492681,
+               173000000,
+               0.61,
+               0.73,
+               "Ransom",
+               "N",
+               "Buena_Vista",
+               "Comedy-Musical"
             ],
             [
                "Ron_Howard",
@@ -4266,15 +4254,27 @@
             ],
             [
                "Ron_Howard",
-               0,
-               136492681,
-               173000000,
-               0.61,
-               0.73,
-               "Ransom",
-               "N",
-               "Buena_Vista",
-               "Comedy-Musical"
+               58000000,
+               170742341,
+               142800000,
+               0.91,
+               0.78,
+               "A_Beautiful_Mind",
+               "Y",
+               "Universal",
+               "Drama"
+            ],
+            [
+               "Ron_Howard",
+               25000000,
+               18622031,
+               8804304,
+               0.86,
+               0.92,
+               "Frost-Nixon",
+               "Y",
+               "Universal",
+               "Drama"
             ],
             [
                "Ronald_F._Maxwell",
@@ -4350,18 +4350,6 @@
             ],
             [
                "Sam_Mendes",
-               17000000,
-               9451946,
-               5447471,
-               0.73,
-               0.67,
-               "Away_We_Go",
-               "N",
-               "Focus",
-               "Comedy-Musical"
-            ],
-            [
-               "Sam_Mendes",
                15000000,
                130096601,
                226200000,
@@ -4373,28 +4361,16 @@
                "Drama"
             ],
             [
-               "Sam_Raimi",
-               139000000,
-               403706375,
-               418002176,
-               0.65,
-               0.89,
-               "Spider-Man",
+               "Sam_Mendes",
+               17000000,
+               9451946,
+               5447471,
+               0.73,
+               0.67,
+               "Away_We_Go",
                "N",
-               "Sony",
-               "Action-Adventure"
-            ],
-            [
-               "Sam_Raimi",
-               30000000,
-               16316273,
-               0,
-               0.75,
-               0.9,
-               "A_Simple_Plan",
-               "N",
-               "Paramount",
-               "Drama"
+               "Focus",
+               "Comedy-Musical"
             ],
             [
                "Sam_Raimi",
@@ -4418,6 +4394,30 @@
                "Oz_The_Great_and_Powerful",
                "N",
                "Buena_Vista",
+               "Action-Adventure"
+            ],
+            [
+               "Sam_Raimi",
+               30000000,
+               16316273,
+               0,
+               0.75,
+               0.9,
+               "A_Simple_Plan",
+               "N",
+               "Paramount",
+               "Drama"
+            ],
+            [
+               "Sam_Raimi",
+               139000000,
+               403706375,
+               418002176,
+               0.65,
+               0.89,
+               "Spider-Man",
+               "N",
+               "Sony",
                "Action-Adventure"
             ],
             [
@@ -4458,18 +4458,6 @@
             ],
             [
                "Sean_Anders",
-               19000000,
-               8402485,
-               10353451,
-               0.6,
-               0.46,
-               "Sex_Drive",
-               "N",
-               "Summit",
-               "Comedy-Musical"
-            ],
-            [
-               "Sean_Anders",
                70000000,
                36931000,
                20788000,
@@ -4478,6 +4466,18 @@
                "Thats_My_Boy",
                "N",
                "Sony",
+               "Comedy-Musical"
+            ],
+            [
+               "Sean_Anders",
+               19000000,
+               8402485,
+               10353451,
+               0.6,
+               0.46,
+               "Sex_Drive",
+               "N",
+               "Summit",
                "Comedy-Musical"
             ],
             [
@@ -4602,18 +4602,6 @@
             ],
             [
                "Stephen_Daldry",
-               40000000,
-               31847881,
-               16000000,
-               0.61,
-               0.47,
-               "Extremely_Loud_and_Incredibly_Close",
-               "Y",
-               "WB",
-               "Drama"
-            ],
-            [
-               "Stephen_Daldry",
                25000000,
                41675994,
                67170078,
@@ -4623,6 +4611,18 @@
                "Y",
                "Paramount",
                "Action-Adventure"
+            ],
+            [
+               "Stephen_Daldry",
+               40000000,
+               31847881,
+               16000000,
+               0.61,
+               0.47,
+               "Extremely_Loud_and_Incredibly_Close",
+               "Y",
+               "WB",
+               "Drama"
             ],
             [
                "Stephen_Daldry",
@@ -4722,18 +4722,6 @@
             ],
             [
                "Steven_Soderbergh",
-               85000000,
-               183417150,
-               267300000,
-               0.76,
-               0.82,
-               "Oceans_Eleven",
-               "N",
-               "WB",
-               "Drama"
-            ],
-            [
-               "Steven_Soderbergh",
                52000000,
                125595205,
                130676081,
@@ -4758,6 +4746,18 @@
             ],
             [
                "Steven_Soderbergh",
+               85000000,
+               183417150,
+               267300000,
+               0.76,
+               0.82,
+               "Oceans_Eleven",
+               "N",
+               "WB",
+               "Drama"
+            ],
+            [
+               "Steven_Soderbergh",
                60000000,
                75658097,
                59800000,
@@ -4767,6 +4767,18 @@
                "N",
                "WB",
                "Action-Adventure"
+            ],
+            [
+               "Steven_Spielberg",
+               60000000,
+               77872883,
+               141544372,
+               0.72,
+               0.6,
+               "The_Terminal",
+               "N",
+               "Dreamworks",
+               "Drama"
             ],
             [
                "Steven_Spielberg",
@@ -4794,30 +4806,6 @@
             ],
             [
                "Steven_Spielberg",
-               65000000,
-               182207000,
-               93085000,
-               0.81,
-               0.9,
-               "Lincoln",
-               "Y",
-               "Buena_Vista",
-               "Drama"
-            ],
-            [
-               "Steven_Spielberg",
-               60000000,
-               77872883,
-               141544372,
-               0.72,
-               0.6,
-               "The_Terminal",
-               "N",
-               "Dreamworks",
-               "Drama"
-            ],
-            [
-               "Steven_Spielberg",
                70000000,
                216540909,
                265300000,
@@ -4827,6 +4815,18 @@
                "Y",
                "Dreamworks",
                "Action-Adventure"
+            ],
+            [
+               "Steven_Spielberg",
+               65000000,
+               182207000,
+               93085000,
+               0.81,
+               0.9,
+               "Lincoln",
+               "Y",
+               "Buena_Vista",
+               "Drama"
             ],
             [
                "Sylvain_Chomet",
@@ -4890,18 +4890,6 @@
             ],
             [
                "Terrence_Malick",
-               32000000,
-               13303319,
-               41000000,
-               0.6,
-               0.84,
-               "The_Tree_of_Life",
-               "Y",
-               "Fox",
-               "Drama"
-            ],
-            [
-               "Terrence_Malick",
                52000000,
                36400491,
                61726074,
@@ -4911,6 +4899,18 @@
                "Y",
                "Fox",
                "Comedy-Musical"
+            ],
+            [
+               "Terrence_Malick",
+               32000000,
+               13303319,
+               41000000,
+               0.6,
+               0.84,
+               "The_Tree_of_Life",
+               "Y",
+               "Fox",
+               "Drama"
             ],
             [
                "The_Guard_Brothers",
@@ -5179,14 +5179,14 @@
             [
                "Tyler_Perry",
                0,
-               90508336,
+               51733921,
                0,
-               0.74,
-               0.28,
-               "Tyler_Perrys_Madea_Goes_to_Jail",
+               0.81,
+               0.62,
+               "Tyler_Perrys_I_Can_Do_Bad_All_By_Myself",
                "N",
                "Lionsgate",
-               "Comedy-Musical"
+               "Drama"
             ],
             [
                "Tyler_Perry",
@@ -5203,14 +5203,14 @@
             [
                "Tyler_Perry",
                0,
-               51733921,
+               90508336,
                0,
-               0.81,
-               0.62,
-               "Tyler_Perrys_I_Can_Do_Bad_All_By_Myself",
+               0.74,
+               0.28,
+               "Tyler_Perrys_Madea_Goes_to_Jail",
                "N",
                "Lionsgate",
-               "Drama"
+               "Comedy-Musical"
             ],
             [
                "Vicky_Jenson",
@@ -5262,18 +5262,6 @@
             ],
             [
                "Woody_Allen",
-               25000000,
-               17266359,
-               12668118,
-               0.54,
-               0.67,
-               "Small_Time_Crooks",
-               "N",
-               "Dreamworks",
-               "Thriller-Horror"
-            ],
-            [
-               "Woody_Allen",
                17000000,
                56817045,
                94302174,
@@ -5283,6 +5271,18 @@
                "Y",
                "Sony",
                "Comedy-Musical"
+            ],
+            [
+               "Woody_Allen",
+               25000000,
+               17266359,
+               12668118,
+               0.54,
+               0.67,
+               "Small_Time_Crooks",
+               "N",
+               "Dreamworks",
+               "Thriller-Horror"
             ],
             [
                "Zack_Snyder",
