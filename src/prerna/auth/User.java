@@ -254,34 +254,6 @@ public class User extends AbstractValueObject {
 		return sharedSessions.contains(sessionId);
 	}
 	
-	/////////////////////////////////////////////////////
-	
-	/*
-	 * Static utility methods
-	 */
-	
-	public static Map<String, String> getLoginNames(User semossUser) {
-		Map<String, String> retMap = new HashMap<String, String>();
-		if(semossUser == null) {
-			return retMap;
-		}
-		List<AuthProvider> logins = semossUser.getLogins();
-		if(logins.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
-			retMap.put("ANONYMOUS", "Sign In");
-		} else {
-			for(AuthProvider p : logins) {
-				String name = semossUser.getAccessToken(p).getName();
-				if(name == null) {
-					// need to send something
-					name = "";
-				}
-				retMap.put(p.toString().toUpperCase(), name);
-			}
-		}
-		
-		return retMap;
-	}
-	
 	public void ctrlC(String source, String showSource)
 	{
 		this.cp = new CopyObject();
@@ -315,6 +287,42 @@ public class User extends AbstractValueObject {
 	public String getTupleSpace()
 	{
 		return this.tupleSpace;
+	}
+	
+	/////////////////////////////////////////////////////
+	
+	/*
+	 * Static utility methods
+	 */
+	
+	public static Map<String, String> getLoginNames(User semossUser) {
+		Map<String, String> retMap = new HashMap<String, String>();
+		if(semossUser == null) {
+			return retMap;
+		}
+		if(semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
+			retMap.put("ANONYMOUS", "Sign In");
+		} else {
+			for(AuthProvider p : semossUser.loggedInProfiles) {
+				String name = semossUser.getAccessToken(p).getName();
+				if(name == null) {
+					// need to send something
+					name = "";
+				}
+				retMap.put(p.toString().toUpperCase(), name);
+			}
+		}
+		
+		return retMap;
+	}
+	
+	public static String getSingleLogginName(User semossUser) {
+		if(semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
+			return "ANONYMOUS " + semossUser.anonymousId;
+		}
+		
+		AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
+		return token.getId();
 	}
 	
 }
