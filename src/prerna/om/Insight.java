@@ -55,7 +55,6 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
-import prerna.ds.py.FilePyTranslator;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.rdbms.h2.H2Frame;
@@ -269,7 +268,11 @@ public class Insight {
 		} else {
 			for(int i = 0; i < size; i++) {
 				String pixelString = pixelList.get(i);
-				LOGGER.info("Running >>> " + pixelString);
+				if(this.user != null) {
+					LOGGER.info(User.getSingleLogginName(this.user) + " Running >>> " + pixelString);
+				} else {
+					LOGGER.info("No User Running >>> " + pixelString);
+				}
 				try {
 					runner.runPixel(pixelString, this);
 				} catch(SemossPixelException e) {
