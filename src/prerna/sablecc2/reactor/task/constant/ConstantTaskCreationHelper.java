@@ -47,8 +47,12 @@ public class ConstantTaskCreationHelper {
 		
 		//within keyMap, we need a map to store the maps that comprise alignment
 		Map<String, Object> alignmentMap = new HashMap<String, Object>();
-		alignmentMap.put("label", "[" + label + "]");
-		alignmentMap.put("value", "[" + value + "]");
+		Vector<String> labelList = new Vector<String>();
+		labelList.add(label);
+		alignmentMap.put("label",  labelList);
+		Vector<String> valueList = new Vector<String>();
+		valueList.add(value);
+		alignmentMap.put("value", valueList);
 		alignmentMap.put("tooltip", "[]");
 		
 		keyMap.put("alignment", alignmentMap);
