@@ -60,6 +60,8 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
@@ -554,9 +556,14 @@ public class PixelUnit {
 
 	protected void initializeJep() {
 		User user = new User();
-		user.setAnonymous(true);
-		String uId = "UNK_" + UUID.randomUUID().toString();
-		user.setAnonymousId(uId);
+		//user.setAnonymous(true);
+		String uId = "SemossTester";
+		//user.setAnonymousId(uId);
+		AccessToken token = new AccessToken();
+		token.setId(uId);
+		token.setName(uId);
+		token.setProvider(AuthProvider.NATIVE);
+		user.setAccessToken(token);
 		insight.setUser(user);
 		//String tempTupleSpace = PyUtils.getInstance().getTempTupleSpace(user, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
 		//insight.setTupleSpace(tempTupleSpace);
