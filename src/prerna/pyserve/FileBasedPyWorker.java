@@ -6,7 +6,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
@@ -16,20 +15,16 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.nustaq.serialization.FSTObjectOutput;
+
 import jep.Jep;
 import jep.JepConfig;
 import jep.JepException;
 import jep.SharedInterpreter;
-import jep.SubInterpreter;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.FSTObjectOutput;
-
 import prerna.util.Constants;
 
 public class FileBasedPyWorker extends Thread implements IWorker{
@@ -235,7 +230,9 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 		String retString = null;
 		try
 		{
-			retString = FileUtils.readFileToString(new File(scriptFile));
+			File scFile = new File(scriptFile);
+			scFile.setWritable(false);
+			retString = FileUtils.readFileToString(scFile);
 			String input = retString;
 			int newlineCount = 0;
 			int index = input.indexOf("\n");
@@ -466,7 +463,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 				}
 				
 				initSharedInterpreter(aJepConfig);
-				jep = new SubInterpreter(aJepConfig);
+				jep = new SharedInterpreter();
 
 				jep.eval("import numpy as np");
 				jep.eval("import pandas as pd");
