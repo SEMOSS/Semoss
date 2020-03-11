@@ -109,7 +109,7 @@ build_sonar:
     refs:
       - schedules
     variables:
-      - SONARPUSH == "TRUE"
+      - $SONARPUSH == "TRUE"
   except:
     variables:
       - $RELEASE == "TRUE"
@@ -137,7 +137,7 @@ build_junit:
     refs:
       - schedules
     variables:
-      - RUNJUNIT == "TRUE"
+      - $RUNJUNIT == "TRUE"
   except:
     variables:
       - $RELEASE == "TRUE"
