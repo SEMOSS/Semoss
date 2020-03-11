@@ -146,7 +146,7 @@ build_junit:
     - pwd
     - apt-get update
     - apt-get install -y openjfx
-    - mvn $MAVEN_CLI_OPTS verify -Dci.version=${VERSION}-SNAPSHOT -X
+    - mvn $MAVEN_CLI_OPTS verify -Dci.version=${VERSION}-SNAPSHOT
     # So that the cache takes up less space
     - rm -rf .m2/repository/org/semoss
   artifacts:
