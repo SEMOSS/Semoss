@@ -558,8 +558,8 @@ public class PixelUnit {
 		String uId = "UNK_" + UUID.randomUUID().toString();
 		user.setAnonymousId(uId);
 		insight.setUser(user);
-		String tempTupleSpace = PyUtils.getInstance().getTempTupleSpace(user, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
-		insight.setTupleSpace(tempTupleSpace);
+		//String tempTupleSpace = PyUtils.getInstance().getTempTupleSpace(user, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
+		//insight.setTupleSpace(tempTupleSpace);
 		jep = PyUtils.getInstance().getJep();
 		insight.setPy(jep);
 		InsightStore.getInstance().put(insight);
@@ -1038,25 +1038,67 @@ public class PixelUnit {
 
 	// Method for running multiple python commands
 	protected Hashtable<String, Object> runPy(String... script) {
+        // Try running deepdiff using a new jep thread...
+	//	Insight insightDeepDiff = new Insight();
+    //    User user = new User();
+      //  user.setAnonymous(true);
+      //  String uId = "UNK_" + UUID.randomUUID().toString();
+      //  user.setAnonymousId(uId);
+     //   insightDeepDiff.setUser(user);
+//      String tempTupleSpace = PyUtils.getInstance().getTempTupleSpace(user, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
+//      insight.setTupleSpace(tempTupleSpace);
+        jep = PyUtils.getInstance().getJep();
+     //   insightDeepDiff.setPy(jep);
+       // InsightStore.getInstance().put(insight);
+        // Wait for Python to load
+        LOGGER.info("Waiting for python to initialize...");
+        long start = System.currentTimeMillis();
+        boolean timeout = false;
+        while (!jep.isReady() && !timeout) {
+              timeout = (System.currentTimeMillis() - start) > 3000000;
+        }
 
-		// Set the commands
-		jep.command = script;
+        // Set the commands
+        jep.command = script;
 
-		// Tell the thread to execute its commands
-		Hashtable<String, Object> response = null;
-		Object jepMonitor = jep.getMonitor();
-		synchronized (jepMonitor) {
-			jepMonitor.notifyAll();
-			try {
+        // Tell the thread to execute its commands
+        Hashtable<String, Object> response = null;
+        Object jepMonitor = jep.getMonitor();
+        synchronized (jepMonitor) {
+              jepMonitor.notifyAll();
+              try {
 
-				// Wait for the commands to finish execution, but abort after 30s
-				jepMonitor.wait(30000);
-				response = jep.response;
-			} catch (InterruptedException e) {
-				LOGGER.error("The following Python script was interrupted: " + String.join("\n", script), e);
-			}
-		}
-		return response;
-	}
+                   // Wait for the commands to finish execution, but abort after 30s
+                   jepMonitor.wait(30000);
+                   response = jep.response;
+              } catch (InterruptedException e) {
+                   LOGGER.error("The following Python script was interrupted: " + String.join("\n", script), e);
+              }
+        }
+        return response;
+   }
+	
+	// Method for running multiple python commands
+//	protected Hashtable<String, Object> runPy(String... script) {
+//
+//		// Set the commands
+//		jep.command = script;
+//
+//		// Tell the thread to execute its commands
+//		Hashtable<String, Object> response = null;
+//		Object jepMonitor = jep.getMonitor();
+//		synchronized (jepMonitor) {
+//			jepMonitor.notifyAll();
+//			try {
+//
+//				// Wait for the commands to finish execution, but abort after 30s
+//				jepMonitor.wait(30000);
+//				response = jep.response;
+//			} catch (InterruptedException e) {
+//				LOGGER.error("The following Python script was interrupted: " + String.join("\n", script), e);
+//			}
+//		}
+//		return response;
+//	}
 
 }
