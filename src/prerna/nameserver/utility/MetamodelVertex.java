@@ -44,4 +44,12 @@ public class MetamodelVertex {
 	public String toString() {
 		return toMap().toString();
 	}
+	
+	public String getConceptualName() {
+		return this.conceptualName;
+	}
+	
+	public Set<String> getPropSet() {
+		return this.propSet;
+	}
 }
