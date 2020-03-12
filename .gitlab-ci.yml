@@ -138,6 +138,8 @@ build_junit:
       - schedules
     variables:
       - $RUNJUNIT == "TRUE"
+  tags:
+    - junit
   except:
     variables:
       - $RELEASE == "TRUE"
