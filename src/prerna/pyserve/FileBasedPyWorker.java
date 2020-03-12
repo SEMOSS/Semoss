@@ -1,10 +1,12 @@
 package prerna.pyserve;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -26,6 +29,7 @@ import jep.JepConfig;
 import jep.JepException;
 import jep.SharedInterpreter;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class FileBasedPyWorker extends Thread implements IWorker{
 	
@@ -69,6 +73,9 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 		PropertyConfigurator.configure(args[0] + "/log4j.properties");
 	
 		FileBasedPyWorker worker = new FileBasedPyWorker();
+		System.out.println("Here.. ");
+		DIHelper.getInstance().loadCoreProp(args[1]);
+		DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		worker.prop = new Properties();
 		try {
@@ -231,16 +238,33 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 		try
 		{
 			File scFile = new File(scriptFile);
-			scFile.setWritable(false);
-			retString = FileUtils.readFileToString(scFile);
-			String input = retString;
+			//scFile.setWritable(false);
+			BufferedReader br = new BufferedReader(new FileReader(scFile));
+			String data = br.readLine();
+			String input = data;
 			int newlineCount = 0;
-			int index = input.indexOf("\n");
+			do
+			{
+				data = br.readLine();
+				if(data != null && data.length() > 0)
+				{
+					input = input + "\n" + data;
+					newlineCount++;
+				}
+			}while(data != null);
+			
+			
+			retString = FileUtils.readFileToString(scFile);
+			//String input = retString;
+			retString = input;
+			/*
+			 int index = input.indexOf("\n");
+			
 			while (index != -1) {
 			    newlineCount++;
 			    input = input.substring(index + 1);
 			    index = input.indexOf("\n");
-			}
+			}*/
 			
 			LOGGER.info("Number of new lines.. " + newlineCount);
 			
@@ -257,10 +281,11 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			}
 			
 			// make another provision for print
-			if(retString.startsWith("print"))
+			if(retString.startsWith("print") || retString.startsWith("import"))
 			{
 				multi=true;
 			}
+			
 			if(multi)
 			{
 				String outputFile = scriptFile + ".output";
@@ -450,14 +475,14 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 				
 				// add the sys.path to python libraries for semoss
 				String pyBase = null;
-				pyBase = prop.getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+				pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
 				//pyBase = "c:/users/pkapaleeswaran/workspacej3/semossweb/py";
 				pyBase = pyBase.replace('\\', '/');
 				aJepConfig.addIncludePaths(pyBase);
-				aJepConfig.setRedirectOutputStreams(false);
+				aJepConfig.setRedirectOutputStreams(true);
 				
 				// add the libraries
-				String sitepackages = prop.getProperty("PYTHON_PACKAGES");
+				String sitepackages = DIHelper.getInstance().getProperty("PYTHON_PACKAGES");
 				if(sitepackages != null && !sitepackages.isEmpty()) {
 					aJepConfig.addIncludePaths(sitepackages);
 				}
@@ -477,6 +502,9 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 				//jep.eval("from annoy import AnnoyIndex");
 				jep.eval("import numpy");
 				jep.eval("import sys");
+				// workaround for issue with matplotlib.pyplot.plot() not working with python 3.7.3; sys.argv is assumed to have length > 0
+				// see https://github.com/ninia/jep/issues/187 for details
+				//jep.eval("sys.argv.append('')");
 				// this is so we do not get a GIL
 				//jep.eval("from java.lang import System");
 				
@@ -492,6 +520,10 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			e.printStackTrace();
 		}
 		return jep;
+	}
+	
+	public void killThread() {
+		this.keepAlive = false;
 	}
 
 	/**
