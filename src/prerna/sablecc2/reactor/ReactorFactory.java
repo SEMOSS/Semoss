@@ -587,6 +587,9 @@ public class ReactorFactory {
 						}
 						else {// nullify the package name
 							packageName = null;
+							// general reactor
+							// example - frame filters
+							reactorHash.put(reactorName, actualClass);
 						}
 						if(packageName != null) {
 							reactorName = packageName + "_" + reactorName;
