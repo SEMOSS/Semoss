@@ -183,6 +183,7 @@ public class GenRowFilters {
 				if(filter.containsColumn(column)) {
 					filterIt.remove();
 					this.filteredColumns.remove(column);
+					this.qsFilteredColumns.remove(column);
 					if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 						// if its simple
 						// we will only need to recreate the filtered columns
