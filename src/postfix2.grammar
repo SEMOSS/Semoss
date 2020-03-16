@@ -44,7 +44,7 @@ Tokens
  mult = '*';
  comma = ',';
  div = '/';
- comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like' | '==' | '<>');
+ comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like' | '?nlike' | '==' | '<>');
  and_comparator = ' AND ';
  or_comparator = ' OR ';
  equal = '=';
