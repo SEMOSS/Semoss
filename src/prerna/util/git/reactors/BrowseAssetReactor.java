@@ -24,11 +24,11 @@ public class BrowseAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 		String replacer = "";
-		
+
 		// specific folder to browse
 		String locFolder = assetFolder;
 		if (keyValue.containsKey(keysToGet[0])) {
@@ -37,6 +37,19 @@ public class BrowseAssetReactor extends AbstractReactor {
 		}
 
 		List <Map<String, Object>> output = GitAssetUtils.getAssetMetadata(locFolder, assetFolder, replacer, false);
+		// let us not show the users the .cache folder
+		if(space == null || space.isEmpty()) {
+			FILE_LOOP : for(int i = 0; i < output.size(); i++) {
+				Map<String, Object> fileObj = output.get(i);
+				String name = fileObj.get("name") + "";
+				if(name.equals(".cache")) {
+					// we want to remove this
+					output.remove(i);
+					break FILE_LOOP;
+				}
+			}
+		}
+
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
