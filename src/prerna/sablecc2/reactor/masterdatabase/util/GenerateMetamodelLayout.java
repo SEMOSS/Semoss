@@ -4,6 +4,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -101,6 +102,55 @@ public class GenerateMetamodelLayout {
 				}
 			}
 		}
+	}
+
+	/////////////////////////////////////////// for owl metamodel reactor ///////////////////////////////////////////
+
+	public static Map<String, Map<String, Double>> generateOWLMetamodelLayout(Map<String, Collection<String>> databaseTables, List<Map<String, String>> databaseJoins) {
+		Rectangles fixRectangles = new Rectangles();
+		Graph graph = addNodesToGraphOwl(databaseTables, databaseJoins);
+		Map<String, Integer> nodeSizes = getNodeSizesOwl(databaseTables);
+		Map<String, Rectangle2D> rectangles = getRectangles(graph, nodeSizes);
+		Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
+		Map<String, Map<String, Double>> nodePositionMap = generatePositionMap(graph, fixedRectangles);
+
+		return nodePositionMap;
+	}
+	
+	/////////////////////////////////////////// owl metamodel reactor helper functions ///////////////////////////////////////////
+
+	private static Graph addNodesToGraphOwl(Map<String, Collection<String>> databaseTables, List<Map<String, String>> databaseJoins) {
+		Graph graph = new MultiGraph(Utility.getRandomString(6));
+		Layout layout = new SpringBox(false);
+		graph.addSink(layout);
+		layout.addAttributeSink(graph);
+
+		databaseTables.forEach((conceptName, properties) -> {
+			graph.addNode(conceptName);
+		});
+
+		for (Map<String, String> relations : databaseJoins) {
+			String start = relations.get("source");
+			String end = relations.get("target");
+			String edge = relations.get("rel").toString() + "-" + start + "-" + end;
+			graph.addEdge(edge, start, end);
+		}
+
+		while (layout.getStabilization() < 0.9) {
+			layout.compute();
+		}
+
+		return graph;
+	}
+
+	private static Map<String, Integer> getNodeSizesOwl(Map<String, Collection<String>> databaseTables) {
+		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
+		
+		databaseTables.forEach((conceptName, properties) -> {
+			nodeSizes.put(conceptName, properties.size());
+		});
+
+		return nodeSizes;
 	}
 
 	/////////////////////////////////////////// for graph metamodel reactors ///////////////////////////////////////////
