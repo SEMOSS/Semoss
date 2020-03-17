@@ -3,7 +3,6 @@ package prerna.cache;
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -12,17 +11,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -48,8 +44,24 @@ public class InsightCacheUtility {
 	public static final String MAIN_INSIGHT_JSON = "InsightCache.json";
 	public static final String VIEW_JSON = "ViewData.json";
 
+	public static final String CACHE_FOLDER = ".cache";
+	
 	private InsightCacheUtility() {
 		
+	}
+	
+	public static String getInsightCacheFolderPath(Insight insight) {
+		String rdbmsId = insight.getRdbmsId();
+		String engineId = insight.getEngineId();
+		String engineName = insight.getEngineName();
+		return getInsightCacheFolderPath(engineId, engineName, rdbmsId);
+	}
+	
+	public static String getInsightCacheFolderPath(String engineId, String engineName, String rdbmsId) {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
+				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId + DIR_SEPARATOR + CACHE_FOLDER;
+		return folderDir;
 	}
 	
 	/**
@@ -66,9 +78,7 @@ public class InsightCacheUtility {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 		
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
-				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId;
+		String folderDir = getInsightCacheFolderPath(insight);
 		if(!(new File(folderDir).exists())) {
 			new File(folderDir).mkdirs();
 		}
@@ -196,9 +206,7 @@ public class InsightCacheUtility {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 		
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String zipFileLoc = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
-				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId + DIR_SEPARATOR + INSIGHT_ZIP;
+		String zipFileLoc = getInsightCacheFolderPath(insight) + DIR_SEPARATOR + INSIGHT_ZIP;
 		File zipFile = new File(zipFileLoc);
 		if(!zipFile.exists()) {
 			throw new IOException("Cannot find insight cache");
@@ -247,26 +255,13 @@ public class InsightCacheUtility {
 	 * @param rdbmsId
 	 */
 	public static void deleteCache(String engineId, String engineName, String rdbmsId) {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
-				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId;
+		String folderDir = getInsightCacheFolderPath(engineId, engineName, rdbmsId);
 		File folder = new File(folderDir); 
 		if(!folder.exists()) {
 			return;
 		}
 		
-		List<String> extentions = new Vector<String>();
-		extentions.add("*.gz");
-		extentions.add("*.json");
-		extentions.add("*.JSON");
-		extentions.add("*.zip");
-		extentions.add("*.owl");
-		extentions.add("*.tg");
-		extentions.add("*.rda");
-		extentions.add("*.pkl");
-
-		FileFilter fileFilter = new WildcardFileFilter(extentions);
-		File[] cacheFiles = folder.listFiles(fileFilter);
+		File[] cacheFiles = folder.listFiles();
 		for(File f : cacheFiles) {
 			ICache.deleteFile(f);
 		}
@@ -303,7 +298,7 @@ public class InsightCacheUtility {
 					e.printStackTrace();
 				}
 			}
-		} 		
+		}
 	}
 	
 	/**
