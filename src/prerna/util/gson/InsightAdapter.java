@@ -92,10 +92,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		if(engineId == null || rdbmsId == null || engineName == null) {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
-		
+
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
-				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId;
+		String folderDir = InsightCacheUtility.getInsightCacheFolderPath(engineId, engineName, rdbmsId);
 		if(!(new File(folderDir).exists())) {
 			new File(folderDir).mkdirs();
 		}
