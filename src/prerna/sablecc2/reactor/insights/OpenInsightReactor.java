@@ -20,7 +20,6 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -34,8 +33,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -257,15 +254,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @return
 	 */
 	protected Insight getCachedInsight(Insight existingInsight) throws IOException, JsonSyntaxException {
-		String engineId = existingInsight.getEngineId();
-		String engineName = Utility.getEngine(engineId).getEngineName();
-		String insightId = existingInsight.getRdbmsId();
-		
 		Insight insight = null;
 		
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String insightZipLoc = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
-					+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + insightId + DIR_SEPARATOR + InsightCacheUtility.INSIGHT_ZIP;
+		String insightZipLoc = InsightCacheUtility.getInsightCacheFolderPath(existingInsight) + DIR_SEPARATOR + InsightCacheUtility.INSIGHT_ZIP;
 		File insightZip = new File(insightZipLoc);
 		if(!insightZip.exists()) {
 			// just return null

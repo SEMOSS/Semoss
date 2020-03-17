@@ -20,6 +20,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -161,7 +162,9 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			logger.info(stepCounter + ") Unable to move assets...");
 		}
 	    stepCounter++;
-		
+	    // delete the cache folder for the new insight
+	 	InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), newRdbmsId);
+
 		// write pipeline
 		if(pipeline != null && !pipeline.isEmpty()) {
 			logger.info(stepCounter + ") Add pipeline to file...");
