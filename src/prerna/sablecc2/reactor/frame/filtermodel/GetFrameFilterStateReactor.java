@@ -88,7 +88,7 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		retMap.put("limit", limit);
 		retMap.put("offset", offset);
 		retMap.put("filterWord", filterWord);
-		
+
 		// get the base filters that are being applied that we are concerned
 		// about
 		GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
@@ -109,15 +109,26 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		// get total count of options
 		SelectQueryStruct totalCountQS = new SelectQueryStruct();
 		totalCountQS.addSelector(uCountFunc);
+		
+		// if search add to totalCount
+		// add the filter word as a like filter
+		SimpleQueryFilter wFilter = null;
+		if (filterWord != null && !filterWord.trim().isEmpty()) {
+			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
+			String comparator = "?like";
+			NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
+			wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
+			totalCountQS.addExplicitFilter(wFilter);
+		}
+		
 		Iterator<IHeadersDataRow> totalCountIt = dataframe.query(totalCountQS);
 		int totalCount = 0;
-		while(totalCountIt.hasNext()) {
+		while (totalCountIt.hasNext()) {
 			Object numUnique = totalCountIt.next().getValues()[0];
 			totalCount = ((Number) numUnique).intValue();
 		}
 		retMap.put("totalCount", totalCount);
-		
-		
+
 		// set the base info in the query struct to collect values
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryColumnSelector selector = new QueryColumnSelector(tableCol);
@@ -126,6 +137,9 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		qs.setOffSet(offset);
 		qs.addOrderBy(new QueryColumnOrderBySelector(tableCol));
 		
+		if (filterWord != null && !filterWord.trim().isEmpty()) {
+			qs.addExplicitFilter(wFilter);
+		}
 		// grab all the values
 		List<Object> options = new ArrayList<Object>();
 		// flush out the values
@@ -134,17 +148,6 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 			options.add(allValuesIt.next().getValues()[0]);
 		}
 		retMap.put("options", options);
-		
-		
-
-		// add the filter word as a like filter
-		if (filterWord != null && !filterWord.trim().isEmpty()) {
-			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
-			String comparator = "?like";
-			NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
-			SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
-			qs.addExplicitFilter(wFilter);
-		}
 
 		////////////////////////////////////////
 		//// get options
@@ -158,15 +161,14 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 
 		// add the filter word as a like filter
 		if (filterWord != null && !filterWord.trim().isEmpty()) {
-			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
-			String comparator = "?like";
-			NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
-			SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 			baseFilters.addFilters(wFilter);
 		}
 
 		// figure out the selected values
 		List<Object> selectedValues = new ArrayList<Object>();
+		if (filterWord != null && !filterWord.trim().isEmpty()) {
+			baseFilters.addFilters(wFilter);
+		}
 		// this is just the values of the column given the current filters
 		qs2.setExplicitFilters(baseFilters);
 		// if no filters are applied set select all to true
@@ -176,69 +178,29 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		}
 		retMap.put("selectAll", selectAll);
 
-		if (!selectAll) {
+//		if (!selectAll) {
 			// now run and flush out the values
 			Iterator<IHeadersDataRow> unFilterValuesIt = dataframe.query(qs2);
 			while (unFilterValuesIt.hasNext()) {
 				selectedValues.add(unFilterValuesIt.next().getValues()[0]);
 			}
-		} else {
-			selectedValues.addAll(options);
-		}
+//		} else {
+//			selectedValues.addAll(options);
+//		}
 
 		retMap.put("selectedValues", selectedValues);
-		
+
 		// get selected count
 		SelectQueryStruct selectedCountQS = new SelectQueryStruct();
 		selectedCountQS.addSelector(uCountFunc);
 		selectedCountQS.setExplicitFilters(baseFilters);
 		Iterator<IHeadersDataRow> selectedCountIt = dataframe.query(selectedCountQS);
 		int selectedCount = 0;
-		while(selectedCountIt.hasNext()) {
+		while (selectedCountIt.hasNext()) {
 			Object numUnique = selectedCountIt.next().getValues()[0];
 			selectedCount = ((Number) numUnique).intValue();
 		}
 		retMap.put("selectedCount", selectedCount);
-		
-
-		// for numerical, also add the min/max
-//		String alias = selector.getAlias();
-//		String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
-//		if (metaName == null) {
-//			metaName = alias;
-//		}
-//		SemossDataType columnType = dataframe.getMetaData().getHeaderTypeAsEnum(metaName);
-//		if (SemossDataType.INT == columnType || SemossDataType.DOUBLE == columnType) {
-//			QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
-//
-//			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
-//			mathSelector.addInnerSelector(innerSelector);
-//			mathSelector.setFunction(QueryFunctionHelper.MIN);
-//
-//			SelectQueryStruct mathQS = new SelectQueryStruct();
-//			mathQS.addSelector(mathSelector);
-//
-//			// get the absolute min when no filters are present
-//			Map<String, Object> minMaxMap = new HashMap<String, Object>();
-//			Iterator<IHeadersDataRow> it = dataframe.query(mathQS);
-//			minMaxMap.put("absMin", it.next().getValues()[0]);
-//			// get the abs max when no filters are present
-//			mathSelector.setFunction(QueryFunctionHelper.MAX);
-//			it = dataframe.query(mathQS);
-//			minMaxMap.put("absMax", it.next().getValues()[0]);
-//
-//			// add in the filters now and repeat
-//			mathQS.setExplicitFilters(baseFilters);
-//			// run for actual max
-//			it = dataframe.query(mathQS);
-//			minMaxMap.put("max", it.next().getValues()[0]);
-//			// run for actual min
-//			mathSelector.setFunction(QueryFunctionHelper.MIN);
-//			it = dataframe.query(mathQS);
-//			minMaxMap.put("min", it.next().getValues()[0]);
-//
-//			retMap.put("minMax", minMaxMap);
-//		}
 
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
 	}
