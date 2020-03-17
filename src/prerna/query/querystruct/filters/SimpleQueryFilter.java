@@ -217,7 +217,13 @@ public class SimpleQueryFilter implements IQueryFilter {
 	public boolean equivalentColumnModifcation(SimpleQueryFilter otherQueryFilter) {
 		// regardless of the order
 		// the comparators must match
-		if(!this.comparator.toString().equals(otherQueryFilter.comparator.toString())) {
+		String thisComp = this.comparator.toString();
+		String otherComp = otherQueryFilter.comparator.toString();
+		if (((thisComp.equals("?like") && otherComp.equals("?nlike"))
+				|| (thisComp.equals("?nlike") && otherComp.equals("?like"))))  {
+			// comparing like
+		}		
+		else if( !thisComp.equals(otherComp)) {			
 			return false;
 		}
 		

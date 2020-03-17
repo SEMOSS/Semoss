@@ -125,6 +125,10 @@ public interface IQueryFilter {
 			return true;
 		} else if(comparator.equals("<>")) {
 			return true;
+		} else if (comparator.equals("?nlike")) {
+			return true;
+		} else if (comparator.equals("?like")) {
+			return true;
 		}
 		
 		return false;
