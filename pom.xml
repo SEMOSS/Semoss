@@ -2357,6 +2357,12 @@
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-tinkerpop-api-impl</artifactId>
 			<version>0.9-3.4.0</version>
+			<exclusions>
+               <exclusion>  <!-- declare the exclusion here -->
+			    <groupId>org.bouncycastle</groupId>
+			    <artifactId>bcpkix-jdk15on</artifactId>            
+            </exclusion>
+           </exclusions>  	
 		</dependency>
 		<!-- neo4j jdbc driver used for remote neo4j engine -->
 		<dependency>
@@ -2820,9 +2826,14 @@
 		    <artifactId>clickhouse-jdbc</artifactId>
 		    <version>0.2</version>
 		</dependency>	
-		<dependency>
+		<!-- dependency>
 		    <groupId>com.amazonaws</groupId>
 		    <artifactId>aws-java-sdk</artifactId>
+		    <version>1.11.690</version>
+		</dependency-->
+		<dependency>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk-s3</artifactId>
 		    <version>1.11.690</version>
 		</dependency>
 		<dependency>
@@ -2945,6 +2956,11 @@
 				</exclusion>
 			</exclusions>
 			<version>1.3</version>
+		</dependency>
+		<dependency>
+		    <groupId>io.methvin</groupId>
+		    <artifactId>directory-watcher</artifactId>
+		    <version>0.9.9</version>
 		</dependency>
 	</dependencies>
 </project>
