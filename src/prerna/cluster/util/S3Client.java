@@ -43,6 +43,9 @@ public class S3Client extends CloudClient{
 	private String dbFolder = null;
 
 
+	private static String RCLONE = "rclone";
+	private static String RCLONE_PATH = "RCLONE_PATH";
+
 	public static final String S3_ACCESS_KEY = "S3_ACCESS_KEY"; 
 	public static final String S3_SECRET_KEY = "S3_SECRET_KEY"; 
 
@@ -128,6 +131,13 @@ public class S3Client extends CloudClient{
 			s3KeysProvided = true;
 		}
 
+		if(env.containsKey(RCLONE_PATH)){
+			RCLONE = env.get(RCLONE_PATH);
+		} else if (DIHelper.getInstance().getProperty(RCLONE_PATH) != null &&  !(DIHelper.getInstance().getProperty(RCLONE_PATH).isEmpty())) {
+			RCLONE = DIHelper.getInstance().getProperty(RCLONE_PATH);
+		} else{
+			RCLONE="rclone";
+		}
 		
 	}
 
@@ -375,13 +385,23 @@ public class S3Client extends CloudClient{
 		String rcloneConfig = Utility.getRandomString(10);
 		
 		if(useMinio){
-			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "access_key_id", ACCESS_KEY, "secret_access_key", SECRET_KEY,"region", REGION, "endpoint", ENDPOINT);
+			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "access_key_id", ACCESS_KEY, "secret_access_key", SECRET_KEY,"region", REGION, "endpoint", ENDPOINT);
 		} else if(s3KeysProvided) {
-			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "access_key_id", ACCESS_KEY, "secret_access_key", SECRET_KEY,"region", REGION);
+			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "access_key_id", ACCESS_KEY, "secret_access_key", SECRET_KEY,"region", REGION);
 		} else{
-		runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "env_auth","true","region",REGION);
+		runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "env_auth","true","region",REGION);
 		}
 		return rcloneConfig;
+	}
+	
+	
+	protected static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
+		String configPath = getConfigPath(rcloneConfig);
+		try {
+			runRcloneProcess(rcloneConfig, RCLONE, "config", "delete", rcloneConfig);
+		} finally {
+			new File(configPath).delete();
+		}
 	}
 
 
