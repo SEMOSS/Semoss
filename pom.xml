@@ -1415,18 +1415,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency-->
-		<!-- cleanup -->
-		<!--dependency>
+		<dependency>
 			<groupId>io.netty</groupId>
+			 <!-- Use 'netty-all' for 4.0 or above -->
 			<artifactId>netty-all</artifactId>
-			<version>4.1.22.Final</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency-->
+			<version>4.1.47.Final</version>
+			<scope>compile</scope>
+		</dependency>
 		<!-- cleanup -->
 		<!--dependency>
 			<groupId>org.noggit</groupId>
