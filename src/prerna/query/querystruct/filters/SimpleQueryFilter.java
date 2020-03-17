@@ -261,9 +261,9 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return true;
 	}
 	
-	public void subtractInstanceFilters(SimpleQueryFilter otherQueryFilter) {
+	public boolean subtractInstanceFilters(SimpleQueryFilter otherQueryFilter) {
 		FILTER_TYPE otherFilterType = determineFilterType(otherQueryFilter);
-
+		boolean removedValues = false;
 		if(this.thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
 			// remove the values of the right hand side from this right hand side
 
@@ -286,7 +286,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			}
 			
 			// remove the values
-			thisRHS.removeAll(otherRHS);
+			removedValues = thisRHS.removeAll(otherRHS);
 			
 			// recreate this 
 			this.rComparison = new NounMetadata(thisRHS, this.rComparison.getNounType(), this.rComparison.getOpType());
@@ -313,7 +313,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			}
 			
 			// remove the values
-			thisLHS.removeAll(otherLHS);
+			removedValues = thisLHS.removeAll(otherLHS);
 			
 			// recreate this 
 			this.lComparison = new NounMetadata(thisLHS, this.lComparison.getNounType(), this.lComparison.getOpType());
@@ -341,7 +341,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			}
 			
 			// remove the values
-			thisRHS.removeAll(otherLHS);
+			removedValues = thisRHS.removeAll(otherLHS);
 
 			// recreate this 
 			this.rComparison = new NounMetadata(thisRHS, this.rComparison.getNounType(), this.rComparison.getOpType());
@@ -369,11 +369,13 @@ public class SimpleQueryFilter implements IQueryFilter {
 			}
 			
 			// remove the values
-			thisLHS.removeAll(otherRHS);
+			removedValues = thisLHS.removeAll(otherRHS);
 			
 			// recreate this 
 			this.lComparison = new NounMetadata(thisLHS, this.lComparison.getNounType(), this.lComparison.getOpType());
 		}
+		
+		return removedValues;
 	}
 	
 	public boolean isEmptyFilterValues() {
