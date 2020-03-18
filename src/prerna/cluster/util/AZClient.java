@@ -26,6 +26,7 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SMSSWebWatcher;
@@ -431,8 +432,16 @@ public class AZClient extends CloudClient {
 			throw new IllegalArgumentException("App not found...");
 		}
 
+		ENGINE_TYPE engineType = engine.getEngineType();
+
 		// We need to push the folder alias__appId and the file alias__appId.smss
-		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		String alias = null;
+		if (engineType == ENGINE_TYPE.APP){
+			 alias = engine.getEngineName();
+		} else{
+		     alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		}
+
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 		String smss = aliasAppId + ".smss";
@@ -479,8 +488,12 @@ public class AZClient extends CloudClient {
 				}
 
 				// Re-open the database
-				DIHelper.getInstance().removeLocalProperty(appId);
-				Utility.getEngine(appId, false, true);
+
+				if (engineType != ENGINE_TYPE.APP){
+					DIHelper.getInstance().removeLocalProperty(appId);
+					Utility.getEngine(appId, false, true);
+				}
+	
 			}
 		} finally {
 			if (appRcloneConfig != null) {
