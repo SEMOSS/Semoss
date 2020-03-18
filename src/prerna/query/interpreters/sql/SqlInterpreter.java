@@ -885,7 +885,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else if(SemossDataType.DATE == type || SemossDataType.TIMESTAMP == type) {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR) && !comparator.equals(NOT_SEARCH_COMPARATOR)) {
 					leftWrapper = "\'";
 					rightWrapper = "\'";
 				} else {
@@ -908,7 +908,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR) && !comparator.equals(NOT_SEARCH_COMPARATOR)) {
 					leftWrapper = "\'";
 					rightWrapper = "\'";
 				} else {
@@ -944,7 +944,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR) && !comparator.equals(NOT_SEARCH_COMPARATOR)) {
 					leftWrapper = "\'";
 					rightWrapper = "\'";
 				} else {
@@ -967,7 +967,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR) && !comparator.equals(NOT_SEARCH_COMPARATOR)) {
 					leftWrapper = "\'";
 					rightWrapper = "\'";
 				} else {
