@@ -143,12 +143,15 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		
 		// Update engine smss file location
 		appEng.setPropFile(smssFile.getAbsolutePath());
-		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, smssFile.getAbsolutePath());
-		DIHelper.getInstance().setLocalProperty(appId, appEng);
 		
 		if (ClusterUtil.IS_CLUSTER) {
 			CloudClient.getClient().pushApp(appId);
 		}
+		
+		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		DIHelper.getInstance().setLocalProperty(appId, appEng);
+		
+		
 		
 		return appId;
 	}
