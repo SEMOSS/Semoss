@@ -647,7 +647,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 				// based on the input, set the filter information
 				// if it is a like, we will use a regex filter
 				// otherwise, normal filter
-				if(thisComparator.equals("?like")) {
+				if(thisComparator.equals(SEARCH_COMPARATOR)) {
 					if(isProp) {
 //						if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
 							for(int i = 0; i < numObjects; i++) {
@@ -674,7 +674,26 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 									.append(baseUri).append(concpetType).append("/.*").append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("\", 'i')");
 						}
 					}
-				} else {
+				} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+					if(isProp) {
+						for(int i = 0; i < numObjects; i++) {
+							if(i != 0) {
+								filterBuilder.append(" || ");
+							}
+							filterBuilder.append("!REGEX(STR(?").append(leftCleanVarName).append("), \"").append(rightObjects.get(i)).append("\", 'i')");
+						}
+					} else {
+						String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
+						for(int i = 0; i < numObjects; i++) {
+							if(i != 0) {
+								filterBuilder.append(" || ");
+							}
+							filterBuilder.append("!REGEX(STR(?").append(leftCleanVarName).append("), \"")
+									.append(baseUri).append(concpetType).append("/.*").append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("\", 'i')");
+						}
+					}
+				} 
+				else {
 					if(isProp) {
 						if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
 							for(int i = 0; i < numObjects; i++) {
