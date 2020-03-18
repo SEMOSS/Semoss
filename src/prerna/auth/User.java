@@ -1,5 +1,6 @@
 package prerna.auth;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -9,6 +10,8 @@ import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
+import prerna.cluster.util.CloudClient;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.AbstractValueObject;
@@ -194,7 +197,19 @@ public class User extends AbstractValueObject {
 					// TODO >>>timb: WORKSPACE - How to deal with this exception properly?
 					e.printStackTrace();
 				}
-			}			
+			}
+			//TODO actually sync the pull, not sure pull it
+			if (ClusterUtil.IS_CLUSTER) {
+				try {
+					CloudClient.getClient().pullApp(engineId);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 			this.assetEngineMap.put(token, engineId);
 		}
 		return this.assetEngineMap.get(token);
