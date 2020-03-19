@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.export;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -9,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+
+import org.apache.commons.lang.ArrayUtils;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.helpers.TypeColorShapeTable;
@@ -41,6 +44,7 @@ public class GraphFormatter extends AbstractFormatter {
 	private Map<String, List<String>> connectionsMap;
 	private Map<String, List<String>> nodePropertiesMap;
 	private Map<String, List<String>> edgePropertiesMap;
+	private List<String> nodeList;
 	private Map<String, String> aliasMap;
 
 	// this is used to make sure we do not add vertices twice
@@ -90,9 +94,14 @@ public class GraphFormatter extends AbstractFormatter {
 
 	private void processNodes(String[] headers, Object[] values) {
 		// add the node information
-		for(int i = 0; i < headers.length; i++) {
-			String vertexType = headers[i];
-			Object vertexLabel = values[i];
+		
+		// If node list is not provided, use all headers as nodes
+		if(nodeList == null) {
+			nodeList = Arrays.asList(headers);
+		}
+		for (int i = 0; i < nodeList.size(); i++) {
+			String vertexType = nodeList.get(i);
+			Object vertexLabel = values[ArrayUtils.indexOf(headers, vertexType)];
 			if(vertexLabel == null) {
 				continue;
 			}
@@ -303,6 +312,18 @@ public class GraphFormatter extends AbstractFormatter {
 		if(alias != null && !alias.isEmpty()) {
 			this.aliasMap = generateAliasMapFromStr(alias);
 		}
+		String nodes = (String) this.optionsMap.get("nodes");
+		if (nodes != null && !nodes.isEmpty()) {
+			this.nodeList = generateNodeListFromStr(nodes);
+		}
+	}
+	
+	private List<String> generateNodeListFromStr(String nodes)
+	{
+		//Generates list of nodes from string option
+		List<String> nList = new ArrayList<String>();
+		nList = Arrays.asList(nodes.split(";"));
+		return nList;
 	}
 	
 	private Map<String, String> generateAliasMapFromStr(String aliasStr) {
