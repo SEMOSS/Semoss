@@ -3,8 +3,10 @@ package prerna.sablecc2.reactor.export;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -12,6 +14,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.task.AudoTaskOptionsHelper;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -63,35 +66,49 @@ public class CollectReactor extends TaskBuilderReactor {
 		// this is the second place I need to change
 		TaskOptions ornamnetOptions = genOrnamentTaskOptions();
 		if(ornamnetOptions != null || (task.getTaskOptions() != null && task.getTaskOptions().isOrnament()) ) {
-			task.setTaskOptions(ornamnetOptions);
+			this.task.setTaskOptions(ornamnetOptions);
 			retOpType = PixelOperationType.PANEL_ORNAMENT_DATA;
 		}
 
 		// cache this so that it is good when we do the querypart followed by collect
 		// I assume there is always some task options needed, but I dont know 
-		if(task.getTaskOptions() != null)
+		if(this.task.getTaskOptions() != null)
 		{
 			// I really hope this is only one
 			Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
-			while(panelIds.hasNext())
-			{
+			while(panelIds.hasNext()) {
 				String panelId = panelIds.next();
-				insight.setLastPanelId(panelId);
-				insight.setLastTaskOptions(task.getTaskOptions(), panelId);
+				this.insight.setLastPanelId(panelId);
+				this.insight.setLastTaskOptions(task.getTaskOptions(), panelId);
 			}
 			
 			// you need to do this after you set the last panel id
 			// keep the query struct
 			if (retOpType != PixelOperationType.PANEL_ORNAMENT_DATA && this.task instanceof BasicIteratorTask) {
 				prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
-				insight.setLastQS(sqs);
+				this.insight.setLastQS(sqs);
 			}
 		}
 		else
 		{
 			// there is no flipping way to get to a proper options here ?
 			// I am setting the panel id on the task options and getting it from here
-			task.setTaskOptions(insight.getLastTaskOptions());
+			TaskOptions taskOptions = this.insight.getLastTaskOptions();
+			Set<String> pIds = taskOptions.getPanelIds();
+			String panelId = pIds.iterator().next();
+			String layout = taskOptions.getLayout(panelId);
+			
+			if(this.task instanceof BasicIteratorTask) {
+				SelectQueryStruct qs = ((BasicIteratorTask) this.task).getQueryStruct();
+				if(!qs.getSelectors().isEmpty()) {
+					TaskOptions newTOptions = AudoTaskOptionsHelper.getAutoOptions(qs, panelId, layout);
+					this.task.setTaskOptions(newTOptions);
+				}
+			}
+			
+			if(this.task.getTaskOptions() == null) {
+				this.task.setTaskOptions(this.insight.getLastTaskOptions());
+			}
 		}
 		
 		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, retOpType);
