@@ -94,20 +94,22 @@ public class CollectReactor extends TaskBuilderReactor {
 			// there is no flipping way to get to a proper options here ?
 			// I am setting the panel id on the task options and getting it from here
 			TaskOptions taskOptions = this.insight.getLastTaskOptions();
-			Set<String> pIds = taskOptions.getPanelIds();
-			String panelId = pIds.iterator().next();
-			String layout = taskOptions.getLayout(panelId);
-			
-			if(this.task instanceof BasicIteratorTask) {
-				SelectQueryStruct qs = ((BasicIteratorTask) this.task).getQueryStruct();
-				if(!qs.getSelectors().isEmpty()) {
-					TaskOptions newTOptions = AudoTaskOptionsHelper.getAutoOptions(qs, panelId, layout);
-					this.task.setTaskOptions(newTOptions);
+			if(taskOptions != null) {
+				Set<String> pIds = taskOptions.getPanelIds();
+				String panelId = pIds.iterator().next();
+				String layout = taskOptions.getLayout(panelId);
+				
+				if(this.task instanceof BasicIteratorTask) {
+					SelectQueryStruct qs = ((BasicIteratorTask) this.task).getQueryStruct();
+					if(!qs.getSelectors().isEmpty()) {
+						TaskOptions newTOptions = AudoTaskOptionsHelper.getAutoOptions(qs, panelId, layout);
+						this.task.setTaskOptions(newTOptions);
+					}
 				}
-			}
-			
-			if(this.task.getTaskOptions() == null) {
-				this.task.setTaskOptions(this.insight.getLastTaskOptions());
+				
+				if(this.task.getTaskOptions() == null) {
+					this.task.setTaskOptions(this.insight.getLastTaskOptions());
+				}
 			}
 		}
 		
