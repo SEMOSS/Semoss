@@ -1,8 +1,10 @@
 package prerna.sablecc2.om;
 
 public enum ReactorKeysEnum {
+	
 	ACCESS("access",										"Boolean to check if access is required."),
-	ADDITIONAL_DATA_TYPES("additionalDataTypes",			"Additional data types defining specific formats - used extensively for dates"),
+	ADDITIONAL_DATA_TYPE("additionalDataType",				"Additional data types defining specific format"),
+	ADDITIONAL_DATA_TYPES("additionalDataTypes",			"Additional data types defining specific formats"),
 	ADDITIONAL_PIXELS("additionalPixels",					"Additional pixels to be executed in addition to the pixel steps saved within the insight"),
 	ALL("all",                                              "Boolean to use all the values"),
 	ALL_NUMERIC_KEY("allNumeric", 							"Indicates if only numeric headers should be returned"),
