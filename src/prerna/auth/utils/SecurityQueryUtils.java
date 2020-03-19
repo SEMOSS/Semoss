@@ -302,6 +302,36 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Get all user engines and engine Ids regardless of it being hidden or not 
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllUserDatabaseList(User user) {	
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+		IRawSelectWrapper wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		List<Map<String, Object>> allGlobalEnginesMap = flushRsToMap(wrapper2);
+
+		SelectQueryStruct qs2 = new SelectQueryStruct();
+		qs2.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs2.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs2.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs2.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		qs2.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
+		IRawSelectWrapper mapWrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs2);
+		List<Map<String, Object>> engineMap = flushRsToMap(mapWrapper);
+		engineMap.addAll(allGlobalEnginesMap);
+
+		return engineMap;
+	}
+	
+	/**
 	 * Get the list of the engine information that the user has access to
 	 * @param userId
 	 * @return
