@@ -250,7 +250,10 @@ public class GenerateMetamodelLayout {
 		for (Map<String, Object> nodes: databaseTables) {
 			List<String> columns = (List) nodes.get("columns");
 			String tableName = (String) nodes.get("table");
-			nodeSizes.put(tableName, columns.size());
+			// if no columns, just why....
+			if(columns != null) {
+				nodeSizes.put(tableName, columns.size());
+			}
 		}
 
 		return nodeSizes;
