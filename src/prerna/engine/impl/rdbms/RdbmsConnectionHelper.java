@@ -402,7 +402,12 @@ public class RdbmsConnectionHelper {
 		} else if (driver == RdbmsTypeEnum.SQLSERVER) {
 			// do not pass in the schema...
 			tablesRs = meta.getTables(catalogFilter, null, null, new String[] { "TABLE", "VIEW"});
+		} else if(driver == RdbmsTypeEnum.MYSQL || driver == RdbmsTypeEnum.TERADATA){
+			// these take the schema as a proper regex search
+			tablesRs = meta.getTables(catalogFilter, "^" + schemaFilter + "$", null, new String[] { "TABLE", "VIEW" });
 		} else {
+			// these do not take in the schema as a proper regex search
+			// i know POSTGRES is an example
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
 		}
 		return tablesRs;
