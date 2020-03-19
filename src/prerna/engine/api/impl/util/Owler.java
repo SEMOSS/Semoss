@@ -175,8 +175,7 @@ public class Owler extends AbstractOwler {
 	 * @param conceptual
 	 * @return
 	 */
-	public String addProp(String tableName, String propertyCol, String dataType, String adtlDataType,
-			String conceptual) {
+	public String addProp(String tableName, String propertyCol, String dataType, String adtlDataType, String conceptual) {
 		if (!propHash.containsKey(tableName + "%" + propertyCol)) {
 			String conceptURI = addConcept(tableName, null, null);
 
@@ -205,9 +204,8 @@ public class Owler extends AbstractOwler {
 			// 4) adding the property additional data type, if available
 			if (adtlDataType != null && !adtlDataType.isEmpty()) {
 				String adtlTypeObject = "ADTLTYPE:" + adtlDataType.replace("/", "{{REPLACEMENT_TOKEN}}")
-				.replace("'", "((SINGLE_QUOTE))").replace(" ", "((SPACE))");
-				String adtlTypeUri = SEMOSS_URI_PREFIX + DEFAULT_PROP_CLASS + "/AdtlDataType";
-				engine.addToBaseEngine(property, adtlTypeUri, adtlTypeObject);
+					.replace("'", "((SINGLE_QUOTE))").replace(" ", "((SPACE))");
+				engine.addToBaseEngine(property, ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject);
 			}
 
 			// 5) now lets add the physical URI to the pixel name URI
