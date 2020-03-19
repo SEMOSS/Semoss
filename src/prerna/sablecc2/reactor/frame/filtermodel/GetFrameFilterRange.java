@@ -71,7 +71,7 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 		}
 		// check it is in fact numeric
 		SemossDataType columnType = dataframe.getMetaData().getHeaderTypeAsEnum(metaName);
-		if (SemossDataType.INT == columnType || SemossDataType.DOUBLE == columnType) {
+		if (SemossDataType.INT == columnType || SemossDataType.DOUBLE == columnType || SemossDataType.DATE == columnType) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
 
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
