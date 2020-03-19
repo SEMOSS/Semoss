@@ -23,9 +23,10 @@ import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 public class GetFrameFilterRange extends AbstractFilterReactor {
 
 	/**
-	 * Get the absolute min/max for the column and the relative min/max based on the filters
+	 * Get the absolute min/max for the column and the relative min/max based on
+	 * the filters
 	 */
-	
+
 	public GetFrameFilterRange() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey() };
 	}
@@ -57,12 +58,13 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 
 		// create the selector
 		QueryColumnSelector selector = new QueryColumnSelector(tableCol);
-		// get the base filters that are being applied that we are concerned about
+		// get the base filters that are being applied that we are concerned
+		// about
 		GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
 		if (panel != null) {
 			baseFilters.merge(panel.getPanelFilters().copy());
 		}
-		
+
 		// for numerical, also add the min/max
 		String alias = selector.getAlias();
 		String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
@@ -71,13 +73,14 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 		}
 		// check it is in fact numeric
 		SemossDataType columnType = dataframe.getMetaData().getHeaderTypeAsEnum(metaName);
-		if (SemossDataType.INT == columnType || SemossDataType.DOUBLE == columnType || SemossDataType.DATE == columnType) {
+		if (SemossDataType.INT == columnType || SemossDataType.DOUBLE == columnType || SemossDataType.DATE == columnType
+				|| SemossDataType.TIMESTAMP == columnType) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
 
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setFunction(QueryFunctionHelper.MIN);
-			
+
 			SelectQueryStruct mathQS = new SelectQueryStruct();
 			mathQS.addSelector(mathSelector);
 
