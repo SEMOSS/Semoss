@@ -70,6 +70,8 @@ public class SendEmailReactor extends AbstractReactor {
 		if (username != null && password != null) {
 			props.put("mail.smtp.auth", true);
 			props.put("mail.smtp.starttls.enable", true);
+			props.put("mail.smtp.socketFactory.port", smtpPort);
+			props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
 			emailSession = Session.getInstance(props, new javax.mail.Authenticator() {
 				protected PasswordAuthentication getPasswordAuthentication() {
 					return new PasswordAuthentication(username, password);
@@ -127,4 +129,5 @@ public class SendEmailReactor extends AbstractReactor {
 			return super.getDescriptionForKey(key);
 		}
 	}
+
 }
