@@ -21,10 +21,11 @@ public class SendEmailReactor extends AbstractReactor {
 	private static final String EMAIL_RECEIVER = "to";
 	private static final String EMAIL_SENDER = "from";
 	private static final String EMAIL_MESSAGE = "message";
+	private static final String MESSAGE_HTML = "html";
 	private static final String ATTACHMENTS = "attachments";
 
 	public SendEmailReactor() {
-		this.keysToGet = new String[] { SMTP_HOST, SMTP_PORT, EMAIL_SUBJECT, EMAIL_SENDER, EMAIL_MESSAGE,
+		this.keysToGet = new String[] { SMTP_HOST, SMTP_PORT, EMAIL_SUBJECT, EMAIL_SENDER, EMAIL_MESSAGE, MESSAGE_HTML,
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), EMAIL_RECEIVER, ATTACHMENTS };
 	}
 
@@ -52,11 +53,15 @@ public class SendEmailReactor extends AbstractReactor {
 		if (message == null) {
 			throw new IllegalArgumentException("Need to define " + EMAIL_MESSAGE);
 		}
-		String username = this.keyValue.get(this.keysToGet[5]);
-		String password = this.keyValue.get(this.keysToGet[6]);
+		String messageHtml = this.keyValue.get(this.keysToGet[5]);
+		boolean isHtml = false;
+		if(messageHtml != null && !messageHtml.isEmpty()) {
+			isHtml = Boolean.parseBoolean(messageHtml);
+		}
+		
+		String username = this.keyValue.get(this.keysToGet[6]);
+		String password = this.keyValue.get(this.keysToGet[7]);
 
-		// TODO enable html email message
-		boolean bodyIsHTML = false;
 		String[] recipients = getEmailRecipients();
 		// attachments are optional
 		String[] attachments = getAttachmentLocations();
@@ -81,7 +86,7 @@ public class SendEmailReactor extends AbstractReactor {
 			emailSession = Session.getInstance(props);
 		}
 		// send email
-		boolean success = EmailUtility.sendEmail(emailSession, recipients, sender, subject, message, attachments);
+		boolean success = EmailUtility.sendEmail(emailSession, recipients, sender, subject, message, isHtml, attachments);
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 
