@@ -6,27 +6,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.neo4j.cypher.internal.frontend.v2_3.ast.functions.Left;
-
-import java.util.Iterator;
-
+import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
-
-
-import cern.colt.Arrays;
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.api.SemossDataType;
-import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.r.RDataTable;
-import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.util.Utility;
 
 public class RunLSILearnedReactor extends AbstractRFrameReactor{
 
