@@ -1,8 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -22,6 +20,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.poi.main.helper.excel.ExcelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -36,7 +35,7 @@ public class ToExcelReactor extends TaskBuilderReactor {
 	protected Logger logger;
 	
 	public ToExcelReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
 	
 	@Override
@@ -185,33 +184,15 @@ public class ToExcelReactor extends TaskBuilderReactor {
 					}
 				}
 			}
-		}
-
-        // Write the output to a file
-		FileOutputStream fileOut = null;
-		try {
-			fileOut = new FileOutputStream(this.fileLocation);
-			workbook.write(fileOut);
-			workbook.close();
-			workbook.dispose();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if (fileOut != null) {
-				try {
-					fileOut.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			if (workbook != null) {
-				try {
-					workbook.close();
-					workbook.dispose();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+		}	
+		
+		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
+		if(password != null) {
+			// encrypt file
+			ExcelUtility.encrypt(workbook, this.fileLocation, password);
+		} else {
+			// write file
+			ExcelUtility.writeToFile(workbook, this.fileLocation);
 		}
 	}
 	
