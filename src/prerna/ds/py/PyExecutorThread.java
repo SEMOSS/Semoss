@@ -59,6 +59,9 @@ public class PyExecutorThread extends Thread {
 						
 						for(int cmdLength = 0;command != null && cmdLength < command.length;cmdLength++) {
 							String thisCommand = command[cmdLength];
+							while(thisCommand.endsWith(";"))
+								thisCommand = thisCommand.substring(0, thisCommand.length()-1);
+
 							Object thisResponse = null;
 						    try {
 						    	LOGGER.debug(">>>>>>>>>>>");
