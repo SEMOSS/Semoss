@@ -57,6 +57,7 @@ public class PyTranslator
 	public PyTranslator()
 	{
 		//startDisruptor();
+		System.out.println("Py Translator created");
 	}
 
 	public SemossDataType convertDataType(String pDataType) {
@@ -168,7 +169,7 @@ public class PyTranslator
 		return (String) runScript(script);
 	}
 	
-	protected Hashtable executePyDirect(String...script)
+	protected synchronized Hashtable executePyDirect(String...script)
 	{
 		if(this.pt == null)
 			this.pt = insight.getPy();
@@ -190,7 +191,7 @@ public class PyTranslator
 	}
 	
 	
-	protected void executeEmptyPyDirect(String script)
+	protected synchronized void executeEmptyPyDirect(String script)
 	{
 		if(this.pt == null)
 			this.pt = insight.getPy();
@@ -299,7 +300,7 @@ public class PyTranslator
 		}
 		
 	}
-	public void runEmptyPy(String...script)
+	public synchronized void runEmptyPy(String...script)
 	{
 		// get the insight folder 
 		// create a teamp to write the script file
@@ -341,7 +342,7 @@ public class PyTranslator
 	}
 	
 	
-	public String runPyAndReturnOutput(String...inscript)
+	public synchronized String runPyAndReturnOutput(String...inscript)
 	{
 		// Clean the script
 		String script = convertArrayToString(inscript);
@@ -414,7 +415,8 @@ public class PyTranslator
 				 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
 				RuntimeException error = null;
 				try {
-					executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
+					executeEmptyPyDirect("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())");
+					//executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
 				} catch (RuntimeException e) {
 					e.printStackTrace();
 					error = e; // Save the error so we can report it
@@ -480,8 +482,8 @@ public class PyTranslator
 	 * @param script
 	 * @return
 	 */
-	public Object runScript(String... script) {
-		this.pt.command = script;
+	public synchronized Object runScript(String script) {
+		this.pt.command = new String[] {script};
 		Object monitor = this.pt.getMonitor();
 		Object response = null;
 		synchronized(monitor) {
@@ -491,13 +493,15 @@ public class PyTranslator
 			} catch (Exception ignored) {
 				
 			}
-			if(script.length == 1) {
+			/*if(script.length == 1) {
 				response = this.pt.response.get(script[0]);
 			} else {
 				response = this.pt.response;
-			}
+			}*/
+			response = this.pt.response;
 		}
-		return response;
+		
+		return ((Hashtable)response).get(script);
 	}
 
 

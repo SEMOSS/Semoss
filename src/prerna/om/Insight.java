@@ -61,6 +61,7 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.engine.impl.SmssUtilities;
+import prerna.pyserve.NettyClient;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
@@ -187,6 +188,7 @@ public class Insight {
 	// pragamp for all the pragmas like cache / raw / parquet etc. 
 	Map pragmap = new HashMap();
 	
+	public NettyClient nc = null;
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -345,13 +347,18 @@ public class Insight {
 	}
 	
 	public void dropPythonTupleSpace() {
-		if(this.tupleSpace != null) {
+		
+		if(this.tupleSpace != null && nc == null) {
 			try {
 				File closer = new File(tupleSpace + "/alldone.closeall");
 				closer.createNewFile();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+		}
+		if(this.nc != null)
+		{
+			//nc.disconnect();
 		}
 	}
 	
@@ -684,7 +691,8 @@ public class Insight {
 	
 	public void setPyTranslator(PyTranslator pyt)
 	{
-		this.pyt = pyt;
+		//if(this.pyt == null)
+			this.pyt = pyt;
 		if (pyt != null) {
 			pyt.setInsight(this);
 		}
@@ -1265,5 +1273,45 @@ public class Insight {
 	{
 		this.tupleSpace = tupleSpace;
 	}
+	
+	public void setHostPort(String host, String port)
+	{
+		if(!this.insightId.startsWith("Temp"))
+			connectClient(host, port);
+	}
+		
+	public void connectClient(String host, String port)
+	{
+		if(this.nc == null)
+		{
+			System.err.println("=========== Connecting Netty ==============");
+			this.nc = new NettyClient();
+			nc.connect(host, Integer.parseInt(port), false);
+			Thread t = new Thread(nc);
+			t.start();
+/*			while(nc.ctx == null)
+			{
+				try
+				{
+					Thread.sleep(100);
+				}catch(Exception ex)
+				{
+					
+				}
+			}
+*/		}
+		LOGGER.info("Netty is connected");
+	}
+	
+	public void setNettyClient(NettyClient nc)
+	{
+		if(nc != null)
+		{
+			this.nc = nc;
+			this.pyt = new prerna.ds.py.TCPPyTranslator();
+			this.pyt.setInsight(this);
+		}
+	}
+
 
 }

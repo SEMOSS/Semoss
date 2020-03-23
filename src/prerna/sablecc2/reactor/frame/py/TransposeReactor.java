@@ -20,7 +20,7 @@ public class TransposeReactor extends AbstractPyFrameReactor {
 		String stringHeaderType = table + ".columns = " + table + ".columns.astype(str)";
 		// change all datatypes to string
 		String stringType = table + " = " + table + ".astype(str)";
-		frame.runScript(transposeScript, stringHeaderType, stringType);
+		insight.getPyTranslator().runPyAndReturnOutput(transposeScript, stringHeaderType, stringType);
 		// TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Transpose", AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		// the column data has changed
