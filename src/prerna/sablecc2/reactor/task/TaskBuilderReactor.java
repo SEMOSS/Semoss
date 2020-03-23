@@ -68,6 +68,25 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		}
 		
 		if(task == null) {
+			grsTasks = this.store.getNoun(PixelDataType.FORMATTED_DATA_SET.toString());
+			//if we don't have jobs in the curRow, check if it exists in genrow under the key job
+			if(grsTasks != null && !grsTasks.isEmpty()) {
+				Object possibleT = grsTasks.get(0);
+				if(possibleT instanceof ITask) {
+					task = (ITask) possibleT;
+				}
+			} else {
+				List<Object> tasks = this.curRow.getValuesOfType(PixelDataType.TASK);
+				if(tasks != null && !tasks.isEmpty()) {
+					Object possibleT = tasks.get(0);
+					if(possibleT instanceof ITask) {
+						task = (ITask) possibleT;
+					}
+				}
+			}
+		}
+		
+		if(task == null) {
 			task = constructTaskFromQs();
 			task.toOptimize(true);
 		}
