@@ -58,7 +58,7 @@ public class DropColumnReactor extends AbstractFrameReactor {
 			frame.getFrameFilters().removeColumnFilter(col);
 		}
 		// run the script
-		frame.runScript(remCommands);
+		insight.getPyTranslator().runPyAndReturnOutput(remCommands);
 		
 		// reset the frame headers
 		frame.syncHeaders();

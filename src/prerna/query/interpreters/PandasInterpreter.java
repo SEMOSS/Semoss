@@ -1463,7 +1463,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			String cat_codes = g_key+"__cat__cat.code";
 			String cat_names = g_key+"__cat__cat.categories";
 			
-			pyt.runScript(new String [] {frameName + "w.idxColFilter('', " + col + ")"});
+			//pyt.runScript(new String [] {frameName + "w.idxColFilter('', " + col + ")"});
+			pyt.runScript(frameName + "w.idxColFilter('', " + col + ")");
 			keyCache.add(g_key); // this is really the numpy key
 			keyCache.add(cat_codes);
 			keyCache.add(cat_names);

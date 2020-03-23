@@ -314,12 +314,17 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String colScript = PandasSyntaxHelper.getColumns(this.frameName + ".cache['data']");
 		String typeScript = PandasSyntaxHelper.getTypes(this.frameName + ".cache['data']");
 		
+		/*
 		Hashtable response = (Hashtable)pyt.runScript(colScript, typeScript);
 
 		String [] headers = (String [])((ArrayList)response.get(colScript)).toArray();
 		SemossDataType [] stypes = new SemossDataType[headers.length];
+		*/
 		
-		ArrayList <String> types = (ArrayList)response.get(typeScript);
+		String [] headers = (String [])((ArrayList)pyt.runScript(colScript)).toArray();
+		SemossDataType [] stypes = new SemossDataType[headers.length];
+
+		ArrayList <String> types = (ArrayList)pyt.runScript(typeScript);
 
 		for(int colIndex = 0;colIndex < headers.length;colIndex++)
 		{
@@ -520,7 +525,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 * @param script
 	 * @return
 	 */
-	public Object runScript(String... script) {
+	public Object runScript(String script) {
 		/*
 		py.command = script;
 		Object monitor = py.getMonitor();
@@ -542,10 +547,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 		commands.add(script[0]);
 		return response;
 		*/
-		if(script.length == 1)
-			return pyt.runScript(script[0]);
-		else
+		//if(script.length == 1)
 			return pyt.runScript(script);
+		//else
+		//	return pyt.runScript(script);
 	}
 	
 	@Override
@@ -561,7 +566,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// this should take the variable name and kill it
 		// if the user has created others, nothing can be done
 		logger.info("Removing variable " + this.frameName);
-		pyt.runScript("del " + this.frameName, "del " + this.wrapperFrameName);
+		pyt.runScript("del " + this.frameName);
+		pyt.runScript("del " + this.wrapperFrameName);
 		pyt.runScript("gc.collect()");
 	}
 	
@@ -621,6 +627,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	public boolean isEmpty(String tableName) {
 		String command = "(\"" + createFrameWrapperName(tableName) + "\" in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) >= 0)";
+		
 		Boolean notEmpty = (Boolean) pyt.runScript(command);
 		return !notEmpty;
 	}
