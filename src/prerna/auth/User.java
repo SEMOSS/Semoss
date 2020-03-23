@@ -16,6 +16,7 @@ import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.AbstractValueObject;
 import prerna.om.CopyObject;
+import prerna.pyserve.NettyClient;
 
 public class User extends AbstractValueObject {
 	
@@ -24,6 +25,7 @@ public class User extends AbstractValueObject {
 	// need to have an access token store
 	private IRUserConnection rcon; 
 	private RRemoteRserve rconRemote;
+	private NettyClient pyServe;
 	
 	private Map<AuthProvider, String> workspaceEngineMap = new HashMap<AuthProvider, String>();
 	private Map<AuthProvider, String> assetEngineMap = new HashMap<AuthProvider, String>();
@@ -338,6 +340,16 @@ public class User extends AbstractValueObject {
 		
 		AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
 		return token.getId();
+	}
+	
+	public void setPyServe(NettyClient nc)
+	{
+		this.pyServe = nc;
+	}
+	
+	public NettyClient getPyServe()
+	{
+		return this.pyServe;
 	}
 	
 }

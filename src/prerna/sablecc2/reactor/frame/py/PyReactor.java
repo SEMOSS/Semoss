@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.ds.py.TCPPyTranslator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -30,7 +31,14 @@ public class PyReactor extends AbstractReactor {
 		PyTranslator pyTranslator = this.insight.getPyTranslator();
 		pyTranslator.setLogger(logger);
 		//String output = pyTranslator.runPyAndReturnOutput(code);
-		String output = pyTranslator.runPyAndReturnOutput(code) + "";
+		String output = null;
+		if(pyTranslator instanceof TCPPyTranslator)
+		{
+			output = ((TCPPyTranslator)pyTranslator).runScript(code) + "";
+			System.out.println("OUTPUT" + output);
+		}
+		else
+			output = pyTranslator.runPyAndReturnOutput(code) + "";
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));

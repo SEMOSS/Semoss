@@ -12,6 +12,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.pyserve.CleanerThread;
+import prerna.pyserve.NettyClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -110,7 +112,7 @@ public class PyUtils {
 				userTupleMap.put(user, tempDirForUser.toString());
 				// this should possibly also launch the thread
 				String cp = DIHelper.getInstance().getProperty("PY_WORKER_CP");
-				Process p = Utility.startPyProcess(cp, tempDirForUser.toString());
+				Process p = Utility.startPyProcess(cp, tempDirForUser.toString(), null);
 				userProcessMap.put(user,  p);
 				LOGGER.info(">>>TUPLS SPACE SET TO  " + tempDirForUser + " <<<");
 				return tempDirForUser.toString();
@@ -123,6 +125,35 @@ public class PyUtils {
 			LOGGER.info("=== TUPLE SPACE NOT CREATED ====");
 		return null;
 	}
+
+	public String startPyServe(Object user, String dir, String port)
+	{
+		if(user != null && !userTupleMap.containsKey(user))
+		{
+			try {
+				LOGGER.info(">>>STARTING PyServe USER<<<");
+				// going to create this in insight cache dir
+				//String mainCache = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+				Path mainCachePath = Paths.get(dir);
+				Path tempDirForUser = Files.createTempDirectory(mainCachePath, "a");
+				writeLogConfigurationFile(tempDirForUser.toString());
+				userTupleMap.put(user, tempDirForUser.toString());
+				// this should possibly also launch the thread
+				String cp = DIHelper.getInstance().getProperty("PY_WORKER_CP");
+				Process p = Utility.startPyProcess(cp, tempDirForUser.toString(), port);
+				userProcessMap.put(user,  p);
+				LOGGER.info(">>>Pyserve Open on " + port + " <<<");
+				return tempDirForUser.toString();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		else
+			LOGGER.info("=== TUPLE SPACE NOT CREATED ====");
+		return null;
+	}
+
 	
 	private void writeLogConfigurationFile(String dir)
 	{

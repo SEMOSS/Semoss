@@ -51,7 +51,8 @@ public class InsightUtility {
 			}
 		}
 		newInsight.setTupleSpace(origInsight.getTupleSpace());
-		newInsight.setPy(origInsight.getPy());
+		//newInsight.setPy(origInsight.getPy());
+		newInsight.setPyTranslator(origInsight.getPyTranslator());
 		newInsight.setUser(origInsight.getUser());
 		if(origInsight.rInstantiated()) {
 			newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(LOGGER));
