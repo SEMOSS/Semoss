@@ -27,7 +27,7 @@ public class PyExecutorThread extends Thread {
 	public String [] command = null;
 	public Hashtable <String, Object> response = new Hashtable<String, Object>();
 	
-	private volatile boolean keepAlive = true;
+	public volatile boolean keepAlive = true;
 	private volatile boolean ready = false;
 	private Object driverMonitor = null;
 
@@ -152,7 +152,7 @@ public class PyExecutorThread extends Thread {
 				//pyBase = "c:/users/pkapaleeswaran/workspacej3/semossweb/py";
 				pyBase = pyBase.replace('\\', '/');
 				aJepConfig.addIncludePaths(pyBase);
-				aJepConfig.setRedirectOutputStreams(true);
+				//aJepConfig.setRedirectOutputStreams(true);
 				
 				// add the libraries
 				String sitepackages = DIHelper.getInstance().getProperty("PYTHON_PACKAGES");

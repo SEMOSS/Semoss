@@ -2729,7 +2729,20 @@ public class Utility {
 		// start with 7677 and see if you can find any
 		System.out.println("Finding an open port.. ");
 		boolean found = false;
-		int port = 5355;int count = 0;
+		
+		// need to talk to the oys and accomodate this logic of high and low
+		int lowPort = 1024;
+		int highPort = 6666;
+		
+		if(DIHelper.getInstance().getProperty("LOW_PORT") != null)
+			lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT"));
+
+		if(DIHelper.getInstance().getProperty("HIGH_PORT") != null)
+			highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT"));
+
+		
+		int port = 5355;
+		int count = 0;
 		//String server = "10.13.229.203";
 		String server = "127.0.0.1";
 		for(;!found && count < 10000;port++, count++)
@@ -3307,12 +3320,12 @@ public class Utility {
 	}
 
 	
-	public static Process startPyProcess(String cp, String... args) {
+	public static Process startPyProcess(String cp, String insightFolder, String port) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		Process thisProcess = null;
 		if(cp == null) {
-			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;classes";
+			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
 		}
 		String specificPath = getCP(cp);
 		try {
@@ -3339,8 +3352,15 @@ public class Utility {
 			jep = jep.replace("\\", "/");
 
 			String pyWorker = DIHelper.getInstance().getProperty("PY_WORKER");
-			String [] commands = new String[7];
-			String finalDir = args[0].replace("\\", "/");
+			String [] commands = null;
+			if(port == null)
+				commands = new String[7];
+			else
+			{
+				commands = new String[8];
+				commands[7] = port;
+			}
+			String finalDir = insightFolder.replace("\\", "/");
 			commands[0] = java;
 			commands[1] = "-Djava.library.path=" + jep;
 			commands[2] = "-cp";
@@ -3348,7 +3368,6 @@ public class Utility {
 			commands[4] = pyWorker;
 			commands[5] = finalDir;
 			commands[6] = DIHelper.getInstance().rdfMapFileLocation;
-			
 			//java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			//for(int argIndex = 0;argIndex < args.length;argList.append(" ").append(args[argIndex]), argIndex++);
@@ -3496,6 +3515,39 @@ public class Utility {
 		}
 		return status;
 	}
+	
+	public static int findOpenPort2() {
+		
+		int retPort = -1;
+		
+		int lowPort = 1024;
+		int highPort = 6666;
+		
+		if(DIHelper.getInstance().getProperty("LOW_PORT") != null)
+			lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT"));
+
+		if(DIHelper.getInstance().getProperty("HIGH_PORT") != null)
+			highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT"));
+
+
+		for(int port = lowPort; port < highPort; port++)
+		{
+			
+			System.out.println("Trying to see if port " + port + " is open for Rserve.");
+			try {
+				ServerSocket s = new ServerSocket(port);
+				s.close();
+				System.out.println("Success! Port: " + port);
+				retPort = port;
+				break;
+			} catch (Exception ex) {
+				// Port isn't open, notify and move on
+				System.out.println("Port " + port + " is unavailable.");
+			}
+		}
+		return retPort;
+	}
+
 
 //	/**
 //	 * Update old insights... hope we get rid of this soon
@@ -3644,7 +3696,7 @@ public class Utility {
 	public static void main(String [] args)
 	{
 		DIHelper.getInstance().loadCoreProp("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop");
-		Utility.startPyProcess(null, "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer");
+		Utility.startPyProcess(null, "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer", "6666");
 	}
 
 }
