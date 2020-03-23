@@ -5,16 +5,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.RandomAccessFile;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
+import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.nio.file.WatchEvent.Kind;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -28,6 +26,7 @@ import org.nustaq.serialization.FSTObjectInput;
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.pyserve.Commandeer;
+import prerna.pyserve.NettyClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -45,7 +44,10 @@ public class FilePyTranslator extends PyTranslator
 	Insight insight  = null;
 	
 	Logger logger = null;
-
+	
+	NettyClient nc = null;
+	public String HOST = "127.0.0.1";
+	public int port = 6666;
 	
 	// TODO need to replace this duplicate code from PandasFrame
 	//////////////////////////////////////////////////////////////////////////////
@@ -61,6 +63,7 @@ public class FilePyTranslator extends PyTranslator
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
 	}
 
+	
 	public SemossDataType convertDataType(String pDataType) {
 		return pyS.get(pDataType);
 	}
@@ -72,6 +75,7 @@ public class FilePyTranslator extends PyTranslator
 		this.insight = insight;
 	}
 
+	
 	
 	/**
 	 * Get list of Objects from py script
@@ -596,7 +600,13 @@ public class FilePyTranslator extends PyTranslator
 		return response;
 	}
 
-
+	public Object tryNetty(String command)
+	{
+		System.out.println(".");
+		Object response = insight.nc.executeCommand(command);
+		//System.err.println("Got the response back !!!!! WOO HOO " + response);
+		return response;
+	}	
 	
 
 }

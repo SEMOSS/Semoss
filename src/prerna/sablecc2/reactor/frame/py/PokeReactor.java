@@ -7,7 +7,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
-import prerna.ds.py.PyTranslator;
+import prerna.ds.py.FilePyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
