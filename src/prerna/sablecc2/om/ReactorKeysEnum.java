@@ -14,6 +14,7 @@ public enum ReactorKeysEnum {
 	APP_TYPE("appType", 									"The type of app"),
 	ARRAY("array", 											"An array of input values"),
 	ATTRIBUTES("attributes", 								"List of columns used as properties/characteristics to describe an instance/object"),
+	BASE_URL("baseUrl",                                     "The base SEMOSS url"),
 	BREAKS("breaks", 										"Number of divisions"),
 	CLEAN("clean", 											"Boolean if we should clean up the strings before insertion. (default is true)"),
 	CLEAN_UP_CLOUD_STORAGE("cleanUpCloudStorage",			"Boolean whether to clean up the cloud storage account used to persist databases in the cluster (defaults to false)"),
