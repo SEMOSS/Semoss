@@ -1,9 +1,5 @@
 package prerna.sablecc2.reactor.export;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -52,6 +48,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
+import prerna.poi.main.helper.excel.ExcelUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
@@ -74,7 +71,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 	private Map<String, Map<String, Object>> chartPanelLayout = new HashMap<>();
 
 	public ExportToExcelReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
 
 	@Override
@@ -163,7 +160,14 @@ public class ExportToExcelReactor extends AbstractReactor {
 			workbook.setSheetName(workbook.getSheetIndex(sheetId), sheetName);
 		}
 
-		writeToFile(workbook, fileLocation);
+		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
+		if(password != null) {
+			// encrypt file
+			ExcelUtility.encrypt(workbook, fileLocation, password);
+		} else {
+			// write file
+			ExcelUtility.writeToFile(workbook, fileLocation);
+		}
 
 		return retNoun;
 	}
@@ -655,16 +659,5 @@ public class ExportToExcelReactor extends AbstractReactor {
 		CellRangeAddress ysCellRange = new CellRangeAddress(yStartRow, yEndRow, yStartCol, yEndCol);
 		XDDFNumericalDataSource<Double> ys = XDDFDataSourcesFactory.fromNumericCellRange(sheet, ysCellRange);
 		return ys;
-	}
-
-	private void writeToFile(XSSFWorkbook workbook, String path) {
-		try {
-			OutputStream out = new FileOutputStream(path);
-			workbook.write(out);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 }
