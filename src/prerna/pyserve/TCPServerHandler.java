@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.nustaq.serialization.FSTObjectOutput;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -91,17 +91,19 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
 					
 					// FST
-					/*
+					
 					FSTObjectOutput fo = new FSTObjectOutput(baos);
 					fo.writeObject(outputObj);
 					fo.close();
-					*/
 					
+					// Java Object
+					/*
 					ObjectOutputStream oos = new ObjectOutputStream(baos);
 					oos.writeObject(outputObj);
 					//oos.writeChars("<o>");
 					oos.flush();
 					oos.close();
+					*/
 					
 					byte [] output = baos.toByteArray();
 					
