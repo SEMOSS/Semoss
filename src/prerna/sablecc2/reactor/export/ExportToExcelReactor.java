@@ -71,7 +71,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 	private Map<String, Map<String, Object>> chartPanelLayout = new HashMap<>();
 
 	public ExportToExcelReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.LIMIT.getKey(),
+				ReactorKeysEnum.PASSWORD.getKey() };
 	}
 
 	@Override
@@ -94,6 +95,18 @@ public class ExportToExcelReactor extends AbstractReactor {
 			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		} else {
 			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
+		}
+		// Grab number of rows to export to know how many rows to iterate
+		// through
+		String limit = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
+		int numRowsToExport = -1;
+		// If limit not set, export all rows
+		if (limit != null) {
+			try {
+				numRowsToExport = Integer.parseInt(limit);
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			}
 		}
 
 		Map<String, InsightPanel> panelMap = this.insight.getInsightPanels();
@@ -121,6 +134,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 			String sheetId = panel.getSheetId();
 			// for each panel get the task and task options
 			SelectQueryStruct qs = panel.getLastQS();
+			qs.setLimit(numRowsToExport);
 			TaskOptions taskOptions = panel.getOptions();
 			IQuerySelector firstSelector = qs.getSelectors().get(0);
 			if (firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
@@ -161,7 +175,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
-		if(password != null) {
+		if (password != null) {
 			// encrypt file
 			ExcelUtility.encrypt(workbook, fileLocation, password);
 		} else {

@@ -54,6 +54,10 @@ import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ExportToPPT extends AbstractReactor {
+	
+	public ExportToPPT() {
+		
+	}
 
 	@Override
 	public NounMetadata execute() {
