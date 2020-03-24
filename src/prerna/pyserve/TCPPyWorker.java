@@ -74,7 +74,7 @@ public class TCPPyWorker
 		// when event comes write it to the command
 		// comment this for main execution
 		
-		if(args == null)
+		if(args == null || args.length == 0)
 		{
 			args = new String[3];
 			args[0] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
