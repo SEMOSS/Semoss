@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.app.metaeditor.properties;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -14,7 +15,8 @@ import prerna.util.Utility;
 public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 
 	public EditOwlPropertyDataTypeReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
+				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey()};
 	}
 
 	@Override
@@ -40,9 +42,11 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 		if(newDataType == null || newDataType.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new data type");
 		}
-		// make sure it conforms
+		// minor clean up
 		newDataType = newDataType.trim();
-		
+				
+		String newAdditionalDataType = this.keyValue.get(this.keysToGet[4]);
+
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		
@@ -55,15 +59,27 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 		if(propertyPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the property. Please define the property first before modifying the conceptual name");
 		}
-		
-		// get the current data type
-		String curDataType = engine.getDataTypes(propertyPhysicalURI);
-		
-		// remove the current relationship
-		owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, RDFS.CLASS.stringValue(), curDataType, true});
-		// add the new relationship
+
+		// remove if current data type is present
+		String currentDataType = engine.getDataTypes(propertyPhysicalURI);
+		if (currentDataType != null) {
+			owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, RDFS.CLASS.stringValue(), currentDataType, true});
+		}
 		owlEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, RDFS.CLASS.stringValue(), "TYPE:" + newDataType, true});
-		
+
+		if (newAdditionalDataType != null && !newAdditionalDataType.isEmpty()) {
+			newAdditionalDataType = newAdditionalDataType.trim();
+			String adtlTypeObject = "ADTLTYPE:" + newAdditionalDataType.replace("/", "{{REPLACEMENT_TOKEN}}")
+				.replace("'", "((SINGLE_QUOTE))").replace(" ", "((SPACE))");
+
+			// remove if additional data type is present
+			String currentAdditionalDataType = engine.getAdtlDataTypes(propertyPhysicalURI);
+			if (currentAdditionalDataType != null) {
+				owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, currentAdditionalDataType, true});
+			}
+			owlEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject, true});
+		}
+
 		try {
 			owlEngine.exportDB();
 		} catch (Exception e) {
