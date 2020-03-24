@@ -164,8 +164,10 @@ public class InsertReactor extends AbstractReactor {
 				}
 			}
 		}
-		
-		ClusterUtil.reactorPushApp(engine.getEngineId());
+
+		if (engine != null) {
+			ClusterUtil.reactorPushApp(engine.getEngineId());
+		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
