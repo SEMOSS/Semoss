@@ -32,7 +32,7 @@ import prerna.util.ChromeDriverUtility;
 
 public class ToPPTReactor extends AbstractReactor {
 
-	private static final String CLASS_NAME = ToPdfReactor.class.getName();
+	private static final String CLASS_NAME = ToPPTReactor.class.getName();
 
 	public ToPPTReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.BASE_URL.getKey(), ReactorKeysEnum.URL.getKey(),
