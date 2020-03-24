@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.app.metaeditor.concepts;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -14,7 +15,8 @@ import prerna.util.Utility;
 public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 
 	public EditOwlConceptDataTypeReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.DATA_TYPE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
+				ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey()};
 	}
 
 	@Override
@@ -30,31 +32,45 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 		if(concept == null || concept.isEmpty()) {
 			throw new IllegalArgumentException("Must define the concept being modified in the app metadata");
 		}
-		
+
 		String newDataType = this.keyValue.get(this.keysToGet[2]);
 		if(newDataType == null || newDataType.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new data type");
 		}
-		// make sure it conforms
+		// minor clean up
 		newDataType = newDataType.trim();
-		
+
+		String newAdditionalDataType = this.keyValue.get(this.keysToGet[3]);
+
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
-		
-		String conceptualURI = "http://semoss.org/ontologies/Concept/" + concept;
+
 		String conceptPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept);
 		if(conceptPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before modifying the conceptual name");
 		}
-		
-		// get the current data type
-		String curDataType = engine.getDataTypes(conceptPhysicalURI);
-		
-		// remove the current relationship
-		owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptPhysicalURI, RDFS.CLASS.stringValue(), curDataType, true});
-		// add the new relationship
+
+		// remove the current data type
+		String currentDataType = engine.getDataTypes(conceptPhysicalURI);
+		if(currentDataType != null) {
+			owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptPhysicalURI, RDFS.CLASS.stringValue(), currentDataType, true});
+		}
+		// add the new data type
 		owlEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{conceptPhysicalURI, RDFS.CLASS.stringValue(), "TYPE:" + newDataType, true});
-		
+
+		if (newAdditionalDataType != null && !newAdditionalDataType.isEmpty()) {
+			newAdditionalDataType = newAdditionalDataType.trim();
+			String adtlTypeObject = "ADTLTYPE:" + newAdditionalDataType.replace("/", "{{REPLACEMENT_TOKEN}}")
+				.replace("'", "((SINGLE_QUOTE))").replace(" ", "((SPACE))");
+
+			// remove if additional data type is present
+			String currentAdditionalDataType = engine.getAdtlDataTypes(conceptPhysicalURI);
+			if (currentAdditionalDataType != null) {
+				owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, currentAdditionalDataType, true});
+			}
+			owlEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{conceptPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject, true});
+		}
+
 		try {
 			owlEngine.exportDB();
 		} catch (Exception e) {
@@ -63,10 +79,9 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to commit modifications", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully edited data type of " + concept + " to " + newDataType, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
-
 }
