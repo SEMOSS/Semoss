@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
+import org.nustaq.serialization.FSTObjectInput;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -145,9 +146,14 @@ public class TCPClientHandler extends ChannelInboundHandlerAdapter {
         			Object retObject = fi.readObject();
         			*/
         	    	try {
-        				ObjectInputStream ois = new ObjectInputStream(bais);
+        	    		
+            			FSTObjectInput fi = new FSTObjectInput(bais);
+            			Object retObject = fi.readObject();
+
+        				/*ObjectInputStream ois = new ObjectInputStream(bais);
         				Object retObject = ois.readObject();
-        				
+        				*/
+            			
         				if(retObject != null)
         					System.out.println("FST Output is [" + retObject + "]");
         				else
@@ -238,6 +244,11 @@ public class TCPClientHandler extends ChannelInboundHandlerAdapter {
     public void channelReadComplete(ChannelHandlerContext ctx) {
     	
     	System.err.println("====================== read complete ====================== " );
+    	synchronized(nc.lock)
+    	{
+
+		nc.lock.notifyAll();
+    	}        				
     	/*
     	if(buf != null)
     	{
