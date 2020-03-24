@@ -119,7 +119,8 @@ public class ExecQueryReactor extends AbstractReactor {
 					audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
 				}
 			}
-	
+
+			ClusterUtil.reactorPushApp(engine.getEngineId());
 		} else {
 			try {
 				((H2Frame) frame).getBuilder().runQuery(query);
@@ -130,8 +131,6 @@ public class ExecQueryReactor extends AbstractReactor {
 			}
 		}
 		
-		ClusterUtil.reactorPushApp(engine.getEngineId());
-
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
 	
