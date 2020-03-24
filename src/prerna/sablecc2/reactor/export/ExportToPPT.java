@@ -1,0 +1,409 @@
+package prerna.sablecc2.reactor.export;
+
+import java.awt.Rectangle;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+
+import org.apache.poi.xddf.usermodel.PresetColor;
+import org.apache.poi.xddf.usermodel.XDDFColor;
+import org.apache.poi.xddf.usermodel.XDDFLineProperties;
+import org.apache.poi.xddf.usermodel.XDDFShapeProperties;
+import org.apache.poi.xddf.usermodel.XDDFSolidFillProperties;
+import org.apache.poi.xddf.usermodel.chart.AxisCrosses;
+import org.apache.poi.xddf.usermodel.chart.AxisPosition;
+import org.apache.poi.xddf.usermodel.chart.BarDirection;
+import org.apache.poi.xddf.usermodel.chart.ChartTypes;
+import org.apache.poi.xddf.usermodel.chart.LegendPosition;
+import org.apache.poi.xddf.usermodel.chart.MarkerStyle;
+import org.apache.poi.xddf.usermodel.chart.XDDFAreaChartData;
+import org.apache.poi.xddf.usermodel.chart.XDDFBarChartData;
+import org.apache.poi.xddf.usermodel.chart.XDDFCategoryAxis;
+import org.apache.poi.xddf.usermodel.chart.XDDFChartLegend;
+import org.apache.poi.xddf.usermodel.chart.XDDFDataSource;
+import org.apache.poi.xddf.usermodel.chart.XDDFDataSourcesFactory;
+import org.apache.poi.xddf.usermodel.chart.XDDFLineChartData;
+import org.apache.poi.xddf.usermodel.chart.XDDFNumericalDataSource;
+import org.apache.poi.xddf.usermodel.chart.XDDFPieChartData;
+import org.apache.poi.xddf.usermodel.chart.XDDFRadarChartData;
+import org.apache.poi.xddf.usermodel.chart.XDDFScatterChartData;
+import org.apache.poi.xddf.usermodel.chart.XDDFValueAxis;
+import org.apache.poi.xslf.usermodel.XMLSlideShow;
+import org.apache.poi.xslf.usermodel.XSLFChart;
+import org.apache.poi.xslf.usermodel.XSLFSlide;
+import org.apache.poi.util.Units;
+
+import prerna.om.InsightPanel;
+import prerna.om.InsightSheet;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.AbstractReactor;
+
+public class ExportToPPT extends AbstractReactor {
+
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		NounMetadata retNoun = null;
+		// get a random file name
+		String exportName = AbstractExportTxtReactor.getExportFileName("pptx");
+		// grab file path to write the file
+		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+		// if the file location is not defined generate a random path and set
+		// location so that the front end will download
+		if (fileLocation == null) {
+			String insightFolder = this.insight.getInsightFolder();
+			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
+			// store it in the insight so the FE can download it
+			// only from the given insight
+			this.insight.addExportFile(exportName, fileLocation);
+			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		} else {
+			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
+		}
+		Map<String, InsightPanel> panelMap = this.insight.getInsightPanels();
+		Map<String, InsightSheet> sheetMap = this.insight.getInsightSheets();
+		// create Powerpoint slideshow
+		XMLSlideShow slideshow = new XMLSlideShow();
+		// Map sheet to the list of panels it contains so we can group panels in
+		// the same sheet together
+		HashMap<String, List<InsightPanel>> sheetToPanelMap = new HashMap<String, List<InsightPanel>>();
+		for (String panelId : panelMap.keySet()) {
+			InsightPanel panel = panelMap.get(panelId);
+			String sheetId = panel.getSheetId();
+			if (!sheetToPanelMap.containsKey(sheetId)) {
+				sheetToPanelMap.put(sheetId, new ArrayList<InsightPanel>());
+			}
+			List<InsightPanel> panelList = (List<InsightPanel>) sheetToPanelMap.get(sheetId);
+			panelList.add(panel);
+		}
+		// Process each panel and try to plot each chart
+		for (String sheetId : sheetToPanelMap.keySet()) {
+			List<InsightPanel> panelList = (List<InsightPanel>) sheetToPanelMap.get(sheetId);
+			for (InsightPanel panel : panelList) {
+				// for each panel get the task and task options
+				SelectQueryStruct qs = panel.getLastQS();
+				TaskOptions taskOptions = panel.getOptions();
+				IQuerySelector firstSelector = qs.getSelectors().get(0);
+				if (firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
+					qs.addOrderBy(firstSelector.getQueryStructName(), "ASC");
+				} else {
+					qs.addOrderBy(firstSelector.getAlias(), null, "ASC");
+				}
+				ITask task = new BasicIteratorTask(qs);
+				task.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
+				task.setTaskOptions(taskOptions);
+				String panelId = panel.getPanelId();
+				processTask(slideshow, task, panelId);
+			}
+		}
+		writeToFile(slideshow, fileLocation);
+		return retNoun;
+	}
+
+	private void processTask(XMLSlideShow slideshow, ITask task, String panelId) {
+		TaskOptions tOptions = task.getTaskOptions();
+		Map<String, Object> options = tOptions.getOptions();
+		// Insert chart if supported
+		String plotType = (String) tOptions.getLayout(panelId);
+		if (plotType.equals("Line")) {
+			insertLineChart(slideshow, task, options);
+		} else if (plotType.equals("Scatter")) {
+			insertScatterChart(options, slideshow, task);
+		} else if (plotType.equals("Area")) {
+			insertAreaChart(options, slideshow, task);
+		} else if (plotType.equals("Column")) {
+			insertBarChart(options, slideshow, task);
+		} else if (plotType.equals("Pie")) {
+			insertPieChart(options, slideshow, task);
+		} else if (plotType.equals("Radar")) {
+			insertRadarChart(options, slideshow, task);
+		}
+	}
+
+	private void insertLineChart(XMLSlideShow slideshow, ITask task, Map<String, Object> options) {
+		// Grab data for chart
+		PPTDataHandler dataHandler = new PPTDataHandler();
+		dataHandler.setData(task);
+		// Parse input data
+		// options is guaranteed to be of length 1 so just grab the only value
+		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
+		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
+		List<String> label = (Vector) alignmentMap.get("label");
+		String xColumnName = label.get(0);
+		List<String> yColumnNames = (Vector) alignmentMap.get("value");
+
+		XSLFSlide slide = slideshow.createSlide();
+		XSLFChart chart = slideshow.createChart(slide);
+		XDDFChartLegend legend = chart.getOrAddLegend();
+		legend.setPosition(LegendPosition.TOP_RIGHT);
+
+		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
+		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
+		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+		XDDFLineChartData data = (XDDFLineChartData) chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
+
+		// Add in x vals
+		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
+
+		// Add in y vals
+		for (String yColumnName : yColumnNames) {
+			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
+			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
+			XDDFLineChartData.Series chartSeries = (XDDFLineChartData.Series) data.addSeries(xs, ys);
+			chartSeries.setTitle(yColumnName, null);
+			// Standardize markers
+			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
+			fillProperties.setColor(XDDFColor.from(PresetColor.ROYAL_BLUE));
+			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
+			XDDFShapeProperties propertiesMarker = new XDDFShapeProperties();
+			propertiesMarker.setFillProperties(fillProperties);
+			chart.getCTChart().getPlotArea().getLineChartArray(0).getSerArray(0).getMarker().addNewSpPr()
+					.set(propertiesMarker.getXmlObject());
+			// Standardize line
+			XDDFLineProperties lineProperties = new XDDFLineProperties();
+			lineProperties.setFillProperties(fillProperties);
+			chartSeries.setLineProperties(lineProperties);
+		}
+
+		chart.plot(data);
+		Rectangle bounds = createStandardPowerPointChartBounds();
+		slide.addChart(chart, bounds);
+	}
+
+	private void insertScatterChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
+		// Grab data for chart
+		PPTDataHandler dataHandler = new PPTDataHandler();
+		dataHandler.setData(task);
+
+		// Parse input data
+		// options is guaranteed to be of length 1 so just grab the only value
+		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
+		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
+		String xColumnName = ((Vector) alignmentMap.get("x")).firstElement().toString();
+		List<String> yColumnNames = (Vector) alignmentMap.get("y");
+
+		XSLFSlide slide = slideshow.createSlide();
+		XSLFChart chart = slideshow.createChart(slide);
+		XDDFChartLegend legend = chart.getOrAddLegend();
+		legend.setPosition(LegendPosition.TOP_RIGHT);
+
+		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
+		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
+		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(ChartTypes.SCATTER, bottomAxis, leftAxis);
+
+		// Add in x vals
+		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
+
+		// Add in y vals
+		for (String yColumnName : yColumnNames) {
+			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
+			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
+			XDDFScatterChartData.Series chartSeries = (XDDFScatterChartData.Series) data.addSeries(xs, ys);
+			chartSeries.setTitle(yColumnName, null);
+			// Standardize markers
+			chartSeries.setSmooth(false);
+			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
+			chart.getCTChart().getPlotArea().getScatterChartArray(0).getSerArray(0).addNewSpPr().addNewLn()
+					.addNewNoFill();
+		}
+
+		chart.plot(data);
+		Rectangle bounds = createStandardPowerPointChartBounds();
+		slide.addChart(chart, bounds);
+
+	}
+
+	private void insertBarChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
+		// Grab data for chart
+		PPTDataHandler dataHandler = new PPTDataHandler();
+		dataHandler.setData(task);
+
+		// Parse input data
+		// options is guaranteed to be of length 1 so just grab the only value
+		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
+		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
+		List<String> label = (Vector) alignmentMap.get("label");
+		String xColumnName = label.get(0);
+		List<String> yColumnNames = (Vector) alignmentMap.get("value");
+
+		XSLFSlide slide = slideshow.createSlide();
+		XSLFChart chart = slideshow.createChart(slide);
+		XDDFChartLegend legend = chart.getOrAddLegend();
+		legend.setPosition(LegendPosition.TOP_RIGHT);
+
+		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
+		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
+		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+		XDDFBarChartData data = (XDDFBarChartData) chart.createData(ChartTypes.BAR, bottomAxis, leftAxis);
+		data.setBarDirection(BarDirection.COL);
+
+		// Add in x vals
+		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
+
+		// Add in y vals
+		for (String yColumnName : yColumnNames) {
+			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
+			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
+			XDDFBarChartData.Series chartSeries = (XDDFBarChartData.Series) data.addSeries(xs, ys);
+			chartSeries.setTitle(yColumnName, null);
+		}
+
+		chart.plot(data);
+		Rectangle bounds = createStandardPowerPointChartBounds();
+		slide.addChart(chart, bounds);
+	}
+
+	private void insertAreaChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
+		// Grab data for chart
+		PPTDataHandler dataHandler = new PPTDataHandler();
+		dataHandler.setData(task);
+
+		// Parse input data
+		// options is guaranteed to be of length 1 so just grab the only value
+		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
+		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
+		List<String> label = (Vector) alignmentMap.get("label");
+		String xColumnName = label.get(0);
+		List<String> yColumnNames = (Vector) alignmentMap.get("value");
+
+		XSLFSlide slide = slideshow.createSlide();
+		XSLFChart chart = slideshow.createChart(slide);
+		XDDFChartLegend legend = chart.getOrAddLegend();
+		legend.setPosition(LegendPosition.TOP_RIGHT);
+
+		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
+		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
+		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+		XDDFAreaChartData data = (XDDFAreaChartData) chart.createData(ChartTypes.AREA, bottomAxis, leftAxis);
+
+		// Add in x vals
+		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
+
+		// Add in y vals
+		for (String yColumnName : yColumnNames) {
+			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
+			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
+			XDDFAreaChartData.Series chartSeries = (XDDFAreaChartData.Series) data.addSeries(xs, ys);
+			chartSeries.setTitle(yColumnName, null);
+		}
+
+		chart.plot(data);
+		Rectangle bounds = createStandardPowerPointChartBounds();
+		slide.addChart(chart, bounds);
+	}
+
+	private void insertPieChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
+		// Grab data for chart
+		PPTDataHandler dataHandler = new PPTDataHandler();
+		dataHandler.setData(task);
+
+		// Parse input data
+		// options is guaranteed to be of length 1 so just grab the only value
+		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
+		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
+		List<String> label = (Vector) alignmentMap.get("label");
+		String xColumnName = label.get(0);
+		List<String> yColumnNames = (Vector) alignmentMap.get("value");
+
+		XSLFSlide slide = slideshow.createSlide();
+		XSLFChart chart = slideshow.createChart(slide);
+		XDDFChartLegend legend = chart.getOrAddLegend();
+		legend.setPosition(LegendPosition.TOP_RIGHT);
+
+		XDDFPieChartData data = (XDDFPieChartData) chart.createData(ChartTypes.PIE, null, null);
+
+		// Add in x vals
+		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
+
+		// Add in y vals
+		for (String yColumnName : yColumnNames) {
+			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
+			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
+			XDDFPieChartData.Series chartSeries = (XDDFPieChartData.Series) data.addSeries(xs, ys);
+			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setExplosion((long) 0);
+		}
+
+		chart.plot(data);
+		Rectangle bounds = createStandardPowerPointChartBounds();
+		slide.addChart(chart, bounds);
+	}
+
+	private void insertRadarChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
+		// Grab data for chart
+		PPTDataHandler dataHandler = new PPTDataHandler();
+		dataHandler.setData(task);
+
+		// Parse input data
+		// options is guaranteed to be of length 1 so just grab the only value
+		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
+		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
+		List<String> label = (Vector) alignmentMap.get("label");
+		String xColumnName = label.get(0);
+		List<String> yColumnNames = (Vector) alignmentMap.get("value");
+
+		XSLFSlide slide = slideshow.createSlide();
+		XSLFChart chart = slideshow.createChart(slide);
+		XDDFChartLegend legend = chart.getOrAddLegend();
+		legend.setPosition(LegendPosition.TOP_RIGHT);
+
+		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
+		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
+		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+		XDDFRadarChartData data = (XDDFRadarChartData) chart.createData(ChartTypes.RADAR, bottomAxis, leftAxis);
+
+		// Add in x vals
+		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
+
+		// Add in y vals
+		for (String yColumnName : yColumnNames) {
+			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
+			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
+			XDDFRadarChartData.Series chartSeries = (XDDFRadarChartData.Series) data.addSeries(xs, ys);
+			chartSeries.setTitle(yColumnName, null);
+		}
+
+		chart.plot(data);
+		Rectangle bounds = createStandardPowerPointChartBounds();
+		slide.addChart(chart, bounds);
+	}
+
+	private Rectangle createStandardPowerPointChartBounds() {
+		double emuPerInch = Units.EMU_PER_CENTIMETER * 2.54;
+		double slideWidth = 10;
+		double slideHeight = 7.5;
+		int emuCornerOffset = 100;
+		int rectWidth = (int) (slideWidth * emuPerInch) - emuCornerOffset;
+		int rectHeight = (int) (slideHeight * emuPerInch) - emuCornerOffset;
+		Rectangle bounds = new java.awt.Rectangle(emuCornerOffset, emuCornerOffset, rectWidth, rectHeight);
+		return bounds;
+	}
+
+	private void writeToFile(XMLSlideShow slideshow, String path) {
+		try {
+			OutputStream out = new FileOutputStream(path);
+			slideshow.write(out);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+}
