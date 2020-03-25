@@ -1,6 +1,8 @@
 package prerna.sablecc2.reactor.export;
 
 import java.awt.Rectangle;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -11,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.poi.xddf.usermodel.PresetColor;
 import org.apache.poi.xddf.usermodel.XDDFColor;
 import org.apache.poi.xddf.usermodel.XDDFLineProperties;
@@ -36,7 +39,10 @@ import org.apache.poi.xddf.usermodel.chart.XDDFScatterChartData;
 import org.apache.poi.xddf.usermodel.chart.XDDFValueAxis;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFChart;
+import org.apache.poi.xslf.usermodel.XSLFPictureData;
+import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
+import org.apache.poi.sl.usermodel.PictureData.PictureType;
 import org.apache.poi.util.Units;
 
 import prerna.om.InsightPanel;
@@ -52,6 +58,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.DIHelper;
 
 public class ExportToPPT extends AbstractReactor {
 	
@@ -115,8 +122,35 @@ public class ExportToPPT extends AbstractReactor {
 				processTask(slideshow, task, panelId);
 			}
 		}
+		
+		// Add Semoss Logo to bottom right corner of each slide
+		addLogo(slideshow);
+		
 		writeToFile(slideshow, fileLocation);
 		return retNoun;
+	}
+
+	private void addLogo(XMLSlideShow slideshow) {
+		String semossLogoPath = DIHelper.getInstance().getProperty("EXPORT_SEMOSS_LOGO");
+		if (semossLogoPath != null) {
+			File logo = new File(semossLogoPath);
+			if (logo.exists()) {
+				byte[] picture = null;
+				try {
+					picture = IOUtils.toByteArray(new FileInputStream(semossLogoPath));
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				XSLFPictureData pictureData = slideshow.addPicture(picture, PictureType.PNG);
+				Rectangle lowerRightCornerBounds = createStandardPowerPointSemossLogoBounds();
+				for (XSLFSlide slide : slideshow.getSlides()) {
+					XSLFPictureShape pictureShape = slide.createPicture(pictureData);
+					pictureShape.setAnchor(lowerRightCornerBounds);
+				}
+			}
+		}		
 	}
 
 	private void processTask(XMLSlideShow slideshow, ITask task, String panelId) {
@@ -387,15 +421,56 @@ public class ExportToPPT extends AbstractReactor {
 		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
 	}
-
+	
 	private Rectangle createStandardPowerPointChartBounds() {
+		double leftOffsetInches = 0.05;
+		double rightOffsetInches = 0.05;
+		double topOffsetInches = 0.05;
+		// Leave space for Semoss logo in the bottom corner
+		double bottomOffsetInches = 0.2;
+		double slideWidthInches = 10;
+		double slideHeightInches = 7.5;
+		
+		double boundWidthInches = slideWidthInches - leftOffsetInches - rightOffsetInches;
+		double boundHeightInches = slideHeightInches - topOffsetInches - bottomOffsetInches;
+		double boundWidthOffsetInches = leftOffsetInches;
+		double boundHeightOffsetinches = topOffsetInches;
+		
 		double emuPerInch = Units.EMU_PER_CENTIMETER * 2.54;
-		double slideWidth = 10;
-		double slideHeight = 7.5;
-		int emuCornerOffset = 100;
-		int rectWidth = (int) (slideWidth * emuPerInch) - emuCornerOffset;
-		int rectHeight = (int) (slideHeight * emuPerInch) - emuCornerOffset;
-		Rectangle bounds = new java.awt.Rectangle(emuCornerOffset, emuCornerOffset, rectWidth, rectHeight);
+		int boundWidthEMU = (int) (boundWidthInches * emuPerInch);
+		int boundheightEMU = (int) (boundHeightInches * emuPerInch);
+		int boundWidthOffsetEMU = (int) (boundWidthOffsetInches * emuPerInch);
+		int boundHeightOffsetEMU = (int) (boundHeightOffsetinches * emuPerInch);
+		
+		Rectangle bounds = new java.awt.Rectangle(boundWidthOffsetEMU, boundHeightOffsetEMU, boundWidthEMU, boundheightEMU);
+		return bounds;
+	}
+	
+	private Rectangle createStandardPowerPointSemossLogoBounds() {
+		// PNG Powered by Semoss logo is 1478 x 214 pixels
+		// Let's put the image in the bottom right corner and maintain aspect ratio
+		// Point DPI = 72 = 1 inch
+		double dpiPerInch = (double) Units.POINT_DPI;
+		double slideWidthInches = 10;
+		double slideHeightInches = 7.5;
+		double imageHeightInches = .2;
+		double imageWidthInches = imageHeightInches * (1478.0 / 214.0);
+		
+		double widthOffsetInches = slideWidthInches - imageWidthInches;
+		double heightOffsetInches = slideHeightInches - imageHeightInches;
+		
+		double widthOffsetDPI = widthOffsetInches * dpiPerInch;
+		double heightOffsetDPI = heightOffsetInches * dpiPerInch;
+		double imageHeightDPI = imageHeightInches * dpiPerInch;
+		double imageWidthDPI = imageWidthInches * dpiPerInch;
+		
+		// Cast coordinates to int so that they can be ingested by Rectangle
+		int widthOffsetDPIInt = (int) widthOffsetDPI;
+		int heightOffsetDPIInt = (int) heightOffsetDPI;
+		int imageHeightDPIInt = (int) imageHeightDPI;
+		int imageWidthDPIInt = (int) imageWidthDPI;
+		Rectangle bounds = new java.awt.Rectangle(widthOffsetDPIInt, heightOffsetDPIInt, imageWidthDPIInt, imageHeightDPIInt);
+		
 		return bounds;
 	}
 
