@@ -1,6 +1,7 @@
 package prerna.cluster.util;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,8 +56,8 @@ public class ClusterUtil {
 	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
-	public static String IMAGES_FOLDER_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR+"images";;
-;
+	public static String IMAGES_FOLDER_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR+"images";
+
 
 	/*
 	 * private static final String MULTIPLE_STORAGE_ACCOUNTS_KEY =
@@ -73,6 +74,7 @@ public class ClusterUtil {
 	 * //redis table info public static final String REDIS_STORAGE_ACCOUNT =
 	 * "storageAccount"; public static final String REDIS_TIMESTAMP = "timestamp";
 	 */
+
 	public static void reactorPushApp(Collection<String> appIds) {
 		if (ClusterUtil.IS_CLUSTER) {
 			for (String appId : appIds) {
@@ -81,6 +83,7 @@ public class ClusterUtil {
 		}
 
 	}
+	
 	
 	public static void reactorPullApp(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
@@ -216,4 +219,49 @@ public class ClusterUtil {
 			} 
 			return imageFile;
 	}
+	
+	public static List<File> getSubdirs(String path) {
+
+		File file = new File(path);
+		if (!file.isDirectory()){
+			throw new IllegalArgumentException("File path must be a directory");
+		}
+		List<File> subdirs = Arrays.asList(file.listFiles(new FileFilter() {
+			public boolean accept(File f) {
+				return f.isDirectory();
+			}
+		}));
+		subdirs = new ArrayList<File>(subdirs);
+
+		List<File> deepSubdirs = new ArrayList<File>();
+		for(File subdir : subdirs) {
+			deepSubdirs.addAll(getSubdirs(subdir.getAbsolutePath())); 
+		}
+		subdirs.addAll(deepSubdirs);
+		return subdirs;
+	}
+
+	public static void addHiddenFileToDir(File folder){
+		File hiddenFile = new File(folder.getAbsolutePath() + DIR_SEPARATOR + Constants.HIDDEN_FILE_EXTENSION);
+		try {
+			hiddenFile.createNewFile();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public static void validateFolder(String folderPath){
+		List<File> subdirs = getSubdirs(folderPath);
+		for (File f : subdirs){
+			if(!(f.list().length>0)){
+				//System.out.println(f.getAbsolutePath());
+				addHiddenFileToDir(f);
+			}
+		}
+	}
+	
+
+	
+
 }

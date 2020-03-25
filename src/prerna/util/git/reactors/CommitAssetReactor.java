@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -51,7 +52,20 @@ public class CommitAssetReactor extends AbstractReactor {
 		
 		// commit it
 		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
+		if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
+			if (AbstractSecurityUtils.securityEnabled()) {
+				if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+					throwAnonymousUserError();
+				}
+				AuthProvider provider = user.getPrimaryLogin();
+				String appId = user.getAssetEngineId(provider);
+				if(appId!=null && !(appId.isEmpty())){
+					ClusterUtil.reactorPushApp(appId);
+				}
+			}
+		} else {
 		ClusterUtil.reactorPushApp(this.insight.getEngineId());
+		}
 
 		return NounMetadata.getSuccessNounMessage("Success!");
 

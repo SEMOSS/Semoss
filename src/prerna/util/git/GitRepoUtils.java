@@ -62,6 +62,7 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.security.InstallCertNow;
 import prerna.util.Utility;
 
@@ -1309,6 +1310,9 @@ public class GitRepoUtils {
 		try {
 			Git.init().setDirectory(new File(folder)).call();
 			Git.open(new File(folder)).close();
+			if (ClusterUtil.IS_CLUSTER) {
+				ClusterUtil.validateFolder(folder);
+			}
 		} catch (IllegalStateException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
