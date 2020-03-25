@@ -1,19 +1,28 @@
 package prerna.sablecc2.reactor.export;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.ClientAnchor;
 import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.Drawing;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Picture;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xddf.usermodel.PresetColor;
 import org.apache.poi.xddf.usermodel.XDDFColor;
@@ -60,6 +69,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.DIHelper;
 
 public class ExportToExcelReactor extends AbstractReactor {
 
@@ -165,6 +175,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 			processTask(workbook, task, sheetId, panelId);
 		}
 
+		// Insert Semoss Logo after the last chart on each sheet
+		addLogo(workbook, sheetAlias);
+
 		// rename sheets
 		for (String sheetId : sheetAlias.keySet()) {
 			String sheetName = sheetAlias.get(sheetId);
@@ -184,6 +197,52 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 
 		return retNoun;
+	}
+
+	private void addLogo(XSSFWorkbook workbook, Map<String, String> sheetAlias) {
+		String semossLogoPath = DIHelper.getInstance().getProperty("EXPORT_SEMOSS_LOGO");
+		if (semossLogoPath != null) {
+			File logo = new File(semossLogoPath);
+			if (logo.exists()) {
+				// Load image
+				byte[] picture = null;
+				try {
+					picture = IOUtils.toByteArray(new FileInputStream(semossLogoPath));
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+				// Insert image into workbook
+				int pictureIndex = workbook.addPicture(picture, Workbook.PICTURE_TYPE_PNG);
+
+				// Insert logo into each sheet
+				for (String sheetId : sheetAlias.keySet()) {
+					// Get location for logo on current sheet
+					Map<String, Object> sheetChartMap = this.chartPanelLayout.get(sheetId);
+					int colIndex = (int) sheetChartMap.get("colIndex");
+					int chartIndex = (int) sheetChartMap.get("chartIndex");
+					// Helper returns an object that handles instantiating
+					// concrete classes
+					CreationHelper helper = workbook.getCreationHelper();
+					int sheetIndex = workbook.getSheetIndex(sheetId);
+					XSSFSheet sheet = workbook.getSheetAt(sheetIndex);
+					Drawing drawing = sheet.createDrawingPatriarch();
+					// Create an anchor that is attached to the worksheet
+					ClientAnchor anchor = helper.createClientAnchor();
+					// Attach locations to anchor
+					// The seemingly random numbers we're adding by are to make
+					// the image look good/not stretched out
+					anchor.setCol1(colIndex + 2);
+					anchor.setRow1(chartIndex + 1);
+					anchor.setCol2(colIndex + 8);
+					anchor.setRow2(chartIndex + 4);
+					// Create the picture
+					Picture pict = drawing.createPicture(anchor, pictureIndex);
+				}
+			}
+		}
 	}
 
 	private void setChartLayout(Map<String, Object> panelChartMap, TaskOptions taskOptions, String panelId) {
