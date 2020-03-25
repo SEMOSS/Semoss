@@ -588,6 +588,7 @@ public class Constants {
 	
 	public static final String DATABASE_FOLDER = "db";
 	public static final String SEMOSS_EXTENSION = ".smss";
+	public static final String HIDDEN_FILE_EXTENSION = ".hidden";
 	
 	// Concept Metadata Table
 	public static final String CONCEPT_METADATA_TABLE = "CONCEPTMETADATA";
