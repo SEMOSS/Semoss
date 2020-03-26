@@ -1,19 +1,27 @@
 package prerna.sablecc2.reactor.export;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.ClientAnchor;
 import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.Drawing;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Picture;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
@@ -26,6 +34,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
+import prerna.util.DIHelper;
 
 public class ToExcelReactor extends TaskBuilderReactor {
 
@@ -184,8 +193,10 @@ public class ToExcelReactor extends TaskBuilderReactor {
 					}
 				}
 			}
-		}	
+		}
 		
+		addLogo(workbook, sheet, size + 1);
+
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
 		if(password != null) {
 			// encrypt file
@@ -195,6 +206,41 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			ExcelUtility.writeToFile(workbook, this.fileLocation);
 		}
 	}
+	
+	private void addLogo(SXSSFWorkbook workbook, SXSSFSheet sheet, int startCol) {
+		String semossLogoPath = DIHelper.getInstance().getProperty("EXPORT_SEMOSS_LOGO");
+		if (semossLogoPath != null) {
+			File logo = new File(semossLogoPath);
+			if (logo.exists()) {
+				// Load image
+				byte[] picture = null;
+				try {
+					picture = IOUtils.toByteArray(new FileInputStream(semossLogoPath));
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				
+				// Insert image into workbook
+				int pictureIndex = workbook.addPicture(picture, Workbook.PICTURE_TYPE_PNG);
+				
+				// Helper returns an object that handles instantiating concrete classes
+				CreationHelper helper = workbook.getCreationHelper();
+				Drawing drawing = sheet.createDrawingPatriarch();
+				// Create an anchor that is attached to the worksheet
+				ClientAnchor anchor = helper.createClientAnchor();
+				// Set locations of anchor
+				anchor.setCol1(startCol);
+				anchor.setRow1(1);
+				anchor.setCol2(startCol + 6);
+				anchor.setRow2(4);
+				// Create the picture
+				Picture pict = drawing.createPicture(anchor, pictureIndex);
+			}
+		}
+	}
+
 	
 	/**
 	 * Getting a file name
