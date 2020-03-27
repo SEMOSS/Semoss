@@ -88,7 +88,29 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addOrderBy(new QueryColumnOrderBySelector("USER__TYPE"));
 		return getSimpleQuery(qs);
 	}
+	
+	/**
+	 * Get all user databases
+	 * @param userId
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public List<Map<String, Object>> getAllUserDbs(String userId) throws IllegalArgumentException{
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID", "user_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION", "app_permission"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "app_permission"));
 
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+		qs.addRelation("ENGINEPERMISSION", "ENGINE", "inner.join");
+		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+
+		return flushRsToMap(wrapper);
+	}
 	/**
 	 * Update user information.
 	 * @param adminId
