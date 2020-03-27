@@ -143,7 +143,12 @@ public class MergeReactor extends AbstractReactor {
 						// remember, RHS is the alias we provide the selector
 						// but might not match the physical
 						if(!qs.hasColumn(rColumnJoin)) {
-							IQuerySelector selector = qs.findSelectorFromAlias(rColumnJoin);
+							IQuerySelector selector = null;
+							if(rColumnJoin.contains("__")) {
+								selector = qs.findSelectorFromAlias(rColumnJoin.split("__")[1]);
+							} else {
+								selector = qs.findSelectorFromAlias(rColumnJoin);
+							}
 							// get the correct q
 							if(selector == null) {
 								throw new IllegalArgumentException("There is an error with the join. Please make sure the columns are matched appropriately based on the frame you want to maintain");
