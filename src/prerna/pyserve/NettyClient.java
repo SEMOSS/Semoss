@@ -117,25 +117,32 @@ public class NettyClient implements Runnable{
     	tc.command = command;
     	tc.nc = this;
     	Thread t = new Thread(tc);
+    	response = null;
 
-    	//while(!responseMap.containsKey(command))
+    	while(attempt < 6)
     	{
 	    	synchronized(lock)
 	    	{
 	    		try
 	    		{
 	    	    	t.run();
-	    			lock.wait();
+	    			lock.wait(attempt*1000);
 	    			//System.out.println("Object that came " + response);
-	    			Object [] outputObj = (Object [])response;		
-	    			responseMap.put(outputObj[0], outputObj[1]);
+	    			if(response != null)
+	    			{
+	    				Object [] outputObj = (Object [])response;		
+	    				responseMap.put(outputObj[0], outputObj[1]);
+	    			}
+	    			attempt++;
 	    		}catch(Exception ex)
 	    		{
 	    			
 	    		}
 	    	}
     	}
-
+    	if(attempt > 5)
+    		return "Output has taken way longer than expected, removing block";
+    	
     	return responseMap.remove(command);
     }
     
