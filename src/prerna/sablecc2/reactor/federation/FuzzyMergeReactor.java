@@ -164,6 +164,14 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		// just need to update to join on the new fuzzy column
 		joins.get(0).setLColumn(rFrameVar + "__" + fuzzyColName);
 		logger.info("Running script to merge new fields onto frame");
+		// replace the join to be just the alias
+		for(Join j : joins) {
+			String lCol = j.getLColumn();
+			if(lCol.contains("__")) { j.setLColumn(lCol.split("__")[1]); };
+			String rCol = j.getRColumn();
+			if(rCol.contains("__")) { j.setRColumn(rCol.split("__")[1]); };
+		}
+		
 		MergeReactor mergeReactor = new MergeReactor();
 		mergeReactor.setInsight(this.insight);
 		mergeReactor.setPixelPlanner(planner);
