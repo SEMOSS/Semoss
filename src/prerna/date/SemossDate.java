@@ -2,6 +2,10 @@ package prerna.date;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -14,7 +18,7 @@ import org.apache.log4j.Logger;
 public class SemossDate {
 
 	private static final Logger LOGGER = LogManager.getLogger(SemossDate.class);
-	
+
 	/*
 	 * So we do not recalculate all these combinations every time
 	 */
@@ -31,7 +35,7 @@ public class SemossDate {
 		timeStampsWithSlash = DatePatternGenerator.getDateTimeFormats("/", ":");
 		timeStampsWithDash = DatePatternGenerator.getDateTimeFormats("-", ":");
 	}
-	
+
 	private String strDate;
 	private String pattern;
 
@@ -69,7 +73,7 @@ public class SemossDate {
 		this.pattern = pattern;
 		getDate();
 	}
-	
+
 	/**
 	 * Date from time in ms
 	 * @param time
@@ -92,7 +96,7 @@ public class SemossDate {
 		}
 		getFormattedDate();
 	}
-	
+
 	/**
 	 * Date from time in ms with enforcement on timestamp
 	 * @param time
@@ -116,7 +120,7 @@ public class SemossDate {
 		}
 		getFormattedDate();
 	}
-	
+
 	/**
 	 * Date from time in ms with format
 	 * @param time
@@ -163,7 +167,15 @@ public class SemossDate {
 		}
 		return this.date;
 	}
-	
+
+	public LocalDateTime getLocalDateTime() {
+		return Instant.ofEpochMilli(getDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDateTime();
+	}
+
+	public LocalDate getLocalDate() {
+		return Instant.ofEpochMilli(getDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate();
+	}
+
 	/**
 	 * Get the date in a requested format
 	 * @param requestedPattern
@@ -174,9 +186,9 @@ public class SemossDate {
 		SimpleDateFormat formatter = new SimpleDateFormat(requestedPattern);
 		return formatter.format(date);
 	}
-	
+
 	/**
-	 * Determine if this has 
+	 * Determine if this has a time portion
 	 * @return
 	 */
 	public boolean hasTime() {
@@ -187,7 +199,7 @@ public class SemossDate {
 		}
 		return false;
 	}
-	
+
 	public boolean hasTimeNotZero() {
 		Date date = getDate();
 		Calendar c = Calendar.getInstance();
@@ -204,7 +216,7 @@ public class SemossDate {
 	public String toString() {
 		return getFormattedDate();
 	}
-	
+
 	/**
 	 * Using this to test the string value + pattern
 	 * @return
@@ -212,8 +224,8 @@ public class SemossDate {
 	public String testToString() {
 		return this.strDate + " ::: " + this.pattern;
 	}
-	
-	
+
+
 	//////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////
@@ -223,7 +235,7 @@ public class SemossDate {
 	/*
 	 * Static methods for manipulation
 	 */
-	
+
 	/**
 	 * Try to prase the date and get the time for it
 	 * @param strInput
@@ -237,10 +249,10 @@ public class SemossDate {
 		} else {
 			dateValue = SemossDate.genDateObj(strInput);
 		}
-		
+
 		return getTimeForDate(dateValue);
 	}
-	
+
 	/**
 	 * Try to parse the date and get the time for it
 	 * @param strInput
@@ -253,10 +265,10 @@ public class SemossDate {
 				return d.getDate().getTime();
 			}
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * Get the date and get the time for it
 	 * @param d
@@ -268,10 +280,10 @@ public class SemossDate {
 				return d.getDate().getTime();
 			}
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * Try to prase the timestamp and get the time for it
 	 * @param strInput
@@ -285,10 +297,10 @@ public class SemossDate {
 		} else {
 			dateValue = SemossDate.genTimeStampDateObj(strInput);
 		}
-		
+
 		return getTimeForTimestamp(dateValue);
 	}
-	
+
 	/**
 	 * Try to parse the date and get the time for it
 	 * @param strInput
@@ -301,10 +313,10 @@ public class SemossDate {
 				return d.getDate().getTime();
 			}
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * Get the date and get the time for it
 	 * @param d
@@ -316,10 +328,10 @@ public class SemossDate {
 				return d.getDate().getTime();
 			}
 		}
-		
+
 		return null;
 	}
-	
+
 
 	/**
 	 * Method to get a semoss date from string input
@@ -336,7 +348,7 @@ public class SemossDate {
 		// number, a slash, or a dash
 		// not exactly contains alpha, but most likely...
 		boolean containsAlpha = !input.matches("[0-9/\\-]+");
-		
+
 		if(!containsAlpha && (input.contains("/") && !input.startsWith("/")) ) {
 			return testCombinations(input, datesWithSlash);
 		} else if(!containsAlpha && (input.contains("-") && !input.startsWith("-")) ) {
@@ -346,7 +358,7 @@ public class SemossDate {
 			return testCombinations(input, datesWithLetters);
 		}
 	}
-	
+
 	/**
 	 * Method to get a semoss date from string input
 	 * @param input
@@ -362,17 +374,17 @@ public class SemossDate {
 		// number, a slash, or a dash
 		// not exactly contains alpha, but most likely...
 		boolean containsAlpha = !input.matches("[0-9/\\-:.\\s]+");
-		
+
 		if(!containsAlpha && (input.contains("/") && !input.startsWith("/")) ) {
 			return testCombinations(input, timeStampsWithSlash);
 		} else if(!containsAlpha && (input.contains("-") && !input.startsWith("-")) ) {
 			return testCombinations(input, timeStampsWithDash);
 		}
-		
+
 		return null;
 	}
-	
-	
+
+
 	/**
 	 * Try to match with inputs that contain a /
 	 * @param input
@@ -405,46 +417,46 @@ public class SemossDate {
 		} else {
 			System.out.println("didn't break");
 		}
-		
+
 		String d = "11/5/1991";
 		System.out.println(SemossDate.genDateObj(d).testToString());
-		
+
 		d = "1/5/1991";
 		System.out.println(SemossDate.genDateObj(d).testToString());
-		
+
 		d = "01/22/1991";
 		System.out.println(SemossDate.genDateObj(d).testToString());
-		
+
 		d = "13/12/1991";
 		System.out.println(SemossDate.genDateObj(d).testToString());
-		
+
 		d = "5/15/91";
 		System.out.println(SemossDate.genDateObj(d).testToString());
-		
+
 		d = "Jan-12";
 		System.out.println(SemossDate.genDateObj(d).testToString());
-		
-//		d = "January 12th, 2015";
-//		System.out.println(SemossDate.genDateObj(d).testToString());
-		
+
+		//		d = "January 12th, 2015";
+		//		System.out.println(SemossDate.genDateObj(d).testToString());
+
 		d = "Jan 15, 2019";
 		System.out.println(SemossDate.genDateObj(d).testToString());
-		
+
 		d = "1/1/2018";
 		System.out.println(SemossDate.genDateObj(d).testToString());
-		
+
 		d = "2018/1/1";
 		System.out.println(SemossDate.genDateObj(d).testToString());
-		
+
 		d = "2018/1/1 10:20:11";
 		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
-	
+
 		d = "2018-03-12";
 		System.out.println(SemossDate.genDateObj(d).testToString());
-		
+
 		d = "2018-03-12 10:20:11";
 		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
-		
+
 		d = "2019-23-12 02:12:21";
 		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
 	}
