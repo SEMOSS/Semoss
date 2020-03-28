@@ -491,7 +491,6 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	public void addFilters() {
 		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
 		for(IQueryFilter filter : filters) {
-			System.out.println("again");
 			StringBuilder filterSyntax = processFilter(filter);
 			if(filterSyntax != null) {
 				this.filterStatements.add(filterSyntax.toString());
