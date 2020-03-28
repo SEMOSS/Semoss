@@ -729,6 +729,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		if(engineConn != null) {
 			try {
 				engineConn.setAutoCommit(autoCommit);
+				this.autoCommit = autoCommit;
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
