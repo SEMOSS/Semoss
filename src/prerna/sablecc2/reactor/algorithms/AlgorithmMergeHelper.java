@@ -11,6 +11,7 @@ import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.Join;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
 
@@ -74,6 +75,11 @@ public class AlgorithmMergeHelper {
 		List<Join> joins = new ArrayList<Join>();
 		Join j = new Join(existingUniqueColName, "left.outer.join", existingUniqueColName);
 		joins.add(j);
-		return importer.mergeData(joins);
+		try {
+			return importer.mergeData(joins);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		}
 	}
 }

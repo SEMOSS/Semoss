@@ -58,29 +58,38 @@ public class AllAppsReactor extends AbstractReactor {
 			index.put(appId, new Integer(i));
 		}
 		
-		IRawSelectWrapper wrapper = SecurityAppUtils.getAppMetadataWrapper(index.keySet(), META_KEYS_LIST);
-		while(wrapper.hasNext()) {
-			Object[] data = wrapper.next().getValues();
-			String appId = (String) data[0];
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = SecurityAppUtils.getAppMetadataWrapper(index.keySet(), META_KEYS_LIST);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				String appId = (String) data[0];
 
-			String metaKey = (String) data[1];
-			String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[2]);
-			if(value == null) {
-				continue;
+				String metaKey = (String) data[1];
+				String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[2]);
+				if(value == null) {
+					continue;
+				}
+				
+				int indexToFind = index.get(appId);
+				Map<String, Object> res = appInfo.get(indexToFind);
+				// right now only handling description + tags
+				if(metaKey.equals("description")) {
+					// we only have 1 description per insight
+					// so just push
+					res.put("description", value);
+				} else if(metaKey.equals("tag")){
+					// multiple tags per insight
+					List<String> tags = (List<String>) res.get("tags");;
+					// add to the list
+					tags.add(value);
+				}
 			}
-			
-			int indexToFind = index.get(appId);
-			Map<String, Object> res = appInfo.get(indexToFind);
-			// right now only handling description + tags
-			if(metaKey.equals("description")) {
-				// we only have 1 description per insight
-				// so just push
-				res.put("description", value);
-			} else if(metaKey.equals("tag")){
-				// multiple tags per insight
-				List<String> tags = (List<String>) res.get("tags");;
-				// add to the list
-				tags.add(value);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 		

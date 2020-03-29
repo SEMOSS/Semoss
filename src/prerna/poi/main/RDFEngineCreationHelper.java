@@ -105,12 +105,21 @@ public class RDFEngineCreationHelper {
 				insightName = "Show first 500 records from " + pixelName;
 
 				query = "select id from question_id where question_name='"+insightName+"'";
-				IRawSelectWrapper containsIt = WrapperManager.getInstance().getRawWrapper(insightsDatabase, query);
-				while(containsIt.hasNext()) {
-					// this question already exists
-					// just continue though the loop
-					containsIt.next();
-					continue NEXT_CONCEPT;
+				IRawSelectWrapper containsIt = null;
+				try {
+					containsIt = WrapperManager.getInstance().getRawWrapper(insightsDatabase, query);
+					while(containsIt.hasNext()) {
+						// this question already exists
+						// just continue though the loop
+						containsIt.next();
+						continue NEXT_CONCEPT;
+					}
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				} finally {
+					if(containsIt != null) {
+						containsIt.cleanUp();
+					}
 				}
 				
 				layout = "Grid";

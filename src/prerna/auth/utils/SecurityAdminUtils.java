@@ -21,6 +21,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
@@ -54,12 +55,19 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("USER__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", getUserFiltersQs(user)));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
+		return false;
 	}
 	
 	/*
@@ -102,15 +110,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "app_permission"));
-
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
 		qs.addRelation("ENGINEPERMISSION", "ENGINE", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-
-		return flushRsToMap(wrapper);
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
+	
 	/**
 	 * Update user information.
 	 * @param adminId
@@ -241,8 +247,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(fun);
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		return flushRsToMap(wrapper);
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**
@@ -386,8 +391,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", appId));
 		qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHT__INSIGHTNAME"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		return flushRsToMap(wrapper);
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**
@@ -441,8 +445,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("PERMISSION__ID"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("USER__ID"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		return flushRsToMap(wrapper);
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**

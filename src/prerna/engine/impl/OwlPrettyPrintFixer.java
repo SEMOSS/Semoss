@@ -28,12 +28,21 @@ public class OwlPrettyPrintFixer {
 					+ "}";
 			
 			boolean write = false;
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rfse, query);
-			while(wrapper.hasNext()) {
-				write = true;
-				Object[] badTriples = wrapper.next().getRawValues();
-				rfse.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{badTriples[0], badTriples[1], badTriples[2], true});
-				rfse.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{badTriples[0], conceptualRel, badTriples[2], true});
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(rfse, query);
+				while(wrapper.hasNext()) {
+					write = true;
+					Object[] badTriples = wrapper.next().getRawValues();
+					rfse.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{badTriples[0], badTriples[1], badTriples[2], true});
+					rfse.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{badTriples[0], conceptualRel, badTriples[2], true});
+				}
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
 			
 			if(write) {

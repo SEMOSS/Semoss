@@ -568,10 +568,20 @@ public class Xray {
 							sqs.setEngineId(engineID);
 							sqs.addSelector(table, null);
 							sqs.setDistinct(true);
-							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
+							
 							List<Object> instances = new ArrayList<Object>();
-							while(iterator.hasNext()) {
-								instances.add(iterator.next().getValues()[0]);
+							IRawSelectWrapper iterator = null;
+							try {
+								iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
+								while(iterator.hasNext()) {
+									instances.add(iterator.next().getValues()[0]);
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							} finally {
+								if(iterator != null) {
+									iterator.cleanUp();
+								}
 							}
 							this.logger.info("Querying table " + table + " from " + engineName + " for X-ray comparison");
 							// encode and write to file
@@ -592,10 +602,20 @@ public class Xray {
 							sqs.setEngineId(engineID);
 							sqs.addSelector(table, column);
 							sqs.setDistinct(true);
-							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
+							
 							List<Object> instances = new ArrayList<Object>(); 
-							while(iterator.hasNext()) {
-								instances.add(iterator.next().getValues()[0]);
+							IRawSelectWrapper iterator = null;
+							try {
+								iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
+								while(iterator.hasNext()) {
+									instances.add(iterator.next().getValues()[0]);
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							} finally {
+								if(iterator != null) {
+									iterator.cleanUp();
+								}
 							}
 							this.logger.info("Querying " + column + " from " + table + " in " + engineName + " for X-ray comparison");
 							// encode and write to file
@@ -881,11 +901,20 @@ public class Xray {
 			}
 			qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 
-			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 			Integer count = 0;
-			if (it.hasNext()) {
-				Number num =(Number) it.next().getValues()[0];
-				count = num.intValue();
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+				if (it.hasNext()) {
+					Number num =(Number) it.next().getValues()[0];
+					count = num.intValue();
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
 			}
 			engineColumn.add(engine.getEngineId());
 			tableColumn.add(concept);

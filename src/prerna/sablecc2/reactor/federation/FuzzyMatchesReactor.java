@@ -16,6 +16,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
@@ -109,10 +110,22 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 				// read in R
 				SelectQueryStruct qs = new SelectQueryStruct();
 				qs.addSelector(new QueryColumnSelector(frameCol));
-				IRawSelectWrapper iterator = frame.query(qs);
-				ITask it2 = new BasicIteratorTask(iterator);
-				String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
-				File newFile = Utility.writeResultToFile(newFileLoc, it2, null, "\t");
+				
+				File newFile = null;
+				IRawSelectWrapper iterator = null;
+				try {
+					iterator = frame.query(qs);
+					ITask it2 = new BasicIteratorTask(iterator);
+					String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
+					newFile = Utility.writeResultToFile(newFileLoc, it2, null, "\t");
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				} finally {
+					if(iterator != null) {
+						iterator.cleanUp();
+					}
+				}
 				String loadFileRScript = RSyntaxHelper.getFReadSyntax(rCol2, newFile.getAbsolutePath(), "\t");
 				script.append(loadFileRScript);
 				cleanUpFiles.add(newFile);

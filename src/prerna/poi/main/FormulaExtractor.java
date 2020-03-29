@@ -1132,14 +1132,23 @@ public class FormulaExtractor extends AbstractFileReader {
 				String getRowCountQuery = "SELECT COUNT(*) as ROW_COUNT FROM " + tableToSet + " WHERE " + 
 						tableToSet + " = '" + cells[setter] + "' AND " + tableToInsert +  "_FK IS NULL";
 				boolean isInsert = false;
-				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
-				if(wrapper.hasNext()){
-					String rowcount = wrapper.next().getValues()[0].toString();
-					if(rowcount.equals("0")){
-						isInsert = true;
+				IRawSelectWrapper wrapper = null;
+				try {
+					wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
+					if(wrapper.hasNext()){
+						String rowcount = wrapper.next().getValues()[0].toString();
+						if(rowcount.equals("0")){
+							isInsert = true;
+						}
+					}
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				} finally {
+					if(wrapper != null) {
+						wrapper.cleanUp();
 					}
 				}
-
+				
 				if(isInsert) {
 					// we want to pull all concept values from query
 					String colsToSelect = "";

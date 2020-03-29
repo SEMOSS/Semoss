@@ -10,6 +10,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.JavaExecutable;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -127,11 +128,17 @@ public abstract class OpBasicMath extends OpReactor {
 		opFunction.addInnerSelector(columnSelector);
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(opFunction);
-		Iterator<IHeadersDataRow> it = frame.query(qs);
-		if(it.hasNext()) {
-			return ((Number) it.next().getValues()[0]).doubleValue();
-		} else {
-			throw new IllegalArgumentException("Cannot execute " + operation + " of " + frameColName + " with the given frame");
+		Iterator<IHeadersDataRow> it;
+		try {
+			it = frame.query(qs);
+			if(it.hasNext()) {
+				return ((Number) it.next().getValues()[0]).doubleValue();
+			} else {
+				throw new IllegalArgumentException("Data query did not return any results for the operation");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
 		}
 	}
 

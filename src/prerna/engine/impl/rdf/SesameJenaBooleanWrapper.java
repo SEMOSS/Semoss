@@ -31,10 +31,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.query.GraphQueryResult;
 
-import prerna.engine.api.IEngine;
-
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
+
+import prerna.engine.api.IEngine;
 
 /**
  * This helps insert and delete boolean queries to the database.
@@ -81,14 +81,14 @@ public class SesameJenaBooleanWrapper {
 	/**
 	 * Method execute.  Executes the query.
 	
-	 * @return boolean true if the query is returned. */
-	public boolean execute()
+	 * @return boolean true if the query is returned. 
+	 * @throws Exception */
+	public boolean execute() throws Exception 
 	{
 		boolean ret= false;
 		try {
 			ret = (boolean) engine.execQuery(query);			
 		} catch (RuntimeException e) {
-			// TODO: Specify exception
 			e.printStackTrace();
 		}
 		return ret;

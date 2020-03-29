@@ -12,7 +12,7 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	private RIterator output = null;
 	
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		this.output = (RIterator) this.engine.execQuery(this.query);
 		setDefaults();
 	}
@@ -59,7 +59,7 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	}
 	
 	@Override
-	public void reset() {
+	public void reset() throws Exception {
 		this.output = (RIterator) this.engine.execQuery(this.query);
 	}
 

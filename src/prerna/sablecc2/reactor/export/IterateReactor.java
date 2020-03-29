@@ -14,6 +14,7 @@ import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -69,7 +70,12 @@ public class IterateReactor extends AbstractReactor {
 			IRawSelectWrapper iterator = null;
 			if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE ||
 					qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-				iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
+				try {
+					iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				}
 			} else {
 				ITableDataFrame frame = qs.getFrame();
 				if(frame == null) {
@@ -80,7 +86,12 @@ public class IterateReactor extends AbstractReactor {
 				}
 				Logger logger = getLogger(frame.getClass().getName());
 				frame.setLogger(logger);
-				iterator = frame.query(qs);
+				try {
+					iterator = frame.query(qs);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				}
 			}
 			this.task = new BasicIteratorTask(qs, iterator);
 			this.task.setHeaderInfo(qs.getHeaderInfo());

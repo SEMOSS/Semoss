@@ -96,10 +96,20 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 
 		// exec query
-		IRawSelectWrapper it2 = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
+		File newFile = null;
+		IRawSelectWrapper it2 = null;
+		try {
+			it2 = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
+			// write to file
+			 newFile = Utility.writeResultToFile(newFileLoc, it2, typesMap, "\t");
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it2 != null) {
+				it2.cleanUp();
+			}
+		}
 
-		// write to file
-		File newFile = Utility.writeResultToFile(newFileLoc, it2, typesMap, "\t");
 		String loadFileRScript = rCol2 + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
 		this.rJavaTranslator.runR(loadFileRScript);
 		this.rJavaTranslator.runR(rCol2 + " <- as.character(" + rCol2 + "$" + newCol + ")");

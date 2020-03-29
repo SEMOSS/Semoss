@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -54,10 +55,20 @@ public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 		}
 		qs.mergeImplicitFilters(dataFrame.getFrameFilters());
 		
-		Iterator<IHeadersDataRow> it = dataFrame.query(qs);
-		logger.info("Start iterating through data to determine correlation");
-		double[][] correlationData = runCorrelation(it, numCols, missingVal, logger);
-		logger.info("Done iterating through data to determine correlation");
+		double[][] correlationData = null;
+		IRawSelectWrapper it = null;
+		try {
+			it = dataFrame.query(qs);
+			logger.info("Start iterating through data to determine correlation");
+			correlationData = runCorrelation(it, numCols, missingVal, logger);
+			logger.info("Done iterating through data to determine correlation");
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
 
 		List<Object[]> data = new Vector<Object[]>();
 		for(int i = 0; i < numCols; i++) {

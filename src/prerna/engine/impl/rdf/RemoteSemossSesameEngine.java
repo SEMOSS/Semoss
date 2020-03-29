@@ -351,7 +351,11 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 		rsw.setEngine(this);
 		rsw.setQuery(sparqlQuery);
 
-		rsw.execute();
+		try {
+			rsw.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		//SesameSelectWrapper ssw = (SesameSelectWrapper) this.execQuery(sparqlQuery);
 		Vector<Object> strVector = new Vector<Object>();
 		while(rsw.hasNext()){

@@ -18,8 +18,18 @@ public class RunAliasMatchReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		Iterator<IHeadersDataRow> inputIterator = getInputIterator();
-		Iterator<IHeadersDataRow> proposalIterator = getProposalIterator();
+		Iterator<IHeadersDataRow> inputIterator = null;
+		try {
+			inputIterator = getInputIterator();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		Iterator<IHeadersDataRow> proposalIterator = null;
+		try {
+			proposalIterator = getProposalIterator();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		//need to check if all aliases and all hashcodes are the same
 		Map<String, String> inputHash = new HashMap<>();
@@ -63,7 +73,7 @@ public class RunAliasMatchReactor extends AbstractReactor {
 		return null;
 	}
 	
-	private Iterator<IHeadersDataRow> getInputIterator() {
+	private Iterator<IHeadersDataRow> getInputIterator() throws Exception {
 		GenRowStruct allNouns = getNounStore().getNoun("INPUT");
 		Iterator<IHeadersDataRow> iterator = null;
 
@@ -74,7 +84,7 @@ public class RunAliasMatchReactor extends AbstractReactor {
 		return iterator;
 	}
 	
-	private Iterator<IHeadersDataRow> getProposalIterator() {
+	private Iterator<IHeadersDataRow> getProposalIterator() throws Exception {
 		GenRowStruct allNouns = getNounStore().getNoun("PROPOSALS");
 		Iterator<IHeadersDataRow> iterator = null;
 

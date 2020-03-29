@@ -264,7 +264,12 @@ public class GraphDataModel implements IDataMaker {
 						+ "{?Subject ?Predicate ?Object} "
 						+ "} BINDINGS ?Subject {" + subjects + "}";
 			}
-			genBaseConcepts(baseConceptSelectQuery);
+			try {
+				genBaseConcepts(baseConceptSelectQuery);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			logger.info("Loaded Orphans");
 
 
@@ -302,7 +307,12 @@ public class GraphDataModel implements IDataMaker {
 			}
 
 
-			genBaseGraph(predicateSelectQuery);//subjects2, predicates2, subjects2);
+			try {
+				genBaseGraph(predicateSelectQuery);//subjects2, predicates2, subjects2);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			logger.info("Loaded Graph");
 		}
 	}
@@ -447,9 +457,14 @@ public class GraphDataModel implements IDataMaker {
 	
 				if(sudowl && isRDF) { // I wont worry about this for now
 					logger.info("Starting to load SUDOWL");
-					GraphOWLHelper.loadConceptHierarchy(rc, subjects.toString(), objects.toString(), this);
-					GraphOWLHelper.loadRelationHierarchy(rc, predicates.toString(), this);
-					GraphOWLHelper.loadPropertyHierarchy(rc,predicates.toString(), containsRelation, this);
+					try {
+						GraphOWLHelper.loadConceptHierarchy(rc, subjects.toString(), objects.toString(), this);
+						GraphOWLHelper.loadRelationHierarchy(rc, predicates.toString(), this);
+						GraphOWLHelper.loadPropertyHierarchy(rc,predicates.toString(), containsRelation, this);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					logger.info("Finished loading SUDOWL");
 				}
 				if(prop && isRDF) { // hmm this is something i need wor worry about but I will work it with an RDF plug right now
@@ -849,8 +864,9 @@ public class GraphDataModel implements IDataMaker {
 
 	/**
 	 * Method genBaseConcepts.
+	 * @throws Exception 
 	 */
-	public void genBaseConcepts(String conceptSelectQuery)
+	public void genBaseConcepts(String conceptSelectQuery) throws Exception
 	{
 		// create all the relationships now
 		logger.info("ConceptSelectQuery query " + conceptSelectQuery);
@@ -904,8 +920,9 @@ public class GraphDataModel implements IDataMaker {
 	// executes the first SPARQL query and generates the graphs
 	/**
 	 * Method genBaseGraph.
+	 * @throws Exception 
 	 */
-	public void genBaseGraph(String predicateSelectQuery)
+	public void genBaseGraph(String predicateSelectQuery) throws Exception
 	{
 		// create all the relationships now
 		//IEngine jenaEngine = new InMemoryJenaEngine();

@@ -2,13 +2,12 @@ package prerna.sablecc2.reactor.frame.filtermodel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -121,12 +120,22 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 			totalCountQS.addExplicitFilter(wFilter);
 		}
 		
-		Iterator<IHeadersDataRow> totalCountIt = dataframe.query(totalCountQS);
 		int totalCount = 0;
-		while (totalCountIt.hasNext()) {
-			Object numUnique = totalCountIt.next().getValues()[0];
-			totalCount = ((Number) numUnique).intValue();
+		IRawSelectWrapper totalCountIt = null;
+		try {
+			totalCountIt = dataframe.query(totalCountQS);
+			while (totalCountIt.hasNext()) {
+				Object numUnique = totalCountIt.next().getValues()[0];
+				totalCount = ((Number) numUnique).intValue();
+			}
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(totalCountIt != null) {
+				totalCountIt.cleanUp();
+			}
 		}
+		
 		retMap.put("totalCount", totalCount);
 
 		// set the base info in the query struct to collect values
@@ -143,10 +152,20 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 		// grab all the values
 		List<Object> options = new ArrayList<Object>();
 		// flush out the values
-		Iterator<IHeadersDataRow> allValuesIt = dataframe.query(qs);
-		while (allValuesIt.hasNext()) {
-			options.add(allValuesIt.next().getValues()[0]);
+		IRawSelectWrapper allValuesIt = null;
+		try {
+			allValuesIt = dataframe.query(qs);
+			while (allValuesIt.hasNext()) {
+				options.add(allValuesIt.next().getValues()[0]);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(allValuesIt != null) {
+				allValuesIt.cleanUp();
+			}
 		}
+		
 		retMap.put("options", options);
 
 		////////////////////////////////////////
@@ -180,10 +199,20 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 
 //		if (!selectAll) {
 			// now run and flush out the values
-			Iterator<IHeadersDataRow> unFilterValuesIt = dataframe.query(qs2);
-			while (unFilterValuesIt.hasNext()) {
-				selectedValues.add(unFilterValuesIt.next().getValues()[0]);
+			IRawSelectWrapper unFilterValuesIt = null;
+			try {
+				unFilterValuesIt = dataframe.query(qs2);
+				while (unFilterValuesIt.hasNext()) {
+					selectedValues.add(unFilterValuesIt.next().getValues()[0]);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(unFilterValuesIt != null) {
+					unFilterValuesIt.cleanUp();
+				}
 			}
+			
 //		} else {
 //			selectedValues.addAll(options);
 //		}
@@ -194,12 +223,23 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 		SelectQueryStruct selectedCountQS = new SelectQueryStruct();
 		selectedCountQS.addSelector(uCountFunc);
 		selectedCountQS.setExplicitFilters(baseFilters);
-		Iterator<IHeadersDataRow> selectedCountIt = dataframe.query(selectedCountQS);
+
 		int selectedCount = 0;
-		while (selectedCountIt.hasNext()) {
-			Object numUnique = selectedCountIt.next().getValues()[0];
-			selectedCount = ((Number) numUnique).intValue();
+		IRawSelectWrapper selectedCountIt = null;
+		try {
+			selectedCountIt = dataframe.query(selectedCountQS);
+			while (selectedCountIt.hasNext()) {
+				Object numUnique = selectedCountIt.next().getValues()[0];
+				selectedCount = ((Number) numUnique).intValue();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(selectedCountIt != null) {
+				selectedCountIt.cleanUp();
+			}
 		}
+		
 		retMap.put("selectedCount", selectedCount);
 
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);

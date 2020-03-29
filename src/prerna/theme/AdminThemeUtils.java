@@ -1,6 +1,7 @@
 package prerna.theme;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,8 +47,15 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		}
 
 		String query = "SELECT id, theme_name, theme_map, is_active FROM ADMIN_THEME WHERE is_active=TRUE;";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
-		List<Map<String, Object>> retVal = flushRsToMap(wrapper);
+		
+		List<Map<String, Object>> retVal = null;
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
+			retVal = flushRsToMap(wrapper);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		if(retVal.isEmpty()) {
 			return new HashMap();
@@ -68,8 +76,15 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 */
 	public List<Map<String, Object>> getAdminThemes() {
 		String query = "SELECT id, theme_name, theme_map, is_active FROM ADMIN_THEME;";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
-		return flushRsToMap(wrapper);
+		IRawSelectWrapper wrapper;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
+			return flushRsToMap(wrapper);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return new ArrayList<Map<String, Object>>();
 	}
 	
 	/**

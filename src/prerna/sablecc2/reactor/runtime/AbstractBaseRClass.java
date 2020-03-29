@@ -302,13 +302,18 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 		} else if(dataframe instanceof NativeFrame || dataframe instanceof PandasFrame) {
 			IRawSelectWrapper it = dataframe.iterator();
-			if(!ImportSizeRetrictions.sizeWithinLimit(it.getNumRecords())) {
-				SemossPixelException exception = new SemossPixelException(
-						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-								PixelDataType.CONST_STRING, 
-								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
+			try {
+				if(!ImportSizeRetrictions.sizeWithinLimit(it.getNumRecords())) {
+					SemossPixelException exception = new SemossPixelException(
+							new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+									PixelDataType.CONST_STRING, 
+									PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+					exception.setContinueThreadOfExecution(false);
+					throw exception;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
 			}
 			
 			SelectQueryStruct qs = dataframe.getMetaData().getFlatTableQs(false);

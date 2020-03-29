@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +21,6 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -91,8 +89,17 @@ public class NativeFrame extends AbstractTableDataFrame {
 			// merge the joins
 			mQs.mergeRelations(qs.getRelations());
 
-			Iterator<IHeadersDataRow> it = query(mQs);
-			return ((Number) it.next().getValues()[1]).doubleValue();
+			IRawSelectWrapper it = null;
+			try {
+				it = query(mQs);
+				return ((Number) it.next().getValues()[1]).doubleValue();
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 		}
 		return null;
 	}
@@ -115,8 +122,17 @@ public class NativeFrame extends AbstractTableDataFrame {
 			// merge the joins
 			mQs.mergeRelations(qs.getRelations());
 
-			Iterator<IHeadersDataRow> it = query(mQs);
-			return ((Number) it.next().getValues()[1]).doubleValue();
+			IRawSelectWrapper it = null;
+			try {
+				it = query(mQs);
+				return ((Number) it.next().getValues()[1]).doubleValue();
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 		}
 		return null;
 	}
@@ -136,10 +152,20 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// merge the joins
 		newQs.mergeRelations(qs.getRelations());
 
-		Iterator<IHeadersDataRow> it = query(newQs);
 		List<Object> values = new Vector<Object>();
-		while(it.hasNext()) {
-			values.add(it.next().getValues()[0]);
+
+		IRawSelectWrapper it = null;
+		try {
+			it = query(newQs);
+			while(it.hasNext()) {
+				values.add(it.next().getValues()[0]);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		return values.toArray(new Double[values.size()]);
 	}
@@ -159,11 +185,22 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// merge the joins
 		newQs.mergeRelations(qs.getRelations());
 
-		Iterator<IHeadersDataRow> it = query(newQs);
 		List<Object> values = new Vector<Object>();
-		while(it.hasNext()) {
-			values.add(it.next().getValues()[0]);
+
+		IRawSelectWrapper it = null;
+		try {
+			it = query(newQs);
+			while(it.hasNext()) {
+				values.add(it.next().getValues()[0]);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		return values.toArray();
 	}
 
@@ -196,20 +233,31 @@ public class NativeFrame extends AbstractTableDataFrame {
 		if(engine == null) {
 			return true;
 		}
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
-		boolean empty = it.hasNext();
-		it.cleanUp();
+		
+		boolean empty = false;
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
+			empty = it.hasNext();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+		
 		return empty;
 	}
 
 	@Override
-	public IRawSelectWrapper query(String query) {
+	public IRawSelectWrapper query(String query) throws Exception {
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), query);
 		return it;
 	}
 
 	@Override
-	public IRawSelectWrapper query(SelectQueryStruct qs) {
+	public IRawSelectWrapper query(SelectQueryStruct qs) throws Exception {
 		// we need to merge everything with the current qs
 		qs.mergeGroupBy(this.qs.getGroupBy());
 		qs.mergeOrderBy(this.qs.getOrderBy());

@@ -51,8 +51,9 @@ public class GraphOWLHelper {
 	 * @param subjects 	String
 	 * @param objects 	String
 	 * @param ps 		Graph playsheet.
+	 * @throws Exception 
 	 */
-	public static void loadConceptHierarchy(RepositoryConnection rc, String subjects, String objects, GraphDataModel ps)
+	public static void loadConceptHierarchy(RepositoryConnection rc, String subjects, String objects, GraphDataModel ps) throws Exception
 	{
 		IEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);
@@ -89,8 +90,9 @@ public class GraphOWLHelper {
 	 * @param rc Repository connection- interface for updating data in and performing queries on a Sesame repository.
 	 * @param predicates 	Type of predicates.
 	 * @param ps GraphPlaySheet
+	 * @throws Exception 
 	 */
-	public static void loadRelationHierarchy(RepositoryConnection rc, String predicates, GraphDataModel ps)
+	public static void loadRelationHierarchy(RepositoryConnection rc, String predicates, GraphDataModel ps) throws Exception
 	{
 		IEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);
@@ -128,8 +130,9 @@ public class GraphOWLHelper {
 	 * @param predicates 		Predicates.
 	 * @param containsRelation 	Type of relation.
 	 * @param ps GraphPlaySheet
+	 * @throws Exception 
 	 */
-	public static void loadPropertyHierarchy(RepositoryConnection rc, String predicates, String containsRelation, GraphDataModel ps)
+	public static void loadPropertyHierarchy(RepositoryConnection rc, String predicates, String containsRelation, GraphDataModel ps) throws Exception
 	{
 		IEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);

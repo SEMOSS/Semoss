@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -118,10 +118,20 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 			this.qs.addImplicitFilter(instanceFilter);
 			
 			List<Object[]> retData = new ArrayList<Object[]>();
-			Iterator<IHeadersDataRow> it = frame.query(qs);
-			while(it.hasNext()) {
-				retData.add(it.next().getValues());
+			IRawSelectWrapper it = null;
+			try {
+				it = frame.query(qs);
+				while(it.hasNext()) {
+					retData.add(it.next().getValues());
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
 			}
+			
 			return retData;
 		} else {
 			throw new NoSuchElementException("No more elements"); 

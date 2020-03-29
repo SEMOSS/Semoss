@@ -751,7 +751,13 @@ public class LazyTranslation extends DepthFirstAdapter {
     			// i guess we should just return the first 500 records of the column...
     			SelectQueryStruct qs = new SelectQueryStruct();
     			qs.addSelector(colSelector);
-    			IRawSelectWrapper iterator = frame.query(qs);
+    			IRawSelectWrapper iterator = null;
+				try {
+					iterator = frame.query(qs);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				}
     			ITask task = new BasicIteratorTask(qs, iterator);
     			this.insight.getTaskStore().addTask(task);
     			this.planner.addVariable(this.resultKey, new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));

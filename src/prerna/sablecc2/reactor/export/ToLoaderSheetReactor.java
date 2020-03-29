@@ -118,8 +118,17 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			}
 			
 			logger.info("Start node sheet for concept = " + conceptPixelName);
-			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
-			writeNodePropSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, physicalConceptName, properties);
+			IRawSelectWrapper iterator = null;
+			try {
+				iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
+				writeNodePropSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, physicalConceptName, properties);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(iterator != null) {
+					iterator.cleanUp();
+				}
+			}
 			logger.info("Finsihed node sheet for concept = " + conceptPixelName);
 		}
 		
@@ -130,8 +139,17 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				logger.info("Start rel sheet for " + Arrays.toString(rel));
 				List<String> edgeProps = getEdgeProperties(engine, rel[0], rel[1], rel[2]);
 				String query = generateSparqlQuery(engine, rel[0], rel[1], rel[2], edgeProps);
-				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, query);
-				writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, rel, edgeProps);
+				IRawSelectWrapper iterator = null;
+				try {
+					iterator = WrapperManager.getInstance().getRawWrapper(engine, query);
+					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, rel, edgeProps);
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(iterator != null) {
+						iterator.cleanUp();
+					}
+				}
 				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
 			}
 		} else {
@@ -148,8 +166,17 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				qs.addOrderBy(new QueryColumnOrderBySelector(toConceptualName));
 
 				logger.info("Start rel sheet for " + Arrays.toString(new String[] {toConceptualName, fromConceptualName}));
-				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
-				writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, rel, new ArrayList<String>());
+				IRawSelectWrapper iterator = null;
+				try {
+					iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
+					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, rel, new ArrayList<String>());
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(iterator != null) {
+						iterator.cleanUp();
+					}
+				}
 				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
 			}
 		}
@@ -392,10 +419,20 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				+ "} order by ?propUri";
 		
 		List<String> props = new Vector<String>();
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, startQ);
-		while(it.hasNext()) {
-			props.add(it.next().getValues()[0].toString());
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(engine, startQ);
+			while(it.hasNext()) {
+				props.add(it.next().getValues()[0].toString());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		return props;
 	}
 

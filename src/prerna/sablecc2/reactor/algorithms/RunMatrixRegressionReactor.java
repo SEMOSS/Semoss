@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -96,7 +97,6 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 		qs.mergeImplicitFilters(dataFrame.getFrameFilters());
 
 		int numRows = getNumRows(dataFrame, predictorHead);
-		Iterator<IHeadersDataRow> it = dataFrame.query(qs);
 		
 		// use apache commons to do this
 		// while we need to iterate through to create the double[][]
@@ -104,10 +104,17 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 		OLSCalculator ols = new OLSCalculator();
 		// execute the ols
 		ols.setNoIntercept(false);
-		logger.info("Start iterating through data to determine regression");
-		double[][] rowData = setValuesInOlsAndCorr(ols, it, numCols, numRows, missingVal, logger);
-		logger.info("Done iterating through data to determine regression");
-
+		double[][] rowData = null;
+		IRawSelectWrapper it;
+		try {
+			it = dataFrame.query(qs);
+			logger.info("Start iterating through data to determine regression");
+			rowData = setValuesInOlsAndCorr(ols, it, numCols, numRows, missingVal, logger);
+			logger.info("Done iterating through data to determine regression");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		// mock the data output
 		Map<String, Object> vizData = new HashMap<String, Object>();
 		vizData.put("data", rowData);
@@ -200,9 +207,18 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 		math.setFunction(QueryFunctionHelper.COUNT);
 		qs.addSelector(math);
 		
-		Iterator<IHeadersDataRow> countIt = frame.query(qs);
-		while(countIt.hasNext()) {
-			return ((Number) countIt.next().getValues()[0]).intValue();
+		IRawSelectWrapper countIt = null;
+		try {
+			countIt = frame.query(qs);
+			while (countIt.hasNext()) {
+				return ((Number) countIt.next().getValues()[0]).intValue();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(countIt != null) {
+				countIt.cleanUp();
+			}
 		}
 		return 0;
 	}
