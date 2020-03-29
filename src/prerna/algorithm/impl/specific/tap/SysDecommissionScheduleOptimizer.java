@@ -273,25 +273,13 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	}
 	
 	public ISelectWrapper executeQuery(String engineName,String query) {
-
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-
-		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-		wrapper.setQuery(query);
-		wrapper.setEngine(engine);
-		wrapper.setEngineType(IEngine.ENGINE_TYPE.SESAME);
-		*/
-		
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-
-		/*
-		try{
-			wrapper.executeQuery();	
-		}
-		catch (Exception e)
-		{
+		ISelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		} catch (Exception e) {
 			e.printStackTrace();
-		}*/		
+		}
 		return wrapper;
 	}
 	

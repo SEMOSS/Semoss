@@ -32,54 +32,62 @@ public class LegacyInsightDatabaseUtility {
 	 */
 	public static List<SEMOSSParam> getParamsFromInsightId(IEngine insightRdbms, String insightId) {
 		String query = GET_ALL_PARAMS_FOR_QUESTION_ID.replace(QUESTION_ID_FK_PARAM_KEY, insightId);
-		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
-
 		List<SEMOSSParam> retParam = new Vector<SEMOSSParam>();
-		while(wrap.hasNext()) {
-			// get a bunch of options
-			IHeadersDataRow ss = wrap.next();
-			Object[] dataRow = ss.getValues();
-			String label = dataRow[0] + "";
-			SEMOSSParam param = new SEMOSSParam();
-			param.setName(label);
-			Object type = dataRow[1];
-			if(type != null && !type.toString().isEmpty()) {
-				param.setType(type.toString());
-			}
-			Object options = dataRow[2];
-			if(options != null && !options.toString().isEmpty()) {
-				param.setOptions(options.toString());
-			}
-			Object paramQuery = dataRow[3];
-			if(paramQuery != null && !paramQuery.toString().isEmpty()) {
-				param.setQuery(paramQuery.toString());
-			}
-			Object paramDependency = dataRow[4];
-			if(paramDependency != null && !paramDependency.toString().isEmpty()) {
-				String[] vars = paramDependency.toString().split(";");
-				for(String var : vars){
-					param.addDependVar(var);
+		IRawSelectWrapper wrap = null;
+		try {
+			wrap = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
+			while(wrap.hasNext()) {
+				// get a bunch of options
+				IHeadersDataRow ss = wrap.next();
+				Object[] dataRow = ss.getValues();
+				String label = dataRow[0] + "";
+				SEMOSSParam param = new SEMOSSParam();
+				param.setName(label);
+				Object type = dataRow[1];
+				if(type != null && !type.toString().isEmpty()) {
+					param.setType(type.toString());
 				}
-				param.setQuery(paramQuery.toString());
+				Object options = dataRow[2];
+				if(options != null && !options.toString().isEmpty()) {
+					param.setOptions(options.toString());
+				}
+				Object paramQuery = dataRow[3];
+				if(paramQuery != null && !paramQuery.toString().isEmpty()) {
+					param.setQuery(paramQuery.toString());
+				}
+				Object paramDependency = dataRow[4];
+				if(paramDependency != null && !paramDependency.toString().isEmpty()) {
+					String[] vars = paramDependency.toString().split(";");
+					for(String var : vars){
+						param.addDependVar(var);
+					}
+					param.setQuery(paramQuery.toString());
+				}
+				Object isDbQuery = dataRow[5];
+				if(isDbQuery != null) {
+					param.setDbQuery((boolean) isDbQuery);
+				}
+				Object isMultiSelect = dataRow[6];
+				if(isDbQuery != null) {
+					param.setMultiSelect((boolean) isMultiSelect);
+				}
+				Object componentFilter = dataRow[7];
+				if(componentFilter != null && !componentFilter.toString().isEmpty()) {
+					param.setComponentFilterId(componentFilter.toString());
+				}
+				Object paramId = dataRow[8];
+				if(paramId != null && !paramId.toString().isEmpty()) {
+					param.setParamID(paramId.toString());
+				}
+				// add to the set
+				retParam.add(param);
 			}
-			Object isDbQuery = dataRow[5];
-			if(isDbQuery != null) {
-				param.setDbQuery((boolean) isDbQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrap != null) {
+				wrap.cleanUp();
 			}
-			Object isMultiSelect = dataRow[6];
-			if(isDbQuery != null) {
-				param.setMultiSelect((boolean) isMultiSelect);
-			}
-			Object componentFilter = dataRow[7];
-			if(componentFilter != null && !componentFilter.toString().isEmpty()) {
-				param.setComponentFilterId(componentFilter.toString());
-			}
-			Object paramId = dataRow[8];
-			if(paramId != null && !paramId.toString().isEmpty()) {
-				param.setParamID(paramId.toString());
-			}
-			// add to the set
-			retParam.add(param);
 		}
 
 		return retParam;

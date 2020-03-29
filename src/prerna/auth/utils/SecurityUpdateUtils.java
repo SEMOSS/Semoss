@@ -30,6 +30,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
@@ -133,8 +134,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			// and perform a delta
 			LOGGER.info("Reloading app. Retrieving existing insights with permissions");
 			String insightsWPer = "SELECT INSIGHTID FROM USERINSIGHTPERMISSION WHERE ENGINEID='" + appId + "'";
-			IRawSelectWrapper insightWPerWrapper = WrapperManager.getInstance().getRawWrapper(securityDb, insightsWPer);
-			insightPermissionIds = flushToSetString(insightWPerWrapper, false);
+			insightPermissionIds = QueryExecutionUtility.flushToSetString(securityDb, insightsWPer, false);
 			if(insightPermissionIds.isEmpty()) {
 				existingInsightPermissions = true;
 			}
@@ -160,33 +160,42 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__HIDDEN_INSIGHT"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHEABLE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
-		while(wrapper.hasNext()) {
-			Object[] row = wrapper.next().getValues();
-			try {
-				ps.setString(1, appId);
-				String insightId = row[0].toString();
-				ps.setString(2, insightId);
-				ps.setString(3, row[1].toString());
-				ps.setBoolean(4, !((boolean) row[3]));
-				ps.setLong(5, 0);
-				ps.setTimestamp(6, timeStamp);
-				ps.setTimestamp(7, timeStamp);
-				ps.setString(8, row[2].toString());
-				ps.setBoolean(9, (boolean) row[4]);
-				ps.addBatch();
-				
-				// batch commit based on size
-				if (++count % batchSize == 0) {
-					LOGGER.info("Executing batch .... row num = " + count);
-					ps.executeBatch();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				try {
+					ps.setString(1, appId);
+					String insightId = row[0].toString();
+					ps.setString(2, insightId);
+					ps.setString(3, row[1].toString());
+					ps.setBoolean(4, !((boolean) row[3]));
+					ps.setLong(5, 0);
+					ps.setTimestamp(6, timeStamp);
+					ps.setTimestamp(7, timeStamp);
+					ps.setString(8, row[2].toString());
+					ps.setBoolean(9, (boolean) row[4]);
+					ps.addBatch();
+					
+					// batch commit based on size
+					if (++count % batchSize == 0) {
+						LOGGER.info("Executing batch .... row num = " + count);
+						ps.executeBatch();
+					}
+					
+					if(reloadInsights && existingInsightPermissions) {
+						insightPermissionIds.remove(insightId);
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
 				}
-				
-				if(reloadInsights && existingInsightPermissions) {
-					insightPermissionIds.remove(insightId);
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 		
@@ -222,26 +231,34 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
-		wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow data = wrapper.next();
-			Object[] row = data.getValues();
-			Object[] raw = data.getRawValues();
-			try {
-				ps.setString(1, appId);
-				ps.setString(2, row[0].toString());
-				ps.setString(3, row[1].toString());
-				ps.setClob(4, (java.sql.Clob) raw[2]);
-				ps.setInt(5, ((Number) row[3]).intValue()) ;
-				ps.addBatch();
-				
-				// batch commit based on size
-				if (++count % batchSize == 0) {
-					LOGGER.info("Executing batch .... row num = " + count);
-					ps.executeBatch();
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow data = wrapper.next();
+				Object[] row = data.getValues();
+				Object[] raw = data.getRawValues();
+				try {
+					ps.setString(1, appId);
+					ps.setString(2, row[0].toString());
+					ps.setString(3, row[1].toString());
+					ps.setClob(4, (java.sql.Clob) raw[2]);
+					ps.setInt(5, ((Number) row[3]).intValue()) ;
+					ps.addBatch();
+					
+					// batch commit based on size
+					if (++count % batchSize == 0) {
+						LOGGER.info("Executing batch .... row num = " + count);
+						ps.executeBatch();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
 				}
-			} catch (SQLException e) {
-				e.printStackTrace();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 		
@@ -490,8 +507,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				+ "NAME='" + ADMIN_ADDED_USER + "' AND "
 				// this matching the ID field to the email because admin added user only sets the id field
 				+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 			if(wrapper.hasNext()) {
 				// this was the old id that was added when the admin 
 				String oldId = RdbmsQueryBuilder.escapeForSQLStatement(wrapper.next().getValues()[0].toString());
@@ -560,8 +578,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					}
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		return false;
@@ -608,8 +630,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String query = "SELECT ENGINEID FROM ENGINEPERMISSION WHERE "
 				+ "ENGINEID = '" + engineId + "' "
 				+ "AND USERID IN " + userFilters;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 			if(wrapper.hasNext()){
 				query = "UPDATE ENGINEPERMISSION SET VISIBILITY = '" + visibility + "' WHERE "
 						+ "ENGINEID = '" + engineId + "' "
@@ -629,8 +652,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
 				securityDb.insertData(inserts.toString());
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		securityDb.commit();
 	}

@@ -1,7 +1,6 @@
 package prerna.quartz;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.quartz.JobDataMap;
@@ -9,7 +8,7 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 
 public class PrintDataToConsoleJob implements org.quartz.Job {
 
@@ -24,9 +23,19 @@ public class PrintDataToConsoleJob implements org.quartz.Job {
 
 		// Do work
 		List<Object[]> resultsList = new ArrayList<Object[]>();
-		Iterator<IHeadersDataRow> iteratorResults = results.query("SELECT * FROM " + results.getName());
-		while (iteratorResults.hasNext()) {
-			resultsList.add(iteratorResults.next().getRawValues());
+		
+		IRawSelectWrapper iteratorResults = null;
+		try {
+			iteratorResults = results.query("SELECT * FROM " + results.getName());
+			while (iteratorResults.hasNext()) {
+				resultsList.add(iteratorResults.next().getRawValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(iteratorResults != null) {
+				iteratorResults.cleanUp();
+			}
 		}
 		
 		int length = 15;

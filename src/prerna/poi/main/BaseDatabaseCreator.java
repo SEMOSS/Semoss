@@ -148,14 +148,24 @@ public class BaseDatabaseCreator {
 				+ "{?time <" + TIME_KEY + "> ?val} "
 				+ "}";
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseEng, getAllTimestampQuery);
 		List<String> currTimes = new Vector<String>();
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] rawRow = row.getRawValues();
-			Object[] cleanRow = row.getValues();
-			currTimes.add(rawRow[0] + "");
-			currTimes.add(cleanRow[1] + "");
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseEng, getAllTimestampQuery);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] rawRow = row.getRawValues();
+				Object[] cleanRow = row.getValues();
+				currTimes.add(rawRow[0] + "");
+				currTimes.add(cleanRow[1] + "");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		for(int delIndex = 0; delIndex < currTimes.size(); delIndex+=2) {

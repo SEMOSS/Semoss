@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.utils;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.openqa.selenium.chrome.ChromeDriver;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -49,10 +48,19 @@ public class ImageCaptureReactor extends AbstractReactor {
 		IEngine coreEngine = Utility.getEngine(appId);
 		// loop through the insights
 		IEngine insightsEng = coreEngine.getInsightDatabase();
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightsEng, "select distinct id from question_id");
-		while(wrapper.hasNext()) {
-			String id = wrapper.next().getValues()[0] + "";
-			runImageCapture(feUrl, appId, id, param, sessionId);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(insightsEng, "select distinct id from question_id");
+			while(wrapper.hasNext()) {
+				String id = wrapper.next().getValues()[0] + "";
+				runImageCapture(feUrl, appId, id, param, sessionId);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 
 		ClusterUtil.reactorPushApp(appId);

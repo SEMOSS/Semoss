@@ -20,6 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityAppUtils extends AbstractSecurityUtils {
@@ -41,12 +42,21 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		while(wrapper.hasNext()) {
-			Object val = wrapper.next().getValues()[0];
-			if(val != null) {
-				int permission = ((Number) val).intValue();
-				return AccessPermission.getPermissionValueById(permission);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					int permission = ((Number) val).intValue();
+					return AccessPermission.getPermissionValueById(permission);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 		
@@ -73,16 +83,21 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val != null && val instanceof Number) {
 					return ((Number) val).intValue();
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		return null;
@@ -100,13 +115,18 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				return true;
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		return false;
 	}
@@ -130,17 +150,27 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		while(wrapper.hasNext()) {
-			Object val = wrapper.next().getValues()[0];
-			if(val == null) {
-				return false;
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val == null) {
+					return false;
+				}
+				int permission = ((Number) val).intValue();
+				if(AccessPermission.isOwner(permission)) {
+					return true;
+				}
 			}
-			int permission = ((Number) val).intValue();
-			if(AccessPermission.isOwner(permission)) {
-				return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
+		
 		return false;
 	}
 	
@@ -169,14 +199,19 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(orFilter);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
-			// if you are here, you can view
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
+				// if you are here, you can view
 				return true;
-			} 
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		return false;
 	}
@@ -197,8 +232,9 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val == null) {
@@ -209,8 +245,12 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 					return true;
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		return false;
 	}
@@ -233,8 +273,9 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__PERMISSION"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val == null) {
@@ -243,8 +284,12 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				int permission = ((Number) val).intValue();
 				return permission;
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}		
 		return AccessPermission.READ_ONLY.getId();
 	}
@@ -289,8 +334,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addRelation("USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		return flushRsToMap(wrapper);
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	
@@ -559,8 +603,9 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param metaKeys
 	 * @return
+	 * @throws Exception 
 	 */
-	public static IRawSelectWrapper getAppMetadataWrapper(Collection<String> engineId, List<String> metaKeys) {
+	public static IRawSelectWrapper getAppMetadataWrapper(Collection<String> engineId, List<String> metaKeys) throws Exception {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
@@ -586,32 +631,42 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAKEY"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		
 		Map<String, Object> retMap = new HashMap<String, Object>();
-		while(wrapper.hasNext()) {
-			Object[] data = wrapper.next().getValues();
-			String metaKey = data[0].toString();
-			String metaValue = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[1]);
 
-			// AS THIS LIST EXPANDS
-			// WE NEED TO KNOW IF THESE ARE MULTI VALUED OR SINGLE
-			if(metaKey.equals("tag")) {
-				List<String> listVal = null;
-				if(retMap.containsKey("tags")) {
-					listVal = (List<String>) retMap.get("tags");
-				} else {
-					listVal = new Vector<String>();
-					retMap.put("tags", listVal);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				String metaKey = data[0].toString();
+				String metaValue = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[1]);
+
+				// AS THIS LIST EXPANDS
+				// WE NEED TO KNOW IF THESE ARE MULTI VALUED OR SINGLE
+				if(metaKey.equals("tag")) {
+					List<String> listVal = null;
+					if(retMap.containsKey("tags")) {
+						listVal = (List<String>) retMap.get("tags");
+					} else {
+						listVal = new Vector<String>();
+						retMap.put("tags", listVal);
+					}
+					listVal.add(metaValue);
 				}
-				listVal.add(metaValue);
+				// these will be the single valued parameters
+				else {
+					retMap.put(metaKey, metaValue);
+				}
 			}
-			// these will be the single valued parameters
-			else {
-				retMap.put(metaKey, metaValue);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
-
+		
 		return retMap;
 	}
 	

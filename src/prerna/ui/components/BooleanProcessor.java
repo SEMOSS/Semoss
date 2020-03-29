@@ -59,8 +59,9 @@ public class BooleanProcessor {
 	/**
 	 * Processes the query on a specific engine.
 	
-	 * @return ret	True if the query is returned. */
-	public boolean processQuery(){
+	 * @return ret	True if the query is returned. 
+	 * @throws Exception */
+	public boolean processQuery() throws Exception{
 		boolean ret = false;
 
 		if(engine==null){

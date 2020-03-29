@@ -446,29 +446,38 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "}";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		while(it.hasNext()) {
-			Object[] values = it.next().getValues();
-			String header = values[0].toString();
-			String alias = values[1].toString();
-			String qsString = values[2].toString();
-			
-			String[] split = null;
-			if(qsString.equals("unknown")) {
-				split = new String[] {alias};
-			} else {
-				split = qsString.split(":::");
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] values = it.next().getValues();
+				String header = values[0].toString();
+				String alias = values[1].toString();
+				String qsString = values[2].toString();
+				
+				String[] split = null;
+				if(qsString.equals("unknown")) {
+					split = new String[] {alias};
+				} else {
+					split = qsString.split(":::");
+				}
+				
+				List<String[]> retList = null;
+				if(ret.containsKey(header)) {
+					retList = ret.get(header);
+				} else {
+					retList = new Vector<String[]>();
+					ret.put(header, retList);
+				}
+				
+				retList.add(split);
 			}
-			
-			List<String[]> retList = null;
-			if(ret.containsKey(header)) {
-				retList = ret.get(header);
-			} else {
-				retList = new Vector<String[]>();
-				ret.put(header, retList);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
 			}
-			
-			retList.add(split);
 		}
 		
 		return ret;
@@ -494,12 +503,21 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<String[]> ret = new Vector<String[]>();
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		while(it.hasNext()) {
-			Object[] values = it.next().getValues();
-			String qsString = values[1].toString(); 
-			String[] split = qsString.split(":::");
-			ret.add(split);
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] values = it.next().getValues();
+				String qsString = values[1].toString(); 
+				String[] split = qsString.split(":::");
+				ret.add(split);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return ret;
@@ -525,10 +543,20 @@ public class OwlTemporalEngineMeta {
 				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
 				+ "}"
 				+ "} limit 1";
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		if(it.hasNext()) {
-			return true;
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			if(it.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		return false;
 	}
 	
@@ -545,9 +573,18 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "}";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		if(it.hasNext()) {
-			return it.next().getValues()[0].toString();
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			if(it.hasNext()) {
+				return it.next().getValues()[0].toString();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return null;
@@ -567,11 +604,21 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		Map<String, String> retMap = new HashMap<String, String>();
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		if(it.hasNext()) {
-			Object[] values = it.next().getValues();
-			retMap.put(values[0].toString(), values[1].toString());
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			if(it.hasNext()) {
+				Object[] values = it.next().getValues();
+				retMap.put(values[0].toString(), values[1].toString());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		return retMap;
 	}
 	
@@ -590,11 +637,21 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "}";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		if(it.hasNext()) {
-			Object[] values = it.next().getValues();
-			return values[1].toString();
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			if(it.hasNext()) {
+				Object[] values = it.next().getValues();
+				return values[1].toString();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		return null;
 	}
 	
@@ -611,9 +668,18 @@ public class OwlTemporalEngineMeta {
 				+ "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}"
 				+ "}";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		if(it.hasNext()) {
-			return it.next().getValues();
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			if(it.hasNext()) {
+				return it.next().getValues();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return null;
@@ -643,12 +709,21 @@ public class OwlTemporalEngineMeta {
 					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
 				+ "} order by ?loweralias";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		List<String> headers = new Vector<String>();
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			if(row[1].equals("false")) {
-				headers.add(row[0].toString());
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				if(row[1].equals("false")) {
+					headers.add(row[0].toString());
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
 			}
 		}
 		
@@ -680,12 +755,21 @@ public class OwlTemporalEngineMeta {
 					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
 				+ "} order by ?loweralias";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		List<String> headers = new Vector<String>();
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			if(row[1].equals("false")) {
-				headers.add(row[0].toString());
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				if(row[1].equals("false")) {
+					headers.add(row[0].toString());
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
 			}
 		}
 		
@@ -706,10 +790,19 @@ public class OwlTemporalEngineMeta {
 				+ "{?header <" + PHYSICAL_PRED + "> ?physical}"
 				+ "}";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			return row[1].toString();
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				return row[1].toString();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return uniqueName;
@@ -726,13 +819,24 @@ public class OwlTemporalEngineMeta {
 				+ "{?fromNode ?rel ?toNode}"
 				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)"
 				+ "}";
-		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+
 		List<String[]> relationships = new Vector<String[]>();
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
+
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		return relationships;
 	}
 	
@@ -751,13 +855,24 @@ public class OwlTemporalEngineMeta {
 				+ "{?fromNode ?rel ?toNode}"
 				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)"
 				+ "}";
-		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+
 		List<String[]> relationships = new Vector<String[]>();
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
+		
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		return relationships;
 	}
 	
@@ -777,12 +892,23 @@ public class OwlTemporalEngineMeta {
 				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)"
 				+ "}";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		List<String[]> relationships = new Vector<String[]>();
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
+
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		return relationships;
 	}
 	
@@ -799,11 +925,21 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "}";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		Map<String, SemossDataType> returnMap = new HashMap<String, SemossDataType>();
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			returnMap.put(row[0].toString(), SemossDataType.convertStringToDataType(row[1].toString()));
+
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				returnMap.put(row[0].toString(), SemossDataType.convertStringToDataType(row[1].toString()));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return returnMap;
@@ -822,11 +958,21 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "}";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		Map<String, String> returnMap = new HashMap<String, String>();
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			returnMap.put(row[0].toString(), row[1].toString().replace("((REPLACEMENT_TOKEN))", "/"));
+
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				returnMap.put(row[0].toString(), row[1].toString().replace("((REPLACEMENT_TOKEN))", "/"));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return returnMap;
@@ -864,10 +1010,19 @@ public class OwlTemporalEngineMeta {
 					+ "}";
 		}
 	
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			return SemossDataType.convertStringToDataType(row[1].toString());
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				return SemossDataType.convertStringToDataType(row[1].toString());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return null;
@@ -905,10 +1060,19 @@ public class OwlTemporalEngineMeta {
 					+ "}";
 		}
 	
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			return row[1].toString();
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				return row[1].toString();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return null;
@@ -943,10 +1107,19 @@ public class OwlTemporalEngineMeta {
 					+ "}";
 		}
 	
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			return row[1].toString().replace("((REPLACEMENT_TOKEN))", "/");
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				return row[1].toString().replace("((REPLACEMENT_TOKEN))", "/");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return null;
@@ -974,10 +1147,19 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 
 	
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			return row[1].toString();
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				return row[1].toString();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return null;
@@ -1048,87 +1230,95 @@ public class OwlTemporalEngineMeta {
 					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
 				+ "} ORDER BY ?loweralias";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		
 		Map<String, Integer> nameToIndex = new HashMap<String, Integer>();
-		
 		List<Map<String, Object>> headersList = new ArrayList<Map<String, Object>>();
-		while(it.hasNext()) {
-			IHeadersDataRow dataRow = it.next();
-			
-			String[] headers = dataRow.getHeaders();
-			Object[] values = dataRow.getValues();
-			int numReturns = headers.length;
-			
-			String uniqueName = values[0].toString();
-			String isPrim = values[1].toString();
-			// we will ignore primary key headers as they cannot be used for calculations
-			// they are only used as structural MM constructs for how data is connected
-			if(isPrim.equals("true")) {
-				continue;
-			}
-			
-			boolean append = false;
-			Map<String, Object> rowMap = null;
-			if(nameToIndex.containsKey(uniqueName)) {
-				append = true;
-				rowMap = headersList.get(nameToIndex.get(uniqueName));
-			} else {
-				rowMap = new HashMap<String, Object>();
-			}
-			
-			if(!append) {
-				for(int i = 0; i < numReturns; i++) {
-					if(headers[i].equals("qsName") && !values[i].toString().equals("unknown")) {
-						String[] split = values[i].toString().split(":::");
-						Map<String, List<String>> engineQsMap = new HashMap<String, List<String>>();
-						List<String> qsNamesList = new Vector<String>();
-						qsNamesList.add(split[1]);
-						engineQsMap.put(split[0], qsNamesList);
-						rowMap.put(headers[i], engineQsMap);
-					} else if(headers[i].equals("alias")) {
-						rowMap.put(headers[i], values[i].toString());
-						rowMap.put("displayName", values[i].toString());
-					} else if(headers[i].equals("dataType")) {
-						//TODO: need FE to respond to DOUBLE and INT
-						SemossDataType dt = SemossDataType.convertStringToDataType(values[i].toString());
-						if(dt == SemossDataType.INT || dt == SemossDataType.DOUBLE) {
-							rowMap.put("dataType", "NUMBER");
-						} else if(dt == SemossDataType.DATE || dt == SemossDataType.TIMESTAMP) {
-							rowMap.put("dataType", "DATE");
-						} else if(dt == SemossDataType.FACTOR){
-							rowMap.put("dataType", "STRING");
-						} else {
-							rowMap.put("dataType", values[i]);
-						}
-					} else if(headers[i].equals("loweralias")) {
-						// ignore
-					} else {
-						rowMap.put(headers[i], values[i]);
-					}
+
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				IHeadersDataRow dataRow = it.next();
+				
+				String[] headers = dataRow.getHeaders();
+				Object[] values = dataRow.getValues();
+				int numReturns = headers.length;
+				
+				String uniqueName = values[0].toString();
+				String isPrim = values[1].toString();
+				// we will ignore primary key headers as they cannot be used for calculations
+				// they are only used as structural MM constructs for how data is connected
+				if(isPrim.equals("true")) {
+					continue;
 				}
-				// add the new map into the list
-				headersList.add(rowMap);
-				// store its index if we come back to it
-				nameToIndex.put(uniqueName, headersList.size()-1);
-			} else {
-				// there are a few things that we need to merge
-				for(int i = 0; i < numReturns; i++) {
-					// right now, only merge the qsName in case this column is used as a join
-					// from one engine to another
-					if(headers[i].equals("qsName") && !values[i].toString().equals("unknown")) {
-						Map<String, List<String>> engineQsMap = (Map<String, List<String>>) rowMap.get("qsName");
-						String[] split = values[i].toString().split(":::");
-						if(engineQsMap.containsKey(split[0])) {
-							List<String> qsNamesList = engineQsMap.get(split[0]);
-							qsNamesList.add(split[1]);
-						} else {
+				
+				boolean append = false;
+				Map<String, Object> rowMap = null;
+				if(nameToIndex.containsKey(uniqueName)) {
+					append = true;
+					rowMap = headersList.get(nameToIndex.get(uniqueName));
+				} else {
+					rowMap = new HashMap<String, Object>();
+				}
+				
+				if(!append) {
+					for(int i = 0; i < numReturns; i++) {
+						if(headers[i].equals("qsName") && !values[i].toString().equals("unknown")) {
+							String[] split = values[i].toString().split(":::");
+							Map<String, List<String>> engineQsMap = new HashMap<String, List<String>>();
 							List<String> qsNamesList = new Vector<String>();
 							qsNamesList.add(split[1]);
 							engineQsMap.put(split[0], qsNamesList);
+							rowMap.put(headers[i], engineQsMap);
+						} else if(headers[i].equals("alias")) {
+							rowMap.put(headers[i], values[i].toString());
+							rowMap.put("displayName", values[i].toString());
+						} else if(headers[i].equals("dataType")) {
+							//TODO: need FE to respond to DOUBLE and INT
+							SemossDataType dt = SemossDataType.convertStringToDataType(values[i].toString());
+							if(dt == SemossDataType.INT || dt == SemossDataType.DOUBLE) {
+								rowMap.put("dataType", "NUMBER");
+							} else if(dt == SemossDataType.DATE || dt == SemossDataType.TIMESTAMP) {
+								rowMap.put("dataType", "DATE");
+							} else if(dt == SemossDataType.FACTOR){
+								rowMap.put("dataType", "STRING");
+							} else {
+								rowMap.put("dataType", values[i]);
+							}
+						} else if(headers[i].equals("loweralias")) {
+							// ignore
+						} else {
+							rowMap.put(headers[i], values[i]);
+						}
+					}
+					// add the new map into the list
+					headersList.add(rowMap);
+					// store its index if we come back to it
+					nameToIndex.put(uniqueName, headersList.size()-1);
+				} else {
+					// there are a few things that we need to merge
+					for(int i = 0; i < numReturns; i++) {
+						// right now, only merge the qsName in case this column is used as a join
+						// from one engine to another
+						if(headers[i].equals("qsName") && !values[i].toString().equals("unknown")) {
+							Map<String, List<String>> engineQsMap = (Map<String, List<String>>) rowMap.get("qsName");
+							String[] split = values[i].toString().split(":::");
+							if(engineQsMap.containsKey(split[0])) {
+								List<String> qsNamesList = engineQsMap.get(split[0]);
+								qsNamesList.add(split[1]);
+							} else {
+								List<String> qsNamesList = new Vector<String>();
+								qsNamesList.add(split[1]);
+								engineQsMap.put(split[0], qsNamesList);
+							}
 						}
 					}
 				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
 			}
 		}
 		
@@ -1141,14 +1331,22 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<Map<String, String>> relList = new ArrayList<Map<String, String>>();
-		it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery);
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			Map<String, String> rel = new HashMap<String, String>();
-			rel.put("fromNode", row[0].toString());
-			rel.put("toNode", row[1].toString());
-			rel.put("joinType", row[2].toString().split(":")[2]);
-			relList.add(rel);
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				Map<String, String> rel = new HashMap<String, String>();
+				rel.put("fromNode", row[0].toString());
+				rel.put("toNode", row[1].toString());
+				rel.put("joinType", row[2].toString().split(":")[2]);
+				relList.add(rel);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		Map<String, Object> headersMap = new HashMap<String, Object>();
@@ -1188,104 +1386,113 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		Map<String, Map<String, Object>> nodesMap = new HashMap<String, Map<String, Object>>();
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, nodesQuery);
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			// concept values
-			String conceptName = row[0].toString();
-			String conceptQs = row[1].toString();
-			String conceptAlias = row[2].toString();
-			String conceptPrim = row[3].toString();
-			
-			// property values for concept
-			String propertyName = row[4].toString();
-			String propertyQs = row[5].toString();
-			String propertyAlias = row[6].toString();
-			String propertyPrim = row[7].toString();
-
-			
-			Map<String, Object> node = null;
-			if(nodesMap.containsKey(conceptName)) {
-				// we have seen this node before
-				node = nodesMap.get(conceptName);
-			} else {
-				// new node
-				// add the node info that can only appear once
-				node = new HashMap<String, Object>();
-				node.put("conceptualName", conceptName);
-				node.put("alias", conceptAlias);
-				node.put("primKey", Boolean.parseBoolean(conceptPrim));
-
-				// also add in an empty property map so
-				// we dont have to check for this
-				node.put("properties", new HashMap<String, Map<String, Object>>());
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, nodesQuery);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				// concept values
+				String conceptName = row[0].toString();
+				String conceptQs = row[1].toString();
+				String conceptAlias = row[2].toString();
+				String conceptPrim = row[3].toString();
 				
-				nodesMap.put(conceptName, node);
-			}
+				// property values for concept
+				String propertyName = row[4].toString();
+				String propertyQs = row[5].toString();
+				String propertyAlias = row[6].toString();
+				String propertyPrim = row[7].toString();
 
-			if(!conceptQs.equals("unknown")) {
-				Map<String, List<String>> conceptEngineQsMap = null;
-				String[] conceptQsSplit = conceptQs.split(":::");
-				if(node.containsKey("engineQs")) {
-					conceptEngineQsMap = (Map<String, List<String>>) node.get("engineQs");
-					if(conceptEngineQsMap.containsKey(conceptQsSplit[0])) {
-						List<String> qsNamesList = conceptEngineQsMap.get(conceptQsSplit[0]);
-						qsNamesList.add(conceptQsSplit[1]);
+				
+				Map<String, Object> node = null;
+				if(nodesMap.containsKey(conceptName)) {
+					// we have seen this node before
+					node = nodesMap.get(conceptName);
+				} else {
+					// new node
+					// add the node info that can only appear once
+					node = new HashMap<String, Object>();
+					node.put("conceptualName", conceptName);
+					node.put("alias", conceptAlias);
+					node.put("primKey", Boolean.parseBoolean(conceptPrim));
+
+					// also add in an empty property map so
+					// we dont have to check for this
+					node.put("properties", new HashMap<String, Map<String, Object>>());
+					
+					nodesMap.put(conceptName, node);
+				}
+
+				if(!conceptQs.equals("unknown")) {
+					Map<String, List<String>> conceptEngineQsMap = null;
+					String[] conceptQsSplit = conceptQs.split(":::");
+					if(node.containsKey("engineQs")) {
+						conceptEngineQsMap = (Map<String, List<String>>) node.get("engineQs");
+						if(conceptEngineQsMap.containsKey(conceptQsSplit[0])) {
+							List<String> qsNamesList = conceptEngineQsMap.get(conceptQsSplit[0]);
+							qsNamesList.add(conceptQsSplit[1]);
+						} else {
+							List<String> qsNamesList = new Vector<String>();
+							qsNamesList.add(conceptQsSplit[1]);
+							conceptEngineQsMap.put(conceptQsSplit[0], qsNamesList);
+						}
 					} else {
+						conceptEngineQsMap = new HashMap<String, List<String>>();
 						List<String> qsNamesList = new Vector<String>();
 						qsNamesList.add(conceptQsSplit[1]);
 						conceptEngineQsMap.put(conceptQsSplit[0], qsNamesList);
+						node.put("engineQs", conceptEngineQsMap);
 					}
-				} else {
-					conceptEngineQsMap = new HashMap<String, List<String>>();
-					List<String> qsNamesList = new Vector<String>();
-					qsNamesList.add(conceptQsSplit[1]);
-					conceptEngineQsMap.put(conceptQsSplit[0], qsNamesList);
-					node.put("engineQs", conceptEngineQsMap);
 				}
-			}
 
-			// check if there are properties to add
-			if(propertyName.equals("noprops")) {
-				continue;
-			}
-			
-			Map<String, Map<String, Object>> propertiesMap = (Map<String, Map<String, Object>>) node.get("properties");
-			Map<String, Object> prop = null;
-			if(propertiesMap.containsKey(propertyName)) {
-				// we have seen this property before 
-				prop = propertiesMap.get(propertyName);
-			} else {
-				// new property
-				// add the property info that will only appear once
-				prop = new HashMap<String, Object>();
-				prop.put("conceptualName", propertyName);
-				prop.put("alias", propertyAlias);
-				prop.put("primKey", Boolean.parseBoolean(propertyPrim));
+				// check if there are properties to add
+				if(propertyName.equals("noprops")) {
+					continue;
+				}
+				
+				Map<String, Map<String, Object>> propertiesMap = (Map<String, Map<String, Object>>) node.get("properties");
+				Map<String, Object> prop = null;
+				if(propertiesMap.containsKey(propertyName)) {
+					// we have seen this property before 
+					prop = propertiesMap.get(propertyName);
+				} else {
+					// new property
+					// add the property info that will only appear once
+					prop = new HashMap<String, Object>();
+					prop.put("conceptualName", propertyName);
+					prop.put("alias", propertyAlias);
+					prop.put("primKey", Boolean.parseBoolean(propertyPrim));
 
-				propertiesMap.put(propertyName, prop);
-			}
-			
-			if(!propertyQs.equals("unknown")) {
-				Map<String, List<String>> propEngineQsMap = null;
-				String[] propertyQsSplit = propertyQs.split(":::");
-				if(prop.containsKey("engineQs")) {
-					propEngineQsMap = (Map<String, List<String>>) prop.get("engineQs");
-					if(propEngineQsMap.containsKey(propertyQsSplit[0])) {
-						List<String> qsNamesList = propEngineQsMap.get(propertyQsSplit[0]);
-						qsNamesList.add(propertyQsSplit[1]);
+					propertiesMap.put(propertyName, prop);
+				}
+				
+				if(!propertyQs.equals("unknown")) {
+					Map<String, List<String>> propEngineQsMap = null;
+					String[] propertyQsSplit = propertyQs.split(":::");
+					if(prop.containsKey("engineQs")) {
+						propEngineQsMap = (Map<String, List<String>>) prop.get("engineQs");
+						if(propEngineQsMap.containsKey(propertyQsSplit[0])) {
+							List<String> qsNamesList = propEngineQsMap.get(propertyQsSplit[0]);
+							qsNamesList.add(propertyQsSplit[1]);
+						} else {
+							List<String> qsNamesList = new Vector<String>();
+							qsNamesList.add(propertyQsSplit[1]);
+							propEngineQsMap.put(propertyQsSplit[0], qsNamesList);
+						}
 					} else {
+						propEngineQsMap = new HashMap<String, List<String>>();
 						List<String> qsNamesList = new Vector<String>();
 						qsNamesList.add(propertyQsSplit[1]);
 						propEngineQsMap.put(propertyQsSplit[0], qsNamesList);
+						prop.put("engineQs", propEngineQsMap);
 					}
-				} else {
-					propEngineQsMap = new HashMap<String, List<String>>();
-					List<String> qsNamesList = new Vector<String>();
-					qsNamesList.add(propertyQsSplit[1]);
-					propEngineQsMap.put(propertyQsSplit[0], qsNamesList);
-					prop.put("engineQs", propEngineQsMap);
 				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
 			}
 		}
 		
@@ -1306,14 +1513,23 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<Map<String, String>> relList = new ArrayList<Map<String, String>>();
-		it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery);
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			Map<String, String> rel = new HashMap<String, String>();
-			rel.put("fromNode", row[0].toString());
-			rel.put("toNode", row[1].toString());
-			relList.add(rel);
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				Map<String, String> rel = new HashMap<String, String>();
+				rel.put("fromNode", row[0].toString());
+				rel.put("toNode", row[1].toString());
+				relList.add(rel);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		metamodel.put("edges", relList);
 		
 		return metamodel;
@@ -1344,30 +1560,39 @@ public class OwlTemporalEngineMeta {
 					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
 				+ "} order by ?loweralias";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		while(it.hasNext()) {
-			Object[] row = it.next().getValues();
-			if(row[2].equals("false")) {
-				String header = row[0].toString();
-				String alias = row[1].toString();
-				if(alias.contains("__")) {
-					alias = alias.split("__")[1];
-				}
-				QueryColumnSelector qsSelector = new QueryColumnSelector();
-				if(useAlias) {
-					qsSelector.setTable(alias);
-				} else {
-					if(header.contains("__")) {
-						String[] split = header.split("__");
-						qsSelector.setTable(split[0]);
-						qsSelector.setColumn(split[1]);
-					} else {
-						qsSelector.setTable(header);
-						qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				if(row[2].equals("false")) {
+					String header = row[0].toString();
+					String alias = row[1].toString();
+					if(alias.contains("__")) {
+						alias = alias.split("__")[1];
 					}
+					QueryColumnSelector qsSelector = new QueryColumnSelector();
+					if(useAlias) {
+						qsSelector.setTable(alias);
+					} else {
+						if(header.contains("__")) {
+							String[] split = header.split("__");
+							qsSelector.setTable(split[0]);
+							qsSelector.setColumn(split[1]);
+						} else {
+							qsSelector.setTable(header);
+							qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+						}
+					}
+					qsSelector.setAlias(alias);
+					qs.addSelector(qsSelector);
 				}
-				qsSelector.setAlias(alias);
-				qs.addSelector(qsSelector);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
 			}
 		}
 		
@@ -1454,9 +1679,18 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<Object[]> propertyInfo = new Vector<Object[]>();
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
-		while(it.hasNext()) {
-			propertyInfo.add(it.next().getValues());
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
+			while(it.hasNext()) {
+				propertyInfo.add(it.next().getValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		for(Object[] headerPropRow : propertyInfo) {
@@ -1533,9 +1767,19 @@ public class OwlTemporalEngineMeta {
 		
 		
 		List<Object[]> headerInfo = new Vector<Object[]>();
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerInfoQuery);
-		while(it.hasNext()) {
-			headerInfo.add(it.next().getValues());
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerInfoQuery);
+			while(it.hasNext()) {
+				headerInfo.add(it.next().getValues());
+			}
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		// second query to get all the header to properties triples
@@ -1559,9 +1803,17 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<Object[]> headerProperties = new Vector<Object[]>();
-		it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
-		while(it.hasNext()) {
-			headerProperties.add(it.next().getValues());
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
+			while(it.hasNext()) {
+				headerProperties.add(it.next().getValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		// third query to get all the upstream relationships
@@ -1578,9 +1830,17 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<Object[]> upstreamRels = new Vector<Object[]>();
-		it = WrapperManager.getInstance().getRawWrapper(this.myEng, upstreamRelsQuery);
-		while(it.hasNext()) {
-			upstreamRels.add(it.next().getValues());
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, upstreamRelsQuery);
+			while(it.hasNext()) {
+				upstreamRels.add(it.next().getValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		// fourth query to get all the downstream relationships
@@ -1597,11 +1857,19 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<Object[]> downstreamRels = new Vector<Object[]>();
-		it = WrapperManager.getInstance().getRawWrapper(this.myEng, downstreamRelsQuery);
-		while(it.hasNext()) {
-			downstreamRels.add(it.next().getValues());
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, downstreamRelsQuery);
+			while(it.hasNext()) {
+				downstreamRels.add(it.next().getValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
-		
+	
 		// the new triple we will be using for replacement
 		String newTableUri = SEMOSS_CONCEPT_PREFIX + "/" + newTableName;
 		
@@ -1736,11 +2004,20 @@ public class OwlTemporalEngineMeta {
 		
 		
 		List<Object[]> headerInfo = new Vector<Object[]>();
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerInfoQuery);
-		while(it.hasNext()) {
-			headerInfo.add(it.next().getValues());
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerInfoQuery);
+			while(it.hasNext()) {
+				headerInfo.add(it.next().getValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
-		
+	
 		// second query to get all the header to properties triples
 		String headerPropertiesQuery = "select distinct "
 				+ "?header "
@@ -1762,9 +2039,17 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<Object[]> headerProperties = new Vector<Object[]>();
-		it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
-		while(it.hasNext()) {
-			headerProperties.add(it.next().getValues());
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
+			while(it.hasNext()) {
+				headerProperties.add(it.next().getValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		// third query to get all the upstream relationships
@@ -1781,9 +2066,17 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<Object[]> upstreamRels = new Vector<Object[]>();
-		it = WrapperManager.getInstance().getRawWrapper(this.myEng, upstreamRelsQuery);
-		while(it.hasNext()) {
-			upstreamRels.add(it.next().getValues());
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, upstreamRelsQuery);
+			while(it.hasNext()) {
+				upstreamRels.add(it.next().getValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		// fourth query to get all the downstream relationships
@@ -1800,9 +2093,17 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<Object[]> downstreamRels = new Vector<Object[]>();
-		it = WrapperManager.getInstance().getRawWrapper(this.myEng, downstreamRelsQuery);
-		while(it.hasNext()) {
-			downstreamRels.add(it.next().getValues());
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, downstreamRelsQuery);
+			while(it.hasNext()) {
+				downstreamRels.add(it.next().getValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		// now that we have all the info, we remove and insert new triples
@@ -1909,9 +2210,18 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		List<Object[]> propertyInfo = new Vector<Object[]>();
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
-		while(it.hasNext()) {
-			propertyInfo.add(it.next().getValues());
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
+			while(it.hasNext()) {
+				propertyInfo.add(it.next().getValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		for(Object[] headerPropRow : propertyInfo) {
@@ -1953,30 +2263,39 @@ public class OwlTemporalEngineMeta {
 		OwlTemporalEngineMeta newMeta = new OwlTemporalEngineMeta();
 		
 		String query = "select distinct ?s ?p ?o where {?s ?p ?o}";
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		while(it.hasNext()) {
-			IHeadersDataRow row = it.next();
-			Object[] rawRow = row.getRawValues();
-			Object[] cleanRow = row.getValues();
-			
-			String subUri = rawRow[0].toString();
-			String predUri = rawRow[1].toString();
-			
-			Object obj = null;
-			Boolean isConcept = false;
-			
-			if(predUri.equals(IS_PRIM_KEY_PRED) || predUri.equals(IS_DERIVED_PRED) ||
-					predUri.equals(QUERY_STRUCT_PRED) || predUri.equals(ALIAS_PRED) ||
-					predUri.equals(OWL.DATATYPEPROPERTY.toString()) || predUri.equals(ADDTL_DATATYPE_PRED) ) 
-			{
-				obj = cleanRow[2].toString();
-				isConcept = false;
-			} else {
-				obj = rawRow[2].toString();
-				isConcept = true;
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				IHeadersDataRow row = it.next();
+				Object[] rawRow = row.getRawValues();
+				Object[] cleanRow = row.getValues();
+				
+				String subUri = rawRow[0].toString();
+				String predUri = rawRow[1].toString();
+				
+				Object obj = null;
+				Boolean isConcept = false;
+				
+				if(predUri.equals(IS_PRIM_KEY_PRED) || predUri.equals(IS_DERIVED_PRED) ||
+						predUri.equals(QUERY_STRUCT_PRED) || predUri.equals(ALIAS_PRED) ||
+						predUri.equals(OWL.DATATYPEPROPERTY.toString()) || predUri.equals(ADDTL_DATATYPE_PRED) ) 
+				{
+					obj = cleanRow[2].toString();
+					isConcept = false;
+				} else {
+					obj = rawRow[2].toString();
+					isConcept = true;
+				}
+				
+				newMeta.myEng.addStatement(new Object[]{subUri, predUri, obj, isConcept});
 			}
-			
-			newMeta.myEng.addStatement(new Object[]{subUri, predUri, obj, isConcept});
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return newMeta;

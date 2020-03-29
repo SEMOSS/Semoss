@@ -179,28 +179,31 @@ public class RelationFunction implements IAlgorithm {
 
 	public ArrayList<Object[]> processQuery(String query) {
 		// execute the query on a specified engine
-		//SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine, query);
-		/*sjsw.setEngine(engine);
-		sjsw.setQuery(query);
-		sjsw.executeQuery();*/
-		
-		String[] names = sjsw.getVariables();
-		
 		ArrayList<Object[]> processedList = new ArrayList<Object[]>();
-		
-		while(sjsw.hasNext())
-		{
-			ISelectStatement sjss = sjsw.next();
-		
-			String sys = (String) sjss.getVar(names[0]);
-			String data = (String) sjss.getVar(names[1]);
-			double count = (Double) sjss.getVar(names[2]);
-		
-			if (colNames.contains(sys)) {
-				processedList.add(new Object[]{sys, data, count});
+		ISelectWrapper sjsw = null;
+		try {
+			sjsw = WrapperManager.getInstance().getSWrapper(engine, query);
+			String[] names = sjsw.getVariables();
+			while(sjsw.hasNext())
+			{
+				ISelectStatement sjss = sjsw.next();
+			
+				String sys = (String) sjss.getVar(names[0]);
+				String data = (String) sjss.getVar(names[1]);
+				double count = (Double) sjss.getVar(names[2]);
+			
+				if (colNames.contains(sys)) {
+					processedList.add(new Object[]{sys, data, count});
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(sjsw != null) {
+				sjsw.cleanUp();
 			}
 		}
+		
 		return processedList;
 	}
 	

@@ -189,7 +189,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	}
 
 	@Override
-	public long getNumRows() {
+	public long getNumRows() throws Exception {
 		if(this.numRows == 0) {
 			if(processedData == null) {
 				this.numRows = this.subIt.getNumRows();
@@ -201,7 +201,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	}
 
 	@Override
-	public long getNumRecords() {
+	public long getNumRecords() throws Exception {
 		return getNumRows() * getHeaders().length;	
 	}
 
@@ -211,7 +211,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	}
 
 	@Override
-	public void reset() {
+	public void reset() throws Exception {
 		cleanUp();
 		this.subIt.reset();
 		execute();

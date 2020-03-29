@@ -64,7 +64,12 @@ public class RunCapabilityBVButtonListener implements IChakraListener{
 		BooleanProcessor proc = new BooleanProcessor();
 		proc.setQuery(distanceQuery);
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-		boolean bvExists = proc.processQuery();
+		boolean bvExists = false;
+		try {
+			bvExists = proc.processQuery();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		if(bvExists){
 			//display message
 			//if they want to continue--delete

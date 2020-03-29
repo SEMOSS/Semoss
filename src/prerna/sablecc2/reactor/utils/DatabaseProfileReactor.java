@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.utils;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
@@ -12,6 +11,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -143,10 +143,19 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			qs_nulls.addExplicitFilter(nulls);
 		}
 		// get blank values count
-		Iterator<IHeadersDataRow> blankIt = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 		long blankCount = 0;
-		if (blankIt.hasNext()) {
-			blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
+		IRawSelectWrapper blankIt = null;
+		try {
+			blankIt = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			if (blankIt.hasNext()) {
+				blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(blankIt != null) {
+				blankIt.cleanUp();
+			}
 		}
 		retRow[2] = blankCount + "";
 
@@ -154,10 +163,15 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		retRow[3] = getValue(engine, selector, QueryFunctionHelper.UNIQUE_COUNT, true) + "";
 
 		// get null values count
-		Iterator<IHeadersDataRow> nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
 		long nullCount = 0;
-		if (nullIt.hasNext()) {
-			nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
+		IRawSelectWrapper nullIt;
+		try {
+			nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
+			if (nullIt.hasNext()) {
+				nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		retRow[8] = nullCount + "";
 		return retRow;
@@ -212,21 +226,31 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			qs2.addSelector(sum);
 		}
 		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
-		while (it.hasNext()) {
-			IHeadersDataRow iRow = it.next();
-			Object[] values = iRow.getValues();
-			// unique count
-			retRow[3] = values[0] + "";
-			// min
-			retRow[4] = values[1] + "";
-			// avg
-			retRow[5] = values[2] + "";
-			// max
-			retRow[6] = values[3] + "";
-			// sum
-			retRow[7] = values[4] + "";
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			while (it.hasNext()) {
+				IHeadersDataRow iRow = it.next();
+				Object[] values = iRow.getValues();
+				// unique count
+				retRow[3] = values[0] + "";
+				// min
+				retRow[4] = values[1] + "";
+				// avg
+				retRow[5] = values[2] + "";
+				// max
+				retRow[6] = values[3] + "";
+				// sum
+				retRow[7] = values[4] + "";
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		// nulls
 		qs_nulls = new SelectQueryStruct();
 		{
@@ -251,8 +275,14 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			qs_nulls.addSelector(arithmaticSelector);
 		}
 		// get null values count
-		Iterator<IHeadersDataRow> nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
-		long nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
+		long nullCount = 0;
+		IRawSelectWrapper nullIt;
+		try {
+			nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
+			nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		retRow[8] = "" + nullCount;
 		return retRow;
 	}
@@ -268,9 +298,20 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			qs2.addSelector(funSelector);
 		}
 		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
-		Object value = it.next().getValues()[0];
-		return value;
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			Object value = it.next().getValues()[0];
+			return value;
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+		
+		return null;
 	}
 
 	/**

@@ -12,6 +12,7 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
@@ -25,11 +26,17 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 	protected List<NounMetadata> subAdditionalReturn;
 	
 	//This method is implemented by child classes, each class is responsible for building different pieces of the task
-	protected abstract void buildTask();
+	protected abstract void buildTask() throws Exception;
 	
 	public NounMetadata execute() {
 		this.task = getTask(); //initialize the task
-		buildTask(); // append onto the task
+		try {
+			buildTask();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		} 
+		// append onto the task
 		return new NounMetadata(this.task, PixelDataType.TASK); //return the task
 	}
 	

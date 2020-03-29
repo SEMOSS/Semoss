@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.frame.filtermodel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -10,7 +9,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -125,10 +124,20 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 		// this is just the values of the column given the current filters
 		qs.setExplicitFilters(baseFilters);
 		// now run and flush out the values
-		Iterator<IHeadersDataRow> unFilterValuesIt = dataframe.query(qs);
-		while (unFilterValuesIt.hasNext()) {
-			unFilterValues.add(unFilterValuesIt.next().getValues()[0]);
+		IRawSelectWrapper unFilterValuesIt = null;
+		try {
+			unFilterValuesIt = dataframe.query(qs);
+			while (unFilterValuesIt.hasNext()) {
+				unFilterValues.add(unFilterValuesIt.next().getValues()[0]);
+			}
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(unFilterValuesIt != null) {
+				unFilterValuesIt.cleanUp();
+			}
 		}
+		
 		retMap.put("unfilterValues", unFilterValues);
 		
 		// if the current filters doesn't use the column
@@ -190,9 +199,18 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 				qs.setExplicitFilters(inverseFilters);
 				
 				// flush out the values
-				Iterator<IHeadersDataRow> filterValuesIt = dataframe.query(qs);
-				while (filterValuesIt.hasNext()) {
-					filterValues.add(filterValuesIt.next().getValues()[0]);
+				IRawSelectWrapper filterValuesIt = null;
+				try {
+					filterValuesIt = dataframe.query(qs);
+					while (filterValuesIt.hasNext()) {
+						filterValues.add(filterValuesIt.next().getValues()[0]);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(filterValuesIt != null) {
+						filterValuesIt.cleanUp();
+					}
 				}
 			}
 		}
@@ -217,22 +235,55 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 
 			// get the absolute min when no filters are present
 			Map<String, Object> minMaxMap = new HashMap<String, Object>();
-			Iterator<IHeadersDataRow> it = dataframe.query(mathQS);
-			minMaxMap.put("absMin", it.next().getValues()[0]);
+			IRawSelectWrapper it = null;
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("absMin", it.next().getValues()[0]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 			// get the abs max when no filters are present
 			mathSelector.setFunction(QueryFunctionHelper.MAX);
-			it = dataframe.query(mathQS);
-			minMaxMap.put("absMax", it.next().getValues()[0]);
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("absMax", it.next().getValues()[0]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 
 			// add in the filters now and repeat
 			mathQS.setExplicitFilters(baseFilters);
 			// run for actual max
-			it = dataframe.query(mathQS);
-			minMaxMap.put("max", it.next().getValues()[0]);
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("max", it.next().getValues()[0]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 			// run for actual min
 			mathSelector.setFunction(QueryFunctionHelper.MIN);
-			it = dataframe.query(mathQS);
-			minMaxMap.put("min", it.next().getValues()[0]);
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("min", it.next().getValues()[0]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 
 			retMap.put("minMax", minMaxMap);
 		}

@@ -16,6 +16,7 @@ import org.quartz.UnableToInterruptJobException;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.rpa.quartz.CommonDataKeys;
 
 public class OneColConditionJob implements org.quartz.InterruptableJob {
@@ -58,14 +59,10 @@ public class OneColConditionJob implements org.quartz.InterruptableJob {
 		
 		// Get the iterator
 		String tableName = frame.getName();
-		
 		// Need this to preserve a logical order
 		String[] headers = frame.getColumnHeaders();
-		Iterator<IHeadersDataRow> iterator = frame.query("SELECT " + String.join(", ", headers) + " FROM " + tableName);
-		
 		// Get the index of the column header
 		int index = Arrays.asList(headers).indexOf(columnHeader);
-		
 		// If the index is -1 (aka column doesn't exist), then throw an exception
 		if (index == -1) {
 			String noSuchColumnMessage = "Column " + columnHeader + " not found.";
@@ -73,68 +70,83 @@ public class OneColConditionJob implements org.quartz.InterruptableJob {
 			throw new JobExecutionException(noSuchColumnMessage);
 		}
 		
-		// Check whether the column is numeric
-		Iterator<IHeadersDataRow> firstResultIterator = frame.query("SELECT " + String.join(", ", headers) + " FROM " + tableName + " LIMIT 1");
 		boolean isNumeric = false;
-		if (firstResultIterator.hasNext()) {
-			try {
-				Double.parseDouble(firstResultIterator.next().getValues()[index].toString());
-				isNumeric = true;
-			} catch (Exception e) {
-				// Then assume is not numeric
+		// Check whether the column is numeric
+		Iterator<IHeadersDataRow> firstResultIterator;
+		try {
+			firstResultIterator = frame.query("SELECT " + String.join(", ", headers) + " FROM " + tableName + " LIMIT 1");
+			if (firstResultIterator.hasNext()) {
+				try {
+					Double.parseDouble(firstResultIterator.next().getValues()[index].toString());
+					isNumeric = true;
+				} catch (Exception e) {
+					// Then assume is not numeric
+				}
 			}
+		} catch (Exception e1) {
+			e1.printStackTrace();
 		}
-		
 		// TODO this isn't working for me
 //		boolean isNumeric = frame.isNumeric()[index];
 		
-		Set<IHeadersDataRow> rows;
-		// Comparison logic
-		if (isNumeric) {
-			double numericValue = Double.parseDouble(value.toString());
-			
-			// Switch on the comparator and use lambda functions to check the conditions
-			switch (comparator) {
-			case EQUALS:
-				rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> Double.parseDouble(o.getValues()[index].toString()) == numericValue);
-				break;
-			case NOT_EQUALS:
-				rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> Double.parseDouble(o.getValues()[index].toString()) != numericValue);
-				break;
-			case GREATER_THAN:
-				rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> Double.parseDouble(o.getValues()[index].toString()) > numericValue);
-				break;
-			case LESS_THAN:
-				rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> Double.parseDouble(o.getValues()[index].toString()) < numericValue);
-				break;
-			default:
-				rows = new HashSet<IHeadersDataRow>();
+		Set<IHeadersDataRow> rows = null;
+		IRawSelectWrapper iterator = null;
+		try {
+			iterator = frame.query("SELECT " + String.join(", ", headers) + " FROM " + tableName);
+			// Comparison logic
+			if (isNumeric) {
+				double numericValue = Double.parseDouble(value.toString());
+				
+				// Switch on the comparator and use lambda functions to check the conditions
+				switch (comparator) {
+				case EQUALS:
+					rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> Double.parseDouble(o.getValues()[index].toString()) == numericValue);
+					break;
+				case NOT_EQUALS:
+					rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> Double.parseDouble(o.getValues()[index].toString()) != numericValue);
+					break;
+				case GREATER_THAN:
+					rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> Double.parseDouble(o.getValues()[index].toString()) > numericValue);
+					break;
+				case LESS_THAN:
+					rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> Double.parseDouble(o.getValues()[index].toString()) < numericValue);
+					break;
+				default:
+					rows = new HashSet<IHeadersDataRow>();
+				}
+			} else {
+				String stringValue = value.toString();
+				 
+				// Get the Collator for US English and set its strength to PRIMARY
+				Collator collator = Collator.getInstance(Locale.US);
+				collator.setStrength(Collator.PRIMARY);
+				
+				// Switch on the comparator and use lambda functions to check the conditions
+				switch (comparator) {
+				case EQUALS:
+					rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> collator.compare(o.getValues()[index].toString(), stringValue) == 0);
+					break;
+				case NOT_EQUALS:
+					rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> collator.compare(o.getValues()[index].toString(), stringValue) != 0);
+					break;
+				case GREATER_THAN:
+					rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> collator.compare(o.getValues()[index].toString(), stringValue) > 0);
+					break;
+				case LESS_THAN:
+					rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> collator.compare(o.getValues()[index].toString(), stringValue) < 0);
+					break;
+				default:
+					rows = new HashSet<IHeadersDataRow>();
+				}
 			}
-		} else {
-			String stringValue = value.toString();
-			 
-			// Get the Collator for US English and set its strength to PRIMARY
-			Collator collator = Collator.getInstance(Locale.US);
-			collator.setStrength(Collator.PRIMARY);
-			
-			// Switch on the comparator and use lambda functions to check the conditions
-			switch (comparator) {
-			case EQUALS:
-				rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> collator.compare(o.getValues()[index].toString(), stringValue) == 0);
-				break;
-			case NOT_EQUALS:
-				rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> collator.compare(o.getValues()[index].toString(), stringValue) != 0);
-				break;
-			case GREATER_THAN:
-				rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> collator.compare(o.getValues()[index].toString(), stringValue) > 0);
-				break;
-			case LESS_THAN:
-				rows = IteratorLambdaFunctions.getRowsSatisfyingCondition(iterator, o -> collator.compare(o.getValues()[index].toString(), stringValue) < 0);
-				break;
-			default:
-				rows = new HashSet<IHeadersDataRow>();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(iterator != null) {
+				iterator.cleanUp();
 			}
 		}
+		
 
 		////////////////////
 		// Store outputs

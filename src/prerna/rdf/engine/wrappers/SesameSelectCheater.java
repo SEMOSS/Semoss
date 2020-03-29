@@ -161,7 +161,7 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 	}
 
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		tqr = (TupleQueryResult) engine.execQuery(query);
 		getVariables();
 		

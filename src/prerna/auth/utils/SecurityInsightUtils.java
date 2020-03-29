@@ -27,6 +27,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityInsightUtils extends AbstractSecurityUtils {
@@ -57,16 +58,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val != null && val instanceof Number) {
 					return AccessPermission.getPermissionValueById( ((Number) val).intValue() );
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
@@ -86,16 +92,22 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", singleUserId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val != null && val instanceof Number) {
 					return ((Number) val).intValue();
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		return null;
@@ -132,14 +144,20 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				// do not care if owner/edit/read
 				return true;
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		return false;
@@ -172,8 +190,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val == null) {
@@ -184,9 +204,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					return true;
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
-		}		
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
 		return false;
 	}
 	
@@ -217,8 +241,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val == null) {
@@ -229,9 +255,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					return true;
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
-		}		
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
 		return false;
 	}
 	
@@ -264,8 +294,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 		qs.addOrderBy(new QueryColumnOrderBySelector("USERINSIGHTPERMISSION__PERMISSION"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val == null) {
@@ -274,9 +306,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				int permission = ((Number) val).intValue();
 				return permission;
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
-		}		
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
 		return AccessPermission.READ_ONLY.getId();
 	}
 
@@ -344,8 +380,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		return flushRsToMap(wrapper);
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -999,8 +1034,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		if(offset != null && !offset.trim().isEmpty()) {
 			qs.setOffSet(Long.parseLong(offset));
 		}
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		return flushRsToMap(wrapper);
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**
@@ -1088,8 +1123,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		if(offset != null && !offset.trim().isEmpty()) {
 			qs.setOffSet(Long.parseLong(offset));
 		}
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		return flushRsToMap(wrapper);
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**
@@ -1113,7 +1148,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", metaKeys));
 		// order
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 		return wrapper;
 	}
 	
@@ -1138,29 +1179,39 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", metaKeys));
 		// order
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-
+		
 		Map<String, Object> retMap = new HashMap<String, Object>();
-		while(wrapper.hasNext()) {
-			Object[] data = wrapper.next().getValues();
-			String metaKey = data[2].toString();
-			String metaValue = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[3]);
 
-			// AS THIS LIST EXPANDS
-			// WE NEED TO KNOW IF THESE ARE MULTI VALUED OR SINGLE
-			if(metaKey.equals("tag")) {
-				List<String> listVal = null;
-				if(retMap.containsKey("tags")) {
-					listVal = (List<String>) retMap.get("tags");
-				} else {
-					listVal = new Vector<String>();
-					retMap.put("tags", listVal);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				String metaKey = data[2].toString();
+				String metaValue = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[3]);
+
+				// AS THIS LIST EXPANDS
+				// WE NEED TO KNOW IF THESE ARE MULTI VALUED OR SINGLE
+				if(metaKey.equals("tag")) {
+					List<String> listVal = null;
+					if(retMap.containsKey("tags")) {
+						listVal = (List<String>) retMap.get("tags");
+					} else {
+						listVal = new Vector<String>();
+						retMap.put("tags", listVal);
+					}
+					listVal.add(metaValue);
 				}
-				listVal.add(metaValue);
+				// these will be the single valued parameters
+				else {
+					retMap.put(metaKey, metaValue);
+				}
 			}
-			// these will be the single valued parameters
-			else {
-				retMap.put(metaKey, metaValue);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 
@@ -1188,8 +1239,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		// group
 		qs.addGroupBy(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "tag"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		return flushRsToMap(wrapper);
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	//////////////////////////////////////////////////////////////////
@@ -1274,8 +1325,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		if(offset != null && !offset.trim().isEmpty()) {
 			qs.setOffSet(Long.parseLong(offset));
 		}
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		return flushToListString(wrapper);
+		
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 	
 	public static List<String> predictInsightSearch(String searchTerm, String limit, String offset) {
@@ -1317,8 +1368,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		if(offset != null && !offset.trim().isEmpty()) {
 			qs.setOffSet(Long.parseLong(offset));
 		}
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		return flushToListString(wrapper);
+		
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 	
 }

@@ -91,7 +91,13 @@ public class SysBPCapInsertListener extends AbstractListener {
 		BooleanProcessor proc = new BooleanProcessor();
 		proc.setQuery(isCalculatedQuery);
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-		boolean isCalculated = proc.processQuery();
+		boolean isCalculated = false;
+		try {
+			isCalculated = proc.processQuery();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 				
 		if(isCalculated){		
 			Object[] buttons = {"Cancel Calculation", "Continue With Calculation"};

@@ -721,76 +721,85 @@ public abstract class AbstractEngine implements IEngine {
 			String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
 			LOGGER.info("Running insights query " + query);
 			
-			IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
-			while (wrap.hasNext()) {
-				IHeadersDataRow dataRow = wrap.next();
-				Object[] values = dataRow.getValues();
-//				Object[] rawValues = dataRow.getRawValues();
+			IRawSelectWrapper wrap = null;
+			try {
+				wrap = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
+				while (wrap.hasNext()) {
+					IHeadersDataRow dataRow = wrap.next();
+					Object[] values = dataRow.getValues();
+//					Object[] rawValues = dataRow.getRawValues();
 
-				String rdbmsId = values[0] + "";
-				String insightName = values[1] + "";
-				
-				Clob insightMakeup = (Clob) values[2];
-				InputStream insightMakeupIs = null;
-				if(insightMakeup != null) {
-					try {
-						insightMakeupIs = insightMakeup.getAsciiStream();
-					} catch (SQLException e) {
-						e.printStackTrace();
-					}
-				}
-				String layout = values[4] + "";
-				String dataTableAlign = values[6] + "";
-				String dataMakerName = values[7] + "";
-				boolean cacheable = (boolean) values[8];
-				Object[] pixel = null;
-				// need to know if we have an array
-				// or a clob
-				if(insightRdbms.getQueryUtil().allowArrayDatatype()) {
-					pixel = (Object[]) values[9];
-				} else {
-					Clob pixelArray = (Clob) values[9];
-					InputStream pixelArrayIs = null;
-					if(pixelArray != null) {
+					String rdbmsId = values[0] + "";
+					String insightName = values[1] + "";
+					
+					Clob insightMakeup = (Clob) values[2];
+					InputStream insightMakeupIs = null;
+					if(insightMakeup != null) {
 						try {
-							pixelArrayIs = pixelArray.getAsciiStream();
+							insightMakeupIs = insightMakeup.getAsciiStream();
 						} catch (SQLException e) {
 							e.printStackTrace();
 						}
 					}
-					// flush input stream to string
-					Gson gson = new Gson();
-					InputStreamReader reader = new InputStreamReader(pixelArrayIs);
-					pixel = gson.fromJson(reader, String[].class);
-				}
-				
-				String perspective = values[3] + "";
-				String order = values[5] + "";
-				
-				Insight in = null;
-				if(pixel == null || pixel.length == 0) {
-					in = new OldInsight(this, dataMakerName, layout);
-					in.setRdbmsId(rdbmsId);
-					in.setInsightName(insightName);
-					((OldInsight) in).setOutput(layout);
-					((OldInsight) in).setMakeup(insightMakeupIs);
-//					in.setPerspective(perspective);
-//					in.setOrder(order);
-					((OldInsight) in).setDataTableAlign(dataTableAlign);
-					// adding semoss parameters to insight
-					((OldInsight) in).setInsightParameters(LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRdbms, rdbmsId));
-					in.setIsOldInsight(true);
-				} else {
-					in = new Insight(this.engineId, this.engineName, rdbmsId, cacheable);
-					in.setInsightName(insightName);
-					List<String> pixelList = new Vector<String>();
-					for(int i = 0; i < pixel.length; i++) {
-						pixelList.add(pixel[i].toString().trim());
+					String layout = values[4] + "";
+					String dataTableAlign = values[6] + "";
+					String dataMakerName = values[7] + "";
+					boolean cacheable = (boolean) values[8];
+					Object[] pixel = null;
+					// need to know if we have an array
+					// or a clob
+					if(insightRdbms.getQueryUtil().allowArrayDatatype()) {
+						pixel = (Object[]) values[9];
+					} else {
+						Clob pixelArray = (Clob) values[9];
+						InputStream pixelArrayIs = null;
+						if(pixelArray != null) {
+							try {
+								pixelArrayIs = pixelArray.getAsciiStream();
+							} catch (SQLException e) {
+								e.printStackTrace();
+							}
+						}
+						// flush input stream to string
+						Gson gson = new Gson();
+						InputStreamReader reader = new InputStreamReader(pixelArrayIs);
+						pixel = gson.fromJson(reader, String[].class);
 					}
-					in.setPixelRecipe(pixelList);
-					// I need this for dashboard
+					
+					String perspective = values[3] + "";
+					String order = values[5] + "";
+					
+					Insight in = null;
+					if(pixel == null || pixel.length == 0) {
+						in = new OldInsight(this, dataMakerName, layout);
+						in.setRdbmsId(rdbmsId);
+						in.setInsightName(insightName);
+						((OldInsight) in).setOutput(layout);
+						((OldInsight) in).setMakeup(insightMakeupIs);
+//						in.setPerspective(perspective);
+//						in.setOrder(order);
+						((OldInsight) in).setDataTableAlign(dataTableAlign);
+						// adding semoss parameters to insight
+						((OldInsight) in).setInsightParameters(LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRdbms, rdbmsId));
+						in.setIsOldInsight(true);
+					} else {
+						in = new Insight(this.engineId, this.engineName, rdbmsId, cacheable);
+						in.setInsightName(insightName);
+						List<String> pixelList = new Vector<String>();
+						for(int i = 0; i < pixel.length; i++) {
+							pixelList.add(pixel[i].toString().trim());
+						}
+						in.setPixelRecipe(pixelList);
+						// I need this for dashboard
+					}
+					insightV.insertElementAt(in, counts.remove(0));
 				}
-				insightV.insertElementAt(in, counts.remove(0));
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			} finally {
+				if(wrap != null) {
+					wrap.cleanUp();
+				}
 			}
 		}
 		return insightV;
@@ -810,13 +819,21 @@ public abstract class AbstractEngine implements IEngine {
 	public String getInsightDefinition() {
 		StringBuilder stringBuilder = new StringBuilder();
 		// call script command to get everything necessary to recreate rdbms engine on the other side//
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRdbms, "SCRIPT");
-		String[] names = wrap.getVariables();
-
-		while(wrap.hasNext()) {
-			ISelectStatement ss = wrap.next();
-			System.out.println(ss.getRPropHash().toString());//
-			stringBuilder.append(ss.getVar(names[0]) + "").append("%!%");
+		ISelectWrapper wrap = null;
+		try {
+			wrap = WrapperManager.getInstance().getSWrapper(insightRdbms, "SCRIPT");
+			String[] names = wrap.getVariables();
+			while(wrap.hasNext()) {
+				ISelectStatement ss = wrap.next();
+				System.out.println(ss.getRPropHash().toString());//
+				stringBuilder.append(ss.getVar(names[0]) + "").append("%!%");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrap != null) {
+				wrap.cleanUp();
+			}
 		}
 		return stringBuilder.toString();
 	}
@@ -824,15 +841,24 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public String getNodeBaseUri(){
 		if(baseUri == null) {
-			IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, GET_BASE_URI_FROM_OWL);
-			if(wrap.hasNext()) {
-				IHeadersDataRow data = wrap.next();
-				baseUri = data.getRawValues()[0] + "";
-				LOGGER.info("Got base uri from owl " + this.baseUri + " for engine " + getEngineId() + " : " + getEngineName());
-			}
-			if(baseUri == null){
-				baseUri = Constants.CONCEPT_URI;
-				LOGGER.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine " + getEngineId() + " : " + getEngineName());
+			IRawSelectWrapper wrap = null;
+			try {
+				wrap = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, GET_BASE_URI_FROM_OWL);
+				if(wrap.hasNext()) {
+					IHeadersDataRow data = wrap.next();
+					baseUri = data.getRawValues()[0] + "";
+					LOGGER.info("Got base uri from owl " + this.baseUri + " for engine " + getEngineId() + " : " + getEngineName());
+				}
+				if(baseUri == null){
+					baseUri = Constants.CONCEPT_URI;
+					LOGGER.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine " + getEngineId() + " : " + getEngineName());
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrap != null) {
+					wrap.cleanUp();
+				}
 			}
 		}
 		
@@ -879,30 +905,39 @@ public abstract class AbstractEngine implements IEngine {
 				+ "}"; // END WHERE
 
 		// execute the query and loop through and add it into the QS
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getSelectorsInformation);
-		// we will keep a set of the concepts such that we know when we need to append a PRIM_KEY_PLACEHOLDER
-		Set<String> conceptSet = new HashSet<String>();
-		while(wrapper.hasNext()) {
-			IHeadersDataRow hrow = wrapper.next();
-			Object[] row = hrow.getValues();
-			Object[] raw = hrow.getRawValues();
-			if(raw[0].toString().equals("http://semoss.org/ontologies/Concept")) {
-				continue;
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getSelectorsInformation);
+			// we will keep a set of the concepts such that we know when we need to append a PRIM_KEY_PLACEHOLDER
+			Set<String> conceptSet = new HashSet<String>();
+			while(wrapper.hasNext()) {
+				IHeadersDataRow hrow = wrapper.next();
+				Object[] row = hrow.getValues();
+				Object[] raw = hrow.getRawValues();
+				if(raw[0].toString().equals("http://semoss.org/ontologies/Concept")) {
+					continue;
+				}
+				
+				String concept = row[0].toString();
+				if(!conceptSet.contains(concept)) {
+					qs.addSelector(new QueryColumnSelector(concept));
+				}
+				
+				Object property = raw[1];
+				if(property != null && !property.toString().isEmpty()) {
+					qs.addSelector(new QueryColumnSelector(concept + "__" + Utility.getClassName(property.toString())));
+				}
 			}
-			
-			String concept = row[0].toString();
-			if(!conceptSet.contains(concept)) {
-				qs.addSelector(new QueryColumnSelector(concept));
-			}
-			
-			Object property = raw[1];
-			if(property != null && !property.toString().isEmpty()) {
-				qs.addSelector(new QueryColumnSelector(concept + "__" + Utility.getClassName(property.toString())));
+			// no need to keep this anymore
+			conceptSet.clear();
+			conceptSet = null;
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
-		// no need to keep this anymore
-		conceptSet.clear();
-		conceptSet = null;
 
 		// query to get all the relationships 
 		String getRelationshipsInformation = "SELECT DISTINCT ?fromConceptualConcept ?toConceptualConcept WHERE { "
@@ -914,15 +949,24 @@ public abstract class AbstractEngine implements IEngine {
 				+ "{?toConcept <http://semoss.org/ontologies/Relation/Conceptual> ?toConceptualConcept }"
 				+ "}"; // END WHERE
 
-		wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getRelationshipsInformation);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow hrow = wrapper.next();
-			Object[] row = hrow.getValues();
-			String fromConcept = row[0].toString();
-			String toConcept = row[1].toString();
-			qs.addRelation(fromConcept, toConcept, "inner.join");
-		}
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getRelationshipsInformation);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow hrow = wrapper.next();
+				Object[] row = hrow.getValues();
+				String fromConcept = row[0].toString();
+				String toConcept = row[1].toString();
+				qs.addRelation(fromConcept, toConcept, "inner.join");
+			}
 
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
 		return qs;
 	}
 	

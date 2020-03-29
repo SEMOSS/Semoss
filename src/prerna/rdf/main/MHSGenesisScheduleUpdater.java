@@ -78,11 +78,20 @@ public class MHSGenesisScheduleUpdater {
 				+ "{?dcsite a <http://semoss.org/ontologies/Concept/DCSite>}"
 				+ "{?wave ?rel ?dcsite} } " + sb.toString();
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, q);
-		while(it.hasNext()) {
-			Object[] uriRow = it.next().getRawValues();
-			System.out.println("Delete wave to dc site " + Arrays.toString(uriRow));
-			deleteRel(engine, uriRow);
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(engine, q);
+			while(it.hasNext()) {
+				Object[] uriRow = it.next().getRawValues();
+				System.out.println("Delete wave to dc site " + Arrays.toString(uriRow));
+				deleteRel(engine, uriRow);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		// now add new waves for each one
@@ -123,11 +132,20 @@ public class MHSGenesisScheduleUpdater {
 				+ "{?yearquarter a <http://semoss.org/ontologies/Concept/Year-Quarter>}"
 				+ "{?wave ?rel ?yearquarter} }";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, q);
-		while(it.hasNext()) {
-			Object[] uriRow = it.next().getRawValues();
-			System.out.println("Delete wave to year quarter " + Arrays.toString(uriRow));
-			deleteRel(engine, uriRow);
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(engine, q);
+			while(it.hasNext()) {
+				Object[] uriRow = it.next().getRawValues();
+				System.out.println("Delete wave to year quarter " + Arrays.toString(uriRow));
+				deleteRel(engine, uriRow);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 	}
 	

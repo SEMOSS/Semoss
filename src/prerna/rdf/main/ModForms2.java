@@ -108,11 +108,21 @@ public class ModForms2 {
 	}
 
 	private static void removeExistingRelationship(IEngine eng, String query) {
-		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(eng, query);
 		List<Object[]> triplesToRemove = new ArrayList<Object[]>();
-		while(manager.hasNext()) {
-			Object[] row = manager.next().getRawValues();
-			triplesToRemove.add(new Object[]{row[0], row[1], row[2], true});
+
+		IRawSelectWrapper manager = null;
+		try {
+			manager = WrapperManager.getInstance().getRawWrapper(eng, query);
+			while(manager.hasNext()) {
+				Object[] row = manager.next().getRawValues();
+				triplesToRemove.add(new Object[]{row[0], row[1], row[2], true});
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(manager != null) {
+				manager.cleanUp();
+			}
 		}
 		
 		for(Object[] triple : triplesToRemove) {
@@ -122,16 +132,25 @@ public class ModForms2 {
 
 	private static void removeExistingProperties(IEngine eng, String query, String pred) {
 		final String subprefix = "http://health.mil/ontologies/Concept/System/";
-		// get existing values
-		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(eng, query);
 		List<Object[]> triplesToRemove = new ArrayList<Object[]>();
-		while(manager.hasNext()) {
-			Object[] row = manager.next().getValues();
-			String system = row[0].toString();
-			Object obj = row[1];
-			
-			String sub = subprefix + system;
-			triplesToRemove.add(new Object[]{sub, pred, obj, false});
+		// get existing values
+		IRawSelectWrapper manager = null;
+		try {
+			manager = WrapperManager.getInstance().getRawWrapper(eng, query);
+			while(manager.hasNext()) {
+				Object[] row = manager.next().getValues();
+				String system = row[0].toString();
+				Object obj = row[1];
+				
+				String sub = subprefix + system;
+				triplesToRemove.add(new Object[]{sub, pred, obj, false});
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(manager != null) {
+				manager.cleanUp();
+			}
 		}
 		
 		for(Object[] triple : triplesToRemove) {

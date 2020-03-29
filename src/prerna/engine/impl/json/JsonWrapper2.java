@@ -15,7 +15,7 @@ public class JsonWrapper2 extends JsonWrapper {
 	private ArrayNode data = null;
 	
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		// sorry for the bad way to transport data
 		Hashtable output = (Hashtable)engine.execQuery(query);
 		this.data = (ArrayNode) output.get("DATA");

@@ -102,7 +102,11 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 				  //  "{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
 				  "{?Subject ?Predicate ?Object}" +
 				  "}";
-		gdm.genBaseGraph(predicateSelectQuery);
+		try {
+			gdm.genBaseGraph(predicateSelectQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override

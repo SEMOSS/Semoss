@@ -114,8 +114,18 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 //			addToSesame(st, false, false);
 //			if (search) addToJenaModel3(st);
 		}		
-		genBaseConcepts();
-		genBaseGraph();//subjects2, predicates2, subjects2);
+		try {
+			genBaseConcepts();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			genBaseGraph(); //subjects2, predicates2, subjects2);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 //		try {
 //			RDFEngineHelper.loadLabels(engine, subjects.toString() + objects.toString(), this);
@@ -134,8 +144,9 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 	
 	/**
 	 * Method genBaseConcepts.  Creates all the concepts and relationships to build the graph.
+	 * @throws Exception 
 	 */
-	public void genBaseConcepts()
+	public void genBaseConcepts() throws Exception
 	{
 		// create all the relationships now
 		String conceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
@@ -198,8 +209,9 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 	
 	/**
 	 * Method genBaseGraph.  This executes the first SPARQL query and generates the graphs.
+	 * @throws Exception 
 	 */
-	public void genBaseGraph()
+	public void genBaseGraph() throws Exception
 	{
 		// create all the relationships now
 		String predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +

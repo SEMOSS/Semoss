@@ -27,7 +27,6 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -37,6 +36,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -195,8 +195,20 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			countSelector.addInnerSelector(innerSelector);
 			qs1.addSelector(countSelector);
 		}
-		Iterator<IHeadersDataRow> nRowIt = query(qs1);
-		long nRow = ((Number) nRowIt.next().getValues()[0]).longValue();
+		
+		long nRow = 0;
+		IRawSelectWrapper nRowIt = null;
+		try {
+			nRowIt = query(qs1);
+			nRow = ((Number) nRowIt.next().getValues()[0]).longValue();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		} finally {
+			if(nRowIt != null) {
+				nRowIt.cleanUp();
+			}
+		}
 
 		// calculate the unique count of a column
 		SelectQueryStruct qs2 = new SelectQueryStruct();
@@ -216,8 +228,20 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			uniqueCountSelector.addInnerSelector(innerSelector);
 			qs2.addSelector(uniqueCountSelector);
 		}
-		Iterator<IHeadersDataRow> uniqueNRowIt = query(qs2);
-		long uniqueNRow = ((Number) uniqueNRowIt.next().getValues()[0]).longValue();
+		
+		long uniqueNRow = 0;
+		IRawSelectWrapper uniqueNRowIt = null;
+		try {
+			uniqueNRowIt = query(qs2);
+			uniqueNRow = ((Number) uniqueNRowIt.next().getValues()[0]).longValue();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		} finally {
+			if(uniqueNRowIt != null) {
+				uniqueNRowIt.cleanUp();
+			}
+		}
 
 		// if they are not equal, we have duplicates!
 		isUnique = (long) nRow == (long) uniqueNRow;
@@ -276,11 +300,21 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		qs.addSelector(colSelector);
 		// dont forget about filters
 		qs.setExplicitFilters(this.grf);
-		Iterator<IHeadersDataRow> it = query(qs);
 		
 		List<Object> values = new ArrayList<Object>();
-		while(it.hasNext()) {
-			values.add(it.next().getValues()[0]);
+		IRawSelectWrapper it = null;
+		try {
+			it = query(qs);
+			while(it.hasNext()) {
+				values.add(it.next().getValues()[0]);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return values.toArray();
@@ -292,11 +326,21 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(colSelector);
 		qs.setExplicitFilters(this.grf);
-		Iterator<IHeadersDataRow> it = query(qs);
 		
 		List<Double> values = new ArrayList<Double>();
-		while(it.hasNext()) {
-			values.add( ((Number) it.next().getValues()[0]).doubleValue());
+		IRawSelectWrapper it = null;
+		try {
+			it = query(qs);
+			while(it.hasNext()) {
+				values.add( ((Number) it.next().getValues()[0]).doubleValue());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return values.toArray(new Double[values.size()]);
@@ -340,10 +384,20 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			// dont forget to add the current frame filters!
 			mathQS.setExplicitFilters(this.grf);
 
-			Iterator<IHeadersDataRow> it = query(mathQS);
-			while(it.hasNext()) {
-				return ((Number) it.next().getValues()[0]).doubleValue();
+			IRawSelectWrapper it = null;
+			try {
+				it = query(mathQS);
+				while(it.hasNext()) {
+					return ((Number) it.next().getValues()[0]).doubleValue();
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
 			}
+			
 		}
 		return null;
 	}
@@ -386,9 +440,18 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			// dont forget to add the current frame filters!
 			mathQS.setExplicitFilters(this.grf);
 
-			Iterator<IHeadersDataRow> it = query(mathQS);
-			while(it.hasNext()) {
-				return ((Number) it.next().getValues()[0]).doubleValue();
+			IRawSelectWrapper it = null;
+			try {
+				it = query(mathQS);
+				while(it.hasNext()) {
+					return ((Number) it.next().getValues()[0]).doubleValue();
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
 			}
 		}
 		return null;
@@ -614,15 +677,27 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// add the frame filters
 		qs.mergeImplicitFilters(this.grf);
 		
-		Iterator<IHeadersDataRow> it = this.query(qs);
 		List<Object[]> data = new ArrayList<Object[]>();
-		while(it.hasNext()) {
-			data.add(it.next().getValues());
+		IRawSelectWrapper it = null;
+		try {
+			it = this.query(qs);
+			while(it.hasNext()) {
+				data.add(it.next().getValues());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		return data;
 	}
 	
 	@Override
+	@Deprecated
 	public IRawSelectWrapper iterator() {
 		// get a flat QS
 		// which contains all the selectors 
@@ -631,7 +706,12 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// add the frame filters
 		qs.mergeImplicitFilters(this.grf);
 		
-		return this.query(qs);
+		try {
+			return this.query(qs);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
 	@Override
@@ -675,10 +755,19 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 		count.addInnerSelector(inner);
 		qs.addSelector(count);
-		Iterator<IHeadersDataRow> it = query(qs);
-		while(it.hasNext()) {
-			Object numUnique = it.next().getValues()[0];
-			return ((Number) numUnique).intValue();
+		IRawSelectWrapper it = null;
+		try {
+			it = query(qs);
+			while(it.hasNext()) {
+				Object numUnique = it.next().getValues()[0];
+				return ((Number) numUnique).intValue();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 		return 0;
 	}

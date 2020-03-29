@@ -167,9 +167,9 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	long size(String tableName);
 	
-	IRawSelectWrapper query(String query);
+	IRawSelectWrapper query(String query) throws Exception;
 	
-	IRawSelectWrapper query(SelectQueryStruct qs);
+	IRawSelectWrapper query(SelectQueryStruct qs) throws Exception;
 	
 	/**
 	 * Get the name of the frame
