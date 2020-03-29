@@ -686,6 +686,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			objects.remove(null);
 		}
 		
+		boolean nullCheckWithEquals = true;
 		StringBuilder filterBuilder = null;
 		// add the null check now
 		if(addNullCheck) {
@@ -694,6 +695,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				filterBuilder = new StringBuilder();
 				filterBuilder.append("( (").append(leftSelectorExpression).append(") IS NULL ");
 			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+				nullCheckWithEquals = false;
 				filterBuilder = new StringBuilder();
 				filterBuilder.append("( (").append(leftSelectorExpression).append(") IS NOT NULL ");
 			}
@@ -707,7 +709,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				filterBuilder = new StringBuilder();
 			} else {
 				// we added a null check above
-				filterBuilder.append("OR ");
+				if(nullCheckWithEquals) {
+					filterBuilder.append("OR ");
+				} else {
+					filterBuilder.append("AND ");
+				}
 			}
 			boolean isSearch = thisComparator.trim().equals(SEARCH_COMPARATOR);
 			boolean isNotSearch = thisComparator.trim().contentEquals(NOT_SEARCH_COMPARATOR);
