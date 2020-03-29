@@ -115,12 +115,25 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 			long start = System.currentTimeMillis();
 			SelectQueryStruct qs = frame.getMetaData().getFlatTableQs(true);
 			qs.setFrame(frame);
-			IRawSelectWrapper it = frame.query(qs);
+			IRawSelectWrapper it;
+			try {
+				it = frame.query(qs);
+			} catch (Exception e) {
+				e.printStackTrace();
+				this.insight.addDelayedMessage(getError("Error occured while caching live query. " + e.getMessage()));
+				return;
+			}
 			long end = System.currentTimeMillis();
 			
 			long start2 = System.currentTimeMillis();
 			IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
-			importer.insertData();
+			try {
+				importer.insertData();
+			} catch (Exception e) {
+				e.printStackTrace();
+				this.insight.addDelayedMessage(getError("Error occured while caching live query. " + e.getMessage()));
+				return;
+			}
 			long end2 = System.currentTimeMillis();
 			
 			Set<String> f1Keys = new HashSet<String>();

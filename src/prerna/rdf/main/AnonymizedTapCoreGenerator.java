@@ -208,69 +208,77 @@ public class AnonymizedTapCoreGenerator {
 				+ "{?s ?p ?o}"
 				+ "}";
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow data = wrapper.next();
-			Object[] row = data.getValues();
-			Object[] raw = data.getRawValues();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow data = wrapper.next();
+				Object[] row = data.getValues();
+				Object[] raw = data.getRawValues();
 
-			String rawSub = raw[0].toString();
-			String rawPred = raw[1].toString();
+				String rawSub = raw[0].toString();
+				String rawPred = raw[1].toString();
 
-			String origSub = row[0].toString();
-			String origPred = row[1].toString();
-			Object origObj = row[2];
-			boolean objIsString = (origObj instanceof String);
-			boolean objIsUri = objIsString && raw[2].toString().startsWith("http://");
+				String origSub = row[0].toString();
+				String origPred = row[1].toString();
+				Object origObj = row[2];
+				boolean objIsString = (origObj instanceof String);
+				boolean objIsUri = objIsString && raw[2].toString().startsWith("http://");
 
-			String cleanSub = origSub;
-			String cleanPred = origPred;
-			Object cleanObj = origObj;
+				String cleanSub = origSub;
+				String cleanPred = origPred;
+				Object cleanObj = origObj;
 
-			// have to loop for all systems
-			// since things like system interfaces may have more than
-			// 1 system appear twice
-			for(String system : systemReplacementOrder) {
-				String replacementSystem = systemMapping.get(system);
+				// have to loop for all systems
+				// since things like system interfaces may have more than
+				// 1 system appear twice
+				for(String system : systemReplacementOrder) {
+					String replacementSystem = systemMapping.get(system);
 
-				// do the replacements
-				if(cleanSub.contains(system)) {
-					cleanSub = cleanSub.replace(system, replacementSystem);
+					// do the replacements
+					if(cleanSub.contains(system)) {
+						cleanSub = cleanSub.replace(system, replacementSystem);
+					}
+					if(cleanPred.contains(system)) {
+						cleanPred = cleanPred.replace(system, replacementSystem);
+					}
+					if(objIsString && cleanObj.toString().contains(system)) {
+						cleanObj = cleanObj.toString().replace(system, replacementSystem);
+					}
 				}
-				if(cleanPred.contains(system)) {
-					cleanPred = cleanPred.replace(system, replacementSystem);
+
+				if(!cleanSub.equals(origSub) || !cleanPred.equals(origPred) || !cleanObj.equals(origObj)) {
+					// need to delete this 
+					// and add a new triple
+					if(objIsUri) {
+						removeTriples.add(new Object[] {rawSub, rawPred, raw[2].toString(), true});
+					} else {
+						removeTriples.add(new Object[] {rawSub, rawPred, origObj, false});
+					}
+
+					String baseSub = rawSub.substring(0, rawSub.lastIndexOf('/'));
+					String basePred = rawPred.substring(0, rawPred.lastIndexOf('/'));
+					if(objIsUri) {
+						// URI
+						String baseObj = raw[2].toString().substring(0, raw[2].toString().lastIndexOf('/'));
+						addTriples.add(new Object[] {baseSub + cleanSub, basePred + cleanPred, baseObj + "/" + cleanObj, true});
+					} else {
+						// literal
+						addTriples.add(new Object[] {baseSub + cleanSub, basePred + cleanPred, cleanObj, false});
+					}
 				}
-				if(objIsString && cleanObj.toString().contains(system)) {
-					cleanObj = cleanObj.toString().replace(system, replacementSystem);
+
+				if(++counter % 10_000 == 0) {
+					System.out.println("Finished " + counter + " triple checks");
 				}
 			}
-
-			if(!cleanSub.equals(origSub) || !cleanPred.equals(origPred) || !cleanObj.equals(origObj)) {
-				// need to delete this 
-				// and add a new triple
-				if(objIsUri) {
-					removeTriples.add(new Object[] {rawSub, rawPred, raw[2].toString(), true});
-				} else {
-					removeTriples.add(new Object[] {rawSub, rawPred, origObj, false});
-				}
-
-				String baseSub = rawSub.substring(0, rawSub.lastIndexOf('/'));
-				String basePred = rawPred.substring(0, rawPred.lastIndexOf('/'));
-				if(objIsUri) {
-					// URI
-					String baseObj = raw[2].toString().substring(0, raw[2].toString().lastIndexOf('/'));
-					addTriples.add(new Object[] {baseSub + cleanSub, basePred + cleanPred, baseObj + "/" + cleanObj, true});
-				} else {
-					// literal
-					addTriples.add(new Object[] {baseSub + cleanSub, basePred + cleanPred, cleanObj, false});
-				}
-			}
-
-			if(++counter % 10_000 == 0) {
-				System.out.println("Finished " + counter + " triple checks");
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
-
 		System.out.println("Done execution");
 
 		System.out.println("Removing " + engine.getEngineName() + " Triples");

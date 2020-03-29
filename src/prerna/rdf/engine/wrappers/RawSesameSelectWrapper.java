@@ -36,7 +36,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 	private TupleQueryResult tqr = null;
 
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		tqr = (TupleQueryResult) engine.execQuery(query);
 		// set the variables for future use
 		setVariables();
@@ -216,11 +216,10 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 	}
 
 	@Override
-	public long getNumRows() {
+	public long getNumRows() throws Exception {
 		if(this.numRows == 0) {
 			String query = "select (count(*) as ?count) where { " + this.query + "}";
 			TupleQueryResult tqr = (TupleQueryResult) engine.execQuery(query);
-	
 			try {
 				if(tqr.hasNext()) {
 					BindingSet bindSet = tqr.next();
@@ -239,12 +238,12 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 	}
 	
 	@Override
-	public long getNumRecords() {
+	public long getNumRecords() throws Exception {
 		return getNumRows() * getHeaders().length;
 	}
 
 	@Override
-	public void reset() {
+	public void reset() throws Exception {
 		cleanUp();
 		execute();
 	}

@@ -239,8 +239,9 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__TYPE", "==", token.getProvider().name()));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__USERID", "==", token.getId()));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
 				 Object rs = wrapper.next().getValues()[0];
 				 if (rs == null){
@@ -249,9 +250,14 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				return rs.toString();
 				//return wrapper.next().getValues()[0].toString();
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		return null;
 	}
 	
@@ -282,8 +288,9 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ASSETENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__TYPE", "==", token.getProvider().name()));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__USERID", "==", token.getId()));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
 				 Object rs = wrapper.next().getValues()[0];
 				 if (rs == null){
@@ -292,9 +299,14 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				return rs.toString();
 				//return wrapper.next().getValues()[0].toString();
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		return null;
 	}
 	
@@ -317,16 +329,23 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__ENGINEID", "==", appId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
 				return true;
 			} else {
 				return isAssetApp(appId);
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
+		return false;
 	}
 	
 	/**
@@ -338,14 +357,18 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ASSETENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__ENGINEID", "==", appId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+
 		return false;
 	}
 	

@@ -48,7 +48,7 @@ public abstract class AbstractTaskOperation extends AbstractTask {
 	}
 	
 	@Override
-	public void reset() {
+	public void reset() throws Exception {
 		this.innerTask.reset();
 	}
 	

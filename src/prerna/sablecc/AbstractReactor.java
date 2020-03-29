@@ -231,7 +231,12 @@ public abstract class AbstractReactor implements IScriptReactor {
 			options.put(AbstractTableDataFrame.DE_DUP, dedup);
 		}
 
-		Iterator iterator = frame.iterator();
+		Iterator iterator = null;
+		try {
+			iterator = frame.iterator();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		if(iterator.hasNext())
 		{
 			//System.out.println(iterator.next());

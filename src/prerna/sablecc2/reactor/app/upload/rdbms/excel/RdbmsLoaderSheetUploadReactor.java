@@ -616,11 +616,20 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				String getRowCountQuery = "SELECT COUNT(*) as ROW_COUNT FROM " + tableToSet + " WHERE " + tableToSet
 						+ " = '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[setter]) + "' AND " + tableToInsert + "_FK IS NULL";
 				boolean isInsert = false;
-				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
-				if (wrapper.hasNext()) {
-					String rowcount = wrapper.next().getValues()[0].toString();
-					if (rowcount.equals("0")) {
-						isInsert = true;
+				IRawSelectWrapper wrapper = null;
+				try {
+					wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
+					if (wrapper.hasNext()) {
+						String rowcount = wrapper.next().getValues()[0].toString();
+						if (rowcount.equals("0")) {
+							isInsert = true;
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(wrapper != null) {
+						wrapper.cleanUp();
 					}
 				}
 

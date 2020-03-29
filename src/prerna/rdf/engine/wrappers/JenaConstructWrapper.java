@@ -75,7 +75,7 @@ public class JenaConstructWrapper extends AbstractWrapper implements IConstructW
 	}
 
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		model = (Model) engine.execQuery(query);
 		si = model.listStatements();
 	}

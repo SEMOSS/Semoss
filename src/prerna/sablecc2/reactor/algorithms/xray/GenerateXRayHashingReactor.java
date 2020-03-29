@@ -153,22 +153,31 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 				logger.info("Querying data for " + selector);
 				SelectQueryStruct qs = new SelectQueryStruct();
 				qs.addSelector(new QueryColumnSelector(selector));
-				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-				File f = new File(this.folderPath + "/" + selector + "_base.tsv");
+				IRawSelectWrapper wrapper = null;
 				try {
-					// write file
-					Utility.writeResultToFile(f.getAbsolutePath(), wrapper, "/t");
-					// read into R
-					String randomFrame = Utility.getRandomString(6);
-					this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(randomFrame, f.getAbsolutePath(), "\t"));
-					// run the script which also outputs the file
-					// we care about the file name since we use that to split to know the source
-					logger.info("Generating hash for " + selector);
-					this.rJavaTranslator.executeEmptyR("encode_instances(" + randomFrame + ", \"" + outputFile + "\")");
-					logger.info("Done generating hash");
+					wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+					File f = new File(this.folderPath + "/" + selector + "_base.tsv");
+					try {
+						// write file
+						Utility.writeResultToFile(f.getAbsolutePath(), wrapper, "/t");
+						// read into R
+						String randomFrame = Utility.getRandomString(6);
+						this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(randomFrame, f.getAbsolutePath(), "\t"));
+						// run the script which also outputs the file
+						// we care about the file name since we use that to split to know the source
+						logger.info("Generating hash for " + selector);
+						this.rJavaTranslator.executeEmptyR("encode_instances(" + randomFrame + ", \"" + outputFile + "\")");
+						logger.info("Done generating hash");
+					} finally {
+						if(f.exists()) {
+							f.delete();
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
 				} finally {
-					if(f.exists()) {
-						f.delete();
+					if(wrapper != null) {
+						wrapper.cleanUp();
 					}
 				}
 			}

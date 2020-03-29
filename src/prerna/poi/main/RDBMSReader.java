@@ -32,8 +32,8 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.sql.SqlQueryUtilFactor;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactor;
 
 public class RDBMSReader extends AbstractCSVFileReader {
 
@@ -537,14 +537,23 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		} else {
 			getRowCountQuery = queryUtil.getDialectSelectRowCountFrom(cleanConcept, whereBuffer.toString() + " AND " + selectClauseWhereBuffer.toString());
 		}
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
-		if(wrapper.hasNext()){
-			String rowcount = wrapper.next().getValues()[0].toString();
-			if(rowcount.equals("0")){
-				isInsert = true;
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
+			if(wrapper.hasNext()){
+				String rowcount = wrapper.next().getValues()[0].toString();
+				if(rowcount.equals("0")){
+					isInsert = true;
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
-
+		
 		String values = valuesBuffer.toString();
 		if(isInsert){
 			if(values.length()==0) {
@@ -621,33 +630,51 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	private void findIndexes(String engineName){
 		// this gets all the existing tables
 		String query = queryUtil.getIndexList(engineName);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
-		while(wrapper.hasNext()) {
-			String tablename = "";
-			String dropCurrentIndexText = "";
-			IHeadersDataRow rawArr = wrapper.next();
-			Object[] values = rawArr.getValues();
-			String indexName = values[0].toString();
-			String indexTableName = values[1].toString();
-			//only storing off custom indexes, recreating the non custom ones on the fly on the cleanUpDBTables method
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+			while(wrapper.hasNext()) {
+				String tablename = "";
+				String dropCurrentIndexText = "";
+				IHeadersDataRow rawArr = wrapper.next();
+				Object[] values = rawArr.getValues();
+				String indexName = values[0].toString();
+				String indexTableName = values[1].toString();
+				//only storing off custom indexes, recreating the non custom ones on the fly on the cleanUpDBTables method
 
-			String indexInfoQry = queryUtil.getIndexDetails(indexName, indexTableName, engineName);
-			IRawSelectWrapper indexInfo = WrapperManager.getInstance().getRawWrapper(engine, indexInfoQry);
-			List<String> columnsInIndex = new Vector<String>();
-			String columnName = "";
-			while(indexInfo.hasNext()){
-				IHeadersDataRow rawIndx = indexInfo.next();
-				Object[] indxValues = rawIndx.getValues();
-				tablename = indxValues[0].toString();
-				columnName = indxValues[1].toString();
-				columnsInIndex.add(columnName);
+				String indexInfoQry = queryUtil.getIndexDetails(indexName, indexTableName, engineName);
+				List<String> columnsInIndex = new Vector<String>();
+				IRawSelectWrapper indexInfo = null;
+				try {
+					String columnName = "";
+					indexInfo = WrapperManager.getInstance().getRawWrapper(engine, indexInfoQry);
+					while(indexInfo.hasNext()){
+						IHeadersDataRow rawIndx = indexInfo.next();
+						Object[] indxValues = rawIndx.getValues();
+						tablename = indxValues[0].toString();
+						columnName = indxValues[1].toString();
+						columnsInIndex.add(columnName);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(indexInfo != null) {
+						indexInfo.cleanUp();
+					}
+				}
+				if(indexName.startsWith("CUST_")){
+					recreateIndexList.add(queryUtil.createIndex(indexName,tablename,columnsInIndex));
+				}
+				//drop all indexes, recreate the custom ones, the non custom ones will be systematically recreated.
+				dropCurrentIndexText = queryUtil.dropIndex(indexName, tablename);
+				insertData(dropCurrentIndexText);
 			}
-			if(indexName.startsWith("CUST_")){
-				recreateIndexList.add(queryUtil.createIndex(indexName,tablename,columnsInIndex));
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
-			//drop all indexes, recreate the custom ones, the non custom ones will be systematically recreated.
-			dropCurrentIndexText = queryUtil.dropIndex(indexName, tablename);
-			insertData(dropCurrentIndexText);
 		}
 	}
 
@@ -739,13 +766,22 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				//check that the temp table was created before dropping the table.
 				String verifyTable = queryUtil.tableExistsQuery(tableName + "_TEMP", null); //query here would return a row count 
 				//if temp table wasnt successfully created, go to the next table.
-				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, verifyTable);
-				if(wrapper.hasNext()) {
-					wrapper.cleanUp();
-				} else {
-					//This REALLY shouldnt happen, but its here just in case...
-					LOGGER.error("**** Error***** occurred during database clean up on table " + tableName);
-					continue;
+				IRawSelectWrapper wrapper = null;
+				try {
+					wrapper = WrapperManager.getInstance().getRawWrapper(engine, verifyTable);
+					if(wrapper.hasNext()) {
+						wrapper.cleanUp();
+					} else {
+						//This REALLY shouldnt happen, but its here just in case...
+						LOGGER.error("**** Error***** occurred during database clean up on table " + tableName);
+						continue;
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(wrapper != null) {
+						wrapper.cleanUp();
+					}
 				}
 
 				if(!allowDuplicates){

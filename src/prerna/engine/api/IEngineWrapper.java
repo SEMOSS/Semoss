@@ -32,7 +32,7 @@ public interface IEngineWrapper {
 	/**
 	 * This method needs to be called to actually run the query
 	 */
-	void execute();
+	void execute() throws Exception;
 
 	/**
 	 * Set the query

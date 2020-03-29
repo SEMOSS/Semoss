@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
@@ -33,6 +32,7 @@ import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -69,7 +69,12 @@ public class BasicIteratorTask extends AbstractTask {
 		if(this.iterator == null && this.qs == null) {
 			return false;
 		} else if( this.qs != null && this.iterator == null) {
-			generateIterator(this.qs, false);
+			try {
+				generateIterator(this.qs, false);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
 		}
 		
 		if(this.iterator == null) {
@@ -95,7 +100,12 @@ public class BasicIteratorTask extends AbstractTask {
 		//instead of how it is set up which takes it from the QS
 		if(this.headerInfo != null && this.grabTypesFromWrapper) {
 			if(this.iterator == null) {
-				generateIterator(this.qs, false);
+				try {
+					generateIterator(this.qs, false);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				}
 			}
 			if(this.iterator instanceof IRawSelectWrapper) {
 				SemossDataType[] sTypes = ((IRawSelectWrapper) this.iterator).getTypes();
@@ -111,7 +121,12 @@ public class BasicIteratorTask extends AbstractTask {
 			}
 		} else if(this.grabFromWrapper && (this.headerInfo == null || this.headerInfo.isEmpty()) ) {
 			if(this.iterator == null) {
-				generateIterator(this.qs, false);
+				try {
+					generateIterator(this.qs, false);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				}
 			}
 			if(this.iterator instanceof IRawSelectWrapper) {
 				String[] headers = ((IRawSelectWrapper) this.iterator).getHeaders();
@@ -161,7 +176,7 @@ public class BasicIteratorTask extends AbstractTask {
 	}
 	
 	@Override
-	public void reset() {
+	public void reset() throws Exception {
 		cleanUp();
 		if(this.qs != null) {
 			this.qs.setLimit(this.startLimit);
@@ -171,7 +186,7 @@ public class BasicIteratorTask extends AbstractTask {
 		}
 	}
 	
-	private void generateIterator(SelectQueryStruct qs, boolean overrideImplicitFilters) {
+	private void generateIterator(SelectQueryStruct qs, boolean overrideImplicitFilters) throws Exception {
 		// I need a way here to see if this is already done as a iterator and if so take a copy of it
 		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
@@ -235,7 +250,7 @@ public class BasicIteratorTask extends AbstractTask {
 		}
 	}
 	
-	public void optimizeQuery(int collectNum) {
+	public void optimizeQuery(int collectNum) throws Exception {
 		if(this.isOptimize) {
 			// already have a limit defined
 			// just continue;
@@ -325,7 +340,7 @@ public class BasicIteratorTask extends AbstractTask {
 	}
 	
 	@Override
-	public RawCachedWrapper createCache() {
+	public RawCachedWrapper createCache() throws Exception {
 		// since we lazy execute the iterator
 		// make sure it exists
 		if(this.qs != null && this.iterator == null) {
@@ -364,7 +379,7 @@ public class BasicIteratorTask extends AbstractTask {
 		return this.qs;
 	}
 	
-	public IRawSelectWrapper getIterator() {
+	public IRawSelectWrapper getIterator() throws Exception {
 		if(this.qs != null && this.iterator == null) {
 			generateIterator(this.qs, false);
 		}

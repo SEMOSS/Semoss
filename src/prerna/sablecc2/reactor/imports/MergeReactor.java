@@ -69,13 +69,28 @@ public class MergeReactor extends AbstractReactor {
 		
 		ITableDataFrame mergeFrame = null;
 		if(frame instanceof NativeFrame) {
-			mergeFrame = mergeNative(frame, qs, joins);
+			try {
+				mergeFrame = mergeNative(frame, qs, joins);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
 		} else if(qs != null) {
-			mergeFrame = mergeFromQs(frame, qs, joins);
+			try {
+				mergeFrame = mergeFromQs(frame, qs, joins);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
 		} else {
 			ITask task = getTask();
 			if(task != null) {
-				mergeFrame = mergeFromTask(frame, task, joins);
+				try {
+					mergeFrame = mergeFromTask(frame, task, joins);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				}
 			} else {
 				throw new IllegalArgumentException("Could not find any data input to merge into the frame");
 			}
@@ -100,7 +115,7 @@ public class MergeReactor extends AbstractReactor {
 		return noun;
 	}
 	
-	private ITableDataFrame mergeNative(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) {
+	private ITableDataFrame mergeNative(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) throws Exception {
 		// track GA data
 		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 
@@ -117,8 +132,9 @@ public class MergeReactor extends AbstractReactor {
 	 * @param qs
 	 * @param joins
 	 * @return
+	 * @throws Exception 
 	 */
-	private ITableDataFrame mergeFromQs(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) {
+	private ITableDataFrame mergeFromQs(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) throws Exception {
 		// track GA data
 		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 
@@ -216,15 +232,7 @@ public class MergeReactor extends AbstractReactor {
 			qs.setLimit(1);
 		}
 		
-		IRawSelectWrapper it = null;
-		try {
-			it = ImportUtility.generateIterator(qs, frame);
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new SemossPixelException(
-					new NounMetadata("Error occured executing query before loading into frame", 
-							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-		}
+		IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
 		if(!ImportSizeRetrictions.mergeWithinLimit(frame, it)) {
 			SemossPixelException exception = new SemossPixelException(
 					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
@@ -253,8 +261,9 @@ public class MergeReactor extends AbstractReactor {
 	 * @param frame
 	 * @param task
 	 * @param joins
+	 * @throws Exception 
 	 */
-	private ITableDataFrame mergeFromTask(ITableDataFrame frame, ITask task, List<Join> joins) {
+	private ITableDataFrame mergeFromTask(ITableDataFrame frame, ITask task, List<Join> joins) throws Exception {
 		LambdaQueryStruct qs = new LambdaQueryStruct();
 		
 		// go through the metadata on the task

@@ -81,6 +81,8 @@ public class EngineInsightsHelper {
 		try {
 			wrapper  = WrapperManager.getInstance().getRawWrapper(insightsRdbms, tableExistsQuery);
 			tableExists = wrapper.hasNext();
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();

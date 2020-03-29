@@ -20,6 +20,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
@@ -85,34 +86,44 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		
 		int counter = 0;
 		logger.info("Retrieving values to insert");
-		IRawSelectWrapper iterator = frame.query(qs);
-		while(iterator.hasNext()) {
-			if(counter % 100 == 0) {
-				logger.info("Adding relationship : #" + (counter+1));
+		IRawSelectWrapper iterator = null;
+		try {
+			iterator = frame.query(qs);
+			while(iterator.hasNext()) {
+				if(counter % 100 == 0) {
+					logger.info("Adding relationship : #" + (counter+1));
+				}
+				IHeadersDataRow row = iterator.next();
+				Object[] values = row.getValues();
+				
+				String startT = values[0].toString();
+				String endT = values[1].toString();
+				String startC = values[2].toString();
+				String endC = values[3].toString();
+				double relDistance = ((Number) values[4]).doubleValue();
+				
+				// generate the relationship
+				String rel = startT + "." + startC + "." + endT + "." + endC;
+				
+//				if(isRdbms) {
+//					// the relation has the startC and endC
+//					// what I really need is the primary key for the tables
+//					startC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(startT));
+//					endC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(endT));
+//				}
+				
+				// add the relationship
+				owler.addRelation(startT, endT, rel);
+				counter++;
 			}
-			IHeadersDataRow row = iterator.next();
-			Object[] values = row.getValues();
-			
-			String startT = values[0].toString();
-			String endT = values[1].toString();
-			String startC = values[2].toString();
-			String endC = values[3].toString();
-			double relDistance = ((Number) values[4]).doubleValue();
-			
-			// generate the relationship
-			String rel = startT + "." + startC + "." + endT + "." + endC;
-			
-//			if(isRdbms) {
-//				// the relation has the startC and endC
-//				// what I really need is the primary key for the tables
-//				startC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(startT));
-//				endC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(endT));
-//			}
-			
-			// add the relationship
-			owler.addRelation(startT, endT, rel);
-			counter++;
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(iterator != null) {
+				iterator.cleanUp();
+			}
 		}
+
 		logger.info("Done adding relationships");
 		logger.info("Total relationships added = " + counter);
 
@@ -213,40 +224,50 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		List<String> actionList = new Vector<String>();
 
 		int counter = 0;
-		IRawSelectWrapper iterator = frame.query(qs);
-		while(iterator.hasNext()) {
-			IHeadersDataRow row = iterator.next();
-			Object[] values = row.getValues();
-			
-			String startT = values[0].toString();
-			String endT = values[1].toString();
-			String startC = values[2].toString();
-			String endC = values[3].toString();
-			double relDistance = ((Number) values[4]).doubleValue();
-			String action = "auto_removed";
-			
-			if(relDistance >= distance) {
-				action = "auto_added";
-			}
-			
-			startTList.add(startT);
-			endTList.add(endT);
-			startCList.add(startC);
-			endCList.add(endC);
-			actionList.add(action);
-
-			counter++;
-			
-			if(counter % 50 == 0) {
-				storeUserInputs(logger, startTList, startCList, endTList, endCList, actionList);
+		IRawSelectWrapper iterator = null;
+		try {
+			iterator = frame.query(qs);
+			while(iterator.hasNext()) {
+				IHeadersDataRow row = iterator.next();
+				Object[] values = row.getValues();
 				
-				// now clear
-				counter = 0;
-				startTList.clear();
-				endTList.clear();
-				startCList.clear();
-				endCList.clear();
-				actionList.clear();
+				String startT = values[0].toString();
+				String endT = values[1].toString();
+				String startC = values[2].toString();
+				String endC = values[3].toString();
+				double relDistance = ((Number) values[4]).doubleValue();
+				String action = "auto_removed";
+				
+				if(relDistance >= distance) {
+					action = "auto_added";
+				}
+				
+				startTList.add(startT);
+				endTList.add(endT);
+				startCList.add(startC);
+				endCList.add(endC);
+				actionList.add(action);
+
+				counter++;
+				
+				if(counter % 50 == 0) {
+					storeUserInputs(logger, startTList, startCList, endTList, endCList, actionList);
+					
+					// now clear
+					counter = 0;
+					startTList.clear();
+					endTList.clear();
+					startCList.clear();
+					endCList.clear();
+					actionList.clear();
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		} finally {
+			if(iterator != null) {
+				iterator.cleanUp();
 			}
 		}
 		

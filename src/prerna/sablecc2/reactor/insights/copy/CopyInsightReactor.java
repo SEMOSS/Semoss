@@ -120,10 +120,15 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 			if(frames != null) {
 				for(FrameCacheHelper frameHelper : frames) {
 					ITableDataFrame frameToCopy = frameHelper.getFrame();
-					ITableDataFrame newFrame = CopyFrameUtil.copyFrame(this.insight, frameToCopy, limit);
-					List<String> alias = frameHelper.getAlias();
-					for(String a : alias) {
-						in.getVarStore().put(a, new NounMetadata(newFrame, PixelDataType.FRAME));
+					ITableDataFrame newFrame;
+					try {
+						newFrame = CopyFrameUtil.copyFrame(this.insight, frameToCopy, limit);
+						List<String> alias = frameHelper.getAlias();
+						for(String a : alias) {
+							in.getVarStore().put(a, new NounMetadata(newFrame, PixelDataType.FRAME));
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
 					}
 				}
 			}

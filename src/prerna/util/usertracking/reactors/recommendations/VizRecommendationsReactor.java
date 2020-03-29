@@ -129,10 +129,19 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 				String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
 						+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table + "> AS ?concept)"
 						+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
-				IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
-				while (it.hasNext()) {
-					Object[] row = it.next().getValues();
-					uniqueValues = Long.parseLong(row[1].toString());
+				IRawSelectWrapper it = null;
+				try {
+					it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
+					while (it.hasNext()) {
+						Object[] row = it.next().getValues();
+						uniqueValues = Long.parseLong(row[1].toString());
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(it != null) {
+						it.cleanUp();
+					}
 				}
 
 				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(dbname).append("$")

@@ -159,28 +159,37 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 		List<String> formSecUri = new Vector<String>();
 
 		// step 1) only removing the property value
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, localQuery);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] rawValues = row.getRawValues();
-			Object[] cleanValues = row.getValues();
-			Object[] removeStatement = new Object[4];
-			for(int i = 0; i < 3; i++) {
-				if(i < 2) {
-					removeStatement[i] = rawValues[i] + "";
-				} else {
-					removeStatement[i] = cleanValues[i] + "";
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, localQuery);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] rawValues = row.getRawValues();
+				Object[] cleanValues = row.getValues();
+				Object[] removeStatement = new Object[4];
+				for(int i = 0; i < 3; i++) {
+					if(i < 2) {
+						removeStatement[i] = rawValues[i] + "";
+					} else {
+						removeStatement[i] = cleanValues[i] + "";
+					}
 				}
+				// last boolean denotes if the object in the triple is a URI or a literal
+				removeStatement[3] = false;
+				System.out.println(Arrays.toString(removeStatement));
+				// this will remove from forms
+				engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, removeStatement);
+				
+				// keep track of fromSecUri
+				// cause we need to this to go from "Reviewed" to "Pushed"
+				formSecUri.add(removeStatement[0] + "");
 			}
-			// last boolean denotes if the object in the triple is a URI or a literal
-			removeStatement[3] = false;
-			System.out.println(Arrays.toString(removeStatement));
-			// this will remove from forms
-			engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, removeStatement);
-			
-			// keep track of fromSecUri
-			// cause we need to this to go from "Reviewed" to "Pushed"
-			formSecUri.add(removeStatement[0] + "");
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		// step 2) add new property value
