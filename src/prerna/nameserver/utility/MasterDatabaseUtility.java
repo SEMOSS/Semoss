@@ -1,3 +1,4 @@
+
 package prerna.nameserver.utility;
 
 import java.io.IOException;
@@ -11,7 +12,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +39,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -75,7 +76,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(engine, queryUtil, "ENGINE", schema)) {
+			if(!queryUtil.tableExists(engine, "ENGINE", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("ENGINE", colNames, types));
 			}
@@ -85,7 +86,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINE_ID_INDEX", "ENGINE", "ID"));
 		} else {
 			// see if index exists
-			if(!indexExists(engine, queryUtil, "ENGINE_ID_INDEX", "ENGINE", schema)) {
+			if(!queryUtil.indexExists(engine, "ENGINE_ID_INDEX", "ENGINE", schema)) {
 				executeSql(conn, queryUtil.createIndex("ENGINE_ID_INDEX", "ENGINE", "ID"));
 			}
 		}
@@ -97,7 +98,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINECONCEPT", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(engine, queryUtil, "ENGINECONCEPT", schema)) {
+			if(!queryUtil.tableExists(engine, "ENGINECONCEPT", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("ENGINECONCEPT", colNames, types));
 			}
@@ -110,7 +111,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", iCols));
 		} else {
 			// see if index exists
-			if(!indexExists(engine, queryUtil, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", schema)) {
+			if(!queryUtil.indexExists(engine, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", schema)) {
 				List<String> iCols = new Vector<String>();
 				iCols.add("ENGINE");
 				iCols.add("LOCALCONCEPTID");
@@ -125,7 +126,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("CONCEPT", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(engine, queryUtil, "CONCEPT", schema)) {
+			if(!queryUtil.tableExists(engine, "CONCEPT", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("CONCEPT", colNames, types));
 			}
@@ -135,7 +136,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"));
 		} else {
 			// see if index exists
-			if(!indexExists(engine, queryUtil, "CONCEPT_ID_INDEX", "CONCEPT", schema)) {
+			if(!queryUtil.indexExists(engine, "CONCEPT_ID_INDEX", "CONCEPT", schema)) {
 				executeSql(conn, queryUtil.createIndex("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"));
 			}
 		}
@@ -147,7 +148,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("RELATION", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(engine, queryUtil, "RELATION", schema)) {
+			if(!queryUtil.tableExists(engine, "RELATION", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("RELATION", colNames, types));
 			}
@@ -160,7 +161,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINERELATION", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(engine, queryUtil, "ENGINERELATION", schema)) {
+			if(!queryUtil.tableExists(engine, "ENGINERELATION", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("ENGINERELATION", colNames, types));
 			}
@@ -173,7 +174,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("KVSTORE", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(engine, queryUtil, "KVSTORE", schema)) {
+			if(!queryUtil.tableExists(engine, "KVSTORE", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("KVSTORE", colNames, types));
 			}
@@ -187,7 +188,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists(Constants.CONCEPT_METADATA_TABLE, colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(engine, queryUtil, Constants.CONCEPT_METADATA_TABLE, schema)) {
+			if(!queryUtil.tableExists(engine, Constants.CONCEPT_METADATA_TABLE, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable(Constants.CONCEPT_METADATA_TABLE, colNames, types));
 			}
@@ -197,7 +198,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", "KEY"));
 		} else {
 			// see if index exists
-			if(!indexExists(engine, queryUtil, "CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", schema)) {
+			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", schema)) {
 				executeSql(conn, queryUtil.createIndex("CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", "KEY"));
 			}
 		}
@@ -209,7 +210,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(engine, queryUtil, "XRAYCONFIGS", schema)) {
+			if(!queryUtil.tableExists(engine, "XRAYCONFIGS", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("XRAYCONFIGS", colNames, types));
 			}
@@ -222,7 +223,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("BITLY", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(engine, queryUtil, "BITLY", schema)) {
+			if(!queryUtil.tableExists(engine, "BITLY", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("BITLY", colNames, types));
 			}
@@ -260,25 +261,25 @@ public class MasterDatabaseUtility {
 				executeSql(conn, queryUtil.dropTableIfExists("RELATION"));
 				executeSql(conn, queryUtil.dropTableIfExists("KVSTORE"));
 			} else {
-				if(!tableExists(engine, queryUtil, "ENGINE", schema)) {
+				if(!queryUtil.tableExists(engine, "ENGINE", schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINE"));
 				}
-				if(!tableExists(engine, queryUtil, "ENGINECONCEPT", schema)) {
+				if(!queryUtil.tableExists(engine, "ENGINECONCEPT", schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINECONCEPT"));
 				}
-				if(!tableExists(engine, queryUtil, "CONCEPT", schema)) {
+				if(!queryUtil.tableExists(engine, "CONCEPT", schema)) {
 					executeSql(conn, queryUtil.dropTable("CONCEPT"));
 				}
-				if(!tableExists(engine, queryUtil, "CONCEPTMETADATA", schema)) {
+				if(!queryUtil.tableExists(engine, "CONCEPTMETADATA", schema)) {
 					executeSql(conn, queryUtil.dropTable("CONCEPTMETADATA"));
 				}
-				if(!tableExists(engine, queryUtil, "ENGINERELATION", schema)) {
+				if(!queryUtil.tableExists(engine, "ENGINERELATION", schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINERELATION"));
 				}
-				if(!tableExists(engine, queryUtil, "RELATION", schema)) {
+				if(!queryUtil.tableExists(engine, "RELATION", schema)) {
 					executeSql(conn, queryUtil.dropTable("RELATION"));
 				}
-				if(!tableExists(engine, queryUtil, "KVSTORE", schema)) {
+				if(!queryUtil.tableExists(engine, "KVSTORE", schema)) {
 					executeSql(conn, queryUtil.dropTable("KVSTORE"));
 				}
 			}
@@ -287,7 +288,7 @@ public class MasterDatabaseUtility {
 	
 	@Deprecated
 	private static void updateMetadataTable(RDBMSNativeEngine engine, Connection conn, AbstractSqlQueryUtil queryUtil, String tableName, String schema) throws SQLException {
-		if(tableExists(engine, queryUtil, tableName, schema)) {
+		if(queryUtil.tableExists(engine, tableName, schema)) {
 			boolean allowIfExists = queryUtil.allowIfExistsModifyColumnSyntax();
 			if(queryUtil.allowDropColumn()) {
 				if(allowIfExists) {
@@ -306,47 +307,6 @@ public class MasterDatabaseUtility {
 				}
 			}
 			engine.commit();
-		}
-	}
-
-	/**
-	 * Helper method to see if a table exits based on Query Utility class
-	 * @param queryUtil
-	 * @param tableName
-	 * @param schema
-	 * @return
-	 */
-	private static boolean tableExists(RDBMSNativeEngine engine, AbstractSqlQueryUtil queryUtil, String tableName, String schema) {
-		String tableCheckQ = queryUtil.tableExistsQuery(tableName, schema);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, tableCheckQ);
-		try {
-			if(wrapper.hasNext()) {
-				return true;
-			}
-			return false;
-		} finally {
-			wrapper.cleanUp();
-		}
-	}
-
-	/**
-	 * Helper method to see if an index exists based on Query Utility class
-	 * @param queryUtil
-	 * @param indexName
-	 * @param tableName
-	 * @param schema
-	 * @return
-	 */
-	private static boolean indexExists(RDBMSNativeEngine engine, AbstractSqlQueryUtil queryUtil, String indexName, String tableName, String schema) {
-		String indexCheckQ = queryUtil.getIndexDetails(indexName, tableName, schema);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, indexCheckQ);
-		try {
-			if(wrapper.hasNext()) {
-				return true;
-			}
-			return false;
-		} finally {
-			wrapper.cleanUp();
 		}
 	}
 
@@ -377,8 +337,7 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualName));
 		qs.addOrderBy(new QueryColumnOrderBySelector("CONCEPT__LOGICALNAME"));
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToListString(wrapper);
+		return QueryExecutionUtility.flushToListString(engine, qs);
 	}
 
 	/**
@@ -395,8 +354,7 @@ public class MasterDatabaseUtility {
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("CONCEPT__LOGICALNAME"));
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToListString(wrapper);
+		return QueryExecutionUtility.flushToListString(engine, qs);
 	}
 	
 	/**
@@ -412,8 +370,7 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", pixelNames));
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToListString(wrapper);
+		return QueryExecutionUtility.flushToListString(engine, qs);
 	}
 	
 	/**
@@ -428,8 +385,7 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__LOGICALNAME", "?like", logicalNames));
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToListString(wrapper);
+		return QueryExecutionUtility.flushToListString(engine, qs);
 	}
 	
 	/**
@@ -451,22 +407,33 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy("ENGINECONCEPT__PK");
 		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		List<Object[]> ret = new ArrayList<Object[]>();
-		while(wrapper.hasNext()) {
-			Object[] data = wrapper.next().getValues();
-			boolean isPk = (boolean) data[3];
-			if(isPk) {
-				data[0] = data[1];
-			}
-			Object type = data[2];
-			if(type != null) {
-				if(type.equals("DOUBLE") || type.equals("INT")) {
-					data[2] = "NUMBER";
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				boolean isPk = (boolean) data[3];
+				if(isPk) {
+					data[0] = data[1];
 				}
+				Object type = data[2];
+				if(type != null) {
+					if(type.equals("DOUBLE") || type.equals("INT")) {
+						data[2] = "NUMBER";
+					}
+				}
+				ret.add(data);
 			}
-			ret.add(data);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		return ret;
 	}
 
@@ -490,22 +457,33 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
 		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		List<Object[]> ret = new ArrayList<Object[]>();
-		while(wrapper.hasNext()) {
-			Object[] data = wrapper.next().getValues();
-			boolean isPk = (boolean) data[4];
-			if(isPk) {
-				data[1] = data[2];
-			}
-			Object type = data[3];
-			if(type != null) {
-				if(type.equals("DOUBLE") || type.equals("INT")) {
-					data[3] = "NUMBER";
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				boolean isPk = (boolean) data[4];
+				if(isPk) {
+					data[1] = data[2];
 				}
+				Object type = data[3];
+				if(type != null) {
+					if(type.equals("DOUBLE") || type.equals("INT")) {
+						data[3] = "NUMBER";
+					}
+				}
+				ret.add(data);
 			}
-			ret.add(data);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		return ret;
 	}
 
@@ -521,8 +499,7 @@ public class MasterDatabaseUtility {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineIds));
 		}
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushRsToListOfStrArray(wrapper);
+		return QueryExecutionUtility.flushRsToListOfStrArray(engine, qs);
 	}
 
 	/**
@@ -563,47 +540,57 @@ public class MasterDatabaseUtility {
 		if(engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
 		}
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] data = row.getValues();
-			// for the purposes of query
-			// if it is ignore_data (i.e. the table name matches but not a column)
-			// i do not know how to join
-			// so we will be ignoring those results for right now
-			boolean ignore = (boolean) data[5];
-			if(ignore) {
-				continue;
-			}
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] data = row.getValues();
+				// for the purposes of query
+				// if it is ignore_data (i.e. the table name matches but not a column)
+				// i do not know how to join
+				// so we will be ignoring those results for right now
+				boolean ignore = (boolean) data[5];
+				if(ignore) {
+					continue;
+				}
 
-			String parentName = (String) data[0];
-			String parentId = (String) data[1];
-			String columnName = (String) data[2];
-			String columnId = (String) data[3];
-			boolean pk = (boolean) data[4];
-			
-			if(parentId != null) {
-				// let me take your parent (table)
-				// and see what i can join to from the parent
-				// and add the properties as well
-				idsForRelationships.add(parentId);
-				idsForProperties.add(parentId);
-				// and the join for this parent is the column that matches
-				parentEquivMap.put(parentId, new Object[] {parentName, columnName, pk});
+				String parentName = (String) data[0];
+				String parentId = (String) data[1];
+				String columnName = (String) data[2];
+				String columnId = (String) data[3];
+				boolean pk = (boolean) data[4];
 				
-				// i also want to be able to join to this table directly (this is for rdf/graph)
-				parentIds.add(parentId);
+				if(parentId != null) {
+					// let me take your parent (table)
+					// and see what i can join to from the parent
+					// and add the properties as well
+					idsForRelationships.add(parentId);
+					idsForProperties.add(parentId);
+					// and the join for this parent is the column that matches
+					parentEquivMap.put(parentId, new Object[] {parentName, columnName, pk});
+					
+					// i also want to be able to join to this table directly (this is for rdf/graph)
+					parentIds.add(parentId);
+				}
+				
+				if(parentId == null && pk) {
+					// if you are a true concept
+					// i can join to you directly
+					// and attach to your properties
+					// or to your relationships
+					idsForRelationships.add(columnId);
+					idsForProperties.add(columnId);
+					// and the join is the concept itself
+					parentEquivMap.put(columnId, new Object[] {columnName, columnName, pk});
+				}
 			}
-			
-			if(parentId == null && pk) {
-				// if you are a true concept
-				// i can join to you directly
-				// and attach to your properties
-				// or to your relationships
-				idsForRelationships.add(columnId);
-				idsForProperties.add(columnId);
-				// and the join is the concept itself
-				parentEquivMap.put(columnId, new Object[] {columnName, columnName, pk});
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 		
@@ -628,36 +615,44 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy("ENGINECONCEPT__PK");
 		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 		
-		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] data = row.getValues();
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] data = row.getValues();
 
-			String engineName = (String) data[0];
-			String engineId = (String) data[1];
-			String column = (String) data[2];
-			String columnId = (String) data[3];
-			String type = (String) data[4];
-			boolean pk = (boolean) data[5];
+				String engineName = (String) data[0];
+				String engineId = (String) data[1];
+				String column = (String) data[2];
+				String columnId = (String) data[3];
+				String type = (String) data[4];
+				boolean pk = (boolean) data[5];
 
-			// these will all have column ids based on the query
-			// i will just grab the details
-			Object[] equivTableCol = parentEquivMap.get(columnId);
+				// these will all have column ids based on the query
+				// i will just grab the details
+				Object[] equivTableCol = parentEquivMap.get(columnId);
 
-			// if we passed the above test, add the valid connection
-			Map<String, Object> mapRow = new HashMap<String, Object>();
-			mapRow.put("app_id", engineId);
-			mapRow.put("app_name", engineName);
-			mapRow.put("table", column);
-			mapRow.put("pk", pk);
-			mapRow.put("dataType", type);
-			mapRow.put("type", "property");
-			mapRow.put("equivTable", equivTableCol[0]);
-			mapRow.put("equivColumn", equivTableCol[1]);
-			mapRow.put("equivPk", equivTableCol[2]);
-			returnData.add(mapRow);
+				// if we passed the above test, add the valid connection
+				Map<String, Object> mapRow = new HashMap<String, Object>();
+				mapRow.put("app_id", engineId);
+				mapRow.put("app_name", engineName);
+				mapRow.put("table", column);
+				mapRow.put("pk", pk);
+				mapRow.put("dataType", type);
+				mapRow.put("type", "property");
+				mapRow.put("equivTable", equivTableCol[0]);
+				mapRow.put("equivColumn", equivTableCol[1]);
+				mapRow.put("equivPk", equivTableCol[2]);
+				returnData.add(mapRow);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
-
+		
 		// now let me query for all the properties
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -679,44 +674,52 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy("ENGINECONCEPT__PK");
 		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 		
-		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] data = row.getValues();
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] data = row.getValues();
 
-			String engineName = (String) data[0];
-			String engineId = (String) data[1];
-			String parent = (String) data[2];
-			String parentId = (String) data[3];
-			String column = (String) data[4];
-			String columnId = (String) data[5];
-			String type = (String) data[6];
-			boolean pk = (boolean) data[7];
-//			boolean ignore = (boolean) data[8];
+				String engineName = (String) data[0];
+				String engineId = (String) data[1];
+				String parent = (String) data[2];
+				String parentId = (String) data[3];
+				String column = (String) data[4];
+				String columnId = (String) data[5];
+				String type = (String) data[6];
+				boolean pk = (boolean) data[7];
+//				boolean ignore = (boolean) data[8];
 
-			// these will all have parent ids based on the query
-			// i will just grab the details
-			Object[] equivTableCol = parentEquivMap.get(parentId);
+				// these will all have parent ids based on the query
+				// i will just grab the details
+				Object[] equivTableCol = parentEquivMap.get(parentId);
 
-			// if the property we get is one where the table will be joined on
-			// we have to ignore it
-			if(equivTableCol[1].equals(column) && parent.equals(equivTableCol[0]) ) {
-				continue;
+				// if the property we get is one where the table will be joined on
+				// we have to ignore it
+				if(equivTableCol[1].equals(column) && parent.equals(equivTableCol[0]) ) {
+					continue;
+				}
+
+				// if we passed the above test, add the valid connection
+				Map<String, Object> mapRow = new HashMap<String, Object>();
+				mapRow.put("app_id", engineId);
+				mapRow.put("app_name", engineName);
+				mapRow.put("table", parent);
+				mapRow.put("column", column);
+				mapRow.put("pk", pk);
+				mapRow.put("dataType", type);
+				mapRow.put("type", "property");
+				mapRow.put("equivTable", equivTableCol[0]);
+				mapRow.put("equivColumn", equivTableCol[1]);
+				mapRow.put("equivPk", equivTableCol[2]);
+				returnData.add(mapRow);
 			}
-
-			// if we passed the above test, add the valid connection
-			Map<String, Object> mapRow = new HashMap<String, Object>();
-			mapRow.put("app_id", engineId);
-			mapRow.put("app_name", engineName);
-			mapRow.put("table", parent);
-			mapRow.put("column", column);
-			mapRow.put("pk", pk);
-			mapRow.put("dataType", type);
-			mapRow.put("type", "property");
-			mapRow.put("equivTable", equivTableCol[0]);
-			mapRow.put("equivColumn", equivTableCol[1]);
-			mapRow.put("equivPk", equivTableCol[2]);
-			returnData.add(mapRow);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 
 		// let me find up and downstream connections for my equivalent concepts
@@ -741,50 +744,58 @@ public class MasterDatabaseUtility {
 		
 		Map<String, Object[]> relationshipEquivMap = new HashMap<String, Object[]>();
 		
-		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] data = row.getValues();
-			
-			String sourceId = (String) data[2];
-			String downstreamId = (String) data[3];
-			boolean downstreamIgnore = (boolean) data[7];
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] data = row.getValues();
+				
+				String sourceId = (String) data[2];
+				String downstreamId = (String) data[3];
+				boolean downstreamIgnore = (boolean) data[7];
 
-			Object[] equivTableCol = parentEquivMap.get(sourceId);
-			if(downstreamIgnore) {
-				relationshipEquivMap.put(downstreamId, equivTableCol);
-				continue;
-			}
-			
-			String engineName = (String) data[0];
-			String engineId = (String) data[1];
-			String downstreamParent = (String) data[4];
-			String downstreamName = (String) data[5];
-			boolean downstreamPK = (boolean) data[6];
-			String type = (String) data[8];
-			String relName = (String) data[9];
-			
-			// the downstream nodes
-			// mean that the source is the equivalent concept
+				Object[] equivTableCol = parentEquivMap.get(sourceId);
+				if(downstreamIgnore) {
+					relationshipEquivMap.put(downstreamId, equivTableCol);
+					continue;
+				}
+				
+				String engineName = (String) data[0];
+				String engineId = (String) data[1];
+				String downstreamParent = (String) data[4];
+				String downstreamName = (String) data[5];
+				boolean downstreamPK = (boolean) data[6];
+				String type = (String) data[8];
+				String relName = (String) data[9];
+				
+				// the downstream nodes
+				// mean that the source is the equivalent concept
 
-			// if we passed the above test, add the valid connection
-			Map<String, Object> mapRow = new HashMap<String, Object>();
-			mapRow.put("app_id", engineId);
-			mapRow.put("app_name", engineName);
-			if(downstreamParent == null) {
-				mapRow.put("table", downstreamName);
-			} else {
-				mapRow.put("table", downstreamParent);
-				mapRow.put("column", downstreamName);
+				// if we passed the above test, add the valid connection
+				Map<String, Object> mapRow = new HashMap<String, Object>();
+				mapRow.put("app_id", engineId);
+				mapRow.put("app_name", engineName);
+				if(downstreamParent == null) {
+					mapRow.put("table", downstreamName);
+				} else {
+					mapRow.put("table", downstreamParent);
+					mapRow.put("column", downstreamName);
+				}
+				mapRow.put("pk", downstreamPK);
+				mapRow.put("dataType", type);
+				mapRow.put("type", "downstream");
+				mapRow.put("relName", relName);
+				mapRow.put("equivTable", equivTableCol[0]);
+				mapRow.put("equivColumn", equivTableCol[1]);
+				mapRow.put("equivPk", equivTableCol[2]);
+				returnData.add(mapRow);
 			}
-			mapRow.put("pk", downstreamPK);
-			mapRow.put("dataType", type);
-			mapRow.put("type", "downstream");
-			mapRow.put("relName", relName);
-			mapRow.put("equivTable", equivTableCol[0]);
-			mapRow.put("equivColumn", equivTableCol[1]);
-			mapRow.put("equivPk", equivTableCol[2]);
-			returnData.add(mapRow);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		// let me pull all the relationships that are ignore
@@ -803,34 +814,42 @@ public class MasterDatabaseUtility {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", new Vector<String>(relationshipEquivMap.keySet())));
 			qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
 			qs.addOrderBy("ENGINECONCEPT__ENGINE");
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-			while(wrapper.hasNext()) {
-				IHeadersDataRow row = wrapper.next();
-				Object[] data = row.getValues();
-				
-				String engineName = (String) data[0];
-				String engineId = (String) data[1];
-				String parentName = (String) data[2];
-				String name = (String) data[3];
-				String type = (String) data[4];
-				String parentId = (String) data[5];
-	
-				Object[] equivTableCol = relationshipEquivMap.get(parentId);
-				
-				// if we passed the above test, add the valid connection
-				Map<String, Object> mapRow = new HashMap<String, Object>();
-				mapRow.put("app_id", engineId);
-				mapRow.put("app_name", engineName);
-				mapRow.put("table", parentName);
-				mapRow.put("column", name);
-				mapRow.put("pk", false);
-				mapRow.put("dataType", type);
-				mapRow.put("type", "downstream");
-//				mapRow.put("relName", relName);
-				mapRow.put("equivTable", equivTableCol[0]);
-				mapRow.put("equivColumn", equivTableCol[1]);
-				mapRow.put("equivPk", equivTableCol[2]);
-				returnData.add(mapRow);
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+				while(wrapper.hasNext()) {
+					IHeadersDataRow row = wrapper.next();
+					Object[] data = row.getValues();
+					
+					String engineName = (String) data[0];
+					String engineId = (String) data[1];
+					String parentName = (String) data[2];
+					String name = (String) data[3];
+					String type = (String) data[4];
+					String parentId = (String) data[5];
+		
+					Object[] equivTableCol = relationshipEquivMap.get(parentId);
+					
+					// if we passed the above test, add the valid connection
+					Map<String, Object> mapRow = new HashMap<String, Object>();
+					mapRow.put("app_id", engineId);
+					mapRow.put("app_name", engineName);
+					mapRow.put("table", parentName);
+					mapRow.put("column", name);
+					mapRow.put("pk", false);
+					mapRow.put("dataType", type);
+					mapRow.put("type", "downstream");
+//					mapRow.put("relName", relName);
+					mapRow.put("equivTable", equivTableCol[0]);
+					mapRow.put("equivColumn", equivTableCol[1]);
+					mapRow.put("equivPk", equivTableCol[2]);
+					returnData.add(mapRow);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
 		}
 		relationshipEquivMap.clear();
@@ -855,50 +874,58 @@ public class MasterDatabaseUtility {
 		qs.addRelation("ENGINERELATION__SOURCECONCEPTID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 		qs.addOrderBy("ENGINERELATION__ENGINE");
 		
-		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] data = row.getValues();
-			
-			String targetId = (String) data[2];
-			String upstreamId = (String) data[3];
-			boolean upstreamIgnore = (boolean) data[7];
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] data = row.getValues();
+				
+				String targetId = (String) data[2];
+				String upstreamId = (String) data[3];
+				boolean upstreamIgnore = (boolean) data[7];
 
-			Object[] equivTableCol = parentEquivMap.get(targetId);
-			if(upstreamIgnore) {
-				relationshipEquivMap.put(upstreamId, equivTableCol);
-				continue;
-			}
-			
-			String engineName = (String) data[0];
-			String engineId = (String) data[1];
-			String upstreamParent = (String) data[4];
-			String upstreamName = (String) data[5];
-			boolean upstreamPK = (boolean) data[6];
-			String type = (String) data[8];
-			String relName = (String) data[9];
-			
-			// the downstream nodes
-			// mean that the source is the equivalent concept
+				Object[] equivTableCol = parentEquivMap.get(targetId);
+				if(upstreamIgnore) {
+					relationshipEquivMap.put(upstreamId, equivTableCol);
+					continue;
+				}
+				
+				String engineName = (String) data[0];
+				String engineId = (String) data[1];
+				String upstreamParent = (String) data[4];
+				String upstreamName = (String) data[5];
+				boolean upstreamPK = (boolean) data[6];
+				String type = (String) data[8];
+				String relName = (String) data[9];
+				
+				// the downstream nodes
+				// mean that the source is the equivalent concept
 
-			// if we passed the above test, add the valid connection
-			Map<String, Object> mapRow = new HashMap<String, Object>();
-			mapRow.put("app_id", engineId);
-			mapRow.put("app_name", engineName);
-			if(upstreamParent == null) {
-				mapRow.put("table", upstreamName);
-			} else {
-				mapRow.put("table", upstreamParent);
-				mapRow.put("column", upstreamName);
+				// if we passed the above test, add the valid connection
+				Map<String, Object> mapRow = new HashMap<String, Object>();
+				mapRow.put("app_id", engineId);
+				mapRow.put("app_name", engineName);
+				if(upstreamParent == null) {
+					mapRow.put("table", upstreamName);
+				} else {
+					mapRow.put("table", upstreamParent);
+					mapRow.put("column", upstreamName);
+				}
+				mapRow.put("pk", upstreamPK);
+				mapRow.put("dataType", type);
+				mapRow.put("type", "upstream");
+				mapRow.put("relName", relName);
+				mapRow.put("equivTable", equivTableCol[0]);
+				mapRow.put("equivColumn", equivTableCol[1]);
+				mapRow.put("equivPk", equivTableCol[2]);
+				returnData.add(mapRow);
 			}
-			mapRow.put("pk", upstreamPK);
-			mapRow.put("dataType", type);
-			mapRow.put("type", "upstream");
-			mapRow.put("relName", relName);
-			mapRow.put("equivTable", equivTableCol[0]);
-			mapRow.put("equivColumn", equivTableCol[1]);
-			mapRow.put("equivPk", equivTableCol[2]);
-			returnData.add(mapRow);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		// let me pull all the relationships that are ignore
@@ -917,34 +944,42 @@ public class MasterDatabaseUtility {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", new Vector<String>(relationshipEquivMap.keySet())));
 			qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
 			qs.addOrderBy("ENGINECONCEPT__ENGINE");
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-			while(wrapper.hasNext()) {
-				IHeadersDataRow row = wrapper.next();
-				Object[] data = row.getValues();
-				
-				String engineName = (String) data[0];
-				String engineId = (String) data[1];
-				String parentName = (String) data[2];
-				String name = (String) data[3];
-				String type = (String) data[4];
-				String parentId = (String) data[5];
-	
-				Object[] equivTableCol = relationshipEquivMap.get(parentId);
-				
-				// if we passed the above test, add the valid connection
-				Map<String, Object> mapRow = new HashMap<String, Object>();
-				mapRow.put("app_id", engineId);
-				mapRow.put("app_name", engineName);
-				mapRow.put("table", parentName);
-				mapRow.put("column", name);
-				mapRow.put("pk", false);
-				mapRow.put("dataType", type);
-				mapRow.put("type", "upstream");
-//				mapRow.put("relName", relName);
-				mapRow.put("equivTable", equivTableCol[0]);
-				mapRow.put("equivColumn", equivTableCol[1]);
-				mapRow.put("equivPk", equivTableCol[2]);
-				returnData.add(mapRow);
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+				while(wrapper.hasNext()) {
+					IHeadersDataRow row = wrapper.next();
+					Object[] data = row.getValues();
+					
+					String engineName = (String) data[0];
+					String engineId = (String) data[1];
+					String parentName = (String) data[2];
+					String name = (String) data[3];
+					String type = (String) data[4];
+					String parentId = (String) data[5];
+		
+					Object[] equivTableCol = relationshipEquivMap.get(parentId);
+					
+					// if we passed the above test, add the valid connection
+					Map<String, Object> mapRow = new HashMap<String, Object>();
+					mapRow.put("app_id", engineId);
+					mapRow.put("app_name", engineName);
+					mapRow.put("table", parentName);
+					mapRow.put("column", name);
+					mapRow.put("pk", false);
+					mapRow.put("dataType", type);
+					mapRow.put("type", "upstream");
+//					mapRow.put("relName", relName);
+					mapRow.put("equivTable", equivTableCol[0]);
+					mapRow.put("equivColumn", equivTableCol[1]);
+					mapRow.put("equivPk", equivTableCol[2]);
+					returnData.add(mapRow);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
 		}
 		relationshipEquivMap.clear();
@@ -982,58 +1017,67 @@ public class MasterDatabaseUtility {
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			Object[] row = wrapper.next().getValues();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
 
-			String semossName = (String) row[0];
-			String physicalName = (String) row[2];
-			String parentSemossName = (String) row[1];
-			String parentPhysicalName = (String) row[3];
-			boolean ignoreData = (boolean) row[4];
-			
-			MetamodelVertex node = null;
-			// if already there, should we still add it ?
-			if(parentSemossName != null) {
-				// this has a parent
-				if(nodeHash.containsKey(parentSemossName)) {
-					node = nodeHash.get(parentSemossName);
-				} else {
-					node = new MetamodelVertex(parentSemossName);
-					nodeHash.put(parentSemossName, node);
-				}
-			} else {
-				// this is the parent
-				if(nodeHash.containsKey(semossName)) {
-					node = nodeHash.get(semossName);
-				} else {
-					node = new MetamodelVertex(semossName);
-					nodeHash.put(semossName, node);
-				}
-			}
-
-			String uniqueName = semossName;
-			if(parentSemossName != null) {
-				uniqueName = parentSemossName + "__" + uniqueName;
-				node.addProperty(semossName);
-			}
-
-			if(includeDataTypes && !ignoreData) {
-				if(row[5] != null) {
-					String origType = row[5].toString();
-					if(origType.contains("TYPE:")) {
-						origType = origType.replace("TYPE:", "");
+				String semossName = (String) row[0];
+				String physicalName = (String) row[2];
+				String parentSemossName = (String) row[1];
+				String parentPhysicalName = (String) row[3];
+				boolean ignoreData = (boolean) row[4];
+				
+				MetamodelVertex node = null;
+				// if already there, should we still add it ?
+				if(parentSemossName != null) {
+					// this has a parent
+					if(nodeHash.containsKey(parentSemossName)) {
+						node = nodeHash.get(parentSemossName);
+					} else {
+						node = new MetamodelVertex(parentSemossName);
+						nodeHash.put(parentSemossName, node);
 					}
-					physicalDataTypes.put(uniqueName, origType);	
+				} else {
+					// this is the parent
+					if(nodeHash.containsKey(semossName)) {
+						node = nodeHash.get(semossName);
+					} else {
+						node = new MetamodelVertex(semossName);
+						nodeHash.put(semossName, node);
+					}
 				}
-				if(row[6] != null) {
-					String cleanType = row[6].toString();
-					dataTypes.put(uniqueName, cleanType);
+
+				String uniqueName = semossName;
+				if(parentSemossName != null) {
+					uniqueName = parentSemossName + "__" + uniqueName;
+					node.addProperty(semossName);
 				}
-				if(row[7] != null) {
-					String additionalType = row[7].toString();
-					additionalDataTypes.put(uniqueName, additionalType);
+
+				if(includeDataTypes && !ignoreData) {
+					if(row[5] != null) {
+						String origType = row[5].toString();
+						if(origType.contains("TYPE:")) {
+							origType = origType.replace("TYPE:", "");
+						}
+						physicalDataTypes.put(uniqueName, origType);	
+					}
+					if(row[6] != null) {
+						String cleanType = row[6].toString();
+						dataTypes.put(uniqueName, cleanType);
+					}
+					if(row[7] != null) {
+						String additionalType = row[7].toString();
+						additionalDataTypes.put(uniqueName, additionalType);
+					}
 				}
+			}
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 
@@ -1043,19 +1087,27 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETPROPERTY"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineId));
-		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			Object[] row = wrapper.next().getValues();
-			String startName = row[0].toString();
-			String endName = row[1].toString();
-			String relName = row[2].toString();
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				String startName = row[0].toString();
+				String endName = row[1].toString();
+				String relName = row[2].toString();
 
-			Map<String, String> newEdge = new Hashtable<String, String>();
-			// need to check to see if the idHash has it else put it in
-			newEdge.put("source", startName);
-			newEdge.put("target", endName);
-			newEdge.put("relation", relName);
-			edgeHash.put(endName + "-" + endName + "-" + relName, newEdge);
+				Map<String, String> newEdge = new Hashtable<String, String>();
+				// need to check to see if the idHash has it else put it in
+				newEdge.put("source", startName);
+				newEdge.put("target", endName);
+				newEdge.put("relation", relName);
+				edgeHash.put(endName + "-" + endName + "-" + relName, newEdge);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 
 		Map<String, Object> finalHash = new Hashtable<String, Object>();
@@ -1135,6 +1187,8 @@ public class MasterDatabaseUtility {
 				// add the property conceptual name
 				propList.add(columnName);
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1223,6 +1277,8 @@ public class MasterDatabaseUtility {
 				// add the property conceptual name
 				vert.addProperty(columnName);
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1234,21 +1290,6 @@ public class MasterDatabaseUtility {
 		}
 
 		return returnHash;
-	}
-
-	private static String makeListToString(Collection<String> filterList) {
-		StringBuilder conceptString = new StringBuilder("(");
-		if(filterList != null && !filterList.isEmpty()) {
-			Iterator<String> iterator = filterList.iterator();
-			if(iterator.hasNext()) {
-				conceptString.append("'" + iterator.next() + "'");
-			}
-			while(iterator.hasNext()) {
-				conceptString.append(", '" + iterator.next() + "'");
-			}
-		}
-		conceptString.append(")");
-		return conceptString.toString();
 	}
 
 	/**
@@ -1326,6 +1367,8 @@ public class MasterDatabaseUtility {
 					conceptSpecific.put(conceptualName, stream);
 					retMap.put(engineId, conceptSpecific);
 				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1410,6 +1453,8 @@ public class MasterDatabaseUtility {
 					engineSpecific.put(coreConceptName, conceptSpecific);
 					retMap.put(engineId, engineSpecific);
 				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1491,6 +1536,8 @@ public class MasterDatabaseUtility {
 					engineSpecific.put(coreConceptName, conceptSpecific);
 					retMap.put(engineId, engineSpecific);
 				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1511,8 +1558,7 @@ public class MasterDatabaseUtility {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ID"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToListString(wrapper);
+		return QueryExecutionUtility.flushToListString(engine, qs);
 	}
 
 	/**
@@ -1525,8 +1571,7 @@ public class MasterDatabaseUtility {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ID", "==", id));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToString(wrapper);
+		return QueryExecutionUtility.flushToString(engine, qs);
 	}
 
 	/**
@@ -1542,8 +1587,7 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__SEMOSSNAME"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToSetString(wrapper, true);
+		return QueryExecutionUtility.flushToSetString(engine, qs, true);
 	}
 	
 	/**
@@ -1563,15 +1607,25 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK", "desc"));
 		
 		Set<String> selectors = new TreeSet<String>();
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			Object[] row = wrapper.next().getValues();
-			if(row[0] == null) {
-				selectors.add(row[1].toString());
-			} else {
-				selectors.add(row[0] + "__" + row[1].toString());
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				if(row[0] == null) {
+					selectors.add(row[1].toString());
+				} else {
+					selectors.add(row[0] + "__" + row[1].toString());
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
+		
 		return selectors;
 	}
 
@@ -1594,12 +1648,7 @@ public class MasterDatabaseUtility {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", parentPixelName));
 		}
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		String result = flushToString(wrapper);
-//		if(result == null) {
-//			// this is for really legacy DB OWLs that do not have a dataytpe
-//			result = "STRING";
-//		}
+		String result = QueryExecutionUtility.flushToString(engine, qs);
 		return result;
 	}
 
@@ -1622,8 +1671,7 @@ public class MasterDatabaseUtility {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", parentConceptualName));
 		}
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToString(wrapper);
+		return QueryExecutionUtility.flushToString(engine, qs);
 	}
 	
 	/**
@@ -1634,6 +1682,7 @@ public class MasterDatabaseUtility {
 
 	public static Map<String, List<String>> getEngineLogicalNames(String engineId) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		
 		Map<String, List<String>> engineLogicalNames = new HashMap<String, List<String>>();
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1645,29 +1694,38 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__KEY", "==", "logical"));
 		qs.addRelation("CONCEPTMETADATA__PHYSICALNAMEID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			Object[] row = wrapper.next().getValues();
-			String parentName = (String) row[0];
-			String name = (String) row[1];
-			boolean pk = (boolean) row[2];
-			String logicalName = (String) row[3];
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				String parentName = (String) row[0];
+				String name = (String) row[1];
+				boolean pk = (boolean) row[2];
+				String logicalName = (String) row[3];
 
-			String uniqueName = name;
-			if(!pk) {
-				uniqueName = parentName + "__" + name;
+				String uniqueName = name;
+				if(!pk) {
+					uniqueName = parentName + "__" + name;
+				}
+				
+				List<String> logicalNames = null;
+				if(engineLogicalNames.containsKey(uniqueName)) {
+					logicalNames = engineLogicalNames.get(uniqueName);
+				} else {
+					logicalNames = new Vector<String>();
+					// store in the map
+					engineLogicalNames.put(uniqueName, logicalNames);
+				}
+				// add the new value
+				logicalNames.add(logicalName);
 			}
-			
-			List<String> logicalNames = null;
-			if(engineLogicalNames.containsKey(uniqueName)) {
-				logicalNames = engineLogicalNames.get(uniqueName);
-			} else {
-				logicalNames = new Vector<String>();
-				// store in the map
-				engineLogicalNames.put(uniqueName, logicalNames);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
-			// add the new value
-			logicalNames.add(logicalName);
 		}
 		
 		return engineLogicalNames;
@@ -1675,6 +1733,7 @@ public class MasterDatabaseUtility {
 
 	public static Map<String, String> getEngineDescriptions(String engineId) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		
 		Map<String, String> engineDescriptions = new HashMap<String, String>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1686,19 +1745,28 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__KEY", "==", "description"));
 		qs.addRelation("CONCEPTMETADATA__PHYSICALNAMEID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			Object[] row = wrapper.next().getValues();
-			String parentName = (String) row[0];
-			String name = (String) row[1];
-			boolean pk = (boolean) row[2];
-			String description = (String) row[3];
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				String parentName = (String) row[0];
+				String name = (String) row[1];
+				boolean pk = (boolean) row[2];
+				String description = (String) row[3];
 
-			String uniqueName = name;
-			if(!pk) {
-				uniqueName = parentName + "__" + name;
+				String uniqueName = name;
+				if(!pk) {
+					uniqueName = parentName + "__" + name;
+				}
+				engineDescriptions.put(uniqueName, description);
 			}
-			engineDescriptions.put(uniqueName, description);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 
 		return engineDescriptions;
@@ -1721,8 +1789,8 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", parentName));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__SEMOSSNAME"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToListString(wrapper);
+		
+		return QueryExecutionUtility.flushToListString(engine, qs);
 	}
 	
 	/**
@@ -1740,6 +1808,7 @@ public class MasterDatabaseUtility {
 		}
 				
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
@@ -1758,16 +1827,28 @@ public class MasterDatabaseUtility {
 		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
 		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__SEMOSSNAME"));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		
 		List<String> retArr = new Vector<String>();
-		while(wrapper.hasNext()) {
-			Object[] row = wrapper.next().getValues();
-			if(row[0] != null) {
-				retArr.add(row[0] + "__" + row[1]);
-			} else {
-				retArr.add(row[1].toString());
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				if(row[0] != null) {
+					retArr.add(row[0] + "__" + row[1]);
+				} else {
+					retArr.add(row[1].toString());
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
+		
 		return retArr;
 	}
 
@@ -1793,8 +1874,7 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualName));
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToString(wrapper);
+		return QueryExecutionUtility.flushToString(engine, qs);
 	}
 	
 	/**
@@ -1817,8 +1897,7 @@ public class MasterDatabaseUtility {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", pixelName));
 		}
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToString(wrapper);
+		return QueryExecutionUtility.flushToString(engine, qs);
 	}
 
 	/**
@@ -1858,8 +1937,7 @@ public class MasterDatabaseUtility {
 			subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
 		}
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToString(wrapper);
+		return QueryExecutionUtility.flushToString(engine, qs);
 	}
 
 
@@ -1875,8 +1953,7 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", alias));
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToListString(wrapper);
+		return QueryExecutionUtility.flushToListString(engine, qs);
 	}
 
 	/**
@@ -1889,8 +1966,7 @@ public class MasterDatabaseUtility {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ID", "==", id));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToString(wrapper);
+		return QueryExecutionUtility.flushToString(engine, qs);
 	}
 	
 	/**
@@ -1951,8 +2027,7 @@ public class MasterDatabaseUtility {
 		}
 		qs.addOrderBy(new QueryColumnOrderBySelector("LNAME"));
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToListString(wrapper);
+		return QueryExecutionUtility.flushToListString(engine, qs);
 	}
 	
 	
@@ -1970,8 +2045,7 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToListString(wrapper);
+		return QueryExecutionUtility.flushToListString(engine, qs);
 	}
 
 	/**
@@ -1982,18 +2056,12 @@ public class MasterDatabaseUtility {
 	public static List<String> getConceptualNamesFromPhysicalIds(List<String> physicalNameIds) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		
-		List<String> results = new Vector<String>();
-		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PHYSICALNAMEID", "==", physicalNameIds));
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		while(wrapper.hasNext()) {
-			results.add((String) wrapper.next().getValues()[0]); 
-		}
 		
-		return results;
+		return QueryExecutionUtility.flushToListString(engine, qs);
 	}
 	
 	/**
@@ -2017,21 +2085,31 @@ public class MasterDatabaseUtility {
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualNames));
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		
-		while(wrapper.hasNext()) {
-			Object[] data = wrapper.next().getValues();
-			
-			String[] row = new String[2];
-			row[0] = data[0].toString();
-			if((Boolean) data[3]) {
-				row[1] = data[1].toString();
-			} else {
-				row[1] = data[2] + "__" + data[1];
-			}
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				
+				String[] row = new String[2];
+				row[0] = data[0].toString();
+				if((Boolean) data[3]) {
+					row[1] = data[1].toString();
+				} else {
+					row[1] = data[2] + "__" + data[1];
+				}
 
-			results.add(row);
-		}
+				results.add(row);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}		
 		
 		return results;
 	}
@@ -2060,22 +2138,31 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualNames));
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 		qs.addRelation("ENGINECONCEPT__ENGINE", "ENGINE__ID", "inner.join");
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		
-		while(wrapper.hasNext()) {
-			Object[] data = wrapper.next().getValues();
-			
-			String[] row = new String[4];
-			row[0] = data[0].toString();
-			row[1] = data[1].toString();
-			if((Boolean) data[4]) {
-				row[2] = data[2].toString();
-			} else {
-				row[2] = data[3] + "__" + data[2];
-			}
-			row[3] = data[5].toString();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				
+				String[] row = new String[4];
+				row[0] = data[0].toString();
+				row[1] = data[1].toString();
+				if((Boolean) data[4]) {
+					row[2] = data[2].toString();
+				} else {
+					row[2] = data[3] + "__" + data[2];
+				}
+				row[3] = data[5].toString();
 
-			results.add(row);
+				results.add(row);
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		return results;
@@ -2134,83 +2221,6 @@ public class MasterDatabaseUtility {
 		return map;
 	}
 	
-	
-	/*
-	 * Utility methods
-	 */
-	
-	/**
-	 * Utility method to flush result set into list
-	 * Assumes single return at index 0
-	 * @param wrapper
-	 * @return
-	 */
-	static String flushToString(IRawSelectWrapper wrapper) {
-		try {
-			while(wrapper.hasNext()) {
-				return (String) wrapper.next().getValues()[0];
-			}
-		} finally {
-			wrapper.cleanUp();
-		}
-		return null;
-	}
-	
-	/**
-	 * Utility method to flush result set into list
-	 * Assumes single return at index 0
-	 * @param wrapper
-	 * @return
-	 */
-	static List<String> flushToListString(IRawSelectWrapper wrapper) {
-		List<String> values = new Vector<String>();
-		while(wrapper.hasNext()) {
-			values.add(wrapper.next().getValues()[0].toString());
-		}
-		return values;
-	}
-	
-	/**
-	 * Utility method to flush result set into set
-	 * Assumes single return at index 0
-	 * @param wrapper
-	 * @return
-	 */
-	static Set<String> flushToSetString(IRawSelectWrapper wrapper, boolean order) {
-		Set<String> values = null;
-		if(order) {
-			values = new TreeSet<String>();
-		} else {
-			values = new HashSet<String>();
-		}
-		while(wrapper.hasNext()) {
-			values.add(wrapper.next().getValues()[0].toString());
-		}
-		return values;
-	}
-	
-	static List<String[]> flushRsToListOfStrArray(IRawSelectWrapper wrapper) {
-		List<String[]> ret = new ArrayList<String[]>();
-		while(wrapper.hasNext()) {
-			IHeadersDataRow headerRow = wrapper.next();
-			Object[] values = headerRow.getValues();
-			int len = values.length;
-			String[] strVals = new String[len];
-			for(int i = 0; i < len; i++) {
-				strVals[i] = values[i] + "";
-			}
-			ret.add(strVals);
-		}
-		return ret;
-	}
-	
-	static List<Object[]> flushRsToListOfObjArray(IRawSelectWrapper wrapper) {
-		List<Object[]> ret = new ArrayList<Object[]>();
-		while(wrapper.hasNext()) {
-			ret.add(wrapper.next().getValues());
-		}
-		return ret;
-	}
 	
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////

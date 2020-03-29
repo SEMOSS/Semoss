@@ -231,9 +231,20 @@ public class FederationBlend extends AbstractRFrameReactor {
 		}
 
 		// write iterator data to csv, then read csv into R table as trg
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
-		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
-		File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
+		File newFile = null;
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
+			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
+			newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+		
 		String loadFileRScript = RSyntaxHelper.getFReadSyntax(trg, newFile.getAbsolutePath(), "\\t");
 		//trg + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
 		this.rJavaTranslator.runR(loadFileRScript);

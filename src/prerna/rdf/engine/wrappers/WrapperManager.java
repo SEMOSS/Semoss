@@ -67,7 +67,7 @@ public class WrapperManager {
 	}
 
 	// TODO >>>timb: REST - here add another engine type REMOTE or REST
-	public IRawSelectWrapper getRawWrapper(IEngine engine, SelectQueryStruct qs) {
+	public IRawSelectWrapper getRawWrapper(IEngine engine, SelectQueryStruct qs) throws Exception {
 		IRawSelectWrapper returnWrapper = null;
 		boolean genQueryString = true;
 		switch(engine.getEngineType()) {
@@ -199,7 +199,7 @@ public class WrapperManager {
 	}
 
 	// TODO >>>timb: REST - here add another engine type REMOTE or REST
-	public IRawSelectWrapper getRawWrapper(IEngine engine, String query) {
+	public IRawSelectWrapper getRawWrapper(IEngine engine, String query) throws Exception {
 		IRawSelectWrapper returnWrapper = null;
 		switch(engine.getEngineType()) {
 		case SESAME : {
@@ -301,7 +301,11 @@ public class WrapperManager {
 		LOGGER.debug(returnWrapper.getClass() + " executing query: " + query);
 		returnWrapper.setEngine(engine);
 		returnWrapper.setQuery(query);
-		returnWrapper.execute();
+		try {
+			returnWrapper.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		returnWrapper.getDisplayVariables();
 		returnWrapper.getPhysicalVariables();
 		return returnWrapper;
@@ -334,7 +338,11 @@ public class WrapperManager {
 		}
 		returnWrapper.setEngine(engine);
 		returnWrapper.setQuery(query);
-		returnWrapper.execute();
+		try {
+			returnWrapper.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return returnWrapper;
 	}
 
@@ -365,7 +373,11 @@ public class WrapperManager {
 		}
 		returnWrapper.setEngine(engine);
 		returnWrapper.setQuery(query);
-		returnWrapper.execute();
+		try {
+			returnWrapper.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return returnWrapper;
 	}
 

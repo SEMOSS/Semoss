@@ -21,17 +21,17 @@ public interface IRawSelectWrapper extends IEngineWrapper, Iterator<IHeadersData
 	 * Get the number of rows
 	 * @return
 	 */
-	long getNumRows();
+	long getNumRows() throws Exception;
 	
 	/**
 	 * Get the size of the return
 	 */
-	long getNumRecords();
+	long getNumRecords() throws Exception;
 	
 	/**
 	 * Reset the iterator
 	 */
-	void reset();
+	void reset() throws Exception;
 	
 	/**
 	 * Can the full result set be flushed directly from the object

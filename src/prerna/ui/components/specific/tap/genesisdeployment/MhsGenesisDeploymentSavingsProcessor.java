@@ -31,7 +31,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -42,7 +41,6 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -151,20 +149,20 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			e.printStackTrace();
 		}
 	}
-	
+
 	// method to append the column and row totals
 	public static void calculateColAndRowTotals(H2Frame frame, String[] headers) {
 		// assumption that first column is either systems or sites
-		
+
 		String mainColName = headers[0];
-		
+
 		// first, calculate the row totals
 		StringBuilder rowTotal = new StringBuilder("SELECT ").append(headers[0]).append(",").append(headers[1]);
 		for(int i = 2; i < headers.length; i++) {
 			rowTotal.append("+").append(headers[i]);
 		}
 		rowTotal.append(" FROM ").append(frame.getName());
-		
+
 		String[] newHeaders = new String[2];
 		String[] dataTypes = new String[2];
 		newHeaders[0] = mainColName;
@@ -188,7 +186,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
+
 		// now calculate the column totals
 		StringBuilder colTotals = new StringBuilder("SELECT SUM(").append(headers[1]).append(")");
 		for(int i = 2; i < headers.length; i++) {
@@ -208,7 +206,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
+
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
@@ -286,51 +284,51 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		// append the last wave for each system
 		this.mainSustainmentFrame = appendLastWaveForSystem(this.mainSustainmentFrame);
 
-//		Iterator<IHeadersDataRow> it = this.mainSustainmentFrame.iterator();
-//		//Printing to csv
-//		try{
-//			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\mainSustainmentTable.csv", "UTF-8");
-//			String[] headers = this.mainSustainmentFrame.getColumnHeaders();
-//			for(Object val : headers) {
-//				writer.print(val + ",");
-//			}
-//			writer.print("\n");
-//			while(it.hasNext()) {
-//				Object[] values = it.next().getValues();
-//				for(Object val : values) {
-//					writer.print(val + ",");
-//				}
-//				writer.print("\n");
-//				System.out.println(">>> " + Arrays.toString( values ) );
-//			}
-//			writer.close();
-//		} catch (IOException e) {
-//			// do something
-//		}
-//		LOGGER.info("Done iterating through system sustainment data");
-//		
-//		it = this.systemSiteSustainmentFrame.iterator();
-//
-//		try{
-//			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\siteSpecificSustainment.csv", "UTF-8");
-//			String[] headers = this.systemSiteSustainmentFrame.getColumnHeaders();
-//			for(Object val : headers) {
-//				writer.print(val + ",");
-//			}
-//			writer.print("\n");
-//			while(it.hasNext()) {
-//				Object[] values = it.next().getValues();
-//				for(Object val : values) {
-//					writer.print(val + ",");
-//				}
-//				writer.print("\n");
-//				System.out.println(">>> " + Arrays.toString( values ) );
-//			}
-//			writer.close();
-//		} catch (IOException e) {
-//			// do something
-//		}
-//		LOGGER.info("Done iterating through system sustainment data");
+		//		Iterator<IHeadersDataRow> it = this.mainSustainmentFrame.iterator();
+		//		//Printing to csv
+		//		try{
+		//			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\mainSustainmentTable.csv", "UTF-8");
+		//			String[] headers = this.mainSustainmentFrame.getColumnHeaders();
+		//			for(Object val : headers) {
+		//				writer.print(val + ",");
+		//			}
+		//			writer.print("\n");
+		//			while(it.hasNext()) {
+		//				Object[] values = it.next().getValues();
+		//				for(Object val : values) {
+		//					writer.print(val + ",");
+		//				}
+		//				writer.print("\n");
+		//				System.out.println(">>> " + Arrays.toString( values ) );
+		//			}
+		//			writer.close();
+		//		} catch (IOException e) {
+		//			// do something
+		//		}
+		//		LOGGER.info("Done iterating through system sustainment data");
+		//		
+		//		it = this.systemSiteSustainmentFrame.iterator();
+		//
+		//		try{
+		//			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\siteSpecificSustainment.csv", "UTF-8");
+		//			String[] headers = this.systemSiteSustainmentFrame.getColumnHeaders();
+		//			for(Object val : headers) {
+		//				writer.print(val + ",");
+		//			}
+		//			writer.print("\n");
+		//			while(it.hasNext()) {
+		//				Object[] values = it.next().getValues();
+		//				for(Object val : values) {
+		//					writer.print(val + ",");
+		//				}
+		//				writer.print("\n");
+		//				System.out.println(">>> " + Arrays.toString( values ) );
+		//			}
+		//			writer.close();
+		//		} catch (IOException e) {
+		//			// do something
+		//		}
+		//		LOGGER.info("Done iterating through system sustainment data");
 	}
 
 	private H2Frame appendLastWaveForSystem(H2Frame mainSustainmentFrame) {
@@ -468,26 +466,34 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		centralDeployedSystems.append( getHPSystemFilterString() );
 
 		// get an iterator for the new data
-		IRawSelectWrapper rawIterator = WrapperManager.getInstance().getRawWrapper(tapCore, centralDeployedSystems.toString());
-
+		IRawSelectWrapper rawIterator = null;
 		try {
-			// create an update statement to set all the values to false as default
-			PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Central_Deployment"}, new String[]{});
-			updatePs.setObject(1, "FALSE");
-			updatePs.addBatch();
-			updatePs.executeBatch();
-
-			// create an update statement to set the systems which are centrally deployed to true
-			updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Central_Deployment"}, new String[]{"System"});
-			while(rawIterator.hasNext()) {
-				Object[] values = rawIterator.next().getValues();
-				updatePs.setObject(1, "TRUE");
-				updatePs.setObject(2, values[0]);
+			rawIterator = WrapperManager.getInstance().getRawWrapper(tapCore, centralDeployedSystems.toString());
+			try {
+				// create an update statement to set all the values to false as default
+				PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Central_Deployment"}, new String[]{});
+				updatePs.setObject(1, "FALSE");
 				updatePs.addBatch();
+				updatePs.executeBatch();
+
+				// create an update statement to set the systems which are centrally deployed to true
+				updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Central_Deployment"}, new String[]{"System"});
+				while(rawIterator.hasNext()) {
+					Object[] values = rawIterator.next().getValues();
+					updatePs.setObject(1, "TRUE");
+					updatePs.setObject(2, values[0]);
+					updatePs.addBatch();
+				}
+				updatePs.executeBatch();
+			} catch (SQLException e) {
+				e.printStackTrace();
 			}
-			updatePs.executeBatch();
-		} catch (SQLException e) {
-			e.printStackTrace();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(rawIterator != null) {
+				rawIterator.cleanUp();
+			}
 		}
 
 		return mainSustainmentFrame;
@@ -518,19 +524,28 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		sysNumSitesQuery.append( getHPSystemFilterString() );
 
 		// get an iterator for the new data
-		IRawSelectWrapper rawIterator = WrapperManager.getInstance().getRawWrapper(tapSite, sysNumSitesQuery.toString());
-		// create an update statement
-		PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Num_Sites"}, new String[]{"System"});
+		IRawSelectWrapper rawIterator = null;
 		try {
-			while(rawIterator.hasNext()) {
-				Object[] values = rawIterator.next().getValues();
-				updatePs.setObject(1, values[1]);
-				updatePs.setObject(2, values[0]);
-				updatePs.addBatch();
+			rawIterator = WrapperManager.getInstance().getRawWrapper(tapSite, sysNumSitesQuery.toString());
+			// create an update statement
+			PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(new String[]{"Num_Sites"}, new String[]{"System"});
+			try {
+				while(rawIterator.hasNext()) {
+					Object[] values = rawIterator.next().getValues();
+					updatePs.setObject(1, values[1]);
+					updatePs.setObject(2, values[0]);
+					updatePs.addBatch();
+				}
+				updatePs.executeBatch();
+			} catch (SQLException e) {
+				e.printStackTrace();
 			}
-			updatePs.executeBatch();
-		} catch (SQLException e) {
-			e.printStackTrace();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(rawIterator != null) {
+				rawIterator.cleanUp();
+			}
 		}
 
 		return mainSustainmentFrame;
@@ -558,7 +573,6 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				+ "} GROUP BY ?System ?FY ORDER BY ?System";
 		StringBuilder systemSustainmentBudgetBuilder = new StringBuilder(systemSustainmentBudgetQuery);
 		systemSustainmentBudgetBuilder.append(getHPSystemFilterString());
-		Iterator<IHeadersDataRow> rawWrapper = WrapperManager.getInstance().getRawWrapper(tapPortfolio, systemSustainmentBudgetBuilder.toString());
 
 		// okay, just going to insert into a temp h2frame
 		// this will add everything as system, fy, and cost
@@ -570,8 +584,20 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		tempDataType.put("FY", SemossDataType.STRING);
 		tempDataType.put("Cost", SemossDataType.DOUBLE);
 		H2Frame tempFrame = new H2Frame();
-		tempFrame.addNewColumn(tempHeaders, new String[] {"String", "String", "Number"}, tempFrame.getName());
-		tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
+
+		IRawSelectWrapper rawWrapper = null;
+		try {
+			rawWrapper = WrapperManager.getInstance().getRawWrapper(tapPortfolio, systemSustainmentBudgetBuilder.toString());
+			// add iterator into frame
+			tempFrame.addNewColumn(tempHeaders, new String[] {"String", "String", "Number"}, tempFrame.getName());
+			tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(rawWrapper != null) {
+				rawWrapper.cleanUp();
+			}
+		}
 
 		int numFYs = inflationArr.length;
 		int systemSustainmentFrameSize = numFYs+1;
@@ -708,7 +734,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		}
 
 		tempFrame.close();
-		
+
 		return mainSustainmentFrame;
 	}
 
@@ -751,9 +777,18 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		dataTypes.put("Wave", SemossDataType.STRING);
 		dataTypes.put("HostSiteAndFloater", SemossDataType.STRING);
 		dataTypes.put("System", SemossDataType.STRING);
-		IRawSelectWrapper rawWrapper = WrapperManager.getInstance().getRawWrapper(tapSite, waveSiteSystemBuilder.toString());
-		// add the data into the frame
-		mainSustainmentFrame2.addRowsViaIterator(rawWrapper, dataTypes);
+		IRawSelectWrapper rawWrapper = null;
+		try {
+			rawWrapper = WrapperManager.getInstance().getRawWrapper(tapSite, waveSiteSystemBuilder.toString());
+			// add the data into the frame
+			mainSustainmentFrame2.addRowsViaIterator(rawWrapper, dataTypes);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(rawWrapper != null) {
+				rawWrapper.cleanUp();
+			}
+		}
 
 		LOGGER.info("Done creating wavesSiteSystemFrame");
 		return mainSustainmentFrame2;
@@ -769,10 +804,19 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			final String systemFilterQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved')) }";
 			// this will run and get the list of system with the requierd set of property values
 			IEngine tapCore = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Core_Data"));
-			Iterator<IHeadersDataRow> rawWrapper = WrapperManager.getInstance().getRawWrapper(tapCore, systemFilterQuery);
 			StringBuilder waveSiteSystemBuilder = new StringBuilder(" BINDINGS ?System {");
-			while(rawWrapper.hasNext()) {
-				waveSiteSystemBuilder.append("(<http://health.mil/ontologies/Concept/System/").append(rawWrapper.next().getValues()[0]).append(">)");
+			IRawSelectWrapper rawWrapper = null;
+			try {
+				rawWrapper  = WrapperManager.getInstance().getRawWrapper(tapCore, systemFilterQuery);
+				while(rawWrapper.hasNext()) {
+					waveSiteSystemBuilder.append("(<http://health.mil/ontologies/Concept/System/").append(rawWrapper.next().getValues()[0]).append(">)");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(rawWrapper != null) {
+					rawWrapper.cleanUp();
+				}
 			}
 			waveSiteSystemBuilder.append("}");
 			this.hpSystemFilterStr = waveSiteSystemBuilder.toString();
@@ -830,137 +874,145 @@ public class MhsGenesisDeploymentSavingsProcessor {
 					+ "} ORDER BY ?System ?Site";
 
 			for(String query : systemSiteSustainmentQueryArr) {
-				Iterator<IHeadersDataRow> rawWrapper = WrapperManager.getInstance().getRawWrapper(tapPortfolio, query);
-
-				// okay, just going to insert into a temp h2frame
-				// this will add everything as system, site, fy, and cost
-				// then i will do a series of queries to fill a new frame
-				// that will instead be system, site, fy1, fy2, .. fyn, and have the cost as the cell value
-				String[] tempHeaders = new String[]{"System", "Site", "FYTag", "Cost"};
-				Map<String, SemossDataType> tempDataType = new Hashtable<String, SemossDataType>();
-				tempDataType.put("System", SemossDataType.STRING);
-				tempDataType.put("Site", SemossDataType.STRING);
-				tempDataType.put("FYTag", SemossDataType.STRING);
-				tempDataType.put("Cost", SemossDataType.DOUBLE);
-				H2Frame tempFrame = new H2Frame(tempHeaders);
-				tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
-	
-				// get the list of all the systems we have cost data for
-				String tempFrameName = tempFrame.getName();
-				ResultSet rs = tempFrame.execQuery("SELECT DISTINCT System, Site FROM " + tempFrameName);
-				List<String> systemsSiteComboList = new Vector<String>();
+				IRawSelectWrapper rawWrapper = null;
 				try {
-					while(rs.next()) {
-						systemsSiteComboList.add(rs.getString(1) + "+++" + rs.getString(2));
-					}
-				} catch (SQLException e) {
-					e.printStackTrace();
-				} finally {
+					rawWrapper = WrapperManager.getInstance().getRawWrapper(tapPortfolio, query);
+					// okay, just going to insert into a temp h2frame
+					// this will add everything as system, site, fy, and cost
+					// then i will do a series of queries to fill a new frame
+					// that will instead be system, site, fy1, fy2, .. fyn, and have the cost as the cell value
+					String[] tempHeaders = new String[]{"System", "Site", "FYTag", "Cost"};
+					Map<String, SemossDataType> tempDataType = new Hashtable<String, SemossDataType>();
+					tempDataType.put("System", SemossDataType.STRING);
+					tempDataType.put("Site", SemossDataType.STRING);
+					tempDataType.put("FYTag", SemossDataType.STRING);
+					tempDataType.put("Cost", SemossDataType.DOUBLE);
+					H2Frame tempFrame = new H2Frame(tempHeaders);
+					tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
+
+					// get the list of all the systems we have cost data for
+					String tempFrameName = tempFrame.getName();
+					ResultSet rs = tempFrame.execQuery("SELECT DISTINCT System, Site FROM " + tempFrameName);
+					List<String> systemsSiteComboList = new Vector<String>();
 					try {
-						rs.close();
+						while(rs.next()) {
+							systemsSiteComboList.add(rs.getString(1) + "+++" + rs.getString(2));
+						}
+					} catch (SQLException e) {
+						e.printStackTrace();
+					} finally {
+						try {
+							rs.close();
+						} catch (SQLException e) {
+							e.printStackTrace();
+						}
+					}
+
+					try {
+						// loop through and create the appropriate query on the tempframe for each system
+						// and fill in the missing values using the inflation arr before inserting
+						final String baseSysQuery = "SELECT System, Site, FYTag, Cost FROM " + tempFrameName + " WHERE ";
+
+						int numSysSiteCombos = systemsSiteComboList.size();
+						for(int sysIndex = 0; sysIndex < numSysSiteCombos; sysIndex++) {
+							String[] systemSiteCombo = systemsSiteComboList.get(sysIndex).split("\\+\\+\\+");
+							String systemName = systemSiteCombo[0];
+							String siteName = systemSiteCombo[1];
+							LOGGER.info("Running query for system = " + systemName + " and site = " + siteName);
+							// this array will contain the values we want to insert into the 
+							// system cost frame
+							Object[] sysCostValues = new Object[systemSustainmentFrameSize];
+							sysCostValues[0] = systemName;
+							sysCostValues[1] = siteName;
+							String sysQuery = baseSysQuery + " SYSTEM = '" + systemName + "' AND SITE ='" + siteName + "';";
+							rs = tempFrame.execQuery(sysQuery);
+
+							// loop through the values and assign the appropriate values in the positions
+							while(rs.next()) {
+								String fy = rs.getString(3);
+								double cost = rs.getDouble(4);
+
+								// get the correct position to set in the
+								// sysCostValues array
+								int position = -1;
+								switch(fy) {
+								case "FY15" : position = 2; break;
+								case "FY16" : position = 3; break;
+								case "FY17" : position = 4; break;
+								case "FY18" : position = 5; break;
+								case "FY19" : position = 6; break;
+								case "FY20" : position = 7; break;
+								case "FY21" : position = 8; break;
+								case "FY22" : position = 9; break;
+								case "FY23" : position = 10; break;
+								case "FY24" : position = 11; break;
+								case "FY25" : position = 12; break;
+								case "FY26" : position = 13; break;
+								case "FY27" : position = 14; break;
+								case "FY28" : position = 15; break;
+								case "FY29" : position = 16; break;
+								case "FY30" : position = 17; break;
+								case "FY31" : position = 18; break;
+								case "FY32" : position = 19; break;
+								}
+
+								// if anything older than FY15, just ignore it
+								if(position == -1 || position >= systemSustainmentFrameSize) {
+									continue;
+								}
+
+								// assign the value in the array
+								sysCostValues[position] = cost;
+							}
+							// close the connection as we are making quite a few of them
+							rs.close();
+
+							// all the values in the array have been filled based on
+							// what sits in the cost databases
+							// now we will fill based on the inflation values that we have
+							// set values in array at index+1 since index 0 is system name
+							for(int inflationIndex = 0; inflationIndex < numFYs; inflationIndex++) {
+								// only need to update the values that we do not have
+								if(sysCostValues[inflationIndex+2] == null || ((Number) sysCostValues[inflationIndex+2]).intValue() == 0) {
+									// we got missing data!
+									if(inflationIndex == 0) {
+										// well, no cost info here, you are out of luck
+										sysCostValues[inflationIndex+2] = 0.0;
+									} else {
+										double previousFySysValue = ((Number) sysCostValues[inflationIndex+1]).doubleValue();
+										double savingsIn2015 = previousFySysValue / inflationArr[inflationIndex-1];
+										double inflatedSavings = savingsIn2015 * inflationArr[inflationIndex];
+										sysCostValues[inflationIndex+2] = inflatedSavings;
+									}
+								}
+							}
+
+							// okay, we are done accounting for inflation
+							// now we just need to insert the row
+							this.systemSiteSustainmentFrame.addRow(sysCostValues, headers);
+						}
+
+						// drop the intermediary temp frame
+						tempFrame.close();
 					} catch (SQLException e) {
 						e.printStackTrace();
 					}
-				}
 
-				try {
-					// loop through and create the appropriate query on the tempframe for each system
-					// and fill in the missing values using the inflation arr before inserting
-					final String baseSysQuery = "SELECT System, Site, FYTag, Cost FROM " + tempFrameName + " WHERE ";
-
-					int numSysSiteCombos = systemsSiteComboList.size();
-					for(int sysIndex = 0; sysIndex < numSysSiteCombos; sysIndex++) {
-						String[] systemSiteCombo = systemsSiteComboList.get(sysIndex).split("\\+\\+\\+");
-						String systemName = systemSiteCombo[0];
-						String siteName = systemSiteCombo[1];
-						LOGGER.info("Running query for system = " + systemName + " and site = " + siteName);
-						// this array will contain the values we want to insert into the 
-						// system cost frame
-						Object[] sysCostValues = new Object[systemSustainmentFrameSize];
-						sysCostValues[0] = systemName;
-						sysCostValues[1] = siteName;
-						String sysQuery = baseSysQuery + " SYSTEM = '" + systemName + "' AND SITE ='" + siteName + "';";
-						rs = tempFrame.execQuery(sysQuery);
-
-						// loop through the values and assign the appropriate values in the positions
-						while(rs.next()) {
-							String fy = rs.getString(3);
-							double cost = rs.getDouble(4);
-
-							// get the correct position to set in the
-							// sysCostValues array
-							int position = -1;
-							switch(fy) {
-							case "FY15" : position = 2; break;
-							case "FY16" : position = 3; break;
-							case "FY17" : position = 4; break;
-							case "FY18" : position = 5; break;
-							case "FY19" : position = 6; break;
-							case "FY20" : position = 7; break;
-							case "FY21" : position = 8; break;
-							case "FY22" : position = 9; break;
-							case "FY23" : position = 10; break;
-							case "FY24" : position = 11; break;
-							case "FY25" : position = 12; break;
-							case "FY26" : position = 13; break;
-							case "FY27" : position = 14; break;
-							case "FY28" : position = 15; break;
-							case "FY29" : position = 16; break;
-							case "FY30" : position = 17; break;
-							case "FY31" : position = 18; break;
-							case "FY32" : position = 19; break;
-							}
-
-							// if anything older than FY15, just ignore it
-							if(position == -1 || position >= systemSustainmentFrameSize) {
-								continue;
-							}
-
-							// assign the value in the array
-							sysCostValues[position] = cost;
-						}
-						// close the connection as we are making quite a few of them
-						rs.close();
-
-						// all the values in the array have been filled based on
-						// what sits in the cost databases
-						// now we will fill based on the inflation values that we have
-						// set values in array at index+1 since index 0 is system name
-						for(int inflationIndex = 0; inflationIndex < numFYs; inflationIndex++) {
-							// only need to update the values that we do not have
-							if(sysCostValues[inflationIndex+2] == null || ((Number) sysCostValues[inflationIndex+2]).intValue() == 0) {
-								// we got missing data!
-								if(inflationIndex == 0) {
-									// well, no cost info here, you are out of luck
-									sysCostValues[inflationIndex+2] = 0.0;
-								} else {
-									double previousFySysValue = ((Number) sysCostValues[inflationIndex+1]).doubleValue();
-									double savingsIn2015 = previousFySysValue / inflationArr[inflationIndex-1];
-									double inflatedSavings = savingsIn2015 * inflationArr[inflationIndex];
-									sysCostValues[inflationIndex+2] = inflatedSavings;
-								}
-							}
-						}
-
-						// okay, we are done accounting for inflation
-						// now we just need to insert the row
-						this.systemSiteSustainmentFrame.addRow(sysCostValues, headers);
+					// iterate through the results for testing
+					//			LOGGER.info("Testing data...");
+					//			Iterator<Object[]> it = this.systemSiteSustainmentFrame.iterator();
+					//			while(it.hasNext()) {
+					//				System.out.println(">>> " + Arrays.toString( it.next() ) );
+					//			}
+					//			LOGGER.info("Done iterating through system sustainment data");
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				} finally {
+					if(rawWrapper != null) {
+						rawWrapper.cleanUp();
 					}
-
-					// drop the intermediary temp frame
-					tempFrame.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
 				}
 			}
-
-			// iterate through the results for testing
-			//			LOGGER.info("Testing data...");
-			//			Iterator<Object[]> it = this.systemSiteSustainmentFrame.iterator();
-			//			while(it.hasNext()) {
-			//				System.out.println(">>> " + Arrays.toString( it.next() ) );
-			//			}
-			//			LOGGER.info("Done iterating through system sustainment data");
 		}
 	}
 

@@ -68,9 +68,10 @@ public abstract class AbstractTask implements ITask {
 	/**
 	 * Collect data from an iterator
 	 * Or return defined outputData
+	 * @throws Exception 
 	 */
 	@Override
-	public Map<String, Object> collect(boolean meta) {
+	public Map<String, Object> collect(boolean meta) throws Exception {
 		Map<String, Object> collectedData = new HashMap<String, Object>(10);
 		collectedData.put("data", getData());
 		if(meta) {
@@ -102,7 +103,12 @@ public abstract class AbstractTask implements ITask {
 			collectedData.put("taskOptions", this.taskOptions.getOptions());
 			collectedData.put("sortInfo", this.sortInfo);
 			collectedData.put("filterInfo", this.filterInfo);
-			long numRows = TaskUtility.getNumRows(this);
+			long numRows = 0;
+			try {
+				numRows = TaskUtility.getNumRows(this);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			if(numRows > 0) {
 				collectedData.put("numRows", numRows);
 			}
@@ -247,7 +253,7 @@ public abstract class AbstractTask implements ITask {
 	}
 	
 	@Override
-	public void optimizeQuery(int limit) {
+	public void optimizeQuery(int limit) throws Exception {
 		// this does nothing by default
 		// only makes sense for BasicIterator
 		// since we modify the QS to only return this many values
@@ -267,7 +273,7 @@ public abstract class AbstractTask implements ITask {
 	
 	// dummy method to avoid errors on creating cache
 	@Override
-	public RawCachedWrapper createCache() {
+	public RawCachedWrapper createCache() throws Exception {
 		return null;
 	}
 	

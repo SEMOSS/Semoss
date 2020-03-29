@@ -45,8 +45,9 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", newUser.getId()));
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", newUser.getEmail()));
 		qs.addExplicitFilter(orFilter);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				// this was the old id that was added when the admin 
 				String oldId = RdbmsQueryBuilder.escapeForSQLStatement(wrapper.next().getValues()[0].toString());
@@ -114,6 +115,8 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 					return true;
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			wrapper.cleanUp();
 		}
@@ -163,13 +166,18 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USER__NAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", userId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				return wrapper.next().getValues()[0].toString();
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		return null;
 	}
@@ -187,13 +195,18 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USER__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				return wrapper.next().getValues()[0].toString();
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		return null;
 
@@ -212,13 +225,18 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
 				return wrapper.next().getValues()[0].toString();
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		return null;
 	}
@@ -236,14 +254,19 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USER__NAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		try{
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				IHeadersDataRow sjss = wrapper.next();
 				return sjss.getValues()[0].toString();
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		return null;
 
@@ -270,19 +293,29 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("USER__PASSWORD"));
 		qs.addSelector(new QueryColumnSelector("USER__SALT"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		String[] names = wrapper.getHeaders();
-		if(wrapper.hasNext()) {
-			Object[] values = wrapper.next().getValues();
-			user.put(names[0], values[0].toString());
-			user.put(names[1], values[1].toString());
-			user.put(names[2], values[2].toString());
-			user.put(names[3], values[3].toString());
-			user.put(names[4], values[4].toString());
-			user.put(names[5], values[5].toString());
-			user.put(names[6], values[6].toString());
-			user.put(names[7], values[7].toString());
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			String[] names = wrapper.getHeaders();
+			if(wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				user.put(names[0], values[0].toString());
+				user.put(names[1], values[1].toString());
+				user.put(names[2], values[2].toString());
+				user.put(names[3], values[3].toString());
+				user.put(names[4], values[4].toString());
+				user.put(names[5], values[5].toString());
+				user.put(names[6], values[6].toString());
+				user.put(names[7], values[7].toString());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		return user;
 	}
 }

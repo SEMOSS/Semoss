@@ -119,8 +119,9 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	/**
 	 * Get the job input the reactor
 	 * @return
+	 * @throws Exception 
 	 */
-	protected Iterator getIterator() {
+	protected Iterator getIterator() throws Exception {
 		List<Object> tasks = this.curRow.getValuesOfType(PixelDataType.TASK);
 		if(tasks != null && tasks.size() > 0) {
 			BasicIteratorTask task = (BasicIteratorTask)tasks.get(0);

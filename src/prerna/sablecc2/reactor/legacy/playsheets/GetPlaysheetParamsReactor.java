@@ -161,15 +161,25 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 	 */
 	public List<Object> getRawValues(IEngine engine, String query) {
 		List<Object> ret = new Vector<Object>();
-		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
-		while(wrap.hasNext()) {
-			Object value = wrap.next().getRawValues()[0];
-			if(value instanceof Number) {
-				ret.add(value);
-			} else {
-				ret.add(value.toString());
+		IRawSelectWrapper wrap = null;
+		try {
+			wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
+			while(wrap.hasNext()) {
+				Object value = wrap.next().getRawValues()[0];
+				if(value instanceof Number) {
+					ret.add(value);
+				} else {
+					ret.add(value.toString());
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrap != null) {
+				wrap.cleanUp();
 			}
 		}
+		
 		return ret;
 	}
 }

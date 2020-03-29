@@ -23,11 +23,21 @@ public class TestRDBMSInsights {
 		
 		String query = "select * from customers";
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, query);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			System.out.println(Arrays.toString(row.getRawValues()));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, query);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				System.out.println(Arrays.toString(row.getRawValues()));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		
 		System.out.println(">>>>>>>>>>>>>");
 		System.out.println(">>>>>>>>>>>>>");
@@ -36,12 +46,17 @@ public class TestRDBMSInsights {
 
 		query = "select * from user_tables";
 		
-		wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, query);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			System.out.println(Arrays.toString(row.getRawValues()));
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, query);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				System.out.println(Arrays.toString(row.getRawValues()));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			wrapper.cleanUp();
 		}
-		
 		
 //		//TODO: put in correct path for your database
 //		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\test_this.smss";

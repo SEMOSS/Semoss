@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.lambda.map.MapLambdaReactor;
 
@@ -16,7 +17,7 @@ public class TaskUtility {
 		
 	}
 	
-	public static long getNumRows(ITask task) {
+	public static long getNumRows(ITask task) throws Exception {
 		if(task instanceof BasicIteratorTask) {
 			return ((BasicIteratorTask) task).getIterator().getNumRows();
 		} else if(task instanceof MapLambdaReactor){
@@ -119,8 +120,14 @@ public class TaskUtility {
 	 */
 	public static NounMetadata getTaskDataScalarElement(Object taskData) {
 		if(taskData instanceof ITask) {
-			Map<String, Object> collect = ((ITask) taskData).collect(false);
-			return TaskUtility.getTaskDataScalarElement(collect);
+			Map<String, Object> collect;
+			try {
+				collect = ((ITask) taskData).collect(false);
+				return TaskUtility.getTaskDataScalarElement(collect);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
 		}
 		//TODO: grab the type from the task data if present instead of doing the cast
 		if(taskData instanceof Map) {

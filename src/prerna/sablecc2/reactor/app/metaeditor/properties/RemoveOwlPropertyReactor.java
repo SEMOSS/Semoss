@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.app.metaeditor.properties;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -53,11 +52,21 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 					+ "{?s ?p ?o} "
 					+ "}";
 		
-			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-			while(it.hasNext()) {
-				IHeadersDataRow headerRows = it.next();
-				executeRemoveQuery(headerRows, owlEngine);
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+				while(it.hasNext()) {
+					IHeadersDataRow headerRows = it.next();
+					executeRemoveQuery(headerRows, owlEngine);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
 			}
+			
 		}
 		
 		// repeat for upstream of the property
@@ -68,10 +77,19 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 					+ "{?s ?p ?o} "
 					+ "}";
 		
-			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-			while(it.hasNext()) {
-				IHeadersDataRow headerRows = it.next();
-				executeRemoveQuery(headerRows, owlEngine);
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+				while(it.hasNext()) {
+					IHeadersDataRow headerRows = it.next();
+					executeRemoveQuery(headerRows, owlEngine);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
 			}
 		}
 		

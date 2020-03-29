@@ -2,7 +2,6 @@ package prerna.engine.api.impl.util;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -272,13 +271,22 @@ public class Owler extends AbstractOwler {
 				qs.addSelector(newSelector);
 				qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 
-				Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(queryEngine, qs);
-				if (!it.hasNext()) {
-					continue;
+				IRawSelectWrapper it = null;
+				try {
+					it = WrapperManager.getInstance().getRawWrapper(queryEngine, qs);
+					if (!it.hasNext()) {
+						continue;
+					}
+					long uniqueRows = ((Number) it.next().getValues()[0]).longValue();
+					String propertyPhysicalUri = queryEngine.getPhysicalUriFromPixelSelector(selectorPixel);
+					this.engine.addToBaseEngine(propertyPhysicalUri, uniqueCountProp, uniqueRows, false);
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(it != null) {
+						it.cleanUp();
+					}
 				}
-				long uniqueRows = ((Number) it.next().getValues()[0]).longValue();
-				String propertyPhysicalUri = queryEngine.getPhysicalUriFromPixelSelector(selectorPixel);
-				this.engine.addToBaseEngine(propertyPhysicalUri, uniqueCountProp, uniqueRows, false);
 			}
 		}
 
@@ -371,25 +379,42 @@ public class Owler extends AbstractOwler {
 			if (bindings.length() > 0) {
 				// get everything downstream of the props
 				{
-					String query = "select ?s ?p ?o where " + "{ " + "{?s ?p ?o} " + "} bindings ?s {"
-							+ bindings.toString() + "}";
+					String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?s {" + bindings.toString() + "}";
 
-					IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-					while (it.hasNext()) {
-						IHeadersDataRow headerRows = it.next();
-						executeRemoveQuery(headerRows, owlEngine);
+					IRawSelectWrapper it = null;
+					try {
+						it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+						while (it.hasNext()) {
+							IHeadersDataRow headerRows = it.next();
+							executeRemoveQuery(headerRows, owlEngine);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					} finally {
+						if(it != null) {
+							it.cleanUp();
+						}
 					}
+					
 				}
 
 				// repeat for upstream of prop
 				{
-					String query = "select ?s ?p ?o where " + "{ " + "{?s ?p ?o} " + "} bindings ?o {"
-							+ bindings.toString() + "}";
+					String query = "select ?s ?p ?o where { {?s ?p ?o} } bindings ?o {"	+ bindings.toString() + "}";
 
-					IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-					while (it.hasNext()) {
-						IHeadersDataRow headerRows = it.next();
-						executeRemoveQuery(headerRows, owlEngine);
+					IRawSelectWrapper it = null;
+					try {
+						it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+						while (it.hasNext()) {
+							IHeadersDataRow headerRows = it.next();
+							executeRemoveQuery(headerRows, owlEngine);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					} finally {
+						if(it != null) {
+							it.cleanUp();
+						}
 					}
 				}
 			}
@@ -399,27 +424,43 @@ public class Owler extends AbstractOwler {
 			// now repeat for the node itself
 			// remove everything downstream of the node
 			{
-				String query = "select ?s ?p ?o where " + "{ " + "bind(<" + conceptPhysical + "> as ?s) "
-						+ "{?s ?p ?o} " + "}";
+				String query = "select ?s ?p ?o where { bind(<" + conceptPhysical + "> as ?s) {?s ?p ?o} }";
 
-				IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-				while (it.hasNext()) {
-					hasTriple = true;
-					IHeadersDataRow headerRows = it.next();
-					executeRemoveQuery(headerRows, owlEngine);
+				IRawSelectWrapper it = null;
+				try {
+					it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+					while (it.hasNext()) {
+						hasTriple = true;
+						IHeadersDataRow headerRows = it.next();
+						executeRemoveQuery(headerRows, owlEngine);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(it != null) {
+						it.cleanUp();
+					}
 				}
 			}
 
 			// repeat for upstream of the node
 			{
-				String query = "select ?s ?p ?o where " + "{ " + "bind(<" + conceptPhysical + "> as ?o) "
-						+ "{?s ?p ?o} " + "}";
+				String query = "select ?s ?p ?o where { bind(<" + conceptPhysical + "> as ?o) {?s ?p ?o} }";
 
-				IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-				while (it.hasNext()) {
-					hasTriple = true;
-					IHeadersDataRow headerRows = it.next();
-					executeRemoveQuery(headerRows, owlEngine);
+				IRawSelectWrapper it = null;
+				try {
+					it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+					while (it.hasNext()) {
+						hasTriple = true;
+						IHeadersDataRow headerRows = it.next();
+						executeRemoveQuery(headerRows, owlEngine);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(it != null) {
+						it.cleanUp();
+					}
 				}
 			}
 
@@ -516,25 +557,39 @@ public class Owler extends AbstractOwler {
 
 		{
 			// remove everything downstream of the property
-			String downstreamQuery = "select ?s ?p ?o where " + "{ " + "bind(<" + property + "> as ?s) " + "{?s ?p ?o} "
-					+ "}";
-
-			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, downstreamQuery);
-			while (it.hasNext()) {
-				IHeadersDataRow headerRows = it.next();
-				executeRemoveQuery(headerRows, owlEngine);
+			String downstreamQuery = "select ?s ?p ?o where { bind(<" + property + "> as ?s) " + "{?s ?p ?o} }";
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(owlEngine, downstreamQuery);
+				while (it.hasNext()) {
+					IHeadersDataRow headerRows = it.next();
+					executeRemoveQuery(headerRows, owlEngine);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
 			}
 		}
 
 		{
 			// repeat for upstream of the property
-			String upstreamQuery = "select ?s ?p ?o where " + "{ " + "bind(<" + property + "> as ?o) " + "{?s ?p ?o} "
-					+ "}";
-
-			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, upstreamQuery);
-			while (it.hasNext()) {
-				IHeadersDataRow headerRows = it.next();
-				executeRemoveQuery(headerRows, owlEngine);
+			String upstreamQuery = "select ?s ?p ?o where { bind(<" + property + "> as ?o) {?s ?p ?o} }";
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(owlEngine, upstreamQuery);
+				while (it.hasNext()) {
+					IHeadersDataRow headerRows = it.next();
+					executeRemoveQuery(headerRows, owlEngine);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
 			}
 		}
 

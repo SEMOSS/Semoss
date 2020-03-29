@@ -7,6 +7,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -21,7 +22,12 @@ public class ResetTaskReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		// this just returns the task id
 		ITask task = getTask();
-		task.reset();
+		try {
+			task.reset();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		}
 		return new NounMetadata(task, PixelDataType.TASK, PixelOperationType.TASK);
 	}
 	

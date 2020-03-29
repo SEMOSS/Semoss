@@ -185,7 +185,11 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		
 		IImporter importer = ImportFactory.getImporter(frame, qs);
 		if(joinCols.isEmpty()) {
-			importer.insertData();
+			try {
+				importer.insertData();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		} else {
 //			importer.mergeData(joins);
 		}

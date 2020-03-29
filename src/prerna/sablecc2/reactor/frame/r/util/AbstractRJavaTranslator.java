@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.frame.r.util;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -15,7 +14,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -343,19 +342,28 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	public String generateRDataTableVariable(ITableDataFrame frame, SelectQueryStruct qs) {
 		String dfName = "f_" + Utility.getRandomString(10);
 
-		// use an iterator to get the instance values from the qs
-		// we will use these instance values to construct a new r data frame
-		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) frame.query(qs);
-		
 		// these stringbuilders will build the new r table and populate the
 		// table with the instance values
 		StringBuilder instanceValuesBuilder = new StringBuilder(); // this puts values into the frame we are constructing
-
+				
 		// build instance list
 		List<Object[]> instanceList = new ArrayList<Object[]>();
-		while (it.hasNext()) {
-			Object[] values = it.next().getRawValues();
-			instanceList.add(values);
+		
+		// use an iterator to get the instance values from the qs
+		// we will use these instance values to construct a new r data frame
+		IRawSelectWrapper it = null;
+		try {
+			it = frame.query(qs);
+			while (it.hasNext()) {
+				Object[] values = it.next().getRawValues();
+				instanceList.add(values);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
 
 		// now that we have the instance values, we can use them to build a string to populate the table that we will make in r

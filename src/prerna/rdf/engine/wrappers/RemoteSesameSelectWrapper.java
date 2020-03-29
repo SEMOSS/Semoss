@@ -50,7 +50,7 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 
 
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		System.out.println("Trying to get the wrapper remotely now");
 		remoteWrapperProxy = (SesameSelectWrapper)engine.execQuery(query);
 		this.headers = remoteWrapperProxy.headers;

@@ -83,7 +83,7 @@ public interface IEngine extends IExplorable {
 	 * @param query the string version of the SELECT query to be run against the engine
 	 * @return results specific to the engine type. Usually contained within ISelectWrapper
 	*/
-	public Object execQuery(String query);
+	public Object execQuery(String query) throws Exception;
 	
 	/**
 	 * Runs the passed string query against the engine as an insert query. Query must be in the structure that the specific engine implementation

@@ -360,11 +360,19 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			miniQ.append("bind(<").append(predURI).append("> as ?p)");
 			miniQ.append("{?s ?p ?o} }");
 
-			IRawSelectWrapper wrapper2 = WrapperManager.getInstance().getRawWrapper(this.engine, miniQ.toString());
 			boolean otherUris = false;
-			if(wrapper2.hasNext()) {
-				otherUris = true;
-				wrapper2.cleanUp();
+			IRawSelectWrapper wrapper2 = null;
+			try {
+				wrapper2 = WrapperManager.getInstance().getRawWrapper(this.engine, miniQ.toString());
+				if(wrapper2.hasNext()) {
+					otherUris = true;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper2 != null) {
+					wrapper2.cleanUp();
+				}
 			}
 			
 			if(!otherUris) {
@@ -545,8 +553,17 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 				+ "BIND(<" + origName + "> AS ?s)"
 				+ "{?s ?p ?o}"
 				+ "}";
-		IRawSelectWrapper upIt = WrapperManager.getInstance().getRawWrapper(this.engine , upQuery);
-		storeValues(upIt, upTriples);
+		IRawSelectWrapper upIt = null;
+		try {
+			upIt = WrapperManager.getInstance().getRawWrapper(this.engine , upQuery);
+			storeValues(upIt, upTriples);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(upIt != null) {
+				upIt.cleanUp();
+			}
+		}
 
 		// get all the objects
 		List<Object[]> downTriples = new Vector<Object[]>();
@@ -555,8 +572,17 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 				+ "{?s ?p ?o}"
 				+ "}";
 
-		IRawSelectWrapper downIt = WrapperManager.getInstance().getRawWrapper(this.engine , downQuery);
-		storeValues(downIt, downTriples);
+		IRawSelectWrapper downIt = null;
+		try {
+			downIt = WrapperManager.getInstance().getRawWrapper(this.engine , downQuery);
+			storeValues(downIt, downTriples);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(downIt != null) {
+				downIt.cleanUp();
+			}
+		}
 
 		// now go through and modify where necessary
 		deleteTriples(upTriples);
@@ -709,45 +735,54 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 				+ "{?i <" + userPropUri + "> ?u}"
 				+ "}";
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(this.engine, getPrevValuesQuery);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] uris = row.getRawValues();
-			Object[] clean = row.getValues();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(this.engine, getPrevValuesQuery);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] uris = row.getRawValues();
+				Object[] clean = row.getValues();
 
-			Object[] statement = new Object[4];
-			statement[0] = uris[0];
-			statement[1] = versionPropUri;
-			// for properties, always grab clean output
-			// otherwise, you will get double quotes around stuff
-			statement[2] = clean[1];
-			statement[3] = false;
-			this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
-			// audit
-			currTime = DATE_DF.format(cal.getTime());
-			addAuditLog(REMOVE, statement[0].toString(), "", "", statement[1].toString(), statement[2].toString(), currTime);
+				Object[] statement = new Object[4];
+				statement[0] = uris[0];
+				statement[1] = versionPropUri;
+				// for properties, always grab clean output
+				// otherwise, you will get double quotes around stuff
+				statement[2] = clean[1];
+				statement[3] = false;
+				this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
+				// audit
+				currTime = DATE_DF.format(cal.getTime());
+				addAuditLog(REMOVE, statement[0].toString(), "", "", statement[1].toString(), statement[2].toString(), currTime);
 
-			// repeat for all the props
-			statement[1] = timePropUri;
-			if(clean[2] instanceof SemossDate) {
-				statement[2] = ((SemossDate) clean[2]).getDate();
-			} else {
-				statement[2] = clean[2];
+				// repeat for all the props
+				statement[1] = timePropUri;
+				if(clean[2] instanceof SemossDate) {
+					statement[2] = ((SemossDate) clean[2]).getDate();
+				} else {
+					statement[2] = clean[2];
+				}
+				this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
+				// audit
+				currTime = DATE_DF.format(cal.getTime());
+				addAuditLog(REMOVE, statement[0].toString(), "", "", statement[1].toString(), statement[2].toString(), currTime);
+
+				statement[1] = userPropUri;
+				statement[2] = clean[3];
+				this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
+				// audit
+				currTime = DATE_DF.format(cal.getTime());
+				addAuditLog(REMOVE, statement[0].toString(), "", "", statement[1].toString(), statement[2].toString(), currTime);
+
+				// get the old version so we can update it
+				oldVersion = Double.parseDouble(clean[1] + "");
 			}
-			this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
-			// audit
-			currTime = DATE_DF.format(cal.getTime());
-			addAuditLog(REMOVE, statement[0].toString(), "", "", statement[1].toString(), statement[2].toString(), currTime);
-
-			statement[1] = userPropUri;
-			statement[2] = clean[3];
-			this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
-			// audit
-			currTime = DATE_DF.format(cal.getTime());
-			addAuditLog(REMOVE, statement[0].toString(), "", "", statement[1].toString(), statement[2].toString(), currTime);
-
-			// get the old version so we can update it
-			oldVersion = Double.parseDouble(clean[1] + "");
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 
 		// 2)  add new values

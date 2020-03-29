@@ -820,6 +820,58 @@ public abstract class AbstractSqlQueryUtil {
 	}
 	
 	/**
+	 * Test on the connection if a table exists
+	 * Assumption that the conn and sql util are of same type
+	 * @param engine
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	public boolean tableExists(IEngine engine, String tableName, String schema) {
+		String query = this.tableExistsQuery(tableName, schema);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Helper method to see if an index exists based on Query Utility class
+	 * @param queryUtil
+	 * @param indexName
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	public boolean indexExists(IEngine engine, String indexName, String tableName, String schema) {
+		String indexCheckQ = this.getIndexDetails(indexName, tableName, schema);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, indexCheckQ);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			wrapper.cleanUp();
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * Get all the table columns
 	 * Will return them all upper cased
 	 * @param conn

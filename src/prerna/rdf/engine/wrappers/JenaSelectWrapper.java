@@ -118,7 +118,7 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 	}
 
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		rs = (ResultSet) engine.execQuery(query);		
 	}
 	

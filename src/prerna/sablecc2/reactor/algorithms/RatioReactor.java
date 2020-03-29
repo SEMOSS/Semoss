@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,7 +18,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.h2.H2Frame;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -365,13 +364,24 @@ public class RatioReactor extends AbstractFrameReactor {
 			colSelector.setColumn(null);
 		}
 		qs.addSelector(colSelector);
-		// execute query to get all the unique values
-		Iterator<IHeadersDataRow> it = frame.query(qs);
+		
 		Set<Object> instancValues = new HashSet<Object>();
-		// flush out the unique values
-		while (it.hasNext()) {
-			instancValues.add(it.next().getRawValues()[0]);
+		// execute query to get all the unique values
+		IRawSelectWrapper it = null;
+		try {
+			it = frame.query(qs);
+			// flush out the unique values
+			while (it.hasNext()) {
+				instancValues.add(it.next().getRawValues()[0]);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
 		}
+		
 		List<Object> instanceValuesList = new Vector<Object>();
 		instanceValuesList.addAll(instancValues);		
 
@@ -393,13 +403,23 @@ public class RatioReactor extends AbstractFrameReactor {
 		qs.addSelector(colSelector);
 		SimpleQueryFilter instanceFilter = new SimpleQueryFilter(new NounMetadata(new QueryColumnSelector(instanceColumn), PixelDataType.COLUMN), "==", new NounMetadata(sourceInstance, PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(instanceFilter);
-		Iterator<IHeadersDataRow> it = frame.query(qs);
-		while (it.hasNext()) {
-			Object val = it.next().getValues()[0];
-			if(val != null) {
-				uniqueAttributes.add(val.toString());
+		IRawSelectWrapper it = null;
+		try {
+			it = frame.query(qs);
+			while (it.hasNext()) {
+				Object val = it.next().getValues()[0];
+				if(val != null) {
+					uniqueAttributes.add(val.toString());
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
 			}
 		}
+		
 		return uniqueAttributes;
 	}
 

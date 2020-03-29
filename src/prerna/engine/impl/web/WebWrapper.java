@@ -13,7 +13,7 @@ public class WebWrapper extends JsonWrapper {
 	private List<String[]> rows = null;
 	
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		// sorry for the bad way to transport data
 		Hashtable output = (Hashtable)engine.execQuery(query);
 		rows = (List)output.get("ROWS");

@@ -80,7 +80,7 @@ public class InsightCachingTest {
 		}
 	}
 	
-	public static void printInsightDetails(Insight in) {
+	public static void printInsightDetails(Insight in) throws Exception {
 		VarStore newVarStore = in.getVarStore();
 		Set<String> keys = newVarStore.getKeys();
 		System.out.println("VarStore");

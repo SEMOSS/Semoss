@@ -95,17 +95,22 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 					columnNamesList.add(colName);
 				
 					List<String> colValues = new Vector<String>();
-					IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(app, getMostOccuringSingleColumnNonEmptyQs(tableName + "__" + colName, 5));
+					IRawSelectWrapper wrapper = null;
 					try {
+						wrapper = WrapperManager.getInstance().getRawWrapper(app, getMostOccuringSingleColumnNonEmptyQs(tableName + "__" + colName, 5));
 						while(wrapper.hasNext()) {
 							String value = wrapper.next().getValues()[0].toString();
 							if(value.contains("\"")) {
 								value = value.replace("\"", "\\\\\"");
 							}
 							colValues.add(value);
-						} 
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
 					} finally {
-						wrapper.cleanUp();
+						if(wrapper != null) {
+							wrapper.cleanUp();
+						}
 					}
 					sampleInstances.add(colValues);
 				}

@@ -14,6 +14,7 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
@@ -94,9 +95,6 @@ public class PurgeReactor extends AbstractFrameReactor {
 		else {
 			logger.info("Running generic purge logic");
 
-			// go through generic logic
-			IRawSelectWrapper it = frame.query(qs);
-			
 			// new frame
 			String frameType = FrameFactory.getFrameType(frame);
 			try {
@@ -105,9 +103,17 @@ public class PurgeReactor extends AbstractFrameReactor {
 				throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
 			}
 			// insert the data for the new frame
-			IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
-			importer.insertData();		
-			
+			// go through generic logic
+			IRawSelectWrapper it;
+			try {
+				it = frame.query(qs);
+				IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
+				importer.insertData();
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
+
 			NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 			// see if this is overriding any reference
 			VarStore varStore = this.insight.getVarStore();

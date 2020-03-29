@@ -45,7 +45,7 @@ public class RemoteSesameConstructWrapper extends AbstractWrapper implements ICo
 
 
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		remoteWrapperProxy = (SesameConstructWrapper)engine.execQuery(query);
 	}
 

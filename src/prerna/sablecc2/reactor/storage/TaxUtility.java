@@ -26,13 +26,17 @@ public class TaxUtility {
 		String filterQuery = getInFilter(aliasList);
 
 		Map<String, String> aliasHashMap = new Hashtable<String, String>();
-		// execute the query on both databases
-		String sql = "SELECT ALIAS_1, HASHCODE FROM INPUTCSV WHERE ALIAS_1 " + filterQuery;
-		execAliasToHashCodeQuery(Utility.getEngine("MinInput"), sql, aliasHashMap);
-		sql = "SELECT ALIAS_1, HASHCODE FROM IMPACTCSV WHERE ALIAS_1 " + filterQuery;
-		execAliasToHashCodeQuery(Utility.getEngine("MinImpact"), sql, aliasHashMap);
-		sql = "SELECT ALIAS_1, HASHCODE FROM OUTPUTCSV WHERE ALIAS_1 " + filterQuery;
-		execAliasToHashCodeQuery(Utility.getEngine("MinOutput"), sql, aliasHashMap);
+		try {
+			// execute the query on both databases
+			String sql = "SELECT ALIAS_1, HASHCODE FROM INPUTCSV WHERE ALIAS_1 " + filterQuery;
+			execAliasToHashCodeQuery(Utility.getEngine("MinInput"), sql, aliasHashMap);
+			sql = "SELECT ALIAS_1, HASHCODE FROM IMPACTCSV WHERE ALIAS_1 " + filterQuery;
+			execAliasToHashCodeQuery(Utility.getEngine("MinImpact"), sql, aliasHashMap);
+			sql = "SELECT ALIAS_1, HASHCODE FROM OUTPUTCSV WHERE ALIAS_1 " + filterQuery;
+			execAliasToHashCodeQuery(Utility.getEngine("MinOutput"), sql, aliasHashMap);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		return aliasHashMap;
 	}
@@ -42,8 +46,9 @@ public class TaxUtility {
 	 * @param engine
 	 * @param sql
 	 * @param aliasHashMap
+	 * @throws Exception 
 	 */
-	private static void execAliasToHashCodeQuery(IEngine engine, String sql, Map<String, String> aliasHashMap) {
+	private static void execAliasToHashCodeQuery(IEngine engine, String sql, Map<String, String> aliasHashMap) throws Exception {
 		if(engine == null) {
 			return;
 		}
@@ -99,7 +104,7 @@ public class TaxUtility {
 		return sql.toString();
 	}
 	
-	public static double getLatestVersionForScenario(IEngine engine, String clientID, double scenarioID) {
+	public static double getLatestVersionForScenario(IEngine engine, String clientID, double scenarioID) throws Exception {
 		double scenarioRet = 1.0;
 		String sql = "SELECT VERSION FROM INPUTCSV WHERE CLIENT_ID='" + "' AND SCENARIO=" + scenarioID + " ORDER BY VERSION DESC LIMIT 1";
 		Map<String, Object> queryRet = (Map<String, Object>)engine.execQuery(sql);

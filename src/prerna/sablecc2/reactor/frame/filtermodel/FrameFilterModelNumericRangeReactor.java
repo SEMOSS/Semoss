@@ -1,12 +1,11 @@
 package prerna.sablecc2.reactor.frame.filtermodel;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -83,22 +82,55 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 
 			// get the absolute min when no filters are present
 			Map<String, Object> minMaxMap = new HashMap<String, Object>();
-			Iterator<IHeadersDataRow> it = dataframe.query(mathQS);
-			minMaxMap.put("absMin", it.next().getValues()[0]);
+			IRawSelectWrapper it = null;
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("absMin", it.next().getValues()[0]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 			// get the abs max when no filters are present
 			mathSelector.setFunction(QueryFunctionHelper.MAX);
-			it = dataframe.query(mathQS);
-			minMaxMap.put("absMax", it.next().getValues()[0]);
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("absMax", it.next().getValues()[0]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 
 			// add in the filters now and repeat
 			mathQS.setExplicitFilters(baseFilters);
 			// run for actual max
-			it = dataframe.query(mathQS);
-			minMaxMap.put("max", it.next().getValues()[0]);
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("max", it.next().getValues()[0]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 			// run for actual min
 			mathSelector.setFunction(QueryFunctionHelper.MIN);
-			it = dataframe.query(mathQS);
-			minMaxMap.put("min", it.next().getValues()[0]);
+			try {
+				it = dataframe.query(mathQS);
+				minMaxMap.put("min", it.next().getValues()[0]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 
 			retMap.put("minMax", minMaxMap);
 		}

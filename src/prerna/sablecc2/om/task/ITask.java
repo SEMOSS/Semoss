@@ -21,8 +21,9 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	 * @param numRecordsToGet
 	 * @param meta
 	 * @return
+	 * @throws Exception 
 	 */
-	Map<String, Object> collect(boolean meta);
+	Map<String, Object> collect(boolean meta) throws Exception;
 	
 	Map<String, Object> getMetaMap();
 	
@@ -66,16 +67,16 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	
 	void setLogger(Logger logger);
 	
-	void optimizeQuery(int limit);
+	void optimizeQuery(int limit) throws Exception;
 	
 	boolean isOptimized();
 	
 	void toOptimize(boolean toOptimize);
 	
-	void reset();
+	void reset() throws Exception;
 	
 	// creates a cache object to be utilized
-	RawCachedWrapper createCache();
+	RawCachedWrapper createCache() throws Exception;
 	
 	// get the pragma being set
 	String getPragma(String key);

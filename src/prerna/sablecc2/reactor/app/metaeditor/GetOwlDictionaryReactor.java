@@ -65,67 +65,75 @@ public class GetOwlDictionaryReactor extends AbstractMetaEditorReactor {
 		
 		Map<String, Map<String, Object>> results = new HashMap<String, Map<String, Object>>();
 				
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] raw = row.getRawValues();
-			Object[] clean = row.getValues();
-			
-			String uri = raw[0].toString();
-			String tableName = Utility.getInstanceName(uri);
-			String columnName = Utility.getClassName(uri);
-			
-			// get the other values
-			String description = clean[1].toString();
-			String logical = clean[2].toString();
-			String type = clean[3].toString();
-			
-			if(results.containsKey(uri)) {
-				// table, column, primkey, dataType will not change
-				// just appending to the description and logical names
-				Map<String, Object> record = results.get(uri);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] raw = row.getRawValues();
+				Object[] clean = row.getValues();
 				
-				List<String> descArr = (List<String>) record.get("description");
-				if(description != null && !description.isEmpty() && !descArr.contains(description)) {
-					descArr.add(description);
-				}
+				String uri = raw[0].toString();
+				String tableName = Utility.getInstanceName(uri);
+				String columnName = Utility.getClassName(uri);
 				
-				List<String> logicalArr = (List<String>) record.get("logical");
-				if(logical != null && !logical.isEmpty() && !logicalArr.contains(logical)) {
-					logicalArr.add(logical);
-				}
-			} else {
-				Map<String, Object> record = new HashMap<String, Object>();
-				record.put("table", tableName);
-				record.put("column", columnName);
-				if(uri.startsWith("http://semoss.org/ontologies/Concept")) {
-					record.put("isPrimKey", true);
+				// get the other values
+				String description = clean[1].toString();
+				String logical = clean[2].toString();
+				String type = clean[3].toString();
+				
+				if(results.containsKey(uri)) {
+					// table, column, primkey, dataType will not change
+					// just appending to the description and logical names
+					Map<String, Object> record = results.get(uri);
+					
+					List<String> descArr = (List<String>) record.get("description");
+					if(description != null && !description.isEmpty() && !descArr.contains(description)) {
+						descArr.add(description);
+					}
+					
+					List<String> logicalArr = (List<String>) record.get("logical");
+					if(logical != null && !logical.isEmpty() && !logicalArr.contains(logical)) {
+						logicalArr.add(logical);
+					}
 				} else {
-					record.put("isPrimKey", false);
-				}
-				record.put("dataType", type.replace("TYPE:", ""));
+					Map<String, Object> record = new HashMap<String, Object>();
+					record.put("table", tableName);
+					record.put("column", columnName);
+					if(uri.startsWith("http://semoss.org/ontologies/Concept")) {
+						record.put("isPrimKey", true);
+					} else {
+						record.put("isPrimKey", false);
+					}
+					record.put("dataType", type.replace("TYPE:", ""));
 
-				List<String> descArr = new Vector<String>();
-				if(description != null && !description.isEmpty()) {
-					descArr.add(description);
+					List<String> descArr = new Vector<String>();
+					if(description != null && !description.isEmpty()) {
+						descArr.add(description);
+					}
+					record.put("description", descArr);
+					
+					List<String> logicalArr = new Vector<String>();
+					if(logical != null && !logical.isEmpty()) {
+						logicalArr.add(logical);
+					}
+					record.put("logical", logicalArr);
+					
+					// store
+					results.put(uri, record);
 				}
-				record.put("description", descArr);
-				
-				List<String> logicalArr = new Vector<String>();
-				if(logical != null && !logical.isEmpty()) {
-					logicalArr.add(logical);
-				}
-				record.put("logical", logicalArr);
-				
-				// store
-				results.put(uri, record);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 		
 		// need to order the information
 		List<Map<String, Object>> values = new Vector<Map<String, Object>>(results.values());
 		Collections.sort(values, new Comparator<Map<String, Object>>(){
-
 			@Override
 			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
 				// going to first order by table

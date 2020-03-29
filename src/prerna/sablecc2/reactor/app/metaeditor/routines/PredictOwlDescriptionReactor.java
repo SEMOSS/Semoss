@@ -80,13 +80,22 @@ public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		
 		if(dataType == SemossDataType.STRING) {
 			logger.info("Grabbing most popular instances to use for searching...");
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getMostOccuringSingleColumnNonEmptyQs(qsName, 10));
-			while(wrapper.hasNext()) {
-				Object value = wrapper.next().getValues()[0];
-				if(value == null || value.toString().isEmpty()) {
-					continue;
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(engine, getMostOccuringSingleColumnNonEmptyQs(qsName, 10));
+				while(wrapper.hasNext()) {
+					Object value = wrapper.next().getValues()[0];
+					if(value == null || value.toString().isEmpty()) {
+						continue;
+					}
+					values.add(value.toString());
 				}
-				values.add(value.toString());
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
 			logger.info("Done grabbing must popular instances");
 		}

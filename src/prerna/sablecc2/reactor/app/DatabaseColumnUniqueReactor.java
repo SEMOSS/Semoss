@@ -17,6 +17,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
@@ -68,9 +69,18 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 				qs1.addSelector(columnSelector);
 			}
 			
-			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, qs1);
-			nRow = it.getNumRecords() / columnNames.size();
-			it.cleanUp();
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(engine, qs1);
+				nRow = it.getNumRows();
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 		}
 
 		{
@@ -88,9 +98,18 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 				qs2.addSelector(columnSelector);
 			}
 			
-			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
-			uniqueNRow = it.getNumRecords() / columnNames.size();
-			it.cleanUp();
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+				uniqueNRow = it.getNumRows();
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
 		}
 		
 		// if they are not equal, we have duplicates!
