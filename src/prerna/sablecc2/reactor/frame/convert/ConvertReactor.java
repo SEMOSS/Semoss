@@ -47,13 +47,18 @@ public class ConvertReactor extends AbstractFrameReactor {
 						new NounMetadata("Error occured executing query before loading into frame", 
 								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
-			if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
-				SemossPixelException exception = new SemossPixelException(
-						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-								PixelDataType.CONST_STRING, 
-								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
+			try {
+				if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
+					SemossPixelException exception = new SemossPixelException(
+							new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+									PixelDataType.CONST_STRING, 
+									PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+					exception.setContinueThreadOfExecution(false);
+					throw exception;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(getError("Error occured executing query before loading into frame"));
 			}
 		}
 		
@@ -73,7 +78,12 @@ public class ConvertReactor extends AbstractFrameReactor {
 		}
 		// insert the data for the new frame
 		IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
-		importer.insertData();
+		try {
+			importer.insertData();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		}
 		
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		// see if this is overriding any reference

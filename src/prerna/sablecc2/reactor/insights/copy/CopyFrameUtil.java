@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.insights.copy;
 
-import java.io.IOException;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -38,9 +37,9 @@ public class CopyFrameUtil {
 	 * @param frameToCopy
 	 * @param limit
 	 * @return
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	public static ITableDataFrame copyFrame(Insight insightContext, ITableDataFrame frameToCopy, int limit) throws IOException {
+	public static ITableDataFrame copyFrame(Insight insightContext, ITableDataFrame frameToCopy, int limit) throws Exception {
 		String oldName = frameToCopy.getName();
 
 		// one thing that is consistent across all frames

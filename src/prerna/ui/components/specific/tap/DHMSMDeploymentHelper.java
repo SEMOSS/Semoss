@@ -463,8 +463,9 @@ public final class DHMSMDeploymentHelper {
 	 * @param engine
 	 * @param includeIOC
 	 * @return
+	 * @throws Exception 
 	 */
-	public static ArrayList<String> getRegionOrder(IEngine engine,Boolean includeIOC) {
+	public static ArrayList<String> getRegionOrder(IEngine engine,Boolean includeIOC) throws Exception {
 
 		ArrayList<String> regionOrder = new ArrayList<String>();
 		if(includeIOC) {

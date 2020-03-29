@@ -54,10 +54,19 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 						+ "{?s ?p ?o} "
 						+ "} bindings ?s {" + bindings.toString() + "}";
 			
-				IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-				while(it.hasNext()) {
-					IHeadersDataRow headerRows = it.next();
-					executeRemoveQuery(headerRows, owlEngine);
+				IRawSelectWrapper it = null;
+				try {
+					it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+					while(it.hasNext()) {
+						IHeadersDataRow headerRows = it.next();
+						executeRemoveQuery(headerRows, owlEngine);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(it != null) {
+						it.cleanUp();
+					}
 				}
 			}
 			
@@ -68,10 +77,19 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 						+ "{?s ?p ?o} "
 						+ "} bindings ?o {" + bindings.toString() + "}";
 			
-				IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-				while(it.hasNext()) {
-					IHeadersDataRow headerRows = it.next();
-					executeRemoveQuery(headerRows, owlEngine);
+				IRawSelectWrapper it = null;
+				try {
+					it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+					while(it.hasNext()) {
+						IHeadersDataRow headerRows = it.next();
+						executeRemoveQuery(headerRows, owlEngine);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					if(it != null) {
+						it.cleanUp();
+					}
 				}
 			}
 		}
@@ -87,11 +105,20 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 					+ "{?s ?p ?o} "
 					+ "}";
 		
-			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-			while(it.hasNext()) {
-				hasTriple = true;
-				IHeadersDataRow headerRows = it.next();
-				executeRemoveQuery(headerRows, owlEngine);
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+				while(it.hasNext()) {
+					hasTriple = true;
+					IHeadersDataRow headerRows = it.next();
+					executeRemoveQuery(headerRows, owlEngine);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
 			}
 		}
 		
@@ -103,11 +130,20 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 					+ "{?s ?p ?o} "
 					+ "}";
 		
-			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
-			while(it.hasNext()) {
-				hasTriple = true;
-				IHeadersDataRow headerRows = it.next();
-				executeRemoveQuery(headerRows, owlEngine);
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
+				while(it.hasNext()) {
+					hasTriple = true;
+					IHeadersDataRow headerRows = it.next();
+					executeRemoveQuery(headerRows, owlEngine);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
 			}
 		}
 		

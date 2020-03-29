@@ -68,8 +68,9 @@ public class ImportSizeRetrictions {
 	 * @param frame
 	 * @param it
 	 * @return
+	 * @throws Exception 
 	 */
-	public static boolean importWithinLimit(ITableDataFrame frame, IRawSelectWrapper it) {
+	public static boolean importWithinLimit(ITableDataFrame frame, IRawSelectWrapper it) throws Exception {
 		if(!SIZE_RESTRICTED || frame instanceof NativeFrame) {
 			// no restriction
 			// or
@@ -102,8 +103,9 @@ public class ImportSizeRetrictions {
 	 * @param frame
 	 * @param it
 	 * @return
+	 * @throws Exception 
 	 */
-	public static boolean mergeWithinLimit(ITableDataFrame frame, IRawSelectWrapper it) {
+	public static boolean mergeWithinLimit(ITableDataFrame frame, IRawSelectWrapper it) throws Exception {
 		if(!SIZE_RESTRICTED || frame instanceof NativeFrame) {
 			// no restriction
 			// or

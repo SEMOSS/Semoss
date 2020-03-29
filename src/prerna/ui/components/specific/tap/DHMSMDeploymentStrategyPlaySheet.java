@@ -154,7 +154,11 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	 */
 	public void createParamPanel()
 	{
-		queryRegions();
+		try {
+			queryRegions();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		if(regionOrder.isEmpty()) {
 			Utility.showError("Cannot find regions in TAP Site");
@@ -501,8 +505,9 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	 * makes a list of all the regions that will need to be included.
 	 * returns them in order of deployment
 	 * filters out IOC.
+	 * @throws Exception 
 	 */
-	private void queryRegions() {
+	private void queryRegions() throws Exception {
 		regionOrder = DHMSMDeploymentHelper.getRegionOrder(engine, true);
 		regionWaveHash = DHMSMDeploymentHelper.getWavesInRegion(engine);
 		waveOrder = DHMSMDeploymentHelper.getWaveOrder(engine);
@@ -800,7 +805,11 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		Hashtable returnHash = new Hashtable();
 		Hashtable dataHash = new Hashtable();
 		//query and set the default playsheet values
-		queryRegions();
+		try {
+			queryRegions();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		if(regionOrder.isEmpty()) {
 			Utility.showError("Cannot find regions in TAP Site");
 		}
@@ -832,7 +841,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		return returnHash;
 	}
 	
-	public Hashtable refreshReport(Hashtable webDataHash, boolean defaultValuesSelected) {
+	public Hashtable refreshReport(Hashtable webDataHash, boolean defaultValuesSelected) throws Exception {
 //		Hashtable returnHash = (Hashtable) super.getData();
 		Hashtable returnHash = getDataMakerOutput();
 		Hashtable dataHash = new Hashtable();
@@ -869,12 +878,12 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		return returnHash;		
 	};
 	
-	public Hashtable refreshDataRegion(Hashtable<String, Object> webDataHash) {
+	public Hashtable refreshDataRegion(Hashtable<String, Object> webDataHash) throws Exception {
         Hashtable retHash = this.refreshReport(webDataHash, false);
 		return retHash;
 	}
 	
-	public Hashtable refreshDataDeployment(Hashtable<String, Object> webDataHash) {
+	public Hashtable refreshDataDeployment(Hashtable<String, Object> webDataHash) throws Exception {
         Hashtable retHash = this.refreshReport(webDataHash, true);
 		return retHash;
 	}

@@ -59,7 +59,7 @@ public class SesameConstructWrapper extends AbstractWrapper implements IConstruc
 	}
 
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		gqr = (GraphQueryResult)engine.execQuery(this.query);
 	}
 

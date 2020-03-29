@@ -210,25 +210,33 @@ String query = "SELECT DISTINCT ?sys (COALESCE(?cost,0) AS ?Cost) WHERE {{?sys <
 				systemGarrisonArr[i] = 0;
 		}
 
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(systemEngine, query);
-		
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
-		while(wrapper.hasNext())
-		{
-			ISelectStatement sjss = wrapper.next();
-			String sysName = (String)sjss.getVar(names[0]);
-			int rowIndex = sysList.indexOf(sysName);
-			if(rowIndex>-1) {
-				String theatGarr = (String)sjss.getVar(names[1]);
-				theatGarr = theatGarr.toLowerCase();
-				//if(systemTheater!=null && (theatGarr.contains("both")||theatGarr.contains("theater")))
-				if(includeTheater && (!theatGarr.contains("garrison") || theatGarr.contains("and")))
-					systemTheaterArr[rowIndex] = 1;
+		ISelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getSWrapper(systemEngine, query);
+			String[] names = wrapper.getVariables();
+			// now get the bindings and generate the data
+			while(wrapper.hasNext())
+			{
+				ISelectStatement sjss = wrapper.next();
+				String sysName = (String)sjss.getVar(names[0]);
+				int rowIndex = sysList.indexOf(sysName);
+				if(rowIndex>-1) {
+					String theatGarr = (String)sjss.getVar(names[1]);
+					theatGarr = theatGarr.toLowerCase();
+					//if(systemTheater!=null && (theatGarr.contains("both")||theatGarr.contains("theater")))
+					if(includeTheater && (!theatGarr.contains("garrison") || theatGarr.contains("and")))
+						systemTheaterArr[rowIndex] = 1;
 
-				//if(systemGarrison!=null && (theatGarr.contains("both")||theatGarr.contains("garrison")))
-				if(includeGarrison && (!theatGarr.contains("theater") || theatGarr.contains("and")))
-					systemGarrisonArr[rowIndex] = 1;
+					//if(systemGarrison!=null && (theatGarr.contains("both")||theatGarr.contains("garrison")))
+					if(includeGarrison && (!theatGarr.contains("theater") || theatGarr.contains("and")))
+						systemGarrisonArr[rowIndex] = 1;
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 	}
@@ -245,16 +253,15 @@ String query = "SELECT DISTINCT ?sys (COALESCE(?cost,0) AS ?Cost) WHERE {{?sys <
 	}	
 	
 	private double[] createArrayFromQuery(IEngine engine, String query, ArrayList<String> rowNames) {
-
 		double[] arr = new double[rowNames.size()];
 		Arrays.fill(arr, 0);
-		
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-		
-		// get the bindings from it
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
+
+		ISelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			// get the bindings from it
+			String[] names = wrapper.getVariables();
+			// now get the bindings and generate the data
 			while(wrapper.hasNext())
 			{
 				ISelectStatement sjss = wrapper.next();
@@ -262,23 +269,28 @@ String query = "SELECT DISTINCT ?sys (COALESCE(?cost,0) AS ?Cost) WHERE {{?sys <
 				int rowIndex = rowNames.indexOf(rowName);
 				if(rowIndex>-1)
 				{
-						Object val = sjss.getVar(names[1]);
-						if(val instanceof Double)
-							arr[rowIndex]= (Double)val;
-						if(val instanceof Integer)
-							arr[rowIndex]= ((Integer)val) * 1.0;
-						else if(val instanceof String) {
-							try {
-								arr[rowIndex]= Double.parseDouble((String)val);
-							}catch(NumberFormatException e){
-								logger.info("Could not obtain value for " + rowName + " for value " + names[1]);
-							}
+					Object val = sjss.getVar(names[1]);
+					if(val instanceof Double)
+						arr[rowIndex]= (Double)val;
+					if(val instanceof Integer)
+						arr[rowIndex]= ((Integer)val) * 1.0;
+					else if(val instanceof String) {
+						try {
+							arr[rowIndex]= Double.parseDouble((String)val);
+						}catch(NumberFormatException e){
+							logger.info("Could not obtain value for " + rowName + " for value " + names[1]);
 						}
+					}
 				}
 			}
-		} catch (RuntimeException e) {
-			logger.fatal(e);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+
 		return arr;
 	}
 	

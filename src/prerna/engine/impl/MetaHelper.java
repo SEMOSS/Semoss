@@ -206,11 +206,21 @@ public class MetaHelper implements IExplorable {
 	@Override
 	public String getNodeBaseUri() {
 		String baseUri = null;
-		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, GET_BASE_URI_FROM_OWL);
-		if(wrap.hasNext()) {
-			IHeadersDataRow data = wrap.next();
-			baseUri = data.getRawValues()[0] + "";
+		IRawSelectWrapper wrap = null;
+		try {
+			wrap = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, GET_BASE_URI_FROM_OWL);
+			if(wrap.hasNext()) {
+				IHeadersDataRow data = wrap.next();
+				baseUri = data.getRawValues()[0] + "";
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrap != null) {
+				wrap.cleanUp();
+			}
 		}
+		
 		if(baseUri == null){
 			baseUri = Constants.CONCEPT_URI;
 		}
@@ -253,13 +263,21 @@ public class MetaHelper implements IExplorable {
 	@Override
 	public String getDataTypes(String uri) {
 		String query = "SELECT DISTINCT ?TYPE WHERE { {<" + uri + "> <" + RDFS.CLASS.toString() + "> ?TYPE} }";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
-		String type = null;
-		while(wrapper.hasNext()) {
-			type = wrapper.next().getValues()[0].toString();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+			if(wrapper.hasNext()) {
+				return wrapper.next().getValues()[0].toString();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
-		return type;
+		return null;
 	}
 
 	@Override
@@ -273,13 +291,24 @@ public class MetaHelper implements IExplorable {
 		if(!bindings.isEmpty()) {
 			query += "BINDINGS ?NODE {" + bindings + "}";
 		}
+		// results to be stored
 		Map<String, String> retMap = new Hashtable<String, String>();
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
-		while(wrapper.hasNext()) {
-			Object[] row = wrapper.next().getValues();
-			String node = row[0].toString();
-			String type = row[1].toString();
-			retMap.put(node, type);
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				String node = row[0].toString();
+				String type = row[1].toString();
+				retMap.put(node, type);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		return retMap;
@@ -287,44 +316,59 @@ public class MetaHelper implements IExplorable {
 	
 	@Override
 	public String getAdtlDataTypes(String uri){
-		String cleanUri = uri;
-		String query = "SELECT DISTINCT ?ADTLTYPE WHERE { {<" + cleanUri + "> <http://semoss.org/ontologies/Relation/Contains/AdtlDataType> ?ADTLTYPE} }";
-			
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
-		String adtlType = null;
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			adtlType = row.getValues()[0].toString().replace("ADTLTYPE:", "").replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "''").replace("((SPACE))", " ");
+		String query = "SELECT DISTINCT ?ADTLTYPE WHERE { {<" + uri + "> <http://semoss.org/ontologies/Relation/Contains/AdtlDataType> ?ADTLTYPE} }";
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+			if(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				String adtlType = row.getValues()[0].toString().replace("ADTLTYPE:", "").replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "''").replace("((SPACE))", " ");
+				return adtlType;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
-		return adtlType;
+		return null;
 	}
 	
 	@Override
 	public Map<String, String> getAdtlDataTypes(String... uris){
-		Map<String, String> retMap = new Hashtable<String, String>();
-		String bindings = "";
+		StringBuilder bindBuilder = new StringBuilder();
 		for(String uri : uris) {
-			String cleanUri = uri;
-			bindings += "(<" + cleanUri + ">)";	
+			bindBuilder.append("(<").append(uri).append(">)");	
 		}
-		String query = null;
+		String query = "SELECT DISTINCT ?NODE ?ADTLTYPE WHERE { {?NODE <http://semoss.org/ontologies/Relation/Contains/AdtlDataType> ?ADTLTYPE} } ";
+		String bindings = bindBuilder.toString();
 		if(!bindings.isEmpty()) {
-			query = "SELECT DISTINCT ?NODE ?ADTLTYPE WHERE { {?NODE <http://semoss.org/ontologies/Relation/Contains/AdtlDataType> ?ADTLTYPE} } BINDINGS ?NODE {" + bindings + "}";
-			
-		} else {
-			// if no bindings, return everything
-			query = "SELECT DISTINCT ?NODE ?ADTLTYPE WHERE { {?NODE <http://semoss.org/ontologies/Relation/Contains/AdtlDataType> ?ADTLTYPE} }";
+			query += "BINDINGS ?NODE {" + bindings + "}";
 		}
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			String node = row.getRawValues()[0].toString();
-			String type = row.getValues()[1].toString();
-			if (type != null && type != "") {
-				String conceptName = node.substring(node.lastIndexOf("/") + 1);
-				type = type.replace("ADTLTYPE:", "").replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "'").replace("((SPACE))", " ");
-				retMap.put(conceptName + "__" + Utility.getClassName(node), type);
+		// results to be stored
+		Map<String, String> retMap = new Hashtable<String, String>();
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				String node = row[0].toString();
+				String type = row[1].toString();
+				if (type != null && type != "") {
+					type = type.replace("ADTLTYPE:", "").replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "'").replace("((SPACE))", " ");
+					retMap.put(node, type);
+				}
+				retMap.put(node, type);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 		
@@ -345,24 +389,33 @@ public class MetaHelper implements IExplorable {
 				+ "}"; // END WHERE
 
 		// execute the query and loop through and add the nodes and props
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getSelectorsInformation);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow hrow = wrapper.next();
-			Object[] raw = hrow.getRawValues();
-			if(raw[0].toString().equals("http://semoss.org/ontologies/Concept")) {
-				continue;
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getSelectorsInformation);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow hrow = wrapper.next();
+				Object[] raw = hrow.getRawValues();
+				if(raw[0].toString().equals("http://semoss.org/ontologies/Concept")) {
+					continue;
+				}
+
+				String concept = Utility.getInstanceName(raw[0].toString());
+				Object property = raw[1];
+
+				if(!tableToVert.containsKey(concept)) {
+					MetamodelVertex vert = new MetamodelVertex(concept);
+					tableToVert.put(concept, vert);
+				}
+
+				if(property != null && !property.toString().isEmpty()) {
+					tableToVert.get(concept).addProperty(Utility.getClassName(property.toString()));
+				}
 			}
-
-			String concept = Utility.getInstanceName(raw[0].toString());
-			Object property = raw[1];
-
-			if(!tableToVert.containsKey(concept)) {
-				MetamodelVertex vert = new MetamodelVertex(concept);
-				tableToVert.put(concept, vert);
-			}
-
-			if(property != null && !property.toString().isEmpty()) {
-				tableToVert.get(concept).addProperty(Utility.getClassName(property.toString()));
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 
@@ -378,24 +431,32 @@ public class MetaHelper implements IExplorable {
 				+ "{?toConcept <http://semoss.org/ontologies/Relation/Conceptual> ?toConceptualConcept }"
 				+ "}"; // END WHERE
 
-		wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getRelationshipsInformation);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow hrow = wrapper.next();
-			Object[] row = hrow.getValues();
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getRelationshipsInformation);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow hrow = wrapper.next();
+				Object[] row = hrow.getValues();
 
-			if(hrow.getRawValues()[1].toString().equals("http://semoss.org/ontologies/Relation")) {
-				continue;
+				if(hrow.getRawValues()[1].toString().equals("http://semoss.org/ontologies/Relation")) {
+					continue;
+				}
+
+				String fromConcept = row[0].toString();
+				String rel = row[1].toString();
+				String toConcept = row[2].toString();
+
+				Map<String, String> edgeMap = new TreeMap<String, String>();
+				edgeMap.put("source", fromConcept);
+				edgeMap.put("target", toConcept + "");
+				edgeMap.put("rel", rel);
+				relationships.add(edgeMap);
 			}
-
-			String fromConcept = row[0].toString();
-			String rel = row[1].toString();
-			String toConcept = row[2].toString();
-
-			Map<String, String> edgeMap = new TreeMap<String, String>();
-			edgeMap.put("source", fromConcept);
-			edgeMap.put("target", toConcept + "");
-			edgeMap.put("rel", rel);
-			relationships.add(edgeMap);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 
 		Map<String, Object[]> retObj = new Hashtable<String, Object[]>();
@@ -641,8 +702,9 @@ public class MetaHelper implements IExplorable {
 				+ " {?propertyPhysicalUri <http://semoss.org/ontologies/Relation/Pixel> ?pixel } "
 				+ " }";
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
 			String conceptName = null;
 			if(wrapper.hasNext()) {
 				Object[] raw = wrapper.next().getRawValues();
@@ -661,6 +723,8 @@ public class MetaHelper implements IExplorable {
 					return propPixel;
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			wrapper.cleanUp();
 		}
@@ -685,8 +749,9 @@ public class MetaHelper implements IExplorable {
 					+ "	}"
 					+ " }";
 		
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+		IRawSelectWrapper it = null;
 		try {
+			it = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
 			while(it.hasNext()) {
 				Object[] raw = it.next().getRawValues();
 				if(raw[1].toString().contains("concept")) {
@@ -697,6 +762,8 @@ public class MetaHelper implements IExplorable {
 					return parent + "__" + child;
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			it.cleanUp();
 		}
@@ -712,17 +779,20 @@ public class MetaHelper implements IExplorable {
 				+ "}";
 
 		String conceptualName = null;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
 			if(wrapper.hasNext()) {
 				conceptualName = wrapper.next().getValues()[0].toString();
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			wrapper.cleanUp();
 		}
 		return conceptualName;
 	}
-	
+
 	@Override
 	public Set<String> getLogicalNames(String physicalUri) {
 		String query = "SELECT DISTINCT ?logical WHERE { "
@@ -731,10 +801,20 @@ public class MetaHelper implements IExplorable {
 				+ "}";
 
 		Set<String> logicals = new TreeSet<String>();
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
-		while(wrapper.hasNext()) {
-			logicals.add(wrapper.next().getValues()[0].toString());
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+			while(wrapper.hasNext()) {
+				logicals.add(wrapper.next().getValues()[0].toString());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		return logicals;
 	}
 	
@@ -745,10 +825,20 @@ public class MetaHelper implements IExplorable {
 				+ "{?uri <" + RDFS.COMMENT.toString() + "> ?description } "
 				+ "}";
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
-		while(wrapper.hasNext()) {
-			return wrapper.next().getValues()[0].toString();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+			if(wrapper.hasNext()) {
+				return wrapper.next().getValues()[0].toString();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		return null;
 	}
 	
@@ -760,10 +850,20 @@ public class MetaHelper implements IExplorable {
 				+ "{?uri <" + AbstractOwler.LEGACY_PRIM_KEY_URI + "> ?value } "
 				+ "}";
 
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
-		while(wrapper.hasNext()) {
-			return wrapper.next().getValues()[0].toString();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+			if(wrapper.hasNext()) {
+				return wrapper.next().getValues()[0].toString();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		return null;
 	}
 }

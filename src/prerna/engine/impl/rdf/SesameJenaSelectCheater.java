@@ -40,11 +40,11 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
-import prerna.engine.api.IEngine;
-import prerna.util.Utility;
-
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
+
+import prerna.engine.api.IEngine;
+import prerna.util.Utility;
 
 /**
  * This takes a select query and turns it over into a Construct Statement
@@ -91,8 +91,9 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 
 	/**
 	 * Method execute. - Executes the SPARQL query based on the type of engine selected, and processes the variables.
+	 * @throws Exception 
 	 */
-	public void execute()
+	public void execute() throws Exception
 	{
 		if(engineType == IEngine.ENGINE_TYPE.SESAME)
 		{

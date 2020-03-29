@@ -138,13 +138,13 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID"));
 		} else {
 			// see if index exists
-			if(!indexExists(queryUtil, "ENGINE_GLOBAL_INDEX", "ENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINE_GLOBAL_INDEX", "ENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL"));
 			}
-			if(!indexExists(queryUtil, "ENGINE_ENGINENAME_INDEX", "ENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINENAME_INDEX", "ENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME"));
 			}
-			if(!indexExists(queryUtil, "ENGINE_ENGINEID_INDEX", "ENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINE_ENGINEID_INDEX", "ENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID"));
 			}
 		}
@@ -194,13 +194,13 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
 		} else {
 			// see if index exists
-			if(!indexExists(queryUtil, "ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION"));
 			}
-			if(!indexExists(queryUtil, "ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY"));
 			}
-			if(!indexExists(queryUtil, "ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
 			}
 		}
@@ -222,10 +222,10 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
 		} else {
 			// see if index exists
-			if(!indexExists(queryUtil, "WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
 			}
-			if(!indexExists(queryUtil, "WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
 			}			
 		}
@@ -247,10 +247,10 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
 		} else {
 			// see if index exists
-			if(!indexExists(queryUtil, "ASSETENGINE_TYPE_INDEX", "ASSETENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ASSETENGINE_TYPE_INDEX", "ASSETENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
 			}
-			if(!indexExists(queryUtil, "ASSETENGINE_USERID_INDEX", "ASSETENGINE", schema)) {
+			if(!queryUtil.indexExists(securityDb, "ASSETENGINE_USERID_INDEX", "ASSETENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
 			}
 		}
@@ -273,13 +273,13 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
 		} else {
 			// see if index exists
-			if(!indexExists(queryUtil, "INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
 			}
-			if(!indexExists(queryUtil, "INSIGHT_GLOBAL_INDEX", "INSIGHT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHT_GLOBAL_INDEX", "INSIGHT", schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
 			}
-			if(!indexExists(queryUtil, "INSIGHT_ENGINEID_INDEX", "INSIGHT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHT_ENGINEID_INDEX", "INSIGHT", schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHT_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
 			}
 		}
@@ -303,13 +303,13 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
 		} else {
 			// see if index exists
-			if(!indexExists(queryUtil, "USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
 			}
-			if(!indexExists(queryUtil, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", "ENGINEID"));
 			}
-			if(!indexExists(queryUtil, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
 			}
 		}
@@ -331,10 +331,10 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
 		} else {
 			// see if index exists
-			if(!indexExists(queryUtil, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
 			}
-			if(!indexExists(queryUtil, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", schema)) {
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
 			}
 		}
@@ -355,7 +355,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("USER_ID_INDEX", "USER", "ID"));
 		} else {
 			// see if index exists
-			if(!indexExists(queryUtil, "USER_ID_INDEX", "USER", schema)) {
+			if(!queryUtil.indexExists(securityDb, "USER_ID_INDEX", "USER", schema)) {
 				securityDb.insertData(queryUtil.createIndex("USER_ID_INDEX", "USER", "ID"));
 			}
 		}
@@ -379,7 +379,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
 		} else {
 			// see if index exists
-			if(!indexExists(queryUtil, "PERMISSION_ID_NAME_INDEX", "PERMISSION", schema)) {
+			if(!queryUtil.indexExists(securityDb, "PERMISSION_ID_NAME_INDEX", "PERMISSION", schema)) {
 				List<String> iCols = new Vector<String>();
 				iCols.add("ID");
 				iCols.add("NAME");
@@ -387,20 +387,30 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
-		if(wrapper.hasNext()) {
-			int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-			if(numrows > 3) {
-				securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
-				securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-				securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-				securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
-			} else if(numrows == 0) {
-				securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-				securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-				securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
+			if(wrapper.hasNext()) {
+				int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+				if(numrows > 3) {
+					securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
+					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+				} else if(numrows == 0) {
+					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
+		
 
 		// ACCESSREQUEST
 		colNames = new String[] { "id", "submittedby", "engine", "permission" };
@@ -486,27 +496,6 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Helper method to see if an index exists based on Query Utility class
-	 * @param queryUtil
-	 * @param indexName
-	 * @param tableName
-	 * @param schema
-	 * @return
-	 */
-	private static boolean indexExists(AbstractSqlQueryUtil queryUtil, String indexName, String tableName, String schema) {
-		String indexCheckQ = queryUtil.getIndexDetails(indexName, tableName, schema);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, indexCheckQ);
-		try {
-			if(wrapper.hasNext()) {
-				return true;
-			}
-			return false;
-		} finally {
-			wrapper.cleanUp();
-		}
-	}
-	
-	/**
 	 * Does this engine name already exist
 	 * @param user
 	 * @param appName
@@ -533,16 +522,21 @@ public abstract class AbstractSecurityUtils {
 		permissionValues.add(new Integer(2));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", permissionValues, PixelDataType.CONST_INT));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				return true;
-			} else {
-				return false;
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
+		return false;
 	}
 	
 	public static boolean containsEngineName(String appName) {
@@ -556,16 +550,21 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", appName));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				return true;
-			} else {
-				return false;
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
+		return false;
 	}
 	
 	public static boolean containsEngineId(String appId) {
@@ -579,16 +578,21 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", appId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()) {
 				return true;
-			} else {
-				return false;
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
+		return false;
 	}
 	
 	static boolean ignoreEngine(String appId) {
@@ -621,13 +625,19 @@ public abstract class AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", appId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		
+		IRawSelectWrapper wrapper = null;
 		try {
-			while(wrapper.hasNext()) {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
 				layout = wrapper.next().getValues()[0].toString();
-			} 
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		if(layout == null) {
@@ -703,99 +713,6 @@ public abstract class AbstractSecurityUtils {
 	/*
 	 * Utility methods
 	 */
-	
-	/**
-	 * Utility method to flush result set into list
-	 * Assumes single return at index 0
-	 * @param wrapper
-	 * @return
-	 */
-	static String flushToString(IRawSelectWrapper wrapper) {
-		try {
-			while(wrapper.hasNext()) {
-				return wrapper.next().getValues()[0].toString();
-			}
-		} finally {
-			wrapper.cleanUp();
-		}
-		return null;
-	}
-	
-	/**
-	 * Utility method to flush result set into list
-	 * Assumes single return at index 0
-	 * @param wrapper
-	 * @return
-	 */
-	static List<String> flushToListString(IRawSelectWrapper wrapper) {
-		List<String> values = new Vector<String>();
-		while(wrapper.hasNext()) {
-			values.add(wrapper.next().getValues()[0].toString());
-		}
-		return values;
-	}
-	
-	/**
-	 * Utility method to flush result set into set
-	 * Assumes single return at index 0
-	 * @param wrapper
-	 * @return
-	 */
-	static Set<String> flushToSetString(IRawSelectWrapper wrapper, boolean order) {
-		Set<String> values = null;
-		if(order) {
-			values = new TreeSet<String>();
-		} else {
-			values = new HashSet<String>();
-		}
-		while(wrapper.hasNext()) {
-			values.add(wrapper.next().getValues()[0].toString());
-		}
-		return values;
-	}
-	
-	static List<String[]> flushRsToListOfStrArray(IRawSelectWrapper wrapper) {
-		List<String[]> ret = new ArrayList<String[]>();
-		while(wrapper.hasNext()) {
-			IHeadersDataRow headerRow = wrapper.next();
-			Object[] values = headerRow.getValues();
-			int len = values.length;
-			String[] strVals = new String[len];
-			for(int i = 0; i < len; i++) {
-				strVals[i] = values[i] + "";
-			}
-			ret.add(strVals);
-		}
-		return ret;
-	}
-	
-	static List<Object[]> flushRsToMatrix(IRawSelectWrapper wrapper) {
-		List<Object[]> ret = new ArrayList<Object[]>();
-		while(wrapper.hasNext()) {
-			ret.add(wrapper.next().getValues());
-		}
-		return ret;
-	}
-	
-	static List<Map<String, Object>> flushRsToMap(IRawSelectWrapper wrapper) {
-		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
-		while(wrapper.hasNext()) {
-			IHeadersDataRow headerRow = wrapper.next();
-			String[] headers = headerRow.getHeaders();
-			Object[] values = headerRow.getValues();
-			Map<String, Object> map = new HashMap<String, Object>();
-			for(int i = 0; i < headers.length; i++) {
-				if(values[i] instanceof java.sql.Clob) {
-					String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
-					map.put(headers[i], value);
-				} else {
-					map.put(headers[i], values[i]);
-				}
-			}
-			result.add(map);
-		}
-		return result;
-	}
 	
 	static String createFilter(String... filterValues) {
 		StringBuilder b = new StringBuilder();
@@ -885,25 +802,34 @@ public abstract class AbstractSecurityUtils {
 	 * @return			
 	 */
 	static List<Map<String, Object>> getSimpleQuery(String query) {
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<Map<String, Object>> ret = new Vector<Map<String, Object>>();
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			String[] headers = row.getHeaders();
-			Object[] values = row.getValues();
-			Map<String, Object> rowData = new HashMap<String, Object>();
-			for(int idx = 0; idx < headers.length; idx++){
-				if(values[idx] == null) {
-					rowData.put(headers[idx].toLowerCase(), "null");
-				} else {
-					if(headers[idx].toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
-						rowData.put(headers[idx].toLowerCase(), "Default");
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				String[] headers = row.getHeaders();
+				Object[] values = row.getValues();
+				Map<String, Object> rowData = new HashMap<String, Object>();
+				for(int idx = 0; idx < headers.length; idx++){
+					if(values[idx] == null) {
+						rowData.put(headers[idx].toLowerCase(), "null");
 					} else {
-						rowData.put(headers[idx].toLowerCase(), values[idx]);
+						if(headers[idx].toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
+							rowData.put(headers[idx].toLowerCase(), "Default");
+						} else {
+							rowData.put(headers[idx].toLowerCase(), values[idx]);
+						}
 					}
 				}
+				ret.add(rowData);
 			}
-			ret.add(rowData);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 
 		return ret;
@@ -915,25 +841,34 @@ public abstract class AbstractSecurityUtils {
 	 * @return			
 	 */
 	static List<Map<String, Object>> getSimpleQuery(SelectQueryStruct qs) {
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		List<Map<String, Object>> ret = new Vector<Map<String, Object>>();
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			String[] headers = row.getHeaders();
-			Object[] values = row.getValues();
-			Map<String, Object> rowData = new HashMap<String, Object>();
-			for(int idx = 0; idx < headers.length; idx++){
-				if(values[idx] == null) {
-					rowData.put(headers[idx].toLowerCase(), "null");
-				} else {
-					if(headers[idx].toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
-						rowData.put(headers[idx].toLowerCase(), "Default");
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				String[] headers = row.getHeaders();
+				Object[] values = row.getValues();
+				Map<String, Object> rowData = new HashMap<String, Object>();
+				for(int idx = 0; idx < headers.length; idx++){
+					if(values[idx] == null) {
+						rowData.put(headers[idx].toLowerCase(), "null");
 					} else {
-						rowData.put(headers[idx].toLowerCase(), values[idx]);
+						if(headers[idx].toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
+							rowData.put(headers[idx].toLowerCase(), "Default");
+						} else {
+							rowData.put(headers[idx].toLowerCase(), values[idx]);
+						}
 					}
 				}
+				ret.add(rowData);
 			}
-			ret.add(rowData);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 
 		return ret;

@@ -59,15 +59,25 @@ public class CheckRecommendOptimizationReactor extends AbstractReactor {
 							+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table
 							+ "> AS ?concept)"
 							+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
-					IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
-					if (it.hasNext()) {
-						// it had a unique value so we assume theyre all there
-						return new NounMetadata(true, PixelDataType.BOOLEAN);
-					} else {
-						// the first string value didnt have a unique count so
-						// we assume none do
-						return new NounMetadata(false, PixelDataType.BOOLEAN);
+					IRawSelectWrapper it = null;
+					try {
+						it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
+						if (it.hasNext()) {
+							// it had a unique value so we assume theyre all there
+							return new NounMetadata(true, PixelDataType.BOOLEAN);
+						} else {
+							// the first string value didnt have a unique count so
+							// we assume none do
+							return new NounMetadata(false, PixelDataType.BOOLEAN);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					} finally {
+						if(it != null) {
+							it.cleanUp();
+						}
 					}
+					return new NounMetadata(false, PixelDataType.BOOLEAN);
 				}
 			}
 		}

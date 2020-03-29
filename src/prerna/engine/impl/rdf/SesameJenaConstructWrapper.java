@@ -102,8 +102,9 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 	
 	/**
 	 * Method execute.  Executes the SPARQL query based on the type of engine selected.
+	 * @throws Exception 
 	 */
-	public void execute()
+	public void execute() throws Exception
 	{
 		try {
 			if(engineType == IEngine.ENGINE_TYPE.SESAME)
@@ -124,7 +125,6 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 				remoteWrapperProxy = (SesameJenaConstructWrapper)engine.execQuery(query);
 			}
 		} catch (RuntimeException e) {
-			// TODO: Specify exception
 			e.printStackTrace();
 		}
 	}
@@ -315,7 +315,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 		this.engineType = engineType;
 	}
 
-	public static void main(String [] args)
+	public static void main(String [] args) throws Exception
 	{
 		RemoteSemossSesameEngine engine = new RemoteSemossSesameEngine();
 		engine.setAPI("http://localhost:9080/Monolith/api/engine");

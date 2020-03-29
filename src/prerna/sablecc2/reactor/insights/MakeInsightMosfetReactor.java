@@ -174,32 +174,41 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 		MosfetFile mosfet = new MosfetFile();
 
 		RDBMSNativeEngine insightRdbms = app.getInsightDatabase();
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
-		while(wrapper.hasNext()) {
-			Object[] values = wrapper.next().getValues();
-			
-			mosfet.setEngineId(app.getEngineId());
-			mosfet.setRdbmsId(values[0].toString());
-			mosfet.setInsightName(values[1].toString());
-			mosfet.setLayout(values[2].toString());
-			if(insightRdbms.getQueryUtil().allowArrayDatatype()) {
-				Object[] pixel = (Object[]) values[4];
-				mosfet.setRecipe(Arrays.stream(pixel).toArray(String[]::new));
-			} else {
-				Clob pixelArray = (Clob) values[4];
-				InputStream pixelArrayIs = null;
-				if(pixelArray != null) {
-					try {
-						pixelArrayIs = pixelArray.getAsciiStream();
-					} catch (SQLException e) {
-						e.printStackTrace();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
+			while(wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				
+				mosfet.setEngineId(app.getEngineId());
+				mosfet.setRdbmsId(values[0].toString());
+				mosfet.setInsightName(values[1].toString());
+				mosfet.setLayout(values[2].toString());
+				if(insightRdbms.getQueryUtil().allowArrayDatatype()) {
+					Object[] pixel = (Object[]) values[4];
+					mosfet.setRecipe(Arrays.stream(pixel).toArray(String[]::new));
+				} else {
+					Clob pixelArray = (Clob) values[4];
+					InputStream pixelArrayIs = null;
+					if(pixelArray != null) {
+						try {
+							pixelArrayIs = pixelArray.getAsciiStream();
+						} catch (SQLException e) {
+							e.printStackTrace();
+						}
 					}
+					// flush input stream to string
+					Gson gson = new Gson();
+					InputStreamReader reader = new InputStreamReader(pixelArrayIs);
+					String[] pixel = gson.fromJson(reader, String[].class);
+					mosfet.setRecipe(pixel);
 				}
-				// flush input stream to string
-				Gson gson = new Gson();
-				InputStreamReader reader = new InputStreamReader(pixelArrayIs);
-				String[] pixel = gson.fromJson(reader, String[].class);
-				mosfet.setRecipe(pixel);
+			}
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 		
@@ -212,16 +221,24 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 		List<String> tags = new Vector<String>();
 		
 		query = "SELECT DISTINCT INSIGHTID, METAKEY, METAVALUE, METAORDER FROM INSIGHTMETA WHERE INSIGHTID='" + insightId + "' ORDER BY METAORDER";
-		wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
-		while(wrapper.hasNext()) {
-			Object[] values = wrapper.next().getValues();
-			
-			String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[2]);
-			
-			if(values[1].toString().equals("tag")) {
-				tags.add(value);
-			} else if(values[1].toString().equals("description")) {
-				description = value;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
+			while(wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				
+				String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[2]);
+				
+				if(values[1].toString().equals("tag")) {
+					tags.add(value);
+				} else if(values[1].toString().equals("description")) {
+					description = value;
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 		

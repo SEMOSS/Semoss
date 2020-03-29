@@ -53,23 +53,31 @@ public class ImportReactor extends AbstractReactor {
 				throw e;
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new SemossPixelException(
-						new NounMetadata("Error occured executing query before loading into frame", 
-								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(getError("Error occured executing query before loading into frame"));
 			}
-			if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
-				SemossPixelException exception = new SemossPixelException(
-						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-								PixelDataType.CONST_STRING, 
-								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
+			try {
+				if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
+					SemossPixelException exception = new SemossPixelException(
+							new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+									PixelDataType.CONST_STRING, 
+									PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+					exception.setContinueThreadOfExecution(false);
+					throw exception;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(getError("Error occured executing query before loading into frame"));
 			}
 		}
 		
 		// insert the data
 		IImporter importer = ImportFactory.getImporter(frame, qs, it);
-		importer.insertData();
+		try {
+			importer.insertData();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		}
 		// need to clear the unique col count used by FE for determining the need for math
 		frame.clearCachedMetrics();
 		frame.clearQueryCache();

@@ -54,19 +54,29 @@ public class OwlSeparatePixelFromConceptual {
 				System.out.println("REQUIRE FIX FOR " + uniqueAppName);
 				System.out.println("REQUIRE FIX FOR " + uniqueAppName);
 				System.out.println("REQUIRE FIX FOR " + uniqueAppName);
-				performFix(rfse, owlFile, rdbms);
-				
-				// drop from local master
-				if(!uniqueAppName.equals(Constants.LOCAL_MASTER_DB_NAME) &&
-					!uniqueAppName.equals(Constants.SECURITY_DB)) {
-					DeleteFromMasterDB deleter = new DeleteFromMasterDB();
-					deleter.deleteEngineRDBMS(prop.getProperty(Constants.ENGINE));
+				try {
+					performFix(rfse, owlFile, rdbms);
+					// drop from local master
+					if(!uniqueAppName.equals(Constants.LOCAL_MASTER_DB_NAME) &&
+						!uniqueAppName.equals(Constants.SECURITY_DB)) {
+						DeleteFromMasterDB deleter = new DeleteFromMasterDB();
+						deleter.deleteEngineRDBMS(prop.getProperty(Constants.ENGINE));
+					}
+				} catch (Exception e) {
+					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName);
+					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
+					System.out.println("ERROR OCCURED TRYING TO FIX " + uniqueAppName );
+					e.printStackTrace();
 				}
 			}
 		}
 	}
 	
-	private static void performFix(RDFFileSesameEngine rfse, File owlFile, boolean rdbms) {
+	private static void performFix(RDFFileSesameEngine rfse, File owlFile, boolean rdbms) throws Exception {
 		Gson gson = GsonUtility.getDefaultGson(true);
 		
 		// i need to grab all the concepts - done
@@ -176,7 +186,7 @@ public class OwlSeparatePixelFromConceptual {
 	//////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////
 
-	private static String getBaseUri(RDFFileSesameEngine rfse) {
+	private static String getBaseUri(RDFFileSesameEngine rfse) throws Exception {
 		String query = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
 		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(rfse, query);
 		if(wrap.hasNext()) {
@@ -190,8 +200,9 @@ public class OwlSeparatePixelFromConceptual {
 	 * For each concept, get its URI and its conceptual URI
 	 * @param rfse
 	 * @return
+	 * @throws Exception 
 	 */
-	private static Map<String, String> getConceptPhsysicalToConceptual(RDFFileSesameEngine rfse) {
+	private static Map<String, String> getConceptPhsysicalToConceptual(RDFFileSesameEngine rfse) throws Exception {
 		Map<String, String> retMap = new HashMap<String, String>();
 		String query = "select ?concept ?conceptual where {"
 				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
@@ -211,8 +222,9 @@ public class OwlSeparatePixelFromConceptual {
 	 * For each concept, gets its list of properties
 	 * @param rfse
 	 * @return
+	 * @throws Exception 
 	 */
-	private static Map<String, List<String>> getConceptToPropertyPhsysicals(RDFFileSesameEngine rfse) {
+	private static Map<String, List<String>> getConceptToPropertyPhsysicals(RDFFileSesameEngine rfse) throws Exception {
 		Map<String, List<String>> retMap = new HashMap<String, List<String>>();
 		String query = "select ?concept ?property where {"
 				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
@@ -242,8 +254,9 @@ public class OwlSeparatePixelFromConceptual {
 	 * For each concept, get its URI and its conceptual URI
 	 * @param rfse
 	 * @return
+	 * @throws Exception 
 	 */
-	private static Map<String, Map<String, String>> getPhysicalPropertiesAndConceptual(RDFFileSesameEngine rfse) {
+	private static Map<String, Map<String, String>> getPhysicalPropertiesAndConceptual(RDFFileSesameEngine rfse) throws Exception {
 		Map<String, Map<String, String>> retMap = new HashMap<String, Map<String, String>>();
 		String query = "select ?concept ?property ?conceptual where {"
 				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
@@ -275,8 +288,9 @@ public class OwlSeparatePixelFromConceptual {
 	 * Get the relationships
 	 * @param rfse
 	 * @return
+	 * @throws Exception 
 	 */
-	private static List<String[]> getRelationships(RDFFileSesameEngine rfse) {
+	private static List<String[]> getRelationships(RDFFileSesameEngine rfse) throws Exception {
 		List<String[]> rels = new Vector<String[]>();
 		String query = "select ?concept1 ?rel ?concept2 where {"
 				+ "{?concept1 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
@@ -297,7 +311,7 @@ public class OwlSeparatePixelFromConceptual {
 		return rels;
 	}
 	
-	private static Map<String, String> getPhysicalConceptDataType(RDFFileSesameEngine rfse) {
+	private static Map<String, String> getPhysicalConceptDataType(RDFFileSesameEngine rfse) throws Exception {
 		Map<String, String> retMap = new HashMap<String, String>();
 		String query = "select ?concept ?type where {"
 				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
@@ -322,7 +336,7 @@ public class OwlSeparatePixelFromConceptual {
 		return retMap;
 	}
 	
-	private static Map<String, Map<String, String>> getPhysicalConceptToPropertyAndDataTypes(RDFFileSesameEngine rfse) {
+	private static Map<String, Map<String, String>> getPhysicalConceptToPropertyAndDataTypes(RDFFileSesameEngine rfse) throws Exception {
 		Map<String, Map<String, String>> retMap = new HashMap<String, Map<String, String>>();
 		String query = "select ?concept ?property ?type where {"
 				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
@@ -371,18 +385,26 @@ public class OwlSeparatePixelFromConceptual {
 	 * Determine if we need to fix this OWL
 	 * @param rfse
 	 * @return
+	 * @throws Exception 
 	 */
 	private static boolean requiresFix(RDFFileSesameEngine rfse) {
 		String query = "select ?s ?p ?o where {"
 				+ "bind(<" + AbstractOwler.PIXEL_RELATION_URI + "> as ?p)"
 				+ "{?s ?p ?o}"
 				+ "}";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rfse, query);
+		IRawSelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(rfse, query);
 			return !wrapper.hasNext();
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			wrapper.cleanUp();
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
+		return true;
 	}
 	
 	public static void main(String[] args) throws Exception {

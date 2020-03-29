@@ -97,7 +97,12 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		//if it does not, run insert
 		//if it does, ask if override  -> delete and insert
 		
-		boolean modernizationPropExists = checkModernizationProp();
+		boolean modernizationPropExists = false;
+		try {
+			modernizationPropExists = checkModernizationProp();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
 		
 		if(!modernizationPropExists) 
 		{
@@ -280,7 +285,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		engine.commit();
 	}
 
-	private boolean checkModernizationProp(){
+	private boolean checkModernizationProp() throws Exception{
 		logger.info("Checking modernization prop");
 		boolean exists = false;
 

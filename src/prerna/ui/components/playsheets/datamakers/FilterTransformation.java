@@ -63,11 +63,19 @@ public class FilterTransformation extends AbstractTransformation {
 				Iterator<IHeadersDataRow> uniqIterator = null;
 				if (dm instanceof H2Frame) {
 					qs2.addSelector(((ITableDataFrame) dm).getName(), props.get(COLUMN_HEADER_KEY).toString());
-					uniqIterator = ((ITableDataFrame) dm).query(qs2);
+					try {
+						uniqIterator = ((ITableDataFrame) dm).query(qs2);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				} else {
 					// tinker
 					qs2.addSelector(props.get(COLUMN_HEADER_KEY).toString(), QueryStruct.PRIM_KEY_PLACEHOLDER);
-					uniqIterator = ((ITableDataFrame) dm).query(qs2);
+					try {
+						uniqIterator = ((ITableDataFrame) dm).query(qs2);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 				values = new Vector<Object>();
 				while (uniqIterator.hasNext()) {

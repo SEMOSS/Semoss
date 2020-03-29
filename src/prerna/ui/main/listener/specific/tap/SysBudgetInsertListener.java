@@ -71,7 +71,13 @@ public class SysBudgetInsertListener implements IChakraListener{
 			BooleanProcessor boolProc = new BooleanProcessor();
 			boolProc.setEngine((IEngine)DIHelper.getInstance().getLocalProp(tapEngineName));
 			boolProc.setQuery(budgetPropCheckQuery);
-			boolean propCheck = boolProc.processQuery();
+			boolean propCheck = false;
+			try {
+				propCheck = boolProc.processQuery();
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 			
 			if(propCheck){
 				//ask to overwrite
