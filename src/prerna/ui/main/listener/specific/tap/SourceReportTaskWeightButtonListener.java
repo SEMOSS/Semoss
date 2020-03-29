@@ -87,7 +87,12 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		Hashtable<String,Double> taskAndWeights =calculateTaskWeights(tasks);
 		if(taskAndWeights==null)
 			return;
-		replaceTaskWeights(taskAndWeights);	
+		try {
+			replaceTaskWeights(taskAndWeights);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
 		
 		//hashtable to hold scoring values
 		Hashtable<String,Integer> options = new Hashtable<String,Integer>();
@@ -99,7 +104,12 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		Hashtable<String, Hashtable<String, Hashtable<String,Object>>> vendors = createVendorHash(options);
 		Hashtable<String,Double> vendorsCustomCost = createVendorCustomCostHash();
 		Hashtable<String,Double> vendorsHWSWCost = createVendorHWSWCostHash();
-		replaceBVTVCost(vendors,vendorsCustomCost,vendorsHWSWCost);
+		try {
+			replaceBVTVCost(vendors,vendorsCustomCost,vendorsHWSWCost);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		logger.info("Source Report Generator Button Pushed");
 
@@ -226,8 +236,9 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 	/**
 	 * Method replaceTaskWeights.
 	 * @param taskAndWeights Hashtable<String,Double>
+	 * @throws Exception 
 	 */
-	public void replaceTaskWeights(Hashtable<String,Double> taskAndWeights)
+	public void replaceTaskWeights(Hashtable<String,Double> taskAndWeights) throws Exception
 	{
 		//delete old properties
 		String deleteQuery="DELETE {?Task ?rel ?Weight.} WHERE{BIND(<http://semoss.org/ontologies/Relation/Contains/Weight> AS ?rel){?Task ?rel ?Weight ;}}";	
@@ -462,8 +473,9 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 	 * @param vendors Hashtable<String,Hashtable<String,Hashtable<String,Object>>>
 	 * @param vendorsCost Hashtable<String,Double>
 	 * @param vendorsHWSWCost Hashtable<String,Double>
+	 * @throws Exception 
 	 */
-	public void replaceBVTVCost(Hashtable<String, Hashtable<String, Hashtable<String,Object>>> vendors,Hashtable<String,Double> vendorsCost,Hashtable<String,Double> vendorsHWSWCost){
+	public void replaceBVTVCost(Hashtable<String, Hashtable<String, Hashtable<String,Object>>> vendors,Hashtable<String,Double> vendorsCost,Hashtable<String,Double> vendorsHWSWCost) throws Exception{
 		//delete old properties
 		ArrayList<String> deleteQueries = new ArrayList<String>();
 		deleteQueries.add("DELETE {?Vendor ?hasBS ?bs.} WHERE{BIND(<http://semoss.org/ontologies/Relation/Contains/BusinessScore> AS ?hasBS){?Vendor ?hasBS ?bs ;}}");	

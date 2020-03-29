@@ -48,6 +48,7 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.TinkerImporter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -1311,9 +1312,19 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// instantiate h2importer with frame and qs
 		IImporter importer = new TinkerImporter(this, qs2);
 		if (joins.isEmpty()) {
-			importer.insertData();
+			try {
+				importer.insertData();
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
 		} else {
-			importer.mergeData(joins);
+			try {
+				importer.mergeData(joins);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
 		}
 
 		long time2 = System.currentTimeMillis();

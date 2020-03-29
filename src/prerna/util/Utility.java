@@ -1265,22 +1265,31 @@ public class Utility {
 	 */
 	public static Vector<String> getVectorOfReturn(String query, IEngine engine, Boolean raw){
 		Vector<String> retArray = new Vector<String>();
-		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
-
-		while(wrap.hasNext()) {
-			Object[] values = null;
-			if(raw) {
-				values = wrap.next().getRawValues();
-			} else {
-				values = wrap.next().getValues();
+		IRawSelectWrapper wrap = null;
+		try {
+			wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
+			while(wrap.hasNext()) {
+				Object[] values = null;
+				if(raw) {
+					values = wrap.next().getRawValues();
+				} else {
+					values = wrap.next().getValues();
+				}
+				
+				if(values[0] != null) {
+					retArray.add(values[0].toString());
+				} else {
+					retArray.add(null);
+				}
 			}
-			
-			if(values[0] != null) {
-				retArray.add(values[0].toString());
-			} else {
-				retArray.add(null);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrap != null) {
+				wrap.cleanUp();
 			}
 		}
+		
 		return retArray;
 	}
 
@@ -1293,24 +1302,33 @@ public class Utility {
 	 */
 	public static Vector<String[]> getVectorArrayOfReturn(String query, IEngine engine, Boolean raw){
 		Vector<String[]> retArray = new Vector<String[]>();
-		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
-
-		while(wrap.hasNext()) {
-			Object[] values = null;
-			if(raw) {
-				values = wrap.next().getRawValues();
-			} else {
-				values = wrap.next().getValues();
-			}
-			
-			String[] valArray = new String[values.length];
-			for(int i = 0; i < values.length; i++) {
-				if(values[i] != null) {
-					valArray[i] = values[i] + "";
+		IRawSelectWrapper wrap = null;
+		try {
+			wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
+			while(wrap.hasNext()) {
+				Object[] values = null;
+				if(raw) {
+					values = wrap.next().getRawValues();
+				} else {
+					values = wrap.next().getValues();
 				}
+				
+				String[] valArray = new String[values.length];
+				for(int i = 0; i < values.length; i++) {
+					if(values[i] != null) {
+						valArray[i] = values[i] + "";
+					}
+				}
+				retArray.add(valArray);
 			}
-			retArray.add(valArray);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrap != null) {
+				wrap.cleanUp();
+			}
 		}
+		
 		return retArray;
 	}
 

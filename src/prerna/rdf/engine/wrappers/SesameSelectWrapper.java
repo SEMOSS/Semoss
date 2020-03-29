@@ -50,8 +50,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 	public transient TupleQueryResult tqr = null;
 
 	@Override
-	public void execute() {
-		// TODO Auto-generated method stub
+	public void execute() throws Exception {
 		tqr = (TupleQueryResult) engine.execQuery(query);
 	}
 

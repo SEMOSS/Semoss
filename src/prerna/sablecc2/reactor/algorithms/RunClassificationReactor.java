@@ -4,7 +4,6 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -12,7 +11,7 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -100,12 +99,23 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 		qs.mergeImplicitFilters(dataFrame.getFrameFilters());
 
 		int numRows = getNumRows(dataFrame, predictorHead);
-		Iterator<IHeadersDataRow> it = dataFrame.query(qs);
-
-		logger.info("Start converting frame into WEKA Instacnes data structure");
-		Instances data = WekaReactorHelper.genInstances(retHeaders, isNumeric, numRows);
-		data = WekaReactorHelper.fillInstances(data, it, isNumeric, logger);
-		logger.info("Done converting frame into WEKA Instacnes data structure");
+		Instances data = null;
+		
+		IRawSelectWrapper it = null;
+		try {
+			it = dataFrame.query(qs);
+			logger.info("Start converting frame into WEKA Instacnes data structure");
+			data = WekaReactorHelper.genInstances(retHeaders, isNumeric, numRows);
+			data = WekaReactorHelper.fillInstances(data, it, isNumeric, logger);
+			logger.info("Done converting frame into WEKA Instacnes data structure");
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+		
 		if(isNumeric[0]) {
 			logger.info("Can only run classification on categorical data, must discretize numerical column");
 			// one based for some weird reason..
@@ -200,10 +210,20 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 		math.setFunction(QueryFunctionHelper.COUNT);
 		qs.addSelector(math);
 		
-		Iterator<IHeadersDataRow> countIt = frame.query(qs);
-		while(countIt.hasNext()) {
-			return ((Number) countIt.next().getValues()[0]).intValue();
+		IRawSelectWrapper countIt = null;
+		try {
+			countIt = frame.query(qs);
+			while(countIt.hasNext()) {
+				return ((Number) countIt.next().getValues()[0]).intValue();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(countIt != null) {
+				countIt.cleanUp();
+			}
 		}
+		
 		return 0;
 	}
 	

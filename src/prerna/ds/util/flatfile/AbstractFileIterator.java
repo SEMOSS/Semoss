@@ -160,7 +160,11 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		}
 		
 		// reset so we get the values again
-		reset();
+		try {
+			reset();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		getNextRow();
 		return overLimit;
 	}

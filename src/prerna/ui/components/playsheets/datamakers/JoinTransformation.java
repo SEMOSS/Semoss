@@ -103,11 +103,19 @@ public class JoinTransformation extends AbstractTransformation {
 				Iterator<IHeadersDataRow> rowIt = null;
 				if (dm instanceof H2Frame) {
 					qs2.addSelector(((ITableDataFrame) dm).getName(), props.get(COLUMN_TWO_KEY).toString());
-					rowIt = ((ITableDataFrame) dm).query(qs2);
+					try {
+						rowIt = ((ITableDataFrame) dm).query(qs2);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				} else {
 					// tinker
 					qs2.addSelector(props.get(COLUMN_TWO_KEY).toString(), QueryStruct.PRIM_KEY_PLACEHOLDER);
-					rowIt = ((ITableDataFrame) dm).query(qs2);
+					try {
+						rowIt = ((ITableDataFrame) dm).query(qs2);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 
 				List<Object> uris = new Vector<Object>();

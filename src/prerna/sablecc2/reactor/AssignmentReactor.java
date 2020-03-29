@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 
@@ -47,7 +48,13 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 		// if we have a collect that we are assigning to a varaible
 		// flush it out and store the result
 		if(result.getNounType() == PixelDataType.FORMATTED_DATA_SET && result.getValue() instanceof ITask) {
-			Map<String, Object> flushedOutValue = ((ITask) result.getValue()).collect(true);
+			Map<String, Object> flushedOutValue = null;
+			try {
+				flushedOutValue = ((ITask) result.getValue()).collect(true);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
 			result = new NounMetadata(flushedOutValue, PixelDataType.FORMATTED_DATA_SET, result.getOpType());
 		}
 		planner.addVariable(operationName, result);

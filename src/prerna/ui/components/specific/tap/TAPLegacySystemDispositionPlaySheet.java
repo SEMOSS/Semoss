@@ -57,7 +57,13 @@ public class TAPLegacySystemDispositionPlaySheet extends TablePlaySheet{
 	
 	@Override
 	public void createData() {
-		boolean modernizationPropExists = checkModernizationProp();
+		boolean modernizationPropExists = false;
+		try {
+			modernizationPropExists = checkModernizationProp();
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		if(!modernizationPropExists) 
 		{
 			// show continue popup
@@ -119,7 +125,7 @@ public class TAPLegacySystemDispositionPlaySheet extends TablePlaySheet{
 		inserter.insert();
 	}
 	
-	private boolean checkModernizationProp(){
+	private boolean checkModernizationProp() throws Exception{
 		logger.info("Checking modernization prop");
 		boolean exists = false;
 

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -109,6 +110,35 @@ public class MergeFramesReactor extends AbstractReactor {
 				// b) need to perform the merge
 				// c) need to update the metadata
 				
+				String sourceFrameName = sourceFrame.getName();
+				
+				Map<String, SemossDataType> leftTableTypes = targetFrame.getMetaData().getHeaderToTypeMap();
+				Map<String, SemossDataType> rightTableTypes = sourceFrame.getMetaData().getHeaderToTypeMap();
+				
+				Set<String> leftTableHeaders = leftTableTypes.keySet();
+				Set<String> rightTableHeaders = rightTableTypes.keySet();
+				Set<String> rightTableJoinCols = AbstractImporter.getRightJoinColumns(joins);
+				
+				Map<String, String> rightTableAlias = new HashMap<String, String>();
+
+				// note, we are not going to modify the existing headers
+				// even though the query builder code allows for it
+				for(String leftTableHeader : leftTableHeaders) {
+					if(leftTableHeader.contains("__")) {
+						leftTableHeader = leftTableHeader.split("__")[1];
+					}
+					// instead of making the method return a boolean and then having to perform
+					// another ignore case match later on
+					// we return the match and do a null check
+					String dupRightTableHeader = AbstractImporter.setIgnoreCaseMatch(leftTableHeader, rightTableHeaders, rightTableJoinCols);
+					if(dupRightTableHeader != null) {
+						rightTableAlias.put(dupRightTableHeader, leftTableHeader + "_1");
+					}
+				}
+				
+				
+				
+				
 				String mergeString = RSyntaxHelper.getMergeSyntax(targetFrame.getName(), sourceFrame.getName(), targetFrame.getName(), joinType, joinCols);
 				((RDataTable) targetFrame).executeRScript(mergeString);
 			}
@@ -170,9 +200,19 @@ public class MergeFramesReactor extends AbstractReactor {
 			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 			ITableDataFrame mergeFrame = null;
 			if(targetFrame instanceof NativeFrame) {
-				mergeFrame = mergeNative(targetFrame, qs, joins);
+				try {
+					mergeFrame = mergeNative(targetFrame, qs, joins);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				}
 			} if(qs != null) {
-				mergeFrame = mergeFromQs(targetFrame, qs, joins);
+				try {
+					mergeFrame = mergeFromQs(targetFrame, qs, joins);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				}
 			}
 			// clear cached info after merge
 			targetFrame.clearCachedMetrics();
@@ -201,7 +241,7 @@ public class MergeFramesReactor extends AbstractReactor {
 		return noun;
 	}
 	
-	private ITableDataFrame mergeNative(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) {
+	private ITableDataFrame mergeNative(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) throws Exception {
 		// track GA data
 		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 
@@ -218,8 +258,9 @@ public class MergeFramesReactor extends AbstractReactor {
 	 * @param qs
 	 * @param joins
 	 * @return
+	 * @throws Exception 
 	 */
-	private ITableDataFrame mergeFromQs(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) {
+	private ITableDataFrame mergeFromQs(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) throws Exception {
 		// track GA data
 		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 
@@ -319,13 +360,18 @@ public class MergeFramesReactor extends AbstractReactor {
 					new NounMetadata("Error occured executing query before loading into frame", 
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		if(!ImportSizeRetrictions.mergeWithinLimit(frame, it)) {
-			SemossPixelException exception = new SemossPixelException(
-					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-							PixelDataType.CONST_STRING, 
-							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
+		try {
+			if(!ImportSizeRetrictions.mergeWithinLimit(frame, it)) {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+								PixelDataType.CONST_STRING, 
+								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
 		}
 		
 		IImporter importer = ImportFactory.getImporter(frame, qs, it);

@@ -11,6 +11,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
@@ -46,7 +47,12 @@ public class CollectReactor extends TaskBuilderReactor {
 		
 		this.limit = getTotalToCollect();
 		this.task.setNumCollect(this.limit);
-		buildTask();
+		try {
+			buildTask();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		}
 		
 		// tracking
 		if (this.task instanceof BasicIteratorTask) {
@@ -117,7 +123,7 @@ public class CollectReactor extends TaskBuilderReactor {
 	}
 	
 	@Override
-	protected void buildTask() {
+	protected void buildTask() throws Exception {
 		// if the task was already passed in
 		// we do not need to optimize/recreate the iterator
 		if(this.task.isOptimized()) {

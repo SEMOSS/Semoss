@@ -98,15 +98,22 @@ public abstract class AbstractFormBuilder {
 	 */
 	public static void generateFormPermissionTable(IEngine formEng) {
 		// create audit table if doesn't exist
-		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='FORMS_USER_ACCESS'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(formEng, checkTableQuery);
 		boolean permissionTableExists = false;
-		if(wrapper.hasNext()) {
-			permissionTableExists = true;
-			// call the next so we close the rs
-			wrapper.next();
+		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='FORMS_USER_ACCESS'";
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(formEng, checkTableQuery);
+			if(wrapper.hasNext()) {
+				permissionTableExists = true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
-		wrapper.cleanUp();
+		
 		if(!permissionTableExists) {
 			Owler owler = new Owler(formEng);
 			owler.addConcept("FORMS_USER_ACCESS", null, null);
@@ -133,15 +140,22 @@ public abstract class AbstractFormBuilder {
 	
 	protected void generateEngineAuditLog(String auditLogTableName) {
 		// create audit table if doesn't exist
-		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='" + auditLogTableName + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(this.formEng, checkTableQuery);
 		boolean auditTableExists = false;
-		if(wrapper.hasNext()) {
-			auditTableExists = true;
-			// call the next so we close the rs
-			wrapper.next();
+		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='" + auditLogTableName + "'";
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(this.formEng, checkTableQuery);
+			if(wrapper.hasNext()) {
+				auditTableExists = true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
-		wrapper.cleanUp();
+		
 		if(!auditTableExists) {
 			Owler owler = new Owler(this.formEng);
 			owler.addConcept(auditLogTableName, null, null);
@@ -186,14 +200,21 @@ public abstract class AbstractFormBuilder {
 			
 			Owler owler = new Owler(this.formEng);
 
+			List<String> cols = new Vector<String>();
 			// 1) query to get the current cols
 			String allColsPresent = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + auditLogTableName.toUpperCase() + "'";
-			wrapper = WrapperManager.getInstance().getRawWrapper(this.formEng, allColsPresent);
-			List<String> cols = new Vector<String>();
-			while(wrapper.hasNext()) {
-				cols.add(wrapper.next().getValues()[0] + "");
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(this.formEng, allColsPresent);
+				while(wrapper.hasNext()) {
+					cols.add(wrapper.next().getValues()[0] + "");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
-			wrapper.cleanUp();
 			// 2) find the cols that we need to add
 			List<String> colsToAdd = new Vector<String>();
 			List<String> colsToAddTypes = new Vector<String>();

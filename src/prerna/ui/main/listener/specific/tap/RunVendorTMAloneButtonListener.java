@@ -75,12 +75,23 @@ public class RunVendorTMAloneButtonListener implements IChakraListener {
 		BooleanProcessor proc = new BooleanProcessor();
 		proc.setQuery(distanceQuery);
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-		boolean distanceExists = proc.processQuery();
+		boolean distanceExists = false;
+		try {
+			distanceExists = proc.processQuery();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		String distanceQuery2 = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Vendor> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> AS ?contains) {?s ?contains ?prop ;} }";
 		proc = new BooleanProcessor();
 		proc.setQuery(distanceQuery2);
-		distanceExists = distanceExists || proc.processQuery();
+		try {
+			distanceExists = distanceExists || proc.processQuery();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		if(distanceExists){
 			//display message

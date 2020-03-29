@@ -134,7 +134,7 @@ public class NativeImporter extends AbstractImporter {
 	}
 
 	@Override
-	public ITableDataFrame mergeData(List<Join> joins) {
+	public ITableDataFrame mergeData(List<Join> joins) throws Exception {
 		QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
 		String engineId = this.dataframe.getEngineId();
 		
@@ -200,20 +200,26 @@ public class NativeImporter extends AbstractImporter {
 	 * Generate a new frame from the existing native query
 	 * @param joins
 	 * @return
+	 * @throws Exception 
 	 */
-	private ITableDataFrame generateNewFrame(List<Join> joins) {
+	private ITableDataFrame generateNewFrame(List<Join> joins) throws Exception {
 		// first, load the entire native frame into rframe
 		SelectQueryStruct nativeQs = this.dataframe.getQueryStruct();
 		// need to convert the native QS to properly form the RDataTable
 		nativeQs = QSAliasToPhysicalConverter.getPhysicalQs(nativeQs, this.dataframe.getMetaData());
 		IRawSelectWrapper nativeFrameIt = this.dataframe.query(nativeQs);
-		if(!ImportSizeRetrictions.sizeWithinLimit(nativeFrameIt.getNumRecords())) {
-			SemossPixelException exception = new SemossPixelException(
-					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-							PixelDataType.CONST_STRING, 
-							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
+		try {
+			if(!ImportSizeRetrictions.sizeWithinLimit(nativeFrameIt.getNumRecords())) {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+								PixelDataType.CONST_STRING, 
+								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			throw new SemossPixelException(e1.getMessage());
 		}
 		
 		RDataTable rFrame = new RDataTable(this.in.getRJavaTranslator(LogManager.getLogger(CLASS_NAME)), Utility.getRandomString(8));
@@ -230,13 +236,18 @@ public class NativeImporter extends AbstractImporter {
 					new NounMetadata("Error occured executing query before loading into frame", 
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		if(!ImportSizeRetrictions.mergeWithinLimit(rFrame, mergeFrameIt)) {
-			SemossPixelException exception = new SemossPixelException(
-					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-							PixelDataType.CONST_STRING, 
-							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
+		try {
+			if(!ImportSizeRetrictions.mergeWithinLimit(rFrame, mergeFrameIt)) {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+								PixelDataType.CONST_STRING, 
+								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
 		}
 		
 		rImporter = new RImporter(rFrame, this.qs, mergeFrameIt);

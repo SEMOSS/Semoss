@@ -318,25 +318,33 @@ public class ResidualSystemOptFillData{
 				systemGarrison[i] = 0;
 		}
 
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(systemEngine, query);
-		
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
-		while(wrapper.hasNext())
-		{
-			ISelectStatement sjss = wrapper.next();
-			String sysName = (String)sjss.getVar(names[0]);
-			int rowIndex = sysList.indexOf(sysName);
-			if(rowIndex>-1) {
-				String theatGarr = (String)sjss.getVar(names[1]);
-				theatGarr = theatGarr.toLowerCase();
-				//if(systemTheater!=null && (theatGarr.contains("both")||theatGarr.contains("theater")))
-				if(includeTheater && (!theatGarr.contains("garrison") || theatGarr.contains("and")))
-					systemTheater[rowIndex] = 1;
+		ISelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getSWrapper(systemEngine, query);
+			String[] names = wrapper.getVariables();
+			// now get the bindings and generate the data
+			while(wrapper.hasNext())
+			{
+				ISelectStatement sjss = wrapper.next();
+				String sysName = (String)sjss.getVar(names[0]);
+				int rowIndex = sysList.indexOf(sysName);
+				if(rowIndex>-1) {
+					String theatGarr = (String)sjss.getVar(names[1]);
+					theatGarr = theatGarr.toLowerCase();
+					//if(systemTheater!=null && (theatGarr.contains("both")||theatGarr.contains("theater")))
+					if(includeTheater && (!theatGarr.contains("garrison") || theatGarr.contains("and")))
+						systemTheater[rowIndex] = 1;
 
-				//if(systemGarrison!=null && (theatGarr.contains("both")||theatGarr.contains("garrison")))
-				if(includeGarrison && (!theatGarr.contains("theater") || theatGarr.contains("and")))
-					systemGarrison[rowIndex] = 1;
+					//if(systemGarrison!=null && (theatGarr.contains("both")||theatGarr.contains("garrison")))
+					if(includeGarrison && (!theatGarr.contains("theater") || theatGarr.contains("and")))
+						systemGarrison[rowIndex] = 1;
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 	}
@@ -353,56 +361,52 @@ public class ResidualSystemOptFillData{
 	}
 	
 	private int[][] fillMatrixFromQuery(IEngine engine, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
-
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-		
-		// get the bindings from it
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
+		ISelectWrapper wrapper = null;
 		try {
-			while(wrapper.hasNext())
-			{
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			// get the bindings from it
+			String[] names = wrapper.getVariables();
+			// now get the bindings and generate the data
+			while(wrapper.hasNext()) {
 				ISelectStatement sjss = wrapper.next();
 				Object rowName = sjss.getVar(names[0]);
 				Object colName = sjss.getVar(names[1]);
-				
+
 				int rowIndex = rowNames.indexOf(rowName);
-				if(rowIndex>-1)
-				{
+				if(rowIndex > -1) {
 					int colIndex = colNames.indexOf(colName);
-					if(colIndex>-1)
-					{
+					if(colIndex>-1) {
 						matrix[rowIndex][colIndex] = 1;
 					}
 				}
-
 			}
-		} catch (RuntimeException e) {
-			logger.fatal(e);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+
 		return matrix;
 	}
 	
 	private double[][] fillMatrixFromQuery(IEngine engine, String query,double[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
-
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-		
-		// get the bindings from it
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
+		ISelectWrapper wrapper = null;
 		try {
-			while(wrapper.hasNext())
-			{
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			// get the bindings from it
+			String[] names = wrapper.getVariables();
+			// now get the bindings and generate the data
+			while(wrapper.hasNext()) {
 				ISelectStatement sjss = wrapper.next();
 				Object rowName = sjss.getVar(names[0]);
 				Object colName = sjss.getVar(names[1]);
 				
 				int rowIndex = rowNames.indexOf(rowName);
-				if(rowIndex>-1)
-				{
+				if(rowIndex > -1) {
 					int colIndex = colNames.indexOf(colName);
-					if(colIndex>-1)
-					{
+					if(colIndex > -1) {
 						if(names.length > 2) {
 							Object val = sjss.getVar(names[2]);
 							if(val instanceof Double)
@@ -422,29 +426,30 @@ public class ResidualSystemOptFillData{
 						}
 					}
 				}
-
 			}
-		} catch (RuntimeException e) {
-			logger.fatal(e);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		return matrix;
 	}
 	
 	private double[] fillVectorFromQuery(IEngine engine, String query,double[] matrix,ArrayList<String> rowNames, boolean needsConversion) {
-
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-		
-		// get the bindings from it
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
+		ISelectWrapper wrapper = null;
 		try {
-			while(wrapper.hasNext())
-			{
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			// get the bindings from it
+			String[] names = wrapper.getVariables();
+			// now get the bindings and generate the data
+			while(wrapper.hasNext()) {
 				ISelectStatement sjss = wrapper.next();
 				Object rowName = sjss.getVar(names[0]);
 				int rowIndex = rowNames.indexOf(rowName);
-				if(rowIndex>-1)
-				{
+				if(rowIndex > -1) {
 					if(!needsConversion) {
 						Object val = sjss.getVar(names[1]);
 						if(val instanceof Double)
@@ -462,40 +467,51 @@ public class ResidualSystemOptFillData{
 					else
 					{
 						String requiredVal = (String)sjss.getVar(names[1]);
-						if(requiredVal.toUpperCase().contains("Y"))
+						if(requiredVal.toUpperCase().contains("Y")) {
 							matrix[rowIndex]= 1.0;
-						else
+						} else {
 							matrix[rowIndex] = 0.0;
+						}
 					}
 
 				}
 			}
-		} catch (RuntimeException e) {
-			logger.fatal(e);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		return matrix;
 	}
+	
 	private String[] fillVectorFromQuery(IEngine engine, String query,String[] matrix,ArrayList<String> rowNames, boolean valIsOne) {
-
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-
-		// get the bindings from it
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
+		ISelectWrapper wrapper;
 		try {
-			while(wrapper.hasNext())
-			{
-				ISelectStatement sjss = wrapper.next();
-				Object rowName = sjss.getVar(names[0]);
-				int rowIndex = rowNames.indexOf(rowName);
-				if(rowIndex>-1)
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			// get the bindings from it
+			String[] names = wrapper.getVariables();
+			// now get the bindings and generate the data
+			try {
+				while(wrapper.hasNext())
 				{
-					matrix[rowIndex]= (String)sjss.getVar(names[1]);
+					ISelectStatement sjss = wrapper.next();
+					Object rowName = sjss.getVar(names[0]);
+					int rowIndex = rowNames.indexOf(rowName);
+					if(rowIndex>-1)
+					{
+						matrix[rowIndex]= (String)sjss.getVar(names[1]);
+					}
 				}
+			} catch (RuntimeException e) {
+				logger.fatal(e);
 			}
-		} catch (RuntimeException e) {
-			logger.fatal(e);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
+
 		return matrix;
 	}
 	

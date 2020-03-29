@@ -24,7 +24,7 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	private ResultSet rs = null;
 
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		rs = (ResultSet) engine.execQuery(query);
 		// set the variables for future use
 		setVariables();
@@ -138,7 +138,12 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	public long getNumRows() {
 		if(this.numRows == 0) {
 			String query = "select count(*) where { " + this.query + "}";
-			ResultSet rs = (ResultSet) engine.execQuery(query);
+			ResultSet rs = null;
+			try {
+				rs = (ResultSet) engine.execQuery(query);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			if(rs.hasNext()) {
 				QuerySolution row = rs.next();
 				RDFNode node = row.get("count");
@@ -157,7 +162,7 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	}
 	
 	@Override
-	public void reset() {
+	public void reset() throws Exception {
 		cleanUp();
 		execute();
 	}

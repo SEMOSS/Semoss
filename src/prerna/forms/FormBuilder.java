@@ -20,6 +20,7 @@ import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -62,12 +63,22 @@ public final class FormBuilder {
 		String auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineId())).toUpperCase() + AUDIT_FORM_SUFFIX;
 		IEngine formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
 		// create audit table if doesn't exist
-		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='" + auditLogTableName + "'";
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(formEng, checkTableQuery);
 		boolean auditTableExists = false;
-		if(wrapper.hasNext()) {
-			auditTableExists = true;
+		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='" + auditLogTableName + "'";
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(formEng, checkTableQuery);
+			if(wrapper.hasNext()) {
+				auditTableExists = true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+		
 		if(!auditTableExists) {
 			String createAuditTable = "CREATE TABLE " + auditLogTableName + " (ID IDENTITY, USER VARCHAR(255), ACTION VARCHAR(100), START_NODE VARCHAR(255), REL_NAME VARCHAR(255), END_NODE VARCHAR(255), PROP_NAME VARCHAR(255), PROP_VALUE CLOB, TIME TIMESTAMP)";
 			try {

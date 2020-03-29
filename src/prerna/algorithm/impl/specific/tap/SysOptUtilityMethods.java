@@ -28,13 +28,11 @@
 package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
-import java.util.Vector;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.ui.helpers.EntityFiller;
 import prerna.util.Utility;
 
 public final class SysOptUtilityMethods {
@@ -56,12 +54,20 @@ public final class SysOptUtilityMethods {
 	 */
 	public static Object runSingleResultQuery(IEngine engine, String query){
 		if(!query.isEmpty()) {
-			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-
-			String[] names = wrapper.getVariables();
-			while (wrapper.hasNext()) {
-				ISelectStatement sjss = wrapper.next();
-				return sjss.getVar(names[0]);
+			ISelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+				String[] names = wrapper.getVariables();
+				while (wrapper.hasNext()) {
+					ISelectStatement sjss = wrapper.next();
+					return sjss.getVar(names[0]);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
 		}
 		return null;
@@ -75,12 +81,20 @@ public final class SysOptUtilityMethods {
 	public static ArrayList<String> runListQuery(IEngine engine, String query){
 		ArrayList<String> list = new ArrayList<String>();
 		if(!query.isEmpty()) {
-			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-
-			String[] names = wrapper.getVariables();
-			while (wrapper.hasNext()) {
-				ISelectStatement sjss = wrapper.next();
-				list.add((String) sjss.getVar(names[0]));
+			ISelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+				String[] names = wrapper.getVariables();
+				while (wrapper.hasNext()) {
+					ISelectStatement sjss = wrapper.next();
+					list.add((String) sjss.getVar(names[0]));
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
 		}
 		return list;
@@ -136,19 +150,18 @@ public final class SysOptUtilityMethods {
 
 	
 	public static int[][] fillMatrixFromQuery(IEngine engine, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
-
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-		
-		// get the bindings from it
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
+		ISelectWrapper wrapper = null;
 		try {
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			// get the bindings from it
+			String[] names = wrapper.getVariables();
+			// now get the bindings and generate the data
 			while(wrapper.hasNext())
 			{
 				ISelectStatement sjss = wrapper.next();
 				Object rowName = sjss.getVar(names[0]);
 				Object colName = sjss.getVar(names[1]);
-				
+
 				int rowIndex = rowNames.indexOf(rowName);
 				if(rowIndex>-1)
 				{
@@ -160,9 +173,14 @@ public final class SysOptUtilityMethods {
 				}
 
 			}
-		} catch (RuntimeException e) {
-			e.printStackTrace();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
+
 		return matrix;
 	}
 
