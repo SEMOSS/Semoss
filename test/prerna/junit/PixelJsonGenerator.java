@@ -2,11 +2,10 @@ package prerna.junit;
 
 import static org.junit.Assume.assumeNoException;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,58 +25,60 @@ import prerna.sablecc2.PixelStreamUtility;
 public class PixelJsonGenerator extends PixelUnit {
 	private static final String CLASS_NAME = PixelStreamUtility.class.getName();
 	private static final Logger LOGGER = Logger.getLogger(CLASS_NAME);
+	
+	protected static final String TESTS_CSV = Paths.get(TEST_RESOURCES_DIRECTORY, "tests.csv").toAbsolutePath().toString();
 
 	@Test
 	public void runConsole() {
-		String end = "";
-		while(!end.equalsIgnoreCase("end")) {
-			try {	
-				// Read pixel from tester
-				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-	
-				LOGGER.info("Enter location of csv file (pixels in csv must be separated by ; and on one line): ");
-				String csvLocation = reader.readLine();   
-				csvLocation = csvLocation.trim();
-				String expectedJson;
-				String pixel;
-				String insightState;
-				boolean skipTest;
-	
-				// read in csv
-				Collection<Object[]> testParameters = getTestParamsMultiple(csvLocation);
-				
-				//loop through collection and for each pixel run output to file
-				for(Object[] workflow: testParameters) {
-					pixel = String.valueOf(workflow[1]);
-					String updatePixel = pixel.replace("\n", "").replace("\r", "");
-					expectedJson = String.valueOf(workflow[2]);
-					insightState = String.valueOf(workflow[10]);
-					skipTest = (Boolean) workflow[11];
-					PixelRunner returnData = null;
-					
-					if (!skipTest) {
-						if (insightState.equals("START")) {
-							initializeTest(false);
-						}
-						returnData = runPixel(updatePixel);
-						if (expectedJson != null && expectedJson.contains("workflow")) {
-							String modifiedJsonPath = expectedJson.replaceAll("<<<text>>>", "");
-							String actualJsonPath = modifiedJsonPath.replaceAll("<<</text>>>", "");
-							File jsonFile = new File("C:/workspace/Semoss_Dev/test/resources/text/" + actualJsonPath);
-							// if file doesn't exist create empty file
-							jsonFile.createNewFile();
-							// log workflow
-							LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<" + actualJsonPath + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-							// write data
-							PixelStreamUtility.writePixelDataForTest(returnData, jsonFile); 
-						}
-						if (insightState.equals("END")) {
-							destroyTest();
-						}
-					}
+		String expectedJson;
+		String pixel;
+		String insightState;
+		boolean skipTest;
+
+		// Read in csv
+		Collection<Object[]> testParameters = getTestParamsMultiple(TESTS_CSV);
+
+		// Loop through collection and for each pixel run output to file
+		for (Object[] workflow : testParameters) {
+			pixel = String.valueOf(workflow[1]);
+			String updatePixel = pixel.replace("\n", "").replace("\r", "");
+			expectedJson = String.valueOf(workflow[2]);
+			insightState = String.valueOf(workflow[10]);
+			skipTest = (Boolean) workflow[11];
+			PixelRunner returnData = null;
+
+			if (!skipTest) {
+				if (insightState.equals("START")) {
+					initializeTest(false);
 				}
-			} catch (IOException e) {
-				System.out.println("Failed in running pixel" + e.getMessage());
+				try {
+					returnData = runPixel(updatePixel);
+				}
+				catch (IOException e) {
+					LOGGER.info("Failed in running pixel: " + pixel);
+					LOGGER.info("Error Message: " + e.getMessage());
+				}
+				
+				if (expectedJson != null) {
+					String modifiedJsonPath = expectedJson.replaceAll("<<<text>>>", "");
+					String actualJsonPath = modifiedJsonPath.replaceAll("<<</text>>>", "");
+					
+					File jsonFile = new File(TEST_TEXT_DIRECTORY + File.separatorChar + actualJsonPath);
+					// if file doesn't exist create empty file
+					try {
+						jsonFile.createNewFile();
+					} catch (IOException e) {
+						LOGGER.info("Failed to create json file: " + jsonFile);
+						LOGGER.info("Error Message: " + e.getMessage());
+					}
+					// Log workflow
+					LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<" + actualJsonPath + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+					// Write data
+					PixelStreamUtility.writePixelDataForTest(returnData, jsonFile);
+				}
+				if (insightState.equals("END")) {
+					destroyTest();
+				}
 			}
 		}
 	}
