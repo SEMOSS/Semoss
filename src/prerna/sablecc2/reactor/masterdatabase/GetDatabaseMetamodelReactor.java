@@ -17,6 +17,8 @@ import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
+import prerna.cluster.util.CloudClient;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -68,8 +70,20 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 			metamodelObject.put("descriptions", MasterDatabaseUtility.getEngineDescriptions(engineId));
 		}
 
+
 		// this is for the OWL positions for the new layout
 		if(options.contains("positions")) {
+			if(ClusterUtil.IS_CLUSTER){
+				try {
+					CloudClient.getClient().pullApp(engineId);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 			// if the file is present, pull it and load
 			String smssFile = DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
 			Properties prop = Utility.loadProperties(smssFile);
