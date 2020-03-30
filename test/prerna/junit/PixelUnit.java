@@ -10,7 +10,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -27,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,7 +54,6 @@ import org.quartz.SchedulerException;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -118,6 +115,8 @@ public class PixelUnit {
 
 	private static final Path BASE_RDF_MAP = Paths.get(BASE_DIRECTORY, "RDF_Map.prop");
 	private static final Path TEST_RDF_MAP = Paths.get(TEST_RESOURCES_DIRECTORY, "RDF_Map.prop");
+	
+	private static final Path TEST_LOCAL_DB_MAP = Paths.get(TEST_RESOURCES_DIRECTORY, "Local_DBs.prop");
 
 	private static final String LS = System.getProperty("line.separator");
 
@@ -256,6 +255,13 @@ public class PixelUnit {
 		// Themes
 		SMSSWebWatcher.loadNewDB(Constants.THEMING_DB + ".smss", BASE_DB_DIRECTORY);
 		AbstractThemeUtils.loadThemingDatabase();
+		
+		// Add local databases (as defined in Local_DBs.prop) to Properties so that users can run tests on their local db's
+		Properties propMap = DIHelper.getInstance().getCoreProp();
+		Properties localDBPropMap = Utility.loadProperties(TEST_LOCAL_DB_MAP.toString());
+		localDBPropMap.forEach((key, value) -> propMap.put(key + "_STORE", BASE_DB_DIRECTORY + "\\" + value));
+		DIHelper.getInstance().setCoreProp(propMap);
+
 	}
 
 	private static void unloadDatabases() {
