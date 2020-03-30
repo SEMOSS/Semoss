@@ -33,8 +33,8 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 		if(!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
-		String sheetName = this.keyValue.get(this.keysToGet[1]);
-		String sheetRange = this.keyValue.get(this.keysToGet[2]);
+		String sheetName = this.keyValue.get(this.keysToGet[2]);
+		String sheetRange = this.keyValue.get(this.keysToGet[3]);
 		
 		// check if file is valid
 		if(!ExcelParsing.isExcelFile(filePath)) {
