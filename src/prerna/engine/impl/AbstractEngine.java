@@ -1172,6 +1172,7 @@ public abstract class AbstractEngine implements IEngine {
 		// get the prop file and find the parent
 
 		File dbDirectory = new File(propFile);
+		System.err.println(".");
 
 		String dbFolder = engineName + "_" + dbDirectory.getParent()+ "/" + engineId;
 
@@ -1208,6 +1209,18 @@ public abstract class AbstractEngine implements IEngine {
 		if(dbSpecificHash.size() == 0)
 		{
 			//compileJava(insightDirector.getParentFile().getAbsolutePath());
+			// delete the classes directory first
+			String classesFolder = dbFolder + "/version/classes";
+			File classesDir = new File(classesFolder);
+			if(classesDir.exists() && classesDir.isDirectory())
+				try {
+					//FileUtils.deleteDirectory(classesDir);
+					//classesDir.mkdir();
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			
 			dbSpecificHash = Utility.loadReactors(dbFolder + "/version", key);
 		}
 		try
