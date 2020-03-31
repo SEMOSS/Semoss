@@ -1201,6 +1201,7 @@ public class OwlTemporalEngineMeta {
 				+ "?header "
 				+ "(coalesce(?prim, 'false') as ?isPrim) "
 				+ "(coalesce(?dt, 'unknown') as ?dataType) "
+				+ "(coalesce(?adt, 'unknown') as ?adtlType) "
 				+ "(coalesce(?qs, 'unknown') as ?qsName) "
 				+ "(coalesce(?parent, 'none') as ?parentNode) "
 				+ "(coalesce(?display, 'none') as ?alias) "
@@ -1210,6 +1211,7 @@ public class OwlTemporalEngineMeta {
 				+ "{" 
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
 				+ filter.toString()
+				+ "optional{?header <" + ADDTL_DATATYPE_PRED + "> ?adt}"
 				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
 				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
 				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
@@ -1221,6 +1223,7 @@ public class OwlTemporalEngineMeta {
 				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
 				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
 				+ filter.toString()
+				+ "optional{?header <" + ADDTL_DATATYPE_PRED + "> ?adt}"
 				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
 				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
 				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
