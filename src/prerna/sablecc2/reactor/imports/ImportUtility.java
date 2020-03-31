@@ -201,10 +201,18 @@ public class ImportUtility {
 				String column = cSelect.getColumn();
 				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
+					String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineName, table, null);
 					metaData.setDataTypeToProperty(uniqueHeader, type);
+					if (adtlType != null) {
+						metaData.setAddtlDataTypeToProperty(uniqueHeader, adtlType);
+					}
 				} else {
 					String type = MasterDatabaseUtility.getBasicDataType(engineName, column, table);
+					String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineName, column, table);
 					metaData.setDataTypeToProperty(uniqueHeader, type);
+					if (adtlType != null) {
+						metaData.setAddtlDataTypeToProperty(uniqueHeader, adtlType);
+					}
 				}
 			} else {
 				metaData.setDataTypeToProperty(uniqueHeader, dataType);
@@ -531,10 +539,18 @@ public class ImportUtility {
 				String column = cSelect.getColumn();
 				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
+					String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineName, table, null);
 					metaData.setDataTypeToVertex(alias, type);
+					if (adtlType != null) {
+						metaData.setAddtlDataTypeToVertex(alias, adtlType);
+					}
 				} else {
 					String type = MasterDatabaseUtility.getBasicDataType(engineName, column, table);
+					String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineName, column, table);
 					metaData.setDataTypeToVertex(alias, type);
+					if (adtlType != null) {
+						metaData.setAddtlDataTypeToVertex(alias, adtlType);
+					}
 				}
 			} else {
 				metaData.setDataTypeToVertex(alias, dataType);
@@ -626,10 +642,18 @@ public class ImportUtility {
 				String column = cSelect.getColumn();
 				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
+					String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineName, table, null);
 					metaData.setDataTypeToVertex(alias, type);
+					if (adtlType != null) {
+						metaData.setAddtlDataTypeToVertex(alias, adtlType);
+					}
 				} else {
 					String type = MasterDatabaseUtility.getBasicDataType(engineName, column, table);
+					String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineName, column, table);
 					metaData.setDataTypeToVertex(alias, type);
+					if (adtlType != null) {
+						metaData.setAddtlDataTypeToVertex(alias, adtlType);
+					}
 				}
 			} else {
 				metaData.setDataTypeToVertex(alias, dataType);
@@ -989,7 +1013,11 @@ public class ImportUtility {
 						metaData.setDataTypeToVertex(table, sType.toString());
 					} else {
 						String type = MasterDatabaseUtility.getBasicDataType(engineId, table, null);
+						String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineId, table, null);
 						metaData.setDataTypeToVertex(table, type);
+						if (adtlType != null) {
+							metaData.setAddtlDataTypeToVertex(table, adtlType);
+						}
 					}
 					metaData.setAliasToVertex(table, alias);
 				} else {
@@ -1006,7 +1034,11 @@ public class ImportUtility {
 						metaData.setDataTypeToProperty(uniqueName, sType.toString());
 					} else {
 						String type = MasterDatabaseUtility.getBasicDataType(engineId, column, table);
+						String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineId, column, table);
 						metaData.setDataTypeToProperty(uniqueName, type);
+						if (adtlType != null) {
+							metaData.setDataTypeToProperty(uniqueName, adtlType);
+						}
 					}
 					metaData.setAliasToProperty(uniqueName, alias);
 				}
