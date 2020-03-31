@@ -1188,6 +1188,18 @@ public abstract class AbstractEngine implements IEngine {
 		//ReactorFactory.compileCache.remove(engineId);
 		if(!ReactorFactory.compileCache.containsKey(engineId))
 		{
+			String classesFolder = dbFolder + "/version/classes";
+			File classesDir = new File(classesFolder);
+			if(classesDir.exists() && classesDir.isDirectory())
+			{
+				try {
+					//FileUtils.cleanDirectory(classesDir);
+					//classesDir.mkdir();
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 			int status = Utility.compileJava(dbFolder +"/version", getCP());
 			if(status == 0)
 			{
@@ -1203,6 +1215,7 @@ public abstract class AbstractEngine implements IEngine {
 	
 				dbSpecificHash.clear();
 			}
+			// avoid loading everytime since it is an error
 		}
 
 		
@@ -1210,18 +1223,9 @@ public abstract class AbstractEngine implements IEngine {
 		{
 			//compileJava(insightDirector.getParentFile().getAbsolutePath());
 			// delete the classes directory first
-			String classesFolder = dbFolder + "/version/classes";
-			File classesDir = new File(classesFolder);
-			if(classesDir.exists() && classesDir.isDirectory())
-				try {
-					//FileUtils.deleteDirectory(classesDir);
-					//classesDir.mkdir();
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
 			
 			dbSpecificHash = Utility.loadReactors(dbFolder + "/version", key);
+			dbSpecificHash.put("loaded", "TRUE".getClass());
 		}
 		try
 		{
