@@ -30,6 +30,7 @@ public class CollectPivotRReactor extends TaskBuilderReactor {
 		mathMap.put("Max", "max");
 		mathMap.put("Median", "median");
 		mathMap.put("StandardDeviation", "sd");
+		mathMap.put("Count", "count");
 	};
 
 	public CollectPivotRReactor() {
