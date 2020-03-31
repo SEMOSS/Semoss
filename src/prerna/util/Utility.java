@@ -76,6 +76,7 @@ import java.util.TimeZone;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
@@ -2916,6 +2917,54 @@ public class Utility {
 		return adjustTypes.toString();
 	}
 
+
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator, int parallel) {
+		
+		fileLocation = fileLocation.replace(".tsv", "");
+		
+		File fileLoc = new File(fileLocation);
+		if(fileLoc.exists())
+			fileLoc.delete();
+		fileLoc.mkdir();
+		
+		if(parallel == -1)
+			parallel = 10; // defaulting to ten threads
+		
+		// result gatherer thread that is invoked after all threads are done
+		ResultGathererThread rgt = new ResultGathererThread();
+		Object daLock = new Object();
+		rgt.daLock = daLock;
+		
+		
+		CyclicBarrier cyb = new CyclicBarrier(parallel, new Thread(rgt));
+		for(int parIndex = 0;parIndex < parallel;parIndex++)
+		{
+			ResultWriterThread rwt = new ResultWriterThread();
+			rwt.cyb = cyb;
+			rwt.fileLocation = fileLocation;
+			rwt.it = it;
+			rwt.typesMap = typesMap;
+			rwt.seperator = seperator;
+			rwt.suffix = parIndex+"";
+			Thread rwThread = new Thread(rwt);
+			rwThread.start();
+		}
+		
+		// need a lock to sleep here but.. 
+		synchronized(daLock)
+		{
+			try {
+				daLock.wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		
+		return fileLoc;
+	}
+
 	
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator) {
 		long start = System.currentTimeMillis();
@@ -3192,7 +3241,7 @@ public class Utility {
 						// change the name of the classes
 						// ideally we would just have the pakcage name change to the insight
 						// this is to namespace it appropriately to have no issues
-						clazz.setName(qClassName);
+						//clazz.setName(qClassName);
 						Class newClass = clazz.toClass();
 
 						// add to the insight map

@@ -31,6 +31,7 @@ import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -189,6 +190,8 @@ public class Insight {
 	Map pragmap = new HashMap();
 	
 	public NettyClient nc = null;
+	
+	public List <String> allDbsUsed = new ArrayList<String>();
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -1098,12 +1101,20 @@ public class Insight {
 			
 			// else try to find it the specific db
 			// loading it inside of version/classes
+			// check with all the engines used
 			if(engineId != null)
 			{
 				IEngine engine = Utility.getEngine(engineId);
-				return engine.getReactor(className);
-		
+				retReac = engine.getReactor(className);				
 			}
+			// check all other dbs
+			// first one wins
+			for(int engineIndex = 0;engineIndex < allDbsUsed.size() && retReac == null;engineIndex++)
+			{
+				String thisEngine = allDbsUsed.get(engineIndex);
+				IEngine engine = Utility.getEngine(thisEngine);
+				retReac = engine.getReactor(className);
+			}			
 		}				
 		return retReac;
 	}
@@ -1313,5 +1324,11 @@ public class Insight {
 		}
 	}
 
+	// add this database as being used by this insight
+	public void addEngine(String engineId)
+	{
+		if(!this.allDbsUsed.contains(engineId))
+			this.allDbsUsed.add(engineId);
+	}
 
 }

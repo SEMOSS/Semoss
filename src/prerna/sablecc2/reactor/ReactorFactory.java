@@ -1656,7 +1656,8 @@ public class ReactorFactory {
 	
 	public static void recompile(String name)
 	{
-		compileCache.remove(name);
+		if(name != null)
+			compileCache.remove(name);
 	}
 	
 	public static void setCompile(String name)
