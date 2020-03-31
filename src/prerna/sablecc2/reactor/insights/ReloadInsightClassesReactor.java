@@ -17,8 +17,11 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		ReactorFactory.recompile(insight.getRdbmsId());
-		if(keyValue.containsKey("engine"))
-			ReactorFactory.recompile(insight.getEngineId());
+		//if(keyValue.containsKey("engine"))
+		{
+			for(int engineIndex = 0;engineIndex < insight.allDbsUsed.size();engineIndex++)
+				ReactorFactory.recompile(insight.allDbsUsed.get(engineIndex));
+		}
 		return new NounMetadata("Recompile Initiated", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 }
