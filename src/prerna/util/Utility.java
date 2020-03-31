@@ -2917,7 +2917,8 @@ public class Utility {
 		return adjustTypes.toString();
 	}
 
-
+	
+/*
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator, int parallel) {
 		
 		fileLocation = fileLocation.replace(".tsv", "");
@@ -2965,6 +2966,7 @@ public class Utility {
 		return fileLoc;
 	}
 
+	*/
 	
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator) {
 		long start = System.currentTimeMillis();
@@ -3232,34 +3234,41 @@ public class Utility {
 					String name = classes.get(classIndex).getSimpleName();
 					String packageName = classes.get(classIndex).getPackageName();
 					//Class actualClass = classes.get(classIndex).loadClass();
-					
-					try {
-						// can I modify the class here
-						CtClass clazz = pool.get(packageName + "." + name);
-						clazz.defrost();
-						String qClassName = key + "." + packageName + "." + name;
-						// change the name of the classes
-						// ideally we would just have the pakcage name change to the insight
-						// this is to namespace it appropriately to have no issues
-						//clazz.setName(qClassName);
-						Class newClass = clazz.toClass();
-
-						// add to the insight map
-						// we could do other instrumentation if we so chose to
-						// once I have created it is in the heap, I dont need to do much. One thing I could do is not load every class in the insight but give it out slowly
-						thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
-
-					} catch (NotFoundException e) {
-						e.printStackTrace();
-					} catch (CannotCompileException e) {
-						e.printStackTrace();
+					// if it is already there.. nothing we can do
+					if(!reactors.containsKey(name.toUpperCase().replaceAll("REACTOR", "")))
+					{
+						try {
+							// can I modify the class here
+							CtClass clazz = pool.get(packageName + "." + name);
+							clazz.defrost();
+							String qClassName = key + "." + packageName + "." + name;
+							// change the name of the classes
+							// ideally we would just have the pakcage name change to the insight
+							// this is to namespace it appropriately to have no issues
+							// if you want a namespace
+							clazz.setName(qClassName);
+							Class newClass = clazz.toClass();
+	
+							Object newInstance = newClass.newInstance();
+							
+							// add to the insight map
+							// we could do other instrumentation if we so chose to
+							// once I have created it is in the heap, I dont need to do much. One thing I could do is not load every class in the insight but give it out slowly
+							if(newInstance instanceof prerna.sablecc2.reactor.AbstractReactor)
+								thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+	
+						} catch (NotFoundException e) {
+							e.printStackTrace();
+						} catch (CannotCompileException e) {
+							e.printStackTrace();
+						}
+						//System.out.println(newClass.getCanonicalName());
+						
+						// once the new instance has been done.. it has been injected into heap.. after this anyone can access it. 
+						// no way to remove this class from heap
+						// has to be garbage collected as it moves
+						//System.out.println(newClass.newInstance().getClass().getPackage());
 					}
-					//System.out.println(newClass.getCanonicalName());
-					
-					// once the new instance has been done.. it has been injected into heap.. after this anyone can access it. 
-					// no way to remove this class from heap
-					// has to be garbage collected as it moves
-					//System.out.println(newClass.newInstance().getClass().getPackage());
 				}
 			}				
 		} catch(Exception ex) {
