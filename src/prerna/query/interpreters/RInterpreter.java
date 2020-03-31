@@ -561,6 +561,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		
 		// need to account for null inputs
 		boolean addNullCheck = objects.contains(null);
+		boolean nullCheckWithEquals = true;
 		if(addNullCheck) {
 			objects.remove(null);
 		}
@@ -576,6 +577,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			if(thisComparator.equals("==")) {
 				filterBuilder.append("is.na(").append(leftSelectorExpression).append(") ");
 			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+				nullCheckWithEquals = false;
 				filterBuilder.append("!is.na(").append(leftSelectorExpression).append(") ");
 			}
 		}
@@ -609,10 +611,10 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				// we added a null check above
 				// we need to wrap 
 				filterBuilder.insert(0, "(");
-				if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
-					filterBuilder.append("& ");
-				} else {
+				if(nullCheckWithEquals) {
 					filterBuilder.append("| ");
+				} else {
+					filterBuilder.append("& ");
 				}
 			}
 			
