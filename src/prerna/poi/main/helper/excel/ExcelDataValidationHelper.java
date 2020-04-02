@@ -452,11 +452,11 @@ public class ExcelDataValidationHelper {
 				Object f2 = propMap.get("f2");
 				//TODO use slider?
 				propertyMap.put("defaultValue", "0");
-				htmlSb.append(FormUtility.getNumberPickerComponent());
+				htmlSb.append(FormUtility.getNumberPickerComponent(property));
 			} else if (wc == WIDGET_COMPONENT.TEXTAREA) {
 				htmlSb.append(FormUtility.getTextAreaComponent());
 			} else {
-				htmlSb.append(FormUtility.getInputComponent());
+				htmlSb.append(FormUtility.getInputComponent(property));
 			}
 
 			if (description.length() > 0) {
