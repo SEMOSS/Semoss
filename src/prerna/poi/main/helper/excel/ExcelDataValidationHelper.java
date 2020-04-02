@@ -58,12 +58,7 @@ public class ExcelDataValidationHelper {
 				Comment cellComment = c.getCellComment();
 				if (cellComment != null) {
 					RichTextString commentStr = cellComment.getString();
-					String comment = commentStr.getString();
-					// comment may have author
-					String author = cellComment.getAuthor();
-					if (author != null) {
-						comment = comment.replace(author + ":\n", "");
-					}
+					String comment = cleanComment(commentStr.getString());
 					headerMeta.put("description", comment);
 				}
 				Object header = ExcelParsing.getCell(c);
@@ -177,12 +172,7 @@ public class ExcelDataValidationHelper {
 				Comment cellComment = c.getCellComment();
 				if (cellComment != null) {
 					RichTextString commentStr = cellComment.getString();
-					String comment = commentStr.getString();
-					// comment may have author
-					String author = cellComment.getAuthor();
-					if (author != null) {
-						comment = comment.replace(author + ":\n", "");
-					}
+					String comment = cleanComment(commentStr.getString());
 					headerMeta.put("description", comment);
 				}
 				Object header = ExcelParsing.getCell(c);
@@ -289,12 +279,7 @@ public class ExcelDataValidationHelper {
 					Comment cellComment = c.getCellComment();
 					if (cellComment != null) {
 						RichTextString commentStr = cellComment.getString();
-						String comment = commentStr.getString();
-						// comment may have author
-						String author = cellComment.getAuthor();
-						if (author != null) {
-							comment = comment.replace(author + ":\n", "");
-						}
+						String comment = cleanComment(commentStr.getString());
 						headerMeta.put("description", comment);
 					}
 					validationMap.put(header, headerMeta);
@@ -357,12 +342,7 @@ public class ExcelDataValidationHelper {
 					Comment cellComment = c.getCellComment();
 					if (cellComment != null) {
 						RichTextString commentStr = cellComment.getString();
-						String comment = commentStr.getString();
-						// comment may have author
-						String author = cellComment.getAuthor();
-						if (author != null) {
-							comment = comment.replace(author + ":\n", "");
-						}
+						String comment = cleanComment(commentStr.getString());
 						headerMeta.put("description", comment);
 					}
 				}
@@ -548,6 +528,19 @@ public class ExcelDataValidationHelper {
 		}
 		updateMap.put("config", configMap);
 		return updateMap;
+	}
+
+	public static String cleanComment(String commentToClean) {
+		// takes out spaces before the string
+		String regex = "^\\s+";
+		String trimmedComment = commentToClean;
+		if (commentToClean.contains("Comment:")) {
+			trimmedComment = commentToClean.substring(commentToClean.indexOf("Comment:") + 8);
+			trimmedComment = trimmedComment.replace("\n", "").replace("\r", "");
+			trimmedComment = trimmedComment.replaceAll(regex, "");
+			trimmedComment.trim();
+		}
+		return trimmedComment;
 	}
 
 	public static String validationTypeToString(int validationType) {
