@@ -6,8 +6,8 @@ public class FormUtility {
 		return new StringBuilder("<div smss-form-model=\"" + label + "\">" + "{{item.model}}</div>\\n").toString();
 	}
 
-	public static String getInputComponent() {
-		return new StringBuilder(" <smss-input ng-model=\"item.selected\">" + "</smss-input>\\n").toString();
+	public static String getInputComponent(String dataModelComp) {
+		return new StringBuilder(" <smss-input ng-model=\"form.dataModel." + dataModelComp + ".selected\">" + "</smss-input>\\n").toString();
 	}
 
 	public static String getDropdownComponent(String dataModelComp) {
@@ -17,8 +17,8 @@ public class FormUtility {
 								.toString();
 	}
 
-	public static String getNumberPickerComponent() {
-		return new StringBuilder("<smss-input type=\"number\" model=\"item.selected\">" + "</smss-input>\\n")
+	public static String getNumberPickerComponent(String dataModelComp) {
+		return new StringBuilder("<smss-input type=\"number\" ng-model=\"form.dataModel." + dataModelComp + ".selected\">" + "</smss-input>\\n")
 				.toString();
 	}
 
