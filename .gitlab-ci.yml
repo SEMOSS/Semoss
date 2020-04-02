@@ -26,6 +26,7 @@ version_info_deploy:
     variables:
       - $RELEASE == "TRUE"
       - $RUNJUNIT == "TRUE"
+      - $SONARPUSH == "TRUE"
   script:
     # Version information
     - echo datetime=`date "+%Y-%m-%d %H:%M:%S"` > ver.txt
