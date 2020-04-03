@@ -290,10 +290,16 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				query = this.query;
 			}
 			query = "select count(*) from (" + query + ") t";
+			Connection conn = null;
 			Statement stmt = null;
 			ResultSet rs = null;
 			try {
-				stmt = this.conn.createStatement();
+				if(this.dataSource != null) {
+					conn = this.dataSource.getConnection();
+					stmt = conn.createStatement();
+				} else {
+					stmt = this.conn.createStatement();
+				}
 				rs = stmt.executeQuery(query);
 				if(rs.next()) {
 					this.numRows = rs.getLong(1);
@@ -311,6 +317,13 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if(stmt != null) {
 					try {
 						stmt.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+				if(this.dataSource != null) {
+					try {
+						conn.close();
 					} catch (SQLException e) {
 						e.printStackTrace();
 					}
