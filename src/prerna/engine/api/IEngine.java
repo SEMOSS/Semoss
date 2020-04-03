@@ -31,6 +31,7 @@ import java.util.Properties;
 import java.util.Vector;
 
 import prerna.sablecc2.reactor.IReactor;
+import prerna.util.SemossClassloader;
 
 /**
  * This interface standardizes the functionality of all engines.  All engines must implement this interface 
@@ -172,7 +173,7 @@ public interface IEngine extends IExplorable {
 	public Properties getProp();
 	
 	// get engine specific reactor
-	public IReactor getReactor(String reactorName);
+	public IReactor getReactor(String reactorName, SemossClassloader loader);
 	
 }
 
