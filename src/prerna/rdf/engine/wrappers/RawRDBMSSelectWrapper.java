@@ -11,6 +11,8 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Map;
 
+import org.apache.commons.dbcp2.BasicDataSource;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
@@ -22,6 +24,7 @@ import prerna.util.ConnectionUtils;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
+	protected BasicDataSource dataSource = null;
 	protected Connection conn = null;
 	protected Statement stmt = null;
 	protected ResultSet rs = null;
@@ -51,7 +54,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			}
 			this.conn = (Connection) connObj;
 			this.rs = (ResultSet) map.get(RDBMSNativeEngine.RESULTSET_OBJECT);
-
+			this.dataSource = (BasicDataSource) map.get(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT);
 			// go through and collect the metadata around the query
 			setVariables();
 		} catch (Exception e){
@@ -252,6 +255,18 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			e.printStackTrace();
 		}
 		if(this.closeConnectionAfterExecution) {
+			try {
+				if(this.conn != null) {
+					this.conn.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		if(this.dataSource != null) {
+			// if using a datasource
+			// we need to close the connection
+			// to give it back to the pool
 			try {
 				if(this.conn != null) {
 					this.conn.close();
