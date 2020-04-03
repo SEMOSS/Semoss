@@ -78,7 +78,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
 	public static final String CONNECTION_OBJECT = "CONNECTION_OBJECT";
 	public static final String ENGINE_CONNECTION_OBJECT = "ENGINE_CONNECTION_OBJECT";
-	
+	public static final String DATASOURCE_POOLING_OBJECT = "DATASOURCE_POOLING_OBJECT";
+
 	public static final String USE_FILE = "USE_FILE";
 	public static final String DATA_FILE = "DATA_FILE";
 
@@ -86,7 +87,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	boolean datasourceConnected = false;
 	private RdbmsTypeEnum dbType;
 	private BasicDataSource dataSource = null;
-	Connection engineConn = null;
+	private Connection engineConn = null;
 	private boolean useConnectionPooling = false;
 	private boolean autoCommit = false;
 	
@@ -278,38 +279,47 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 
 	public Connection getConnection(){
-		Connection connObj = null;
 		if(isConnected()) {
 			try {
 				// re-establish bad connections
 				if(this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
 					init(connBuilder);
 					this.engineConn = connBuilder.build();
+					if(useConnectionPooling) {
+						this.dataSource = connBuilder.getDataSource();
+						this.datasourceConnected = true;
+					}
+					this.engineConnected = true;
+					this.autoCommit = this.engineConn.getAutoCommit();
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-			connObj = engineConn;
+			
+			if(this.dataSource != null){
+				try {
+					return dataSource.getConnection();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		} else {
 			// re-establish bad connections
 			try {
 				init(connBuilder);
 				this.engineConn = connBuilder.build();
+				if(useConnectionPooling) {
+					this.dataSource = connBuilder.getDataSource();
+					this.datasourceConnected = true;
+				}
 				this.engineConnected = true;
 				this.autoCommit = this.engineConn.getAutoCommit();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-			connObj = engineConn;
 		}
-		if(this.dataSource != null){
-			try {
-				connObj = dataSource.getConnection();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		return connObj;
+		
+		return this.engineConn;
 	}
 
 	@Override
@@ -438,6 +448,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			} else {
 				map.put(RDBMSNativeEngine.CONNECTION_OBJECT, conn);
 				map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, null);
+			}
+			if(this.dataSource != null) {
+				map.put(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT, this.dataSource);
 			}
 			map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
 			return map;
