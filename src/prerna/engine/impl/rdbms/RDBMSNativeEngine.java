@@ -279,33 +279,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 
 	public Connection getConnection(){
-		if(isConnected()) {
-			try {
-				// re-establish bad connections
-				if(this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
-					init(connBuilder);
-					this.engineConn = connBuilder.build();
-					if(useConnectionPooling) {
-						this.dataSource = connBuilder.getDataSource();
-						this.datasourceConnected = true;
-					}
-					this.engineConnected = true;
-					this.autoCommit = this.engineConn.getAutoCommit();
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-			
-			if(this.dataSource != null){
-				try {
-					return dataSource.getConnection();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		} else {
+		try {
 			// re-establish bad connections
-			try {
+			if(!isConnected() || this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
 				init(connBuilder);
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {
@@ -314,11 +290,19 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				}
 				this.engineConnected = true;
 				this.autoCommit = this.engineConn.getAutoCommit();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		if(this.dataSource != null){
+			try {
+				return dataSource.getConnection();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
 		}
-		
+
 		return this.engineConn;
 	}
 
