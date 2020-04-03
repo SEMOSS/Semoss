@@ -1105,7 +1105,7 @@ public class Insight {
 			if(engineId != null)
 			{
 				IEngine engine = Utility.getEngine(engineId);
-				retReac = engine.getReactor(className);				
+				retReac = engine.getReactor(className, null);				
 			}
 			// check all other dbs
 			// first one wins
@@ -1113,7 +1113,7 @@ public class Insight {
 			{
 				String thisEngine = allDbsUsed.get(engineIndex);
 				IEngine engine = Utility.getEngine(thisEngine);
-				retReac = engine.getReactor(className);
+				retReac = engine.getReactor(className, null);
 			}			
 		}				
 		return retReac;
