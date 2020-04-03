@@ -17,6 +17,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.AbstractValueObject;
 import prerna.om.CopyObject;
 import prerna.pyserve.NettyClient;
+import prerna.util.SemossClassloader;
 
 public class User extends AbstractValueObject {
 	
@@ -26,6 +27,9 @@ public class User extends AbstractValueObject {
 	private IRUserConnection rcon; 
 	private RRemoteRserve rconRemote;
 	private NettyClient pyServe;
+	
+	// keeping this for a later time when personal experimental stuff
+	private ClassLoader customLoader = new SemossClassloader(this.getClass().getClassLoader());
 	
 	private Map<AuthProvider, String> workspaceEngineMap = new HashMap<AuthProvider, String>();
 	private Map<AuthProvider, String> assetEngineMap = new HashMap<AuthProvider, String>();

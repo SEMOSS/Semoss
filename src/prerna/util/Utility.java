@@ -3277,6 +3277,80 @@ public class Utility {
 		return thisMap;
 		
 	}
+
+	public static Map loadReactors(String folder, String key, SemossClassloader cl)
+	{
+		return loadReactors(folder, key, cl, "classes");
+	}
+
+	
+	// loads classes through this specific class loader for the insight
+	public static Map loadReactors(String folder, String key, SemossClassloader cl, String outputFolder)
+	{
+		HashMap thisMap = new HashMap<String, Class>();
+		try {
+			// I should create the class pool everytime
+			// this way it doesn't keep others and try to get from other places
+			// does this end up loading all the other classes too ?
+			ClassPool pool = ClassPool.getDefault();
+			// takes a class and modifies the name of the package and then plugs it into the heap
+			
+			// the main folder to add here is
+			// basefolder/db/insightfolder/classes - right now I have it as classes. we can change it to something else if we want
+			String classesFolder = folder + "/" + outputFolder; 
+			
+			classesFolder = classesFolder.replaceAll("\\\\", "/");
+			cl.folder = classesFolder;
+			
+			File file = new File(classesFolder);
+			if(file.exists()) {
+				// loads a class and tried to change the package of the class on the fly
+				//CtClass clazz = pool.get("prerna.test.CPTest");
+				
+				System.err.println("Loading reactors from >> " + classesFolder);
+				
+				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
+				List<String> dirList = dirs.get("DIR_LIST");
+				
+				String [] packages = new String[dirList.size()];
+				for(int dirIndex = 0;dirIndex < dirList.size(); dirIndex++) {
+					packages[dirIndex] = (String)dirList.get(dirIndex);
+				}
+				
+				ScanResult sr = new ClassGraph()
+				//.whitelistPackages("prerna")
+						.overrideClasspath((new File(classesFolder).toURI().toURL()))
+						//.enableAllInfo()
+						//.enableClassInfo()
+						.whitelistPackages(packages)
+						.scan();
+				//ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
+				//ScanResult sr = new ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
+
+				//ClassInfoList classes = sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
+
+				Map <String, Class> reactors = new HashMap<String, Class>();
+				// add the path to the insight classes so only this guy can load it
+				pool.insertClassPath(classesFolder);
+				
+				for(int classIndex = 0;classIndex < classes.size();classIndex++)
+				{
+					// this will load the whole thing
+					Class newClass = cl.loadClass(classes.get(classIndex).getName());
+					String name = classes.get(classIndex).getSimpleName();
+					String packageName = classes.get(classIndex).getPackageName();
+
+					thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+				}
+			}				
+		} catch(Exception ex) {
+			ex.printStackTrace();
+		}
+		return thisMap;
+		
+	}
+
 	
 	public  static String getCP()
 	{
