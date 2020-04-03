@@ -82,6 +82,7 @@ import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.SemossClassloader;
 import prerna.util.Utility;
 
 /**
@@ -157,6 +158,11 @@ public abstract class AbstractEngine implements IEngine {
 	 * Hash for the specific engine reactors
 	 */
 	private Map <String, Class> dbSpecificHash = null;
+	
+	/**
+	 * Custom class loader
+	 */
+	private SemossClassloader engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
 
 	/**
 	 * Opens a database as defined by its properties file. What is included in
@@ -1243,6 +1249,89 @@ public abstract class AbstractEngine implements IEngine {
 		return retReac;
 	}
 
+
+	public IReactor getReactor(String className, SemossClassloader customLoader) 
+	{	
+		// try to get to see if this class already exists
+		// no need to recreate if it does
+		SemossClassloader cl = engineClassLoader;
+		if(customLoader != null)
+			cl = customLoader;
+				
+		// get the prop file and find the parent
+		File dbDirectory = new File(propFile);
+		//System.err.println("..");
+
+		String dbFolder = engineName + "_" + dbDirectory.getParent()+ "/" + engineId;
+
+		dbFolder = propFile.replaceAll(".smss", "");
+		
+		cl.setFolder(dbFolder + "/version/classes");
+		
+		IReactor retReac = null;
+		//String key = db + "." + insightId ;
+		String key = engineId ;
+		
+		int randomNum = 0;
+		//ReactorFactory.compileCache.remove(engineId);
+		if(!ReactorFactory.compileCache.containsKey(engineId))
+		{
+			engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
+			cl = engineClassLoader;
+			cl.uncommitEngine(engineId);
+			// if it 
+			
+			String classesFolder = dbFolder + "/version/classes";
+			
+			File classesDir = new File(classesFolder);
+			if(classesDir.exists() && classesDir.isDirectory())
+			{
+				try {
+					//FileUtils.cleanDirectory(classesDir);
+					//classesDir.mkdir();
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			int status = Utility.compileJava(dbFolder +"/version", getCP());
+			if(status == 0)
+			{
+				ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
+				
+				if(ReactorFactory.randomNumberAdder.containsKey(engineId))
+					randomNum = ReactorFactory.randomNumberAdder.get(engineId);				
+				randomNum++;
+				ReactorFactory.randomNumberAdder.put(engineId, randomNum);
+				
+				// add it to the key so we can reload
+				key = engineId + randomNum;	
+			}
+			// avoid loading everytime since it is an error
+		}
+
+		
+		if(!cl.isCommitted(engineId))
+		{
+			//compileJava(insightDirector.getParentFile().getAbsolutePath());
+			// delete the classes directory first
+			dbSpecificHash = Utility.loadReactors(dbFolder + "/version", key, cl);
+			cl.commitEngine(engineId);
+		}
+		try
+		{
+			if(dbSpecificHash.containsKey(className.toUpperCase())) {
+				Class thisReactorClass = dbSpecificHash.get(className.toUpperCase());
+				retReac = (IReactor) thisReactorClass.newInstance();
+				return retReac;
+			}
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
+		return retReac;
+	}
 
 	private String getCP()
 	{
