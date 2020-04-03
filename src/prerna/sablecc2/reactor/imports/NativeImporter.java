@@ -72,12 +72,16 @@ public class NativeImporter extends AbstractImporter {
 					throw new SemossPixelException(
 							new NounMetadata("Error occured executing query before loading into frame", 
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				} finally {
+					if(this.it != null) {
+						((IRawSelectWrapper) this.it).cleanUp();
+					}
 				}
 			}
 			
 			String[] columnNames = ((IRawSelectWrapper) this.it).getHeaders();
 			executedDataTypes = ((IRawSelectWrapper) this.it).getTypes();
-				
+			
 			String customFromAlias = "customquery";
 			SelectQueryStruct newQs = new SelectQueryStruct();
 			newQs.setEngineId(this.qs.getEngineId());
