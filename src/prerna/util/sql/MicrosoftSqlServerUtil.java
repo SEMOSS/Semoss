@@ -58,6 +58,11 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String tableExistsQuery(String tableName, String schema) {
+		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_CATALOG='" + schema + "' AND TABLE_NAME='" + tableName +"'";
+	}
+	
+	@Override
 	public String alterTableName(String tableName, String newTableName) {
 		return "sp_reanme '" + tableName + "', '" + newTableName + "';";
 	}
