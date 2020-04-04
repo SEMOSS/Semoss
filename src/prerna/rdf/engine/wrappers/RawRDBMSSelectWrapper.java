@@ -167,9 +167,10 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					if(arrVal != null) {
 						val = arrVal.getArray();
 					}
-				} else if(type == Types.BOOLEAN) {
+				} else if(type == Types.BOOLEAN || type == Types.BIT) {
 					val = rs.getBoolean(colNum);
-				} else {
+				}
+				else {
 					val = rs.getString(colNum);
 				}
 				
