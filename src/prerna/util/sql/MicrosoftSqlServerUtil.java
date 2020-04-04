@@ -53,6 +53,11 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	@Override
+	public boolean allowsIfExistsTableSyntax() {
+		return false;
+	}
+	
+	@Override
 	public String alterTableName(String tableName, String newTableName) {
 		return "sp_reanme '" + tableName + "', '" + newTableName + "';";
 	}
