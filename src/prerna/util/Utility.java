@@ -76,7 +76,6 @@ import java.util.TimeZone;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
@@ -2198,8 +2197,7 @@ public class Utility {
 	
 	public static boolean isIntegerType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
-		if(dataType.startsWith("BIT")
-				|| dataType.startsWith("IDENTITY")
+		if(dataType.startsWith("IDENTITY")
 				|| dataType.startsWith("LONG")
 				|| dataType.startsWith("INT")
 				|| dataType.startsWith("INTEGER")
@@ -2231,6 +2229,8 @@ public class Utility {
 	public static boolean isBoolean(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
 		if(dataType.startsWith("BOOL")) {
+			return true;
+		} else if(dataType.startsWith("BIT")) {
 			return true;
 		}
 		
