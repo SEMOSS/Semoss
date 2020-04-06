@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -215,16 +217,24 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 * @return
 	 */
 	public boolean equivalentColumnModifcation(SimpleQueryFilter otherQueryFilter) {
+		return equivalentColumnModifcation(otherQueryFilter, true);
+	}
+	
+	/**
+	 * Determine if 2 filters are modifying the same column
+	 * @param otherQueryFilter
+	 * @param compareComparators
+	 * @return
+	 */
+	public boolean equivalentColumnModifcation(SimpleQueryFilter otherQueryFilter, boolean compareComparators) {
 		// regardless of the order
 		// the comparators must match
-		String thisComp = this.comparator.toString();
-		String otherComp = otherQueryFilter.comparator.toString();
-		if (((thisComp.equals("?like") && otherComp.equals("?nlike"))
-				|| (thisComp.equals("?nlike") && otherComp.equals("?like"))))  {
-			// comparing like
-		}		
-		else if( !thisComp.equals(otherComp)) {			
-			return false;
+		if(compareComparators) {
+			String thisComp = this.comparator.toString();
+			String otherComp = otherQueryFilter.comparator.toString();
+			if( !thisComp.equals(otherComp)) {			
+				return false;
+			}
 		}
 		
 		FILTER_TYPE thisFilterType = determineFilterType(this);
@@ -259,6 +269,93 @@ public class SimpleQueryFilter implements IQueryFilter {
 		// got to this point
 		// they match
 		return true;
+	}
+	
+	/**
+	 * See if the values overlap due to some regex expression
+	 * This assumes one of these is a regex comparator (?like or ?nlike"
+	 * @param otherQueryFilter
+	 * @return
+	 */
+	public boolean isOverlappingRegexValues(SimpleQueryFilter otherQueryFilter) {
+		FILTER_TYPE thisFilterType = determineFilterType(this);
+		FILTER_TYPE otherFilterType = determineFilterType(otherQueryFilter);
+
+		Object values1 = null;
+		Object values2 = null;
+		
+		// values for this filter
+		if(thisFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			values1 = this.rComparison.getValue();
+		} else if(thisFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			values1 = this.lComparison.getValue();
+		}
+		
+		// values for other filter
+		if(otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			values2 = otherQueryFilter.rComparison.getValue();
+		} else if(otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			values2 = otherQueryFilter.lComparison.getValue();
+		}
+		
+		// figure out how to deal with more complex situations
+		// at a later point in time
+		if(values1 == null || values2 == null) {
+			return false;
+		}
+		
+		List<Object> list1 = null;
+		List<Object> list2 = null;
+		if(values1 instanceof List) {
+			list1 = (List<Object>) values1;
+		} else {
+			list1 = new Vector<Object>();
+			list1.add(values1);
+		}
+		if(values2 instanceof List) {
+			list2 = (List<Object>) values2;
+		} else {
+			list2 = new Vector<Object>();
+			list2.add(values2);
+		}
+		
+		// i have to loop through and see
+		// if any of the values would match
+		String regexPattern1 = null;
+		String regexPattern2 = null;
+		if(IQueryFilter.isRegexComparator(this.comparator)) {
+			regexPattern1 = list1.get(0).toString();
+		}
+		if(IQueryFilter.isRegexComparator(otherQueryFilter.comparator)){
+			regexPattern2 = list2.get(0).toString();
+		} 
+		if(regexPattern1 == null && regexPattern2 == null) {
+			// neither are regex...
+			return false;
+		}
+		
+		if(regexPattern1 != null) {
+			Pattern p = Pattern.compile(".*" + regexPattern1 + ".*", Pattern.CASE_INSENSITIVE);
+			for(Object value : list2) {
+				Matcher match = p.matcher(value + "");
+				if(match.matches()) {
+					return true;
+				}
+			}
+		}
+		if(regexPattern2 != null) {
+			Pattern p = Pattern.compile(".*" + regexPattern2 + ".*", Pattern.CASE_INSENSITIVE);
+			for(Object value : list1) {
+				Matcher match = p.matcher(value + "");
+				if(match.matches()) {
+					return true;
+				}
+			}
+		}
+		
+		// got to this point
+		// they match
+		return false;
 	}
 	
 	public boolean subtractInstanceFilters(SimpleQueryFilter otherQueryFilter) {
@@ -885,7 +982,6 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return false;
  	}
 	
-
 	/**
 	 * Helper method to generate a column to values filter where the column is a set of strings
 	 * @param colQs				The string representing the pixel for a unique column
