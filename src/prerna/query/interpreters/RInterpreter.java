@@ -659,6 +659,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				}
 			} else {
 				if(thisComparator.equals(SEARCH_COMPARATOR)) {
+//					if(myFilterFormatted.endsWith("\\\"")) {
+//						
+//					}
 					if(SemossDataType.STRING == leftDataType) {
 						filterBuilder.append("tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append(")");
 					} else {

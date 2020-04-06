@@ -206,14 +206,17 @@ public class RDBMSEngineCreationHelper {
 		Connection con = rdbms.makeConnection();
 		DatabaseMetaData meta = rdbms.getConnectionMetadata();
 		
+		String connectionUrl = null;
 		String catalogFilter = null;
 		try {
 			catalogFilter = con.getCatalog();
-		} catch (SQLException e1) {
-			e1.printStackTrace();
+			connectionUrl = meta.getURL();
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
-		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, rdbms.getConnectionUrl(), rdbms.getDbType());
-		
+		RdbmsTypeEnum driverEnum = rdbms.getDbType();
+		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
+
 		// table that will store 
 		// table_name -> {
 		// 					colname1 -> coltype,
@@ -221,19 +224,12 @@ public class RDBMSEngineCreationHelper {
 		//				}
 		Map<String, Map<String, String>> tableColumnMap = new Hashtable<String, Map<String, String>>();
 
-		// get all the tables
-		RdbmsTypeEnum driver;
-		if (rdbmsEngine instanceof RDBMSNativeEngine) {
-			driver = ((RDBMSNativeEngine) rdbmsEngine).getDbType();
-		} else {
-			driver = RdbmsTypeEnum.getEnumFromString(rdbmsEngine.getProperty("RDBMS_TYPE"));
-		}
-		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, driver, tablesToRetrieve); 
 
-		String[] columnKeys = RdbmsConnectionHelper.getColumnKeys(driver);
+		String[] columnKeys = RdbmsConnectionHelper.getColumnKeys(driverEnum);
 		final String COLUMN_NAME_STR = columnKeys[0];
 		final String COLUMN_TYPE_STR = columnKeys[1];
-		
+
+		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, driverEnum, tablesToRetrieve); 
 		try {
 			while (tableViewIterator.hasNext()) {
 				String[] nextRow = tableViewIterator.next();
@@ -243,18 +239,18 @@ public class RDBMSEngineCreationHelper {
 				Map<String, String> colDetails = new HashMap<String, String>();
 				// iterate through the columns
 				
-				ResultSet keys = null;
+				ResultSet columnsRs = null;
 				try {
-					keys = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
-					while(keys.next()) {
-						colDetails.put(keys.getString(COLUMN_NAME_STR), keys.getString(COLUMN_TYPE_STR));
+					columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter, driverEnum);
+					while(columnsRs.next()) {
+						colDetails.put(columnsRs.getString(COLUMN_NAME_STR), columnsRs.getString(COLUMN_TYPE_STR));
 					}
 				} catch(SQLException e) {
 					e.printStackTrace();
 				} finally {
 					try {
-						if(keys != null) {
-							keys.close();
+						if(columnsRs != null) {
+							columnsRs.close();
 						}
 					} catch (SQLException e1) {
 						e1.printStackTrace();
