@@ -21,6 +21,7 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 
 	@Override
 	public NounMetadata execute() {
+		System.out.println("again");
 		ITableDataFrame frame = getFrame();
 
 		// get the filters to add
@@ -36,11 +37,10 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 		List<Integer> indicesToRemove = new Vector<Integer>();
 
 		// for each qf...
-		for (IQueryFilter deleteFilters : grf.getFilters()) {
-			boolean existingFilter = false;
+		for (IQueryFilter addFilter : grf.getFilters()) {
 			// only consider simple filters
-			if (deleteFilters.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-				SimpleQueryFilter deleteFilter = (SimpleQueryFilter) deleteFilters;
+			if (addFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				SimpleQueryFilter simpleAdd = (SimpleQueryFilter) addFilter;
 				// compare the filter with existing filters to only delete the
 				// correct one, assuming it does exist
 				List<IQueryFilter> allCurrentFilters = filters.getFilters();
@@ -49,26 +49,29 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 					// only consider simple filters
 					if (currentFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 						SimpleQueryFilter curFilter = (SimpleQueryFilter) currentFilter;
-						if (IQueryFilter.comparatorNotNumeric(curFilter.getComparator())
-								&& IQueryFilter.comparatorNotNumeric(deleteFilter.getComparator())
-								&& curFilter.equivalentColumnModifcation(deleteFilter)) {
-							// if comparator is not numeric in both
-							// and they are equivalent
-							if (curFilter.subtractInstanceFilters(deleteFilter)) {
-								existingFilter = true;
+
+						// are we modifying the same column?
+						if(curFilter.equivalentColumnModifcation(simpleAdd, false)) {
+							// are they any direct conflicts
+							if(IQueryFilter.comparatorsDirectlyConflicting(curFilter.getComparator(), simpleAdd.getComparator())) {
+								curFilter.subtractInstanceFilters(simpleAdd);
+								// is the filter now gone?
+								if (curFilter.isEmptyFilterValues()) {
+									// grab the index
+									indicesToRemove.add(filterIndex);
+								}
 							}
-							// is the filter now gone?
-							if (curFilter.isEmptyFilterValues()) {
-								// grab the index
-								indicesToRemove.add(filterIndex);
+							// or are there any indirect conflicts
+							else if(IQueryFilter.comparatorsRegexConflicting(curFilter.getComparator(), simpleAdd.getComparator())) {
+								if(curFilter.isOverlappingRegexValues(simpleAdd)) {
+									// grab the index
+									// will remove
+									indicesToRemove.add(filterIndex);
+								}
 							}
 						}
 					}
 				}
-			}
-			
-			if(!existingFilter) {
-				frame.addFilter(grf);
 			}
 		}
 
@@ -82,6 +85,9 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 				filters.removeFilter(indicesToRemove.get(i - 1).intValue());
 			}
 		}
+
+		// now add the new filters
+		frame.addFilter(grf);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER);
 		return noun;
