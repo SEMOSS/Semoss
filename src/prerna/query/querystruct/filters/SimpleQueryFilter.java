@@ -277,7 +277,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 * @param otherQueryFilter
 	 * @return
 	 */
-	public boolean isOverlappingRegexValues(SimpleQueryFilter otherQueryFilter) {
+	public boolean isOverlappingRegexValues(SimpleQueryFilter otherQueryFilter, boolean biDirectional) {
 		FILTER_TYPE thisFilterType = determineFilterType(this);
 		FILTER_TYPE otherFilterType = determineFilterType(otherQueryFilter);
 
@@ -323,29 +323,29 @@ public class SimpleQueryFilter implements IQueryFilter {
 		// if any of the values would match
 		String regexPattern1 = null;
 		String regexPattern2 = null;
-		if(IQueryFilter.isRegexComparator(this.comparator)) {
-			regexPattern1 = list1.get(0).toString();
-		}
 		if(IQueryFilter.isRegexComparator(otherQueryFilter.comparator)){
-			regexPattern2 = list2.get(0).toString();
-		} 
-		if(regexPattern1 == null && regexPattern2 == null) {
+			regexPattern1 = list2.get(0).toString();
+		}
+		if(IQueryFilter.isRegexComparator(this.comparator)) {
+			regexPattern2 = list1.get(0).toString();
+		}
+		if(regexPattern1 == null && regexPattern2 == null ) {
 			// neither are regex...
 			return false;
 		}
 		
 		if(regexPattern1 != null) {
 			Pattern p = Pattern.compile(".*" + regexPattern1 + ".*", Pattern.CASE_INSENSITIVE);
-			for(Object value : list2) {
+			for(Object value : list1) {
 				Matcher match = p.matcher(value + "");
 				if(match.matches()) {
 					return true;
 				}
 			}
 		}
-		if(regexPattern2 != null) {
+		if(biDirectional && regexPattern2 != null) {
 			Pattern p = Pattern.compile(".*" + regexPattern2 + ".*", Pattern.CASE_INSENSITIVE);
-			for(Object value : list1) {
+			for(Object value : list2) {
 				Matcher match = p.matcher(value + "");
 				if(match.matches()) {
 					return true;
