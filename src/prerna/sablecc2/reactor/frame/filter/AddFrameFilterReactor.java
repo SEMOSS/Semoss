@@ -21,7 +21,6 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 
 	@Override
 	public NounMetadata execute() {
-		System.out.println("again");
 		ITableDataFrame frame = getFrame();
 
 		// get the filters to add
