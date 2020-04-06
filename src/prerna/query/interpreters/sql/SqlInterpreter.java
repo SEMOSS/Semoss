@@ -1018,7 +1018,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		return myObj.toString();
 	}
 	
-	private String formatDate(Object o, SemossDataType dateType) {
+	protected String formatDate(Object o, SemossDataType dateType) {
 		if(o instanceof SemossDate) {
 			return ((SemossDate) o).getFormattedDate();
 		} else {
