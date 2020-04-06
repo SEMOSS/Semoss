@@ -5,6 +5,7 @@ import java.util.Map;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -38,6 +39,8 @@ public class LoadInsightReactor extends OpenInsightReactor {
 		InsightStore.getInstance().put(in);
 		
 		// return the original noun from open insight
+		noun.getOpType().clear();
+		noun.addAdditionalOpTypes(PixelOperationType.LOAD_INSIGHT);
 		return noun;
 	}
 }
