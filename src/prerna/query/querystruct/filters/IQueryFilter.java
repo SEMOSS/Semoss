@@ -111,6 +111,19 @@ public interface IQueryFilter {
 			return true;
 		} else if(comparator2.equals("?like") && (comparator1.equals("!=") || comparator1.equals("<>")) ) {
 			return true;
+		} else if(comparator1.equals("?like") && comparator2.equals("?nlike")) {
+			return true;
+		} else if(comparator2.equals("?like") && comparator1.equals("?nlike")) {
+			return true;
+		}
+		return false;
+	}
+	
+	public static boolean newComparatorOvershadowsExisting(String existingComparator, String newComparator) {
+		if(existingComparator.equals("==") && newComparator.equals("?like")) {
+			return true;
+		} else if( (existingComparator.equals("!=") || existingComparator.equals("<>")) && newComparator.equals("?nlike")) {
+			return true;
 		}
 		return false;
 	}

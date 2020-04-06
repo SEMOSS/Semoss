@@ -62,7 +62,15 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 							}
 							// or are there any indirect conflicts
 							else if(IQueryFilter.comparatorsRegexConflicting(curFilter.getComparator(), simpleAdd.getComparator())) {
-								if(curFilter.isOverlappingRegexValues(simpleAdd)) {
+								if(curFilter.isOverlappingRegexValues(simpleAdd, true)) {
+									// grab the index
+									// will remove
+									indicesToRemove.add(filterIndex);
+								}
+							}
+							// or is the new one overshadowing the existing and we need to remove
+							else if(IQueryFilter.newComparatorOvershadowsExisting(curFilter.getComparator(), simpleAdd.getComparator())) {
+								if(curFilter.isOverlappingRegexValues(simpleAdd, false)) {
 									// grab the index
 									// will remove
 									indicesToRemove.add(filterIndex);
