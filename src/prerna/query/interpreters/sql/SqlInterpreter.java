@@ -891,12 +891,13 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else if(SemossDataType.DATE == type || SemossDataType.TIMESTAMP == type) {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR) && !comparator.equals(NOT_SEARCH_COMPARATOR)) {
-					leftWrapper = "\'";
-					rightWrapper = "\'";
-				} else {
+				boolean isSearch = comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR);
+				if(isSearch) {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
+				} else {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
 				}
 				
 				// get the first value
@@ -914,23 +915,32 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR) && !comparator.equals(NOT_SEARCH_COMPARATOR)) {
-					leftWrapper = "\'";
-					rightWrapper = "\'";
-				} else {
+				boolean isSearch = comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR);
+				if(isSearch) {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
+				} else {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
 				}
 				
 				// get the first value
 				String val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 				// get the first value
-				myObj.append(leftWrapper).append(val).append(rightWrapper);
+				if(isSearch && val.endsWith("\\")) {
+					myObj.append(leftWrapper).append(val).append("\\").append(rightWrapper);
+				} else {
+					myObj.append(leftWrapper).append(val).append(rightWrapper);
+				}
 				i++;
 				for(; i < size; i++) {
 					val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
-					// get the first value
-					myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
+					// get the other values
+					if(isSearch && val.endsWith("\\")) {
+						myObj.append(" , ").append(leftWrapper).append(val).append("\\").append(rightWrapper);
+					} else {
+						myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
+					}
 				}
 			}
 		} 
@@ -950,12 +960,13 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR) && !comparator.equals(NOT_SEARCH_COMPARATOR)) {
-					leftWrapper = "\'";
-					rightWrapper = "\'";
-				} else {
+				boolean isSearch = comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR);
+				if(isSearch) {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
+				} else {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
 				}
 				
 				// get the first value
@@ -973,23 +984,33 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR) && !comparator.equals(NOT_SEARCH_COMPARATOR)) {
-					leftWrapper = "\'";
-					rightWrapper = "\'";
-				} else {
+				boolean isSearch = comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR);
+				if(isSearch) {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
+				} else {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
 				}
 				
 				// get the first value
 				String val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 				// get the first value
-				myObj.append(leftWrapper).append(val).append(rightWrapper);
+				if(isSearch && val.endsWith("\\")) {
+					myObj.append(leftWrapper).append(val).append("\\").append(rightWrapper);
+				} else {
+					myObj.append(leftWrapper).append(val).append(rightWrapper);
+				}
 				i++;
 				for(; i < size; i++) {
 					val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 					// get the first value
-					myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
+					// get the other values
+					if(isSearch && val.endsWith("\\")) {
+						myObj.append(" , ").append(leftWrapper).append(val).append("\\").append(rightWrapper);
+					} else {
+						myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
+					}
 				}
 			}
 		}
