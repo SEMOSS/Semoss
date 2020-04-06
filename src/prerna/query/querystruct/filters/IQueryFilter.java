@@ -86,6 +86,44 @@ public interface IQueryFilter {
 		return null;
 	}
 	
+	public static boolean isRegexComparator(String comparator) {
+		if(comparator.equals("?like") || comparator.equals("?nlike")) {
+			return true;
+		}
+		return false;
+	}
+	
+	public static boolean comparatorsDirectlyConflicting(String comparator1, String comparator2) {
+		if(comparator1.equals("==") && (comparator2.equals("!=") || comparator2.equals("<>")) ) {
+			return true;
+		} else if(comparator2.equals("==") && (comparator1.equals("!=") || comparator1.equals("<>")) ) {
+			return true;
+		}
+		return false;
+	}
+	
+	public static boolean comparatorsRegexConflicting(String comparator1, String comparator2) {
+		if(comparator1.equals("==") && comparator2.equals("?nlike")) {
+			return true;
+		} else if(comparator2.equals("==") && comparator1.equals("?nlike")) {
+			return true;
+		} else if(comparator1.equals("?like") && (comparator2.equals("!=") || comparator2.equals("<>")) ) {
+			return true;
+		} else if(comparator2.equals("?like") && (comparator1.equals("!=") || comparator1.equals("<>")) ) {
+			return true;
+		}
+		return false;
+	}
+	
+	public static boolean comparatorsAreConflicting(String comparator1, String comparator2) {
+		if( (comparator1.equals("==") || comparator1.equals("?like")) && (comparator2.equals("!=") || comparator2.equals("<>") || comparator2.equals("?nlike"))) {
+			return true;
+		} else if( (comparator2.equals("==") || comparator2.equals("?like")) && (comparator1.equals("!=") || comparator1.equals("<>") || comparator1.equals("?nlike"))) {
+			return true;
+		}
+		return false;
+	}
+	
 	/**
 	 * Method to provide the reverse of a given numeric comparator
 	 * Otherwise, return the same value
