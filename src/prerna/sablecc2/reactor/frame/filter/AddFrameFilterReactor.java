@@ -31,12 +31,14 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 
 		// get existing filters
 		GenRowFilters filters = frame.getFrameFilters();
-
+		List<IQueryFilter> addFiltersList = grf.getFilters();
+		int addFiltersSize = addFiltersList.size();
 		// keep track of empty filters to remove the index if we need to
 		List<Integer> indicesToRemove = new Vector<Integer>();
-
+		List<Integer> addFiltersToIgnore = new Vector<Integer>();
 		// for each qf...
-		for (IQueryFilter addFilter : grf.getFilters()) {
+		for (int addFilterIdx = 0; addFilterIdx < addFiltersSize; addFilterIdx++) {
+			IQueryFilter addFilter = addFiltersList.get(addFilterIdx);
 			// only consider simple filters
 			if (addFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 				SimpleQueryFilter simpleAdd = (SimpleQueryFilter) addFilter;
@@ -58,6 +60,12 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 								if (curFilter.isEmptyFilterValues()) {
 									// grab the index
 									indicesToRemove.add(filterIndex);
+								}
+								// if we are adding an equal
+								// and its conflicting from a previous
+								// then we just remove, do not need to add
+								if(simpleAdd.getComparator().equals("==")) {
+									addFiltersToIgnore.add(addFilterIdx);
 								}
 							}
 							// or are there any indirect conflicts
@@ -94,7 +102,11 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 		}
 
 		// now add the new filters
-		frame.addFilter(grf);
+		for(int i = 0; i < addFiltersSize; i++) {
+			if(!addFiltersToIgnore.contains(new Integer(i))) {
+				frame.addFilter(addFiltersList.get(i));
+			}
+		}
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER);
 		return noun;
