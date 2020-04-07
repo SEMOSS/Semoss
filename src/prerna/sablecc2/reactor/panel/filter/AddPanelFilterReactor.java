@@ -32,16 +32,17 @@ public class AddPanelFilterReactor extends AbstractFilterReactor {
 
 		// get existing filters
 		GenRowFilters filters = panel.getPanelFilters();
-
+		List<IQueryFilter> addFiltersList = grf.getFilters();
+		int addFiltersSize = addFiltersList.size();
 		// keep track of empty filters to remove the index if we need to
 		List<Integer> indicesToRemove = new Vector<Integer>();
-
+		List<Integer> addFiltersToIgnore = new Vector<Integer>();
 		// for each qf...
-		for (IQueryFilter deleteFilters : grf.getFilters()) {
-			boolean existingFilter = false;
+		for (int addFilterIdx = 0; addFilterIdx < addFiltersSize; addFilterIdx++) {
+			IQueryFilter addFilter = addFiltersList.get(addFilterIdx);
 			// only consider simple filters
-			if (deleteFilters.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-				SimpleQueryFilter deleteFilter = (SimpleQueryFilter) deleteFilters;
+			if (addFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				SimpleQueryFilter simpleAdd = (SimpleQueryFilter) addFilter;
 				// compare the filter with existing filters to only delete the
 				// correct one, assuming it does exist
 				List<IQueryFilter> allCurrentFilters = filters.getFilters();
@@ -50,26 +51,43 @@ public class AddPanelFilterReactor extends AbstractFilterReactor {
 					// only consider simple filters
 					if (currentFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 						SimpleQueryFilter curFilter = (SimpleQueryFilter) currentFilter;
-						if (IQueryFilter.comparatorNotNumeric(curFilter.getComparator())
-								&& IQueryFilter.comparatorNotNumeric(deleteFilter.getComparator())
-								&& curFilter.equivalentColumnModifcation(deleteFilter)) {
-							// if comparator is not numeric in both
-							// and they are equivalent
-							if (curFilter.subtractInstanceFilters(deleteFilter)) {
-								existingFilter = true;
+
+						// are we modifying the same column?
+						if(curFilter.equivalentColumnModifcation(simpleAdd, false)) {
+							// are they any direct conflicts
+							if(IQueryFilter.comparatorsDirectlyConflicting(curFilter.getComparator(), simpleAdd.getComparator())) {
+								curFilter.subtractInstanceFilters(simpleAdd);
+								// is the filter now gone?
+								if (curFilter.isEmptyFilterValues()) {
+									// grab the index
+									indicesToRemove.add(filterIndex);
+								}
+								// if we are adding an equal
+								// and its conflicting from a previous
+								// then we just remove, do not need to add
+								if(simpleAdd.getComparator().equals("==")) {
+									addFiltersToIgnore.add(addFilterIdx);
+								}
 							}
-							// is the filter now gone?
-							if (curFilter.isEmptyFilterValues()) {
-								// grab the index
-								indicesToRemove.add(filterIndex);
+							// or are there any indirect conflicts
+							else if(IQueryFilter.comparatorsRegexConflicting(curFilter.getComparator(), simpleAdd.getComparator())) {
+								if(curFilter.isOverlappingRegexValues(simpleAdd, true)) {
+									// grab the index
+									// will remove
+									indicesToRemove.add(filterIndex);
+								}
+							}
+							// or is the new one overshadowing the existing and we need to remove
+							else if(IQueryFilter.newComparatorOvershadowsExisting(curFilter.getComparator(), simpleAdd.getComparator())) {
+								if(curFilter.isOverlappingRegexValues(simpleAdd, false)) {
+									// grab the index
+									// will remove
+									indicesToRemove.add(filterIndex);
+								}
 							}
 						}
 					}
 				}
-			}
-
-			if (!existingFilter) {
-				panel.addPanelFilters(grf);
 			}
 		}
 
@@ -81,6 +99,13 @@ public class AddPanelFilterReactor extends AbstractFilterReactor {
 			for (int i = indicesToRemove.size(); i > 0; i--) {
 				// remove the filter at the index specified by the index list
 				filters.removeFilter(indicesToRemove.get(i - 1).intValue());
+			}
+		}
+
+		// now add the new filters
+		for(int i = 0; i < addFiltersSize; i++) {
+			if(!addFiltersToIgnore.contains(new Integer(i))) {
+				filters.addFilters(addFiltersList.get(i));
 			}
 		}
 
