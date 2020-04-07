@@ -37,9 +37,10 @@ public class GenRowFilters {
 		this.qsFilteredColumns.addAll(newFilter.getAllQueryStructColumns());
 	}
 	
-	public void removeFilter(int index) {
-		this.filterVec.remove(index);
+	public IQueryFilter removeFilter(int index) {
+		IQueryFilter removedFilter = this.filterVec.remove(index);
 		redetermineFilteredColumns();
+		return removedFilter;
 	}
 
 	public boolean hasFilter(String column) {
