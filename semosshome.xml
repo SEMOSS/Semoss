@@ -105,5 +105,8 @@
     <file>
       <source>reactorToWidget.csv</source>
     </file>
+	<file>
+      <source>config.properties</source>
+    </file>
   </files>
 </assembly>
