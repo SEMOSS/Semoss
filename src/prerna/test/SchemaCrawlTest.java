@@ -1,11 +1,24 @@
 package prerna.test;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import prerna.ds.rdbms.RdbmsFrameBuilder;
+import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.sablecc2.reactor.cluster.CleanUpAppsReactor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.sql.RdbmsTypeEnum;
 import schemacrawler.schema.Catalog;
 import schemacrawler.schema.Column;
 import schemacrawler.schema.ForeignKey;
@@ -19,54 +32,65 @@ import schemacrawler.schemacrawler.SchemaInfoLevelBuilder;
 import schemacrawler.utility.SchemaCrawlerUtility;
 
 public class SchemaCrawlTest {
+	private static final Logger logger = LogManager.getLogger(SchemaCrawlTest.class.getName());
+	private static final String SQL_URL = "sql_url";
+	private static final String SQL_USERNAME = "sql_user";
+	private static final String SQL_PASSWORD = "sql_password";
+	private static final String CONFIGURATION_FILE = "config.properties";
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public static void main(String[] args) throws Exception {
-		String url = "jdbc:mysql://HOST:PORT/SCHEMA?useSSL=false";
-		String user = "username";
-		String password = "password";
+		Connection conn = null;
+		try(InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + CONFIGURATION_FILE)) {
+			Properties prop = new Properties();
 
-		Connection conn = DriverManager.getConnection(url, user, password);
-		if(conn != null) {
-			System.out.println("Connection successful.");
-		}
-		Statement stmt = conn.createStatement();
+			prop.load(input);
 
-		SchemaCrawlerOptions options = new SchemaCrawlerOptions();
-		// Set what details are required in the schema - this affects the time taken to crawl the schema
-		options.setSchemaInfoLevel(SchemaInfoLevelBuilder.standard());
-		options.setRoutineInclusionRule(new ExcludeAll());
-		ArrayList<String> tableTypes = new ArrayList<String>();
-		tableTypes.add("table");
-		options.setTableTypes(tableTypes);
-		options.setSchemaInclusionRule(new RegularExpressionInclusionRule("SCHEMA"));
+			String url = prop.getProperty(SQL_URL);
+			String user = prop.getProperty(SQL_USERNAME);
+			String password = prop.getProperty(SQL_PASSWORD);
 
-		Catalog catalog = SchemaCrawlerUtility.getCatalog(conn, options);
+			conn = DriverManager.getConnection(url, user, password);
+			if(conn != null) {
+				logger.debug("Connection successful.");
+			}
 
-		for (Schema schema: catalog.getSchemas())
-		{
-			System.out.println(schema);
-			for (Table table: catalog.getTables(schema))
-			{
-				System.out.println("Table: " + table);
-				System.out.println("Number of cols: " + table.getColumns().size());
-				for (Column column: table.getColumns())
-				{
-					System.out.print("\tCol: " + column.getName() + "\tType: " + column.getType());
-					if(column.isPartOfPrimaryKey()) {
-						System.out.print("\t<- primary key");
+			SchemaCrawlerOptions options = new SchemaCrawlerOptions();
+			// Set what details are required in the schema - this affects the time taken to crawl the schema
+			options.setSchemaInfoLevel(SchemaInfoLevelBuilder.standard());
+			options.setRoutineInclusionRule(new ExcludeAll());
+			ArrayList<String> tableTypes = new ArrayList<>();
+			tableTypes.add("table");
+			options.setTableTypes(tableTypes);
+			options.setSchemaInclusionRule(new RegularExpressionInclusionRule("SCHEMA"));
+
+			Catalog catalog = SchemaCrawlerUtility.getCatalog(conn, options);
+
+			for (Schema schema: catalog.getSchemas()) {
+				logger.debug(schema);
+				for (Table table: catalog.getTables(schema)) {
+					logger.debug("Table: " + table);
+					logger.debug("Number of cols: " + table.getColumns().size());
+					for (Column column: table.getColumns()) {
+						logger.debug("\tCol: " + column.getName() + "\tType: " + column.getType());
+						if(column.isPartOfPrimaryKey()) {
+							logger.debug("\t<- primary key");
+						}
 					}
-					System.out.println();
-				}
-				
-				for(ForeignKey fk : table.getForeignKeys()) {
-					List<ForeignKeyColumnReference> fkcrList = fk.getColumnReferences();
-					System.out.println("Foreign Key Name: " + fk.getName());
-					for(ForeignKeyColumnReference fkcr : fkcrList) {
-						System.out.println("From " + fkcr.getPrimaryKeyColumn() + " to " + fkcr.getForeignKeyColumn());
+
+					for(ForeignKey fk : table.getForeignKeys()) {
+						List<ForeignKeyColumnReference> fkcrList = fk.getColumnReferences();
+						logger.debug("Foreign Key Name: " + fk.getName());
+						for(ForeignKeyColumnReference fkcr : fkcrList) {
+							logger.debug("From " + fkcr.getPrimaryKeyColumn() + " to " + fkcr.getForeignKeyColumn());
+						}
 					}
 				}
 			}
+		} catch (IOException ex) {
+			logger.error("Error with loading properties in config file" + ex.getMessage());
+		} finally {
+			conn.close();
 		}
 	}
-
 }
