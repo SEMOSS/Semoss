@@ -128,6 +128,15 @@ public interface IQueryFilter {
 		return false;
 	}
 	
+	public static boolean comparatorsRequireOrStatement(String existingComparator, String newComparator) {
+		if(existingComparator.equals("==") && newComparator.equals("?like")) {
+			return true;
+		} else if(newComparator.equals("==") && existingComparator.equals("?like")) {
+			return true;
+		}
+		return false;
+	}
+	
 	public static boolean comparatorsAreConflicting(String comparator1, String comparator2) {
 		if( (comparator1.equals("==") || comparator1.equals("?like")) && (comparator2.equals("!=") || comparator2.equals("<>") || comparator2.equals("?nlike"))) {
 			return true;
