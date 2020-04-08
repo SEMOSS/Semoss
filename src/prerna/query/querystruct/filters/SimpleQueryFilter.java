@@ -475,6 +475,123 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return removedValues;
 	}
 	
+	public boolean addInstanceFilters(SimpleQueryFilter otherQueryFilter) {
+		FILTER_TYPE otherFilterType = determineFilterType(otherQueryFilter);
+		boolean removedValues = false;
+		if(this.thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			// remove the values of the right hand side from this right hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisRHS = new Vector<Object>();
+			Object thisRhsObj = this.rComparison.getValue();
+			if(thisRhsObj instanceof List) {
+				thisRHS = (List<Object>) thisRhsObj;
+			} else {
+				thisRHS.add(thisRhsObj);
+			}
+			
+			List<Object> otherRHS = new Vector<Object>();
+			Object otherRhsObj = otherQueryFilter.rComparison.getValue();
+			if(otherRhsObj instanceof List) {
+				otherRHS = (List<Object>) otherRhsObj;
+			} else {
+				otherRHS.add(otherRhsObj);
+			}
+			
+			// remove the values
+			removedValues = thisRHS.addAll(otherRHS);
+			
+			// recreate this 
+			this.rComparison = new NounMetadata(thisRHS, this.rComparison.getNounType(), this.rComparison.getOpType());
+			
+		} else if(this.thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			// remove the values of the left hand side from this left hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisLHS = new Vector<Object>();
+			Object thisLhsObj = this.lComparison.getValue();
+			if(thisLhsObj instanceof List) {
+				thisLHS = (List<Object>) thisLhsObj;
+			} else {
+				thisLHS.add(thisLhsObj);
+			}
+			
+			List<Object> otherLHS = new Vector<Object>();
+			Object otherLhsObj = otherQueryFilter.lComparison.getValue();
+			if(otherLhsObj instanceof List) {
+				otherLHS = (List<Object>) otherLhsObj;
+			} else {
+				otherLHS.add(otherLhsObj);
+			}
+			
+			// remove the values
+			removedValues = thisLHS.addAll(otherLHS);
+			
+			// recreate this 
+			this.lComparison = new NounMetadata(thisLHS, this.lComparison.getNounType(), this.lComparison.getOpType());
+			
+			
+		} else if(this.thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			// remove the values of the left hand side from this right hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisRHS = new Vector<Object>();
+			Object thisRhsObj = this.rComparison.getValue();
+			if(thisRhsObj instanceof List) {
+				thisRHS = (List<Object>) thisRhsObj;
+			} else {
+				thisRHS.add(thisRhsObj);
+			}
+			
+			List<Object> otherLHS = new Vector<Object>();
+			Object otherLhsObj = otherQueryFilter.lComparison.getValue();
+			if(otherLhsObj instanceof List) {
+				otherLHS = (List<Object>) otherLhsObj;
+			} else {
+				otherLHS.add(otherLhsObj);
+			}
+			
+			// remove the values
+			removedValues = thisRHS.addAll(otherLHS);
+
+			// recreate this 
+			this.rComparison = new NounMetadata(thisRHS, this.rComparison.getNounType(), this.rComparison.getOpType());
+
+			
+		} else if(this.thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			// remove the values of the right hand side from this left hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisLHS = new Vector<Object>();
+			Object thisLhsObj = this.lComparison.getValue();
+			if(thisLhsObj instanceof List) {
+				thisLHS = (List<Object>) thisLhsObj;
+			} else {
+				thisLHS.add(thisLhsObj);
+			}
+			
+			List<Object> otherRHS = new Vector<Object>();
+			Object otherRhsObj = otherQueryFilter.rComparison.getValue();
+			if(otherRhsObj instanceof List) {
+				otherRHS = (List<Object>) otherRhsObj;
+			} else {
+				otherRHS.add(otherRhsObj);
+			}
+			
+			// remove the values
+			removedValues = thisLHS.addAll(otherRHS);
+			
+			// recreate this 
+			this.lComparison = new NounMetadata(thisLHS, this.lComparison.getNounType(), this.lComparison.getOpType());
+		}
+		
+		return removedValues;
+	}
+	
 	public boolean isEmptyFilterValues() {
 		FILTER_TYPE thisFilterType = determineFilterType(this);
 		if(thisFilterType == FILTER_TYPE.COL_TO_VALUES) {
@@ -981,6 +1098,72 @@ public class SimpleQueryFilter implements IQueryFilter {
 		}
 		return false;
  	}
+	
+	/**
+	 * Return true if this is a select all for a certain column
+	 * @return
+	 */
+	public static boolean isSelectAll(SimpleQueryFilter filter) {
+		if(filter.getComparator().equals("?like")) {
+			List<Object> valuesList = new Vector<Object>();
+			if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+				NounMetadata rComp = filter.getRComparison();
+				Object rVal = rComp.getValue();
+				if(rVal instanceof List) {
+					valuesList.addAll((List) rVal);
+				} else {
+					valuesList.add(rVal);
+				}
+			} else if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+				NounMetadata lComp = filter.getLComparison();
+				Object lVal = lComp.getValue();
+				if(lVal instanceof List) {
+					valuesList.addAll((List) lVal);
+				} else {
+					valuesList.add(lVal);
+				}
+			}
+			
+			if(valuesList.size() == 1 && valuesList.get(0).equals("")) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Return true if this is a select all for a certain column
+	 * @return
+	 */
+	public static boolean isUnselectAll(SimpleQueryFilter filter) {
+		if(filter.getComparator().equals("?nlike")) {
+			List<Object> valuesList = new Vector<Object>();
+			if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+				NounMetadata rComp = filter.getRComparison();
+				Object rVal = rComp.getValue();
+				if(rVal instanceof List) {
+					valuesList.addAll((List) rVal);
+				} else {
+					valuesList.add(rVal);
+				}
+			} else if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+				NounMetadata lComp = filter.getLComparison();
+				Object lVal = lComp.getValue();
+				if(lVal instanceof List) {
+					valuesList.addAll((List) lVal);
+				} else {
+					valuesList.add(lVal);
+				}
+			}
+			
+			if(valuesList.size() == 1 && valuesList.get(0).equals("")) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
 	
 	/**
 	 * Helper method to generate a column to values filter where the column is a set of strings
