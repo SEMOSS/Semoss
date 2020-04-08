@@ -1,40 +1,54 @@
 package prerna.rpa.db.jedis;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rpa.RPAProps;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 public class JedisUtil {
-		
 	private static final Logger LOGGER = LogManager.getLogger(JedisUtil.class.getName());
-	
+
 	private static final String NEW_LINE = System.getProperty("line.separator");
-	
-	private static final String REDIS_HOST = "redis.host";
-	private static final String REDIS_PORT = "redis.port";
-	private static final String REDIS_TIMEOUT = "redis.timeout";
-	private static final String REDIS_PASSWORD = "redis.password";
-	
+
+	private static final String REDIS_HOST = "redis_host";
+	private static final String REDIS_PORT = "redis_port";
+	private static final String REDIS_TIMEOUT = "redis_timeout";
+	private static final String REDIS_PASSWORD = "redis_password";
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	private JedisUtil() {
 		throw new IllegalStateException("Utility class");
 	}
 	
 	public static JedisPool getJedisPool() {
-		
-		// JedisPool is thread safe
-		String host = RPAProps.getInstance().getProperty(REDIS_HOST, "127.0.0.1");
-		int port = Integer.parseInt(RPAProps.getInstance().getProperty(REDIS_PORT, "6379"));
-		int timeout = Integer.parseInt(RPAProps.getInstance().getProperty(REDIS_TIMEOUT, "600000"));
-		String redisPassword = RPAProps.getInstance().getProperty(REDIS_PASSWORD, "null");
-		if (redisPassword.equals("null")) redisPassword = null;
-		return new JedisPool(new CustomJedisPoolConfig(), host, port, timeout, redisPassword);
+		JedisPool jedisPool = null;
+		try(InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "config.properties")) {
+			Properties prop = new Properties();
+
+			prop.load(input);
+			// JedisPool is thread safe
+			String host = prop.getProperty(REDIS_HOST);
+			int port = Integer.parseInt(prop.getProperty(REDIS_PORT));
+			int timeout = Integer.parseInt(prop.getProperty(REDIS_TIMEOUT));
+			String redisPassword = prop.getProperty(REDIS_PASSWORD);
+			if (redisPassword.equals("null")) redisPassword = null;
+
+			jedisPool = new JedisPool(new CustomJedisPoolConfig(), host, port, timeout, redisPassword);
+		} catch (IOException ex) {
+			LOGGER.error("Error with loading properties in config file" + ex.getMessage());
+		}
+		return jedisPool;
 	}
 	
 	/**
