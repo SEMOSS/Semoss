@@ -448,13 +448,13 @@ public class ExcelDataValidationHelper {
 				propertyMap.put("manualOptions", String.join(",", values));
 				htmlSb.append(FormUtility.getDropdownComponent(property));
 			} else if (wc == WIDGET_COMPONENT.NUMBER) {
+				//TODO: min and max ranges for slider
 				Object f1 = propMap.get("f1");
 				Object f2 = propMap.get("f2");
-				//TODO use slider?
 				propertyMap.put("defaultValue", "0");
 				htmlSb.append(FormUtility.getNumberPickerComponent(property));
 			} else if (wc == WIDGET_COMPONENT.TEXTAREA) {
-				htmlSb.append(FormUtility.getTextAreaComponent());
+				htmlSb.append(FormUtility.getTextAreaComponent(property));
 			} else {
 				htmlSb.append(FormUtility.getInputComponent(property));
 			}
@@ -470,7 +470,7 @@ public class ExcelDataValidationHelper {
 			}
 			dataMap.put(property, propertyMap);
 		}
-		htmlSb.append(FormUtility.getSubmitComponent());
+		htmlSb.append(FormUtility.getSubmitComponent("Insert"));
 		formMap.put("html", htmlSb.toString());
 		formMap.put("data", dataMap);
 		return formMap;
@@ -502,7 +502,7 @@ public class ExcelDataValidationHelper {
 			String validationType = (String) propMap.get("validationType");
 			if (validationType.equals("LIST")) {
 				String[] values = (String[]) propMap.get("values");
-				configPropMap.put("seletion-type", "custom");
+				configPropMap.put("selection-type", "custom");
 				configPropMap.put("selections", values);
 			} else {
 				if (type == SemossDataType.DOUBLE) {
