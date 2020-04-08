@@ -1729,7 +1729,7 @@ public class UploadUtilities {
 			SemossDataType propType = propMap.get(property);
 			// build html based on input component
 			if (propType == SemossDataType.DATE) {
-				htmlSb.append(FormUtility.getDatePickerComponent());
+				htmlSb.append(FormUtility.getDatePickerComponent(property));
 			} else if (propType == SemossDataType.STRING) {
 				htmlSb.append(FormUtility.getInputComponent(property));
 			} else if (Utility.isNumericType(propType.toString())) {
@@ -1762,7 +1762,7 @@ public class UploadUtilities {
 			}
 			dataMap.put(property, propertyMap);
 		}
-		htmlSb.append(FormUtility.getSubmitComponent());
+		htmlSb.append(FormUtility.getSubmitComponent("Insert"));
 		formMap.put("html", htmlSb.toString());
 		formMap.put("data", dataMap);
 		return formMap;
