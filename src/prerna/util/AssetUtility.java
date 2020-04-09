@@ -49,7 +49,7 @@ public class AssetUtility {
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
 				// but need to perform check
-				if(editRequired && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getEngineId(), in.getRdbmsId())) {
+				if(editRequired && in.isSavedInsight() && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getEngineId(), in.getRdbmsId())) {
 					throw new IllegalArgumentException("User does not have permission for this insight");
 				}
 			} else {
