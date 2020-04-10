@@ -41,6 +41,7 @@ import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
+import prerna.util.Constants;
 
 public class WrapperManager {
 
@@ -187,12 +188,22 @@ public class WrapperManager {
 			IQueryInterpreter interpreter = engine.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
 			String query = interpreter.composeQuery();
-			LOGGER.debug("Executing query on engine " + engine.getEngineId());
-			returnWrapper.setEngine(engine);
-			returnWrapper.setQuery(query);
-			returnWrapper.execute();
-			long end = System.currentTimeMillis();
-			LOGGER.debug("Engine execution time = " + (end-start) + "ms");
+			String appId = engine.getEngineId();
+			if(appId.equals(Constants.LOCAL_MASTER_DB_NAME) || appId.equals(Constants.SECURITY_DB)) {
+				LOGGER.debug("Executing query on engine " + engine.getEngineId());
+				returnWrapper.setEngine(engine);
+				returnWrapper.setQuery(query);
+				returnWrapper.execute();
+				long end = System.currentTimeMillis();
+				LOGGER.debug("Engine execution time = " + (end-start) + "ms");
+			} else {
+				LOGGER.info("Executing query on engine " + engine.getEngineId());
+				returnWrapper.setEngine(engine);
+				returnWrapper.setQuery(query);
+				returnWrapper.execute();
+				long end = System.currentTimeMillis();
+				LOGGER.info("Engine execution time = " + (end-start) + "ms");
+			}
 		} 
 
 		return returnWrapper;
