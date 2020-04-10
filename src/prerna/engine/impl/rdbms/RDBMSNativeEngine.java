@@ -99,9 +99,14 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private String driver = null;
 	private String connectionURL = null;
 	private String schema = null;
+	// parameterized in SMSS
+	// fetch size -1 which will 
+	private int fetchSize = -1;
+	private int poolMinSize = 1;
+	private int poolMaxSize = 16;
 	
 	private AbstractSqlQueryUtil queryUtil = null;
-	
+
 	private String fileDB = null;
 	private String createString = null;
 
@@ -156,6 +161,35 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
 			}
 			
+			// fetch size
+			if(prop.getProperty(Constants.FETCH_SIZE) != null) {
+				String strFetchSize = prop.getProperty(Constants.FETCH_SIZE);
+				try {
+					this.fetchSize = Integer.parseInt(strFetchSize);
+				} catch(Exception e) {
+					System.out.println("Error occured trying to parse and get the fetch size");
+					e.printStackTrace();
+				}
+			}
+			if(prop.getProperty(Constants.POOL_MIN_SIZE) != null) {
+				String strMinPoolSize = prop.getProperty(Constants.POOL_MIN_SIZE);
+				try {
+					this.poolMinSize = Integer.parseInt(strMinPoolSize);
+				} catch(Exception e) {
+					System.out.println("Error occured trying to parse and get the min pool size");
+					e.printStackTrace();
+				}
+			}
+			if(prop.getProperty(Constants.POOL_MAX_SIZE) != null) {
+				String strMaxPoolSize = prop.getProperty(Constants.POOL_MAX_SIZE);
+				try {
+					this.poolMaxSize = Integer.parseInt(strMaxPoolSize);
+				} catch(Exception e) {
+					System.out.println("Error occured trying to parse and get the max pool size");
+					e.printStackTrace();
+				}
+			}
+			
 			this.connBuilder = null;
 			if(useFile) {
 				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.BUILD_FROM_FILE);
@@ -200,6 +234,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {
 					this.dataSource = connBuilder.getDataSource();
+					this.dataSource.setMinIdle(this.poolMinSize);
+					this.dataSource.setMaxIdle(this.poolMaxSize);
 					this.datasourceConnected = true;
 				}
 				this.engineConnected = true;
@@ -438,7 +474,14 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			conn = getConnection();
 			stmt = conn.createStatement();
 			Map<String, Object> map = new HashMap();
-			rs = getResults(stmt, query);
+			rs = stmt.executeQuery(query);
+			if(this.fetchSize > 0) {
+				try {
+					rs.setFetchSize(this.fetchSize);
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
 			//normally would use instance.getClass() but when we retrieve the 
 			//references from the object we can't guarantee that they will not be null
 			//this makes it cleaner and less error prone.

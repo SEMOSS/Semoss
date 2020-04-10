@@ -106,7 +106,11 @@ public class ExecQueryReactor extends AbstractReactor {
 				engine.insertData(query);
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new SemossPixelException(NounMetadata.getErrorNounMessage("An error occured trying to execute the query in the database"));
+				String errorMessage = "An error occured trying to execute the query in the database";
+				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+					errorMessage += ": " + e.getMessage();
+				}
+				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
 			}
 			// store query in audit db
 			AuditDatabase audit = engine.generateAudit();
@@ -126,8 +130,11 @@ public class ExecQueryReactor extends AbstractReactor {
 				((H2Frame) frame).getBuilder().runQuery(query);
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new SemossPixelException(NounMetadata.getErrorNounMessage("An error occured trying to update the frame"));
-
+				String errorMessage = "An error occured trying to update the frame";
+				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+					errorMessage += ": " + e.getMessage();
+				}
+				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
 			}
 		}
 		
