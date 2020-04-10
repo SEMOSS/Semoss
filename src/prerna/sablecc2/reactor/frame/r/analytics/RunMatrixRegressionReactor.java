@@ -115,8 +115,10 @@ public class RunMatrixRegressionReactor extends AbstractRFrameReactor {
 			retCoefficientOutput[i] = bulkRow.get(i);
 		}
 
-		ITask barTaskData = ConstantTaskCreationHelper.getBarChartInfo(panelIds.get(1), "ColumnName", "Coefficient" , retCoefficientOutput);
-		NounMetadata noun1 = new NounMetadata(barTaskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		// paint is as grid
+		String[] labels = {"ColumnName", "Coefficient"};
+		ITask gridTaskData = ConstantTaskCreationHelper.getGridData(panelIds.get(1), labels, retCoefficientOutput);		
+		NounMetadata noun1 = new NounMetadata(gridTaskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 
 		/////////////////////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////
@@ -209,7 +211,7 @@ public class RunMatrixRegressionReactor extends AbstractRFrameReactor {
 		}
 		
 		// cleanup
-		this.rJavaTranslator.runR("gc(" + dataFrameTable + ")");
+		this.rJavaTranslator.executeEmptyR("rm(" + dataFrameTable + "); gc();");
 		return resultsListName;
 	}
 
