@@ -444,12 +444,14 @@ public class Constants {
 	public static final String DB_COMPARISON_BUTTON = "compareDBButton";
 	
 	public static final String CONNECTION_URL = "CONNECTION_URL";
-//	public static final String TEMP_CONNECTION_URL = "TEMP_CONNECTION_URL";
 	public static final String DRIVER = "DRIVER";
 	public static final String USERNAME = "USERNAME";
 	public static final String PASSWORD = "PASSWORD";
 	public static final String RDBMS_TYPE = "RDBMS_TYPE";
-	
+	public static final String FETCH_SIZE = "FETCH_SIZE";
+	public static final String POOL_MIN_SIZE = "POOL_MIN_SIZE";
+	public static final String POOL_MAX_SIZE = "POOL_MAX_SIZE";
+
 	// Auto generate queries
 	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
 	
