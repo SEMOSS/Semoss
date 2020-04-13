@@ -469,6 +469,7 @@ public class PixelStreamUtility {
 									ps.print("\"output\":{");
 									ps.print("\"data\":{" );
 									ps.print("\"values\":[");
+									ps.flush();
 								}
 	
 								if(!first) {
@@ -497,6 +498,7 @@ public class PixelStreamUtility {
 										ps.print("\"output\":{");
 										ps.print("\"data\":{" );
 										ps.print("\"values\":[");
+										ps.flush();
 									}
 
 									if(!first) {
@@ -566,6 +568,7 @@ public class PixelStreamUtility {
 					ps.print(",\"headers\":" + gson.toJson(headers));
 					ps.print(",\"rawHeaders\":" + gson.toJson(rawHeaders));
 					ps.print("}" );
+					ps.flush();
 
 				} else if(formatType.equals("GRAPH")){
 //					// format type is probably graph
@@ -591,13 +594,13 @@ public class PixelStreamUtility {
 				for(String taskMetaKey : taskMeta.keySet()) {
 					ps.print(",\"" + taskMetaKey + "\":" + gson.toJson(taskMeta.get(taskMetaKey)));
 					ps.flush();
-				} 
+				}
 				
 				ps.print(",\"taskId\":\"" + task.getId() + "\"");
 				ps.print("}");
 				ps.print(",\"operationType\":");
 				ps.print(gson.toJson(noun.getOpType()));
-
+				ps.flush();
 			}
 			// if we do not have a task
 			// we just have data to send
@@ -667,6 +670,7 @@ public class PixelStreamUtility {
 			ps.print(gson.toJson(newNoun.getValue()));
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(newNoun.getOpType()));
+			ps.flush();
 		}
 		
 		// remove insight 
@@ -676,6 +680,7 @@ public class PixelStreamUtility {
 			ps.print(gson.toJson(newNoun.getValue()));
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(newNoun.getOpType()));
+			ps.flush();
 		}
 		
 		else if(nounT == PixelDataType.REMOVE_TASK) {
@@ -690,11 +695,13 @@ public class PixelStreamUtility {
 				ps.print("}");
 				ps.print(",\"operationType\":");
 				ps.print(gson.toJson(new PixelOperationType[]{PixelOperationType.ERROR}));
+				ps.flush();
 			} else {
 				ps.print("\"taskId\":\"" + task.getId() + "\"");
 				ps.print("}");
 				ps.print(",\"operationType\":");
 				ps.print(gson.toJson(noun.getOpType()));
+				ps.flush();
 			}
 		}
 
@@ -705,6 +712,7 @@ public class PixelStreamUtility {
 			ps.print(panelGson.toJson(noun.getValue()));
 			ps.print(",\"operationType\":");
 			ps.print(panelGson.toJson(noun.getOpType()));
+			ps.flush();
 		}
 		
 		// everything else is simple
@@ -713,6 +721,7 @@ public class PixelStreamUtility {
 			ps.print(gson.toJson(noun.getValue()));
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(noun.getOpType()));
+			ps.flush();
 		}
 		
 		// add additional outputs
@@ -745,11 +754,13 @@ public class PixelStreamUtility {
 		// this is a map return
 		ps.print("{\"" + GraphFormatter.GRAPH_META + "\":" + gson.toJson(retData.get(GraphFormatter.GRAPH_META)));
 		ps.print(", \"" + GraphFormatter.NODES + "\":[");
+		ps.flush();
 
 		List<Object> nodeList = (List<Object>) retData.get(GraphFormatter.NODES);
 		// print first node
 		if(!nodeList.isEmpty()) {
 			ps.print(gson.toJson(nodeList.remove(0)));
+			ps.flush();
 		}
 		// print rest of nodes
 		nodeList.stream().forEach(node -> ps.print("," + gson.toJson(node)));
@@ -758,10 +769,12 @@ public class PixelStreamUtility {
 		// print first node
 		if(!edgeList.isEmpty()) {
 			ps.print(gson.toJson(edgeList.remove(0)));
+			ps.flush();
 		}
 		// print rest of nodes
 		edgeList.stream().forEach(edge -> ps.print("," + gson.toJson(edge)));
 		ps.print("]}");
+		ps.flush();
 	}
 	
 }
