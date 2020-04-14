@@ -40,7 +40,7 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 
 		this.qs.setEngineId(engineId);
 		// add the engine to the insight
-		this.insight.addEngine(engineId);
+		this.insight.addQueriedEngine(engineId);
 		
 		//checking if it is a big data engine
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
