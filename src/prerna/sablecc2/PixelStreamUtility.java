@@ -84,11 +84,11 @@ public class PixelStreamUtility {
 					try {
 						ps = new PrintStream(outputStream, true, "UTF-8");
 						// we want to ignore the first index since it will be a job
-						LOGGER.debug("Starting to generate response");
+						LOGGER.info("Starting to generate response");
 						long start = System.currentTimeMillis();
 						processPixelRunner(ps, gson, runner);
 						long end = System.currentTimeMillis();
-						LOGGER.debug("Time to generate json response = " + (end-start) + "ms");
+						LOGGER.info("Time to generate json response = " + (end-start) + "ms");
 					} catch(Exception e) {
 						e.printStackTrace();
 					} finally {
