@@ -31,7 +31,6 @@ import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -173,6 +172,8 @@ public class Insight {
 	private transient boolean deleteREnvOnDropInsight = true;
 	private transient boolean deletePythonTupleOnDropInsight = true;
 
+	private transient List<String> queriedAppIds = new Vector<String>();
+
 	// old - for pkql
 	@Deprecated
 	private transient Map<String, Map<String, Object>> pkqlVarMap = new Hashtable<String, Map<String, Object>>();
@@ -190,8 +191,6 @@ public class Insight {
 	Map pragmap = new HashMap();
 	
 	public NettyClient nc = null;
-	
-	public List <String> allDbsUsed = new ArrayList<String>();
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -776,6 +775,20 @@ public class Insight {
 		this.deletePythonTupleOnDropInsight = deletePythonTupleOnDropInsight;
 	}
 	
+	/**
+	 * Store the app ids that are queried
+	 * @param appId
+	 */
+	public void addQueriedEngine(String appId) {
+		if(!this.queriedAppIds.contains(appId)) {
+			this.queriedAppIds.add(appId);
+		}
+	}
+	
+	public List<String> getQueriedEngines() {
+		return this.queriedAppIds;
+	}
+	
 	// TODO: methods i have but dont want to keep
 	// TODO: methods i have but dont want to keep
 	// TODO: methods i have but dont want to keep
@@ -1109,9 +1122,9 @@ public class Insight {
 			}
 			// check all other dbs
 			// first one wins
-			for(int engineIndex = 0;engineIndex < allDbsUsed.size() && retReac == null;engineIndex++)
+			for(int engineIndex = 0;engineIndex < queriedAppIds.size() && retReac == null;engineIndex++)
 			{
-				String thisEngine = allDbsUsed.get(engineIndex);
+				String thisEngine = queriedAppIds.get(engineIndex);
 				IEngine engine = Utility.getEngine(thisEngine);
 				retReac = engine.getReactor(className, null);
 			}			
@@ -1323,12 +1336,4 @@ public class Insight {
 			this.pyt.setInsight(this);
 		}
 	}
-
-	// add this database as being used by this insight
-	public void addEngine(String engineId)
-	{
-		if(!this.allDbsUsed.contains(engineId))
-			this.allDbsUsed.add(engineId);
-	}
-
 }
