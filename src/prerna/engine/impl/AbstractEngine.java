@@ -1295,7 +1295,7 @@ public abstract class AbstractEngine implements IEngine {
 				}
 			}
 			int status = Utility.compileJava(dbFolder +"/version", getCP());
-			if(status == 0)
+			//if(status == 0) // error or not I going to mark it. If we want to recompile. tell the system to recompile
 			{
 				ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
 				
