@@ -5,7 +5,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
-import prerna.util.insight.InsightUtility;
 
 public class ReloadInsightClassesReactor extends AbstractReactor {
 
@@ -19,8 +18,8 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		ReactorFactory.recompile(insight.getRdbmsId());
 		//if(keyValue.containsKey("engine"))
 		{
-			for(int engineIndex = 0;engineIndex < insight.allDbsUsed.size();engineIndex++)
-				ReactorFactory.recompile(insight.allDbsUsed.get(engineIndex));
+			for(int engineIndex = 0;engineIndex < insight.getQueriedEngines().size();engineIndex++)
+				ReactorFactory.recompile(insight.getQueriedEngines().get(engineIndex));
 		}
 		return new NounMetadata("Recompile Initiated", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
