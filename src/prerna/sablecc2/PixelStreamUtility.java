@@ -624,7 +624,12 @@ public class PixelStreamUtility {
 					}
 					ps.print("}");
 				} else {
+					LOGGER.info("Start time to pull result set");
+					long start = System.currentTimeMillis();
 					ps.print(gson.toJson(noun.getValue()));
+					ps.flush();
+					long end = System.currentTimeMillis();
+					LOGGER.info("Total time to pull result set = " + (end-start) + "ms");
 				}
 				ps.print(",\"operationType\":");
 				ps.print(gson.toJson(noun.getOpType()));
