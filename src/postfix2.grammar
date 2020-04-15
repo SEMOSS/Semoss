@@ -10,8 +10,7 @@ Helpers
  // allow for escaped double quotes
  double_quote = '"';
  escaped_double_quote = '\"';
- backslash = '\';
- not_double_quote = [all - ['"' + '\']] | escaped_double_quote | backslash;
+ not_double_quote = [all - '"'] | escaped_double_quote;
  double_quote_word = double_quote not_double_quote* double_quote;
  // words in single quotes
  // does not allow for escaped single quotes
