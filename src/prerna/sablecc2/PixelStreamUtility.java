@@ -624,12 +624,12 @@ public class PixelStreamUtility {
 					}
 					ps.print("}");
 				} else {
-					LOGGER.info("Start time to json the data");
+					LOGGER.info("Starting time to convert data to json");
 					long start = System.currentTimeMillis();
 					ps.print(gson.toJson(noun.getValue()));
 					ps.flush();
 					long end = System.currentTimeMillis();
-					LOGGER.info("Total time to json data = " + (end-start) + "ms");
+					LOGGER.info("Total time to convert to json = " + (end-start) + "ms");
 				}
 				ps.print(",\"operationType\":");
 				ps.print(gson.toJson(noun.getOpType()));
