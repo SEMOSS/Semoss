@@ -887,6 +887,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 	
+	public void setQueryUtil(AbstractSqlQueryUtil queryUtil) {
+		this.queryUtil = queryUtil;
+	}
+	
 	public String getConnectionUrl() {
 		return this.connectionURL;
 	}
