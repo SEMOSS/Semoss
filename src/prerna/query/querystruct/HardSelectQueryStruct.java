@@ -2,7 +2,12 @@ package prerna.query.querystruct;
 
 public class HardSelectQueryStruct extends SelectQueryStruct {
 
-	private String hardQuery;
+	private String hardQuery = null;
+	
+	// set new default for hard query struct
+	{
+		this.qsType = QUERY_STRUCT_TYPE.RAW_FRAME_QUERY;
+	}
 	
 	public HardSelectQueryStruct() {
 		

@@ -64,7 +64,7 @@ public class InMemoryConsole extends Logger {
 	@Override
 	public void info(Object message)
 	{
-		super.info(message);
+		super.info(this.jobID + " >> " + message);
 		if(level == LOG_LEVEL.INFO || level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
 			JobManager.getManager().addStdOut(jobID, message + "");
 		}
@@ -72,7 +72,7 @@ public class InMemoryConsole extends Logger {
 	
 	@Override
 	public void debug(Object message) {
-		super.debug(message);
+		super.debug(this.jobID + " >> " + message);
 		if(level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
 			JobManager.getManager().addStdErr(jobID, message + "");
 		}
@@ -81,7 +81,7 @@ public class InMemoryConsole extends Logger {
 	@Override
 	public void warn(Object message)
 	{
-		super.warn(message);
+		super.warn(this.jobID + " >> " + message);
 		if(level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL)
 		{
 			JobManager.getManager().addStdErr(jobID, message + "");
@@ -91,7 +91,7 @@ public class InMemoryConsole extends Logger {
 	@Override
 	public void fatal(Object message)
 	{
-		super.fatal(message);
+		super.fatal(this.jobID + " >> " + message);
 		if(level == LOG_LEVEL.FATAL)
 		{
 			JobManager.getManager().addStdErr(jobID, message + "");
