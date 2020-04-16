@@ -19,6 +19,7 @@ import prerna.sablecc2.om.task.ITask;
  */
 public class AssignmentReactor extends AbstractReactor implements JavaExecutable {
 	
+	private static final String CLASS_NAME = AssignmentReactor.class.getName();
 	private static final Logger LOGGER = LogManager.getLogger(AssignmentReactor.class);
 	
 	private String resultKey = null;
@@ -33,6 +34,7 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 	
 	@Override
 	public NounMetadata execute() {
+		Logger logger = getLogger(CLASS_NAME);
 		NounMetadata result = planner.getVariable(this.resultKey);
 		if(result == null) {
 			// if we have a constant value
@@ -50,11 +52,11 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 		if(result.getNounType() == PixelDataType.FORMATTED_DATA_SET && result.getValue() instanceof ITask) {
 			Map<String, Object> flushedOutValue = null;
 			try {
-				LOGGER.info("Start time to iterate through the result set");
+				logger.info("Start time to iterate through the result set");
 				long start = System.currentTimeMillis();
 				flushedOutValue = ((ITask) result.getValue()).collect(true);
 				long end = System.currentTimeMillis();
-				LOGGER.info("Total time to iterate through the result set = " + (end-start) + "ms");
+				logger.info("Total time to iterate through the result set = " + (end-start) + "ms");
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SemossPixelException(e.getMessage());
