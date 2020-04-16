@@ -53,6 +53,11 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	@Override
+	public String getGroupConcatFunctionSyntax() {
+		return "STRING_AGG";
+	}
+
+	@Override
 	public boolean allowsIfExistsTableSyntax() {
 		return false;
 	}
