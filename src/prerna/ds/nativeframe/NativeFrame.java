@@ -252,12 +252,19 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(String query) throws Exception {
+		long start = System.currentTimeMillis();
+		IEngine engine = this.qs.retrieveQueryStructEngine();
+		this.logger.info("Executing query on engine " + engine.getEngineId());
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), query);
+		long end = System.currentTimeMillis();
+		this.logger.info("Engine execution time = " + (end-start) + "ms");
 		return it;
 	}
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) throws Exception {
+		long start = System.currentTimeMillis();
+		IEngine engine = this.qs.retrieveQueryStructEngine();
 		// we need to merge everything with the current qs
 		qs.mergeGroupBy(this.qs.getGroupBy());
 		qs.mergeOrderBy(this.qs.getOrderBy());
@@ -315,7 +322,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// if we still dont have an iterator
 		// create it
 		if(it == null) {
-			it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);	
+			this.logger.info("Executing query on engine " + engine.getEngineId());
+			it = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			long end = System.currentTimeMillis();
+			this.logger.info("Engine execution time = " + (end-start) + "ms");
+			return it;
 		}
 
 		return it;
