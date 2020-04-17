@@ -183,7 +183,7 @@ public abstract class AbstractTask implements ITask {
 		return this.formatter;
 	}
 	
-	private Map<String, Object> getFormatMap() {
+	protected Map<String, Object> getFormatMap() {
 		Map<String, Object> formatMap = new HashMap<String, Object>();
 		formatMap.put("type", this.formatter.getFormatType());
 		formatMap.put("options", this.formatter.getOptionsMap());

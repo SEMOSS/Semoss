@@ -64,6 +64,36 @@ public class BasicIteratorTask extends AbstractTask {
 		this.iterator = iterator;
 	}
 	
+	/**
+	 * Collect data from an iterator
+	 * Or return defined outputData
+	 * @throws Exception 
+	 */
+	@Override
+	public Map<String, Object> collect(boolean meta) throws Exception {
+		Map<String, Object> collectedData = new HashMap<String, Object>(10);
+		collectedData.put("data", getData());
+		if(meta) {
+			collectedData.put("headerInfo", this.getHeaderInfo());
+			if(this.taskOptions != null && !this.taskOptions.isEmpty()) {
+				collectedData.put("format", getFormatMap());
+				collectedData.put("taskOptions", this.taskOptions.getOptions());
+				collectedData.put("sortInfo", this.sortInfo);
+				collectedData.put("filterInfo", this.filterInfo);
+				if(this.qs == null || !this.qs.getBigDataEngine()) {
+					long numRows = TaskUtility.getNumRows(this);
+					if(numRows > 0) {
+						collectedData.put("numRows", numRows);
+					}
+				}
+			}
+		}
+		collectedData.put("sources", getSource());
+		collectedData.put("taskId", this.id);
+		collectedData.put("numCollected", this.numCollect);
+		return collectedData;
+	}
+	
 	@Override
 	public boolean hasNext() {
 		if(this.iterator == null && this.qs == null) {
