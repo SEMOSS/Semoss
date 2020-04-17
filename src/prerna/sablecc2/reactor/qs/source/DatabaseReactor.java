@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.qs.source;
 
-import java.util.Properties;
-
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
