@@ -9,6 +9,7 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
@@ -50,7 +51,7 @@ public class PixelSourceReactor extends AbstractReactor {
 		PixelRunner pixelReturn = this.insight.runPixel(pixel);
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", pixelReturn);
-		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER);
+		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.SUB_SCRIPT);
 		return noun;
 	}
 }
