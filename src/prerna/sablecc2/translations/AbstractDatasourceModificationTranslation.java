@@ -1,11 +1,15 @@
 package prerna.sablecc2.translations;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import prerna.om.Insight;
 import prerna.sablecc2.LazyTranslation;
+import prerna.sablecc2.node.ASubRoutine;
+import prerna.sablecc2.node.PSubRoutineOptions;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.GenericReactor;
@@ -31,6 +35,19 @@ public class AbstractDatasourceModificationTranslation extends LazyTranslation {
 	
 	public AbstractDatasourceModificationTranslation(Insight insight) {
 		super(insight);
+	}
+	
+	@Override
+	public void caseASubRoutine(ASubRoutine node) {
+		inASubRoutine(node);
+		{
+			List<PSubRoutineOptions> copy = new ArrayList<PSubRoutineOptions>(node.getSubRoutineOptions());
+			for(PSubRoutineOptions e : copy)
+			{
+				e.apply(this);
+			}
+		}
+		outASubRoutine(node);
 	}
 	
 	@Override
