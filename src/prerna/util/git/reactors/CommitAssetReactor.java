@@ -24,9 +24,6 @@ public class CommitAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		if(!this.insight.isSavedInsight()) {
-			return NounMetadata.getWarningNounMessage("Unable to commit file. All files will be commited once the insight is saved.");
-		}
 		User user = this.insight.getUser();
 		String author = null;
 		String email = null;
@@ -43,6 +40,14 @@ public class CommitAssetReactor extends AbstractReactor {
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		String comment = this.keyValue.get(this.keysToGet[1]);
 		String space = this.keyValue.get(this.keysToGet[2]);
+		if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+			// if we are in the insight space
+			// it must be a saved insight
+			if(!this.insight.isSavedInsight()) {
+				return NounMetadata.getWarningNounMessage("Unable to commit file. All files will be commited once the insight is saved.");
+			}
+		}
+		
 		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		// add file to git
@@ -59,12 +64,12 @@ public class CommitAssetReactor extends AbstractReactor {
 				}
 				AuthProvider provider = user.getPrimaryLogin();
 				String appId = user.getAssetEngineId(provider);
-				if(appId!=null && !(appId.isEmpty())){
+				if(appId!=null && !(appId.isEmpty())) {
 					ClusterUtil.reactorPushApp(appId);
 				}
 			}
 		} else {
-		ClusterUtil.reactorPushApp(this.insight.getEngineId());
+			ClusterUtil.reactorPushApp(this.insight.getEngineId());
 		}
 
 		return NounMetadata.getSuccessNounMessage("Success!");
