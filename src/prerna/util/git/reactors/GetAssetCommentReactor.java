@@ -22,10 +22,6 @@ public class GetAssetCommentReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		if(!this.insight.isSavedInsight()) {
-			return NounMetadata.getWarningNounMessage("Unable to get comments the insight must be saved to allow commenting.");
-		}
-
 		// check if user is logged in
 		User user = this.insight.getUser();
 		if (AbstractSecurityUtils.securityEnabled()) {
@@ -34,6 +30,13 @@ public class GetAssetCommentReactor extends AbstractReactor {
 			}
 		}
 		String space = this.keyValue.get(this.keysToGet[1]);
+		if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+			// if we are in the insight space
+			// it must be a saved insight
+			if(!this.insight.isSavedInsight()) {
+				return NounMetadata.getWarningNounMessage("Unable to get comments the insight must be saved to allow commenting.");
+			}
+		}
 		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 
