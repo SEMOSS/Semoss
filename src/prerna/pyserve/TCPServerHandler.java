@@ -83,6 +83,8 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
 						LOGGER.debug("output.. [" + retObject + "]" + "for command" + command);
 						retObject = "";
 					}
+					else
+						LOGGER.info("Got the result");
 					Object [] outputObj = new Object[2];
 					outputObj[0] = inputSoFar;
 					outputObj[1] = retObject;
@@ -113,6 +115,8 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
 					ctx.writeAndFlush(buff);
 					ctx.flush();
 					inputSoFar = "";
+					LOGGER.info("Result Flushed");
+
 				}
 			}
 		} catch (IOException e) {
