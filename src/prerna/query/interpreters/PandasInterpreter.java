@@ -406,7 +406,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	private String addDistinct(boolean distinct) {
 		if(distinct) {
-			return ".drop_duplicates()";
+			return ""; //.drop_duplicates()";
 		}
 		return "";
 	}
