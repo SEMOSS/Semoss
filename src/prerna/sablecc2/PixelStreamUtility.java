@@ -52,7 +52,7 @@ public class PixelStreamUtility {
 	private static final Logger LOGGER = Logger.getLogger(CLASS_NAME);
 
 	private static Gson getDefaultGson() {
-		return GsonUtility.getDefaultGson(true);
+		return GsonUtility.getDefaultGson();
 	}
 	
 	private static Gson getPanelGson() {
