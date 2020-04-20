@@ -1,7 +1,9 @@
 package prerna.util.gson;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import com.google.gson.Gson;
@@ -10,9 +12,11 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.FrameFactory;
 
 public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 
@@ -99,8 +103,22 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 		if(obj == null) {
 			out.nullValue();
 		} else {
-			TypeAdapter adapter = GSON.getAdapter(obj.getClass());
-			adapter.write(out, obj);
+			// do not break on frames
+			if(obj instanceof ITableDataFrame) {
+				ITableDataFrame frame = (ITableDataFrame) obj;
+				Map<String, String> mapValue = new HashMap<String, String>();
+				mapValue.put("type", FrameFactory.getFrameType(frame));
+				String name = frame.getName();
+				if(name != null) {
+					mapValue.put("name", name);
+				}
+				
+				TypeAdapter adapter = GSON.getAdapter(mapValue.getClass());
+				adapter.write(out, mapValue);
+			} else {
+				TypeAdapter adapter = GSON.getAdapter(obj.getClass());
+				adapter.write(out, obj);
+			}
 		}
 		out.endArray();
 		
