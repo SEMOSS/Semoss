@@ -166,11 +166,12 @@ public class TCPClientHandler extends ChannelInboundHandlerAdapter {
         			    offset = 4;
         			    bytes = null;
         			    totalBytes = 0;
+        			    /*
         		    	synchronized(nc.lock)
         		    	{
-
-        				nc.lock.notifyAll();
-        		    	}        				
+        		    		nc.lock.notifyAll();
+        		    	} 
+        		    	*/       				
         			} catch (ClassNotFoundException e) {
         				// TODO Auto-generated catch block
         				e.printStackTrace();
@@ -246,8 +247,8 @@ public class TCPClientHandler extends ChannelInboundHandlerAdapter {
     	System.err.println("====================== read complete ====================== " );
     	synchronized(nc.lock)
     	{
-
-		nc.lock.notifyAll();
+    		
+    		nc.lock.notifyAll();
     	}        				
     	/*
     	if(buf != null)
