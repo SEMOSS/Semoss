@@ -64,6 +64,8 @@ public class NettyClient implements Runnable{
 		            b.group(group)
 		             .channel(NioSocketChannel.class)
 		             .option(ChannelOption.TCP_NODELAY, true)
+		             .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, (1024*1024))		             
+		             .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, (512*1024))
 		             .handler(nci);
 		
 		            nc.f = b.connect(HOST, PORT).sync();          
@@ -124,14 +126,17 @@ public class NettyClient implements Runnable{
     		try
     		{
     	    	t.run();
-    	    	while(attempt < 6)
+    	    	boolean done = false;
+    	    	while(!done) //attempt < 6)
     	    	{
-	    			lock.wait(attempt*1000);
+    	    		System.out.print("*");
+	    			lock.wait();
 	    			//System.out.println("Object that came " + response);
 	    			if(response != null)
 	    			{
 	    				Object [] outputObj = (Object [])response;		
 	    				responseMap.put(outputObj[0], outputObj[1]);
+	    				done = true;
 	    				break;
 	    			}
 	    			attempt++;
@@ -141,8 +146,8 @@ public class NettyClient implements Runnable{
     			
     		}
     	}
-    	if(attempt > 5)
-    		return "Output has taken way longer than expected, removing block";
+    	//if(attempt > 5)
+    	//	return "Output has taken way longer than expected, removing block";
     	
     	return responseMap.remove(command);
     }
