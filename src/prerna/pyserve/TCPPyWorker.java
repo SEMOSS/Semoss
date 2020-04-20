@@ -18,6 +18,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -149,6 +150,8 @@ public class TCPPyWorker
             b.group(bossGroup, workerGroup)
              .channel(NioServerSocketChannel.class)
              .option(ChannelOption.SO_BACKLOG, 100)
+             .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, (1024*1024))
+             .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, (512*1024))
              .handler(new LoggingHandler(LogLevel.INFO))
              .childHandler(new ChannelInitializer<SocketChannel>() {
                  @Override
@@ -171,6 +174,7 @@ public class TCPPyWorker
             // Start the server.
             ChannelFuture f = b.bind(PORT).sync();
             LOGGER.info("Listening on port " + PORT);
+            LOGGER.info("set watermarks");
             // Wait until the server socket is closed.
             f.channel().closeFuture().sync();
         }catch(Exception ex)
