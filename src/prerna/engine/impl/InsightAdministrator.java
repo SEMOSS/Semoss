@@ -155,29 +155,31 @@ public class InsightAdministrator {
 			e.printStackTrace();
 		}
 		
-		// now we do the new insert with the order of the tags
-		query = this.queryUtil.createInsertPreparedStatementString("INSIGHTMETA", 
-				new String[]{"INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
-		PreparedStatement ps = this.insightEngine.bulkInsertPreparedStatement(query);
-		try {
-			for(int i = 0; i < tags.size(); i++) {
-				String tag = tags.get(i);
-				ps.setString(1, insightId);
-				ps.setString(2, "tag");
-				ps.setString(3, tag);
-				ps.setInt(4, i);
-				ps.addBatch();;
-			}
-			
-			ps.executeBatch();
-		} catch(Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
+		if(tags != null && !tags.isEmpty()) {
+			// now we do the new insert with the order of the tags
+			query = this.queryUtil.createInsertPreparedStatementString("INSIGHTMETA", 
+					new String[]{"INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
+			PreparedStatement ps = this.insightEngine.bulkInsertPreparedStatement(query);
+			try {
+				for(int i = 0; i < tags.size(); i++) {
+					String tag = tags.get(i);
+					ps.setString(1, insightId);
+					ps.setString(2, "tag");
+					ps.setString(3, tag);
+					ps.setInt(4, i);
+					ps.addBatch();;
+				}
+				
+				ps.executeBatch();
+			} catch(Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
