@@ -406,7 +406,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	private String addDistinct(boolean distinct) {
 		if(distinct) {
-			return ""; //.drop_duplicates()";
+			// try to find if there is more than 1 column
+			if(orderHash.size() > 1)
+				return ""; //.drop_duplicates()";
+			else if(orderHash.size() == 1 && aggHash.size() == 0)
+				return ".drop_duplicates()";
 		}
 		return "";
 	}
