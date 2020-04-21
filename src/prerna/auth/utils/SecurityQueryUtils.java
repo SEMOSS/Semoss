@@ -714,11 +714,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			Object[] row = wrapper.next().getValues();
-			try {
-				date = (SemossDate) row[0];
-			} catch(Exception e) {
-				// ignore
+			if(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				try {
+					date = (SemossDate) row[0];
+				} catch(Exception e) {
+					// ignore
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
