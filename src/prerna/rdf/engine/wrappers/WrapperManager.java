@@ -189,7 +189,7 @@ public class WrapperManager {
 			interpreter.setQueryStruct(qs);
 			String query = interpreter.composeQuery();
 			String appId = engine.getEngineId();
-			if(appId.equals(Constants.LOCAL_MASTER_DB_NAME) || appId.equals(Constants.SECURITY_DB)) {
+			if(Constants.LOCAL_MASTER_DB_NAME.equals(appId) || Constants.SECURITY_DB.equals(appId)) {
 				LOGGER.debug("Executing query on engine " + engine.getEngineId());
 				returnWrapper.setEngine(engine);
 				returnWrapper.setQuery(query);
