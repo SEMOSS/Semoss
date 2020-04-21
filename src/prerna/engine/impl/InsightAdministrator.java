@@ -33,7 +33,6 @@ public class InsightAdministrator {
 	private RDBMSNativeEngine insightEngine;
 	private AbstractSqlQueryUtil queryUtil;
 	private boolean allowArrayDatatype;
-
 	
 	public InsightAdministrator(RDBMSNativeEngine insightEngine) {
 		this.insightEngine = insightEngine;
