@@ -1,104 +1,74 @@
+find_outliers<-function(input_df,attrs,threshold=0.05,mis_data="as_is",outlier_col="Outlier") {
+# Find outliers procedure
+# Args
+# input_df - an input table/dataframe to use for outliers search
+# attrs - a list of column names of df to be used for the outliers search
+# threshold - a threshold for determine the cutof for outliers
+# mis_data - an action specifying how to handle missing data (options: "impute","drop","as_is")
+	ACTIONS<-c("impute","drop","as_is")
+	row_id<-paste(sample(c(1:9,letters,LETTERS),15),collapse="")
+	
+	library(HDoutliers)
+	input_df[[row_id]]<-seq(nrow(input_df))
+	attrs<-append(attrs,row_id)
 
-########MOVIES###############################################
-#instanceCol <- "Director"
-#attrColList <- c("RottenTomatoesAudience")
-#originalFrameName <- fread("C:/Users/micstone/Desktop/Movies.csv")
-#newColName <- "myOutliers"
-#unique <- FALSE
-#############################################################
-
-#######DIABETES##############################################
-#instanceCol <- "location"
-#attrColList <- c("chol", "bp.2s")
-#originalFrameName <- fread("C:/Users/micstone/Desktop/diabetes.csv")
-#newColName <- "myOutliers"
-#################################################################
-
-##############################################################
-#alpha <- 0.05
-#alpha <- 0.15
-
-#unique <- TRUE 
-#uniqiue <- FALSE 
-##########################################################
-#test <- DetermineHDoutliers(originalFrameName, instanceCol, attrColList, alpha, newColName, unique)
-#test[which(test$myOutliers == "TRUE"),]
-
-# the instance col is only needed if we are not treating as unique
-DetermineHDoutliers <- function(originalFrameName, instanceCol, attrColList, alpha, newColName, unique) {
-
-library(HDoutliers)
-dt <- as.data.table(originalFrameName)
-
-
-if (unique == TRUE) {
-# append a ROW_ID because we will treat each row as unique even if it is not
-dt$ROW_ID <- seq.int(nrow(dt))
-dtSubset <- dt[, c(attrColList, "ROW_ID"), with = FALSE]
-# clean data to remove any missing values
-dtSubset[dtSubset==''|dtSubset==' '] <- NA 
-dtSubset <- dtSubset[complete.cases(dtSubset),]
-
-# determine indices of the outliers in dtSubset
-out <- HDoutliers(dtSubset[, -c("ROW_ID")], alpha = alpha)
-
-if (length(out) < 1) {
-# no outliers returned
-# every value in our extra column will be false 
-dtSubset[[newColName]] <- rep("FALSE")
-} else {
-# set outlier values to TRUE and other values to FALSE 
-dtSubset[[newColName]] <- rep("FALSE")
-dtSubset[c(out), newColName] <- "TRUE"
+	result<-list()
+	# clean up the input frame
+	cols<-which(colnames(input_df) %in% attrs)
+	cmd<-paste0('df<-input_df[,',paste0('c(',paste(cols,collapse=','),')'),']')
+	eval(parse(text=cmd))
+	if(tolower(mis_data)==ACTIONS[1]){
+		df<-impute_data(df,attrs)
+	}else if(tolower(mis_data)==ACTIONS[2]){
+		df[df=="null" | df=="NULL"]<-NA
+		df<-df[complete.cases(df),]
+	}else if(tolower(mis_data)!=ACTIONS[3]){
+		result[[1]]<-nrow(df)
+		result[[2]]<-"Possible missing data actions are: impute, drop and as is"
+		return(result)
+	}
+	
+	rows<-nrow(df)
+	if(rows>0){
+		# determine indices of the outliers in dtSubset
+		outliers = tryCatch({
+			HDoutliers(df, alpha = threshold)
+		}, error = function(e) {
+			"An unknown error occurred"
+		})
+		result[[1]]<-rows
+		if(class(outliers)=="character"){
+			result[[2]]<-outliers
+		}else {
+			dropped_rows<-which(!(input_df[[row_id]] %in% df[[row_id]]))
+			df<-replace_columns(input_df,df,row_id)
+			ind<-which(colnames(df)==row_id)
+			cmd<-paste0("df<-df[,-",ind,"]")
+			eval(parse(text=cmd))
+			
+			if(is.null(outliers)){
+				df[[outlier_col]]<-'no'
+			}else{
+				df[[outlier_col]]<-'no'
+				if(length(outliers)>0){
+					df[c(outliers),outlier_col]<-'yes'
+				}
+			}
+			if(length(dropped_rows)>0){
+				df[dropped_rows,outlier_col]<-'unknown'
+			}
+			n<-ncol(df)
+			cmd<-paste0('x<-df[,c(',n,',1:',n-1,')]')
+			eval(parse(text=cmd))
+			result[[2]]<-x
+		}
+	}else{
+		result[[1]]<-0
+		result[[2]]<-df
+	}
+	gc()
+	return(result)
 }
-# now merge back with the original frame 
-results <- merge(x = dtSubset[, -c(attrColList), with = FALSE], y = dt, by = "ROW_ID", all.x = TRUE, all.y = TRUE)
-results <- results[, -c("ROW_ID")]
-}
-
-else {
-dtSubset <- dt[, c(instanceCol, attrColList), with = FALSE]
-# clean data to remove any missing values
-dtSubset[dtSubset==''|dtSubset==' '] <- NA 
-dtSubset <- dtSubset[complete.cases(dtSubset),]
-# here we create the row id for dt subset; the merge of dt subset to the original frame will be done on the instance column
-dtSubset$ROW_ID <- seq.int(nrow(dtSubset))
-# the temp frame is our transformed frame so that all categorical instances are converted to numeric
-temp <- as.data.table(dataTrans(dtSubset[, -c(instanceCol, "ROW_ID"), with = FALSE]))
-# the ids on temp will match the ids in dtsubset
-temp$ROW_ID <- seq.int(nrow(temp)) 
-# merge back with the instance column for grouping
-mergedFrame <- merge(x = dtSubset[, -c(attrColList), with = FALSE], y = temp, by = "ROW_ID", all.x = TRUE)
-
-# now transform and group based on the instance column
-
-data <- mergedFrame[complete.cases(mergedFrame[[instanceCol]]), lapply(.SD, mean, na.rm=TRUE), by = instanceCol, .SDcols = attrColList]
-
-# get outliers on the collapsed frame
-out <- HDoutliers(data[, -c(instanceCol), with = FALSE], alpha = alpha)
-
-if (length(out) < 1) {
-# no outliers returned
-# every value in our extra column will be false 
-data[[newColName]] <- rep("FALSE")
-} else {
-# assign true to the outlier row ids
-data[[newColName]] <- rep("FALSE")
-data[c(out), newColName] <- "TRUE"
-}
-
-# now merge back with the original frame 
-results <- merge(x = data[, -c(attrColList), with = FALSE], y = dt, by = instanceCol, all.x = TRUE, all.y = TRUE)
-}
-return (results)
-}
-
-
-
-
-
-
-
 
 
 
