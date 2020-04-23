@@ -37,7 +37,7 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 	public GetFrameFilterStateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey(),
-				GLOBAL_KEY};
+				DYNAMIC_KEY};
 	}
 
 	@Override
@@ -74,17 +74,17 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 			panel = (InsightPanel) panelGrs.get(0);
 		}
 		
-		boolean global = true;
-		GenRowStruct globalGrs = this.store.getNoun(keysToGet[5]);
-		if (globalGrs != null && !globalGrs.isEmpty()) {
-			global = Boolean.parseBoolean(globalGrs.get(0) + "");
+		boolean dynamic = false;
+		GenRowStruct dynamicGrs = this.store.getNoun(keysToGet[2]);
+		if (dynamicGrs != null && !dynamicGrs.isEmpty()) {
+			dynamic = Boolean.parseBoolean(dynamicGrs.get(0) + "");
 		}
 
-		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, global, panel);
+		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, dynamic, panel);
 	}
 
 	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit,
-			int offset, boolean global, InsightPanel panel) {
+			int offset, boolean dynamic, InsightPanel panel) {
 		boolean selectAll = dataframe.getSelectAllFilter(tableCol);
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
@@ -124,7 +124,7 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 			wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 			totalCountQS.addExplicitFilter(wFilter);
 		}
-		if(!global) {
+		if(dynamic) {
 			totalCountQS.mergeImplicitFilters(baseFiltersExcludeCol);
 		}
 		
@@ -157,7 +157,7 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		if (filterWord != null && !filterWord.trim().isEmpty()) {
 			qs.addExplicitFilter(wFilter);
 		}
-		if(!global) {
+		if(dynamic) {
 			qs.mergeImplicitFilters(baseFiltersExcludeCol);
 		}
 		// grab all the values

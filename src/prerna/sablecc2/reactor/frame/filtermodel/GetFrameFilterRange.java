@@ -27,7 +27,7 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 	 */
 
 	public GetFrameFilterRange() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey(), GLOBAL_KEY };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey(), DYNAMIC_KEY };
 	}
 
 	@Override
@@ -46,16 +46,16 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 			panel = (InsightPanel) panelGrs.get(0);
 		}
 		
-		boolean global = true;
-		GenRowStruct globalGrs = this.store.getNoun(keysToGet[2]);
-		if (globalGrs != null && !globalGrs.isEmpty()) {
-			global = Boolean.parseBoolean(globalGrs.get(0) + "");
+		boolean dynamic = false;
+		GenRowStruct dynamicGrs = this.store.getNoun(keysToGet[2]);
+		if (dynamicGrs != null && !dynamicGrs.isEmpty()) {
+			dynamic = Boolean.parseBoolean(dynamicGrs.get(0) + "");
 		}
 
-		return getFilterModel(dataframe, tableCol, global, panel);
+		return getFilterModel(dataframe, tableCol, dynamic, panel);
 	}
 
-	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, boolean global, InsightPanel panel) {
+	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, boolean dynamic, InsightPanel panel) {
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		// first just return the info that was passed in
@@ -85,7 +85,7 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 			QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
 
 			SelectQueryStruct mathQS = new SelectQueryStruct();
-			if(!global) {
+			if(dynamic) {
 				mathQS.setImplicitFilters(baseFiltersExcludeCol);
 			}
 			
