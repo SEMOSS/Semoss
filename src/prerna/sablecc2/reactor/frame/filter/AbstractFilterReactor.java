@@ -12,6 +12,8 @@ import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 
 public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 
+	protected String GLOBAL_KEY = "global";
+	
 	/**
 	 * Get the filters passed into the reactor
 	 * 
@@ -60,5 +62,5 @@ public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 
 		return panel;
 	}
-
+	
 }
