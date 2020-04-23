@@ -2,7 +2,10 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.log4j.Logger;
+
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -10,8 +13,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -22,15 +23,15 @@ public class ImputeNullValuesReactor extends AbstractRFrameReactor {
 	 * This reactor imputes the value of null values in numeric columns to fill in
 	 * null values with best guesses
 	 */
-	
-	//  ImputeNullValues ( column = ["bp_2d"] , imputeCols = [ "bp_1d" , "bp_1s" , "bp_2s" ] , crossSectionCol = [ "frame" ] ) ;
+
+	// ImputeNullValues ( columns = [ "bp_1d" , "bp_1s" , "bp_2s" ] ) ;
 
 	protected static final String CLASS_NAME = ImputeNullValuesReactor.class.getName();
-	private static final String CROSS_SECTION_COL = "crossSectionCol";
-	private static final String IMPUTE_COLS = "imputeCols";
+	private static final String HANDLE_NULL = "handleNull";
 
+	
 	public ImputeNullValuesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey() , IMPUTE_COLS, CROSS_SECTION_COL };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() , HANDLE_NULL };
 	}
 
 	@Override
@@ -39,101 +40,65 @@ public class ImputeNullValuesReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		int stepCounter = 1;
 		Logger logger = this.getLogger(CLASS_NAME);
-		StringBuilder rsb = new StringBuilder();
-		String imputedFrame = "imputed" + Utility.getRandomString(5);
-		String retFrame = "result" + Utility.getRandomString(5);
+		ITableDataFrame dataFrame = getFrame();
+		String frameName = dataFrame.getName();
 
 		// Check Packages
 		logger.info(stepCounter + ". Checking R Packages");
-		String[] packages = new String[] { "Amelia" };
+		String[] packages = new String[] { "missRanger" };
 		this.rJavaTranslator.checkPackages(packages);
-		rsb.append("library(Amelia);");
-		
-		// get the temp file path to store the imputed files
-		String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
-				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		filePath = filePath.replace("\\", "/");
 
-		// change the working directory
-		String wd = "wd" + Utility.getRandomString(5);
-		rsb.append(wd + "<- getwd();");
-		rsb.append("setwd(\"" + filePath + "\");");
+		// figure out inputs
+		List<String> colsToImpute = getColumns();
 
-		// get frame
-		RDataTable frame = (RDataTable) getFrame();
-		String table = frame.getName();
+		// run the function
+		String newFrameName = runImputeValues(frameName, colsToImpute);
 
-		// get inputs
-		String updateColumn = getUpdateColumn();
-		List<String> updateCols = getColumns();
-		String crossSectionCol = getCrossSectionColumn();
-
-		// filter to only the chosen columns (cbind this back to the frame later)
-		rsb.append(imputedFrame + " <- " + getSubsetFrameString(table, updateCols, updateColumn, crossSectionCol));
-
-		// remove the chosen columns from the base frame to merge back later
-		rsb.append(table + " <- subset(" + table + ", select = -c(" + updateColumn + "));");
-		
-		// create the imputed frame
-		rsb.append(imputedFrame + " <- amelia(x=" + imputedFrame + ", cs=\"" + crossSectionCol + "\");");
-
-		// write each imputed table to a csv to directory
-		String fileName = "imputeddata";
-		rsb.append(
-				"write.amelia(" + imputedFrame + ",separate=TRUE,\"" + fileName + "\",extension=NULL,format=\"csv\");");
-
-		// read in those files to get the result
-		rsb.append(retFrame + " <- read.table(\"" + filePath + "/" + fileName + "5" + "\",header=TRUE,sep=\",\",na.strings=\"NA\",dec=\".\",strip.white=TRUE);");
-		rsb.append(retFrame + " <- subset(" + retFrame + ", select = c(" + updateColumn + "));");
-		
-		// merge this frame back to the existing frame 
-		rsb.append(table + " <- cbind(" + retFrame + "," + table + ");");
-		
-		// run the R
-		frame.executeRScript(rsb.toString());
-		
-		// reset the working directory
-		frame.executeRScript("setwd(" + wd + ");");
-		
-		// garbage cleanup
-		frame.executeRScript("rm(" + imputedFrame + "," + retFrame +"); gc();");
-		frame.executeRScript(RSyntaxHelper.asDataTable(table, table));
-
-		// now override the current frame with this Frame and return
-		RDataTable newTable = createNewFrameFromVariable(table);
+		// now create the frame and return the noun
+		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.asDataTable(frameName, newFrameName));
+		RDataTable newTable = createNewFrameFromVariable(frameName);
 		this.insight.setDataMaker(newTable);
-		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
-		this.insight.getVarStore().put(table, noun);
-		
+		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
+		this.insight.getVarStore().put(frameName, noun);
+				
+
 		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ImputeNullValues", 
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, dataFrame, "ImputeNullValues",
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		// return
 		return noun;
 	}
 
-	private Object getSubsetFrameString(String table, List<String> updateCols, String updateColumn, String crossSectionCol) {
+	private String runImputeValues(String frameName, List<String> colsToImpute) {
+		// create a column vector to pass as an input into our R script
+		String colVector = RSyntaxHelper.createStringRColVec(colsToImpute);
+
+		// the name of the results table is what we will be passing to the FE
+		String resultsFrameName = "ResultsTable" + Utility.getRandomString(10);
+
+		// create a stringbuilder for our r syntax
 		StringBuilder rsb = new StringBuilder();
 
-		// start string with cross section col and table name
-		rsb.append("subset(" + table + ", select = c(" + crossSectionCol + " , " + updateColumn);
+		// source the r script that will run the numerical correlation routine
+		String outlierScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\ImputeData.R";
+		outlierScriptFilePath = outlierScriptFilePath.replace("\\", "/");
+		rsb.append("source(\"" + outlierScriptFilePath + "\");");
 
-		// add each numeric column
-		for (String col : updateCols) {
-			if(!col.equals(updateColumn) && !col.equals(crossSectionCol)) {
-				rsb.append(", " + col);
-			}
-		}
+		// add function
+		String frameAsDf = frameName + Utility.getRandomString(6);
+		rsb.append(RSyntaxHelper.asDataFrame(frameAsDf, frameName));
+		rsb.append(resultsFrameName + "<- impute_data(" + frameAsDf + ", " + colVector + ",3,5,100);");
 
-		// close up
-		rsb.append("));");
+		// run the script
+		this.rJavaTranslator.runR(rsb.toString());
+		System.out.println(rsb.toString());
 
-		// return
-		return rsb.toString();
+		// garbage collection
+		this.rJavaTranslator.executeEmptyR("rm(" + frameAsDf + "); gc();");
+
+		// return new frame
+		return resultsFrameName;
 	}
 
 	//////////////////////////////////////////////////////////////////////
@@ -141,31 +106,12 @@ public class ImputeNullValuesReactor extends AbstractRFrameReactor {
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	private String getUpdateColumn() {
-		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[0]);
-		if (inputsGRS == null) {
-			inputsGRS = this.getCurRow();
-		}
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			// first noun will be the column to update
-			NounMetadata noun1 = inputsGRS.getNoun(0);
-			String fullUpdateCol = noun1.getValue() + "";
-			if (fullUpdateCol.contains("__")) {
-				fullUpdateCol = fullUpdateCol.split("__")[1];
-			}
-			if (fullUpdateCol.length() == 0) {
-				throw new IllegalArgumentException("Need to define column to update");
-			}
-			return fullUpdateCol;
-		}
-		throw new IllegalArgumentException("Need to define column to update");
-	}
-	
+
 	private List<String> getColumns() {
 		List<String> cols = new ArrayList<String>();
 
 		// try its own key
-		GenRowStruct colsGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct colsGrs = this.store.getNoun(keysToGet[0]);
 		if (colsGrs != null && !colsGrs.isEmpty()) {
 			int size = colsGrs.size();
 			for (int i = 0; i < size; i++) {
@@ -182,26 +128,6 @@ public class ImputeNullValuesReactor extends AbstractRFrameReactor {
 			return cols;
 		}
 
-		throw new IllegalArgumentException("Need to define the columns to impute based on");
-	}
-
-	private String getCrossSectionColumn() {
-		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[2]);
-		if (inputsGRS == null) {
-			inputsGRS = this.getCurRow();
-		}
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			// first noun will be the column to update
-			NounMetadata noun1 = inputsGRS.getNoun(0);
-			String fullUpdateCol = noun1.getValue() + "";
-			if (fullUpdateCol.contains("__")) {
-				fullUpdateCol = fullUpdateCol.split("__")[1];
-			}
-			if (fullUpdateCol.length() == 0) {
-				throw new IllegalArgumentException("Need to define cross section column");
-			}
-			return fullUpdateCol;
-		}
-		throw new IllegalArgumentException("Need to define cross section column");
+		throw new IllegalArgumentException("Need to define the columns to impute");
 	}
 }
