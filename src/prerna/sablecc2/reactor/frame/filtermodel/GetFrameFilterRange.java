@@ -27,7 +27,7 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 	 */
 
 	public GetFrameFilterRange() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey(), GLOBAL_KEY };
 	}
 
 	@Override
@@ -45,11 +45,17 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 		if (panelGrs != null && !panelGrs.isEmpty()) {
 			panel = (InsightPanel) panelGrs.get(0);
 		}
+		
+		boolean global = true;
+		GenRowStruct globalGrs = this.store.getNoun(keysToGet[2]);
+		if (globalGrs != null && !globalGrs.isEmpty()) {
+			global = Boolean.parseBoolean(globalGrs.get(0) + "");
+		}
 
-		return getFilterModel(dataframe, tableCol, panel);
+		return getFilterModel(dataframe, tableCol, global, panel);
 	}
 
-	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, InsightPanel panel) {
+	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, boolean global, InsightPanel panel) {
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		// first just return the info that was passed in
@@ -58,11 +64,13 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 		// create the selector
 		QueryColumnSelector selector = new QueryColumnSelector(tableCol);
 		// get the base filters that are being applied that we are concerned
-		// about
 		GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
+		GenRowFilters baseFiltersExcludeCol = dataframe.getFrameFilters().copy();
 		if (panel != null) {
 			baseFilters.merge(panel.getPanelFilters().copy());
+			baseFiltersExcludeCol.merge(panel.getPanelFilters().copy());
 		}
+		baseFiltersExcludeCol.removeColumnFilter(tableCol);
 
 		// for numerical, also add the min/max
 		String alias = selector.getAlias();
@@ -76,13 +84,15 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 				|| SemossDataType.TIMESTAMP == columnType) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
 
+			SelectQueryStruct mathQS = new SelectQueryStruct();
+			if(!global) {
+				mathQS.setImplicitFilters(baseFiltersExcludeCol);
+			}
+			
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setFunction(QueryFunctionHelper.MIN);
-			
-			SelectQueryStruct mathQS = new SelectQueryStruct();
 			mathQS.addSelector(mathSelector);
-
 			// get the absolute min when no filters are present
 			Map<String, Object> minMaxMap = new HashMap<String, Object>();
 			IRawSelectWrapper it = null;
@@ -110,7 +120,7 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 			}
 
 			// add in the filters now and repeat
-			mathQS.setExplicitFilters(baseFilters);
+			mathQS.setImplicitFilters(baseFilters);
 			// run for actual max
 			try {
 				it = dataframe.query(mathQS);
