@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
@@ -37,7 +36,8 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 
 	public GetFrameFilterStateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey() };
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey(),
+				GLOBAL_KEY};
 	}
 
 	@Override
@@ -73,12 +73,18 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		if (panelGrs != null && !panelGrs.isEmpty()) {
 			panel = (InsightPanel) panelGrs.get(0);
 		}
+		
+		boolean global = true;
+		GenRowStruct globalGrs = this.store.getNoun(keysToGet[5]);
+		if (globalGrs != null && !globalGrs.isEmpty()) {
+			global = Boolean.parseBoolean(globalGrs.get(0) + "");
+		}
 
-		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, panel);
+		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, global, panel);
 	}
 
 	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit,
-			int offset, InsightPanel panel) {
+			int offset, boolean global, InsightPanel panel) {
 		boolean selectAll = dataframe.getSelectAllFilter(tableCol);
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
@@ -89,7 +95,6 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		retMap.put("filterWord", filterWord);
 
 		// get the base filters that are being applied that we are concerned
-		// about
 		GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
 		GenRowFilters baseFiltersExcludeCol = dataframe.getFrameFilters().copy();
 		if (panel != null) {
@@ -118,6 +123,9 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 			NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
 			wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 			totalCountQS.addExplicitFilter(wFilter);
+		}
+		if(!global) {
+			totalCountQS.mergeImplicitFilters(baseFiltersExcludeCol);
 		}
 		
 		int totalCount = 0;
@@ -148,6 +156,9 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		
 		if (filterWord != null && !filterWord.trim().isEmpty()) {
 			qs.addExplicitFilter(wFilter);
+		}
+		if(!global) {
+			qs.mergeImplicitFilters(baseFiltersExcludeCol);
 		}
 		// grab all the values
 		List<Object> options = new ArrayList<Object>();
@@ -196,24 +207,20 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		}
 		retMap.put("selectAll", selectAll);
 
-//		if (!selectAll) {
-			// now run and flush out the values
-			IRawSelectWrapper unFilterValuesIt = null;
-			try {
-				unFilterValuesIt = dataframe.query(qs2);
-				while (unFilterValuesIt.hasNext()) {
-					selectedValues.add(unFilterValuesIt.next().getValues()[0]);
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			} finally {
-				if(unFilterValuesIt != null) {
-					unFilterValuesIt.cleanUp();
-				}
+		// now run and flush out the values
+		IRawSelectWrapper unFilterValuesIt = null;
+		try {
+			unFilterValuesIt = dataframe.query(qs2);
+			while (unFilterValuesIt.hasNext()) {
+				selectedValues.add(unFilterValuesIt.next().getValues()[0]);
 			}
-//		} else {
-//			selectedValues.addAll(options);
-//		}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(unFilterValuesIt != null) {
+				unFilterValuesIt.cleanUp();
+			}
+		}
 
 		retMap.put("selectedValues", selectedValues);
 
@@ -240,18 +247,5 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		retMap.put("selectedCount", selectedCount);
 
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
-	}
-
-	private boolean columnFiltered(GenRowFilters filters, String columnName) {
-		Set<String> filteredCols = filters.getAllFilteredColumns();
-		if (filteredCols.contains(columnName)) {
-			return true;
-		}
-		if (columnName.contains("__")) {
-			if (filteredCols.contains(columnName.split("__")[1])) {
-				return true;
-			}
-		}
-		return false;
 	}
 }
