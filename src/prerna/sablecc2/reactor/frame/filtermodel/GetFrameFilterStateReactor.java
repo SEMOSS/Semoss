@@ -75,7 +75,7 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		}
 		
 		boolean dynamic = false;
-		GenRowStruct dynamicGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct dynamicGrs = this.store.getNoun(keysToGet[5]);
 		if (dynamicGrs != null && !dynamicGrs.isEmpty()) {
 			dynamic = Boolean.parseBoolean(dynamicGrs.get(0) + "");
 		}
