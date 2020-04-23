@@ -69,7 +69,14 @@ public class CommitAssetReactor extends AbstractReactor {
 				}
 			}
 		} else {
-			ClusterUtil.reactorPushApp(this.insight.getEngineId());
+			//if space is null or it is in the insight, push using insight id to get engine
+			if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+				ClusterUtil.reactorPushApp(this.insight.getEngineId());
+
+			} else {
+				//this is an app asset. Space is the appID
+			ClusterUtil.reactorPushApp(space);
+			}
 		}
 
 		return NounMetadata.getSuccessNounMessage("Success!");
