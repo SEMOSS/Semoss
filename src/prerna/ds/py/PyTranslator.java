@@ -398,6 +398,13 @@ public class PyTranslator
 		File scriptFile = new File(scriptPath);	
 		String outputPath = pyTemp + pyFileName + ".txt";
 		File outputFile = new File(outputPath);
+
+		multi = true;
+		
+		if(script.startsWith("@"))
+		{
+			multi = false;
+		}
 		
 		// attempt to put it into environment
 		script = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment + "\n" + script;
@@ -469,6 +476,7 @@ public class PyTranslator
 		else
 		{
 			String finalScript = convertArrayToString(inscript);
+			finalScript = finalScript.replace("@", "");
 			Hashtable response = executePyDirect(finalScript);
 			return response.get(finalScript) + "";
 		}

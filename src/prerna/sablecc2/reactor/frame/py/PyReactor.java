@@ -32,12 +32,13 @@ public class PyReactor extends AbstractReactor {
 		pyTranslator.setLogger(logger);
 		//String output = pyTranslator.runPyAndReturnOutput(code);
 		String output = null;
+		/*
 		if(pyTranslator instanceof TCPPyTranslator)
 		{
 			output = ((TCPPyTranslator)pyTranslator).runScript(code) + "";
 			System.out.println("OUTPUT" + output);
 		}
-		else
+		else*/
 			output = pyTranslator.runPyAndReturnOutput(code) + "";
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
