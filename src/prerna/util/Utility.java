@@ -102,6 +102,7 @@ import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
+import org.owasp.esapi.ESAPI;
 
 import com.google.gson.GsonBuilder;
 import com.ibm.icu.math.BigDecimal;
@@ -2305,7 +2306,7 @@ public class Utility {
 
 	public static boolean isDateType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
-		if(dataType.startsWith("DATE")) {
+		if(dataType.equals("DATE")) {
 			return true;
 		}
 
@@ -3129,6 +3130,14 @@ public class Utility {
 			e.printStackTrace();
 		}
 		return s;
+	}
+	
+	// ensure no CRLF injection into logs for forging records
+	public static String cleanLogString(String message) {
+		message = message.replace('\n', '_').replace('\r', '_').replace('\t', '_');
+		message = ESAPI.encoder().encodeForHTML(message);
+
+		return message;
 	}
 	
 	/**
