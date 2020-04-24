@@ -91,7 +91,11 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 						if( (i+1) != size) {
 							builder.append(this.delimiter);
 						}
-						typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+						if(headerInfo.get(i).containsKey("type")) {
+							typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
+						} else {
+							typesArr[i] = SemossDataType.STRING;
+						}
 					}
 					// write the header to the file
 					bufferedWriter.write(builder.append("\n").toString());
