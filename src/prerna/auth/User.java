@@ -4,20 +4,26 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import oracle.net.aso.a;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.AbstractValueObject;
 import prerna.om.CopyObject;
 import prerna.pyserve.NettyClient;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.SemossClassloader;
+import prerna.util.Utility;
 
 public class User extends AbstractValueObject {
 	
@@ -44,6 +50,10 @@ public class User extends AbstractValueObject {
 	Hashtable <String, InsightToken> insightSecret = new Hashtable <String, InsightToken>();
 	// shared sessions
 	List<String> sharedSessions = new Vector<String>();
+	
+	Map <String, String> engineIdMap = new HashMap<String, String>();
+	
+	Map <String, StringBuffer> appMap = new HashMap<String, StringBuffer>();
 	
 	// gets the tuplespace
 	String tupleSpace = null;
@@ -355,5 +365,121 @@ public class User extends AbstractValueObject {
 	{
 		return this.pyServe;
 	}
+	
+	public void setEngines(List<Map<String, Object>> allEngines)
+	{
+		// I still need to check multiple engines with the same name. why not
+		if(engineIdMap.size() == 0 || (engineIdMap.size() != 0 && Integer.parseInt(engineIdMap.get("COUNT")) != allEngines.size()))
+		{
+			engineIdMap = new HashMap<String, String>();
+			// need to redo
+			for(int engineIndex = 0;engineIndex < allEngines.size();engineIndex++)
+			{
+				Map <String, Object> engineValues = allEngines.get(engineIndex);
+				String engineName = (String)engineValues.get("app_name");
+				String engineId = (String)engineValues.get("app_id");
+				
+			
+				engineIdMap.put(engineName, engineId);
+			}
+			engineIdMap.put("COUNT", allEngines.size() + "");
+		}
+		
+		
+	}
+	
+	public boolean addVarMap(String varName, String appName)
+	{
+		// convert the app name to alpha
+		String semossAppName = Utility.makeAlphaNumeric(appName);
+
+		String engineId = engineIdMap.get(semossAppName);
+		if(engineId == null)
+			return false;
+		
+		String varValue = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + appName + "__" + engineId + "/version/assets";
+		
+		varValue = varValue.replace("\\", "/");
+		
+		StringBuffer oldValue = appMap.get(varName);
+		
+		appMap.put(varName, new StringBuffer(varValue));
+		
+		if(oldValue != null)
+			removeVarString(varName, oldValue);
+		addVarString(varName, oldValue);
+		
+		return true;
+	}
+	
+	public void removeVarString(String varName, StringBuffer oldValue)
+	{
+		StringBuffer retRString = appMap.get("R_VAR_STRING");
+		StringBuffer retPyString = appMap.get("PY_VAR_STRING");
+
+		StringBuffer varValue = oldValue;
+		if(oldValue == null)
+			varValue = appMap.get(varName);
+		if(retRString != null)
+		{
+			StringBuffer remRString = new StringBuffer("").append(varName).append(" <- '").append(varValue).append("';\n");
+			String finalRString = retRString.toString();
+			finalRString = finalRString.replace(remRString.toString(), "");
+			retRString = new StringBuffer(finalRString);
+			if(retRString.length() == 0)
+				appMap.remove("R_VAR_STRING");
+			else
+				appMap.put("R_VAR_STRING", retRString);			
+		}
+		
+		if(retPyString != null)
+		{
+			StringBuffer remPyString = new StringBuffer("").append(varName).append(" = '").append(varValue).append("'\n");
+			String finalPyString = retPyString.toString();
+			finalPyString = finalPyString.replace(remPyString.toString(), "");
+			retPyString = new StringBuffer(finalPyString);
+			if(retPyString.length() == 0)
+				appMap.remove("PY_VAR_STRING");
+			else
+				appMap.put("PY_VAR_STRING", retPyString);			
+		}
+	}
+	
+	
+	public void addVarString(String varName, StringBuffer oldValue)
+	{
+		StringBuffer retRString = appMap.get("R_VAR_STRING");
+		StringBuffer retPyString = appMap.get("PY_VAR_STRING");
+		
+		if(retRString == null)
+			// first time
+			retRString = new StringBuffer("");
+
+		retRString.append(varName).append(" <- '").append(appMap.get(varName)).append("';\n");
+		appMap.put("R_VAR_STRING", retRString);			
+		
+
+		if(retPyString == null || retPyString.length() == 0)
+			// first time
+			retPyString = new StringBuffer("");
+
+		retPyString.append(varName).append(" = '").append(appMap.get(varName)).append("'\n");
+		appMap.put("PY_VAR_STRING", retPyString);			
+	}
+	
+	public String getVarString(boolean r)
+	{
+		if(r)
+			return appMap.get("R_VAR_STRING").toString();
+		else
+			return appMap.get("PY_VAR_STRING").toString();
+			
+	}
+	
+	public Map getAppMap()
+	{
+		return this.appMap;
+	}
+	
 	
 }
