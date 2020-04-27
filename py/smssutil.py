@@ -57,15 +57,29 @@ def canLoad(file):
 	return finalList
 
 def runwrapper(file, output, error,g):
+	import contextlib, io, sys
+	ofile = open(output, "w")
+	efile = open(error, "w")
+	with contextlib.redirect_stdout(ofile):
+		datafile = open(file, "r")
+		try:
+			exec(datafile.read(), g)
+		except Exception as e:
+			print(e)
+	ofile.close()
+	efile.close()
+	
+def runwrapper3(file, output, error,g):
 	import contextlib, io
    #ofile = io.StringIO()
-	print(output)
 	ofile = open(output, "w")
 	efile = open(error, "w")
 	with contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(efile):
-		exec(open(file).read(), g)
+		datafile = open(file, "r")
+		exec(datafile.read(), g)
 		ofile.close()
 		efile.close()
+		datafile.close()
 
 def runwrapper2(file, output, error):
 	import contextlib, io
@@ -83,4 +97,38 @@ def run_empty_wrapper(file,g):
     #ofile = io.StringIO()
 	#print(output)
 	exec(open(file).read(), g)
+
+
+#Attribution = https://github.com/bosswissam/pysize/blob/master/pysize.py
+# this thing is so slow, I am not sure it would even come back
+def get_size(obj, seen=None):
+    import sys
+    import inspect
+    """Recursively finds size of objects in bytes"""
+    size = sys.getsizeof(obj)
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+    # Important mark as seen *before* entering recursion to gracefully handle
+    # self-referential objects
+    seen.add(obj_id)
+    if hasattr(obj, '__dict__'):
+        for cls in obj.__class__.__mro__:
+            if '__dict__' in cls.__dict__:
+                d = cls.__dict__['__dict__']
+                if inspect.isgetsetdescriptor(d) or inspect.ismemberdescriptor(d):
+                    size += get_size(obj.__dict__, seen)
+                break
+    if isinstance(obj, dict):
+        size += sum((get_size(v, seen) for v in obj.values()))
+        size += sum((get_size(k, seen) for k in obj.keys()))
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+        size += sum((get_size(i, seen) for i in obj))
+        
+    if hasattr(obj, '__slots__'): # can have __slots__ with __dict__
+        size += sum(get_size(getattr(obj, s), seen) for s in obj.__slots__ if hasattr(obj, s))
+        
+    return size
 
