@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.h2.engine.User;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -37,6 +39,8 @@ public class MyAppsReactor extends AbstractReactor {
 		} else {
 			appInfo = SecurityQueryUtils.getAllDatabaseList();
 		}
+		
+		this.insight.getUser().setEngines(appInfo);
 		
 		int size = appInfo.size();
 		Map<String, Integer> index = new HashMap<String, Integer>(appInfo.size());
