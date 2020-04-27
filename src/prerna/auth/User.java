@@ -1,5 +1,6 @@
 package prerna.auth;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.AbstractValueObject;
 import prerna.om.CopyObject;
 import prerna.pyserve.NettyClient;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SemossClassloader;
@@ -396,11 +398,11 @@ public class User extends AbstractValueObject {
 		String engineId = engineIdMap.get(semossAppName);
 		if(engineId == null)
 			return false;
-		
+		ClusterUtil.reactorPullApp(engineId);
 		String varValue = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + appName + "__" + engineId + "/version/assets";
 		
 		varValue = varValue.replace("\\", "/");
-		
+
 		StringBuffer oldValue = appMap.get(varName);
 		
 		appMap.put(varName, new StringBuffer(varValue));
