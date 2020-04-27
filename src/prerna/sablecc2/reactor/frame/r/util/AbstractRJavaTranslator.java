@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.r.util;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -536,6 +537,13 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	@Override
 	public String runRAndReturnOutput(String script) {
+		
+		return runRAndReturnOutput(script, null);
+		
+	}
+
+	@Override
+	public String runRAndReturnOutput(String script, Map appMap) {
 		// Clean the script
 		script = script.trim();
 		
@@ -591,12 +599,17 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		// initialize the environment if not already
 		// Wrap the script with our capture logic
 		String randomVariable = "con" + Utility.getRandomString(7);
+		
+		// get the custom var String
+		String varFolderAssignment = "";
+		if(appMap != null && appMap.containsKey("R_VAR_STRING"))
+			varFolderAssignment = appMap.get("R_VAR_STRING").toString();
 
 		// attempt to put it into environment
 		script = randomVariable + "<- file(\"" + outputPath + "\"); " + 
 				"sink(" + randomVariable + ", append=TRUE, type=\"output\"); " +
 				"sink(" + randomVariable + ", append=TRUE, type=\"message\"); " + 
-				encapsulateForEnv(insightRootAssignment + appRootAssignment + userRootAssignment + script) +
+				encapsulateForEnv(insightRootAssignment + appRootAssignment + userRootAssignment + varFolderAssignment +  script) +
 				"sink();";
 
 		// Try writing the script to a file
@@ -629,6 +642,10 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				}
 				if(insightRootPath != null && output.contains(insightRootPath)) {
 					output = output.replace(insightRootPath, "$IF");
+				}
+				if(varFolderAssignment != null &&  varFolderAssignment.length() > 0)
+				{
+					output = cleanCustomVar(output, appMap);
 				}
 				
 				// Error cases
@@ -689,4 +706,23 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		}
 		return output.trim();
 	}
+	
+	
+	// make the custom var String
+	private String cleanCustomVar(String output, Map <String, StringBuffer> appMap)
+	{
+		Iterator <String> varIt = appMap.keySet().iterator();
+
+		while(varIt.hasNext())
+		{
+			// get this key
+			String thisKey = varIt.next();
+			String thisVal = appMap.get(thisKey).toString();
+			
+			output = output.replace(thisVal, thisKey);			
+		}
+		
+		return output;
+	}
+	
 }

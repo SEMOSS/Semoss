@@ -8,6 +8,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -340,9 +341,13 @@ public class PyTranslator
 			e1.printStackTrace();
 		}
 	}
-	
-	
 	public synchronized String runPyAndReturnOutput(String...inscript)
+	{
+		return runPyAndReturnOutput(null, inscript);
+	}
+	
+	
+	public synchronized String runPyAndReturnOutput(Map <String, StringBuffer> appMap, String...inscript)
 	{
 		// Clean the script
 		String script = convertArrayToString(inscript);
@@ -388,10 +393,18 @@ public class PyTranslator
 		} else {
 			pyTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/Py/Temp/").replace('\\', '/');
 		}
+		
+		// get the custom var String
+		String varFolderAssignment = "";
+		if(appMap != null && appMap.containsKey("PY_VAR_STRING"))
+			varFolderAssignment = appMap.get("PY_VAR_STRING").toString();		
+		
 		File pyTempF = new File(pyTemp);
 		if(!pyTempF.exists()) {
 			pyTempF.mkdirs();
 		}
+		
+		
 		
 		String pyFileName = Utility.getRandomString(12);
 		String scriptPath = pyTemp +  pyFileName + ".py";
@@ -407,7 +420,7 @@ public class PyTranslator
 		}
 		
 		// attempt to put it into environment
-		script = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment + "\n" + script;
+		script = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment + "\n" + varFolderAssignment + "\n" + script;
 
 		if(multi)
 		{
@@ -443,6 +456,10 @@ public class PyTranslator
 					}
 					if(insightRootPath != null && output.contains(insightRootPath)) {
 						output = output.replace(insightRootPath, "$IF");
+					}
+					if(varFolderAssignment != null && varFolderAssignment.length() > 0)
+					{
+						output = cleanCustomVar(output, appMap);
 					}
 					
 					// Successful case
@@ -523,6 +540,23 @@ public class PyTranslator
 
 	public void setLogger(Logger logger) {
 		this.logger = logger;
+	}
+
+	// make the custom var String
+	private String cleanCustomVar(String output, Map <String, StringBuffer> appMap)
+	{
+		Iterator <String> varIt = appMap.keySet().iterator();
+
+		while(varIt.hasNext())
+		{
+			// get this key
+			String thisKey = varIt.next();
+			String thisVal = appMap.get(thisKey).toString();
+			
+			output = output.replace(thisVal, thisKey);			
+		}
+		
+		return output;
 	}
 
 	

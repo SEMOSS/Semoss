@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
@@ -54,6 +56,14 @@ public interface IRJavaTranslator {
 	 * @param rScript
 	 */
 	String runRAndReturnOutput(String rScript);
+
+	/**
+	 * Run a combination of r scripts
+	 * @param rScript
+	 * @param appMap - custom var set for folder names
+	 */
+	String runRAndReturnOutput(String rScript, Map appMap);
+
 	
 	/**
 	 * Get a string from an r script
