@@ -30,7 +30,7 @@ public class RReactor extends AbstractReactor {
 		
 		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
 		logger.info("Execution r script: " + code);
-		String output = rJavaTranslator.runRAndReturnOutput(code);
+		String output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getAppMap());
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
