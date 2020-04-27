@@ -37,7 +37,7 @@ public class UnmountReactor extends AbstractReactor {
 
 		if(varName == null)
 		{
-			throw new IllegalArgumentException("Var / Appa cannor be null ");			
+			throw new IllegalArgumentException("Var or App Name cannot be null ");			
 		}
 
 		// remove from R and Py as well
