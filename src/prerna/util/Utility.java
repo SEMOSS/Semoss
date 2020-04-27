@@ -93,11 +93,12 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+//import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.openrdf.model.Value;
@@ -140,31 +141,39 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.git.GitAssetUtils;
 
 /**
- * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
- * Some of these functionalities include getting concept names, printing messages, loading engines, and writing Excel workbooks.
+ * The Utility class contains a variety of miscellaneous functions implemented
+ * extensively throughout SEMOSS. Some of these functionalities include getting
+ * concept names, printing messages, loading engines, and writing Excel
+ * workbooks.
  */
 public class Utility {
 
 	public static int id = 0;
-	static Logger LOGGER = Logger.getLogger(prerna.util.Utility.class);
+	private static final Logger logger = Logger.getLogger(prerna.util.Utility.class);
 
-	private static ConcurrentMap<String, ReentrantLock> engineLocks = new ConcurrentHashMap<String, ReentrantLock>();
-	
+	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
+	private static final String STACKTRACE = "StackTrace: ";
+
+	private static ConcurrentMap<String, ReentrantLock> engineLocks = new ConcurrentHashMap<>();
+
 	/**
-	 * Matches the given query against a specified pattern.
-	 * While the next substring of the query matches a part of the pattern, set substring as the key with EMPTY constants (@@) as the value
-	 * @param 	Query.
-
-	 * @return 	Hashtable of queries to be replaced */
-	public static Hashtable getParams(String query)	{	
+	 * Matches the given query against a specified pattern. While the next substring
+	 * of the query matches a part of the pattern, set substring as the key with
+	 * EMPTY constants (@@) as the value
+	 * 
+	 * @param Query.
+	 * 
+	 * @return Hashtable of queries to be replaced
+	 */
+	public static Hashtable getParams(String query) {
 		Hashtable paramHash = new Hashtable();
-		Pattern pattern = Pattern.compile("[@]{1}\\w+[-]*[\\w/.:]+[@]");
+		Pattern pattern = Pattern.compile(SPECIFIED_PATTERN);
 
 		Matcher matcher = pattern.matcher(query);
-		while(matcher.find()) {
+		while (matcher.find()) {
 			String data = matcher.group();
-			data = data.substring(1,data.length()-1);
-			LOGGER.debug(data);
+			data = data.substring(1, data.length() - 1);
+			logger.debug(data);
 			// put something to strip the @
 			paramHash.put(data, Constants.EMPTY);
 		}
@@ -173,23 +182,26 @@ public class Utility {
 	}
 
 	/**
-	 * Matches the given query against a specified pattern.
-	 * While the next substring of the query matches a part of the pattern, set substring as the key with EMPTY constants (@@) as the value
-	 * @param 	Query.
-
-	 * @return 	Hashtable of queries to be replaced */
-	public static Hashtable getParamTypeHash(String query)	{	
-		Hashtable paramHash = new Hashtable();		
-		Pattern pattern = Pattern.compile("[@]{1}\\w+[-]*[\\w/.:]+[@]");
+	 * Matches the given query against a specified pattern. While the next substring
+	 * of the query matches a part of the pattern, set substring as the key with
+	 * EMPTY constants (@@) as the value
+	 * 
+	 * @param Query.
+	 * 
+	 * @return Hashtable of queries to be replaced
+	 */
+	public static Hashtable getParamTypeHash(String query) {
+		Hashtable paramHash = new Hashtable();
+		Pattern pattern = Pattern.compile(SPECIFIED_PATTERN);
 
 		Matcher matcher = pattern.matcher(query);
-		while(matcher.find()) {
+		while (matcher.find()) {
 			String data = matcher.group();
-			data = data.substring(1,data.length()-1);
+			data = data.substring(1, data.length() - 1);
 			String paramName = data.substring(0, data.indexOf("-"));
 			String paramValue = data.substring(data.indexOf("-") + 1);
 
-			LOGGER.debug(data);
+			logger.debug(data);
 			// put something to strip the @
 			paramHash.put(paramName, paramValue);
 		}
@@ -203,35 +215,37 @@ public class Utility {
 	 * @return
 	 */
 	public static String unescapeHTML(String s) {
-		s = s.replaceAll("&gt;", ">");
-	    s = s.replaceAll("&lt;", "<");
-	    s = s.replaceAll("&#61;", "=");
-	    s = s.replaceAll("&#33;", "!" );
-	    return s;
+		s = s.replace("&gt;", ">");
+		s = s.replace("&lt;", "<");
+		s = s.replace("&#61;", "=");
+		s = s.replace("&#33;", "!");
+		return s;
 	}
-	
-	/**
-	 * Matches the given query against a specified pattern.
-	 * While the next substring of the query matches a part of the pattern, set substring as the key with EMPTY constants (@@) as the value
-	 * @param 	Query.
 
-	 * @return 	Hashtable of queries to be replaced */
-	public static String normalizeParam(String query)	{	
-		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();		
-		Pattern pattern = Pattern.compile("[@]{1}\\w+[-]*[\\w/.:]+[@]");
+	/**
+	 * Matches the given query against a specified pattern. While the next substring
+	 * of the query matches a part of the pattern, set substring as the key with
+	 * EMPTY constants (@@) as the value
+	 * 
+	 * @param Query.
+	 * 
+	 * @return Hashtable of queries to be replaced
+	 */
+	public static String normalizeParam(String query) {
+		Map<String, List<Object>> paramHash = new Hashtable<>();
+		Pattern pattern = Pattern.compile(SPECIFIED_PATTERN);
 
 		Matcher matcher = pattern.matcher(query);
-		while(matcher.find()) {
+		while (matcher.find()) {
 			String data = matcher.group();
-			data = data.substring(1,data.length()-1);
-			if(data.contains("-")) {
-				String paramName = data.substring(0, data.indexOf("-"));
-				String paramValue = data.substring(data.indexOf("-") + 1);
+			data = data.substring(1, data.length() - 1);
+			if (data.contains("-")) {
+				String paramName = data.substring(0, data.indexOf('-'));
 
-				LOGGER.debug(data);
+				logger.debug(data);
 				// put something to strip the @
-				List<Object> retList = new ArrayList<Object>();
-				retList.add("@"+ paramName + "@");
+				List<Object> retList = new ArrayList<>();
+				retList.add("@" + paramName + "@");
 				paramHash.put(data, retList);
 			}
 		}
@@ -239,61 +253,66 @@ public class Utility {
 		return fillParam(query, paramHash);
 	}
 
-
 	/**
 	 * Gets the param hash and replaces certain queries
-	 * @param 	Original query
-	 * @param 	Hashtable of format [String to be replaced] [Replacement]
-
-	 * @return 	If applicable, returns the replaced query */
+	 * 
+	 * @param Original  query
+	 * @param Hashtable of format [String to be replaced] [Replacement]
+	 * 
+	 * @return If applicable, returns the replaced query
+	 */
 	public static String fillParam(String query, Map<String, List<Object>> paramHash) {
 		// NOTE: this process always assumes only one parameter is selected
 		// Hashtable is of pattern <String to be replaced> <replacement>
 		// key will be surrounded with @ just to be in sync
-		LOGGER.debug("Param Hash is " + paramHash);
+		logger.debug("Param Hash is " + paramHash);
 
 		Iterator keys = paramHash.keySet().iterator();
-		while(keys.hasNext()) {
-			String key = (String)keys.next();
+		while (keys.hasNext()) {
+			String key = (String) keys.next();
 			String value = paramHash.get(key).get(0) + "";
-			LOGGER.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
-			if(!value.equalsIgnoreCase(Constants.EMPTY))
+			logger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+			if (!value.equalsIgnoreCase(Constants.EMPTY))
 				query = query.replace("@" + key + "@", value);
 		}
 
 		return query;
 	}
-	
+
 	/**
 	 * Gets the param hash and replaces certain queries
-	 * @param 	Original query
-	 * @param 	Hashtable of format [String to be replaced] [Replacement]
-
-	 * @return 	If applicable, returns the replaced query */
+	 * 
+	 * @param Original  query
+	 * @param Hashtable of format [String to be replaced] [Replacement]
+	 * 
+	 * @return If applicable, returns the replaced query
+	 */
 	public static String fillParam2(String query, Map<String, String> paramHash) {
 		// NOTE: this process always assumes only one parameter is selected
 		// Hashtable is of pattern <String to be replaced> <replacement>
 		// key will be surrounded with @ just to be in sync
-		LOGGER.debug("Param Hash is " + paramHash);
+		logger.debug("Param Hash is " + paramHash);
 
 		Iterator keys = paramHash.keySet().iterator();
-		while(keys.hasNext()) {
-			String key = (String)keys.next();
+		while (keys.hasNext()) {
+			String key = (String) keys.next();
 			String value = paramHash.get(key);
-			LOGGER.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
-			if(!value.equalsIgnoreCase(Constants.EMPTY))
+			logger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+			if (!value.equalsIgnoreCase(Constants.EMPTY))
 				query = query.replace("@" + key + "@", value);
 		}
 
 		return query;
 	}
 
-
 	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return the instance name.
-	 * @param String		URI to be split into tokens.
-
-	 * @return String		Instance name. */
+	 * Splits up a URI into tokens based on "/" character and uses logic to return
+	 * the instance name.
+	 * 
+	 * @param String URI to be split into tokens.
+	 * 
+	 * @return String Instance name.
+	 */
 	public static String getInstanceName(String uri) {
 		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
 		int totalTok = tokens.countTokens();
@@ -313,10 +332,13 @@ public class Utility {
 	}
 
 	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return the node instance name for a display name of a property 
-	 * where the node's display name is prior to the property display name.
-	 * @param String		URI to be split into tokens.
-	 * @return String		Instance name. */
+	 * Splits up a URI into tokens based on "/" character and uses logic to return
+	 * the node instance name for a display name of a property where the node's
+	 * display name is prior to the property display name.
+	 * 
+	 * @param String URI to be split into tokens.
+	 * @return String Instance name.
+	 */
 	public static String getInstanceNodeName(String uri) {
 		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
 		int totalTok = tokens.countTokens() - 1;
@@ -336,22 +358,25 @@ public class Utility {
 	}
 
 	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return the primary key.
-	 * @param String		URI to be split into tokens. (BASE_URI/Concept/PRIMARY_KEY/INSTANCE_NAME
-
-	 * @return String		Primary Key
-	 * */
+	 * Splits up a URI into tokens based on "/" character and uses logic to return
+	 * the primary key.
+	 * 
+	 * @param String URI to be split into tokens.
+	 *               (BASE_URI/Concept/PRIMARY_KEY/INSTANCE_NAME
+	 * 
+	 * @return String Primary Key
+	 */
 	public static String getPrimaryKeyFromURI(String uri) {
 		String[] elements = uri.split("/");
-		if(elements.length >= 2) {
-			return elements[elements.length-2];
+		if (elements.length >= 2) {
+			return elements[elements.length - 2];
 		} else {
 			return uri;
 		}
 	}
 
 	public static String getFQNodeName(IEngine engine, String URI) {
-		if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+		if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
 			return getInstanceName(URI) + "__" + getPrimaryKeyFromURI(URI);
 		} else {
 			return getInstanceName(URI);
@@ -359,89 +384,93 @@ public class Utility {
 	}
 
 	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return the base URI
-	 * @param String		URI to be split into tokens.
-	 * @return String		Base URI */
+	 * Splits up a URI into tokens based on "/" character and uses logic to return
+	 * the base URI
+	 * 
+	 * @param String URI to be split into tokens.
+	 * @return String Base URI
+	 */
 	public static String getBaseURI(String uri) {
-		int indexOf = uri.lastIndexOf("/");
+		int indexOf = uri.lastIndexOf('/');
 		String baseURI = uri.substring(0, indexOf);
 
-		indexOf = baseURI.lastIndexOf("/");
+		indexOf = baseURI.lastIndexOf('/');
 		baseURI = baseURI.substring(0, indexOf);
 
-		indexOf = baseURI.lastIndexOf("/");
+		indexOf = baseURI.lastIndexOf('/');
 		baseURI = baseURI.substring(0, indexOf);
 
 		return baseURI;
 	}
 
 	/**
-	 * Go through all URIs in list, splits them into tokens based on "/", and uses logic to return the instance names.
-	 * @param Vector<String>	List of URIs to be tokenized.
-
-	 * @return 					Hashtable with instance name as the keys mapped to the tokens as values */
-	public static Hashtable<String, String> getInstanceNameViaQuery(Vector<String> uri)
-	{
-
+	 * Go through all URIs in list, splits them into tokens based on "/", and uses
+	 * logic to return the instance names.
+	 * 
+	 * @param Vector<String> List of URIs to be tokenized.
+	 * 
+	 * @return Hashtable with instance name as the keys mapped to the tokens as
+	 *         values
+	 */
+	public static Hashtable<String, String> getInstanceNameViaQuery(Vector<String> uri) {
 		if (uri.isEmpty()) {
-			return new Hashtable<String, String>();
+			return new Hashtable<>();
 		}
 
-		Hashtable<String, String> retHash = new Hashtable<String, String>();
+		Hashtable<String, String> retHash = new Hashtable<>();
 
-		//		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		//
-		//		// get the selected repository
-		//		Object [] repos = (Object [])list.getSelectedValues();
-		//		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
-		//		// loads all of the labels
-		//		// http://www.w3.org/2000/01/rdf-schema#label
-		//		String labelQuery = "";
-		//		
-		//		//fill all uri for binding string
-		//		StringBuffer bindingStr = new StringBuffer("");
-		//		for (int i = 0; i<uri.size();i++)
-		//		{
-		//			if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
-		//				bindingStr = bindingStr.append("(<").append(uri.get(i)).append(">)");
-		//			else
-		//				bindingStr = bindingStr.append("<").append(uri.get(i)).append(">");
-		//		}
-		//		Hashtable paramHash = new Hashtable();
-		//		paramHash.put("FILTER_VALUES",  bindingStr.toString());
-		//		if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
-		//		{			
-		//			labelQuery = "SELECT DISTINCT ?Entity ?Label WHERE " +
-		//					"{{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
-		//					"}" +"BINDINGS ?Entity {@FILTER_VALUES@}";
-		//		}
-		//		else if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
-		//		{
-		//			labelQuery = "SELECT DISTINCT ?Entity ?Label WHERE " +
-		//					"{{VALUES ?Entity {@FILTER_VALUES@}"+
-		//					"{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
-		//					"}";
-		//		}
-		//		labelQuery = Utility.fillParam(labelQuery, paramHash);
-		//		
-		//		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//		sjsw.setEngine(engine);
-		//		sjsw.setQuery(labelQuery);
-		//		System.out.println(labelQuery);
-		//		sjsw.executeQuery();
-		//		sjsw.getVariables();
-		//		while(sjsw.hasNext())
-		//		{
-		//			SesameJenaSelectStatement st = sjsw.next();
-		//			String label = st.getVar("Label")+"";
-		//			label = label.substring(1,label.length()-1);
-		//			String uriValue = st.getRawVar("Entity")+ "";
-		//			uri.removeElement(uriValue);
-		//			retHash.put(label,  uriValue);
-		//		}
-		//		
+		/*JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		
+		// get the selected repository
+		Object [] repos = (Object [])list.getSelectedValues();
+		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
+		// loads all of the labels
+		// http://www.w3.org/2000/01/rdf-schema#label
+		String labelQuery = "";
+		
+		//fill all uri for binding string
+		StringBuffer bindingStr = new StringBuffer("");
+		for (int i = 0; i<uri.size();i++)
+		{
+			if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+				bindingStr = bindingStr.append("(<").append(uri.get(i)).append(">)");
+			else
+				bindingStr = bindingStr.append("<").append(uri.get(i)).append(">");
+		}
+		Hashtable paramHash = new Hashtable();
+		paramHash.put("FILTER_VALUES",  bindingStr.toString());
+		if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+		{			
+			labelQuery = "SELECT DISTINCT ?Entity ?Label WHERE " +
+					"{{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
+					"}" +"BINDINGS ?Entity {@FILTER_VALUES@}";
+		}
+		else if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
+		{
+			labelQuery = "SELECT DISTINCT ?Entity ?Label WHERE " +
+					"{{VALUES ?Entity {@FILTER_VALUES@}"+
+					"{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
+					"}";
+		}
+		labelQuery = Utility.fillParam(labelQuery, paramHash);
+		
+		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		sjsw.setEngine(engine);
+		sjsw.setQuery(labelQuery);
+		System.out.println(labelQuery);
+		sjsw.executeQuery();
+		sjsw.getVariables();
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement st = sjsw.next();
+			String label = st.getVar("Label")+"";
+			label = label.substring(1,label.length()-1);
+			String uriValue = st.getRawVar("Entity")+ "";
+			uri.removeElement(uriValue);
+			retHash.put(label,  uriValue);
+		}*/
 
-		for (int i=0;i<uri.size();i++) {
+		for (int i = 0; i < uri.size(); i++) {
 			String uriValue = uri.get(i);
 			StringTokenizer tokens = new StringTokenizer(uriValue + "", "/");
 			int totalTok = tokens.countTokens();
@@ -463,22 +492,25 @@ public class Utility {
 	}
 
 	/**
-	 * Executes a query on a specific engine, iterates through variables from the sesame wrapper, and uses logic to obtain the concept URI.
-	 * @param 	Specified engine.
-	 * @param 	Subject URI.
-
-	 * @return 	Concept URI. */
+	 * Executes a query on a specific engine, iterates through variables from the
+	 * sesame wrapper, and uses logic to obtain the concept URI.
+	 * 
+	 * @param Specified engine.
+	 * @param Subject   URI.
+	 * 
+	 * @return Concept URI.
+	 */
 	public static String getConceptType(IEngine engine, String subjectURI) {
-		if(!subjectURI.startsWith("http://")) {
+		if (!subjectURI.startsWith("http://")) {
 			return "";
 		}
 
 		String query = DIHelper.getInstance().getProperty(Constants.SUBJECT_TYPE_QUERY);
-		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
-		List<Object> values = new ArrayList<Object>();
+		Map<String, List<Object>> paramHash = new Hashtable<>();
+		List<Object> values = new ArrayList<>();
 		values.add(subjectURI);
 		paramHash.put("ENTITY", values);
-		query = Utility.fillParam(query,  paramHash);
+		query = Utility.fillParam(query, paramHash);
 
 		ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -487,33 +519,36 @@ public class Utility {
 		sjw.setEngineType(engine.getEngineType());
 		sjw.setQuery(query);
 		sjw.executeQuery();*/
-		String [] vars = sjw.getVariables();
+		String[] vars = sjw.getVariables();
 		String returnType = null;
-		while(sjw.hasNext()) {
+		while (sjw.hasNext()) {
 			ISelectStatement stmt = sjw.next();
-			String objURI = stmt.getRawVar(vars[0])+"";
-			if (!objURI.equals(DIHelper.getInstance().getProperty(Constants.SEMOSS_URI)+"/Concept")) {
+			String objURI = stmt.getRawVar(vars[0]) + "";
+			if (!objURI.equals(DIHelper.getInstance().getProperty(Constants.SEMOSS_URI) + "/Concept")) {
 				returnType = objURI;
 			}
 
 		}
-		if (returnType ==null) {
-			returnType = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI)+"/Concept";
+		if (returnType == null) {
+			returnType = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI) + "/Concept";
 		}
 
 		return returnType;
 	}
 
 	/**
-	 * Splits up a URI into tokens based on "/" delimiter and uses logic to return the class name.
-	 * @param 	URI.
-
-	 * @return 	Name of class. */
+	 * Splits up a URI into tokens based on "/" delimiter and uses logic to return
+	 * the class name.
+	 * 
+	 * @param URI.
+	 * 
+	 * @return Name of class.
+	 */
 	public static String getClassName(String uri) {
 		// there are three patterns
 		// one is the /
 		// the other is the #
-		// need to have a check upfront to see 
+		// need to have a check upfront to see
 
 		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
 		int totalTok = tokens.countTokens();
@@ -535,68 +570,79 @@ public class Utility {
 
 	/**
 	 * Increases the counter and gets the next ID for a URI.
-
-	 * @return Next ID */
+	 * 
+	 * @return Next ID
+	 */
 	public static String getNextID() {
 		id++;
 		return Constants.BLANK_URL + "/" + id;
 	}
 
 	/**
-	 * Gets the instance and class names for a specified URI and creates the qualified class name.
-	 * @param 	URI.
-
-	 * @return 	Qualified URI. */
+	 * Gets the instance and class names for a specified URI and creates the
+	 * qualified class name.
+	 * 
+	 * @param URI.
+	 * 
+	 * @return Qualified URI.
+	 */
 	public static String getQualifiedClassName(String uri) {
 		// there are three patterns
 		// one is the /
 		// the other is the #
-		// need to have a check upfront to see 
+		// need to have a check upfront to see
 
 		String instanceName = getInstanceName(uri);
 
 		String className = getClassName(uri);
 		String qualUri = "";
-		if(uri.indexOf("/") >= 0) {
+		if (uri.indexOf('/') >= 0) {
 			instanceName = "/" + instanceName;
 		}
 
 		// remove this in the end
-		if(className==null) {
+		if (className == null) {
 			qualUri = uri.replace(instanceName, "");
 		} else {
-			qualUri = uri.replace(className+instanceName, className);
+			qualUri = uri.replace(className + instanceName, className);
 		}
 
 		return qualUri;
 	}
 
 	/**
-	 * Checks to see if a string contains a particular pattern. Used when adding relations.
-	 * @param 	Pattern
-	 * @param 	String to compare to the pattern
-
-	 * @return 	True if the next token is greater than or equal to zero. */
+	 * Checks to see if a string contains a particular pattern. Used when adding
+	 * relations.
+	 * 
+	 * @param Pattern
+	 * @param String  to compare to the pattern
+	 * 
+	 * @return True if the next token is greater than or equal to zero.
+	 */
 	public static boolean checkPatternInString(String pattern, String string) {
-		// ok.. before you think that this is so stupid why wont you use the regular java.lang methods.. consider the fact that this could be a ; delimited pattern
+		// ok.. before you think that this is so stupid why wont you use the regular
+		// java.lang methods.. consider the fact that this could be a ; delimited
+		// pattern
 		boolean matched = false;
 		StringTokenizer tokens = new StringTokenizer(pattern, ";");
-		while(tokens.hasMoreTokens() && !matched) {
+		while (tokens.hasMoreTokens() && !matched) {
 			matched = string.indexOf(tokens.nextToken()) >= 0;
 		}
 
-		return matched;	
+		return matched;
 	}
 
 	/**
 	 * Used when selecting a repository.
-	 * @param 	Used to retrieve successive elements.
-	 * @param 	Size.
-
-	 * @return 	List of returned strings */
+	 * 
+	 * @param Used  to retrieve successive elements.
+	 * @param Size.
+	 * 
+	 * @return List of returned strings
+	 */
 	public static Vector<String> convertEnumToStringVector(Enumeration enums, int size) {
-		Vector<String> retString = new Vector<String>();
-		while(enums.hasMoreElements()) {
+		Vector<String> retString = new Vector<>();
+		while (enums.hasMoreElements()) {
 			retString.add((String) enums.nextElement());
 		}
 		return retString;
@@ -604,22 +650,23 @@ public class Utility {
 
 	/**
 	 * Runs a check to see if calculations have already been performed.
+	 * 
 	 * @param Query (calculation) to be run on a specific engine.
-
-	 * @return 	True if calculations have been performed. */
+	 * 
+	 * @return True if calculations have been performed.
+	 */
 	public static boolean runCheck(String query) {
 		boolean check = true;
 
-		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		List<String> repos = list.getSelectedValuesList();
 
+		ISelectWrapper selectWrapper = null;// WrapperManager.getInstance().getSWrapper(engine, queries.get(tabName));
 
-		ISelectWrapper selectWrapper = null;//WrapperManager.getInstance().getSWrapper(engine, queries.get(tabName));
-
-		//SesameJenaSelectWrapper selectWrapper = null;
-		for(String s : repos) {
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(s);
+		// SesameJenaSelectWrapper selectWrapper = null;
+		for (String s : repos) {
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(s);
 			selectWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 			/*selectWrapper = new SesameJenaSelectWrapper();
@@ -628,8 +675,8 @@ public class Utility {
 			selectWrapper.executeQuery();*/
 		}
 
-		//if the wrapper is not empty, calculations have already been performed.
-		if(!selectWrapper.hasNext()) {
+		// if the wrapper is not empty, calculations have already been performed.
+		if (!selectWrapper.hasNext()) {
 			check = false;
 		}
 
@@ -638,6 +685,7 @@ public class Utility {
 
 	/**
 	 * Displays error message.
+	 * 
 	 * @param Text to be displayed.
 	 */
 	public static void showError(String text) {
@@ -647,6 +695,7 @@ public class Utility {
 
 	/**
 	 * Displays confirmation message.
+	 * 
 	 * @param Text to be displayed.
 	 */
 	public static Integer showConfirm(String text) {
@@ -657,6 +706,7 @@ public class Utility {
 
 	/**
 	 * Displays a message on the screen.
+	 * 
 	 * @param Text to be displayed.
 	 */
 	public static void showMessage(String text) {
@@ -667,10 +717,12 @@ public class Utility {
 
 	/**
 	 * Method round.
-	 * @param valueToRound double
+	 * 
+	 * @param valueToRound          double
 	 * @param numberOfDecimalPlaces int
-
-	 * @return double */
+	 * 
+	 * @return double
+	 */
 	public static double round(double valueToRound, int numberOfDecimalPlaces) {
 		BigDecimal bigD = new BigDecimal(valueToRound);
 		return bigD.setScale(numberOfDecimalPlaces, BigDecimal.ROUND_HALF_UP).doubleValue();
@@ -678,31 +730,33 @@ public class Utility {
 
 	/**
 	 * Used to round a value to a specific number of decimal places.
-	 * @param 	Value to round.
-	 * @param 	Number of decimal places to round to.
-
-	 * @return 	Rounded value. */
+	 * 
+	 * @param Value  to round.
+	 * @param Number of decimal places to round to.
+	 * 
+	 * @return Rounded value.
+	 */
 	public static String sciToDollar(double valueToRound) {
 		double roundedValue = Math.round(valueToRound);
 		DecimalFormat df = new DecimalFormat("#0");
 		NumberFormat formatter = NumberFormat.getCurrencyInstance();
 		df.format(roundedValue);
-		String retString = formatter.format(roundedValue);
-		return retString;
+
+		return formatter.format(roundedValue);
 	}
 
-	//	public static void main(String[] args) {
-	//		String date = "qweqweqw";
-	//		System.out.println(isStringDate(date));
-	//	}
+	// public static void main(String[] args) {
+	// String date = "qweqweqw";
+	// System.out.println(isStringDate(date));
+	// }
 
 	public static boolean isStringDate(String inDate) {
-		List<SimpleDateFormat> dateFormatList = new ArrayList<SimpleDateFormat>();
+		List<SimpleDateFormat> dateFormatList = new ArrayList<>();
 
 		dateFormatList.add(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss'Z'"));
 		dateFormatList.add(new SimpleDateFormat("MM-dd-yyyy__HH:mm:ss_a"));
 
-		for(SimpleDateFormat format : dateFormatList){
+		for (SimpleDateFormat format : dateFormatList) {
 			try {
 				format.setLenient(false);
 				format.parse(inDate);
@@ -713,12 +767,10 @@ public class Utility {
 		}
 		return false;
 	}
-	
+
 	public static boolean isFactorType(String dataType) {
-		dataType = dataType.toUpperCase().trim();		
-		if(dataType.startsWith("FACTOR")) {
-			return true;
-		} else if(dataType.startsWith("ORDER")) {
+		dataType = dataType.toUpperCase().trim();
+		if (dataType.startsWith("FACTOR") || dataType.startsWith("ORDER")) {
 			return true;
 		}
 
@@ -727,15 +779,17 @@ public class Utility {
 
 	/**
 	 * Changes a value within the SMSS file for a given key
-	 * @param smssPath					The path to the SMSS file
-	 * @param keyToAlter				The key to alter
-	 * @param valueToProvide			The value to give the key
+	 * 
+	 * @param smssPath       The path to the SMSS file
+	 * @param keyToAlter     The key to alter
+	 * @param valueToProvide The value to give the key
 	 */
 	public static void changePropMapFileValue(String smssPath, String keyToAlter, String valueToProvide) {
 		changePropMapFileValue(smssPath, keyToAlter, valueToProvide, false);
 	}
-	
-	public static void changePropMapFileValue(String smssPath, String keyToAlter, String valueToProvide, boolean contains) {
+
+	public static void changePropMapFileValue(String smssPath, String keyToAlter, String valueToProvide,
+			boolean contains) {
 		FileOutputStream fileOut = null;
 		File file = new File(smssPath);
 
@@ -746,31 +800,31 @@ public class Utility {
 		 * 4) if no, just write out the line as is
 		 * 
 		 */
-		List<String> content = new ArrayList<String>();
+		List<String> content = new ArrayList<>();
 		BufferedReader reader = null;
 		FileReader fr = null;
-		try{
+		try {
 			fr = new FileReader(file);
 			reader = new BufferedReader(fr);
 			String line;
 			// 1) add each line as a different string in list
-			while((line = reader.readLine()) != null){
+			while ((line = reader.readLine()) != null) {
 				content.add(line);
 			}
 
 			fileOut = new FileOutputStream(file);
 			byte[] lineBreak = "\n".getBytes();
 			// 2) iterate through each line if the smss file
-			for(int i=0; i<content.size(); i++){
+			for (int i = 0; i < content.size(); i++) {
 				// 3) if this line starts with the key to alter
-				
-				if(contains) {
-					if(content.get(i).contains(keyToAlter)) {
+
+				if (contains) {
+					if (content.get(i).contains(keyToAlter)) {
 						// create new line to write using the key and the new value
 						String newKeyValue = keyToAlter + "\t" + valueToProvide;
 						fileOut.write(newKeyValue.getBytes());
 					}
-					
+
 					// 4) if it doesn't, just write the next line as is
 					else {
 						byte[] contentInBytes = content.get(i).getBytes();
@@ -779,12 +833,12 @@ public class Utility {
 					// after each line, write a line break into the file
 					fileOut.write(lineBreak);
 				} else {
-					if(content.get(i).startsWith(keyToAlter + "\t") || content.get(i).startsWith(keyToAlter + " ")){
+					if (content.get(i).startsWith(keyToAlter + "\t") || content.get(i).startsWith(keyToAlter + " ")) {
 						// create new line to write using the key and the new value
 						String newKeyValue = keyToAlter + "\t" + valueToProvide;
 						fileOut.write(newKeyValue.getBytes());
 					}
-					
+
 					// 4) if it doesn't, just write the next line as is
 					else {
 						byte[] contentInBytes = content.get(i).getBytes();
@@ -794,34 +848,35 @@ public class Utility {
 					fileOut.write(lineBreak);
 				}
 			}
-		} catch(IOException e){
-			e.printStackTrace();
-		} finally{
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
+		} finally {
 			// close the readers
-			try{
+			try {
 				reader.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			}
 
-			try{
+			try {
 				fileOut.close();
-			} catch (IOException e){
-				e.printStackTrace();
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			}
 		}
 	}
 
 	/**
 	 * Adds a new key-value pair into the SMSS file
-	 * @param smssPath					The path of the smss file
-	 * @param keyToAdd					The key to add into the smss file
-	 * @param valueToProvide			The value for the key to add to the smss file
+	 * 
+	 * @param smssPath       The path of the smss file
+	 * @param keyToAdd       The key to add into the smss file
+	 * @param valueToProvide The value for the key to add to the smss file
 	 */
 	public static void updateSMSSFile(String smssPath, String keyToAdd, String valueToProvide) {
 		updateSMSSFile(smssPath, "OWL", keyToAdd, valueToProvide);
 	}
-	
+
 	public static void updateSMSSFile(String smssPath, String locInFile, String keyToAdd, String valueToProvide) {
 		FileOutputStream fileOut = null;
 		File file = new File(smssPath);
@@ -833,125 +888,132 @@ public class Utility {
 		 * 		then the new key-value pair will be written right after it
 		 */
 
-		List<String> content = new ArrayList<String>();
+		List<String> content = new ArrayList<>();
 		BufferedReader reader = null;
 		FileReader fr = null;
-		try{
+		try {
 			fr = new FileReader(file);
 			reader = new BufferedReader(fr);
 			String line;
 			// 1) add each line as a different string in list
-			while((line = reader.readLine()) != null){
+			while ((line = reader.readLine()) != null) {
 				content.add(line);
 			}
 
 			fileOut = new FileOutputStream(file);
-			for(int i=0; i<content.size(); i++){
+			for (int i = 0; i < content.size(); i++) {
 				// 2) write out each line into the file
 				byte[] contentInBytes = content.get(i).getBytes();
 				fileOut.write(contentInBytes);
 				fileOut.write("\n".getBytes());
 
 				// 3) if the last line printed matches that in locInFile, then write the new
-				// 		key-value pair after
-				if(content.get(i).startsWith(locInFile + "\t") || content.get(i).startsWith(locInFile + " ")){
+				// key-value pair after
+				if (content.get(i).startsWith(locInFile + "\t") || content.get(i).startsWith(locInFile + " ")) {
 					String newProp = keyToAdd + "\t" + valueToProvide;
 					fileOut.write(newProp.getBytes());
 					fileOut.write("\n".getBytes());
 				}
 			}
-		} catch(IOException e){
-			e.printStackTrace();
-		} finally{
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
+		} finally {
 			// close the readers
-			try{
+			try {
 				reader.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			}
 
-			try{
+			try {
 				fileOut.close();
-			} catch (IOException e){
-				e.printStackTrace();
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			}
 		}
 	}
 
 	/**
 	 * Cleans a string based on certain patterns
-	 * @param 	Original string
-	 * @param 	If true, replace forward slashes ("/") with dashes ("-")
-
-	 * @return 	Cleaned string */
-	public static String cleanString(String original, boolean replaceForwardSlash){
-		return cleanString(original,replaceForwardSlash,true, false);
+	 * 
+	 * @param Original string
+	 * @param If       true, replace forward slashes ("/") with dashes ("-")
+	 * 
+	 * @return Cleaned string
+	 */
+	public static String cleanString(String original, boolean replaceForwardSlash) {
+		return cleanString(original, replaceForwardSlash, true, false);
 	}
 
 	/**
 	 * Cleans a string based on certain patterns
-	 * @param 	Original string
-	 * @param 	If true, replace forward slashes ("/") with dashes ("-")
-	 * @param	replaceForRDF If true, replace double quote with single quote and replace space with underscore.  For RDBMS this should be false
-
-	 * @return 	Cleaned string */
-	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceForRDF, boolean property){
+	 * 
+	 * @param Original      string
+	 * @param If            true, replace forward slashes ("/") with dashes ("-")
+	 * @param replaceForRDF If true, replace double quote with single quote and
+	 *                      replace space with underscore. For RDBMS this should be
+	 *                      false
+	 * 
+	 * @return Cleaned string
+	 */
+	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceForRDF,
+			boolean property) {
 		String retString = original;
 
 		retString = retString.trim();
-		retString = retString.replaceAll("\t", " ");//replace tabs with spaces
-		while (retString.contains("  ")){
+		retString = retString.replaceAll("\t", " ");// replace tabs with spaces
+		while (retString.contains("  ")) {
 			retString = retString.replace("  ", " ");
 		}
 		retString = retString.replaceAll("\\{", "(");
 		retString = retString.replaceAll("\\}", ")");
-		retString = retString.replaceAll("'", "");//remove apostrophe
-		if(replaceForRDF){
-			retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
+		retString = retString.replace("'", "");// remove apostrophe
+		if (replaceForRDF) {
+			retString = retString.replaceAll("\"", "'");// replace double quotes with single quotes
 		}
-		retString = retString.replaceAll(" ", "_");//replace spaces with underscores
-		if(!property) {
-			if(replaceForwardSlash) {
-				retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
+		retString = retString.replace(" ", "_");// replace spaces with underscores
+		if (!property) {
+			if (replaceForwardSlash) {
+				retString = retString.replace("/", "-");// replace forward slashes with dashes
 			}
-			retString = retString.replaceAll("\\\\", "-");//replace backslashes with dashes
+			retString = retString.replaceAll("\\\\", "-");// replace backslashes with dashes
 		}
 
-		retString = retString.replaceAll("\\|", "-");//replace vertical lines with dashes
+		retString = retString.replaceAll("\\|", "-");// replace vertical lines with dashes
 		retString = retString.replaceAll("\n", " ");
-		retString = retString.replaceAll("<", "(");
-		retString = retString.replaceAll(">", ")");
+		retString = retString.replace("<", "(");
+		retString = retString.replace(">", ")");
 
 		return retString;
 	}
 
-	public static String cleanVariableString(String original){
-		String cleaned = cleanString (original, true);
+	public static String cleanVariableString(String original) {
+		String cleaned = cleanString(original, true);
 		cleaned = cleaned.replace(",", "");
 		cleaned = cleaned.replace("%", "");
 		cleaned = cleaned.replace("-", "");
 		cleaned = cleaned.replace("(", "");
 		cleaned = cleaned.replace(")", "");
 		cleaned = cleaned.replace("&", "and");
-		while(cleaned.contains("__")) {
+		while (cleaned.contains("__")) {
 			cleaned = cleaned.replace("__", "_");
 		}
 
 		return cleaned;
 	}
-	
+
 	public static String makeAlphaNumeric(String s) {
 		s = s.trim();
-		s = s.replaceAll(" ", "_");
+		s = s.replace(" ", "_");
 		s = s.replaceAll("[^a-zA-Z0-9\\_]", "");
-		while(s.contains("__")){
+		while (s.contains("__")) {
 			s = s.replace("__", "_");
 		}
 		return s;
 	}
 
-	public static String cleanPredicateString(String original){
-		String cleaned = cleanString (original, true);
+	public static String cleanPredicateString(String original) {
+		String cleaned = cleanString(original, true);
 		cleaned = cleaned.replaceAll("[()]", "");
 		cleaned = cleaned.replace(",", "");
 		cleaned = cleaned.replace("?", "");
@@ -961,8 +1023,9 @@ public class Utility {
 
 	/**
 	 * Creates an excel workbook
-	 * @param wb 		XSSFWorkbook to write to
-	 * @param fileLoc 	String containing the path to save the workbook
+	 * 
+	 * @param wb      XSSFWorkbook to write to
+	 * @param fileLoc String containing the path to save the workbook
 	 */
 	public static void writeWorkbook(Workbook wb, String fileLoc) {
 		FileOutputStream newExcelFile = null;
@@ -970,201 +1033,179 @@ public class Utility {
 			newExcelFile = new FileOutputStream(fileLoc);
 			wb.write(newExcelFile);
 			newExcelFile.flush();
-		} catch (IOException e) {
+		} catch (IOException ioe) {
 			showMessage("Could not create file " + fileLoc + ".\nPlease check directory structure/permissions.");
-			e.printStackTrace();
-		}finally{
-			try{
-				if(newExcelFile!=null)
+			logger.error(STACKTRACE, ioe);
+		} finally {
+			try {
+				if (newExcelFile != null)
 					newExcelFile.close();
-			}catch(IOException e) {
-				e.printStackTrace();
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			}
 		}
 	}
 
-	public static Hashtable<String, Object> getParamsFromString(String params){
-		Hashtable <String, Object> paramHash = new Hashtable<String, Object>();
-		if(params != null)
-		{
-			StringTokenizer tokenz = new StringTokenizer(params,"~");
-			while(tokenz.hasMoreTokens())
-			{
+	public static Hashtable<String, Object> getParamsFromString(String params) {
+		Hashtable<String, Object> paramHash = new Hashtable<>();
+		if (params != null) {
+			StringTokenizer tokenz = new StringTokenizer(params, "~");
+			while (tokenz.hasMoreTokens()) {
 				String thisToken = tokenz.nextToken();
-				int index = thisToken.indexOf("$");
+				int index = thisToken.indexOf('$');
 				String key = thisToken.substring(0, index);
-				String value = thisToken.substring(index+1);
-				// attempt to see if 
+				String value = thisToken.substring(index + 1);
+				// attempt to see if
 				boolean found = false;
-				try{
+				try {
 					double dub = Double.parseDouble(value);
 					paramHash.put(key, dub);
 					found = true;
-				}catch (RuntimeException ignored)
-				{
-					LOGGER.debug(ignored);
+				} catch (RuntimeException ignored) {
+					logger.debug(ignored);
 				}
-				if(!found){
-					try{
+				if (!found) {
+					try {
 						int dub = Integer.parseInt(value);
 						paramHash.put(key, dub);
-					}catch (RuntimeException ignored)
-					{
-						LOGGER.debug(ignored);
+					} catch (RuntimeException ignored) {
+						logger.debug(ignored);
 					}
 				}
-				//if(!found)
 				paramHash.put(key, value);
 			}
 		}
 		return paramHash;
 	}
 
-	public static String retrieveResult(String api, Hashtable <String,String> params)
-	{
+	public static String retrieveResult(String api, Hashtable<String, String> params) {
 		String output = "";
 		BufferedReader stream = null;
 		InputStreamReader inputStream = null;
 		CloseableHttpClient httpclient = null;
-		try
-		{
+		try {
 			URIBuilder uri = new URIBuilder(api);
 
-			LOGGER.debug("Getting data from the API...  " + api);
-			LOGGER.debug("Params is " + params);
+			logger.debug("Getting data from the API...  " + api);
+			logger.debug("Params is " + params);
 
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-					builder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-			httpclient = HttpClients.custom().setSSLSocketFactory(
-					sslsf).build();
+			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(), 
+					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
 
 			HttpPost get = new HttpPost(api);
-			if(params != null) // add the parameters
+			if (params != null) // add the parameters
 			{
-				List <NameValuePair> nvps = new ArrayList <NameValuePair>();
-				for(Enumeration <String> keys = params.keys();keys.hasMoreElements();)
-				{
+				List<NameValuePair> nvps = new ArrayList<NameValuePair>();
+				for (Enumeration<String> keys = params.keys(); keys.hasMoreElements();) {
 					String key = keys.nextElement();
 					String value = params.get(key);
 					uri.addParameter(key, value);
 					nvps.add(new BasicNameValuePair(key, value));
 				}
 				get.setEntity(new UrlEncodedFormEntity(nvps));
-				//get = new HttpPost(uri.build());
+				// get = new HttpPost(uri.build());
 			}
 
 			CloseableHttpResponse response = httpclient.execute(get);
 			HttpEntity entity = response.getEntity();
 
-			if(entity != null)
-			{
+			if (entity != null) {
 				inputStream = new InputStreamReader(entity.getContent());
 				stream = new BufferedReader(inputStream);
 				String data = null;
-				while((data = stream.readLine()) != null)
+				while ((data = stream.readLine()) != null)
 					output = output + data;
 			}
-		}catch(RuntimeException ex)
-		{
-			LOGGER.debug(ex);
-		} catch (IOException ex) {
-			LOGGER.debug(ex);
-		} catch (NoSuchAlgorithmException e) {
-			LOGGER.debug(e);
-		} catch (KeyStoreException e) {
-			LOGGER.debug(e);
-		} catch (URISyntaxException e) {
-			LOGGER.debug(e);
-		} catch (KeyManagementException e) {
-			LOGGER.debug(e);
+		} catch (RuntimeException ex) {
+			logger.error(STACKTRACE, ex);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
+		} catch (NoSuchAlgorithmException nsae) {
+			logger.error(STACKTRACE, nsae);
+		} catch (KeyStoreException kse) {
+			logger.error(STACKTRACE, kse);
+		} catch (URISyntaxException use) {
+			logger.error(STACKTRACE, use);
+		} catch (KeyManagementException kme) {
+			logger.error(STACKTRACE, kme);
 		} finally {
 			try {
-				if(inputStream!=null)
+				if (inputStream != null)
 					inputStream.close();
-				if(stream!=null)
+				if (stream != null)
 					stream.close();
 			} catch (IOException e) {
-				LOGGER.error("Error closing input stream for image");
+				logger.error("Error closing input stream for image");
 			}
 			try {
-				if(httpclient!=null)
+				if (httpclient != null)
 					httpclient.close();
-				if(stream!=null)
+				if (stream != null)
 					stream.close();
 			} catch (IOException e) {
-				LOGGER.error("Error closing socket for httpclient");
+				logger.error("Error closing socket for httpclient");
 			}
 		}
-		if(output.length() == 0)
+		if (output.length() == 0)
 			output = null;
 
 		return output;
 	}
 
-	public static InputStream getStream(String api, Hashtable <String,String> params)
-	{
-		HttpEntity entity ;
+	public static InputStream getStream(String api, Hashtable<String, String> params) {
+		HttpEntity entity;
 		CloseableHttpClient httpclient = null;
-		try
-		{
+		try {
 			URIBuilder uri = new URIBuilder(api);
 
-			LOGGER.info("Getting data from the API...  " + api);
-			LOGGER.info("Prams is " + params);
+			logger.info("Getting data from the API...  " + api);
+			logger.info("Prams is " + params);
 
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-					builder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-			httpclient = HttpClients.custom().setSSLSocketFactory(
-					sslsf).build();
+			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(),
+					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
 
 			HttpPost get = new HttpPost(api);
-			if(params != null) // add the parameters
+			if (params != null) // add the parameters
 			{
-				List <NameValuePair> nvps = new ArrayList <NameValuePair>();
-				for(Enumeration <String> keys = params.keys();keys.hasMoreElements();)
-				{
+				List<NameValuePair> nvps = new ArrayList<>();
+				for (Enumeration<String> keys = params.keys(); keys.hasMoreElements();) {
 					String key = keys.nextElement();
 					String value = params.get(key);
 					uri.addParameter(key, value);
 					nvps.add(new BasicNameValuePair(key, value));
 				}
 				get.setEntity(new UrlEncodedFormEntity(nvps));
-				//get = new HttpPost(uri.build());
+				// get = new HttpPost(uri.build());
 			}
 
 			CloseableHttpResponse response = httpclient.execute(get);
 			entity = response.getEntity();
 			return entity.getContent();
 
-		}catch(RuntimeException ex)
-		{
-			//connected = false;
-			ex.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (KeyManagementException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
+		} catch (RuntimeException ex) {
+			logger.error(STACKTRACE, ex);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
+		} catch (NoSuchAlgorithmException nsae) {
+			logger.error(STACKTRACE, nsae);
+		} catch (KeyStoreException kse) {
+			logger.error(STACKTRACE, kse);
+		} catch (URISyntaxException use) {
+			logger.error(STACKTRACE, use);
+		} catch (KeyManagementException kme) {
+			logger.error(STACKTRACE, kme);
+		}
 		return null;
 	}
 
 	public static ISelectWrapper processQuery(IEngine engine, String query) {
-		LOGGER.debug("PROCESSING QUERY: " + query);
+		logger.debug("PROCESSING QUERY: " + query);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -1179,26 +1220,27 @@ public class Utility {
 
 	/**
 	 * Determines the type of a given value
-	 * @param s		The value to determine the type off
-	 * @return		The type of the value
+	 * 
+	 * @param s The value to determine the type off
+	 * @return The type of the value
 	 */
 	public static String processType(String s) {
 
-		if(s == null) {
+		if (s == null) {
 			return null;
 		}
 
 		boolean isDouble = true;
 		try {
 			double val = Double.parseDouble(s);
-			if(val == Math.floor(val)) {
+			if (val == Math.floor(val)) {
 				return "INTEGER";
 			}
-		} catch(NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			isDouble = false;
 		}
 
-		if(isDouble) {
+		if (isDouble) {
 			return ("DOUBLE");
 		}
 
@@ -1211,7 +1253,7 @@ public class Utility {
 		} catch (ParseException e) {
 			isLongDate = false;
 		}
-		if(isLongDate){
+		if (isLongDate) {
 			return ("DATE");
 		}
 
@@ -1223,7 +1265,7 @@ public class Utility {
 		} catch (ParseException e) {
 			isSimpleDate = false;
 		}
-		if(isSimpleDate){
+		if (isSimpleDate) {
 			return ("SIMPLEDATE");
 		}
 
@@ -1232,17 +1274,17 @@ public class Utility {
 
 	public static String[] filterNames(String[] names, boolean[] include) {
 		int size = 0;
-		for(boolean val : include) {
-			if(val) {
+		for (boolean val : include) {
+			if (val) {
 				size++;
 			}
 		}
 
 		String[] newNames = new String[size];
-		int nextIndex=0;
-		for(int i=0;i<names.length;i++) {
-			if(include[i]) {
-				newNames[nextIndex]=names[i];
+		int nextIndex = 0;
+		for (int i = 0; i < names.length; i++) {
+			if (include[i]) {
+				newNames[nextIndex] = names[i];
 				nextIndex++;
 			}
 		}
@@ -1259,104 +1301,105 @@ public class Utility {
 
 	/**
 	 * Gets the vector of uris from first variable returned from the query
-	 * @param raw TODO
+	 * 
+	 * @param raw    TODO
 	 * @param sparql
 	 * @param eng
 	 * @return Vector of uris associated with first variale returned from the query
 	 */
-	public static Vector<String> getVectorOfReturn(String query, IEngine engine, Boolean raw){
-		Vector<String> retArray = new Vector<String>();
+	public static Vector<String> getVectorOfReturn(String query, IEngine engine, Boolean raw) {
+		Vector<String> retArray = new Vector<>();
 		IRawSelectWrapper wrap = null;
 		try {
 			wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
-			while(wrap.hasNext()) {
+			while (wrap.hasNext()) {
 				Object[] values = null;
-				if(raw) {
+				if (raw) {
 					values = wrap.next().getRawValues();
 				} else {
 					values = wrap.next().getValues();
 				}
-				
-				if(values[0] != null) {
+
+				if (values[0] != null) {
 					retArray.add(values[0].toString());
 				} else {
 					retArray.add(null);
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
-			if(wrap != null) {
+			if (wrap != null) {
 				wrap.cleanUp();
 			}
 		}
-		
+
 		return retArray;
 	}
 
 	/**
 	 * Gets the vector of uris from first variable returned from the query
-	 * @param raw TODO
+	 * 
+	 * @param raw    TODO
 	 * @param sparql
 	 * @param eng
 	 * @return Vector of uris associated with first variale returned from the query
 	 */
-	public static Vector<String[]> getVectorArrayOfReturn(String query, IEngine engine, Boolean raw){
-		Vector<String[]> retArray = new Vector<String[]>();
+	public static Vector<String[]> getVectorArrayOfReturn(String query, IEngine engine, Boolean raw) {
+		Vector<String[]> retArray = new Vector<>();
 		IRawSelectWrapper wrap = null;
 		try {
 			wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
-			while(wrap.hasNext()) {
+			while (wrap.hasNext()) {
 				Object[] values = null;
-				if(raw) {
+				if (raw) {
 					values = wrap.next().getRawValues();
 				} else {
 					values = wrap.next().getValues();
 				}
-				
+
 				String[] valArray = new String[values.length];
-				for(int i = 0; i < values.length; i++) {
-					if(values[i] != null) {
+				for (int i = 0; i < values.length; i++) {
+					if (values[i] != null) {
 						valArray[i] = values[i] + "";
 					}
 				}
 				retArray.add(valArray);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
-			if(wrap != null) {
+			if (wrap != null) {
 				wrap.cleanUp();
 			}
 		}
-		
+
 		return retArray;
 	}
 
 	/**
 	 * Gets the vector of uris from first variable returned from the query
+	 * 
 	 * @param sparql
 	 * @param eng
 	 * @return Vector of uris associated with first variale returned from the query
 	 */
-	public static Vector<String[]> getVectorObjectOfReturn(String query,IEngine engine){
-		Vector<String[]> retString = new Vector<String[]>();
+	public static Vector<String[]> getVectorObjectOfReturn(String query, IEngine engine) {
+		Vector<String[]> retString = new Vector<>();
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
 
 		String[] names = wrap.getPhysicalVariables();
 
-
 		while (wrap.hasNext()) {
 			String[] values = new String[names.length];
 			ISelectStatement bs = wrap.next();
-			for(int i = 0; i < names.length; i++){
+			for (int i = 0; i < names.length; i++) {
 				Object value = bs.getRawVar(names[i]);
 				String val = null;
-				if(value instanceof Binding){
-					val = ((Value)((Binding) value).getValue()).stringValue();
-				}
-				else{
-					val = value +"";
+				if (value instanceof Binding) {
+					val = ((Value) ((Binding) value).getValue()).stringValue();
+				} else {
+					val = value + "";
 				}
 				val = val.replace("\"", "");
 				values[i] = val;
@@ -1369,16 +1412,16 @@ public class Utility {
 
 	public static Map<String, List<Object>> cleanParamsForRDBMS(Map<String, List<Object>> paramHash) {
 		// TODO Auto-generated method stub
-		// really simple, I am runnign the keys and then I will have strip the instance values out
-		Iterator <String> keys = paramHash.keySet().iterator();
-		while(keys.hasNext())
-		{
+		// really simple, I am running the keys and then I will have strip the instance
+		// values out
+		Iterator<String> keys = paramHash.keySet().iterator();
+		while (keys.hasNext()) {
 			String singleKey = keys.next();
 			List<Object> valueList = paramHash.get(singleKey);
-			List<Object> newValuesList = new Vector<Object>();
-			for(int i = 0; i < valueList.size(); i++) {
+			List<Object> newValuesList = new Vector<>();
+			for (int i = 0; i < valueList.size(); i++) {
 				String value = valueList.get(i) + "";
-				if(value.startsWith("http:") || value.contains(":")) {
+				if (value.startsWith("http:") || value.contains(":")) {
 					value = getInstanceName(value);
 				}
 				newValuesList.add(value);
@@ -1389,22 +1432,22 @@ public class Utility {
 		return paramHash;
 	}
 
-	public static IPlaySheet getPlaySheet(IEngine engine, String psName){
-		LOGGER.info("Trying to get playsheet for " + psName);
+	public static IPlaySheet getPlaySheet(IEngine engine, String psName) {
+		logger.info("Trying to get playsheet for " + psName);
 		String psClassName = null;
-		if(engine != null) {
+		if (engine != null) {
 			psClassName = engine.getProperty(psName);
 		}
-		if(psClassName == null){
+		if (psClassName == null) {
 			psClassName = (String) DIHelper.getInstance().getLocalProp(psName);
 		}
-		if(psClassName == null){
-			psClassName = (String) DIHelper.getInstance().getProperty(psName);
+		if (psClassName == null) {
+			psClassName = DIHelper.getInstance().getProperty(psName);
 		}
-		if(psClassName == null){
+		if (psClassName == null) {
 			psClassName = PlaySheetRDFMapBasedEnum.getClassFromName(psName);
 		}
-		if(psClassName == null || psClassName.isEmpty()){
+		if (psClassName == null || psClassName.isEmpty()) {
 			psClassName = psName;
 		}
 
@@ -1413,22 +1456,22 @@ public class Utility {
 		return playSheet;
 	}
 
-	public static IDataMaker getDataMaker(IEngine engine, String dataMakerName){
-		LOGGER.info("Trying to get data maker for " + dataMakerName);
+	public static IDataMaker getDataMaker(IEngine engine, String dataMakerName) {
+		logger.info("Trying to get data maker for " + dataMakerName);
 		String dmClassName = null;
-		if(engine != null) {
+		if (engine != null) {
 			dmClassName = engine.getProperty(dataMakerName);
 		}
-		if(dmClassName == null){
+		if (dmClassName == null) {
 			dmClassName = (String) DIHelper.getInstance().getLocalProp(dataMakerName);
 		}
-		if(dmClassName == null){
-			dmClassName = (String) DIHelper.getInstance().getProperty(dataMakerName);
+		if (dmClassName == null) {
+			dmClassName = DIHelper.getInstance().getProperty(dataMakerName);
 		}
-		if(dmClassName == null){
+		if (dmClassName == null) {
 			dmClassName = PlaySheetRDFMapBasedEnum.getClassFromName(dataMakerName);
 		}
-		if(dmClassName == null || dmClassName.isEmpty()){
+		if (dmClassName == null || dmClassName.isEmpty()) {
 			dmClassName = dataMakerName;
 		}
 
@@ -1437,10 +1480,10 @@ public class Utility {
 		return dm;
 	}
 
-	public static IPlaySheet preparePlaySheet(IEngine engine, String sparql, String psName, String playSheetTitle, String insightID)
-	{
+	public static IPlaySheet preparePlaySheet(IEngine engine, String sparql, String psName, String playSheetTitle,
+			String insightID) {
 		IPlaySheet playSheet = getPlaySheet(engine, psName);
-		//		QuestionPlaySheetStore.getInstance().put(insightID,  playSheet);
+		// QuestionPlaySheetStore.getInstance().put(insightID, playSheet);
 		playSheet.setQuery(sparql);
 		playSheet.setRDFEngine(engine);
 		playSheet.setQuestionID(insightID);
@@ -1448,13 +1491,13 @@ public class Utility {
 		return playSheet;
 	}
 
-	public static ISEMOSSTransformation getTransformation(IEngine engine, String transName){
-		LOGGER.info("Trying to get transformation for " + transName);
+	public static ISEMOSSTransformation getTransformation(IEngine engine, String transName) {
+		logger.info("Trying to get transformation for " + transName);
 		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
-		if(transClassName == null){
-			transClassName = (String) DIHelper.getInstance().getProperty(transName);
+		if (transClassName == null) {
+			transClassName = DIHelper.getInstance().getProperty(transName);
 		}
-		if(transClassName == null || transClassName.isEmpty()){
+		if (transClassName == null || transClassName.isEmpty()) {
 			transClassName = transName;
 		}
 
@@ -1462,13 +1505,13 @@ public class Utility {
 		return transformation;
 	}
 
-	public static ISEMOSSAction getAction(IEngine engine, String actionName){
-		LOGGER.info("Trying to get action for " + actionName);
+	public static ISEMOSSAction getAction(IEngine engine, String actionName) {
+		logger.info("Trying to get action for " + actionName);
 		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
-		if(actionClassName == null){
-			actionClassName = (String) DIHelper.getInstance().getProperty(actionName);
+		if (actionClassName == null) {
+			actionClassName = DIHelper.getInstance().getProperty(actionName);
 		}
-		if(actionClassName == null || actionClassName.isEmpty()){
+		if (actionClassName == null || actionClassName.isEmpty()) {
 			actionClassName = actionName;
 		}
 
@@ -1476,37 +1519,37 @@ public class Utility {
 		return action;
 	}
 
-	public static Object getClassFromString(String className){
+	public static Object getClassFromString(String className) {
 		Object obj = null;
 		try {
-			System.out.println("Dataframe name is " + className);
+			logger.debug("Dataframe name is " + className);
 			obj = Class.forName(className).getConstructor(null).newInstance(null);
-		} catch (ClassNotFoundException ex) {
-			ex.printStackTrace();
-			LOGGER.fatal("No such class: "+ className);
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-			LOGGER.fatal("Failed instantiation: "+ className);
-		} catch (IllegalAccessException e) {
-			LOGGER.fatal("Illegal Access: "+ className);
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			LOGGER.fatal("Illegal argument: "+ className);
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			LOGGER.fatal("Invoation exception: "+ className);
-			e.printStackTrace();
-		} catch (NoSuchMethodException e) {
-			LOGGER.fatal("No constructor: "+ className);
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			LOGGER.fatal("Security exception: "+ className);
-			e.printStackTrace();
+		} catch (ClassNotFoundException cnfe) {
+			logger.error(STACKTRACE, cnfe);
+			logger.fatal("No such class: " + className);
+		} catch (InstantiationException ie) {
+			logger.error(STACKTRACE, ie);
+			logger.fatal("Failed instantiation: " + className);
+		} catch (IllegalAccessException iae) {
+			logger.error(STACKTRACE, iae);
+			logger.fatal("Illegal Access: " + className);
+		} catch (IllegalArgumentException iare) {
+			logger.error(STACKTRACE, iare);
+			logger.fatal("Illegal argument: " + className);
+		} catch (InvocationTargetException ite) {
+			logger.error(STACKTRACE, ite);
+			logger.fatal("Invocation exception: " + className);
+		} catch (NoSuchMethodException nsme) {
+			logger.error(STACKTRACE, nsme);
+			logger.fatal("No constructor: " + className);
+		} catch (SecurityException se) {
+			logger.error(STACKTRACE, se);
+			logger.fatal("Security exception: " + className);
 		}
 		return obj;
 	}
 
-	public static String getKeyFromValue(Map<String, String> hm, String value){
+	public static String getKeyFromValue(Map<String, String> hm, String value) {
 		for (String o : hm.keySet()) {
 			if (hm.get(o).equals(value)) {
 				return o;
@@ -1551,7 +1594,6 @@ public class Utility {
 //		return nodeMap;
 //	}
 
-
 //	/**
 //	 * returns the physical or logical/display name
 //	 * loop through the first time using the qualified class name ie this assumes you got something like http://semoss.org/ontologies/Concept/Director/Clint_Eastwood
@@ -1586,41 +1628,41 @@ public class Utility {
 //	}
 
 	/**
-	 * Return Object[] with prediction of the data type
-	 * Index 0 -> return the casted object
-	 * Index 1 -> return the pixel data type
-	 * Index 2 -> return the additional formatting
+	 * Return Object[] with prediction of the data type Index 0 -> return the casted
+	 * object Index 1 -> return the pixel data type Index 2 -> return the additional
+	 * formatting
+	 * 
 	 * @param input
 	 * @return
 	 */
 	public static Object[] determineInputType(String input) {
-		Object [] retObject = new Object[3];
-		if(input != null) {
+		Object[] retObject = new Object[3];
+		if (input != null) {
 			Object retO = null;
 			// is it a boolean ?
-			if(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false")) {
+			if (input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false")) {
 				retObject[0] = Boolean.parseBoolean(input);
 				retObject[1] = SemossDataType.BOOLEAN;
 			}
 			// is it a date ?
-			else if( (retO = SemossDate.genDateObj(input)) != null) {
+			else if ((retO = SemossDate.genDateObj(input)) != null) {
 				retObject[0] = retO;
 				retObject[1] = SemossDataType.DATE;
 				retObject[2] = ((SemossDate) retO).getPattern();
 			}
 			// is it a timestamp ?
-			else if( (retO = SemossDate.genTimeStampDateObj(input)) != null) {
+			else if ((retO = SemossDate.genTimeStampDateObj(input)) != null) {
 				retObject[0] = retO;
 				retObject[1] = SemossDataType.TIMESTAMP;
 				retObject[2] = ((SemossDate) retO).getPattern();
 			}
 			// is it an integer ?
-			else if( (retO = getInteger(input.replaceAll("[$,\\s]", ""))) != null) {
+			else if ((retO = getInteger(input.replaceAll("[$,\\s]", ""))) != null) {
 				retObject[0] = retO;
 				retObject[1] = SemossDataType.INT;
 			}
 			// is it a double ?
-			else if( (retO = getDouble(input.replaceAll("[$,\\s]", ""))) != null) {
+			else if ((retO = getDouble(input.replaceAll("[$,\\s]", ""))) != null) {
 				retObject[0] = retO;
 				retObject[1] = SemossDataType.DOUBLE;
 			}
@@ -1632,171 +1674,122 @@ public class Utility {
 		}
 		return retObject;
 	}
-	
+
 	@Deprecated
-	public static Object[] findTypes(String input)
-	{
-		//System.out.println("String that came in.. " + input);
-		Object [] retObject = null;
-		if(input != null)
-		{
+	public static Object[] findTypes(String input) {
+		// System.out.println("String that came in.. " + input);
+		Object[] retObject = null;
+		if (input != null) {
 			Object retO = null;
-			if(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false"))
-			{
+			if (input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false")) {
 				retObject = new Object[2];
 				retObject[0] = "boolean";
 				retObject[1] = retO;
 
 			}
-			//all numbers are 
-			//	    	else if(NumberUtils.isDigits(input))
-			//	    	{
-			//	    		retO = Integer.parseInt(input);
-			//	    		retObject = new Object[2];
-			//	    		retObject[0] = "int";
-			//	    		retObject[1] = retO;
-			//	    	}
-			
-			else if((retO = getDate(input)) != null )// try dates ? - yummy !!
+			// all numbers are
+			// else if(NumberUtils.isDigits(input))
+			// {
+			// retO = Integer.parseInt(input);
+			// retObject = new Object[2];
+			// retObject[0] = "int";
+			// retObject[1] = retO;
+			// }
+
+			else if ((retO = getDate(input)) != null)// try dates ? - yummy !!
 			{
 				retObject = new Object[2];
 				retObject[0] = "date";
 				retObject[1] = retO;
 
-			}
-			else if((retO = getDouble(input)) != null )
-			{
+			} else if ((retO = getDouble(input)) != null) {
 				retObject = new Object[2];
 				retObject[0] = "double";
 				retObject[1] = retO;
-			}
-			else if((retO = getCurrency(input)) != null )
-			{
+			} else if ((retO = getCurrency(input)) != null) {
 
 				retObject = new Object[2];
-				if(retO instanceof String)
+				if (retO instanceof String)
 					retObject[0] = "varchar(800)";
 				else
 					retObject[0] = "double";
 				retObject[1] = retO;
-			}
-			else
-			{
+			} else {
 				retObject = new Object[2]; // need to do some more stuff to determine this
 				retObject[0] = "varchar(800)";
-				retObject[1] = input; 
+				retObject[1] = input;
 			}
 		}
 		return retObject;
 	}
 
 	@Deprecated
-	public static String getDate(String input)
-	{
+	public static String getDate(String input) {
 		String[] date_formats = {
 				// year, month, day
-				"yyyy-MM-dd",
-				"yyyy-MM-d",
-				"yyyy-M-dd",
-				"yyyy-M-d",
+				"yyyy-MM-dd", "yyyy-MM-d", "yyyy-M-dd", "yyyy-M-d",
 				// day, month, year
-				"dd-MM-yyyy",
-				"d-MM-yyyy",
-				"dd-M-yyyy",
-				"d-M-yyyy",
+				"dd-MM-yyyy", "d-MM-yyyy", "dd-M-yyyy", "d-M-yyyy",
 				// year / month / day
-				"yyyy/MM/dd",
-				"yyyy/MM/d",
-				"yyyy/M/dd",
-				"yyyy/M/d",
+				"yyyy/MM/dd", "yyyy/MM/d", "yyyy/M/dd", "yyyy/M/d",
 				// day, month, year
-				"dd/MM/yyyy",
-				"d/MM/yyyy",
-				"dd/M/yyyy",
-				"d/M/yyyy",
+				"dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy",
 
 				// Abrev. month, day, year
-				"MMM_dd,_yyyy",
-				"MMM_d,_yyyy",
-				"MMM dd, yyyy",
-				"MMM d, yyyy",
+				"MMM_dd,_yyyy", "MMM_d,_yyyy", "MMM dd, yyyy", "MMM d, yyyy",
 
-				//"dd/MM/yyyy",
-				"MM/dd/yyyy",
-				"yyyy/MM/dd", 
-				"yyyy MMM dd",
-				"yyyy dd MMM",
-				"dd MMM yyyy",
-				"dd MMM",
-				"MMM dd yyyy",
-				"MMM dd, yyyy",
-				"MMM dd",
-				"dd MMM yyyy",
-				"MMM yyyy",
-				"dd/MM/yyyy"
-				};
+				// "dd/MM/yyyy",
+				"MM/dd/yyyy", "yyyy/MM/dd", "yyyy MMM dd", "yyyy dd MMM", "dd MMM yyyy", "dd MMM", "MMM dd yyyy",
+				"MMM dd, yyyy", "MMM dd", "dd MMM yyyy", "MMM yyyy", "dd/MM/yyyy" };
 
 		String output_date = null;
 		boolean itsDate = false;
-		for (String formatString : date_formats)
-		{
-			try
-			{
+		for (String formatString : date_formats) {
+			try {
 				SimpleDateFormat sdf = new SimpleDateFormat(formatString);
 				Date mydate = sdf.parse(input);
 				SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd");
 				output_date = outdate.format(mydate);
 				itsDate = true;
 				break;
-			}
-			catch (ParseException e) {
-				//System.out.println("Next!");
+			} catch (ParseException e) {
+				// System.out.println("Next!");
 			}
 		}
-		
-		return output_date;	
+
+		return output_date;
 	}
 
 	@Deprecated
-	public static String getTimeStamp(String input)
-	{
+	public static String getTimeStamp(String input) {
 		String[] date_formats = {
 				// year, month, day
-				"yyyy-MM-dd hh:mm:ss",
-				"yyyy-MM-d hh:mm:ss",
-				"yyyy-M-dd hh:mm:ss",
-				"yyyy-M-d hh:mm:ss",
-				"yyyy-MM-dd'T'hh:mm:ss'Z'",
-				"yyyy-MM-d'T'hh:mm:ss'Z'",
-				"yyyy-M-dd'T'hh:mm:ss'Z'",
-				"yyyy-M-d'T'hh:mm:ss'Z'",
-				};
+				"yyyy-MM-dd hh:mm:ss", "yyyy-MM-d hh:mm:ss", "yyyy-M-dd hh:mm:ss", "yyyy-M-d hh:mm:ss",
+				"yyyy-MM-dd'T'hh:mm:ss'Z'", "yyyy-MM-d'T'hh:mm:ss'Z'", "yyyy-M-dd'T'hh:mm:ss'Z'",
+				"yyyy-M-d'T'hh:mm:ss'Z'", };
 
 		String output_date = null;
 		boolean itsDate = false;
-		for (String formatString : date_formats)
-		{
-			try
-			{    
+		for (String formatString : date_formats) {
+			try {
 				Date mydate = new SimpleDateFormat(formatString).parse(input);
 				SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 				output_date = outdate.format(mydate);
 				itsDate = true;
 				break;
-			}
-			catch (ParseException e) {
-				//System.out.println("Next!");
+			} catch (ParseException e) {
+				// System.out.println("Next!");
 			}
 		}
 
-		return output_date;	
+		return output_date;
 	}
 
 	@Deprecated
 	public static Date getDateAsDateObj(String input) {
 		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd");
 		String output_date = getDate(input);
-		if(output_date == null) {
+		if (output_date == null) {
 			return null;
 		}
 
@@ -1809,7 +1802,7 @@ public class Utility {
 
 		return outDate;
 	}
-	
+
 	@Deprecated
 	public static Date getDateObjFromStringFormat(String input, String curFormat) {
 		SimpleDateFormat sdf = new SimpleDateFormat(curFormat);
@@ -1821,12 +1814,12 @@ public class Utility {
 		}
 		return mydate;
 	}
-	
+
 	@Deprecated
 	public static Date getTimeStampAsDateObj(String input) {
 		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.ssss");
 		String output_date = getTimeStamp(input);
-		if(output_date == null) {
+		if (output_date == null) {
 			return null;
 		}
 
@@ -1839,183 +1832,158 @@ public class Utility {
 
 		return outDate;
 	}
-	
+
 	@Deprecated
-	public static Object getCurrency(String input)
-	{
-		//COMMENTING THIS OUT BECAUSE CAST TO TYPES BREAKS IN CASES WHERE THIS RETURNS, NEED TO UPDATE THAT BUT WILL KEEP IT AS STRING FOR NOW
-		// what is this check??? 
-		// this is messing up the types since it works based on if there is a null pointer
-		//    	if(input.matches("\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?\\Q-\\E\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?")) {
-		//    		return input;
-		//    	}
-		//    	Number nm = null;
-		//    	NumberFormat nf = NumberFormat.getCurrencyInstance();
-		//    	try {
-		//    		nm = nf.parse(input);
-		//    		//System.out.println("Curr..  " + nm);
-		//    	}catch (Exception ex)
-		//    	{
-		//    		
-		//    	}
-		//    	return nm;
+	public static Object getCurrency(String input) {
+		// COMMENTING THIS OUT BECAUSE CAST TO TYPES BREAKS IN CASES WHERE THIS RETURNS,
+		// NEED TO UPDATE THAT BUT WILL KEEP IT AS STRING FOR NOW
+		// what is this check???
+		// this is messing up the types since it works based on if there is a null
+		// pointer
+		// if(input.matches("\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?\\Q-\\E\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?"))
+		// {
+		// return input;
+		// }
+		// Number nm = null;
+		// NumberFormat nf = NumberFormat.getCurrencyInstance();
+		// try {
+		// nm = nf.parse(input);
+		// //System.out.println("Curr.. " + nm);
+		// }catch (Exception ex)
+		// {
+		//
+		// }
+		// return nm;
 		return null;
 	}
 
 	public static Double getDouble(String input) {
 		// try to do some basic clean up if it fails and try again
 		try {
-			if(input.startsWith("(") && input.endsWith(")")) {
-				input = "-" + input.substring(1, input.length()-1);
+			if (input.startsWith("(") && input.endsWith(")")) {
+				input = "-" + input.substring(1, input.length() - 1);
 			}
 			Double num = Double.parseDouble(input);
 			return num;
-		} catch(NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			return null;
 		}
 	}
-	
+
 	public static Integer getInteger(String input) {
 		// try to do some basic clean up if it fails and try again
 		try {
-			if(input.startsWith("(") && input.endsWith(")")) {
-				input = "-" + input.substring(1, input.length()-1);
+			if (input.startsWith("(") && input.endsWith(")")) {
+				input = "-" + input.substring(1, input.length() - 1);
 			}
 			Integer num = Integer.parseInt(input);
 			return num;
-		} catch(NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			Double db = getDouble(input);
-			if(db != null && db == db.intValue()) {
+			if (db != null && db == db.intValue()) {
 				return db.intValue();
 			}
 			return null;
 		}
 	}
 
-	//this doesn't consider 1.2E8 etc.
-	//    public static boolean isNumber(String input) {
-	//    	//has digits, followed by optional period followed by digits
-	//    	return input.matches("(\\d+)\\Q.\\E?(\\d+)?"); 
-	//    }
+	// this doesn't consider 1.2E8 etc.
+	// public static boolean isNumber(String input) {
+	// //has digits, followed by optional period followed by digits
+	// return input.matches("(\\d+)\\Q.\\E?(\\d+)?");
+	// }
 
 	@Deprecated
-	public static String[] castToTypes(String [] thisOutput, String [] types)
-	{
-		String [] values = new String[thisOutput.length];
+	public static String[] castToTypes(String[] thisOutput, String[] types) {
+		String[] values = new String[thisOutput.length];
 
-		//System.out.println("OUTPUT"  + thisOutput);
-		//System.out.println("TYPES" +  types);
-
-
-		for(int outIndex = 0;outIndex < thisOutput.length;outIndex++)
-		{
-			//System.out.println(" Data [" + thisOutput[outIndex] + "]  >> [" + types[outIndex] + "]");
-			//if the value is not null
-			if(thisOutput[outIndex] != null && thisOutput[outIndex].length() > 0)
-			{
+		for (int outIndex = 0; outIndex < thisOutput.length; outIndex++) {
+			// if the value is not null
+			if (thisOutput[outIndex] != null && thisOutput[outIndex].length() > 0) {
 				values[outIndex] = thisOutput[outIndex] + "";
 
-				if(thisOutput[outIndex] != null) // && castTargets.contains(outIndex + ""))
+				if (thisOutput[outIndex] != null) // && castTargets.contains(outIndex + ""))
 				{
-					if(types[outIndex].equalsIgnoreCase("Date"))
+					if (types[outIndex].equalsIgnoreCase("Date"))
 						values[outIndex] = getDate(thisOutput[outIndex]);
-					else if(types[outIndex].equalsIgnoreCase("Currency"))// this is a currency
-						values[outIndex] = getCurrency(thisOutput[outIndex])+"";
-					else if(types[outIndex].equalsIgnoreCase("varchar(800)"))
-					{
-						if(thisOutput[outIndex].length() >= 800)
-							thisOutput[outIndex] = thisOutput[outIndex].substring(0,798);
+					else if (types[outIndex].equalsIgnoreCase("Currency"))// this is a currency
+						values[outIndex] = getCurrency(thisOutput[outIndex]) + "";
+					else if (types[outIndex].equalsIgnoreCase("varchar(800)")) {
+						if (thisOutput[outIndex].length() >= 800)
+							thisOutput[outIndex] = thisOutput[outIndex].substring(0, 798);
 						values[outIndex] = thisOutput[outIndex];
 					}
 				}
-			}
-			else if(types[outIndex] != null)
-			{
-				if(types[outIndex].equalsIgnoreCase("Double"))
+			} else if (types[outIndex] != null) {
+				if (types[outIndex].equalsIgnoreCase("Double"))
 					values[outIndex] = "NULL";
-				else if(types[outIndex].equalsIgnoreCase("varchar(800)")|| types[outIndex].equalsIgnoreCase("date"))
+				else if (types[outIndex].equalsIgnoreCase("varchar(800)") || types[outIndex].equalsIgnoreCase("date"))
 					values[outIndex] = "";
-			}
-			else
-			{
+			} else {
 				values[outIndex] = "";
 			}
 		}
 
-		//    	for(int i = 0; i < values.length; i++) {
-		//    		values[i] = UriEncoder.encode(values[i]);
-		//    	}
-
-		for(int i = 0; i < values.length; i++) {
+		for (int i = 0; i < values.length; i++) {
 			values[i] = Utility.cleanString(values[i], true, true, false);
 		}
 		return values;
 	}
 
 	@Deprecated
-	public static String castToTypes(String thisOutput, String type)
-	{
+	public static String castToTypes(String thisOutput, String type) {
 		String values = "";
 
-		//System.out.println("OUTPUT"  + thisOutput);
-		//System.out.println("TYPES" +  types);
-
-
-		if(thisOutput != null && thisOutput.length() > 0)
-		{
+		if (thisOutput != null && thisOutput.length() > 0) {
 			values = thisOutput + "";
 
-			if(thisOutput != null) // && castTargets.contains(outIndex + ""))
+			if (thisOutput != null) // && castTargets.contains(outIndex + ""))
 			{
-				if(type.equalsIgnoreCase("Date"))
+				if (type.equalsIgnoreCase("Date"))
 					values = getDate(thisOutput);
-				else if(type.equalsIgnoreCase("Currency"))// this is a currency
+				else if (type.equalsIgnoreCase("Currency"))// this is a currency
 					values = getCurrency(thisOutput) + "";
-				else if(type.equalsIgnoreCase("varchar(800)"))
-				{
-					if(thisOutput.length() >= 800)
-						thisOutput = thisOutput.substring(0,798);
+				else if (type.equalsIgnoreCase("varchar(800)")) {
+					if (thisOutput.length() >= 800)
+						thisOutput = thisOutput.substring(0, 798);
 					values = thisOutput;
 				}
 			}
-		}
-		else if(type != null)
-		{
-			if(type.equalsIgnoreCase("Double"))
+		} else if (type != null) {
+			if (type.equalsIgnoreCase("Double"))
 				values = "NULL";
-			else if(type.equalsIgnoreCase("varchar(800)") || type.equalsIgnoreCase("date"))
+			else if (type.equalsIgnoreCase("varchar(800)") || type.equalsIgnoreCase("date"))
 				values = "";
-		}
-		else
-		{
+		} else {
 			values = "";
 		}
 		return values;
 	}
 
-	public static Map<Integer, Set<Integer>> getCardinalityOfValues(String[] newHeaders, Map<String, Set<String>> edgeHash) {
-		Map<Integer, Set<Integer>> retMapping = new Hashtable<Integer, Set<Integer>>();
+	public static Map<Integer, Set<Integer>> getCardinalityOfValues(String[] newHeaders,
+			Map<String, Set<String>> edgeHash) {
+		Map<Integer, Set<Integer>> retMapping = new Hashtable<>();
 
-		if(edgeHash == null) {
+		if (edgeHash == null) {
 			return retMapping;
 		}
 
-		for(String startNode : edgeHash.keySet()) {
+		for (String startNode : edgeHash.keySet()) {
 			Integer startIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(newHeaders, startNode);
 
 			// for nulls and stuff
 			Set<String> set = edgeHash.get(startNode);
-			if(set==null) {
+			if (set == null) {
 				continue;
 			}
 
 			// finish the mappings
-			for(String endNode : set) {
+			for (String endNode : set) {
 				Integer endIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(newHeaders, endNode);
 
 				// add mapping
-				if(!retMapping.containsKey(startIndex)) {
-					Set<Integer> downstream = new HashSet<Integer>();
+				if (!retMapping.containsKey(startIndex)) {
+					Set<Integer> downstream = new HashSet<>();
 					downstream.add(endIndex);
 					retMapping.put(startIndex, downstream);
 				} else {
@@ -2029,12 +1997,12 @@ public class Utility {
 	}
 
 	public static String getRawDataType(String cleanDataType) {
-		if(cleanDataType == null || cleanDataType.isEmpty()) {
+		if (cleanDataType == null || cleanDataType.isEmpty()) {
 			return "VARCHAR(800)";
 		}
 		cleanDataType = cleanDataType.toUpperCase();
 
-		if(cleanDataType.equals("STRING")) {
+		if (cleanDataType.equals("STRING")) {
 			return "VARCHAR(800)";
 		}
 
@@ -2043,20 +2011,20 @@ public class Utility {
 	}
 
 	public static String getCleanDataType(String origDataType) {
-		if(origDataType == null || origDataType.isEmpty()) {
+		if (origDataType == null || origDataType.isEmpty()) {
 			return "STRING";
 		}
 		origDataType = origDataType.toUpperCase();
 
-		if(isIntegerType(origDataType) || isDoubleType(origDataType)) {
+		if (isIntegerType(origDataType) || isDoubleType(origDataType)) {
 			return "NUMBER";
 		}
 
-		if(isDateType(origDataType) || isTimeStamp(origDataType)) {
+		if (isDateType(origDataType) || isTimeStamp(origDataType)) {
 			return "DATE";
 		}
 
-		if(isStringType(origDataType)) {
+		if (isStringType(origDataType)) {
 			return "STRING";
 		}
 
@@ -2064,207 +2032,157 @@ public class Utility {
 	}
 
 	public static String getH2DataType(String dataType) {
-		if(isH2DataType(dataType)) {
+		if (isH2DataType(dataType)) {
 			return dataType;
 		}
-		
+
 		String returnType = getH2TypeConversionMap().get(dataType);
-		
+
 		return returnType;
 	}
-	
+
 	public static boolean isH2DataType(String dataType) {
-		if(
-				//INT TYPE
-				dataType.equals("INT")
-				|| dataType.equals("INTEGER")
-				|| dataType.equals("MEDIUMINT")
-				|| dataType.equals("INT4")
+		if (
+		// INT TYPE
+		dataType.equals("INT") || dataType.equals("INTEGER") || dataType.equals("MEDIUMINT") || dataType.equals("INT4")
 				|| dataType.equals("SIGNED")
 
-				//BOOLEAN TYPE
-				|| dataType.equals("BOOLEAN")
-				|| dataType.equals("BIT")
-				|| dataType.equals("BOOL")
+				// BOOLEAN TYPE
+				|| dataType.equals("BOOLEAN") || dataType.equals("BIT") || dataType.equals("BOOL")
 
-				//TINYINT TYPE
+				// TINYINT TYPE
 				|| dataType.equals("TINYINT")
 
-				//SMALLINT TYPE
-				|| dataType.equals("SMALLINT")
-				|| dataType.equals("INT2")
-				|| dataType.equals("YEAR")
+				// SMALLINT TYPE
+				|| dataType.equals("SMALLINT") || dataType.equals("INT2") || dataType.equals("YEAR")
 
-				//BIGINT TYPE
-				|| dataType.equals("BIGINT")
-				|| dataType.equals("INT8")
+				// BIGINT TYPE
+				|| dataType.equals("BIGINT") || dataType.equals("INT8")
 
-				//IDENTITY TYPE
+				// IDENTITY TYPE
 				|| dataType.equals("IDENTITY")
 
-				//DECIMAL TYPE
-				|| dataType.equals("DECIMAL")
-				|| dataType.equals("NUMBER")
-				|| dataType.equals("DEC")
+				// DECIMAL TYPE
+				|| dataType.equals("DECIMAL") || dataType.equals("NUMBER") || dataType.equals("DEC")
 				|| dataType.equals("NUMERIC")
 
-				//DOUBLE TYPE
-				|| dataType.equals("DOUBLE")
-				|| dataType.equals("PRECISION")
-				|| dataType.equals("FLOAT")
+				// DOUBLE TYPE
+				|| dataType.equals("DOUBLE") || dataType.equals("PRECISION") || dataType.equals("FLOAT")
 				|| dataType.equals("FLOAT8")
 
-				//REAL TYPE
-				|| dataType.equals("REAL")
-				|| dataType.equals("FLOAT4")
+				// REAL TYPE
+				|| dataType.equals("REAL") || dataType.equals("FLOAT4")
 
-				//TIME TYPE
+				// TIME TYPE
 				|| dataType.equals("TIME")
 
-				//DATE TYPE
+				// DATE TYPE
 				|| dataType.equals("DATE")
 
-				//TIMESTAMP TYPE
-				|| dataType.equals("TIMESTAMP")
-				|| dataType.equals("DATETIME")
-				|| dataType.equals("SMALLDATETIME")
+				// TIMESTAMP TYPE
+				|| dataType.equals("TIMESTAMP") || dataType.equals("DATETIME") || dataType.equals("SMALLDATETIME")
 
-				//BINARY TYPE
-				|| dataType.startsWith("BINARY")
-				|| dataType.startsWith("VARBINARY")
-				|| dataType.startsWith("LONGVARBINARY")
-				|| dataType.startsWith("RAW")
-				|| dataType.startsWith("BYTEA")
+				// BINARY TYPE
+				|| dataType.startsWith("BINARY") || dataType.startsWith("VARBINARY")
+				|| dataType.startsWith("LONGVARBINARY") || dataType.startsWith("RAW") || dataType.startsWith("BYTEA")
 
-				//OTHER TYPE
+				// OTHER TYPE
 				|| dataType.equals("OTHER")
 
-				//VARCHAR TYPE
-				|| dataType.startsWith("VARCHAR")
-				|| dataType.startsWith("LONGVARCHAR")
-				|| dataType.startsWith("VARCHAR2")
-				|| dataType.startsWith("NVARCHAR")
-				|| dataType.startsWith("NVARCHAR2")
-				|| dataType.startsWith("VARCHAR_CASESENSITIVE")
+				// VARCHAR TYPE
+				|| dataType.startsWith("VARCHAR") || dataType.startsWith("LONGVARCHAR")
+				|| dataType.startsWith("VARCHAR2") || dataType.startsWith("NVARCHAR")
+				|| dataType.startsWith("NVARCHAR2") || dataType.startsWith("VARCHAR_CASESENSITIVE")
 
-				//VARCHAR_IGNORECASE TYPE
+				// VARCHAR_IGNORECASE TYPE
 				|| dataType.startsWith("VARCHAR_IGNORECASE")
 
-				//CHAR TYPE
-				|| dataType.startsWith("CHAR")
-				|| dataType.startsWith("CHARACTER")
-				|| dataType.startsWith("NCHAR")
+				// CHAR TYPE
+				|| dataType.startsWith("CHAR") || dataType.startsWith("CHARACTER") || dataType.startsWith("NCHAR")
 
-				//BLOB TYPE
-				|| dataType.equals("BLOB")
-				|| dataType.equals("TINYBLOB")
-				|| dataType.equals("MEDIUMBLOB")
-				|| dataType.equals("LONGBLOB")
-				|| dataType.equals("IMAGE")
-				|| dataType.equals("OID")
+				// BLOB TYPE
+				|| dataType.equals("BLOB") || dataType.equals("TINYBLOB") || dataType.equals("MEDIUMBLOB")
+				|| dataType.equals("LONGBLOB") || dataType.equals("IMAGE") || dataType.equals("OID")
 
-				//CLOG TYPE
-				|| dataType.equals("CLOB")
-				|| dataType.equals("TINYTEXT")
-				|| dataType.equals("TEXT")
-				|| dataType.equals("MEDIUMTEXT")
-				|| dataType.equals("NTEXT")
-				|| dataType.equals("NCLOB")
+				// CLOG TYPE
+				|| dataType.equals("CLOB") || dataType.equals("TINYTEXT") || dataType.equals("TEXT")
+				|| dataType.equals("MEDIUMTEXT") || dataType.equals("NTEXT") || dataType.equals("NCLOB")
 
-				//UUID TYPE
+				// UUID TYPE
 				|| dataType.equals("UUID")
 
-				//ARRAY TYPE
+				// ARRAY TYPE
 				|| dataType.equals("ARRAY")
 
-
-				//GEOMETRY TYPE
+				// GEOMETRY TYPE
 				|| dataType.equals("GEOMETRY")
 
-				) {
+		) {
 			return true;
 		}
 		return false;
 	}
 
 	public static boolean isNumericType(String dataType) {
-		if(isIntegerType(dataType)) {
-			return true;
-		} else if(isDoubleType(dataType)) {
-			return true;
-		}
-		return false;
-	}
-	
-	public static boolean isIntegerType(String dataType) {
-		dataType = dataType.toUpperCase().trim();		
-		if(dataType.startsWith("IDENTITY")
-				|| dataType.startsWith("LONG")
-				|| dataType.startsWith("INT")
-				|| dataType.startsWith("INTEGER")
-				|| dataType.startsWith("MEDIUMINT")
-				|| dataType.startsWith("INT4")
-				|| dataType.startsWith("SIGNED")
-				
-				//TINYINT TYPE
-				|| dataType.startsWith("TINYINT")
-				
-				//SMALLINT TYPE
-				|| dataType.startsWith("SMALLINT")
-				|| dataType.startsWith("INT2")
-				|| dataType.startsWith("YEAR")
-				
-				//BIGINT TYPE
-				|| dataType.startsWith("BIGINT")
-				|| dataType.startsWith("INT8")
-				
-				// PANDAS
-				|| dataType.contains("DTYPE('INT64')")
-				) {
+		if (isIntegerType(dataType) || isDoubleType(dataType)) {
 			return true;
 		}
 
 		return false;
 	}
-	
-	public static boolean isBoolean(String dataType) {
-		dataType = dataType.toUpperCase().trim();		
-		if(dataType.startsWith("BOOL")) {
-			return true;
-		} else if(dataType.startsWith("BIT")) {
+
+	public static boolean isIntegerType(String dataType) {
+		dataType = dataType.toUpperCase().trim();
+		if (dataType.startsWith("IDENTITY") || dataType.startsWith("LONG") || dataType.startsWith("INT")
+				|| dataType.startsWith("INTEGER") || dataType.startsWith("MEDIUMINT") || dataType.startsWith("INT4")
+				|| dataType.startsWith("SIGNED")
+
+				// TINYINT TYPE
+				|| dataType.startsWith("TINYINT")
+
+				// SMALLINT TYPE
+				|| dataType.startsWith("SMALLINT") || dataType.startsWith("INT2") || dataType.startsWith("YEAR")
+
+				// BIGINT TYPE
+				|| dataType.startsWith("BIGINT") || dataType.startsWith("INT8")
+
+				// PANDAS
+				|| dataType.contains("DTYPE('INT64')")) {
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
+	public static boolean isBoolean(String dataType) {
+		dataType = dataType.toUpperCase().trim();
+		if (dataType.startsWith("BOOL") || dataType.startsWith("BIT")) {
+			return true;
+		}
+
+		return false;
+	}
+
 	public static boolean isDoubleType(String dataType) {
-		dataType = dataType.toUpperCase().trim();		
-		if(dataType.startsWith("NUMBER")
-				|| dataType.startsWith("MONEY")
-				|| dataType.startsWith("SMALLMONEY")
+		dataType = dataType.toUpperCase().trim();
+		if (dataType.startsWith("NUMBER") || dataType.startsWith("MONEY") || dataType.startsWith("SMALLMONEY")
 				|| dataType.startsWith("FLOAT")
 
-				//DECIMAL TYPE
-				|| dataType.startsWith("DECIMAL")
-				|| dataType.startsWith("NUMBER")
-				|| dataType.startsWith("DEC")
+				// DECIMAL TYPE
+				|| dataType.startsWith("DECIMAL") || dataType.startsWith("NUMBER") || dataType.startsWith("DEC")
 				|| dataType.startsWith("NUMERIC")
 
-				//DOUBLE TYPE
-				|| dataType.startsWith("DOUBLE")
-				|| dataType.startsWith("PRECISION")
-				|| dataType.startsWith("FLOAT")
+				// DOUBLE TYPE
+				|| dataType.startsWith("DOUBLE") || dataType.startsWith("PRECISION") || dataType.startsWith("FLOAT")
 				|| dataType.startsWith("FLOAT8")
 
-				//REAL TYPE
-				|| dataType.startsWith("REAL")
-				|| dataType.startsWith("FLOAT4")
+				// REAL TYPE
+				|| dataType.startsWith("REAL") || dataType.startsWith("FLOAT4")
 
 				// PANDAS
 				|| dataType.contains("DTYPE('FLOAT64')")
-				
-				) {
+
+		) {
 			return true;
 		}
 
@@ -2272,32 +2190,26 @@ public class Utility {
 	}
 
 	public static boolean isStringType(String dataType) {
-		dataType = dataType.toUpperCase().trim();		
-		if(dataType.equals("STRING")
-				//VARCHAR TYPE
-				|| dataType.startsWith("VARCHAR")
-				|| dataType.startsWith("TEXT")
-				|| dataType.startsWith("LONGVARCHAR")
-				|| dataType.startsWith("VARCHAR2")
-				|| dataType.startsWith("NVARCHAR")
-				|| dataType.startsWith("NVARCHAR2")
-				|| dataType.startsWith("VARCHAR_CASESENSITIVE")
+		dataType = dataType.toUpperCase().trim();
+		if (dataType.equals("STRING")
+				// VARCHAR TYPE
+				|| dataType.startsWith("VARCHAR") || dataType.startsWith("TEXT") || dataType.startsWith("LONGVARCHAR")
+				|| dataType.startsWith("VARCHAR2") || dataType.startsWith("NVARCHAR")
+				|| dataType.startsWith("NVARCHAR2") || dataType.startsWith("VARCHAR_CASESENSITIVE")
 
-				//VARCHAR_IGNORECASE TYPE
+				// VARCHAR_IGNORECASE TYPE
 				|| dataType.startsWith("VARCHAR_IGNORECASE")
 
-				//CHAR TYPE
-				|| dataType.startsWith("CHAR")
-				|| dataType.startsWith("CHARACTER")
-				|| dataType.startsWith("NCHAR")
-				
-				//R TYPE
+				// CHAR TYPE
+				|| dataType.startsWith("CHAR") || dataType.startsWith("CHARACTER") || dataType.startsWith("NCHAR")
+
+				// R TYPE
 				|| dataType.startsWith("FACTOR")
 
 				// PANDAS
 				|| dataType.contains("DTYPE('O')")
 
-				) {
+		) {
 			return true;
 		}
 
@@ -2305,60 +2217,60 @@ public class Utility {
 	}
 
 	public static boolean isDateType(String dataType) {
-		dataType = dataType.toUpperCase().trim();		
-		if(dataType.equals("DATE")) {
+		dataType = dataType.toUpperCase().trim();
+		if (dataType.startsWith("DATE")) {
 			return true;
 		}
 
 		return false;
 	}
-	
+
 	public static boolean isTimeStamp(String dataType) {
-		dataType = dataType.toUpperCase().trim();		
-		if(dataType.startsWith("TIMESTAMP")
-				|| dataType.startsWith("DATETIME")
-				) {
+		dataType = dataType.toUpperCase().trim();
+		if (dataType.startsWith("TIMESTAMP") || dataType.startsWith("DATETIME")) {
 			return true;
 		}
-		
+
 		return false;
 	}
-	
-	//return the translation from sql types to h2 types
+
+	// return the translation from sql types to h2 types
 	private static Map<String, String> getH2TypeConversionMap() {
 		Map<String, String> conversionMap = new HashMap<>();
-		
+
 		conversionMap.put("MONEY", "DECIMAL");
 		conversionMap.put("SMALLMONEY", "DECIMAL");
 		conversionMap.put("TEXT", "VARCHAR(800)");
 		conversionMap.put("STRING", "VARCHAR(800)");
 		conversionMap.put("NUMBER", "DOUBLE");
-		
+
 		return conversionMap;
 	}
 
 	/**
-	 * Take the file location and return the original file name
-	 * Based on upload flow, files that go through FileUploader.java class get appended with the date of upload
-	 * in the format of "_yyyy_MM_dd_HH_mm_ss_SSSS" (length of 25) 
+	 * Take the file location and return the original file name Based on upload
+	 * flow, files that go through FileUploader.java class get appended with the
+	 * date of upload in the format of "_yyyy_MM_dd_HH_mm_ss_SSSS" (length of 25)
 	 * Thus, we see if the file has the date appended and remove it if we find it
-	 * @param FILE_LOCATION						The location of the file
-	 * @param EXTENSION							The file extension
-	 * @return									The original file name
+	 * 
+	 * @param FILE_LOCATION The location of the file
+	 * @param EXTENSION     The file extension
+	 * @return The original file name
 	 */
 	public static String getOriginalFileName(final String FILE_LOCATION) {
 		// The FileUploader appends the time as "_yyyy_MM_dd_HH_mm_ss_SSSS"
 		// onto the original fileName in order to ensure that it is unique
-		// since we are using the fileName to be the table name, let us try and remove this
+		// since we are using the fileName to be the table name, let us try and remove
+		// this
 		String ext = "." + FilenameUtils.getExtension(FILE_LOCATION);
 		String fileName = FilenameUtils.getName(FILE_LOCATION).replace(ext, "");
 		// 24 is the length of the date being added
-		if(fileName.length() > 28) {
-			String fileEnd = fileName.substring(fileName.length()-24);
+		if (fileName.length() > 28) {
+			String fileEnd = fileName.substring(fileName.length() - 24);
 			try {
 				new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").parse(fileEnd);
 				// if the parsing was successful, we remove it from the fileName
-				fileName = fileName.substring(0, fileName.length()-24);
+				fileName = fileName.substring(0, fileName.length() - 24);
 			} catch (ParseException e) {
 				// the end was not the added date, so do nothing
 			}
@@ -2367,11 +2279,14 @@ public class Utility {
 	}
 
 	/**
-	 * Loads an engine - sets the core properties, loads base data engine and ontology file.
-	 * @param 	Filename.
-	 * @param 	List of properties.
-
-	 * @return 	Loaded engine. */
+	 * Loads an engine - sets the core properties, loads base data engine and
+	 * ontology file.
+	 * 
+	 * @param Filename.
+	 * @param List      of properties.
+	 * 
+	 * @return Loaded engine.
+	 */
 	public static IEngine loadEngine(String fileName, Properties prop) {
 		IEngine engine = null;
 		try {
@@ -2379,24 +2294,28 @@ public class Utility {
 			String engineId = prop.getProperty(Constants.ENGINE);
 			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
 
-			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
-				LOGGER.debug("DB " + engineId + " is already loaded...");
-				// engines are by default loaded so that we can keep track on the front end of engine/all call
-				// so even though it is added here there is a good possibility it is not loaded so check to see this
-				if(DIHelper.getInstance().getLocalProp(engineId) instanceof IEngine) {
+			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+					|| engines.endsWith(";" + engineId)) {
+				logger.debug("DB " + engineId + " is already loaded...");
+				// engines are by default loaded so that we can keep track on the front end of
+				// engine/all call
+				// so even though it is added here there is a good possibility it is not loaded
+				// so check to see this
+				if (DIHelper.getInstance().getLocalProp(engineId) instanceof IEngine) {
 					return (IEngine) DIHelper.getInstance().getLocalProp(engineId);
 				}
 			}
 
-			// we store the smss location in DIHelper 
+			// we store the smss location in DIHelper
 			DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.STORE, fileName);
 			// we also store the OWL location
-			if(prop.containsKey(Constants.OWL)) {
-				DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
+			if (prop.containsKey(Constants.OWL)) {
+				DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.OWL,
+						prop.getProperty(Constants.OWL));
 			}
-			
+
 			// create and open the class
-			engine = (IEngine)Class.forName(engineClass).newInstance();
+			engine = (IEngine) Class.forName(engineClass).newInstance();
 			engine.setEngineId(engineId);
 			engine.openDB(fileName);
 
@@ -2404,7 +2323,8 @@ public class Utility {
 			DIHelper.getInstance().setLocalProperty(engineId, engine);
 
 			// Append the engine name to engines if not already present
-			if(!(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId))) {
+			if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+					|| engines.endsWith(";" + engineId))) {
 				engines = engines + ";" + engineId;
 				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
 			}
@@ -2412,19 +2332,19 @@ public class Utility {
 			boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
 			boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
 			boolean isThemes = engineId.equals(Constants.THEMING_DB);
-			if(!isLocal && !isSecurity && !isThemes) {
+			if (!isLocal && !isSecurity && !isThemes) {
 				// sync up the engine metadata now
 				synchronizeEngineMetadata(engineId);
 				SecurityUpdateUtils.addApp(engineId);
 			}
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} catch(Exception e) {
-			e.printStackTrace();
+		} catch (InstantiationException ie) {
+			logger.error(STACKTRACE, ie);
+		} catch (IllegalAccessException iae) {
+			logger.error(STACKTRACE, iae);
+		} catch (ClassNotFoundException cnfe) {
+			logger.error(STACKTRACE, cnfe);
+		} catch (Exception e) {
+			logger.error(STACKTRACE, e);
 		}
 		return engine;
 	}
@@ -2449,30 +2369,32 @@ public class Utility {
 
 		// grab the local master engine
 		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-		if(localMaster == null) {
-			LOGGER.info(">>>>>>>> Unable to find local master database in DIHelper.");
+		if (localMaster == null) {
+			logger.info(">>>>>>>> Unable to find local master database in DIHelper.");
 			return;
 		}
 
-		// generate the appropriate query to execute on the local master engine to get the time stamp
+		// generate the appropriate query to execute on the local master engine to get
+		// the time stamp
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
 
 		// this has all the details
-		// the engine file is primarily the SMSS that is going to be utilized for the purposes of retrieving all the data
+		// the engine file is primarily the SMSS that is going to be utilized for the
+		// purposes of retrieving all the data
 		Properties prop = Utility.loadProperties(smssFile);
 
 		String rawType = prop.get(Constants.ENGINE_TYPE).toString();
-		if(rawType.contains("AppEngine")) {
+		if (rawType.contains("AppEngine")) {
 			// this engine has no data! it is just a collection of insights
 			// nothing to synchronize into local master
 			return;
 		}
-		
+
 		// TODO: NEED TO STILL BUILD THIS OUT!
-		if(rawType.contains("RemoteSemossEngine")) {
+		if (rawType.contains("RemoteSemossEngine")) {
 			return;
 		}
-		
+
 		AddToMasterDB adder = new AddToMasterDB();
 
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
@@ -2482,19 +2404,21 @@ public class Utility {
 
 		// 4) perform the necessary additions if the time stamps do not equal
 		// this is broken out into 2 separate parts
-		// 4.1) the local master doesn't have a time stamp which means the engine is not present
-		//		-> i.e. we do not need to remove the engine and re-add it
-		// 4.2) the time is present and we need to remove anything relating the engine that was in the engine and then re-add it
+		// 4.1) the local master doesn't have a time stamp which means the engine is not
+		// present
+		// -> i.e. we do not need to remove the engine and re-add it
+		// 4.2) the time is present and we need to remove anything relating the engine
+		// that was in the engine and then re-add it
 		String engineRdbmsDbTime = "Dummy";
-		if(rdbmsDate != null) {
+		if (rdbmsDate != null) {
 			engineRdbmsDbTime = df.format(rdbmsDate);
 		}
-		
-		if(rdbmsDate == null) {
+
+		if (rdbmsDate == null) {
 			// logic to register the engine into the local master
 			adder.registerEngineLocal(prop);
 			adder.commit(localMaster);
-		} else if(!engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) { 
+		} else if (!engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) {
 			// if it has a time stamp, it means it was previously in local master
 			// logic to delete an engine from the local master
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
@@ -2504,12 +2428,15 @@ public class Utility {
 			adder.commit(localMaster);
 		}
 	}
-	
-	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return the instance name.
-	 * @param String		URI to be split into tokens.
 
-	 * @return String		Instance name. */
+	/**
+	 * Splits up a URI into tokens based on "/" character and uses logic to return
+	 * the instance name.
+	 * 
+	 * @param String URI to be split into tokens.
+	 * 
+	 * @return String Instance name.
+	 */
 	public static String getInstanceName(String uri, IEngine.ENGINE_TYPE type) {
 		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
 		int totalTok = tokens.countTokens();
@@ -2527,53 +2454,51 @@ public class Utility {
 			}
 		}
 
-		if(type == IEngine.ENGINE_TYPE.RDBMS || type == IEngine.ENGINE_TYPE.R)
-			instanceName = "Table_" + instanceName + "Column_" + secondLastToken;  
+		if (type == IEngine.ENGINE_TYPE.RDBMS || type == IEngine.ENGINE_TYPE.R)
+			instanceName = "Table_" + instanceName + "Column_" + secondLastToken;
 
 		return instanceName;
 	}
 
-	public static String getRandomString(int len)
-	{
+	public static String getRandomString(int len) {
 		String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
 
 		String retString = "a";
-		for(int i = 0;i< len;i++)
-		{
-			double num = Math.random()*alpha.length();
+		for (int i = 0; i < len; i++) {
+			double num = Math.random() * alpha.length();
 			retString = retString + alpha.charAt(new Double(num).intValue());
 		}
 
 		return retString;
 	}
-	
+
 	public static boolean engineLoaded(String engineId) {
-		return DIHelper.getInstance().getLocalProp(engineId) != null; 
+		return DIHelper.getInstance().getLocalProp(engineId) != null;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId - engine to get
 	 * @return
 	 * 
-	 * Use this method to get the engine when the engine hasn't been loaded
+	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
 	public static IEngine getEngine(String engineId) {
 		return getEngine(engineId, true, false);
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId - engine to get
 	 * @return
 	 * 
-	 * Use this method to get the engine when the engine hasn't been loaded
+	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
 	public static IEngine getEngine(String engineId, boolean pullIfNeeded, boolean bypass) {
-		if(!bypass) {
+		if (!bypass) {
 			AppAvailabilityStore availableAppStore = AppAvailabilityStore.getInstance();
-			if(availableAppStore != null) {
-				if(availableAppStore.isAppDisabledByOwner(engineId)) {
+			if (availableAppStore != null) {
+				if (availableAppStore.isAppDisabledByOwner(engineId)) {
 					throw new SemossPixelException("App is currently disabled by owner");
 				}
 			}
@@ -2588,7 +2513,7 @@ public class Utility {
 			// TODO >>>timb: why is this here?
 			engineLocks.remove(engineId);
 
-		// Else, need to load the engine
+			// Else, need to load the engine
 		} else {
 
 			// Acquire the lock on the engine,
@@ -2632,41 +2557,44 @@ public class Utility {
 						fis = new FileInputStream(smssFile);
 						daProp.load(fis);
 						engine = Utility.loadEngine(smssFile, daProp);
-						System.out.println("Loaded the engine.. !!!!! " + engineId);
-					} catch (IOException e) {
-						e.printStackTrace();
+						logger.debug("Loaded the engine.. !!!!! " + engineId);
+					} catch (IOException ioe) {
+						logger.error(STACKTRACE, ioe);
 					} finally {
 						if (fis != null) {
 							try {
 								fis.close();
-							} catch (IOException e) {
-								e.printStackTrace();
+							} catch (IOException ioe) {
+								logger.error(STACKTRACE, ioe);
 							}
 						}
 					}
 				} else {
-					System.out.println("There is no SMSS File for the engine " + engineId + "...");
+					logger.debug("There is no SMSS File for the engine " + engineId + "...");
 				}
-				
+
 				// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
-				// TODO >>>timb: remove node exists error or catch it 
+				// TODO >>>timb: remove node exists error or catch it
 				// TODO >>>cluster: tag
 				// Start with because the insights RDBMS has the id security_InsightsRDBMS
-				if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase") || engineId.startsWith("form_builder_engine") || engineId.startsWith("themes"))) {
+				if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase")
+						|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes"))) {
 					Map<String, String> envMap = System.getenv();
-					if(envMap.containsKey(ZKClient.ZK_SERVER) || envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
-						if(ClusterUtil.LOAD_ENGINES_LOCALLY) {
-							
+					if (envMap.containsKey(ZKClient.ZK_SERVER)
+							|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
+						if (ClusterUtil.LOAD_ENGINES_LOCALLY) {
+
 							// Only publish if actually loading on this box
-							// TODO >>>timb: this logic only works insofar as we are assuming a user-based docker layer in addition to the app containers
+							// TODO >>>timb: this logic only works insofar as we are assuming a user-based
+							// docker layer in addition to the app containers
 							String host = "unknown";
-							
-							if(envMap.containsKey(ZKClient.HOST))
+
+							if (envMap.containsKey(ZKClient.HOST))
 								host = envMap.get(ZKClient.HOST);
-							
-							if(envMap.containsKey(ZKClient.HOST.toUpperCase()))
+
+							if (envMap.containsKey(ZKClient.HOST.toUpperCase()))
 								host = envMap.get(ZKClient.HOST.toUpperCase());
-							
+
 							// we are in business
 							ZKClient client = ZKClient.getInstance();
 							client.publishDB(engineId + "@" + host);
@@ -2674,7 +2602,7 @@ public class Utility {
 					}
 				}
 			} finally {
-				
+
 				// Make sure to unlock now
 				lock.unlock();
 			}
@@ -2682,138 +2610,148 @@ public class Utility {
 
 		return engine;
 	}
-	
+
 	private static ReentrantLock getEngineLock(String engineName) {
 		engineLocks.putIfAbsent(engineName, new ReentrantLock());
 		return engineLocks.get(engineName);
 	}
-	
-	public static HashMap<String, Object> getPKQLInputVar(String param, String reactor){
-		HashMap<String, Object> inputMap = new HashMap<String, Object>();
-		Object restrictions = new Object();
-		
-		switch(param){
-		case "COL_DEF" : inputMap.put("dataType", "column");						 
-						 inputMap.put("restrictions", restrictions);
-						 inputMap.put("source", "");
-						 switch(reactor){//COL_DEF specifies different var for some reactors - for COL_ADD its new column name, for COL_SPLIT, its existinmg column name
-							case "COL_ADD": inputMap.put("label", "New Column Name");
-											inputMap.put("varName", "c:newCol");
-											inputMap.put("type", "freetext");
-											inputMap.put("values", "");break;
-											
-							case "COL_SPLIT": inputMap.put("label", "Column to be split");
-											  inputMap.put("varName", "c:col1");											  
-											  inputMap.put("type", "dropdown");
-											  inputMap.put("values", "");break;
-											  
-							case "UNFILTER_DATA": inputMap.put("label", "Column to be unfiltered");
-							  					  inputMap.put("varName", "c:col1");											  
-							  					  inputMap.put("type", "dropdown");
-							  					  inputMap.put("values", "");break;
 
-							}break;
-							
-		case "EXPR_TERM" : inputMap.put("label", "New Column Value");
-						   inputMap.put("varName", "expression");
-						   inputMap.put("dataType", "expression");
-						   inputMap.put("type", "freetext");
-						   inputMap.put("restrictions", restrictions);
-						   inputMap.put("source", "");break;
-						   
-		case "WORD_OR_NUM" : inputMap.put("dataType", "text");		  					 
-		  					 inputMap.put("restrictions", restrictions);
-		  					 inputMap.put("source", "");
-		  					 switch(reactor){
-								case "COL_SPLIT": inputMap.put("label", "Delimiter");
-												  inputMap.put("varName", "delimiter");
-												  inputMap.put("type", "freetext");
-												  break;
-								}break;
-								
-		case "FILTERS" : inputMap.put("label", "Column with unfiltered data");
-		   				 inputMap.put("varName", "c:col1=[instances]");
-		   				 inputMap.put("dataType", "column");
-		   				 inputMap.put("type", "filterDropdown");
-		   				 inputMap.put("restrictions", restrictions);
-		   				 inputMap.put("source", "");
-		   				 inputMap.put("values", "");break;
-								
-		default: break;
+	public static HashMap<String, Object> getPKQLInputVar(String param, String reactor) {
+		HashMap<String, Object> inputMap = new HashMap<>();
+		Object restrictions = new Object();
+
+		switch (param) {
+		case "COL_DEF":
+			inputMap.put("dataType", "column");
+			inputMap.put("restrictions", restrictions);
+			inputMap.put("source", "");
+			switch (reactor) {// COL_DEF specifies different var for some reactors - for COL_ADD its new
+								// column name, for COL_SPLIT, its existinmg column name
+			case "COL_ADD":
+				inputMap.put("label", "New Column Name");
+				inputMap.put("varName", "c:newCol");
+				inputMap.put("type", "freetext");
+				inputMap.put("values", "");
+				break;
+
+			case "COL_SPLIT":
+				inputMap.put("label", "Column to be split");
+				inputMap.put("varName", "c:col1");
+				inputMap.put("type", "dropdown");
+				inputMap.put("values", "");
+				break;
+
+			case "UNFILTER_DATA":
+				inputMap.put("label", "Column to be unfiltered");
+				inputMap.put("varName", "c:col1");
+				inputMap.put("type", "dropdown");
+				inputMap.put("values", "");
+				break;
+
+			}
+			break;
+
+		case "EXPR_TERM":
+			inputMap.put("label", "New Column Value");
+			inputMap.put("varName", "expression");
+			inputMap.put("dataType", "expression");
+			inputMap.put("type", "freetext");
+			inputMap.put("restrictions", restrictions);
+			inputMap.put("source", "");
+			break;
+
+		case "WORD_OR_NUM":
+			inputMap.put("dataType", "text");
+			inputMap.put("restrictions", restrictions);
+			inputMap.put("source", "");
+			switch (reactor) {
+			case "COL_SPLIT":
+				inputMap.put("label", "Delimiter");
+				inputMap.put("varName", "delimiter");
+				inputMap.put("type", "freetext");
+				break;
+			}
+			break;
+
+		case "FILTERS":
+			inputMap.put("label", "Column with unfiltered data");
+			inputMap.put("varName", "c:col1=[instances]");
+			inputMap.put("dataType", "column");
+			inputMap.put("type", "filterDropdown");
+			inputMap.put("restrictions", restrictions);
+			inputMap.put("source", "");
+			inputMap.put("values", "");
+			break;
+
+		default:
+			break;
 		}
 		return inputMap;
 	}
 
-	public static String findOpenPort()
-	{
+	public static String findOpenPort() {
 		// start with 7677 and see if you can find any
-		System.out.println("Finding an open port.. ");
+		logger.debug("Finding an open port.. ");
 		boolean found = false;
-		
+
 		// need to talk to the oys and accomodate this logic of high and low
 		int lowPort = 1024;
 		int highPort = 6666;
-		
-		if(DIHelper.getInstance().getProperty("LOW_PORT") != null)
+
+		if (DIHelper.getInstance().getProperty("LOW_PORT") != null)
 			lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT"));
 
-		if(DIHelper.getInstance().getProperty("HIGH_PORT") != null)
+		if (DIHelper.getInstance().getProperty("HIGH_PORT") != null)
 			highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT"));
 
-		
 		int port = 5355;
 		int count = 0;
-		//String server = "10.13.229.203";
+		// String server = "10.13.229.203";
 		String server = "127.0.0.1";
-		for(;!found && count < 10000;port++, count++)
-		{
-			System.out.print("Trying.. " + port);
-			try
-			{
-				ServerSocket s = new ServerSocket(port) ;//"10.13.229.203", port);
-				//s.connect(new InetSocketAddress(server, port), 5000);//"localhost", port);
-				//s.accept();
+		for (; !found && count < 10000; port++, count++) {
+			logger.debug("Trying.. " + port);
+			try {
+				ServerSocket s = new ServerSocket(port); // "10.13.229.203", port);
+				// s.connect(new InetSocketAddress(server, port), 5000);//"localhost", port);
+				// s.accept();
 				found = true;
 				s.close();
-				System.out.println("  Success !!!!");
-				//no error, found an open port, we can stop
+				logger.debug("  Success !!!!");
+				// no error, found an open port, we can stop
 				break;
-			}catch (Exception ex)
-			{
+			} catch (Exception ex) {
 				// do nothing
-				//ex.printStackTrace();
-				System.out.println("  Fail");
-				//System.exit(0);
+				logger.debug("  Fail");
 				found = false;
-				//ex.printStackTrace();
-			}finally
-			{
+				logger.error(STACKTRACE, ex);
 			}
 		}
-		
-		//if we found a port, return that port
-		if(found) return port+"";
-				
+
+		// if we found a port, return that port
+		if (found)
+			return port + "";
+
 		port--;
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		String portStr = null;
-		if(!found) {
-			System.out.println("Unable to find an open port. Please provide a port.");
-			 try {
+		if (!found) {
+			logger.debug("Unable to find an open port. Please provide a port.");
+			try {
 				portStr = br.readLine();
-			} catch (IOException e) {
-				e.printStackTrace();
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			}
-			System.out.println("Using port: " + portStr);
+			logger.debug("Using port: " + portStr);
 		} else {
-			portStr = port+"";
+			portStr = port + "";
 		}
-		
+
 		return portStr;
 	}
-	
+
 	/**
 	 * Write an iterator to a file location using "," as a separator
+	 * 
 	 * @param fileLocation
 	 * @param it
 	 * @return
@@ -2821,9 +2759,10 @@ public class Utility {
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it) {
 		return Utility.writeResultToFile(fileLocation, it, null, ",");
 	}
-	
+
 	/**
 	 * Write an iterator to a file location using the specified separator
+	 * 
 	 * @param fileLocation
 	 * @param it
 	 * @param separator
@@ -2832,20 +2771,24 @@ public class Utility {
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, String separator) {
 		return Utility.writeResultToFile(fileLocation, it, null, separator);
 	}
-	
+
 	/**
-	 * Write an iterator to a file location using the types map defined and using a "," as a separator
+	 * Write an iterator to a file location using the types map defined and using a
+	 * "," as a separator
+	 * 
 	 * @param fileLocation
 	 * @param it
 	 * @param typesMap
 	 * @return
 	 */
-	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it,
+			Map<String, SemossDataType> typesMap) {
 		return Utility.writeResultToFile(fileLocation, it, typesMap, ",");
 	}
-	
+
 	/**
 	 * Write a task to a file using a "," as a separator
+	 * 
 	 * @param fileLocation
 	 * @param task
 	 * @return
@@ -2853,9 +2796,10 @@ public class Utility {
 	public static File writeResultToFile(String fileLocation, ITask task) {
 		return writeResultToFile(fileLocation, task, ",");
 	}
-	
+
 	/**
-	 * Write a task toa  file using the specified separator
+	 * Write a task toa file using the specified separator
+	 * 
 	 * @param fileLocation
 	 * @param task
 	 * @param seperator
@@ -2863,149 +2807,139 @@ public class Utility {
 	 */
 	public static File writeResultToFile(String fileLocation, ITask task, String seperator) {
 		List<Map<String, Object>> headersInfo = task.getHeaderInfo();
-		Map<String, SemossDataType> typesMap = new HashMap<String, SemossDataType>();
-		for(Map<String, Object> headerMap : headersInfo) {
+		Map<String, SemossDataType> typesMap = new HashMap<>();
+		for (Map<String, Object> headerMap : headersInfo) {
 			String name = (String) headerMap.get("alias");
 			SemossDataType type = SemossDataType.convertStringToDataType(headerMap.get("type").toString());
 			headerMap.put(name, type);
 		}
-		
+
 		return Utility.writeResultToFile(fileLocation, task, typesMap, seperator);
 	}
-	
-	public static String adjustTypeR(String frameName, String [] columns, Map<String, SemossDataType> typeMap)
-	{
+
+	public static String adjustTypeR(String frameName, String[] columns, Map<String, SemossDataType> typeMap) {
 		StringBuilder adjustTypes = new StringBuilder();
-		for(int headIndex = 0;headIndex < columns.length;headIndex++)
-		{
+		for (int headIndex = 0; headIndex < columns.length; headIndex++) {
 			SemossDataType type = typeMap.get(columns[headIndex]);
 			String asType = null;
-			if(type == SemossDataType.INT)
+			if (type == SemossDataType.INT)
 				asType = "as.integer(";
-			else if(type == SemossDataType.DOUBLE)
+			else if (type == SemossDataType.DOUBLE)
 				asType = "as.double(";
-			if(asType != null)
-				adjustTypes.append(frameName).append("$").append(columns[headIndex])
-						   .append(" <- ")
-						   .append(asType)
-						   .append(frameName).append("$").append(columns[headIndex])
-						   .append(");");
+			if (asType != null)
+				adjustTypes.append(frameName).append("$").append(columns[headIndex]).append(" <- ").append(asType)
+						.append(frameName).append("$").append(columns[headIndex]).append(");");
 		}
 
 		return adjustTypes.toString();
 	}
 
-	public static String adjustTypePy(String frameName, String [] columns, Map<String, SemossDataType> typeMap)
-	{
+	public static String adjustTypePy(String frameName, String[] columns, Map<String, SemossDataType> typeMap) {
 		StringBuilder adjustTypes = new StringBuilder();
-		for(int headIndex = 0;headIndex < columns.length;headIndex++)
-		{
+		for (int headIndex = 0; headIndex < columns.length; headIndex++) {
 			SemossDataType type = typeMap.get(columns[headIndex]);
 			String asType = null;
-			if(type == SemossDataType.INT)
+			if (type == SemossDataType.INT)
 				asType = "int64";
-			else if(type == SemossDataType.DOUBLE)
+			else if (type == SemossDataType.DOUBLE)
 				asType = "float64";
-			if(asType != null)
-				adjustTypes.append(frameName).append("['").append(columns[headIndex]).append("']")
-						   .append(" = ")
-						   .append(frameName).append("['").append(columns[headIndex]).append("']")						   
-						   .append(".astype('")
-						   .append(asType)
-						   .append("', errors='ignore');");
+			if (asType != null)
+				adjustTypes.append(frameName).append("['").append(columns[headIndex]).append("']").append(" = ")
+						.append(frameName).append("['").append(columns[headIndex]).append("']").append(".astype('")
+						.append(asType).append("', errors='ignore');");
 		}
 
 		return adjustTypes.toString();
 	}
 
-	
-/*
-	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator, int parallel) {
-		
-		fileLocation = fileLocation.replace(".tsv", "");
-		
-		File fileLoc = new File(fileLocation);
-		if(fileLoc.exists())
-			fileLoc.delete();
-		fileLoc.mkdir();
-		
-		if(parallel == -1)
-			parallel = 10; // defaulting to ten threads
-		
-		// result gatherer thread that is invoked after all threads are done
-		ResultGathererThread rgt = new ResultGathererThread();
-		Object daLock = new Object();
-		rgt.daLock = daLock;
-		
-		
-		CyclicBarrier cyb = new CyclicBarrier(parallel, new Thread(rgt));
-		for(int parIndex = 0;parIndex < parallel;parIndex++)
-		{
-			ResultWriterThread rwt = new ResultWriterThread();
-			rwt.cyb = cyb;
-			rwt.fileLocation = fileLocation;
-			rwt.it = it;
-			rwt.typesMap = typesMap;
-			rwt.seperator = seperator;
-			rwt.suffix = parIndex+"";
-			Thread rwThread = new Thread(rwt);
-			rwThread.start();
-		}
-		
-		// need a lock to sleep here but.. 
-		synchronized(daLock)
-		{
-			try {
-				daLock.wait();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+	/*
+		public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator, int parallel) {
+			
+			fileLocation = fileLocation.replace(".tsv", "");
+			
+			File fileLoc = new File(fileLocation);
+			if(fileLoc.exists())
+				fileLoc.delete();
+			fileLoc.mkdir();
+			
+			if(parallel == -1)
+				parallel = 10; // defaulting to ten threads
+			
+			// result gatherer thread that is invoked after all threads are done
+			ResultGathererThread rgt = new ResultGathererThread();
+			Object daLock = new Object();
+			rgt.daLock = daLock;
+			
+			
+			CyclicBarrier cyb = new CyclicBarrier(parallel, new Thread(rgt));
+			for(int parIndex = 0;parIndex < parallel;parIndex++)
+			{
+				ResultWriterThread rwt = new ResultWriterThread();
+				rwt.cyb = cyb;
+				rwt.fileLocation = fileLocation;
+				rwt.it = it;
+				rwt.typesMap = typesMap;
+				rwt.seperator = seperator;
+				rwt.suffix = parIndex+"";
+				Thread rwThread = new Thread(rwt);
+				rwThread.start();
 			}
+			
+			// need a lock to sleep here but.. 
+			synchronized(daLock)
+			{
+				try {
+					daLock.wait();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			
+			return fileLoc;
 		}
-		
-		
-		return fileLoc;
-	}
-
-	*/
 	
-	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator) {
+		*/
+
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it,
+			Map<String, SemossDataType> typesMap, String seperator) {
 		long start = System.currentTimeMillis();
-		
+
 		// make sure file is empty so we are only inserting the new values
 		File f = new File(fileLocation);
-		if(f.exists()) {
-			System.out.println("File currently exists.. deleting file");
+		if (f.exists()) {
+			logger.debug("File currently exists.. deleting file");
 			f.delete();
 		}
 		try {
 			f.createNewFile();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
-		
+
 		FileOutputStream fos = null;
 		OutputStreamWriter osw = null;
 		BufferedWriter bufferedWriter = null;
-		
+
 		try {
 			fos = new FileOutputStream(f);
 			osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-	        bufferedWriter = new BufferedWriter(osw);
+			bufferedWriter = new BufferedWriter(osw);
 
-	        // store some variables and just reset
-	        // should be faster than creating new ones each time
-	        int i = 0;
-	        int size = 0;
-	        StringBuilder builder = null;
-	        // create typesArr as an array for faster searching
-	        String[] headers = null;
-	        SemossDataType[] typesArr = null;
-	        
-	        // we need to iterate and write the headers during the first time
-			if(it.hasNext()) {
+			// store some variables and just reset
+			// should be faster than creating new ones each time
+			int i = 0;
+			int size = 0;
+			StringBuilder builder = null;
+			// create typesArr as an array for faster searching
+			String[] headers = null;
+			SemossDataType[] typesArr = null;
+
+			// we need to iterate and write the headers during the first time
+			if (it.hasNext()) {
 				IHeadersDataRow row = it.next();
-				
+
 				// generate the header row
 				// and define constants used throughout like size, and types
 				i = 0;
@@ -3013,125 +2947,115 @@ public class Utility {
 				size = headers.length;
 				typesArr = new SemossDataType[size];
 				builder = new StringBuilder();
-				for(; i < size; i++) {
+				for (; i < size; i++) {
 					builder.append("\"").append(headers[i]).append("\"");
-					if( (i+1) != size) {
+					if ((i + 1) != size) {
 						builder.append(seperator);
 					}
-					if(typesMap == null) {
+					if (typesMap == null) {
 						typesArr[i] = SemossDataType.STRING;
 					} else {
 						typesArr[i] = typesMap.get(headers[i]);
-						if(typesArr[i] == null) {
+						if (typesArr[i] == null) {
 							typesArr[i] = SemossDataType.STRING;
 						}
 					}
 				}
 				// write the header to the file
 				bufferedWriter.write(builder.append("\n").toString());
-				
+
 				// generate the data row
 				Object[] dataRow = row.getValues();
 				builder = new StringBuilder();
 				i = 0;
-				for(; i < size; i ++) {
-					if(typesArr[i] == SemossDataType.STRING) {
+				for (; i < size; i++) {
+					if (typesArr[i] == SemossDataType.STRING) {
 						builder.append("\"").append(dataRow[i]).append("\"");
 					} else {
 						builder.append(dataRow[i]);
 					}
-					if( (i+1) != size) {
+					if ((i + 1) != size) {
 						builder.append(seperator);
 					}
 				}
 				// write row to file
 				bufferedWriter.write(builder.append("\n").toString());
 			}
-			
+
 			// now loop through all the data
-			while(it.hasNext()) {
+			while (it.hasNext()) {
 				IHeadersDataRow row = it.next();
 				// generate the data row
 				Object[] dataRow = row.getValues();
 				builder = new StringBuilder();
 				i = 0;
-				for(; i < size; i ++) {
-					if(typesArr[i] == SemossDataType.STRING) {
+				for (; i < size; i++) {
+					if (typesArr[i] == SemossDataType.STRING) {
 						builder.append("\"").append(dataRow[i]).append("\"");
 					} else {
 						builder.append(dataRow[i]);
 					}
-					if( (i+1) != size) {
+					if ((i + 1) != size) {
 						builder.append(seperator);
 					}
 				}
 				// write row to file
 				bufferedWriter.write(builder.append("\n").toString());
 			}
-			
-		} catch (IOException e) {
-			e.printStackTrace();
+
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		} finally {
 			try {
-				if(bufferedWriter != null) {
+				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			}
 			try {
-				if(osw != null) {
+				if (osw != null) {
 					osw.close();
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			}
 			try {
-				if(fos != null) {
+				if (fos != null) {
 					fos.close();
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			}
 		}
-		
+
 		long end = System.currentTimeMillis();
-		System.out.println("Time to output file = " + (end-start) + " ms");
-		
+		logger.debug("Time to output file = " + (end - start) + " ms");
+
 		return f;
 	}
 
-	
 	public static String encodeURIComponent(String s) {
 		try {
-			s = URLEncoder.encode(s, "UTF-8")
-					.replaceAll("\\+", "%20")
-					.replaceAll("\\%21","!")
-					.replaceAll("\\%27","'")
-					.replaceAll("\\%28","(")
-					.replaceAll("\\%29",")")
-					.replaceAll("\\%7E","~");
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
+			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
+					.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
+		} catch (UnsupportedEncodingException uee) {
+			logger.error(STACKTRACE, uee);
 		}
 		return s;
 	}
-	
+
 	public static String decodeURIComponent(String s) {
 		try {
-			String newS = s.replaceAll("\\%20", "+")
-					.replaceAll("!","%21")
-					.replaceAll("'","%27")
-					.replaceAll("\\(","%28")
-					.replaceAll("\\)","%29")
-					.replaceAll("~","%7E");
+			String newS = s.replaceAll("\\%20", "+").replace("!", "%21").replace("'", "%27")
+					.replaceAll("\\(", "%28").replaceAll("\\)", "%29").replace("~", "%7E");
 			s = URLDecoder.decode(newS, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return s;
 	}
-	
+
 	// ensure no CRLF injection into logs for forging records
 	public static String cleanLogString(String message) {
 		message = message.replace('\n', '_').replace('\r', '_').replace('\t', '_');
@@ -3139,12 +3063,23 @@ public class Utility {
 
 		return message;
 	}
-	
+
+	public static String normalizePath(String stringToNormalize) {
+		String normalizedString = FilenameUtils.normalize(stringToNormalize);
+
+		if (normalizedString == null) {
+			logger.error("File path: " + stringToNormalize + " could not be normalized");
+			throw new IllegalArgumentException();
+		}
+		normalizedString = normalizedString.replace("\\", "/");
+
+		return normalizedString;
+	}
+
 	/**
 	 * Loads the properties from a specifed properties file.
 	 * 
-	 * @param fileName
-	 *            String of the name of the properties file to be loaded.
+	 * @param fileName String of the name of the properties file to be loaded.
 	 * @return Properties The properties imported from the prop file.
 	 */
 	public static Properties loadProperties(String fileName) {
@@ -3154,14 +3089,14 @@ public class Utility {
 			try {
 				fis = new FileInputStream(fileName);
 				retProp.load(fis);
-			} catch (IOException e) {
-				e.printStackTrace();
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			} finally {
 				if (fis != null) {
 					try {
 						fis.close();
-					} catch (IOException e) {
-						e.printStackTrace();
+					} catch (IOException ioe) {
+						logger.error(STACKTRACE, ioe);
 					}
 				}
 			}
@@ -3169,6 +3104,7 @@ public class Utility {
 		}
 		return retProp;
 	}
+
 	public static void copyURLtoFile(String urlString, String filePath) {
 		try {
 			URL url = new URL(urlString);
@@ -3182,70 +3118,68 @@ public class Utility {
 			}
 			out.close();
 			in.close();
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (MalformedURLException mue) {
+			logger.error(STACKTRACE, mue);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
 	}
-	
-	public static Map loadReactors(String folder, String key)
-	{
+
+	public static Map loadReactors(String folder, String key) {
 		HashMap thisMap = new HashMap<String, Class>();
 		try {
 			// I should create the class pool everytime
 			// this way it doesn't keep others and try to get from other places
 			// does this end up loading all the other classes too ?
 			ClassPool pool = ClassPool.getDefault();
-			// takes a class and modifies the name of the package and then plugs it into the heap
-			
+			// takes a class and modifies the name of the package and then plugs it into the
+			// heap
+
 			// the main folder to add here is
-			// basefolder/db/insightfolder/classes - right now I have it as classes. we can change it to something else if we want
-			String classesFolder = folder + "/classes"; 
+			// basefolder/db/insightfolder/classes - right now I have it as classes. we can
+			// change it to something else if we want
+			String classesFolder = folder + "/classes";
 			classesFolder = classesFolder.replaceAll("\\\\", "/");
-			
+
 			File file = new File(classesFolder);
-			if(file.exists()) {
+			if (file.exists()) {
 				// loads a class and tried to change the package of the class on the fly
-				//CtClass clazz = pool.get("prerna.test.CPTest");
-				
-				System.err.println("Loading reactors from >> " + classesFolder);
-				
+				// CtClass clazz = pool.get("prerna.test.CPTest");
+
+				logger.error("Loading reactors from >> " + classesFolder);
+
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
-				
-				String [] packages = new String[dirList.size()];
-				for(int dirIndex = 0;dirIndex < dirList.size(); dirIndex++) {
-					packages[dirIndex] = (String)dirList.get(dirIndex);
-				}
-				
-				ScanResult sr = new ClassGraph()
-				//.whitelistPackages("prerna")
-						.overrideClasspath((new File(classesFolder).toURI().toURL()))
-						//.enableAllInfo()
-						//.enableClassInfo()
-						.whitelistPackages(packages)
-						.scan();
-				//ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
-				//ScanResult sr = new ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
 
-				//ClassInfoList classes = sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+				String[] packages = new String[dirList.size()];
+				for (int dirIndex = 0; dirIndex < dirList.size(); dirIndex++) {
+					packages[dirIndex] = dirList.get(dirIndex);
+				}
+
+				ScanResult sr = new ClassGraph()
+						// .whitelistPackages("prerna")
+						.overrideClasspath((new File(classesFolder).toURI().toURL()))
+						// .enableAllInfo()
+						// .enableClassInfo()
+						.whitelistPackages(packages).scan();
+				// ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
+				// ScanResult sr = new
+				// ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
+
+				// ClassInfoList classes =
+				// sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
 				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
 
-				Map <String, Class> reactors = new HashMap<String, Class>();
+				Map<String, Class> reactors = new HashMap<>();
 				// add the path to the insight classes so only this guy can load it
 				pool.insertClassPath(classesFolder);
-				
-				for(int classIndex = 0;classIndex < classes.size();classIndex++)
-				{
+
+				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
 					String name = classes.get(classIndex).getSimpleName();
 					String packageName = classes.get(classIndex).getPackageName();
-					//Class actualClass = classes.get(classIndex).loadClass();
+					// Class actualClass = classes.get(classIndex).loadClass();
 					// if it is already there.. nothing we can do
-					if(!reactors.containsKey(name.toUpperCase().replaceAll("REACTOR", "")))
-					{
+					if (!reactors.containsKey(name.toUpperCase().replaceAll("REACTOR", ""))) {
 						try {
 							// can I modify the class here
 							CtClass clazz = pool.get(packageName + "." + name);
@@ -3257,265 +3191,250 @@ public class Utility {
 							// if you want a namespace
 							clazz.setName(qClassName);
 							Class newClass = clazz.toClass();
-	
+
 							Object newInstance = newClass.newInstance();
-							
+
 							// add to the insight map
 							// we could do other instrumentation if we so chose to
-							// once I have created it is in the heap, I dont need to do much. One thing I could do is not load every class in the insight but give it out slowly
-							if(newInstance instanceof prerna.sablecc2.reactor.AbstractReactor)
+							// once I have created it is in the heap, I dont need to do much. One thing I
+							// could do is not load every class in the insight but give it out slowly
+							if (newInstance instanceof prerna.sablecc2.reactor.AbstractReactor)
 								thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
-	
-						} catch (NotFoundException e) {
-							e.printStackTrace();
-						} catch (CannotCompileException e) {
-							e.printStackTrace();
+
+						} catch (NotFoundException nfe) {
+							logger.error(STACKTRACE, nfe);
+						} catch (CannotCompileException cce) {
+							logger.error(STACKTRACE, cce);
 						}
-						//System.out.println(newClass.getCanonicalName());
-						
-						// once the new instance has been done.. it has been injected into heap.. after this anyone can access it. 
+
+						// once the new instance has been done.. it has been injected into heap.. after
+						// this anyone can access it.
 						// no way to remove this class from heap
 						// has to be garbage collected as it moves
-						//System.out.println(newClass.newInstance().getClass().getPackage());
 					}
 				}
-			}				
-		} catch(Exception ex) {
-			ex.printStackTrace();
+			}
+		} catch (Exception ex) {
+			logger.error(STACKTRACE, ex);
 		}
+
 		return thisMap;
-		
 	}
 
-	public static Map loadReactors(String folder, String key, SemossClassloader cl)
-	{
+	public static Map loadReactors(String folder, String key, SemossClassloader cl) {
 		return loadReactors(folder, key, cl, "classes");
 	}
 
-	
 	// loads classes through this specific class loader for the insight
-	public static Map loadReactors(String folder, String key, SemossClassloader cl, String outputFolder)
-	{
+	public static Map loadReactors(String folder, String key, SemossClassloader cl, String outputFolder) {
 		HashMap thisMap = new HashMap<String, Class>();
 		try {
 			// I should create the class pool everytime
 			// this way it doesn't keep others and try to get from other places
 			// does this end up loading all the other classes too ?
 			ClassPool pool = ClassPool.getDefault();
-			// takes a class and modifies the name of the package and then plugs it into the heap
-			
+			// takes a class and modifies the name of the package and then plugs it into the
+			// heap
+
 			// the main folder to add here is
-			// basefolder/db/insightfolder/classes - right now I have it as classes. we can change it to something else if we want
-			String classesFolder = folder + "/" + outputFolder; 
-			
+			// basefolder/db/insightfolder/classes - right now I have it as classes. we can
+			// change it to something else if we want
+			String classesFolder = folder + "/" + outputFolder;
+
 			classesFolder = classesFolder.replaceAll("\\\\", "/");
 			cl.folder = classesFolder;
-			
+
 			File file = new File(classesFolder);
-			if(file.exists()) {
+			if (file.exists()) {
 				// loads a class and tried to change the package of the class on the fly
-				//CtClass clazz = pool.get("prerna.test.CPTest");
-				
-				System.err.println("Loading reactors from >> " + classesFolder);
-				
+				// CtClass clazz = pool.get("prerna.test.CPTest");
+
+				logger.error("Loading reactors from >> " + classesFolder);
+
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
-				
-				String [] packages = new String[dirList.size()];
-				for(int dirIndex = 0;dirIndex < dirList.size(); dirIndex++) {
-					packages[dirIndex] = (String)dirList.get(dirIndex);
-				}
-				
-				ScanResult sr = new ClassGraph()
-				//.whitelistPackages("prerna")
-						.overrideClasspath((new File(classesFolder).toURI().toURL()))
-						//.enableAllInfo()
-						//.enableClassInfo()
-						.whitelistPackages(packages)
-						.scan();
-				//ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
-				//ScanResult sr = new ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
 
-				//ClassInfoList classes = sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+				String[] packages = new String[dirList.size()];
+				for (int dirIndex = 0; dirIndex < dirList.size(); dirIndex++) {
+					packages[dirIndex] = dirList.get(dirIndex);
+				}
+
+				ScanResult sr = new ClassGraph()
+						// .whitelistPackages("prerna")
+						.overrideClasspath((new File(classesFolder).toURI().toURL()))
+						// .enableAllInfo()
+						// .enableClassInfo()
+						.whitelistPackages(packages).scan();
+				// ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
+				// ScanResult sr = new
+				// ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
+
+				// ClassInfoList classes =
+				// sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
 				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
 
-				Map <String, Class> reactors = new HashMap<String, Class>();
+				Map<String, Class> reactors = new HashMap<>();
 				// add the path to the insight classes so only this guy can load it
 				pool.insertClassPath(classesFolder);
-				
-				for(int classIndex = 0;classIndex < classes.size();classIndex++)
-				{
+
+				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
 					// this will load the whole thing
 					Class newClass = cl.loadClass(classes.get(classIndex).getName());
 					String name = classes.get(classIndex).getSimpleName();
-					String packageName = classes.get(classIndex).getPackageName();
 
 					thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
 				}
-			}				
-		} catch(Exception ex) {
-			ex.printStackTrace();
+			}
+		} catch (Exception ex) {
+			logger.error(STACKTRACE, ex);
 		}
+
 		return thisMap;
-		
 	}
 
-	
-	public  static String getCP()
-	{
+	public static String getCP() {
 		String envClassPath = null;
-		
+
 		try {
 			StringBuilder retClassPath = new StringBuilder("");
 			Class utilClass = Class.forName("prerna.util.Utility");
 			ClassLoader cl = utilClass.getClassLoader();
 
-			URL[] urls = ((URLClassLoader)cl).getURLs();
+			URL[] urls = ((URLClassLoader) cl).getURLs();
 
-			for(URL url: urls){
+			for (URL url : urls) {
 				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-				if(thisURL.endsWith("/"))
-					thisURL = thisURL.substring(0, thisURL.length()-1);
+				if (thisURL.endsWith("/"))
+					thisURL = thisURL.substring(0, thisURL.length() - 1);
 
 				retClassPath
-					//.append("\"")
-					.append(thisURL)
-					//.append("\"")
-					.append(";");
-				
+						// .append("\"")
+						.append(thisURL)
+						// .append("\"")
+						.append(";");
+
 			}
 			envClassPath = "\"" + retClassPath.toString() + "\"";
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (ClassNotFoundException cnfe) {
+			logger.error(STACKTRACE, cnfe);
 		}
-        
-        return envClassPath;
+
+		return envClassPath;
 	}
 
-	public  static String getCP(String specificJars)
-	{
+	public static String getCP(String specificJars) {
 		StringBuffer envClassPath = new StringBuffer();
-		
 		String osName = System.getProperty("os.name").toLowerCase();
-
 		boolean win = osName.indexOf("win") >= 0;
-		
+
 		try {
 			StringBuffer retClassPath = new StringBuffer("");
 			Class utilClass = Class.forName("prerna.util.Utility");
 			ClassLoader cl = utilClass.getClassLoader();
 
-			URL[] urls = ((URLClassLoader)cl).getURLs();
-			
+			URL[] urls = ((URLClassLoader) cl).getURLs();
+
 			String webinfLib = null;
 			boolean webinfTagged = false;
 
-			for(URL url: urls)
-			{
-				
-				String jarName = Utility.getInstanceName(url+"");
-				//jarName = jarName.replace(".jar", "");
+			for (URL url : urls) {
+
+				String jarName = Utility.getInstanceName(url + "");
+				// jarName = jarName.replace(".jar", "");
 				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
 
 				String separator = ";";
-				if(!win)
-				{
+				if (!win) {
 					thisURL = "/" + thisURL;
 					separator = ":";
 				}
-				
-				if(thisURL.endsWith(".jar") && thisURL.contains("WEB-INF/lib") && webinfLib == null)
-				{
+
+				if (thisURL.endsWith(".jar") && thisURL.contains("WEB-INF/lib") && webinfLib == null) {
 					String thisJarName = getInstanceName(thisURL);
 					thisURL = thisURL.replace("/" + thisJarName, "");
 					webinfLib = thisURL + "/*";
-					if(!webinfTagged)
-					{
+					if (!webinfTagged) {
 						retClassPath
-						//.append("\"")
-							.append(webinfLib)
-							//.append("\"")
-							.append(separator);
+								// .append("\"")
+								.append(webinfLib)
+								// .append("\"")
+								.append(separator);
 						webinfTagged = true;
 					}
 
 				}
-				
+
 				// add the folder
-				else if(!thisURL.endsWith(".jar") && specificJars.contains(jarName) && !thisURL.contains("WEB-INF/lib"))
-				{
-					if(thisURL.endsWith("/"))
-						thisURL = thisURL.substring(0, thisURL.length()-1);
+				else if (!thisURL.endsWith(".jar") && specificJars.contains(jarName)
+						&& !thisURL.contains("WEB-INF/lib")) {
+					if (thisURL.endsWith("/"))
+						thisURL = thisURL.substring(0, thisURL.length() - 1);
 					retClassPath
-					//.append("\"")
-						.append(thisURL)
-						//.append("\"")
-						.append(separator);
+							// .append("\"")
+							.append(thisURL)
+							// .append("\"")
+							.append(separator);
 				}
 				// address the issue when you are running outside of semoss
-				else if(thisURL.endsWith(".jar") && specificJars.contains(jarName) && !thisURL.contains("WEB-INF/lib"))
-				{
-					if(thisURL.endsWith("/"))
-						thisURL = thisURL.substring(0, thisURL.length()-1);
+				else if (thisURL.endsWith(".jar") && specificJars.contains(jarName)
+						&& !thisURL.contains("WEB-INF/lib")) {
+					if (thisURL.endsWith("/"))
+						thisURL = thisURL.substring(0, thisURL.length() - 1);
 					retClassPath
-					//.append("\"")
-						.append(thisURL)
-						//.append("\"")
-						.append(separator);					
+							// .append("\"")
+							.append(thisURL)
+							// .append("\"")
+							.append(separator);
 				}
-				
+
 			}
 			// remove the last one
 			String cp = retClassPath.toString();
-			
-			envClassPath = new StringBuffer("\"" + cp.substring(0, cp.length()-1) + "\"");
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+
+			envClassPath = new StringBuffer("\"" + cp.substring(0, cp.length() - 1) + "\"");
+		} catch (ClassNotFoundException cnfe) {
+			logger.error(STACKTRACE, cnfe);
 		}
-        
-        return envClassPath.toString();
+
+		return envClassPath.toString();
 	}
 
-	
 	public static Process startPyProcess(String cp, String insightFolder, String port) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		Process thisProcess = null;
-		if(cp == null) {
+		if (cp == null) {
 			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
 		}
 		String specificPath = getCP(cp);
 		try {
 			String java = System.getenv("JAVA_HOME");
-			if(java == null) {
+			if (java == null) {
 				java = DIHelper.getInstance().getProperty("JAVA_HOME");
 			}
 			java = java + "/bin/java";
 			// account for spaces in the path to java
-			if(java.contains(" ")) {
+			if (java.contains(" ")) {
 				java = "\"" + java + "\"";
 			}
 			// change the \\
 			java = java.replace("\\", "/");
-						
+
 			String jep = System.getenv("LD_LIBRARY_PATH");
-			if(jep == null) {
+			if (jep == null) {
 				jep = DIHelper.getInstance().getProperty("LD_LIBRARY_PATH");
 			}
 			// account for spaces in the path to jep
-			if(jep.contains(" ")) {
+			if (jep.contains(" ")) {
 				jep = "\"" + jep + "\"";
 			}
 			jep = jep.replace("\\", "/");
 
 			String pyWorker = DIHelper.getInstance().getProperty("PY_WORKER");
-			String [] commands = null;
-			if(port == null)
+			String[] commands = null;
+			if (port == null)
 				commands = new String[7];
-			else
-			{
+			else {
 				commands = new String[8];
 				commands[7] = port;
 			}
@@ -3527,70 +3446,75 @@ public class Utility {
 			commands[4] = pyWorker;
 			commands[5] = finalDir;
 			commands[6] = DIHelper.getInstance().rdfMapFileLocation;
-			//java = "c:/zulu/zulu-8/bin/java";
+			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
-			//for(int argIndex = 0;argIndex < args.length;argList.append(" ").append(args[argIndex]), argIndex++);
-			//commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
+			// for(int argIndex = 0;argIndex < args.length;argList.append("
+			// ").append(args[argIndex]), argIndex++);
+			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
 			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
 					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
 					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
 			*/
-			//commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
-			//commands[6] = ">";
-			//commands[7] = finalDir + "/.log";
-			
-			System.out.println("Trying to create file in .. " + finalDir);
+			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
+			// commands[6] = ">";
+			// commands[7] = finalDir + "/.log";
+
+			logger.debug("Trying to create file in .. " + finalDir);
 			File file = new File(finalDir + "/init");
 			file.createNewFile();
-			System.out.println("Python start commands ... " );
-			System.out.println(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
-			
+			logger.debug("Python start commands ... ");
+			logger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
+
 			// run it as a process
-			//ProcessBuilder pb = new ProcessBuilder(commands);
-			//ProcessBuilder pb = new ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
-			//pb.command(commands);
-			
+			// ProcessBuilder pb = new ProcessBuilder(commands);
+			// ProcessBuilder pb = new
+			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
+			// pb.command(commands);
+
 			String starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
 			Process p = pb.start();
-			
+
 			try {
-				//p.waitFor();
+				// p.waitFor();
 				p.waitFor(3, TimeUnit.SECONDS);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+				logger.error(STACKTRACE, ie);
 			}
 			thisProcess = p;
-			
-			//System.out.println("Process started with .. " + p.exitValue());
-			//thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className + " " + argList);
-			//thisProcess = Runtime.getRuntime().exec(java + " " + className + " " + argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			//thisProcess = pb.start();
-		} catch (IOException e) {
-			e.printStackTrace();
+
+			// System.out.println("Process started with .. " + p.exitValue());
+			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
+			// + " " + argList);
+			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
+			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
+			// thisProcess = pb.start();
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
-		
+
 		return thisProcess;
 	}
-	
-	public static String writeStarterFile(String [] commands, String dir) {
+
+	public static String writeStarterFile(String[] commands, String dir) {
 		// check if the os is unix and if so make it .sh
 		String osName = System.getProperty("os.name").toLowerCase();
-		
-		String starter = ""; 
-		if(osName.indexOf("win") >= 0) {
+
+		String starter = "";
+		if (osName.indexOf("win") >= 0) {
 			starter = dir + "/starter.bat";
 		}
-		if(osName.indexOf("win") < 0) {
+		if (osName.indexOf("win") < 0) {
 			starter = dir + "/starter.sh";
 		}
 		try {
 			File starterFile = new File(starter);
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			for(int cmdIndex = 0;cmdIndex < commands.length;cmdIndex++) {
+			for (int cmdIndex = 0; cmdIndex < commands.length; cmdIndex++) {
 				baos.write(commands[cmdIndex].getBytes());
 				baos.write("  ".getBytes());
 			}
@@ -3600,62 +3524,59 @@ public class Utility {
 			fos.close();
 
 			// chmod in case.. who knows
-			if(osName.indexOf("win") < 0) {
-				ProcessBuilder p = new ProcessBuilder("/bin/chmod","777", starter);
+			if (osName.indexOf("win") < 0) {
+				ProcessBuilder p = new ProcessBuilder("/bin/chmod", "777", starter);
 				p.start();
 			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}	
-		
+		} catch (FileNotFoundException fnfe) {
+			logger.error(STACKTRACE, fnfe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
+		}
+
 		return starter;
 	}
 
-
 	// compiler methods
-	public static int compileJava(String folder, String classpath)
-	{
+	public static int compileJava(String folder, String classpath) {
 		// TODO Auto-generated method stub
 		com.sun.tools.javac.Main javac = new com.sun.tools.javac.Main();
-/*		String[] args2 = new String[] {
-		        "-d", "c:/users/pkapaleeswaran/workspacej3/SemossDev",
-		        "c:/users/pkapaleeswaran/workspacej3/SemossDev/independent/HelloReactor.java"
-		        , "-proc:none"
-		    };
-*/		
+		/*		String[] args2 = new String[] {
+				        "-d", "c:/users/pkapaleeswaran/workspacej3/SemossDev",
+				        "c:/users/pkapaleeswaran/workspacej3/SemossDev/independent/HelloReactor.java"
+				        , "-proc:none"
+				    };
+		*/
 		// do I have to compile individually
 		String javaFolder = folder + "/java";
 
 		File file = new File(javaFolder);
 		int status = -1;
-		
-		// one last piece of optimization I need to perform is  check timestamp before compiling
-		if(file.exists() && file.isDirectory())
-		{
-			LOGGER.info("Compiling Java in Folder " + javaFolder);
-			List <String> files = GitAssetUtils.listAssets(javaFolder, "*.java", null, null, null);
+
+		// one last piece of optimization I need to perform is check timestamp before
+		// compiling
+		if (file.exists() && file.isDirectory()) {
+			logger.info("Compiling Java in Folder " + javaFolder);
+			List<String> files = GitAssetUtils.listAssets(javaFolder, "*.java", null, null, null);
 			String outputFolder = folder + "/classes";
 			File outDir = new File(outputFolder);
-			if(!outDir.exists())
+			if (!outDir.exists())
 				outDir.mkdir();
-			
-			if(files.size() > 0)
-			{
-				String [] compiler = new String [files.size() + 5];
+
+			if (files.size() > 0) {
+				String[] compiler = new String[files.size() + 5];
 				compiler[0] = "-d";
 				compiler[1] = outputFolder;
 				compiler[2] = "-cp";
 				compiler[3] = classpath;
 				compiler[4] = "-proc:none";
 
-				for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
+				for (int fileIndex = 0; fileIndex < files.size(); fileIndex++)
 					compiler[fileIndex + 5] = files.get(fileIndex);
 
-			    status = javac.compile(compiler);
+				status = javac.compile(compiler);
 			}
-				
+
 			/*for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
 			{
 				String inputFile = files.get(fileIndex);
@@ -3667,46 +3588,43 @@ public class Utility {
 				        inputFile
 				        , "-proc:none"
 				    };
-		
+			
 				    int status = javac.compile(args2);
 			}*/
-			
+
 		}
 		return status;
 	}
-	
+
 	public static int findOpenPort2() {
-		
+
 		int retPort = -1;
-		
+
 		int lowPort = 1024;
 		int highPort = 6666;
-		
-		if(DIHelper.getInstance().getProperty("LOW_PORT") != null)
+
+		if (DIHelper.getInstance().getProperty("LOW_PORT") != null)
 			lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT"));
 
-		if(DIHelper.getInstance().getProperty("HIGH_PORT") != null)
+		if (DIHelper.getInstance().getProperty("HIGH_PORT") != null)
 			highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT"));
 
+		for (int port = lowPort; port < highPort; port++) {
 
-		for(int port = lowPort; port < highPort; port++)
-		{
-			
-			System.out.println("Trying to see if port " + port + " is open for Rserve.");
+			logger.debug("Trying to see if port " + port + " is open for Rserve.");
 			try {
 				ServerSocket s = new ServerSocket(port);
 				s.close();
-				System.out.println("Success! Port: " + port);
+				logger.debug("Success! Port: " + port);
 				retPort = port;
 				break;
 			} catch (Exception ex) {
 				// Port isn't open, notify and move on
-				System.out.println("Port " + port + " is unavailable.");
+				logger.error("Port " + port + " is unavailable.");
 			}
 		}
 		return retPort;
 	}
-
 
 //	/**
 //	 * Update old insights... hope we get rid of this soon
@@ -3719,7 +3637,7 @@ public class Utility {
 //		// need to get the insight
 //		IEngine insightRDBMS = engine.getInsightDatabase();
 //		if(insightRDBMS == null) {
-//			LOGGER.info(engine.getEngineName() + " does not have an insight rdbms");
+//			logger.info(engine.getEngineName() + " does not have an insight rdbms");
 //			return;
 //		}
 //		
@@ -3736,7 +3654,7 @@ public class Utility {
 //				// also update the base explore instance query
 //				Utility.updateExploreInstanceInsight(engine);
 //			} else {
-//				LOGGER.error("COULD NOT FIND INSIGHTS QUESTION_ID TABLE FOR ENGINE = " + engine.getEngineName());
+//				logger.error("COULD NOT FIND INSIGHTS QUESTION_ID TABLE FOR ENGINE = " + engine.getEngineName());
 //			}
 //		} catch (SQLException e) {
 //			e.printStackTrace();
@@ -3776,7 +3694,7 @@ public class Utility {
 //		// need to get the insight
 //		IEngine insightRDBMS = engine.getInsightDatabase();
 //		if(insightRDBMS == null) {
-//			LOGGER.info(engineName + " does not have an insight rdbms");
+//			logger.info(engineName + " does not have an insight rdbms");
 //			return;
 //		}
 //		
@@ -3800,7 +3718,7 @@ public class Utility {
 //		}
 //		
 //		if(insightId == null) {
-//			LOGGER.info(engineName + " does not have explore an instance query in database to update");
+//			logger.info(engineName + " does not have explore an instance query in database to update");
 //			return;
 //		}
 //		
@@ -3851,9 +3769,8 @@ public class Utility {
 //			e.printStackTrace();
 //		}
 //	}
-	
-	public static void main(String [] args)
-	{
+
+	public static void main(String[] args) {
 		DIHelper.getInstance().loadCoreProp("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop");
 		Utility.startPyProcess(null, "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer", "6666");
 	}
