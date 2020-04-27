@@ -40,7 +40,7 @@ public class MountReactor extends AbstractReactor {
 
 		if(varName == null || appName == null)
 		{
-			throw new IllegalArgumentException("Var / Appa cannor be null ");			
+			throw new IllegalArgumentException("Var or App Name cannot be null ");			
 		}
 		
 		
