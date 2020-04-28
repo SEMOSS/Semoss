@@ -26,7 +26,7 @@ import prerna.util.SemossClassloader;
 import prerna.util.Utility;
 
 public class User extends AbstractValueObject implements Serializable {
-	
+
 	private static Logger logger = Logger.getLogger(User.class);
 	
 	private static final String STACKTRACE = "StackTrace: ";
@@ -398,7 +398,7 @@ public class User extends AbstractValueObject implements Serializable {
 			return false;
 		ClusterUtil.reactorPullApp(engineId);
 		String varValue = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + appName + "__" + engineId + "/version/assets";
-		
+
 		varValue = varValue.replace("\\", "/");
 
 		StringBuffer oldValue = appMap.get(varName);
