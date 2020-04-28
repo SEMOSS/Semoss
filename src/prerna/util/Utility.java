@@ -93,12 +93,11 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-//import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.openrdf.model.Value;
@@ -1091,7 +1090,7 @@ public class Utility {
 
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(), 
+			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(),
 					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
 			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
 
@@ -2217,21 +2216,15 @@ public class Utility {
 	}
 
 	public static boolean isDateType(String dataType) {
-		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("DATE")) {
-			return true;
-		}
+		dataType = dataType.toUpperCase().trim();		
 
-		return false;
+		return dataType.equals("DATE");
 	}
 
 	public static boolean isTimeStamp(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("TIMESTAMP") || dataType.startsWith("DATETIME")) {
-			return true;
-		}
 
-		return false;
+		return dataType.startsWith("TIMESTAMP") || dataType.startsWith("DATETIME");
 	}
 
 	// return the translation from sql types to h2 types
