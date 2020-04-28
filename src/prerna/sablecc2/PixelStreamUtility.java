@@ -495,6 +495,8 @@ public class PixelStreamUtility {
 									IHeadersDataRow row = task.next();
 									// add it to cit
 									cit.addNext(row);
+									Object[] dataValues = row.getValues();
+
 									// need to set the headers
 									if(headers == null) {
 										headers = row.getHeaders();
@@ -508,7 +510,7 @@ public class PixelStreamUtility {
 									if(!first) {
 										ps.print(",");
 									}
-									String output = gson.toJson(row.getValues());
+									String output = gson.toJson(dataValues);
 									ps.print(output);
 									cit.addJson(output);
 									ps.flush();
