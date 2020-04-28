@@ -74,7 +74,7 @@ public class GetOptimizedRecipeReactor extends AbstractReactor {
 		for (int i = 0; i < recipe.size(); i++) {
 			String expression = recipe.get(i);
 			// fill in the encodedToOriginal with map for the current expression
-			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodedToOriginal);
+			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodingList, translation.encodedToOriginal);
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 				// parsing the pixel - this process also determines if expression is syntactically correct
