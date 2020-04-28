@@ -295,7 +295,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		// save frame
 		try {
 			// this throws an exception if the library doesn't exist
-			this.builder.rJavaTranslator.checkPackages("fst");
+			this.builder.rJavaTranslator.checkPackages(new String[] {"fst"});
 			String frameFilePath = folderDir + DIR_SEPARATOR + frameName + ".fst";
 			cf.setFrameCacheLocation(frameFilePath);
 			this.builder.saveFst(frameFilePath, frameName);
