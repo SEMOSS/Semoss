@@ -1,34 +1,36 @@
 package prerna.auth;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import oracle.net.aso.a;
+import org.apache.log4j.Logger;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.AbstractValueObject;
 import prerna.om.CopyObject;
 import prerna.pyserve.NettyClient;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SemossClassloader;
 import prerna.util.Utility;
 
-public class User extends AbstractValueObject {
+public class User extends AbstractValueObject implements Serializable {
 	
+	private static Logger logger = Logger.getLogger(User.class);
+	
+	private static final String STACKTRACE = "StackTrace: ";
+
 	// name of this user in the SEMOSS system if there is one
 	
 	// need to have an access token store
@@ -39,23 +41,23 @@ public class User extends AbstractValueObject {
 	// keeping this for a later time when personal experimental stuff
 	private ClassLoader customLoader = new SemossClassloader(this.getClass().getClassLoader());
 	
-	private Map<AuthProvider, String> workspaceEngineMap = new HashMap<AuthProvider, String>();
-	private Map<AuthProvider, String> assetEngineMap = new HashMap<AuthProvider, String>();
+	private Map<AuthProvider, String> workspaceEngineMap = new HashMap<>();
+	private Map<AuthProvider, String> assetEngineMap = new HashMap<>();
 	private AuthProvider primaryLogin;
 	
 	private transient Object assetSyncObject = new Object();
 	private transient Object workspaceSyncObject = new Object();
 
-	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
-	List<AuthProvider> loggedInProfiles = new ArrayList<AuthProvider>();
+	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
+	List<AuthProvider> loggedInProfiles = new ArrayList<>();
 	// keeps the secret for every insight
-	Hashtable <String, InsightToken> insightSecret = new Hashtable <String, InsightToken>();
+	Hashtable <String, InsightToken> insightSecret = new Hashtable <>();
 	// shared sessions
-	List<String> sharedSessions = new Vector<String>();
+	List<String> sharedSessions = new Vector<>();
 	
-	Map <String, String> engineIdMap = new HashMap<String, String>();
+	Map <String, String> engineIdMap = new HashMap<>();
 	
-	Map <String, StringBuffer> appMap = new HashMap<String, StringBuffer>();
+	Map <String, StringBuffer> appMap = new HashMap<>();
 	
 	// gets the tuplespace
 	String tupleSpace = null;
@@ -109,11 +111,9 @@ public class User extends AbstractValueObject {
 		AccessToken token = accessTokens.remove(tokenKey);
 		// remove from profiles list
 		loggedInProfiles.remove(tokenKey);
+
 		// return false if the token actually wasn't found
-		if(token == null) {
-			return false;
-		}
-		return true;
+		return token != null;
 	}
 	
 	/**
@@ -191,8 +191,7 @@ public class User extends AbstractValueObject {
 						}
 					}
 				} catch (Exception e) {
-					// TODO >>>timb: WORKSPACE - How to deal with this exception properly?
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 			this.workspaceEngineMap.put(token, engineId);
@@ -212,8 +211,7 @@ public class User extends AbstractValueObject {
 						}
 					}
 				} catch (Exception e) {
-					// TODO >>>timb: WORKSPACE - How to deal with this exception properly?
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 			//TODO actually sync the pull, not sure pull it
@@ -221,11 +219,11 @@ public class User extends AbstractValueObject {
 				try {
 					CloudClient.getClient().pullApp(engineId);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
+				} catch (InterruptedException ie) {
+					// Restore interrupted state...
+					Thread.currentThread().interrupt();
+					logger.error(STACKTRACE, ie);
 				}
 			}
 			this.assetEngineMap.put(token, engineId);
@@ -329,7 +327,7 @@ public class User extends AbstractValueObject {
 	 */
 	
 	public static Map<String, String> getLoginNames(User semossUser) {
-		Map<String, String> retMap = new HashMap<String, String>();
+		Map<String, String> retMap = new HashMap<>();
 		if(semossUser == null) {
 			return retMap;
 		}
@@ -373,7 +371,7 @@ public class User extends AbstractValueObject {
 		// I still need to check multiple engines with the same name. why not
 		if(engineIdMap.size() == 0 || (engineIdMap.size() != 0 && Integer.parseInt(engineIdMap.get("COUNT")) != allEngines.size()))
 		{
-			engineIdMap = new HashMap<String, String>();
+			engineIdMap = new HashMap<>();
 			// need to redo
 			for(int engineIndex = 0;engineIndex < allEngines.size();engineIndex++)
 			{
