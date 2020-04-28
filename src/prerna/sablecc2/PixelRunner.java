@@ -83,6 +83,7 @@ public class PixelRunner {
 			PixelPlanner planner = translation.getPlanner();
 			planner.dropGraph();
 			planner.getVarStore().remove("$RESULT");
+			this.encodedTextToOriginal.clear();
 		}
 	}
 	
