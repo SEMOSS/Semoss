@@ -139,6 +139,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
 	// create a variable to keep track of the current mapping of the original expression to the encoded expression
 	public HashMap<String, String> encodedToOriginal = new HashMap<String, String>();
+	public List<String> encodingList = new Vector<String>();
 
 	// just aggregate all the remove layer indices for now
 	private List<Integer> removeLayerIndices = new Vector<Integer>();
@@ -163,7 +164,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
 			// add the expression to the map
 			//when we put the expression in the expression map, this is when we should change to the unencoded version
-			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedToOriginal);
+			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodingList, encodedToOriginal);
 			expressionMap.put(index, expression);
 			LOGGER.info("Processing " + expression + "at index: " + index);
 			e.apply(this);
@@ -1081,7 +1082,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		for (int i = 0; i < recipe.length; i++) {
 			String expression = recipe[i];
 			// fill in the encodedToOriginal with map for the current expression
-			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodedToOriginal);
+			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodingList, translation.encodedToOriginal);
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 				// parsing the pixel - this process also determines if expression is syntactically correct
