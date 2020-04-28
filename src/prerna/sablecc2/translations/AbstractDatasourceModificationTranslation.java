@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.om.Insight;
 import prerna.sablecc2.LazyTranslation;
@@ -24,7 +25,8 @@ public class AbstractDatasourceModificationTranslation extends LazyTranslation {
 
 	// create a variable to keep track of the current mapping of the original expression to the encoded expression
 	public HashMap<String, String> encodedToOriginal = new HashMap<String, String>();
-	
+	public List<String> encodingList = new Vector<String>();
+
 	protected static Set<String> importTypes = new HashSet<String>();
 
 	static {

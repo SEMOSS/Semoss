@@ -18,7 +18,7 @@ public class PixelPreProcessor {
 	 * @param expression
 	 * @return
 	 */
-	public static String preProcessPixel(String expression, Map<String, String> encodedTextToOriginal) {
+	public static String preProcessPixel(String expression, List<String> encodingList, Map<String, String> encodedTextToOriginal) {
 		expression = expression.trim();
 
 		Map<String, String> encodeChanges = new HashMap<String, String>();
@@ -46,7 +46,7 @@ public class PixelPreProcessor {
 		}
 		
 		// <encode> </encode>
-		String newExpression = encodeExpression(expression, encodedTextToOriginal);
+		String newExpression = encodeExpression(expression, encodingList, encodedTextToOriginal);
 		if(newExpression != null) {
 			expression = newExpression;
 		}
@@ -54,7 +54,7 @@ public class PixelPreProcessor {
 		return expression;
 	}
 
-	private static String encodeExpression(String expression, Map<String, String> encodedTextToOriginal) {
+	private static String encodeExpression(String expression, List<String> encodingList, Map<String, String> encodedTextToOriginal) {
 		// find all <encode> positions
 		List<Integer> encodeList = new ArrayList<Integer>();
 		int curEncodeIndex = expression.indexOf("<encode>");
@@ -142,6 +142,8 @@ public class PixelPreProcessor {
 			String encodedText = originalText.substring("<encode>".length(), originalText.length() - "</encode>".length());
 			encodedText = Utility.encodeURIComponent(encodedText);
 			encodedTextToOriginal.put(encodedText, originalText);
+			// need to add every 
+			encodingList.add(encodedText);
 			expression = expression.replace(originalText, encodedText);
 		}
 		
