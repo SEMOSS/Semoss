@@ -42,11 +42,13 @@ public class PixelRunner {
 	protected List<NounMetadata> results = new Vector<NounMetadata>();
 	protected List<String> pixelExpression = new Vector<String>();
 	protected List<Boolean> isMeta = new Vector<Boolean>();
+	
+	protected List<String> encodingList = new Vector<String>();
 	protected Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
 	
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
-		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodedTextToOriginal);
+		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodingList, this.encodedTextToOriginal);
 		GreedyTranslation translation = null;
 		try {
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
@@ -83,6 +85,7 @@ public class PixelRunner {
 			PixelPlanner planner = translation.getPlanner();
 			planner.dropGraph();
 			planner.getVarStore().remove("$RESULT");
+			this.encodingList.clear();
 			this.encodedTextToOriginal.clear();
 		}
 	}
@@ -106,7 +109,7 @@ public class PixelRunner {
 	 * @param isMeta
 	 */
 	public void addResult(String pixelExpression, NounMetadata result, boolean isMeta) {
-		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, encodedTextToOriginal);
+		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList, this.encodedTextToOriginal);
 		this.pixelExpression.add(origExpression);
 		this.results.add(result);
 		this.isMeta.add(isMeta);
@@ -127,7 +130,7 @@ public class PixelRunner {
 	 * @param isMeta
 	 */
 	public void addResult(int index, String pixelExpression, NounMetadata result, boolean isMeta) {
-		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, encodedTextToOriginal);
+		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList, this.encodedTextToOriginal);
 		this.pixelExpression.add(index, origExpression);
 		this.results.add(index, result);
 		this.isMeta.add(index, isMeta);
@@ -147,7 +150,7 @@ public class PixelRunner {
 	 * @param isMeta
 	 */
 	private void addInvalidSyntaxResult(String pixelExpression, NounMetadata result, boolean isMeta) {
-		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, encodedTextToOriginal);
+		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList, this.encodedTextToOriginal);
 		this.pixelExpression.add(origExpression);
 		this.results.add(result);
 		this.isMeta.add(isMeta);
@@ -177,6 +180,7 @@ public class PixelRunner {
 		this.results.clear();
 		this.pixelExpression.clear();
 		this.isMeta.clear();
+		this.encodingList.clear();
 		this.encodedTextToOriginal.clear();
 	}
 	

@@ -4,7 +4,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -212,7 +216,7 @@ public class PixelUtility {
 	 * @return
 	 */
 	public static boolean hasParam(String pixel) {
-		pixel = PixelPreProcessor.preProcessPixel(pixel, new HashMap<String, String>());
+		pixel = PixelPreProcessor.preProcessPixel(pixel, new ArrayList<String>(), new HashMap<String, String>());
 		try {
 			Parser p = new Parser(
 					new Lexer(
@@ -269,7 +273,7 @@ public class PixelUtility {
 	 * @return
 	 */
 	public static boolean isDashboard(String pixel) {
-		pixel = PixelPreProcessor.preProcessPixel(pixel, new HashMap<String, String>());
+		pixel = PixelPreProcessor.preProcessPixel(pixel, new ArrayList<String>(), new HashMap<String, String>());
 		try {
 			Parser p = new Parser(
 					new Lexer(
@@ -306,7 +310,7 @@ public class PixelUtility {
 	 * @return {into, values}
 	 */
 	public static Object[] getFormWidgetInputs(String pixel) {
-		pixel = PixelPreProcessor.preProcessPixel(pixel, new HashMap<String, String>());
+		pixel = PixelPreProcessor.preProcessPixel(pixel, new ArrayList<String>(), new HashMap<String, String>());
 		Object[] ret = new Object[2];
 		try {
 			Parser p = new Parser(
@@ -337,15 +341,34 @@ public class PixelUtility {
 	 * Returns the string of the NOT encoded expression
 	 * allows us to get the expression in its not encoded form from a mapping of the expression to what it looked like originally
 	 */
-	public static String recreateOriginalPixelExpression(String expression, Map<String, String> encodedTextToOriginal) {
+	public static String recreateOriginalPixelExpression(String expression, List<String> encodingList, Map<String, String> encodedTextToOriginal) {
 		if(encodedTextToOriginal == null || encodedTextToOriginal.isEmpty()) {
 			return expression;
 		}
 		// loop through and see if any encodedText portions have been modified
 		// if they have, try and replace them back so it looks pretty for the FE
-		for(String encodedText : encodedTextToOriginal.keySet()) {
+		Collections.sort(encodingList, new Comparator<String>() {
+			@Override
+			public int compare(String o1, String o2) {
+				int l1 = o1.length();
+				int l2 = o2.length();
+				
+				if(l1 > l2) {
+					return -1;
+				} else if(l1 < l2) {
+					return 1;
+				}
+				
+				return 0;
+			}
+		});
+		
+		Iterator<String> iterator = encodingList.iterator();
+		while(iterator.hasNext()) {
+			String encodedText = iterator.next();
 			if(expression.contains(encodedText)) {
-				expression = expression.replace(encodedText, encodedTextToOriginal.get(encodedText));
+				expression = expression.replaceFirst(Pattern.quote(encodedText), Matcher.quoteReplacement(encodedTextToOriginal.get(encodedText)));
+				iterator.remove();
 			}
 		}
 		return expression;
@@ -368,7 +391,7 @@ public class PixelUtility {
 		in.setUser(user);
 		DatasourceTranslation translation = new DatasourceTranslation(in);
 		try {
-			expression = PixelPreProcessor.preProcessPixel(expression, new HashMap<String, String>());
+			expression = PixelPreProcessor.preProcessPixel(expression, new ArrayList<String>(), new HashMap<String, String>());
 			Parser p = new Parser(
 					new Lexer(
 							new PushbackReader(
@@ -397,7 +420,7 @@ public class PixelUtility {
 		ReplaceDatasourceTranslation translation = new ReplaceDatasourceTranslation(in);
 		translation.setReplacements(replacementOptions);
 		try {
-			fullRecipe = PixelPreProcessor.preProcessPixel(fullRecipe, translation.encodedToOriginal);
+			fullRecipe = PixelPreProcessor.preProcessPixel(fullRecipe, translation.encodingList, translation.encodedToOriginal);
 			Parser p = new Parser(
 					new Lexer(
 							new PushbackReader(
@@ -440,7 +463,7 @@ public class PixelUtility {
 		// loop through recipe
 		for(String expression : recipe) {
 			try {
-				expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodedToOriginal);
+				expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodingList, translation.encodedToOriginal);
 				Parser p = new Parser(
 						new Lexer(
 								new PushbackReader(
@@ -544,9 +567,10 @@ public class PixelUtility {
 	 */
 	public static List<List<PipelineOperation>> generatePipeline(Insight in, String pixel) {
 		PipelineTranslation translation = null;
+		List<String> encodingList = new Vector<String>();
 		Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
 		try {
-			pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodedTextToOriginal);
+			pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodingList, encodedTextToOriginal);
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
 			translation = new PipelineTranslation(in);
 

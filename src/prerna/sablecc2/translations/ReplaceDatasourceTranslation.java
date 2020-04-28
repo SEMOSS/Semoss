@@ -109,12 +109,12 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 					this.importStr = null;
 					
 				} else {
-		        	expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedToOriginal);
+		        	expression = PixelUtility.recreateOriginalPixelExpression(expression, encodingList, encodedToOriginal);
 					this.pixels.add(expression);
 				}
 				
 			} else {
-	        	expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedToOriginal);
+	        	expression = PixelUtility.recreateOriginalPixelExpression(expression, encodingList, encodedToOriginal);
 				this.pixels.add(expression);
 			}
 			
@@ -308,7 +308,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 		translation = new ReplaceDatasourceTranslation(in);
 		translation.setReplacements(testReplacements);
 		try {
-			expression = PixelPreProcessor.preProcessPixel(expression.trim(), new HashMap<String, String>());
+			expression = PixelPreProcessor.preProcessPixel(expression.trim(), new ArrayList<String>(), new HashMap<String, String>());
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 			// parsing the pixel - this process also determines if expression is syntactically correct
 			Start tree = p.parse();
