@@ -777,9 +777,10 @@ public class PipelineTranslation extends LazyTranslation {
 		Insight in = new Insight();
 		in.getVarStore().put("FRAME238470", new NounMetadata(new H2Frame("FRAME238470"), PixelDataType.FRAME));
 		PipelineTranslation translation = null;
+		List<String> encodingList = new Vector<String>();
 		Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
 		try {
-			pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodedTextToOriginal);
+			pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodingList, encodedTextToOriginal);
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
 			translation = new PipelineTranslation(in);
 

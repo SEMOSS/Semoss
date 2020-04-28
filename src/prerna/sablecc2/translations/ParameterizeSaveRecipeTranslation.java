@@ -58,6 +58,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 	private List<String> pixels = new Vector<String>();
 	
 	// create a variable to keep track of the current mapping of the original expression to the encoded expression
+	public List<String> encodingList = new Vector<String>();
 	public HashMap<String, String> encodedToOriginal = new HashMap<String, String>();
 	
 	// set the parameters we care about
@@ -179,7 +180,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 				}
 			} else {
 				// add to list of expressions
-				expression = PixelUtility.recreateOriginalPixelExpression(expression, this.encodedToOriginal);
+				expression = PixelUtility.recreateOriginalPixelExpression(expression, this.encodingList, this.encodedToOriginal);
 				this.pixels.add(expression);
 			}
 		}
@@ -314,7 +315,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 		// loop through recipe
 		for(String expression : recipe) {
 			try {
-				expression = PixelPreProcessor.preProcessPixel(expression.trim(), new HashMap<String, String>());
+				expression = PixelPreProcessor.preProcessPixel(expression.trim(), new ArrayList<String>(), new HashMap<String, String>());
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 				// parsing the pixel - this process also determines if expression is syntactically correct
 				Start tree = p.parse();
