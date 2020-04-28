@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.h2.engine.User;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
@@ -19,31 +20,32 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class MyAppsReactor extends AbstractReactor {
+	
+	private static final Logger logger = LogManager.getLogger(MyAppsReactor.class);
 
-	private static List<String> META_KEYS_LIST = new Vector<String>();
+	private static List<String> META_KEYS_LIST = new Vector<>();
 	static {
 		META_KEYS_LIST.add("description");
 		META_KEYS_LIST.add("tag");
 	}
-	
+
 	public MyAppsReactor() {
 
 	}
 
 	@Override
 	public NounMetadata execute() {
-		List<Map<String, Object>> appInfo = new Vector<Map<String, Object>>();
+		List<Map<String, Object>> appInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser());
 		} else {
 			appInfo = SecurityQueryUtils.getAllDatabaseList();
 		}
-		
 		this.insight.getUser().setEngines(appInfo);
-		
+
 		int size = appInfo.size();
-		Map<String, Integer> index = new HashMap<String, Integer>(appInfo.size());
+		Map<String, Integer> index = new HashMap<>(appInfo.size());
 		// now we want to add most executed insights
 		for(int i = 0; i < size; i++) {
 			Map<String, Object> app = appInfo.get(i);
@@ -53,15 +55,15 @@ public class MyAppsReactor extends AbstractReactor {
 			if(lmDate != null) {
 				app.put("lastModified", lmDate.getFormattedDate());
 			}
-			
+
 			// just going to init for FE
 			app.put("description", "");
 			app.put("tags", new Vector<String>());
-			
+
 			// keep list of app ids to get the index
-			index.put(appId, new Integer(i));
+			index.put(appId, Integer.valueOf(i));
 		}
-		
+
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = SecurityAppUtils.getAppMetadataWrapper(index.keySet(), META_KEYS_LIST);
@@ -74,7 +76,7 @@ public class MyAppsReactor extends AbstractReactor {
 				if(value == null) {
 					continue;
 				}
-				
+
 				int indexToFind = index.get(appId);
 				Map<String, Object> res = appInfo.get(indexToFind);
 				// right now only handling description + tags
@@ -90,14 +92,13 @@ public class MyAppsReactor extends AbstractReactor {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
 			}
 		}
-		
-		
+
 		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
 	}
 
