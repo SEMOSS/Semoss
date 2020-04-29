@@ -73,7 +73,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		
 		Date date = new Date();
 		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(date);
-		String fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + SmssUtilities.getUniqueName(prop) + "_" + modifiedDate + "_Loader_Sheet_Export.xlsx";
+		String fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + SmssUtilities.getUniqueName(prop) + "_" + modifiedDate + "_Loader_Sheet_Export.xlsx";
 		File f = new File(fileLoc);
 		if(f.exists()) {
 			f.delete();
@@ -442,7 +442,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 //		String physicalNodeName = Utility.getInstanceName(physicalNodeUri);
 //		return physicalNodeName;
 //	}
-	
+	/*
 	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
@@ -477,5 +477,6 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		reactor.curRow.add(new NounMetadata(testEngine, PixelDataType.CONST_STRING));
 		reactor.execute();
 	}
+	*/
 
 }

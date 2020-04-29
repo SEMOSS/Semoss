@@ -1124,7 +1124,7 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		
 		if(tableExists) {
-			String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\ExploreInstanceDefaultWidget.json";
+			String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
 			File exploreF = new File(exploreLoc);
 			if(!exploreF.exists()) {
 				// ughhh... cant do anything for ya buddy

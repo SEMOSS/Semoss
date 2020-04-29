@@ -47,9 +47,9 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 
 		// Check to make sure that these files exist before searching
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		File lsa = new File(baseFolder + "\\R\\Recommendations\\dataitem-dbid-desc-lsa.rds");
-		File vocab = new File(baseFolder + "\\R\\Recommendations\\dataitem-dbid-desc-lsa-vocab.rds");
-		File desc = new File(baseFolder + "\\R\\Recommendations\\dataitem-dbid-desc.rds");
+		File lsa = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-dbid-desc-lsa.rds");
+		File vocab = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-dbid-desc-lsa-vocab.rds");
+		File desc = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-dbid-desc.rds");
 		if (!lsa.exists() || !vocab.exists() || !desc.exists()) {
 			String message = "Necessary files missing to generate search results. Please run UpdateQueryData() and UpdateSemanticData().";
 			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
