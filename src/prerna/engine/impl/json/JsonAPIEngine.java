@@ -89,7 +89,7 @@ public class JsonAPIEngine extends AbstractEngine {
 				String owlFile = prop.getProperty(Constants.OWL);
 				
 				if(owlFile != null) {
-					File owlF = new File(owlFile);
+					File owlF = new File(Utility.normalizePath(owlFile));
 					// need a check here to say if I am asking this to be remade or keep what it is
 					if(!owlF.exists() || owlFile.equalsIgnoreCase("REMAKE")) {
 						// the process of remake will start here
@@ -144,7 +144,7 @@ public class JsonAPIEngine extends AbstractEngine {
 	{
 		try {
 			if(prop.containsKey(INPUT_TYPE) && ((String)prop.get(INPUT_TYPE)).equalsIgnoreCase("file"))
-				document = Configuration.defaultConfiguration().jsonProvider().parse(new FileInputStream(baseFolder + "/" + prop.getProperty(INPUT_URL)), "utf-8");
+				document = Configuration.defaultConfiguration().jsonProvider().parse(new FileInputStream(baseFolder + "/" + Utility.normalizePath(prop.getProperty(INPUT_URL))), "utf-8");
 		} catch (FileNotFoundException e) {
 			logger.error(STACKTRACE, e);
 		} catch (IOException ioe) {
