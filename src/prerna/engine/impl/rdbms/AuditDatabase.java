@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -29,29 +32,32 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactor;
 
 public class AuditDatabase {
+	private static final Logger logger = LogManager.getLogger(AuditDatabase.class);
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final int INSERT_SIZE = 10;
-	
+
 	private static final String AUDIT_TABLE = "AUDIT_TABLE";
 	private static final String QUERY_TABLE = "QUERY_TABLE";
-	
+	private static final String STACKTRACE = "StackTrace: ";
+
 	private Connection conn;
 	private AbstractSqlQueryUtil queryUtil;
-	
+
 	private IEngine engine;
 	private String engineId;
 	private String engineName;
-	
+
 	@Deprecated
-	private Map<String, String[]> primaryKeyCache = new HashMap<String, String[]>();
+	private Map<String, String[]> primaryKeyCache = new HashMap<>();
 
 	public AuditDatabase() {
-		
+
 	}
-	
+
 	/**
 	 * First method that needs to be run to generate the actual connection details
+	 * 
 	 * @param engineId
 	 * @param engineName
 	 */
@@ -59,42 +65,42 @@ public class AuditDatabase {
 		this.engine = engine;
 		this.engineId = engineId;
 		this.engineName = engineName;
-		
+
 		String dbFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		dbFolder += DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId);
-		
+
 		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
-		if(rdbmsTypeStr == null) {
+		if (rdbmsTypeStr == null) {
 			// default will be h2
 			rdbmsTypeStr = "H2_DB";
 		}
 		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 
 		String fileLocation = dbFolder + DIR_SEPARATOR + "audit_log_database";
-		if(rdbmsType == RdbmsTypeEnum.H2_DB) {
+		if (rdbmsType == RdbmsTypeEnum.H2_DB) {
 			File f = new File(fileLocation + ".mv.db");
-			if(!f.exists()) {
+			if (!f.exists()) {
 				try {
 					f.createNewFile();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		} else {
 			fileLocation += ".sqlite";
 			File f = new File(fileLocation);
-			if(!f.exists()) {
+			if (!f.exists()) {
 				try {
 					f.createNewFile();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
-		
+
 		RdbmsConnectionBuilder builder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
 		String connectionUrl = null;
-		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
+		if (rdbmsType == RdbmsTypeEnum.SQLITE) {
 			connectionUrl = "jdbc:sqlite:" + fileLocation;
 		} else {
 			connectionUrl = "jdbc:h2:nio:" + fileLocation;
@@ -105,7 +111,7 @@ public class AuditDatabase {
 		builder.setDriver(rdbmsType.getDriver());
 		builder.setUserName("sa");
 		builder.setPassword("");
-		
+
 		System.out.println("Audit connection url is " + builder.getConnectionUrl());
 		System.out.println("Audit connection url is " + builder.getConnectionUrl());
 		System.out.println("Audit connection url is " + builder.getConnectionUrl());
@@ -114,48 +120,51 @@ public class AuditDatabase {
 			this.conn = builder.build();
 			this.queryUtil = SqlQueryUtilFactor.initialize(rdbmsType, connectionUrl, "sa", "");
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
-		
+
 		// create the tables if necessary
-		String[] headers = new String[]{"AUTO_INCREMENT", "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
-		String[] types = new String[]{"IDENTITY", "VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
+		String[] headers = new String[] { "AUTO_INCREMENT", "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE",
+				"ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER" };
+		String[] types = new String[] { "IDENTITY", "VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)",
+				"VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)" };
 		execQ(this.queryUtil.createTableIfNotExists(AUDIT_TABLE, headers, types));
-		
-		headers = new String[]{"ID", "TYPE", "QUERY"};
-		types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "CLOB"};
+
+		headers = new String[] { "ID", "TYPE", "QUERY" };
+		types = new String[] { "VARCHAR(50)", "VARCHAR(50)", "CLOB" };
 		execQ(this.queryUtil.createTableIfNotExists(QUERY_TABLE, headers, types));
 	}
-	
+
 	/**
 	 * 
 	 * @param selectors
 	 * @param values
 	 * @param userId
 	 */
-	public synchronized void auditInsertQuery(List<IQuerySelector> selectors, List<Object> values, String userId, String query) {
+	public synchronized void auditInsertQuery(List<IQuerySelector> selectors, List<Object> values, String userId,
+			String query) {
 		String primaryKeyTable = null;
 		String primaryKeyColumn = null;
 		String primaryKeyValue = null;
-		
-		for(int i = 0; i < selectors.size(); i++) {
+
+		for (int i = 0; i < selectors.size(); i++) {
 			QueryColumnSelector s = (QueryColumnSelector) selectors.get(i);
-			if(s.getColumn().equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+			if (s.getColumn().equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 				String[] split = getPrimKey(s.getQueryStructName());
 				primaryKeyTable = split[0];
 				primaryKeyColumn = split[1];
 				primaryKeyValue = values.get(i) + "";
 			}
 		}
-		
+
 		// define table where change is occurring
 		if (primaryKeyTable == null) {
 			QueryColumnSelector s = (QueryColumnSelector) selectors.get(0);
 			primaryKeyTable = s.getTable();
 		}
-		
+
 		StringBuilder auditInserts = new StringBuilder();
-		
+
 		String id = UUID.randomUUID().toString();
 		String time = getTime();
 
@@ -165,8 +174,8 @@ public class AuditDatabase {
 		insert[2] = primaryKeyTable;
 		insert[3] = primaryKeyColumn;
 		insert[4] = primaryKeyValue;
-		
-		for(int i = 0; i < selectors.size(); i++) {
+
+		for (int i = 0; i < selectors.size(); i++) {
 			QueryColumnSelector s = (QueryColumnSelector) selectors.get(i);
 			String alteredColumn = s.getColumn();
 			String newValue = values.get(i) + "";
@@ -176,19 +185,19 @@ public class AuditDatabase {
 			insert[7] = newValue;
 			insert[8] = time;
 			insert[9] = userId;
-			
+
 			// get a combination of all the inserts
 			auditInserts.append(getAuditInsert(insert));
 			auditInserts.append(";");
 		}
-		
+
 		// execute the inserts
 		execQ(auditInserts.toString());
-		
+
 		// store the query
-		execQ(getAuditQueryLog(new Object[]{id, "INSERT", RdbmsQueryBuilder.escapeForSQLStatement(query)}));
+		execQ(getAuditQueryLog(new Object[] { id, "INSERT", RdbmsQueryBuilder.escapeForSQLStatement(query) }));
 	}
-	
+
 	/**
 	 * 
 	 * @param updateQs
@@ -198,53 +207,53 @@ public class AuditDatabase {
 		List<IQuerySelector> selectors = updateQs.getSelectors();
 		int numUpdates = selectors.size();
 		List<Object> values = updateQs.getValues();
-		
+
 		// let us collect all the constraints
 		// if this is just a primary key constraint
 		// it will just be key_qs_name to key_column_value
 		Map<String, String> constraintMap = getConstraintMap(updateQs);
-		
+
 		// loop through and find the key column
 		String primaryKeyTable = null;
 		String primaryKeyColumn = null;
 		String primaryKeyValue = null;
-		
-		for(String filterQsName : constraintMap.keySet()) {
-			if(!filterQsName.contains("__")) {
-				// i guess you are the primary key 
+
+		for (String filterQsName : constraintMap.keySet()) {
+			if (!filterQsName.contains("__")) {
+				// i guess you are the primary key
 				String[] split = getPrimKey(filterQsName);
 				primaryKeyTable = split[0];
-				primaryKeyColumn = split[1];				
+				primaryKeyColumn = split[1];
 				primaryKeyValue = constraintMap.get(filterQsName) + "";
 			}
 		}
-		
+
 		// define table where change is occurring
 		if (primaryKeyTable == null) {
 			QueryColumnSelector s = (QueryColumnSelector) selectors.get(0);
 			primaryKeyTable = s.getTable();
 		}
-		
+
 		StringBuilder auditUpdates = new StringBuilder();
-		
+
 		String id = UUID.randomUUID().toString();
 		String time = getTime();
 
-		for(int i = 0; i < numUpdates; i++) {
+		for (int i = 0; i < numUpdates; i++) {
 			Object[] insert = new Object[INSERT_SIZE];
 			insert[0] = id;
 			insert[1] = "UPDATE";
 			insert[2] = primaryKeyTable;
 			insert[3] = primaryKeyColumn;
 			insert[4] = primaryKeyValue;
-			
+
 			IQuerySelector selector = selectors.get(i);
 			String alteredColumn = ((QueryColumnSelector) selector).getColumn();
 			// are we updating the primary key ?
-			if(alteredColumn.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+			if (alteredColumn.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 				alteredColumn = primaryKeyColumn;
 			}
-			
+
 			String newValue = values.get(i) + "";
 			String qsname = selector.getQueryStructName();
 			String oldValue = constraintMap.get(qsname);
@@ -254,19 +263,19 @@ public class AuditDatabase {
 			insert[7] = newValue;
 			insert[8] = time;
 			insert[9] = userId;
-			
+
 			// get a combination of all the insert
 			auditUpdates.append(getAuditInsert(insert));
 			auditUpdates.append(";");
 		}
-		
+
 		// execute the inserts
 		execQ(auditUpdates.toString());
-		
+
 		// store the query
-		execQ(getAuditQueryLog(new Object[]{id, "UPDATE", RdbmsQueryBuilder.escapeForSQLStatement(query)}));
+		execQ(getAuditQueryLog(new Object[] { id, "UPDATE", RdbmsQueryBuilder.escapeForSQLStatement(query) }));
 	}
-	
+
 	/**
 	 * 
 	 * @param qs
@@ -274,9 +283,9 @@ public class AuditDatabase {
 	 */
 	public synchronized void auditDeleteQuery(SelectQueryStruct qs, String userId, String query) {
 		// when you delete
-		// the qs should only have a single selector 
+		// the qs should only have a single selector
 		// which is the table name
-		
+
 		String primaryKeyTable = null;
 		String primaryKeyColumn = null;
 		String primaryKeyValue = null;
@@ -285,41 +294,41 @@ public class AuditDatabase {
 		QueryColumnSelector s = (QueryColumnSelector) selectors.get(0);
 		primaryKeyTable = s.getTable();
 		primaryKeyColumn = s.getColumn();
-		if(primaryKeyColumn.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+		if (primaryKeyColumn.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 			String[] split = getPrimKey(primaryKeyTable);
-			primaryKeyColumn = split[1];				
+			primaryKeyColumn = split[1];
 		}
-		
+
 		Map<String, String> constraintMap = getConstraintMap(qs);
-		if(constraintMap.containsKey(s.getQueryStructName())) {
+		if (constraintMap.containsKey(s.getQueryStructName())) {
 			primaryKeyValue = constraintMap.get(s.getQueryStructName());
 		}
-		
+
 		StringBuilder auditDeletes = new StringBuilder();
 
 		String id = UUID.randomUUID().toString();
 		String time = getTime();
 
-		for(String alteredColumn : constraintMap.keySet()) {
-			if(alteredColumn.contains("__")) {
+		for (String alteredColumn : constraintMap.keySet()) {
+			if (alteredColumn.contains("__")) {
 				alteredColumn = alteredColumn.split("__")[1];
 			}
 			String oldValue = constraintMap.get(alteredColumn);
-			
+
 			Object[] insert = new Object[INSERT_SIZE];
 			insert[0] = id;
 			insert[1] = "DELETE";
 			insert[2] = primaryKeyTable;
 			insert[3] = primaryKeyColumn;
 			insert[4] = primaryKeyValue;
-	
+
 			// we are deleting based on the primary key
 			insert[5] = alteredColumn;
 			insert[6] = oldValue;
 			insert[7] = null;
 			insert[8] = time;
 			insert[9] = userId;
-			
+
 			// get a combination of all the insert
 			auditDeletes.append(getAuditInsert(insert));
 			auditDeletes.append(";");
@@ -327,59 +336,63 @@ public class AuditDatabase {
 
 		// get a combination of all the insert
 		execQ(auditDeletes.toString());
-		
+
 		// store the query
-		execQ(getAuditQueryLog(new Object[]{id, "DELETE", RdbmsQueryBuilder.escapeForSQLStatement(query)}));
+		execQ(getAuditQueryLog(new Object[] { id, "DELETE", RdbmsQueryBuilder.escapeForSQLStatement(query) }));
 	}
-	
+
 	/**
 	 * Store custom query into query log
+	 * 
 	 * @param userId
 	 * @param query
 	 */
 	public void storeQuery(String userId, String query) {
-		execQ(getAuditQueryLog(new Object[]{userId, "CUSTOM", RdbmsQueryBuilder.escapeForSQLStatement(query)}));
+		execQ(getAuditQueryLog(new Object[] { userId, "CUSTOM", RdbmsQueryBuilder.escapeForSQLStatement(query) }));
 	}
-	
+
 	private String getAuditInsert(Object[] data) {
-		String[] headers = new String[]{"ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
-		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
+		String[] headers = new String[] { "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN",
+				"OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER" };
+		String[] types = new String[] { "VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)",
+				"VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)" };
 		return this.queryUtil.insertIntoTable(AUDIT_TABLE, headers, types, data);
 	}
-	
+
 	private String getAuditQueryLog(Object[] data) {
-		String[] headers = new String[]{"ID", "TYPE", "QUERY"};
-		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "CLOB"};
+		String[] headers = new String[] { "ID", "TYPE", "QUERY" };
+		String[] types = new String[] { "VARCHAR(50)", "VARCHAR(50)", "CLOB" };
 		return this.queryUtil.insertIntoTable(QUERY_TABLE, headers, types, data);
 	}
-	
+
 	/**
-	 * Collect all the simple constraints from the qs
-	 * This will get all qsName to value
+	 * Collect all the simple constraints from the qs This will get all qsName to
+	 * value
+	 * 
 	 * @param qs
 	 */
 	private Map<String, String> getConstraintMap(AbstractQueryStruct qs) {
-		Map<String, String> constraintMap = new HashMap<String, String>();
+		Map<String, String> constraintMap = new HashMap<>();
 
 		GenRowFilters grf = qs.getCombinedFilters();
 		List<SimpleQueryFilter> filters = grf.getAllSimpleQueryFilters();
-		for(SimpleQueryFilter f : filters) {
+		for (SimpleQueryFilter f : filters) {
 			// grab the values from the filter
 			IQuerySelector col = null;
 			Object colVal = null;
-			if(f.getSimpleFilterType() == FILTER_TYPE.COL_TO_VALUES) {
+			if (f.getSimpleFilterType() == FILTER_TYPE.COL_TO_VALUES) {
 				col = (IQuerySelector) f.getLComparison().getValue();
 				colVal = f.getRComparison().getValue();
-			} else if(f.getSimpleFilterType() == FILTER_TYPE.VALUES_TO_COL) {
+			} else if (f.getSimpleFilterType() == FILTER_TYPE.VALUES_TO_COL) {
 				col = (IQuerySelector) f.getRComparison().getValue();
 				colVal = f.getLComparison().getValue();
 			}
-		
+
 			String qsname = null;
 			String val = null;
-			
-			if(colVal instanceof List) {
-				if(((List) colVal).size() == 1) {
+
+			if (colVal instanceof List) {
+				if (((List) colVal).size() == 1) {
 					val = ((List) colVal).get(0).toString();
 				} else {
 					val = colVal.toString();
@@ -387,14 +400,16 @@ public class AuditDatabase {
 			} else {
 				val = colVal + "";
 			}
-			
-			qsname = col.getQueryStructName();
-			constraintMap.put(qsname, val);
+
+			if (col != null) {
+				qsname = col.getQueryStructName();
+				constraintMap.put(qsname, val);
+			}
 		}
-		
+
 		return constraintMap;
 	}
-	
+
 	/**
 	 * 
 	 * @param q
@@ -405,33 +420,33 @@ public class AuditDatabase {
 			stmt = this.conn.createStatement();
 			stmt.execute(q);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
-			if(stmt != null) {
+			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
 	}
-	
+
 	private String getTime() {
 		java.sql.Timestamp t = java.sql.Timestamp.valueOf(LocalDateTime.now());
 		return t.toString();
 	}
-	
+
 	@Deprecated
 	private String[] getPrimKey(String pixelName) {
-		if(primaryKeyCache.containsKey(pixelName)){
+		if (primaryKeyCache.containsKey(pixelName)) {
 			return primaryKeyCache.get(pixelName);
 		}
 
 		// we dont have it.. so query for it
 		String physicalUri = engine.getPhysicalUriFromPixelSelector(pixelName);
 		String column = engine.getLegacyPrimKey4Table(physicalUri);
-		String[] split = new String[]{pixelName, column};
+		String[] split = new String[] { pixelName, column };
 		// store the value
 		primaryKeyCache.put(pixelName, split);
 		return split;
@@ -441,10 +456,10 @@ public class AuditDatabase {
 		try {
 			this.conn.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
-	
+
 	public Connection getConnection() {
 		return this.conn;
 	}

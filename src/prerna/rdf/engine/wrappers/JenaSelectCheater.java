@@ -28,6 +28,7 @@
 package prerna.rdf.engine.wrappers;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,26 +42,29 @@ import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 
 public class JenaSelectCheater extends AbstractWrapper implements IConstructWrapper {
-	
-	private static final Logger LOGGER = LogManager.getLogger(JenaSelectCheater.class.getName());
-	
+
+	private static final Logger logger = LogManager.getLogger(JenaSelectCheater.class);
+
 	transient int count = 0;
 	transient String [] var = null;
 	transient int triples;
 	transient int tqrCount=0;
-	String queryVar[];
+	String[] queryVar;
 	transient ResultSet rs = null;
 
 	@Override
 	public IConstructStatement next() {
-		
+		if(!hasNext()) {
+			throw new NoSuchElementException();
+		}
+
 		IConstructStatement thisSt = new ConstructStatement();
-		LOGGER.debug("Adding a JENA statement ");
+		logger.debug("Adding a JENA statement ");
 	    QuerySolution row = rs.nextSolution();
 	    thisSt.setSubject(row.get(var[0])+"");
 	    thisSt.setPredicate(row.get(var[1])+"");
 	    thisSt.setObject(row.get(var[2]));
-	    
+
 	    return thisSt;
 	}
 
@@ -69,11 +73,10 @@ public class JenaSelectCheater extends AbstractWrapper implements IConstructWrap
 		try {
 			rs = (ResultSet)engine.execQuery(query);
 			getVariables();
-			
 			processSelectVar();
 			count=0;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 		}
 	}
 
@@ -81,9 +84,8 @@ public class JenaSelectCheater extends AbstractWrapper implements IConstructWrap
 	public boolean hasNext() {
 		return 	rs.hasNext();
 	}
-	
-	private String [] getVariables()
-	{
+
+	private String [] getVariables() {
 		var = new String[rs.getResultVars().size()];
 		List <String> names = rs.getResultVars();
 		for(int colIndex = 0;
@@ -91,43 +93,41 @@ public class JenaSelectCheater extends AbstractWrapper implements IConstructWrap
 				var[colIndex] = names.get(colIndex), colIndex++);
 		return var;
 	}
-	
-	public void processSelectVar()
-	{
-		if(query.contains("DISTINCT"))
-		{
+
+	public void processSelectVar() {
+		if(query.contains("DISTINCT")) {
 			Pattern pattern = Pattern.compile("SELECT DISTINCT(.*?)WHERE");
 		    Matcher matcher = pattern.matcher(query);
 		    String varString = null;
-		    while (matcher.find()) 
-		    {
+		    while (matcher.find()) {
 		    	varString = matcher.group(1);
 		    }
-		    varString = varString.trim();
-		    queryVar = varString.split(" ");
-		    int num = queryVar.length+1;
-		    triples = (int) Math.floor(num/3);
-		}
-		else
-		{
+
+		    if (varString != null) {
+		    	varString = varString.trim();
+			    queryVar = varString.split(" ");
+			    int num = queryVar.length+1;
+			    triples = num/3;
+		    }
+		} else {
 			Pattern pattern = Pattern.compile("SELECT (.*?)WHERE");
 		    Matcher matcher = pattern.matcher(query);
 		    String varString = null;
 		    while (matcher.find()) {
 		        varString = matcher.group(1);
 		    }
-		    varString = varString.trim();
-		    queryVar = varString.split(" ");
-		    int num = queryVar.length+1;
-		    triples = (int) Math.floor(num/3);
+
+		    if (varString != null) {
+			    varString = varString.trim();
+			    queryVar = varString.split(" ");
+			    int num = queryVar.length+1;
+			    triples = num/3;
+		    }
 		}
 	}
 
 	@Override
 	public void cleanUp() {
-		// TODO Auto-generated method stub
-		
+		// Implement clean up
 	}
-
-
 }

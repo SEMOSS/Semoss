@@ -26,17 +26,17 @@ import prerna.util.Utility;
 
 public class NoOuterJoinSqlInterpreter extends SqlInterpreter {	
 	
-	protected Set<String> selectorOrderedList = new LinkedHashSet<String>();
+	protected Set<String> selectorOrderedList = new LinkedHashSet<>();
 //	protected List<String> groupBySelectors = new Vector<String>();
 //	protected List<String> orderBySelectors = new Vector<String>();
 	// keep list of selectors for tables
-	protected Map<String, LinkedHashSet<String>> retTableToSelectors = new HashMap<String, LinkedHashSet<String>>();
+	protected Map<String, LinkedHashSet<String>> retTableToSelectors = new HashMap<>();
 	// keep list of filters for tables
-	protected Map<String, List<String>> retTableToFilters = new HashMap<String, List<String>>();
-	protected Map<String, List<String>> retTableToHavingFilters = new HashMap<String, List<String>>();
+	protected Map<String, List<String>> retTableToFilters = new HashMap<>();
+	protected Map<String, List<String>> retTableToHavingFilters = new HashMap<>();
 	// keep list of traversed tables
-	protected Set<String> traversedTables = new HashSet<String>();
-	protected List<String> jTypeList = new Vector<String>();
+	protected Set<String> traversedTables = new HashSet<>();
+	protected List<String> jTypeList = new Vector<>();
 	
 	// so we can extend this class
 	// but also have things register if we need to account for the 
@@ -196,6 +196,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	 * Adds the form statement for each table
 	 * @param conceptualTableName			The name of the table
 	 */
+	@Override
 	protected void addFrom(String conceptualTableName, String alias) {
 		// need to determine if we can have multiple froms or not
 		// we don't want to add the from table multiple times as this is invalid in sql
@@ -259,7 +260,8 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	////////////////////////////////////// end adding join ///////////////////////////////////////
 	
 	////////////////////////////////////////// adding filters ////////////////////////////////////////////
-	
+
+	@Override
 	public void addHavingFilters() {
 		if(!this.outerJoinsRequested) {
 			super.addHavingFilters();
@@ -278,7 +280,8 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 			}
 		}
 	}
-	
+
+	@Override
 	public void addFilters() {
 		if(!this.outerJoinsRequested) {
 			super.addFilters();
@@ -298,43 +301,43 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	
 	//////////////////////////////////////append order by  ////////////////////////////////////////////
 	
-//	protected void addOrderBy(){
-//		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
-//		for(QueryColumnOrderBySelector orderBySelector : orderBy) {
-//			String tableConceptualName = orderBySelector.getTable();
-//			String colAlias = orderBySelector.getAlias().toUpperCase();
-//			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
-//			
-//			//if the groupBy selector is not among the user-requested selectors, then 
-//			//cannot be used as a groupBy selector
-//			if (selectorAliases.contains(colAlias)){
-//				orderBySelectors.add(tableConceptualName + "." + colAlias);
-//			} else {
-//				continue;
-//			}
-//		}	
-//	}
+	/*protected void addOrderBy(){
+		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
+		for(QueryColumnOrderBySelector orderBySelector : orderBy) {
+			String tableConceptualName = orderBySelector.getTable();
+			String colAlias = orderBySelector.getAlias().toUpperCase();
+			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
+			
+			//if the groupBy selector is not among the user-requested selectors, then 
+			//cannot be used as a groupBy selector
+			if (selectorAliases.contains(colAlias)){
+				orderBySelectors.add(tableConceptualName + "." + colAlias);
+			} else {
+				continue;
+			}
+		}	
+	}*/
 	
 	//////////////////////////////////////end append order by////////////////////////////////////////////
 	
 	
 	//////////////////////////////////////append group by  ////////////////////////////////////////////
 	
-//	protected void addGroupBy(){
-//		List<QueryColumnSelector> groupBy = qs.getGroupBy();
-//		for(QueryColumnSelector groupBySelector : groupBy) {
-//			String tableConceptualName = groupBySelector.getTable();
-//			String colAlias = groupBySelector.getAlias().toUpperCase();
-//			
-//			//if the groupBy selector is not among the user-requested selectors, then 
-//			//cannot be used as a groupBy selector
-//			if (selectorAliases.contains(colAlias)){
-//				groupBySelectors.add(tableConceptualName + "." + colAlias);
-//			} else {
-//				continue;
-//			}
-//		}
-//	}
+	/*	protected void addGroupBy(){
+			List<QueryColumnSelector> groupBy = qs.getGroupBy();
+			for(QueryColumnSelector groupBySelector : groupBy) {
+				String tableConceptualName = groupBySelector.getTable();
+				String colAlias = groupBySelector.getAlias().toUpperCase();
+				
+				//if the groupBy selector is not among the user-requested selectors, then 
+				//cannot be used as a groupBy selector
+				if (selectorAliases.contains(colAlias)){
+					groupBySelectors.add(tableConceptualName + "." + colAlias);
+				} else {
+					continue;
+				}
+			}
+		}*/
 	
 	//////////////////////////////////////end append group by////////////////////////////////////////////
 	
@@ -422,8 +425,8 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		//string @ index 2 will be the filters, if available
 		String[] outerJoinSelectors = new String[3];
 		String[] joinKeys = new String[2];
-		Set<String> leftTables = new HashSet<String>();
-		Set<String> rightTables = new HashSet<String>();
+		Set<String> leftTables = new HashSet<>();
+		Set<String> rightTables = new HashSet<>();
 		String leftTableSelector = null;
 		String rightTableSelector = null;
 		
@@ -458,21 +461,23 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 				.filter(v -> v.split(" AS")[0].equals(rTableCol))
 				.collect(Collectors.joining("")));
 		}
-		
+
 		//IDENTIFY RELEVANT FILTERS
-		String subQueryFilter = getSubqueryFilters(derivedTableName, Stream.of(leftTableSelector.split("\\.")[0]).collect(Collectors.toSet()), rightTables);
-		outerJoinSelectors[2] = subQueryFilter;
+		if (leftTableSelector != null) {
+			String subQueryFilter = getSubqueryFilters(derivedTableName, Stream.of(leftTableSelector.split("\\.")[0]).collect(Collectors.toSet()), rightTables);
+			outerJoinSelectors[2] = subQueryFilter;
 		
-		//IDENTIFY RELEVANT SELECTORS
-		//set left selectors
-		String leftSelector = getSubquerySelectors(derivedTableName, leftTables, rightTables);
-		outerJoinSelectors[0] = leftSelector;
-		//set right selectors
-		String leftKeyAlias = leftTableSelector.split("\\.")[1];
-		String escapedleftJoinKey = joinKeys[0].replaceAll("([\\.\\$])", "\\\\$1");
-		String rightSelector = leftSelector.replaceAll("(?:^|)" + escapedleftJoinKey + "(?:$|\\s)[^,]*", 
-				Matcher.quoteReplacement(joinKeys[1] + " AS \"" + leftKeyAlias + "\" "));
-		outerJoinSelectors[1] = rightSelector;
+			//IDENTIFY RELEVANT SELECTORS
+			//set left selectors
+			String leftSelector = getSubquerySelectors(derivedTableName, leftTables, rightTables);
+			outerJoinSelectors[0] = leftSelector;
+			//set right selectors
+			String leftKeyAlias = leftTableSelector.split("\\.")[1];
+			String escapedleftJoinKey = joinKeys[0].replaceAll("([\\.\\$])", "\\\\$1");
+			String rightSelector = leftSelector.replaceAll("(?:^|)" + escapedleftJoinKey + "(?:$|\\s)[^,]*", 
+					Matcher.quoteReplacement(joinKeys[1] + " AS \"" + leftKeyAlias + "\" "));
+			outerJoinSelectors[1] = rightSelector;
+		}
 		
 		return outerJoinSelectors;
 	}
@@ -480,8 +485,8 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	protected String[] determineH2JoinSelectorsFilters(String subqueryJoinSyntax, String derivedTableName){
 		//string @ index 0 will be the selectors & string @ index 1 will be the filters
 		String[] selectorsFilters = new String[2];
-		Set<String> leftTables = new HashSet<String>();
-		Set<String> rightTables = new HashSet<String>();
+		Set<String> leftTables = new HashSet<>();
+		Set<String> rightTables = new HashSet<>();
 		
 		Pattern p = Pattern.compile("[^ ]*=[^ ]*+");
 		Matcher m = p.matcher(subqueryJoinSyntax);
@@ -516,7 +521,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		while (it.hasNext()){
 			Map.Entry entry = (Map.Entry) it.next();
 			List<String> keyList = new ArrayList(Arrays.asList(((String) entry.getKey()).split("__")));
-			List<String> derivedReferenceReplace = new ArrayList<String>(keyList);
+			List<String> derivedReferenceReplace = new ArrayList<>(keyList);
 
 			keyList.removeAll(leftTables);
 			keyList.removeAll(rightTables);
@@ -545,7 +550,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	}
 	
 	protected String getSubquerySelectors(String derivedTableName, Set<String> leftTables, Set<String> rightTables){
-		Set<String> subquerySelectorList = new LinkedHashSet<String>();
+		Set<String> subquerySelectorList = new LinkedHashSet<>();
 		String subSelectors = "";
 		
 		//first, update the selectors already in selectorOrderSet with the derived table name
@@ -578,7 +583,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	}
 	
 	protected Set<String> parseTableColAlias(Set<String> selectorList){
-		Set<String> tableColAlias = new LinkedHashSet<String>();
+		Set<String> tableColAlias = new LinkedHashSet<>();
 		for (String s : selectorList){
 			tableColAlias.add(parseTableColAlias(s));
 		}
@@ -608,24 +613,24 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	///////////////////////////////////////// test method /////////////////////////////////////////////////
 	
 	public static void main(String[] args) {
-//		// load in the engine
-//		TestUtilityMethods.loadDIHelper();
-//
-//		//TODO: put in correct path for your database
-//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-//		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineId("Movie_RDBMS");
-//		coreEngine.openDB(engineProp);
-//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+		/*// load in the engine
+		TestUtilityMethods.loadDIHelper();
 		
-//		String str = "curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\"";
-//		Pattern p = Pattern.compile("[^ ]*\\.");
-//		Matcher m = p.matcher(str);
-//		while (m.find()){
-//			System.out.println(m.group(0));
-//		}
-//		String str1 = str.replaceAll("[^ ]*\\.", "tempTABLE.");
-//		System.out.println(str1);
+		//TODO: put in correct path for your database
+		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineId("Movie_RDBMS");
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+		
+		String str = "curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\"";
+		Pattern p = Pattern.compile("[^ ]*\\.");
+		Matcher m = p.matcher(str);
+		while (m.find()){
+			System.out.println(m.group(0));
+		}
+		String str1 = str.replaceAll("[^ ]*\\.", "tempTABLE.");
+		System.out.println(str1);*/
 		
 	}
 

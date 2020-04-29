@@ -21,6 +21,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import net.minidev.json.JSONArray;
 
@@ -30,7 +32,7 @@ import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 
 public class FlatXML {
-	
+
 	// Things I need to get stuff done
 	
 	// INPUT
@@ -49,12 +51,14 @@ public class FlatXML {
 	// <specific path pattern>= alias header to use
 
 	// the output is finally cobbled into a R datatable through a c()
+	private static final Logger logger = LogManager.getLogger(FlatXML.class);
 	
-	public static final String input_type = "input_type";
-	public static final String output_type = "output_type";
-	public static final String path_patterns = "path_patterns";
-	public static final String concat = "concat";
-	public static final String delim = "delim";
+	public static final String INPUT_TYPE = "input_type";
+	public static final String OUTPUT_TYPE = "output_type";
+	public static final String PATH_PATTERNS = "path_patterns";
+	public static final String CONCAT = "concat";
+	public static final String DELIM = "delim";
+	private static final String STACKTRACE = "StackTrace: ";
 
 	
 	Properties prop = null;
@@ -90,12 +94,10 @@ public class FlatXML {
 
 			execQuery(prop.getProperty("path_patterns"));
 				
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (FileNotFoundException fnfe) {
+			logger.error(STACKTRACE, fnfe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
 	}
 	
@@ -114,12 +116,10 @@ public class FlatXML {
 			retString = handler.handleResponse(response);
 			
 			System.out.println(">> " + retString);
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (ClientProtocolException cpe) {
+			logger.error(STACKTRACE, cpe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
 				
 		//return retString;
@@ -166,8 +166,8 @@ public class FlatXML {
 			if(numRows == 0 || numRows > data[pathIndex].size())
 				numRows = data[pathIndex].size();
 			
-			System.out.println(" >> " + data[pathIndex].toString());
-			System.out.println("Length >> " + data[pathIndex].size());
+			logger.debug(" >> " + data[pathIndex].toString());
+			logger.debug("Length >> " + data[pathIndex].size());
 			
 			Object firstOne = data[pathIndex].get(0);
 			if(firstOne instanceof Integer)
@@ -178,15 +178,17 @@ public class FlatXML {
 				types[pathIndex] = "Double";
 		}
 		
-		System.out.println("Output..  " + data);
+		logger.debug("Output..  " + data);
 		
 		Hashtable retHash = new Hashtable();
 		retHash.put("TYPES", types);
 		retHash.put("HEADERS", headers);
 		retHash.put("DATA", data);
 		retHash.put("COUNT", numRows);
-		
-		writeCSV(data, "random.csv", numRows, headers.toString());
+
+		if (headers != null) {
+			writeCSV(data, "random.csv", numRows, headers.toString());
+		}
 
 		return retHash;
 	}
@@ -220,16 +222,17 @@ public class FlatXML {
 					else
 						composer = composer.append(",").append(thisData);
 				}
-				
-				bw.write(composer.toString());
+
+				if (composer != null) {
+					bw.write(composer.toString());
+				}
 				bw.write("\n");
 			}
 			
 			bw.flush();
 			bw.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 	}
@@ -242,23 +245,23 @@ public class FlatXML {
 			BufferedReader breader = new BufferedReader(reader);
 			
 			String jsonString = breader.readLine();
-			System.out.println("String is .. " + jsonString);
+			logger.debug("String is .. " + jsonString);
 
-			Object document = Configuration.defaultConfiguration().jsonProvider().parse(jsonString);
+			Object parsedDocument = Configuration.defaultConfiguration().jsonProvider().parse(jsonString);
 
 			// getting a particular element
-			//Object rxcuis = JsonPath.read(document, "$..[?(@.rxcui == \"75207\")]");
+			//Object rxcuis = JsonPath.read(parsedDocument, "$..[?(@.rxcui == \"75207\")]");
 			
 			// getting from an array
-			//Object rxcuis = JsonPath.read(document, "$..[?(\"656659\" in @.['rxcuis'])]");
+			//Object rxcuis = JsonPath.read(parsedDocument, "$..[?(\"656659\" in @.['rxcuis'])]");
 			
-			Object rxcuis = JsonPath.read(document, "$..minConcept[*].rxcui");
+			Object rxcuis = JsonPath.read(parsedDocument, "$..minConcept[*].rxcui");
 			
 			
-//			Object severity = JsonPath.read(document, "$..name");
+			//Object severity = JsonPath.read(parsedDocument, "$..name");
 
 			// get all interaction pairs where there is a severity of high
-			JSONArray severity = JsonPath.read(document, "$..interactionPair[?(@.severity == \"high\")])");
+			JSONArray severity = JsonPath.read(parsedDocument, "$..interactionPair[?(@.severity == \"high\")])");
 			
 			String severityStr = severity.toJSONString();
 			Object document2 = Configuration.defaultConfiguration().jsonProvider().parse(severityStr);
@@ -267,19 +270,16 @@ public class FlatXML {
 			Object name = JsonPath.read(document2, "$..minConceptItem['name']");
 			
 
-			System.out.println("Value..  " + rxcuis + " \n" + severity);
+			logger.debug("Value..  " + rxcuis + " \n" + severity);
 
-			System.out.println("Value..  " + rxcuis + " \n" + name);
+			logger.debug("Value..  " + rxcuis + " \n" + name);
 
-		} catch (InvalidJsonException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (InvalidJsonException ije) {
+			logger.error(STACKTRACE, ije);
+		} catch (FileNotFoundException fnfe) {
+			logger.error(STACKTRACE, fnfe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
 	}
 	
@@ -291,9 +291,8 @@ public class FlatXML {
 		
 		String output = JsonFlattener.flatten(json);
 		
-		System.out.println(flattenJson);
-		
-		System.out.println(output);
+		logger.debug(flattenJson);
+		logger.debug(output);
 		
 		return flattenJson;
 	}

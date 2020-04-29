@@ -32,48 +32,49 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ExecQueryReactor extends AbstractReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(ExecQueryReactor.class.getName());
+	private static final Logger logger = LogManager.getLogger(ExecQueryReactor.class);
 
+	private static final String STACKTRACE = "StackTrace: ";
 	private NounMetadata qStruct = null;
-	
+
 	public ExecQueryReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_STRUCT.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
-		if(qStruct == null) {
+		if (qStruct == null) {
 			qStruct = getQueryStruct();
 		}
-		
+
 		IEngine engine = null;
 		ITableDataFrame frame = null;
 		AbstractQueryStruct qs = null;
 		String userId = "user not defined";
-		
-		if(qStruct.getValue() instanceof AbstractQueryStruct) {
+
+		if (qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
-			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+			if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				engine = qs.retrieveQueryStructEngine();
-				if(!(engine instanceof BigDataEngine || engine instanceof RDBMSNativeEngine)) {
+				if (!(engine instanceof BigDataEngine || engine instanceof RDBMSNativeEngine)) {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
 				}
-				
+
 				// If an engine and the user is defined, then grab it for the audit log
 				User user = this.insight.getUser();
 				if (user != null) {
 					userId = user.getAccessToken(user.getLogins().get(0)).getId();
 				}
-				
+
 				// If security is enabled, then check that the user can edit the engine
 				if (AbstractSecurityUtils.securityEnabled()) {
-					if(!SecurityAppUtils.userCanEditEngine(user, engine.getEngineId())) {
+					if (!SecurityAppUtils.userCanEditEngine(user, engine.getEngineId())) {
 						throw new IllegalArgumentException("User does not have permission to exec query for this app");
 					}
 				}
-			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+			} else if (qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
 				frame = qs.getFrame();
-				if(!(frame instanceof AbstractRdbmsFrame)) {
+				if (!(frame instanceof AbstractRdbmsFrame)) {
 					throw new IllegalArgumentException("Query update/deletes only works for sql frames");
 				}
 				// convert any aliases the FE is using from the frame
@@ -82,30 +83,33 @@ public class ExecQueryReactor extends AbstractReactor {
 		} else {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
 		}
-		
+
 		boolean update = false;
 		boolean custom = false;
 		String query = null;
 		// grab query && determine how to store in audit db
-		if(qs instanceof HardSelectQueryStruct) {
+		if (qs instanceof HardSelectQueryStruct) {
 			query = ((HardSelectQueryStruct) qs).getQuery();
 			custom = true;
-		} else if(qs instanceof UpdateQueryStruct) {
+		} else if (qs instanceof UpdateQueryStruct) {
 			UpdateSqlInterpreter interp = new UpdateSqlInterpreter((UpdateQueryStruct) qs);
 			query = interp.composeQuery();
 			update = true;
-		} else if(qs instanceof SelectQueryStruct) {
+		} else if (qs instanceof SelectQueryStruct) {
 			DeleteSqlInterpreter interp = new DeleteSqlInterpreter((SelectQueryStruct) qs);
 			query = interp.composeQuery();
 			update = false;
 		}
-		
-		LOGGER.info("EXEC QUERY.... " + query);
-		if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+
+		logger.info("EXEC QUERY.... " + query);
+		if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+			if(engine == null) {
+				throw new NullPointerException("No engine passed in to execute the query");
+			}
 			try {
 				engine.insertData(query);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				String errorMessage = "An error occured trying to execute the query in the database";
 				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();
@@ -127,9 +131,11 @@ public class ExecQueryReactor extends AbstractReactor {
 			ClusterUtil.reactorPushApp(engine.getEngineId());
 		} else {
 			try {
-				((H2Frame) frame).getBuilder().runQuery(query);
+				if (frame != null) {
+					((H2Frame) frame).getBuilder().runQuery(query);
+				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				String errorMessage = "An error occured trying to update the frame";
 				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();
@@ -137,21 +143,21 @@ public class ExecQueryReactor extends AbstractReactor {
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
 			}
 		}
-		
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
-	
+
 	private NounMetadata getQueryStruct() {
 		NounMetadata object = new NounMetadata(null, PixelDataType.QUERY_STRUCT);
 		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
 		NounMetadata f = new NounMetadata(false, PixelDataType.BOOLEAN);
-		if(allNouns != null) {
+		if (allNouns != null) {
 			object = allNouns.getNoun(0);
 			return object;
 		}
 		return f;
 	}
-	
+
 	public void setQueryStruct(NounMetadata qs) {
 		this.qStruct = qs;
 	}

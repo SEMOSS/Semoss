@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -21,7 +23,11 @@ import org.jsoup.select.Elements;
 import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.util.Utility;
 
-public class WebScrapeEngine extends JsonAPIEngine{
+public class WebScrapeEngine extends JsonAPIEngine {
+
+	private static final Logger logger = LogManager.getLogger(WebScrapeEngine.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	// override execute query and get enginetype etc. 
 	
@@ -38,14 +44,13 @@ public class WebScrapeEngine extends JsonAPIEngine{
 	// table_class = number = pick it based on class
 	// or 
 	// table_attribute = number
-	public static final String table_number = "table_number";
-	public static final String table_id = "table_id";
-	public static final String table_class = "table_class";
+	public static final String TABLE_NUMBER = "table_number";
+	public static final String TABLE_ID = "table_id";
+	public static final String TABLE_CLASS = "table_class";
 	
 	
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		// TODO Auto-generated method stub
 		return prerna.engine.api.IEngine.ENGINE_TYPE.WEB;
 	}
 
@@ -56,10 +61,10 @@ public class WebScrapeEngine extends JsonAPIEngine{
 	{
 		Hashtable retHash  = new Hashtable();
 		try {
-			String url = prop.getProperty(input_url);
+			String url = prop.getProperty(INPUT_URL);
 			String method = "get";
-			if(prop.containsKey(input_method))
-				method = prop.getProperty(input_method);
+			if(prop.containsKey(INPUT_METHOD))
+				method = prop.getProperty(INPUT_METHOD);
 			
 			InputStream is = null;
 			
@@ -72,20 +77,20 @@ public class WebScrapeEngine extends JsonAPIEngine{
 			
 			Element thisTable = null;
 			
-			if(prop.containsKey(table_class))
+			if(prop.containsKey(TABLE_CLASS))
 			{
 				// this is a get by class
-				String className = prop.getProperty(table_class);
-				int tableNum = Integer.parseInt(prop.getProperty(table_number).trim());
+				String className = prop.getProperty(TABLE_CLASS);
+				int tableNum = Integer.parseInt(prop.getProperty(TABLE_NUMBER).trim());
 				
 				Elements allTables = doc.getElementsByClass(className);
 				
 				thisTable = allTables.get(tableNum);
 			}
-			else if(prop.containsKey(table_id))
+			else if(prop.containsKey(TABLE_ID))
 			{
 				// get the table by id
-				String id = prop.getProperty(table_id);
+				String id = prop.getProperty(TABLE_ID);
 
 				thisTable = doc.getElementById(id);
 				
@@ -93,7 +98,7 @@ public class WebScrapeEngine extends JsonAPIEngine{
 			else
 			{
 				// this is just table by tag
-				int tableNum = Integer.parseInt(prop.get(table_number) + "");
+				int tableNum = Integer.parseInt(prop.get(TABLE_NUMBER) + "");
 
 				Elements allTables = doc.getElementsByTag("table");
 				
@@ -114,7 +119,7 @@ public class WebScrapeEngine extends JsonAPIEngine{
 				// get indexes of columns the user has selected
 				for (int i = 0; i < selectCols.length; i++) {
 					String[] headerSplit = selectCols[i].split("=");
-					System.out.println(Arrays.asList(headerSplit));
+					logger.debug(Arrays.asList(headerSplit));
 					String header = headerSplit[0].trim();
 					selectedIndex[i] = headersList.indexOf(header);
 					selectedHeaders[i] = header;
@@ -136,11 +141,9 @@ public class WebScrapeEngine extends JsonAPIEngine{
 			retHash.put("TYPES", types);
 			
 		} catch (NumberFormatException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
 		return retHash;
 	}
@@ -148,92 +151,82 @@ public class WebScrapeEngine extends JsonAPIEngine{
 	
 	
 	
-	public String [] getHeaders(String url, Map aliasMap)
-	{
-		String [] headers = null;
+	public String[] getHeaders(String url, Map aliasMap) {
+		String[] headers = null;
 		try {
 			String method = "get";
-			if(aliasMap.containsKey(input_method))
-				method = (String)aliasMap.get(input_method);
-			
+			if (aliasMap.containsKey(INPUT_METHOD))
+				method = (String) aliasMap.get(INPUT_METHOD);
+
 			InputStream is = null;
-			
-			if(method.equalsIgnoreCase("get"))
+
+			if (method.equalsIgnoreCase("get"))
 				is = doGetI(url);
 			else
 				is = doPostI(new Hashtable());
-			
+
 			Document doc = Jsoup.parse(is, "UTF-8", "");
-			
+
 			Element thisTable = null;
-			
-			if(aliasMap.containsKey(table_class))
-			{
+
+			if (aliasMap.containsKey(TABLE_CLASS)) {
 				// this is a get by class
-				String className = (String)aliasMap.get(table_class);
-				int tableNum = Integer.parseInt(aliasMap.get(table_number) + "");
-				
+				String className = (String) aliasMap.get(TABLE_CLASS);
+				int tableNum = Integer.parseInt(aliasMap.get(TABLE_NUMBER) + "");
+
 				Elements allTables = doc.getElementsByClass(className);
-				
+
 				thisTable = allTables.get(tableNum);
-			}
-			else if(aliasMap.containsKey(table_id))
-			{
+			} else if (aliasMap.containsKey(TABLE_ID)) {
 				// get the table by id
-				String id = (String)aliasMap.get(table_id);
+				String id = (String) aliasMap.get(TABLE_ID);
 
 				thisTable = doc.getElementById(id);
-				
-			}
-			else
-			{
+
+			} else {
 				// this is just table by tag
-				int tableNum = Integer.parseInt(aliasMap.get(table_number) + "");
+				int tableNum = Integer.parseInt(aliasMap.get(TABLE_NUMBER) + "");
 
 				Elements allTables = doc.getElementsByTag("table");
-				
-				thisTable = allTables.get(tableNum);			
+
+				thisTable = allTables.get(tableNum);
 			}
-			
+
 			// now I need to collect the header and rows and then return it
 			// see if there are rows
 			Elements allRows = thisTable.getElementsByTag("tr");
-			if(allRows != null && allRows.size() > 0)
-			{
+			if (allRows != null && !allRows.isEmpty()) {
 				Elements firstRow = allRows.get(0).getElementsByTag("th");
 				headers = collectHeaders(firstRow);
 			}
-		}catch (Exception ex)
-		{
-			ex.printStackTrace();
+		} catch (Exception ex) {
+			logger.error(STACKTRACE, ex);
 		}
-		
+
 		return headers;
 	}
 
-	public int getNumTables(String url, HashMap aliasMap)
-	{
-		int tables= 0;
+	public int getNumTables(String url, HashMap aliasMap) {
+		int tables = 0;
 		try {
 			String method = "get";
-			if(aliasMap.containsKey(input_method))
-				method = (String)aliasMap.get(input_method);
-			
+			if (aliasMap.containsKey(INPUT_METHOD))
+				method = (String) aliasMap.get(INPUT_METHOD);
+
 			InputStream is = null;
-			
-			if(method.equalsIgnoreCase("get"))
+
+			if (method.equalsIgnoreCase("get"))
 				is = doGetI(url);
 			else
 				is = doPostI(new Hashtable());
-			
+
 			Document doc = Jsoup.parse(is, "UTF-8", "");
-			
+
 			tables = doc.getElementsByTag("table").size();
-		}catch (Exception ex)
-		{
-			ex.printStackTrace();
+		} catch (Exception ex) {
+			logger.error(STACKTRACE, ex);
 		}
-		
+
 		return tables;
 	}
 
@@ -270,7 +263,6 @@ public class WebScrapeEngine extends JsonAPIEngine{
 		for(rowIndex = 1;rowIndex < values.size();rowIndex++)
 		{
 			Element thisRow = values.get(rowIndex);
-//			System.out.println("Processing row.. " + thisRow);
 			// get the TD on this row
 			// some of these are TH still.. thank you so much
 			Elements cols = thisRow.children();
