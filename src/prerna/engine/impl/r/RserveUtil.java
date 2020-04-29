@@ -27,7 +27,7 @@ public class RserveUtil {
 	
 	private static final String R_FOLDER = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
 	private static final String R_DATA_EXT = ".RData";
-	private static final String FS = System.getProperty("file.separator");
+	private static final String FS = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	// R binary location
 	private static String rBin;

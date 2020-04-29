@@ -19,7 +19,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public abstract class CloudClient {
 
-	private static final String FILE_SEPARATOR = System.getProperty("file.separator");
+	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	static String rcloneConfigFolder = null;
 
 	public static CloudClient getClient(){
