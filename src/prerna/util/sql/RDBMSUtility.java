@@ -37,10 +37,12 @@ import prerna.util.DIHelper;
 public class RDBMSUtility {
 	
 	static Logger LOGGER = Logger.getLogger(prerna.util.sql.RDBMSUtility.class);
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	
 	public static String getH2BaseConnectionURL() {
-		return "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@" + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + "@" + Constants.ENGINE + "@"
-				+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+		return "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@" + Constants.ENGINE + "@"
+				+ DIR_SEPARATOR + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	}
 
 	public static String getH2BaseConnectionURL2() {

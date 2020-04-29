@@ -53,6 +53,8 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	
 	//logger
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMIntegrationTransitionBySystemOwnerWriter.class.getName());
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	
 	private XSSFWorkbook wb;
 	private String workingDir;
@@ -78,7 +80,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	
 	public DHMSMIntegrationTransitionBySystemOwnerWriter(){
 		workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
+		folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
 		templateName = "Transition_Estimates_SystemOwner_Template.xlsx";
 	}
 	

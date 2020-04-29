@@ -29,7 +29,7 @@ import prerna.util.git.GitRepoUtils;
 
 public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	
-	private static final String FS = System.getProperty("file.separator");
+	private static final String FS = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public static final String WORKSPACE_APP_NAME = "Workspace";
 	public static final String ASSET_APP_NAME = "Asset";

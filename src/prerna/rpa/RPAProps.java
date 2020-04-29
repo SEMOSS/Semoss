@@ -23,7 +23,7 @@ public class RPAProps {
 
 	private static final Logger LOGGER = LogManager.getLogger(RPAProps.class.getName());
 
-	private static final String FILE_SEPARATOR = System.getProperty("file.separator");
+	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	////////////////////////////////////////////////////////////
 	// Default property names

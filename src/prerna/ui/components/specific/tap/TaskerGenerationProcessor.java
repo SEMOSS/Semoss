@@ -54,6 +54,8 @@ import prerna.util.Utility;
  */
 public class TaskerGenerationProcessor {
 	static final Logger logger = LogManager.getLogger(TaskerGenerationProcessor.class.getName());
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	public String coreDB = "";
 	String tapSiteEngine = "TAP_Site_Data";
 	String tapPortfolioEngine = "TAP_Portfolio";
@@ -239,7 +241,7 @@ public class TaskerGenerationProcessor {
 	 */
 	public void writeToFile(String systemName, Hashtable systemDataHash) {
 		TaskerGenerationWriter writer = new TaskerGenerationWriter();
-		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
 		String writeFileName;
 
 		writeFileName = "Tasker_for_" +systemName.replaceAll(":", "") + "_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";

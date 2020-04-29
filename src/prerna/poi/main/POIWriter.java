@@ -51,6 +51,8 @@ import prerna.util.Utility;
  * Create a workbook containing data formated in the Microsoft Excel Sheet Format
  */
 public class POIWriter {
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 
 //	/**
 //	 * The main method is never called within SEMOSS
@@ -94,8 +96,8 @@ public class POIWriter {
 			readFile = "BaseGILoadingSheets.xlsx";
 		}
 		String folder = "export";
-		String fileLoc = workingDir + System.getProperty("file.separator") + folder + System.getProperty("file.separator") + writeFile;
-		String readFileLoc = workingDir + System.getProperty("file.separator") + folder + System.getProperty("file.separator") + readFile;
+		String fileLoc = workingDir + DIR_SEPARATOR + folder + DIR_SEPARATOR + writeFile;
+		String readFileLoc = workingDir + DIR_SEPARATOR + folder + DIR_SEPARATOR + readFile;
 
 		ExportLoadingSheets(fileLoc, hash, readFileLoc, formatData);
 	}
