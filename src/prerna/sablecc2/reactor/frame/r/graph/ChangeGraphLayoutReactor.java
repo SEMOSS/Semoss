@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.r.graph;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -20,25 +21,24 @@ import prerna.util.Utility;
  *
  */
 public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
-
 	private static final String CLASS_NAME = ChangeGraphLayoutReactor.class.getName();
 
 	public ChangeGraphLayoutReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.GRAPH_LAYOUT.getKey(), "yMin", "yMax", "xMin", "xMax"};
+		this.keysToGet = new String[] { ReactorKeysEnum.GRAPH_LAYOUT.getKey(), "yMin", "yMax", "xMin", "xMax" };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
-		String[] packages = new String[]{"igraph"};
+		String[] packages = new String[] { "igraph" };
 		this.rJavaTranslator.checkPackages(packages);
 		this.rJavaTranslator.executeEmptyR("library(igraph)");
 		Logger logger = getLogger(CLASS_NAME);
 		TinkerFrame frame = (TinkerFrame) getFrame();
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		String inputLayout = this.keyValue.get(this.keysToGet[0]);
-		
+
 		try {
 			logger.info("Determining vertex positions...");
 			String tempOutputLayout = "xy_layout" + Utility.getRandomString(8);
@@ -48,19 +48,20 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 			String yMax = getYMax();
 			String xMin = getXMin();
 			String xMax = getXMax();
-			this.rJavaTranslator.executeEmptyR(tempOutputLayout + "<-layout.norm("+tempOutputLayout+", ymin="+yMin+", ymax="+yMax+", xmin="+xMin+", xmax="+xMax+")");
+			this.rJavaTranslator.executeEmptyR(tempOutputLayout + "<-layout.norm(" + tempOutputLayout + ", ymin=" + yMin
+					+ ", ymax=" + yMax + ", xmin=" + xMin + ", xmax=" + xMax + ")");
 			logger.info("Done calculating positions...");
 			synchronizeXY(tempOutputLayout);
 			// clean up temp variable
 			this.rJavaTranslator.executeEmptyR("rm(" + tempOutputLayout + ")");
 			return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			logger.error("StackTrace: ", ex);
 		}
-		
+
 		throw new IllegalArgumentException("Unable to change layout");
 	}
-	
+
 	private void synchronizeXY(String layout) {
 		Logger logger = getLogger(CLASS_NAME);
 		TinkerFrame frame = (TinkerFrame) getFrame();
@@ -73,15 +74,16 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 		} else if (memberships[0].length == 3) {
 			axis = new String[] { "X", "Y", "Z" };
 		}
-		String[] IDs = this.rJavaTranslator.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
+		String[] ids = this.rJavaTranslator
+				.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
 		for (int memIndex = 0; memIndex < memberships.length; memIndex++) {
-			String thisID = IDs[memIndex];
+			String thisID = ids[memIndex];
 			Vertex retVertex = null;
 			GraphTraversal<Vertex, Vertex> gt = frame.g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
 			if (gt.hasNext()) {
 				retVertex = gt.next();
 			}
-			if (retVertex != null) {
+			if (retVertex != null && axis != null) {
 				for (int i = 0; i < axis.length; i++) {
 					retVertex.property(axis[i], memberships[memIndex][i]);
 				}
@@ -93,7 +95,7 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 		}
 		logger.info("Done synchronizing vertex positions");
 	}
-	
+
 	public String getYMin() {
 		String yMin = this.keyValue.get(this.keysToGet[1]);
 		if (yMin == null) {

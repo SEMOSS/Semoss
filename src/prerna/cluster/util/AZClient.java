@@ -12,6 +12,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import com.google.common.io.Files;
@@ -34,6 +36,7 @@ import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class AZClient extends CloudClient {
+	private static final Logger logger = LogManager.getLogger(AZClient.class);
 
 	// this is a singleton
 
@@ -52,6 +55,7 @@ public class AZClient extends CloudClient {
 	public static final String AZ_URI = "AZ_URI";
 	public static final String STORAGE = "STORAGE"; // says if this is local / cluster
 	public static final String KEY_HOME = "KEY_HOME"; // this is where the various keys are cycled
+	private static final String STACKTRACE = "StackTrace: ";
 
 	public String azKeyRoot = "/khome";
 
@@ -150,12 +154,10 @@ public class AZClient extends CloudClient {
 				serviceClient = account.createCloudBlobClient();
 
 			}
-		} catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (URISyntaxException use) {
+			logger.error(STACKTRACE, use);
+		} catch (InvalidKeyException ike) {
+			logger.error(STACKTRACE, ike);
 		}
 	}
 
@@ -171,15 +173,12 @@ public class AZClient extends CloudClient {
 			container.createIfNotExists();
 			retString = container.getUri() + "?" + container.generateSharedAccessSignature(getSASConstraints(), null); 
 
-		} catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (StorageException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (URISyntaxException use) {
+			logger.error(STACKTRACE, use);
+		} catch (StorageException se) {
+			logger.error(STACKTRACE, se);
+		} catch (InvalidKeyException ike) {
+			logger.error(STACKTRACE, ike);
 		}
 
 		return retString;
@@ -253,7 +252,7 @@ public class AZClient extends CloudClient {
 			}
 			for(String s: appWithImages){
 				
-				System.out.println(s);
+				logger.debug(s);
 				List<String> copied = runAnyProcess("rclone", "copy" , "kunalp:"+s+"version/image.png", "kunalp:aaa-imagecontainer/");
 				List<String> moved = runAnyProcess("rclone", "moveto" , "kunalp:aaa-imagecontainer/image.png", "kunalp:aaa-imagecontainer/"+s.substring(0, s.length()-1)+".png");
 
@@ -275,25 +274,25 @@ public class AZClient extends CloudClient {
 //				for(String content : results2){
 //					if( content.contains("version")){
 //						
-//						System.out.println(appid + " has a version folder");
+//						logger.debug(appid + " has a version folder");
 //						appWithVersion.add(appid);
 //					}
 //				}
 //			}
 			
 		} catch(Exception e){
-			throw e;
+			logger.error(STACKTRACE, e);
 		}
 		
 		//DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
 		//		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
-		//		System.out.println(AZClient.getInstance().getSAS("timb"));
+		//		logger.debug(AZClient.getInstance().getSAS("timb"));
 		//		AZClient.getInstance().deleteApp("1bab355d-a2ea-4fde-9d2c-088287d46978");
 		//		AZClient.getInstance().pushApp(appId);
 		//		AZClient.getInstance().pullApp(appId);
 		//		List<String> containers = AZClient.getInstance().listAllBlobContainers();
 		//		for(String container : containers) {
-		//			System.out.println(container);
+		//			logger.debug(container);
 		//		}
 	}
 	@Override
@@ -309,7 +308,7 @@ public class AZClient extends CloudClient {
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			engine.closeDB();
-			System.out.println("Pulling insights database for" + appFolder + " from remote=" + appId);
+			logger.debug("Pulling insights database for" + appFolder + " from remote=" + appId);
 			String insightDB = getInsightDB(appFolder);
 			runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/"+ insightDB, appFolder);
 			 
@@ -334,7 +333,7 @@ public class AZClient extends CloudClient {
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			engine.closeDB();
-			System.out.println("Pulling database for" + appFolder + " from remote=" + appId);
+			logger.debug("Pulling database for" + appFolder + " from remote=" + appId);
 			if(e == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				for(String sqliteFile : sqliteFileNames){
@@ -369,7 +368,7 @@ public class AZClient extends CloudClient {
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			engine.closeDB();
-			System.out.println("Pulling database for" + appFolder + " from remote=" + appId);
+			logger.debug("Pulling database for" + appFolder + " from remote=" + appId);
 			if(e == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				for(String sqliteFile : sqliteFileNames){			
@@ -406,10 +405,10 @@ public class AZClient extends CloudClient {
 	//		try {
 	//			appRcloneConfig = createRcloneConfig(appId);
 	//				engine.closeDB();
-	//				System.out.println("Checking from app path" + appFolder + " to remote=" + appId);
+	//				logger.debug("Checking from app path" + appFolder + " to remote=" + appId);
 	//				List<String> results = runRcloneProcess(appRcloneConfig, "rclone", "check", appFolder+FILE_SEPARATOR + "insights_database.mv.db", appRcloneConfig + ":"+appId);
 	//				for(String s:results){
-	//				System.out.println("Result String: " + s);
+	//				logger.debug("Result String: " + s);
 	//				}
 	//				if(results.get(0).contains("ERROR")){
 	//					sync=true;
@@ -464,9 +463,9 @@ public class AZClient extends CloudClient {
 				engine.closeDB();
 
 				// Push the app folder
-				System.out.println("Pushing from source=" + appFolder + " to remote=" + appId);
+				logger.debug("Pushing from source=" + appFolder + " to remote=" + appId);
 				runRcloneProcess(appRcloneConfig, "rclone", "sync", appFolder, appRcloneConfig + ":");
-				System.out.println("Done pushing from source=" + appFolder + " to remote=" + appId);
+				logger.debug("Done pushing from source=" + appFolder + " to remote=" + appId);
 
 				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
 				String tempFolder = Utility.getRandomString(10);
@@ -476,9 +475,9 @@ public class AZClient extends CloudClient {
 				Files.copy(new File(smssFile), copy);
 
 				// Push the smss
-				System.out.println("Pushing from source=" + smssFile + " to remote=" + smssContainer);
+				logger.debug("Pushing from source=" + smssFile + " to remote=" + smssContainer);
 				runRcloneProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":");
-				System.out.println("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
+				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -559,16 +558,16 @@ public class AZClient extends CloudClient {
 				appFolder.mkdir(); 
 
 				// Pull the contents of the app folder before the smss
-				System.out.println("Pulling from remote=" + appId + " to target=" + appFolder.getPath());
+				logger.debug("Pulling from remote=" + appId + " to target=" + appFolder.getPath());
 				runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":", appFolder.getPath());
-				System.out.println("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
+				logger.debug("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
 
 				// Now pull the smss
-				System.out.println("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
+				logger.debug("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 				runRcloneProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":", dbFolder);
-				System.out.println("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
+				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 				// Catalog the db if it is new
 				if (newApp) {
@@ -650,12 +649,12 @@ public class AZClient extends CloudClient {
 			String rcloneConfig = Utility.getRandomString(10);
 			try {
 				runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-				System.out.println("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+				logger.debug("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
 				runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId);
 				runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId + SMSS_POSTFIX);
 				runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId);
 				runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId + SMSS_POSTFIX);
-				System.out.println("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+				logger.debug("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
 			} finally {
 				deleteRcloneConfig(rcloneConfig);
 			}
@@ -682,10 +681,10 @@ public class AZClient extends CloudClient {
 			String rcloneConfig = Utility.getRandomString(10);
 			try {
 				runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-				System.out.println("Deleting container=" + containerId);
+				logger.debug("Deleting container=" + containerId);
 				runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + containerId);
 				runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + containerId);
-				System.out.println("Done deleting container=" + containerId);
+				logger.debug("Done deleting container=" + containerId);
 			} finally {
 				deleteRcloneConfig(rcloneConfig);
 			}
@@ -696,7 +695,7 @@ public class AZClient extends CloudClient {
 		///////////////////////////////// Static Util Methods ////////////////////////////////////
 
 		private static String createRcloneConfig(String container) throws IOException, InterruptedException {
-			System.out.println("Generating SAS for container=" + container);
+			logger.debug("Generating SAS for container=" + container);
 			String sasUrl = client.getSAS(container);
 			String rcloneConfig = Utility.getRandomString(10);
 			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
@@ -765,7 +764,7 @@ public class AZClient extends CloudClient {
 				if (error) {
 					System.err.println(line);
 				} else {
-					System.out.println(line);
+					logger.debug(line);
 				}
 			}
 			return lines;

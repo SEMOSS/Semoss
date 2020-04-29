@@ -10,6 +10,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import com.google.gson.Gson;
 
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -34,10 +37,14 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 
+	private static final Logger logger = LogManager.getLogger(MakeInsightMosfetReactor.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	public MakeInsightMosfetReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -94,11 +101,15 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 					numIgnored++;
 				}
 				
+				if (mosfet == null) {
+					throw new NullPointerException("mosfet file should not be null here");
+				}
+				
 				try {
 					mosfet.write(mosfetPath, true);
 					numUpdated++;
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 					numError++;
 				}
 				
@@ -127,6 +138,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 			try {
 				mosfet = generateMosfetFromInsight(app, rdbmsId);
 			} catch(IllegalArgumentException e) {
+				logger.error(STACKTRACE, e);
 				throw e;
 			}
 			
@@ -140,7 +152,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				mosfet.write(mosfetPath, true);
 				numUpdated++;
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				numError++;
 			}
 			
@@ -194,7 +206,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 						try {
 							pixelArrayIs = pixelArray.getAsciiStream();
 						} catch (SQLException e) {
-							e.printStackTrace();
+							logger.error(STACKTRACE, e);
 						}
 					}
 					// flush input stream to string
@@ -205,7 +217,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				}
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			logger.error(STACKTRACE, e1);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -218,7 +230,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 		
 		// now add the metadata
 		String description = null;
-		List<String> tags = new Vector<String>();
+		List<String> tags = new Vector<>();
 		
 		query = "SELECT DISTINCT INSIGHTID, METAKEY, METAVALUE, METAORDER FROM INSIGHTMETA WHERE INSIGHTID='" + insightId + "' ORDER BY METAORDER";
 		try {
@@ -235,7 +247,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();

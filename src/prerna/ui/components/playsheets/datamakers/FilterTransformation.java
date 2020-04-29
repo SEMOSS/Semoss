@@ -25,12 +25,14 @@ import prerna.util.Utility;
 
 public class FilterTransformation extends AbstractTransformation {
 
-	private static final Logger LOGGER = LogManager.getLogger(FilterTransformation.class.getName());
+	private static final Logger logger = LogManager.getLogger(FilterTransformation.class);
+
 	public static final String METHOD_NAME = "filter";						// name of the method in all data makers to perform a filter
 	public static final String UNDO_METHOD_NAME = "unfilter";				// name of the method in all data makers to perform undo filtering
 	public static final String COLUMN_HEADER_KEY = "colHeader";				// key in properties map for the type to apply the filter for
 	public static final String VALUES_KEY = "values";						// key in properties map for the list of values to filter
 	public static final String VISIBLE_VALUES_KEY = "valueSet";				// key in properties map for the list of values to display in drop down
+	private static final String STACKTRACE = "StackTrace: ";
 
 	private DataMakerComponent dmc;
 	private Boolean preTrans;
@@ -57,7 +59,7 @@ public class FilterTransformation extends AbstractTransformation {
 		List<Object> values = ((List<Object>) this.props.get(VALUES_KEY));
 
 		if (values == null) {
-			LOGGER.info("VALUES FOR THIS FILTER HAS NOT BEEN SET.... THIS IS MOST LIKELY A FILTER PAIRED WITH A JOIN.... GRABBING VALUES FROM DATAMAKER");
+			logger.info("VALUES FOR THIS FILTER HAS NOT BEEN SET.... THIS IS MOST LIKELY A FILTER PAIRED WITH A JOIN.... GRABBING VALUES FROM DATAMAKER");
 			if (dm instanceof ITableDataFrame) {
 				SelectQueryStruct qs2 = new SelectQueryStruct();
 				Iterator<IHeadersDataRow> uniqIterator = null;
@@ -66,7 +68,7 @@ public class FilterTransformation extends AbstractTransformation {
 					try {
 						uniqIterator = ((ITableDataFrame) dm).query(qs2);
 					} catch (Exception e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 				} else {
 					// tinker
@@ -74,12 +76,15 @@ public class FilterTransformation extends AbstractTransformation {
 					try {
 						uniqIterator = ((ITableDataFrame) dm).query(qs2);
 					} catch (Exception e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 				}
-				values = new Vector<Object>();
-				while (uniqIterator.hasNext()) {
-					values.add(uniqIterator.next());
+				values = new Vector<>();
+
+				if (uniqIterator != null) {
+					while (uniqIterator.hasNext()) {
+						values.add(uniqIterator.next());
+					}
 				}
 			}
 		}
@@ -96,7 +101,7 @@ public class FilterTransformation extends AbstractTransformation {
 				// this doesn't allow for multiselect from the UI
 				String query = this.dmc.getQuery();
 				query = Utility.normalizeParam(query);
-				Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+				Map<String, List<Object>> paramHash = new Hashtable<>();
 				paramHash.put(colHeader, new ArrayList<>(values));
 				query = Utility.fillParam(query, paramHash);
 				this.dmc.setQuery(query);
@@ -144,20 +149,19 @@ public class FilterTransformation extends AbstractTransformation {
 //			LOGGER.info("Successfully invoked method : " + METHOD_NAME);
 			filterColumn(dm, colHeader, values);
 		} catch (NoSuchMethodException | SecurityException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (IllegalAccessException iae) {
+			logger.error(STACKTRACE, iae);
+		} catch (IllegalArgumentException ie) {
+			logger.error(STACKTRACE, ie);
+		} catch (InvocationTargetException ite) {
+			logger.error(STACKTRACE, ite);
 		}
-		return;
 	}
 	
 	public static void filterColumn(IDataMaker dm, String concept, List<Object> filterValuesArr) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		
-		List<Object> values = new ArrayList<Object>(filterValuesArr.size());
+		List<Object> values = new ArrayList<>(filterValuesArr.size());
 		//if column is numeric convert to double
 		Method isNumericMethod = dm.getClass().getMethod("isNumeric", String.class);
 		if((boolean) isNumericMethod.invoke(dm, concept)) {
@@ -180,7 +184,7 @@ public class FilterTransformation extends AbstractTransformation {
 		Method filterMethod = dm.getClass().getMethod(METHOD_NAME, String.class, List.class);
 		filterMethod.invoke(dm, concept, values);
 
-		LOGGER.info("Filtered column: "+concept);
+		logger.info("Filtered column: "+concept);
 	}
 
 	@Override
@@ -197,21 +201,20 @@ public class FilterTransformation extends AbstractTransformation {
 		Method method = null;
 		try {
 			method = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class);
-			LOGGER.info("Successfully got method : " + UNDO_METHOD_NAME);
+			logger.info("Successfully got method : " + UNDO_METHOD_NAME);
 			
 			method.invoke(dm, colHeader);
-			LOGGER.info("Successfully invoked method : " + UNDO_METHOD_NAME);
+			logger.info("Successfully invoked method : " + UNDO_METHOD_NAME);
 
 		} catch (NoSuchMethodException | SecurityException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (IllegalAccessException iae) {
+			logger.error(STACKTRACE, iae);
+		} catch (IllegalArgumentException ie) {
+			logger.error(STACKTRACE, ie);
+		} catch (InvocationTargetException ite) {
+			logger.error(STACKTRACE, ite);
 		}
-		return;
 	}
 
 	@Override

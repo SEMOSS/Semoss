@@ -40,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -49,24 +50,28 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import prerna.util.Constants;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
-public class DBRenamer
-{
+import prerna.util.Constants;
+import prerna.util.Utility;
+
+public class DBRenamer {
+	private static final Logger logger = LogManager.getLogger(DBRenamer.class);
 	private static final int WIDTH = 600;
 	private static final int HEIGHT = 250;
-	
+
 	JFrame window = new JFrame();
 	JPanel dbImportPanel = new JPanel();
 	JLabel doneLabel = new JLabel();
 	private JTextField importFolderNameField = new JTextField();
 	private JTextField importSMSSNameField = new JTextField();
-	
-	public DBRenamer()
-	{
+
+	public DBRenamer() {
 		window.setSize(WIDTH, HEIGHT);
 		window.setTitle("DB Name Changer");
-		
+
 		dbImportPanel.setBackground(SystemColor.control);
 		dbImportPanel.setSize(WIDTH, 100);
 		window.add(dbImportPanel);
@@ -79,7 +84,7 @@ public class DBRenamer
 		gbc_selectionFolderLabel.gridy = 1;
 		dbImportPanel.add(selectionFolderLabel, gbc_selectionFolderLabel);
 		selectionFolderLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		
+
 		JButton folderBrowseButton = new JButton("Browse");
 		folderBrowseButton.setName(Constants.IMPORT_BUTTON_BROWSE);
 		folderBrowseButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -89,25 +94,22 @@ public class DBRenamer
 		gbc_folderBrowseButton.gridx = 2;
 		gbc_folderBrowseButton.gridy = 1;
 		dbImportPanel.add(folderBrowseButton, gbc_folderBrowseButton);
-		folderBrowseButton.addActionListener(new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
+		folderBrowseButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
 				doneLabel.setText("");
 				JFileChooser jfc = new JFileChooser();
 				jfc.setCurrentDirectory(new java.io.File("."));
 				jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 				int retVal = jfc.showOpenDialog((JComponent) e.getSource());
 				// Handle open button action.
-				if (retVal == JFileChooser.APPROVE_OPTION)
-				{
+				if (retVal == JFileChooser.APPROVE_OPTION) {
 					File file = jfc.getSelectedFile();
 					// This is where a real application would open the file.
 					importFolderNameField.setText(file.getAbsolutePath());
 				}
 			}
 		});
-		
+
 		importFolderNameField.setColumns(40);
 		importFolderNameField.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		GridBagConstraints gbc_importFolderNameField = new GridBagConstraints();
@@ -115,7 +117,7 @@ public class DBRenamer
 		gbc_importFolderNameField.gridx = 3;
 		gbc_importFolderNameField.gridy = 1;
 		dbImportPanel.add(importFolderNameField, gbc_importFolderNameField);
-		
+
 		JLabel selectionSMSSLabel = new JLabel("Select SMSS file:");
 		GridBagConstraints gbc_selectionSMSSLabel = new GridBagConstraints();
 		gbc_selectionSMSSLabel.anchor = GridBagConstraints.WEST;
@@ -124,7 +126,7 @@ public class DBRenamer
 		gbc_selectionSMSSLabel.gridy = 3;
 		dbImportPanel.add(selectionSMSSLabel, gbc_selectionSMSSLabel);
 		selectionSMSSLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		
+
 		JButton smssBrowseButton = new JButton("Browse");
 		smssBrowseButton.setName(Constants.IMPORT_BUTTON_BROWSE);
 		smssBrowseButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -134,17 +136,14 @@ public class DBRenamer
 		gbc_smssBrowseButton.gridx = 2;
 		gbc_smssBrowseButton.gridy = 3;
 		dbImportPanel.add(smssBrowseButton, gbc_smssBrowseButton);
-		smssBrowseButton.addActionListener(new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
+		smssBrowseButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
 				doneLabel.setText("");
 				JFileChooser jfc = new JFileChooser();
 				jfc.setCurrentDirectory(new java.io.File("."));
 				int retVal = jfc.showOpenDialog((JComponent) e.getSource());
 				// Handle open button action.
-				if (retVal == JFileChooser.APPROVE_OPTION)
-				{
+				if (retVal == JFileChooser.APPROVE_OPTION) {
 					File file = jfc.getSelectedFile();
 					// This is where a real application would open the file.
 					importSMSSNameField.setText(file.getAbsolutePath());
@@ -161,7 +160,7 @@ public class DBRenamer
 		gbc_importSMSSNameField.gridy = 3;
 		dbImportPanel.add(importSMSSNameField, gbc_importSMSSNameField);
 		importSMSSNameField.setColumns(40);
-		
+
 		JButton changeNameButton = new JButton("Change DB Name");
 		changeNameButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_changeNameButton = new GridBagConstraints();
@@ -171,49 +170,47 @@ public class DBRenamer
 		gbc_changeNameButton.gridy = 3;
 		dbImportPanel.add(changeNameButton, gbc_changeNameButton);
 		dbImportPanel.add(doneLabel);
-		changeNameButton.addActionListener(new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
+		changeNameButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
 				String folderDirectory = importFolderNameField.getText();
 				String dbName = folderDirectory.substring(folderDirectory.indexOf("db\\") + 3);
-				File folder = new File(folderDirectory);
+				File folder = new File(Utility.normalizePath(folderDirectory));
 				File[] listOfFiles = folder.listFiles();
-				for (int i = 0; i < listOfFiles.length; i++)
-				{
-					if (listOfFiles[i].isFile() && listOfFiles[i].getName().contains(dbName))
-					{
-						File f = new File(folderDirectory + "\\" + listOfFiles[i].getName());
-						f.renameTo(new File(folderDirectory + "\\old" + listOfFiles[i].getName()));
+				for (int i = 0; i < listOfFiles.length; i++) {
+					if (listOfFiles[i].isFile() && listOfFiles[i].getName().contains(dbName)) {
+						File f = new File(Utility.normalizePath(folderDirectory + "\\" + listOfFiles[i].getName()));
+						f.renameTo(new File(Utility.normalizePath(folderDirectory + "\\old" + listOfFiles[i].getName())));
 					}
 				}
-				folder.renameTo(new File(folderDirectory.substring(0, folderDirectory.indexOf("db\\") + 3) + "old"
-						+ folderDirectory.substring(folderDirectory.indexOf("db\\") + 3)));
+				folder.renameTo(new File(Utility.normalizePath(folderDirectory.substring(0, folderDirectory.indexOf("db\\") + 3)
+								+ "old" + folderDirectory.substring(folderDirectory.indexOf("db\\") + 3))));
 
 				String smssDirectory = importSMSSNameField.getText();
 				String smssName = smssDirectory.substring(smssDirectory.indexOf("db\\") + 3);
-				Path path = Paths.get(smssDirectory);
+				String normalizedSmssDirectory = Utility.normalizePath(smssDirectory);
+				Path path = Paths.get(normalizedSmssDirectory);
 				Charset charset = StandardCharsets.UTF_8;
-				try{
-				String content = new String(Files.readAllBytes(path), charset);
-					content = content.replaceAll(smssName.substring(0, smssName.indexOf(".")), "old" + smssName.substring(0, smssName.indexOf(".")));
-				Files.write(path, content.getBytes(charset));
-				} catch(IOException exception) {
-					exception.printStackTrace();
+				try {
+					String content = new String(Files.readAllBytes(path), charset);
+					content = content.replaceAll(smssName.substring(0, smssName.indexOf(".")),
+							"old" + smssName.substring(0, smssName.indexOf(".")));
+					Files.write(path, content.getBytes(charset));
+				} catch (IOException exception) {
+					logger.error(Arrays.toString(exception.getStackTrace()));
 				}
-				File smssFile = new File(smssDirectory);
-				smssFile.renameTo(new File(smssDirectory.substring(0, smssDirectory.indexOf("db\\") + 3) + "old" + smssName));
-				
+				File smssFile = new File(normalizedSmssDirectory);
+				smssFile.renameTo(new File(Utility.normalizePath(
+						smssDirectory.substring(0, smssDirectory.indexOf("db\\") + 3) + "old" + smssName)));
+
 				doneLabel.setText("Name change is done.");
-				System.out.println("Name change is done.");
+				logger.debug("Name change is done.");
 			}
 		});
 		window.setVisible(true);
 	}
-	
-	public static void main(String[] args)
-	{
+
+	public static void main(String[] args) {
 		DBRenamer ui = new DBRenamer();
 	}
-	
+
 }

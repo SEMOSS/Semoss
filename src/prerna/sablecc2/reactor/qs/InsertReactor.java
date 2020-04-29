@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -31,6 +34,9 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class InsertReactor extends AbstractReactor {
 	
+	private static final Logger logger = LogManager.getLogger(InsertReactor.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	private NounMetadata qStruct = null;
 	
 	@Override
@@ -59,10 +65,8 @@ public class InsertReactor extends AbstractReactor {
 				}
 				
 				// If security is enabled, then check that the user can edit the engine
-				if (AbstractSecurityUtils.securityEnabled()) {
-					if(!SecurityAppUtils.userCanEditEngine(user, engine.getEngineId())) {
-						throw new IllegalArgumentException("User does not have permission to insert query for this app");
-					}
+				if (AbstractSecurityUtils.securityEnabled() && !SecurityAppUtils.userCanEditEngine(user, engine.getEngineId())) {
+					throw new IllegalArgumentException("User does not have permission to insert query for this app");
 				}
 			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
 				frame = qs.getFrame();
@@ -76,12 +80,12 @@ public class InsertReactor extends AbstractReactor {
 
 		StringBuilder prefixSb = new StringBuilder("INSERT INTO ");
 		
-		GenRowStruct col_grs = this.store.getNoun("into");
-		GenRowStruct val_grs = this.store.getNoun("values");
+		GenRowStruct colGrs = this.store.getNoun("into");
+		GenRowStruct valGrs = this.store.getNoun("values");
 		
-		List<IQuerySelector> selectors = new Vector<IQuerySelector>();
-		for(int i = 0; i < col_grs.size(); i++) {
-			String s = col_grs.get(i).toString();
+		List<IQuerySelector> selectors = new Vector<>();
+		for(int i = 0; i < colGrs.size(); i++) {
+			String s = colGrs.get(i).toString();
 			selectors.add(new QueryColumnSelector (s));
 		}
 		
@@ -111,7 +115,7 @@ public class InsertReactor extends AbstractReactor {
 		
 		String initial = prefixSb.toString();
 		
-		List<Object[]> valueCombinations = flattenCombinations(val_grs);
+		List<Object[]> valueCombinations = flattenCombinations(valGrs);
 		for(Object[] values : valueCombinations) {
 			StringBuilder valuesSb = new StringBuilder();
 			// Insert values
@@ -140,14 +144,16 @@ public class InsertReactor extends AbstractReactor {
 				}
 			}
 			valuesSb.append(")");
-			
+
 			String query = initial + valuesSb.toString();
-			System.out.println("SQL QUERY...." + query);
+			logger.info("SQL QUERY...." + query);
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
 				try {
-					engine.insertData(query);
+					if (engine != null) {
+						engine.insertData(query);
+					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occured trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 
@@ -156,9 +162,11 @@ public class InsertReactor extends AbstractReactor {
 				audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
 			} else {
 				try {
-					((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
+					if (frame != null) {
+						((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
+					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occured trying to insert new records in the frame", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
@@ -176,33 +184,32 @@ public class InsertReactor extends AbstractReactor {
 		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
 		NounMetadata queryStruct = null;
 		if(allNouns != null) {
-			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
-			return object;
+			return allNouns.getNoun(0);
 		} 
 		return queryStruct;
 	}
 	
-	private List<Object[]> flattenCombinations(GenRowStruct val_grs) {
-		List<Object[]> combinations = new Vector<Object[]>();
+	private List<Object[]> flattenCombinations(GenRowStruct valGrs) {
+		List<Object[]> combinations = new Vector<>();
 		
-		Map<Integer, Integer> currIndexMap = new HashMap<Integer, Integer>();
+		Map<Integer, Integer> currIndexMap = new HashMap<>();
 		
-		int numInputs = val_grs.size();
+		int numInputs = valGrs.size();
 		boolean moreCombinations = true;
 		while(moreCombinations) {
 			Object[] row = new Object[numInputs];
 			for(int i = 0; i < numInputs; i++) {
 				
 				Object thisValue = null;
-				Object result = val_grs.get(i);
+				Object result = valGrs.get(i);
 				if(result instanceof List) {
 					// if we know which index to grab, lets just grab it
-					if(currIndexMap.containsKey(new Integer(i))) {
-						Integer indexToGrab = currIndexMap.get(new Integer(i));
+					if(currIndexMap.containsKey(Integer.valueOf(i))) {
+						Integer indexToGrab = currIndexMap.get(Integer.valueOf(i));
 						thisValue = ((List) result).get(indexToGrab);
 					} else {
 						thisValue = ((List) result).get(0);
-						currIndexMap.put(new Integer(i), new Integer(0));
+						currIndexMap.put(Integer.valueOf(i), Integer.valueOf(0));
 					}
 				} else {
 					thisValue = result;
@@ -227,9 +234,9 @@ public class InsertReactor extends AbstractReactor {
 			UPDATE_LOOP : for(int i = numInputs-1; i >=0 ; i--) {
 				// we start at the last list
 				// and see if the current index is at the end
-				Object result = val_grs.get(i);
+				Object result = valGrs.get(i);
 				if(result instanceof List) {
-					Integer indexToGrab = currIndexMap.get(new Integer(i));
+					Integer indexToGrab = currIndexMap.get(Integer.valueOf(i));
 					int numIndicesToGrab = ((List) result).size();
 					if( (indexToGrab + 1) == numIndicesToGrab) {
 						// we are have iterated through all of this guy
@@ -237,12 +244,12 @@ public class InsertReactor extends AbstractReactor {
 						// BUT, this doesn't mean we know we need to loop again
 						// i am just preparing for the case where a list above requires us to start
 						// and loop through all the last pieces
-						currIndexMap.put(new Integer(i), new Integer(0));
+						currIndexMap.put(Integer.valueOf(i), Integer.valueOf(0));
 					} else {
 						// we have not looped through everything in this list
 						// we need to loop again
 						// after i increase the index to grab
-						currIndexMap.put(new Integer(i), new Integer(indexToGrab.intValue()+1));
+						currIndexMap.put(Integer.valueOf(i), Integer.valueOf(indexToGrab.intValue()+1));
 						loopAgain = true;
 						break UPDATE_LOOP;
 					}
@@ -269,16 +276,16 @@ public class InsertReactor extends AbstractReactor {
 	public static void main(String[] args) {
 		GenRowStruct grs = new GenRowStruct();
 		grs.add(new NounMetadata(1, PixelDataType.CONST_INT));
-		List<Object> l1 = new Vector<Object>();
+		List<Object> l1 = new Vector<>();
 		l1.add("a");
 		l1.add("b");
 		l1.add("c");
 		grs.add(new NounMetadata(l1, PixelDataType.VECTOR));
-		List<Object> l2 = new Vector<Object>();
+		List<Object> l2 = new Vector<>();
 		l2.add("d");
 		l2.add("e");
 		grs.add(new NounMetadata(l2, PixelDataType.VECTOR));
-		List<Object> l3 = new Vector<Object>();
+		List<Object> l3 = new Vector<>();
 		l3.add("x");
 		l3.add("y");
 		l3.add("z");
@@ -288,10 +295,11 @@ public class InsertReactor extends AbstractReactor {
 		List<Object[]> combinations = qir.flattenCombinations(grs);
 		
 		for(int i = 0; i < combinations.size(); i++) {
-			System.out.println(Arrays.toString(combinations.get(i)));
+			logger.debug(Arrays.toString(combinations.get(i)));
 		}
 	}
-	
+
+	@Override
 	public String getName()
 	{
 		return "Insert";

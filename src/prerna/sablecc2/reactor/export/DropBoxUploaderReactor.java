@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
@@ -25,12 +26,12 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class DropBoxUploaderReactor extends TaskBuilderReactor {
-
 	public DropBoxUploaderReactor() {
 		this.keysToGet = new String[] { "filename" };
 	}
 
 	private static final String CLASS_NAME = DropBoxUploaderReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 	private String fileLocation = null;
 	private Logger logger;
 
@@ -47,7 +48,7 @@ public class DropBoxUploaderReactor extends TaskBuilderReactor {
 				User user = this.insight.getUser();
 				try{
 				if(user==null){
-					Map<String, Object> retMap = new HashMap<String, Object>();
+					Map<String, Object> retMap = new HashMap<>();
 					retMap.put("type", "dropbox");
 					retMap.put("message", "Please login to your DropBox account");
 					throwLoginError(retMap);
@@ -58,7 +59,7 @@ public class DropBoxUploaderReactor extends TaskBuilderReactor {
 					}
 				}
 				catch (Exception e) {
-					Map<String, Object> retMap = new HashMap<String, Object>();
+					Map<String, Object> retMap = new HashMap<>();
 					retMap.put("type", "dropbox");
 					retMap.put("message", "Please login to your DropBox account");
 					throwLoginError(retMap);
@@ -90,7 +91,7 @@ public class DropBoxUploaderReactor extends TaskBuilderReactor {
 			try {
 				f.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 
 			FileWriter writer = null;
@@ -126,7 +127,12 @@ public class DropBoxUploaderReactor extends TaskBuilderReactor {
 						if( (i+1) != size) {
 							builder.append(",");
 						}
-						typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+
+						if(headerInfo.get(i).containsKey("type")) {
+							typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
+						} else {
+							typesArr[i] = SemossDataType.STRING;
+						}
 					}
 					// write the header to the file
 					bufferedWriter.write(builder.append("\n").toString());
@@ -177,7 +183,7 @@ public class DropBoxUploaderReactor extends TaskBuilderReactor {
 				}
 
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				try {
 					if(bufferedWriter != null) {
@@ -187,14 +193,14 @@ public class DropBoxUploaderReactor extends TaskBuilderReactor {
 						writer.close();
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 
 			long end = System.currentTimeMillis();
 			logger.info("Time to output file = " + (end-start) + " ms");
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			if(f.exists()) {
 				f.delete();
 			}

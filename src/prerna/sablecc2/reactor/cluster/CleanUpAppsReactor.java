@@ -29,11 +29,12 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class CleanUpAppsReactor extends AbstractReactor {
-	private static final Logger logger = LogManager.getLogger(CleanUpAppsReactor.class.getName());
+	private static final Logger logger = LogManager.getLogger(CleanUpAppsReactor.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	private static final String CONFIGURATION_FILE = "config.properties";
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	
 	public CleanUpAppsReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.DRY_RUN.getKey(), ReactorKeysEnum.CLEAN_UP_CLOUD_STORAGE.getKey()};
 	}
@@ -108,7 +109,7 @@ public class CleanUpAppsReactor extends AbstractReactor {
 				try {
 					engine = Utility.getEngine(appId);
 				} catch (Exception e) {
-					logger.error(e.getStackTrace());
+					logger.error(STACKTRACE, e);
 				}
 				if (engine == null) {
 					
@@ -129,8 +130,7 @@ public class CleanUpAppsReactor extends AbstractReactor {
 							// Successful cleanup
 							removedAppsMap.put(key, "removed");
 						} catch (IOException | InterruptedException e) {
-							logger.error(e.getStackTrace());
-					
+							logger.error(STACKTRACE, e);
 							// Partially successful cleanup
 							removedAppsMap.put(key, "removed from security and local master, but failed to remove from cloud storage");
 						}
@@ -168,8 +168,7 @@ public class CleanUpAppsReactor extends AbstractReactor {
 									// Successful cleanup
 									removedContainersMap.put(container, "removed");
 								} catch (IOException | InterruptedException e) {
-									logger.error(e.getStackTrace());
-
+									logger.error(STACKTRACE, e);
 									// Unsuccessful cleanup
 									removedContainersMap.put(container, "failed to remove");
 								}
@@ -183,8 +182,7 @@ public class CleanUpAppsReactor extends AbstractReactor {
 						}
 					}
 				} catch (IOException | InterruptedException e) {
-					logger.error(e.getStackTrace());
-
+					logger.error(STACKTRACE, e);
 					// Error reading the cloud storage account
 					removedContainersMap.put("error", "failed to list containers in cloud storage account");
 				}

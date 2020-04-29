@@ -47,15 +47,16 @@ import prerna.util.Utility;
  * This class fills the business value hashtable.
  */
 public class FillBVHash implements Runnable{
+	static final Logger logger = LogManager.getLogger(FillBVHash.class);
 
+	private static final String STACKTRACE = "StackTrace: ";
 	String query = null;
 	IEngine engine = null;
 	VertexFilterData filterData = new VertexFilterData();
-	Hashtable<String, Object> BVhash = new Hashtable<String, Object>();
+	Hashtable<String, Object> BVhash = new Hashtable<>();
 	ISelectWrapper wrapper;
 	ArrayList <String []> list;
 	Hashtable tempSelectHash = new Hashtable();
-	static final Logger logger = LogManager.getLogger(FillBVHash.class.getName());
 	Logger fileLogger = Logger.getLogger("reportsLogger");
 	
 	//Necessary items to create a filler
@@ -84,7 +85,7 @@ public class FillBVHash implements Runnable{
 
 		
 		//wrapper = new SesameJenaSelectWrapper();
-		list = new ArrayList();
+		list = new ArrayList<>();
 	
 		/*wrapper.setQuery(query);
 		wrapper.setEngine(engine);
@@ -98,8 +99,7 @@ public class FillBVHash implements Runnable{
 			DIHelper.getInstance().setLocalProperty(Constants.BUSINESS_VALUE, BVhash);
 			
 		} catch (RuntimeException e) {
-			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -117,27 +117,28 @@ public class FillBVHash implements Runnable{
 		int count = 0;
 		//ArrayList<ArrayList<Double>> weightValues = new ArrayList<ArrayList<Double>>();
 		double[][] matrix = new double[5000][5000];
-		ArrayList<String> colLabels = new ArrayList<String>();
-		ArrayList<String> rowLabels = new ArrayList<String>();
-		Hashtable<String, double[]> bpPropHash = new Hashtable<String, double[]>();
-		double[] Efficiency = new double[5000];
-		double[] InitialEfficiency = new double[5000];
-		double[] InitialEffectiveness = new double[5000];
-		double[] TransactionsNum = new double[5000];
-		double[] WartimeEfficiency = new double[5000];
-		bpPropHash.put("Efficiency", Efficiency);
-		bpPropHash.put("Initial_Efficiency", InitialEfficiency);
-		bpPropHash.put("Initial_Effectiveness", InitialEffectiveness);
-		bpPropHash.put("Transactions_Num", TransactionsNum);
-		bpPropHash.put("Wartime_Criticality", WartimeEfficiency);
+		ArrayList<String> colLabels = new ArrayList<>();
+		ArrayList<String> rowLabels = new ArrayList<>();
+		Hashtable<String, double[]> bpPropHash = new Hashtable<>();
+		double[] efficiency = new double[5000];
+		double[] initialEfficiency = new double[5000];
+		double[] initialEffectiveness = new double[5000];
+		double[] transactionsNum = new double[5000];
+		double[] wartimeEfficiency = new double[5000];
+
+		bpPropHash.put("Efficiency", efficiency);
+		bpPropHash.put("Initial_Efficiency", initialEfficiency);
+		bpPropHash.put("Initial_Effectiveness", initialEffectiveness);
+		bpPropHash.put("Transactions_Num", transactionsNum);
+		bpPropHash.put("Wartime_Criticality", wartimeEfficiency);
 		
-		Hashtable<String,Double> options = new Hashtable<String,Double>();
+		Hashtable<String,Double> options = new Hashtable<>();
 		options.put("Supports_out_of_box", 10.0);
 		options.put("Supports_with_configuration", 7.0);
 		options.put("Supports_with_customization", 3.0);
 		options.put("Does_not_support", 0.0);
 		
-		Hashtable<String,Double> vendorObjectCount = new Hashtable<String,Double>();
+		Hashtable<String,Double> vendorObjectCount = new Hashtable<>();
 		
 		String key = null;
 		boolean check = false;
@@ -150,6 +151,9 @@ public class FillBVHash implements Runnable{
 				while(sjss==null && wrapper.hasNext()) {
 					sjss=wrapper.next();
 				}
+				if (sjss == null) {
+					throw new NullPointerException("sjss cannot be null here");
+				}
 				//make key
 				if(count == 0){
 					String vert1type = Utility.getClassName(sjss.getRawVar(names[0]).toString());
@@ -159,8 +163,8 @@ public class FillBVHash implements Runnable{
 					String vert2uri = sjss.getVar(names[2])+"";
 					String vert2type = Utility.getClassName(vert2uri);*/
 					key = vert1type + "/" + vert2type;
-					if(names.length>3){
-						if(names[3].contains("NETWORK")) key=key+"NETWORK";
+					if(names.length > 3 && names[3].contains("NETWORK")){
+						key = key + "NETWORK";
 					}
 				}
 				count++;
@@ -188,7 +192,7 @@ public class FillBVHash implements Runnable{
 						//use check to make sure correct BP/Act query is being used
 						//one query is to get weights between BP and Act
 						//correct query is to get properties on BP
-						if (check == false) {
+						if (!check) {
 							check = true;
 							tempSelectHash.put("BPkey", new double[1]);
 						}
@@ -268,7 +272,7 @@ public class FillBVHash implements Runnable{
 		String key = null;
 		//get real key from the keys in tempSelectHash
 		try{
-			while (keys.hasNext() && key == null){
+			while (keys.hasNext() && key == null) {
 				String newKey = keys.next();
 				//make sure the key is not "BPkey"
 				if(newKey.contains("_")){
@@ -302,7 +306,7 @@ public class FillBVHash implements Runnable{
 			
 			//if the key is BP/Act and it is the correct query, must set BP props
 			//Transition from the double[] to an ArrayList<Double> and put in BVhash
-			if(key.equals("BusinessProcess/Activity")&&tempSelectHash.containsKey("BPkey")){
+			if(key != null && key.equals("BusinessProcess/Activity") && tempSelectHash != null && tempSelectHash.containsKey("BPkey")) {
 				Hashtable<String, double[]> bpPropHash = (Hashtable<String, double[]>) tempSelectHash.get(key+Constants.PROP_HASH);	
 				Iterator<String> keyset = bpPropHash.keySet().iterator();
 				StringTokenizer keyTokens = new StringTokenizer(key, "/");
@@ -311,7 +315,7 @@ public class FillBVHash implements Runnable{
 				while (keyset.hasNext()){
 					String prop = keyset.next();
 					double[] propMatrix = bpPropHash.get(prop);
-					ArrayList<Double> propArray = new ArrayList<Double>();
+					ArrayList<Double> propArray = new ArrayList<>();
 					for (int i =0; i<rowLabels.size(); i++) propArray.add(propMatrix[i]);
 					BVhash.put(propKey+"/"+prop+Constants.CALC_MATRIX, propArray);
 				}
@@ -330,8 +334,7 @@ public class FillBVHash implements Runnable{
 		try {
 			FillWithSelect();
 		} catch (RuntimeException e) {
-			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 
 	}

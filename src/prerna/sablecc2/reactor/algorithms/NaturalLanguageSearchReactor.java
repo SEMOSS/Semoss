@@ -46,7 +46,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	private static final String BASIC_ONLY = "basicOnly";
 
 
-	private static LinkedHashMap<String, String> appIdToTypeStore = new LinkedHashMap<String, String>(250);
+	private static LinkedHashMap<String, String> appIdToTypeStore = new LinkedHashMap<>(250);
 
 	public NaturalLanguageSearchReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.APP.getKey(), BASIC_ONLY };
@@ -217,7 +217,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			}
 
 			// create R vector of table columns and table rows
-			String rAppIDs_join = "c(";
+			String rAppIDsJoin = "c(";
 			String rTbl1 = "c(";
 			String rTbl2 = "c(";
 			String rJoinBy1 = "c(";
@@ -241,13 +241,13 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					// loop increments even if relSplit.length != 4
 					// whereas firstRel only increases if something is added to frame
 					if (firstRel == 0) {
-						rAppIDs_join += "'" + appId + "'";
+						rAppIDsJoin += "'" + appId + "'";
 						rTbl1 += "'" + sourceTable + "'";
 						rTbl2 += "'" + targetTable + "'";
 						rJoinBy1 += "'" + sourceColumn + "'";
 						rJoinBy2 += "'" + targetColumn + "'";
 					} else {
-						rAppIDs_join += ",'" + appId + "'";
+						rAppIDsJoin += ",'" + appId + "'";
 						rTbl1 += ",'" + sourceTable + "'";
 						rTbl2 += ",'" + targetTable + "'";
 						rJoinBy1 += ",'" + sourceColumn + "'";
@@ -271,13 +271,13 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					String targetTable = entry[2];
 					String targetColumn = entry[2];
 					if (firstRel == 0) {
-						rAppIDs_join += "'" + appId + "'";
+						rAppIDsJoin += "'" + appId + "'";
 						rTbl1 += "'" + sourceTable + "'";
 						rTbl2 += "'" + targetTable + "'";
 						rJoinBy1 += "'" + sourceColumn + "'";
 						rJoinBy2 += "'" + targetColumn + "'";
 					} else {
-						rAppIDs_join += ",'" + appId + "'";
+						rAppIDsJoin += ",'" + appId + "'";
 						rTbl1 += ",'" + sourceTable + "'";
 						rTbl2 += ",'" + targetTable + "'";
 						rJoinBy1 += ",'" + sourceColumn + "'";
@@ -294,7 +294,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			rColNames += ")";
 			rColTypes += ")";
 			rPrimKey += ")";
-			rAppIDs_join += ")";
+			rAppIDsJoin += ")";
 			rTbl1 += ")";
 			rTbl2 += ")";
 			rJoinBy1 += ")";
@@ -305,7 +305,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					+ rTableNames + " , AppID = " + rAppIds + ", Datatype = " + rColTypes + ", Key = " + rPrimKey
 					+ ", stringsAsFactors = FALSE);");
 			sessionTableBuilder.append(rSessionJoinTable + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2
-					+ " , joinby1 = " + rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDs_join
+					+ " , joinby1 = " + rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDsJoin
 					+ ", stringsAsFactors = FALSE);");
 			this.rJavaTranslator.runR(sessionTableBuilder.toString());
 		}
@@ -362,7 +362,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// we do not know how many rows associate with the same QS
 		// but we know the algorithm only returns one QS per engine
 		// and the rows are ordered with regards to how the engine comes back
-		Map<String, SelectQueryStruct> qsList = new LinkedHashMap<String, SelectQueryStruct>();
+		Map<String, SelectQueryStruct> qsList = new LinkedHashMap<>();
 		// when this value doesn't match the previous, we know to add a new QS
 		String currAppId = null;
 		String label = null;
@@ -370,17 +370,17 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// need to store the collection of "Combined" qs's and their joins that I am
 		// holding to make sure I don't duplicate and can also use this to push/pull to add additional rows 
-		Map<String, SelectQueryStruct> combinedQs = new HashMap<String, SelectQueryStruct>();
+		Map<String, SelectQueryStruct> combinedQs = new HashMap<>();
 		
 		// use the joinCombinedResult to merge in the pixel later
-		List<Object[]> joinCombinedResult = new Vector<Object[]>();
+		List<Object[]> joinCombinedResult = new Vector<>();
 		
 		// use the these vectors to handle grouping/having/dropping unneeded cols
-		List<Object[]> aggregateCols = new Vector<Object[]>();
-		List<Object[]> combinedHavingRows = new Vector<Object[]>();
-		LinkedHashSet<String> colsToDrop = new LinkedHashSet<String>();
-		LinkedHashSet<String> pickedCols = new LinkedHashSet<String>();
-		LinkedHashSet<String> groupedCols = new LinkedHashSet<String>();
+		List<Object[]> aggregateCols = new Vector<>();
+		List<Object[]> combinedHavingRows = new Vector<>();
+		LinkedHashSet<String> colsToDrop = new LinkedHashSet<>();
+		LinkedHashSet<String> pickedCols = new LinkedHashSet<>();
+		LinkedHashSet<String> groupedCols = new LinkedHashSet<>();
 
 		for (int i = 0; i < retData.size(); i++) {
 			Object[] row = retData.get(i);
@@ -414,7 +414,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				curQs.setEngineId(currAppId);
 				curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 				qsList.put(label, curQs);
-			} else if (!combined && !currAppId.equals(rowAppId)) {
+			} else if (!combined && currAppId != null && !currAppId.equals(rowAppId)) {
 				// okay this row is now starting a new QS
 				// we gotta init another one
 				currAppId = rowAppId;
@@ -422,7 +422,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				curQs.setEngineId(currAppId);
 				curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 				qsList.put(label, curQs);
-
 			}
 
 			// if this is a combined row, pull the qs that matches the appid
@@ -431,6 +430,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				curQs = combinedQs.get(currAppId);
 			}
 			
+			if (curQs == null) {
+				throw new NullPointerException("curQs (Query Struct) should not be null here.");
+			}
+
 			// check what type of row it is, then add to qs by case
 			if (part.equalsIgnoreCase("select")) {
 				String selectConcept = row[4].toString();
@@ -478,7 +481,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				} else {
 					curQs.addSelector(selector);
 				}
-
 			} else if (part.equalsIgnoreCase("from")) {
 				// if the two appids are filled in but are not equal, this is a join across query structures
 				// therefore, do not add relation but add to a list to be used later
@@ -492,7 +494,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					String joinType = "inner.join";
 					curQs.addRelation(fromConcept, toConcept, joinType);
 				}
-
 			} else if (part.equalsIgnoreCase("where")) {
 				String whereTable = row[4].toString();
 				String whereCol = row[5].toString();
@@ -727,14 +728,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 		
 		// retMap is full of maps with key = label and value = pixel
-		List<Map<String, Object>> retMap = new Vector<Map<String, Object>>();
-		Map<String, Object> map = new HashMap<String, Object>();
+		List<Map<String, Object>> retMap = new Vector<>();
+		Map<String, Object> map = new HashMap<>();
 		
 		// track when the entry changes and setup other vars
 		String curEntry = null;
 		String frameName = "FRAME_" + Utility.getRandomString(5);
 		String finalPixel = "";
-		LinkedHashSet<String> prevAppIds = new LinkedHashSet<String>();
+		LinkedHashSet<String> prevAppIds = new LinkedHashSet<>();
 		int entryCount = 1;
 
 		for (Entry<String, SelectQueryStruct> entry : qsList.entrySet()) {
@@ -743,7 +744,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// if this is the first instance of a combined result, then start a new map
 				if (curEntry == null || !curEntry.contains("Multiple")) {
 					// start the new map
-					map = new HashMap<String, Object>();
+					map = new HashMap<>();
 					curEntry = entry.getKey();
 					finalPixel = "";
 
@@ -810,7 +811,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// if the result is not combined, then there is only one qs
 				// put it in the map and then return
 				curEntry = entry.getKey();
-				map = new HashMap<String, Object>();
+				map = new HashMap<>();
 				SelectQueryStruct qs = entry.getValue();
 				String appId = qs.getEngineId();
 				String appName = MasterDatabaseUtility.getEngineAliasForId(appId);
@@ -855,10 +856,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		rsb.append(rSessionTable + "$Table == \"" + concept + "\" & ");
 		rsb.append(rSessionTable + "$Column == \"" + property + "\"");
 		rsb.append(",]$Key);");
-		
+
 		String key = this.rJavaTranslator.getString(rsb.toString());
+
 		return Boolean.parseBoolean(key);
-		
 	}
 	
 	
@@ -884,7 +885,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 
 		// pull the correct columns
-		Map<String, String> qsToAlias = new HashMap<String, String>();
+		Map<String, String> qsToAlias = new HashMap<>();
 		List<IQuerySelector> selectors = qs.getSelectors();
 		StringBuilder aliasStringBuilder = new StringBuilder();
 		aliasStringBuilder.append(".as ( [ ");
@@ -960,7 +961,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						// if it is an RDF database make sure that the wild card is *
 						String value = rhs.getValue().toString();
 						if (value.contains("%") && getAppTypeFromId(appId).equals("TYPE:RDF")) {
-							value = value.replaceAll("%", "/.*");
+							value = value.replace("%", "/.*");
 						}
 						psb.append("\"" + value + "\"");
 					}
@@ -1352,7 +1353,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private List<String> getEngineIds() {
-		List<String> engineFilters = new Vector<String>();
+		List<String> engineFilters = new Vector<>();
 		GenRowStruct engineGrs = this.store.getNoun(this.keysToGet[1]);
 		for (int i = 0; i < engineGrs.size(); i++) {
 			engineFilters.add(engineGrs.get(i).toString());
@@ -1368,7 +1369,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private List<String> getSelectorAliases(List<IQuerySelector> selectors) {
-		List<String> aliases = new Vector<String>();
+		List<String> aliases = new Vector<>();
 		for (IQuerySelector sel : selectors) {
 			aliases.add(sel.getAlias());
 		}

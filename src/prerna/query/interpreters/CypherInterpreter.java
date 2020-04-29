@@ -84,11 +84,11 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		engine = this.qs.getEngine();
 
 		StringBuilder query = new StringBuilder();
-		labelMap = new HashMap<String, Map<String, String>>();
-		labelAliasMap = new HashMap<String, String>();
+		labelMap = new HashMap<>();
+		labelAliasMap = new HashMap<>();
 
 		if (this.colDataTypes == null) {
-			this.colDataTypes = new Hashtable<String, SemossDataType>();
+			this.colDataTypes = new Hashtable<>();
 		}
 		boolean isDistinct = ((SelectQueryStruct) this.qs).isDistinct();
 
@@ -126,7 +126,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	public void appendSelectors(StringBuilder query) {
 		Map<String, Set<String>> edgeMap = generateEdgeMap();
 		selectorCriteria = new StringBuilder();
-		List<String> selectorList = new ArrayList<String>();
+		List<String> selectorList = new ArrayList<>();
 		Set<String> nodesDefined = new HashSet<>();
 		// add joined nodes first
 		List<String> joinValues = new ArrayList<>();
@@ -201,9 +201,9 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 
 		// if GROUP BY exists, sort selector criteria for implicit Cypher GROUP
 		// BY
-		if (groupByList.size() > 0) {
-			List<String> qcsSelectors = new ArrayList<String>();
-			List<String> gbSelectors = new ArrayList<String>();
+		if (!groupByList.isEmpty()) {
+			List<String> qcsSelectors = new ArrayList<>();
+			List<String> gbSelectors = new ArrayList<>();
 
 			// convert to string for comparison/sorting
 			for (IQuerySelector selector : selectors) {
@@ -249,27 +249,35 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 
 			// depending on selector type parse return input different way
 			if (selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-				String[] selectorInfo = processSelector(selector).split(",");
-				String labelName = selectorInfo[0];
-				String originalPropertyName = selectorInfo[1];
-				String aliasPropertyName = selectorInfo[2];
-				String intermediateNode = generateIntermediateNode(labelName);
-				selectorList.add(listCriteria.append(intermediateNode).append(".").append(originalPropertyName)
-						.append(" ").append(AS).append(" ").append(aliasPropertyName).toString());
+				String[] selectorInfoArray = null;
+				String selectorInfo = processSelector(selector);
+				if (selectorInfo != null) {
+					selectorInfoArray = selectorInfo.split(",");
+					String labelName = selectorInfoArray[0];
+					String originalPropertyName = selectorInfoArray[1];
+					String aliasPropertyName = selectorInfoArray[2];
+					String intermediateNode = generateIntermediateNode(labelName);
+					selectorList.add(listCriteria.append(intermediateNode).append(".").append(originalPropertyName)
+							.append(" ").append(AS).append(" ").append(aliasPropertyName).toString());
+				}
 			} else if (selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 				// FUNCTION NAME:TABLENAME;PROPERTY NAME, PROPERTY NAME, ...
-				String[] selectorInfo = processSelector(selector).split(";");
-				String functionName = selectorInfo[0];
-				String tableName = selectorInfo[1];
-				String aliasPropertyName = selectorInfo[2];
-				String propertyName = selectorInfo[3];
-				String intermediateNode = generateIntermediateNode(tableName);
+				String[] selectorInfoArray = null;
+				String selectorInfo = processSelector(selector);
+				if (selectorInfo != null) {
+					selectorInfoArray = selectorInfo.split(",");
+					String functionName = selectorInfoArray[0];
+					String tableName = selectorInfoArray[1];
+					String aliasPropertyName = selectorInfoArray[2];
+					String propertyName = selectorInfoArray[3];
+					String intermediateNode = generateIntermediateNode(tableName);
 
-				// "functionName(intermediateNode.propertyName) AS
-				// aliasPropertyName"
-				selectorList.add(listCriteria.append(functionName).append("(").append(intermediateNode).append(".")
-						.append(propertyName).append(")").append(" ").append(AS).append(" ").append(aliasPropertyName)
-						.toString());
+					// "functionName(intermediateNode.propertyName) AS
+					// aliasPropertyName"
+					selectorList.add(listCriteria.append(functionName).append("(").append(intermediateNode).append(".")
+							.append(propertyName).append(")").append(" ").append(AS).append(" ")
+							.append(aliasPropertyName).toString());
+				}
 			} else if (selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 
 			}
@@ -303,7 +311,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 			originalPropertyName = getNodeName(labelName);
 		}
 		String aliasPropertyName = selector.getAlias();
-		Map<String, String> propertyMap = new HashMap<String, String>();
+		Map<String, String> propertyMap = new HashMap<>();
 
 		// append to return value for other selector processors
 		propertyNames.append(labelName).append(",").append(originalPropertyName).append(",").append(aliasPropertyName);
@@ -520,7 +528,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		SemossDataType columnType = SemossDataType.convertStringToDataType(columnDataType);
 
 		// grab the objects we are setting up for the comparison
-		List<Object> objects = new Vector<Object>();
+		List<Object> objects = new Vector<>();
 		// ugh... this is gross
 		if (rightComp.getValue() instanceof Collection) {
 			objects.addAll((Collection) rightComp.getValue());
@@ -680,7 +688,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	}
 
 	public Map<String, Set<String>> generateEdgeMap() {
-		Map<String, Set<String>> edgeMap = new Hashtable<String, Set<String>>();
+		Map<String, Set<String>> edgeMap = new Hashtable<>();
 		// add the relationships into the edge map
 		Set<String[]> relations = qs.getRelations();
 		for (String[] rel : relations) {
@@ -691,7 +699,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 			if (edgeMap.containsKey(startNode)) {
 				joinSet = edgeMap.get(startNode);
 			} else {
-				joinSet = new HashSet<String>();
+				joinSet = new HashSet<>();
 				edgeMap.put(startNode, joinSet);
 			}
 			joinSet.add(endNode);
@@ -747,8 +755,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	//////////////////////////////////// ////////////////////////////////////
 
 	/**
-	 * Set this boolean to true if you want the interpreter to grab nodes using
-	 * the label
+	 * Set this boolean to true if you want the interpreter to grab nodes using the
+	 * label
 	 * 
 	 * @param useLabel
 	 */
@@ -757,8 +765,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * This is the method that will query the node based on how the engine has
-	 * been defined to query the node
+	 * This is the method that will query the node based on how the engine has been
+	 * defined to query the node
 	 * 
 	 * @param gt
 	 * @param nodeType
@@ -785,20 +793,10 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	 */
 
 	protected String getNodeType(String node) {
-		if (this.typeMap != null) {
-			if (this.typeMap.containsKey(node)) {
-				return this.typeMap.get(node);
-			}
-		}
-		return null;
+		return this.typeMap != null && this.typeMap.containsKey(node) ? this.typeMap.get(node) : null;
 	}
 
 	protected String getNodeName(String node) {
-		if (this.nameMap != null) {
-			if (this.nameMap.containsKey(node)) {
-				return this.nameMap.get(node);
-			}
-		}
-		return null;
+		return this.nameMap != null && this.nameMap.containsKey(node) ? this.nameMap.get(node) : null;
 	}
 }
