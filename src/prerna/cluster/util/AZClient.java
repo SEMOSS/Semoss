@@ -46,7 +46,6 @@ public class AZClient extends CloudClient {
 
 	protected static final String PROVIDER = "azureblob";
 	protected static final String SMSS_POSTFIX = "-smss";
-	protected static final String FILE_SEPARATOR = System.getProperty("file.separator");
 
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
 	public static final String AZ_NAME = "AZ_NAME";
