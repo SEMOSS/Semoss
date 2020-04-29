@@ -56,6 +56,8 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 	private ArrayList<String> systemNames;
 	private ArrayList<String> capabilityNames;
 	private JButton excelExportButton;
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	
 	/**
 	 * Constructor for CapSimHeatMapSheet.
@@ -208,8 +210,8 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 	public void writeToFile()
 	{
 		SysCapSimHeatMapWriter writer = new SysCapSimHeatMapWriter();
-		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports"
-				+ System.getProperty("file.separator");
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports"
+				+ DIR_SEPARATOR;
 		String writeFileName = "SystemCapabilityHeatMap_for_" + this.engine.getEngineId().replaceAll(":", "") + "_"
 				+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_")
 				+ ".xlsx";
