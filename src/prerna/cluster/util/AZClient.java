@@ -779,9 +779,12 @@ public class AZClient extends CloudClient {
 		String[] sarr = new String[] {"sakdf.smss","/opt/semosshome/db/kunal__3241231242", "/opt/semosshome/db/kunal__3241231242.smss", "/opt/semosshome/db/kunal__3241231242//../sakdf"};
 		String s = "/opt/semosshome/db/kunal__3241231242";
 		for(int i = 0; i<sarr.length; i++) {
-		System.out.println(sarr[i] + " -> " + Utility.normalizePath(sarr[i]));
+		//System.out.println(sarr[i] + " -> " + Utility.normalizePath(sarr[i]));
 		}
-		System.out.println(Utility.normalizePath("/opt/semosshome/db" + FILE_SEPARATOR + "asdfa/../df"));
+		System.out.println(Utility.normalizePath("/opt/semosshome/db/../../../../root/myvirus.virus"));
+		//System.out.println("/opt/semosshome/db" + FILE_SEPARATOR + Utility.normalizePath("../root/myvirus.virus"));
+
+
 
 		
 	}

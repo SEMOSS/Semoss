@@ -997,7 +997,7 @@ public class GitRepoUtils {
 		}
 		Git thisGit = null;
 		try {
-			thisGit = Git.open(new File(localRepository));
+			thisGit = Git.open(new File(Utility.normalizePath(localRepository)));
 		} catch (IOException e) {
 			logger.error(STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);

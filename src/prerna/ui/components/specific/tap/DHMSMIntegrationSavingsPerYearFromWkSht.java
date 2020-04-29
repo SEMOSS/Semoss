@@ -43,6 +43,7 @@ import prerna.util.DIHelper;
 
 public class DHMSMIntegrationSavingsPerYearFromWkSht {
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMIntegrationSavingsPerYearFromWkSht.class.getName());
+	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private XSSFWorkbook wb;
 	private String workingDir;
@@ -52,7 +53,7 @@ public class DHMSMIntegrationSavingsPerYearFromWkSht {
 
 	public DHMSMIntegrationSavingsPerYearFromWkSht() {
 		workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
+		folder = FILE_SEPARATOR + "export" + FILE_SEPARATOR + "Reports" + FILE_SEPARATOR;
 		templateName = "TAP-High Probability System Analysis.xlsx";
 	}
 

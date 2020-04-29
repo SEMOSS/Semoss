@@ -134,7 +134,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 					outputFileName += selector + ";default_node_value";
 				}
 				outputFileName += ".tsv";
-				String outputFile = this.folderPath + "/" + outputFileName;
+				String outputFile = this.folderPath + "/" + Utility.normalizePath(outputFileName);
 				if(!this.override && new File(outputFile).exists()) {
 					logger.info("Hash already exists for " + selector);
 					
@@ -154,7 +154,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 				IRawSelectWrapper wrapper = null;
 				try {
 					wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-					File f = new File(this.folderPath + "/" + selector + "_base.tsv");
+					File f = new File(this.folderPath + "/" + Utility.normalizePath(selector) + "_base.tsv");
 					try {
 						// write file
 						Utility.writeResultToFile(f.getAbsolutePath(), wrapper, "/t");

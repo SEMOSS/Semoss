@@ -31,6 +31,7 @@ import prerna.security.InstallCertNow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
+import prerna.util.Utility;
 
 public class GitUtils {
 	
@@ -363,11 +364,11 @@ public class GitUtils {
 	public static List<Map<String, String>> getFiles(String appId, String appName, String fileType, Iterator<String> iterator) {
 		List<Map<String, String>> retFiles = new Vector<>();
 		while(iterator.hasNext()) {
-			String daFile = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(appName, appId) + "/version/" + iterator.next();
+			String daFile = Utility.normalizePath(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(appName, appId) + "/version/" + iterator.next());
 			if(!daFile.endsWith(".mosfet")) {
 				continue;
 			}
-			File f = new File(daFile);
+			File f = new File(Utility.normalizePath(daFile));
 			String fileName = f.getParentFile().getName();
 			// f does not exist when the file type is missing or deleted
 			if(f.exists()) {

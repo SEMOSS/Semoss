@@ -19,6 +19,7 @@ import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
+import prerna.util.Utility;
 
 public class JsonAPIEngine2 extends JsonAPIEngine {
 	
@@ -42,7 +43,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 		try {
 			getMapper();
 			if(prop.containsKey("input_type") && ((String)prop.get("input_type")).equalsIgnoreCase("file"))
-				input = mapper.readTree(new File(baseFolder + "/" + prop.getProperty("input_url")));
+				input = mapper.readTree(new File(baseFolder + "/" + Utility.normalizePath(prop.getProperty("input_url"))));
 		} catch (FileNotFoundException e) {
 			logger.error(STACKTRACE, e);
 		} catch (IOException ioe) {
