@@ -153,8 +153,8 @@ public class AssetUtility {
 	}
 	
 	public static String getAppAssetVersionFolder(String appName, String appId) {
-		String gitFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version";
+		String gitFolder = Utility.normalizePath(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version");
 
 		// if this folder does not exist create it
 		File file = new File(gitFolder);

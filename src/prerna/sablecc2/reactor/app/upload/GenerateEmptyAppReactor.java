@@ -75,10 +75,9 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 		String appId = UUID.randomUUID().toString();
 
 		// need to make sure we are not overriding something that already exists in the file system
-		final String FILE_SEP = System.getProperty("file.separator");
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		// need to make sure app name doesn't already exist
-		String appLocation = baseFolder + FILE_SEP + "db" + FILE_SEP + SmssUtilities.getUniqueName(appName, appId);
+		String appLocation = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId);
 		File appFolder = new File(appLocation);
 		if(appFolder.exists()) {
 			throw new IllegalArgumentException("Database folder already contains an app directory with the same name. Please delete the existing app folder or provide a unique app name");
