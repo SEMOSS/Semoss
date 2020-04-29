@@ -474,7 +474,7 @@ public class AZClient extends CloudClient {
 				String tempFolder = Utility.getRandomString(10);
 				temp = new File(dbFolder + FILE_SEPARATOR + tempFolder);
 				temp.mkdir();
-				copy = new File(temp.getPath() + FILE_SEPARATOR + smss);
+				copy = new File(temp.getPath() + FILE_SEPARATOR + Utility.normalizePath(smss));
 				Files.copy(new File(smssFile), copy);
 
 				// Push the smss
@@ -557,7 +557,7 @@ public class AZClient extends CloudClient {
 				}
 
 				// Make the app directory (if it doesn't already exist)
-				File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
+				File appFolder = new File(Utility.normalizePath(dbFolder + FILE_SEPARATOR + aliasAppId));
 				appFolder.mkdir(); 
 
 				// Pull the contents of the app folder before the smss
@@ -774,5 +774,16 @@ public class AZClient extends CloudClient {
 		}
 	}
 		 */
+		
+	public static void main(String[] args) {
+		String[] sarr = new String[] {"sakdf.smss","/opt/semosshome/db/kunal__3241231242", "/opt/semosshome/db/kunal__3241231242.smss", "/opt/semosshome/db/kunal__3241231242//../sakdf"};
+		String s = "/opt/semosshome/db/kunal__3241231242";
+		for(int i = 0; i<sarr.length; i++) {
+		System.out.println(sarr[i] + " -> " + Utility.normalizePath(sarr[i]));
+		}
+		System.out.println(Utility.normalizePath("/opt/semosshome/db" + FILE_SEPARATOR + "asdfa/../df"));
+
+		
+	}
 
 	}
