@@ -13,6 +13,8 @@ import org.apache.commons.validator.routines.DateValidator;
 import org.apache.commons.validator.routines.DoubleValidator;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.apache.commons.validator.routines.IntegerValidator;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -27,6 +29,8 @@ import prerna.util.Constants;
 
 public class GreedyJsonReactor extends AbstractReactor {
 	
+	private static final Logger logger = LogManager.getLogger(GreedyJsonReactor.class);
+
 	public static final String ERROR = "ERROR";
 	public static final String STAGE = "STAGE";
 	public static final String CHILDS = "CHILDS";
@@ -45,7 +49,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 	public Hashtable outputHash = new Hashtable();
 	public Hashtable errorHash = new Hashtable();
 	
-	public List<String> keysToValidate = new Vector<String>();
+	public List<String> keysToValidate = new Vector<>();
 	
 	
 	// set which fields you think are in what bucket
@@ -117,11 +121,8 @@ public class GreedyJsonReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		
-		
 		process();
-		
-		//System.out.println("Here with the nounstore of" + this.store.getNounKeys());
+
 		Hashtable daOutput = getOutput();
 		return new NounMetadata(daOutput, PixelDataType.MAP);
 	}
@@ -136,7 +137,6 @@ public class GreedyJsonReactor extends AbstractReactor {
 			// move it to something else
 			GenRowStruct rowStruct = this.store.getNoun(NounStore.all);
 			// set it as something else
-			//System.out.println("Reactor is.. " + this.reactorName);
 			if(reactorName == null || reactorName.isEmpty())
 				reactorName = DATA;
 			this.store.addNoun(reactorName, rowStruct);
@@ -150,7 +150,6 @@ public class GreedyJsonReactor extends AbstractReactor {
 		// also add the childs here
 		if(hasProp(CHILDS))
 		{
-			//daOutput.put(CHILDS, getProp(CHILDS));
 			// need to add the noun to nounstore as well
 			NounMetadata nmd = new NounMetadata(getProp(CHILDS), PixelDataType.MAP);
 			GenRowStruct grs = new GenRowStruct();
@@ -168,11 +167,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 		}			
 		// need a way to say this is an array 
 		// so push everything to array and if so process as array
-		Hashtable <String, Object> daOutput = this.store.getDataHash();
-		// we dont need this print out anymore
-		//System.out.println(">>>>>>>>>>>>>>>>>>>> \n" +  daOutput +"\n<<<<<<<<<<<<<<<<<<<<<");
-		
-		return daOutput;
+		return this.store.getDataHash();
 	}
 	
 	@Override
@@ -201,7 +196,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 		if(outputHash.containsKey(ERROR))
 			errorVector = (Vector<String>)outputHash.get(ERROR);
 		else
-			errorVector = new Vector<String>();
+			errorVector = new Vector<>();
 		
 		errorVector.add(element);
 		errorHash.put(ERROR + "_ELEMENTS", errorVector);
@@ -218,7 +213,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 	public boolean isError()
 	{
 		boolean retError = false;
-		Vector <Hashtable> dataHashVector = new Vector<Hashtable>();
+		Vector <Hashtable> dataHashVector = new Vector<>();
 		// we can optimize the creation of dataHash but.. 
 		dataHashVector.add(this.store.getDataHash());
 		
@@ -231,7 +226,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 		// all the childs are in the childs key
 //		if(hasError)
 //			return hasError;
-		Vector <Hashtable> nextLevelHash = new Vector<Hashtable>();
+		Vector <Hashtable> nextLevelHash = new Vector<>();
 	
 		// If I reach until end or if there is an error in between
 		for(int nodeIndex = 0; nodeIndex < remainingHash.size();nodeIndex++)
@@ -253,7 +248,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 		}
 		
 		// no more to go.. yay !!
-		if(nextLevelHash.size() > 0 && !error)
+		if(!nextLevelHash.isEmpty() && !error)
 			hasError(nextLevelHash);
 		
 		return error;
@@ -268,10 +263,10 @@ public class GreedyJsonReactor extends AbstractReactor {
 		{
 			mainTable = store.getDataHash();
 			
-			Vector <Hashtable> allHashes = new Vector<Hashtable>();
+			Vector <Hashtable> allHashes = new Vector<>();
 			allHashes.add(mainTable);
 			
-			while(allHashes.size() > 0)
+			while(!allHashes.isEmpty())
 			{
 				Hashtable thisHash = allHashes.remove(0);
 				if(thisHash.containsKey(CHILDS))
@@ -287,7 +282,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 							if(thisHash.get(childs.get(childIndex)) instanceof Hashtable)
 								allHashes.add((Hashtable)thisHash.get(childs.get(childIndex)));
 							else
-								System.out.println("Find out what this is is then ?!");
+								logger.debug("Find out what this is is then ?!");
 							//thisHash.remove(childs.get(childIndex));
 						}
 					}
@@ -312,10 +307,10 @@ public class GreedyJsonReactor extends AbstractReactor {
 		{
 			mainTable = store.getDataHash();
 			
-			Vector <Hashtable> allHashes = new Vector<Hashtable>();
+			Vector <Hashtable> allHashes = new Vector<>();
 			allHashes.add(mainTable);
 			
-			while(allHashes.size() > 0)
+			while(!allHashes.isEmpty())
 			{
 				Hashtable thisHash = allHashes.remove(0);
 				if(thisHash.containsKey(CHILDS))
@@ -331,8 +326,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 							if(thisHash.get(childs.get(childIndex)) instanceof Hashtable)
 								allHashes.add((Hashtable)thisHash.get(childs.get(childIndex)));
 							else
-								System.out.println("Find out what this is is then ?!");
-							//thisHash.remove(childs.get(childIndex));
+								logger.debug("Find out what this is is then ?!");
 						}
 					}
 					thisHash.remove(CHILDS);
@@ -413,7 +407,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 	public Object getValue(String key, boolean searchAllParent)
 	{
 		// if search all parent and getAllValues
-		List <IReactor> nextSet = new Vector<IReactor>();
+		List <IReactor> nextSet = new Vector<>();
 		Object retObject = null;
 		if(searchAllParent){
 			retObject = new Vector<Object>();
@@ -421,7 +415,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 		}
 		else 
 			nextSet.add(this);
-		while(nextSet.size() > 0)
+		while(!nextSet.isEmpty())
 		{
 			IReactor reactor = nextSet.remove(0);
 			GenRowStruct output = reactor.getNounStore().getNoun(key);
@@ -442,26 +436,26 @@ public class GreedyJsonReactor extends AbstractReactor {
 			if(searchAllParent)
 			{
 				List <IReactor> childList = reactor.getChildReactors();
-				if(realValue != null)
+				if(retObject != null && realValue != null) {
 					((Vector)retObject).add(realValue);
+				}
 				nextSet.addAll(childList);
 			}
 			else
 				retObject = realValue;
 		}
-		
+
 		return retObject;
 	}
 	
 
-	public static 	Gson gson = new GsonBuilder()
+	public static Gson gson = new GsonBuilder()
 	.disableHtmlEscaping()
 	.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
 	//.registerTypeAdapter(Double.class, new NumberAdaptor())
 	.create();
 
 	public void superParentReactor(IReactor superParent) {
-		// TODO Auto-generated method stub
 		this.superParent = superParent;
 	}
 	

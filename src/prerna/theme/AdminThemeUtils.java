@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -15,63 +18,66 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class AdminThemeUtils extends AbstractThemeUtils {
+	private static final Logger logger = LogManager.getLogger(AdminThemeUtils.class);
 
+	private static final String STACKTRACE = "StackTrace: ";
 	private static AdminThemeUtils instance = new AdminThemeUtils();
-	
+
 	private AdminThemeUtils() {
-		
+
 	}
-	
+
 	public static AdminThemeUtils getInstance(User user) {
 		// if no security
 		// do whatever you want!
-		if(!AbstractSecurityUtils.securityEnabled()) {
+		if (!AbstractSecurityUtils.securityEnabled()) {
 			return instance;
 		}
-		if(user == null) {
+		if (user == null) {
 			return null;
 		}
-		if(SecurityAdminUtils.userIsAdmin(user)) {
+		if (SecurityAdminUtils.userIsAdmin(user)) {
 			return instance;
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Get the active theme
+	 * 
 	 * @return
 	 */
 	public static Object getActiveAdminTheme() {
-		if(themeDb == null) {
+		if (themeDb == null) {
 			return new HashMap();
 		}
 
 		String query = "SELECT id, theme_name, theme_map, is_active FROM ADMIN_THEME WHERE is_active=TRUE;";
-		
+
 		List<Map<String, Object>> retVal = null;
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
 			retVal = flushRsToMap(wrapper);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
-		
-		if(retVal.isEmpty()) {
+
+		if (retVal == null || retVal.isEmpty()) {
 			return new HashMap();
 		}
-		
+
 		return retVal.get(0);
 	}
-	
-	
+
 	/*
 	 * all other methods should be on the instance
 	 * so that we cannot bypass security easily
 	 */
-	
+
 	/**
 	 * Get all the admin level themes
+	 * 
 	 * @return
 	 */
 	public List<Map<String, Object>> getAdminThemes() {
@@ -81,32 +87,35 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
 			return flushRsToMap(wrapper);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
-		
-		return new ArrayList<Map<String, Object>>();
+
+		return new ArrayList<>();
 	}
-	
+
 	/**
-	 * Set the active admin level theme
-	 * This means setting the is_active boolean to true for 1 theme while the previous true value to false;
+	 * Set the active admin level theme This means setting the is_active boolean to
+	 * true for 1 theme while the previous true value to false;
+	 * 
 	 * @param themeId
 	 * @return
 	 */
 	public boolean setActiveTheme(String themeId) {
-		String query = "UPDATE ADMIN_THEME SET IS_ACTIVE=FALSE WHERE IS_ACTIVE=TRUE; UPDATE ADMIN_THEME SET IS_ACTIVE=TRUE WHERE ID='" + themeId + "'";
+		String query = "UPDATE ADMIN_THEME SET IS_ACTIVE=FALSE WHERE IS_ACTIVE=TRUE; UPDATE ADMIN_THEME SET IS_ACTIVE=TRUE WHERE ID='"
+				+ themeId + "'";
 		try {
 			themeDb.insertData(query);
 			themeDb.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			return false;
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Set the active admin level theme to false so the UI resets to the base theme
+	 * 
 	 * @return
 	 */
 	public boolean setAllThemesInactive() {
@@ -115,14 +124,15 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			themeDb.insertData(query);
 			themeDb.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			return false;
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Insert a new admin level theme
+	 * 
 	 * @param themeId
 	 * @param themeName
 	 * @param themeMap
@@ -136,24 +146,25 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 
 		String[] colNames = new String[] { "id", "theme_name", "theme_map", "is_active" };
 		String[] types = new String[] { "varchar(255)", "varchar(255)", "clob", "boolean" };
-		Object[] data = new Object[]{themeId, themeName, themeMap, isActive};
+		Object[] data = new Object[] { themeId, themeName, themeMap, isActive };
 		String insertQuery = RdbmsQueryBuilder.makeInsert("ADMIN_THEME", colNames, types, data);
 		try {
 			themeDb.insertData(insertQuery);
 			themeDb.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			return null;
 		}
-		
-		if(isActive) {
+
+		if (isActive) {
 			setActiveTheme(themeId);
 		}
 		return themeId;
 	}
-	
+
 	/**
 	 * Edit an existing admin level theme
+	 * 
 	 * @param themeId
 	 * @param themeName
 	 * @param themeMap
@@ -164,24 +175,25 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		themeName = RdbmsQueryBuilder.escapeForSQLStatement(themeName);
 		themeMap = RdbmsQueryBuilder.escapeForSQLStatement(themeMap);
 
-		String updateQuery = "UPDATE ADMIN_THEME SET theme_name='" + themeName + "', theme_map='" + themeMap 
+		String updateQuery = "UPDATE ADMIN_THEME SET theme_name='" + themeName + "', theme_map='" + themeMap
 				+ "', is_active=" + isActive + " WHERE id='" + themeId + "';";
 		try {
 			themeDb.insertData(updateQuery);
 			themeDb.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			return false;
 		}
-		
-		if(isActive) {
+
+		if (isActive) {
 			setActiveTheme(themeId);
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Delete a admin level theme
+	 * 
 	 * @param themeId
 	 * @return
 	 */
@@ -191,7 +203,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			themeDb.removeData(deleteQuery);
 			themeDb.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			return false;
 		}
 		return true;

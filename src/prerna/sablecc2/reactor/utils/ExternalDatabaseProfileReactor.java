@@ -5,6 +5,9 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
@@ -16,6 +19,9 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
 public class ExternalDatabaseProfileReactor extends AbstractReactor {
+	private static final Logger logger = LogManager.getLogger(ExternalDatabaseProfileReactor.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	public ExternalDatabaseProfileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(),
@@ -147,27 +153,35 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 			}
 
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			try {
-				con.close();
+				if (con != null) {
+					con.close();
+				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			try {
-				tables.close();
+				if (tables != null) {
+					tables.close();
+				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			try {
-				columns.close();
+				if (columns != null) {
+					columns.close();
+				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			try {
-				rs.close();
+				if (rs != null) {
+					rs.close();
+				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);

@@ -24,6 +24,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -34,14 +35,17 @@ public class Me {
 	// look at where the batch file is 
 	// and then based on that run configuration
 	public static String os = "";
-	
+	private static Logger logger = Logger.getLogger(Me.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	public static void main(String [] args) throws Exception
 	{
 		Me cm = new Me();
-		
+
 		// Before anything else, see what the OS is
-		cm.os = System.getProperty("os.name").toLowerCase();
-		
+		Me.os = System.getProperty("os.name").toLowerCase();
+
 		// get in the args what the base folder is
 		String homePath = null;
 		String rHome = null;
@@ -50,13 +54,11 @@ public class Me {
 		String rdll = null;
 		
 		if(args == null || args.length < 5) {
-			System.out.println("Usage: java prerna.configure.Me <semoss home dir> <r home> <r library> <Location to R Library dll/so> <Location to JRI library dll/so>");
+			logger.info("Usage: java prerna.configure.Me <semoss home dir> <r home> <r library> <Location to R Library dll/so> <Location to JRI library dll/so>");
 			System.exit(0);
 		}
-		else if(args != null && args.length == 5){
-			//System.out.println("CAUTION!!! MULTIPLE ARGUEMENTS BEING PASSED, MIGHT BE ERROR.. WILL TRY TO RUN WITH FIRST ARGUMENT\n"
-			//		+ "POSSIBLE ISSUE WITH SEMOSS HOME DIRECTORY HAVING SPACES...");
-			System.out.println("First argument passed into method is: " + args[0]);
+		else if(args.length == 5){
+			logger.info("First argument passed into method is: " + args[0]);
 			homePath = args[0].replace("\\", "/");
 			rHome = args[1].replace("\\", "/");
 			rLib = args[2].replace("\\", "/");
@@ -64,35 +66,29 @@ public class Me {
 			jriDll = args[4].replace("\\", "/");
 		}
 		
-		System.out.println("Using home folder: " + homePath);
-		
-//		if(homePath == null)
-//			homePath = "C:/Users/pkapaleeswaran/workspacej3/MonolithDev2";
-		
-		
+		logger.info("Using home folder: " + homePath);
+	
 		// so this si where the batch file is running
 		// I have a few things now i need to change
 		String port = cm.findOpenPort();
 		
-		System.out.println("Found port.. " + port);
+		logger.info("Found port.. " + port);
 		// RDF Map is sitting in 
 		// args[0] / semosshome	
 		cm.changeRDFMap(homePath, port);
-		
+
 		// the web.xml is sitting in 
 		// args[0]/webapps/monolith/webcontent/web-inf
-		
+
 		cm.changeWebXML(homePath);
-		
-//		cm.changeJS(homePath, port);
+
 		// adjust the ports
 		// this is to adjust app.config.js
 		// this is sitting in
 		// args[0]/webapps/semossweb/app/app.config.js
 		// args[0]/webapps/semossweb/olddev/app/scripts/config.js
 		// args[0]/conf/server
-		//cm.configurePort(args[0]);
-		
+
 		// last thing is tomcat
 		cm.changeTomcatXML(homePath,port);
 		
@@ -104,15 +100,13 @@ public class Me {
 		
 		// write base env such as
 		// path
-		//  
-		
 		// need to write classpath and home files
 		// need to change the loadpath on catalina to include the library path
 		cm.writeTomcatEnv(homePath, rdll, jriDll);		
 		
-		System.out.println("------------------------");
-		System.out.println("SEMOSS configured! Run startSEMOSS.bat and point your browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS!");
-		System.out.println("------------------------");
+		logger.info("------------------------");
+		logger.info("SEMOSS configured! Run startSEMOSS.bat and point your browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS!");
+		logger.info("------------------------");
 	}
 	
 	public void writePath(String semossHome, String rHome, String rDll, String jriDll, String rLib)
@@ -137,14 +131,14 @@ public class Me {
 			bw.write("\necho R_LIBS IS %R_LIBS%");
 			bw.flush();
 		} catch(IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			try {
 				if(bw != null) {
 					bw.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 	}
@@ -155,7 +149,6 @@ public class Me {
 		String fileName = semossHome + "/../tomcat/bin/" + "setenv.bat";
 		BufferedWriter bw = null;
 		try {
-			//BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new PrintStream(System.out)));
 			bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
 			String prefix = "";
 			if (System.getenv().containsKey("PYTHONHOME")) {
@@ -165,20 +158,18 @@ public class Me {
 				prefix += "\"%PYTHON_HOME%/\";\"%PYTHON_HOME%/Scripts/\";\"%PYTHON_HOME%/Lib/site-packages/jep\";";
 			}
 			String options = "-Djava.library.path=" + prefix + "\"" + rHome + "\";\"" + jriHome + "\"";
-			// should we also set the memory here ?
-			// to get max memory ?
-			//options = options + " " + "-Xms256m -Xmx512m";
+			// should we also set the memory here? to get max memory? options = options + " " + "-Xms256m -Xmx512m";
 			bw.write("set JAVA_OPTS=" + options);
 			bw.flush();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			try {
 				if(bw != null) {
 					bw.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		
@@ -193,14 +184,14 @@ public class Me {
 			writer.flush();
 			writer.close();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			try {
 				if(writer != null) {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 	}
@@ -210,8 +201,7 @@ public class Me {
 		// args[0]/conf/server
 		String appFile = homePath + "/../tomcat/conf/server.xml";
 		// changing for my current box
-//		appFile = "C:/Users/pkapaleeswaran/Desktop/From C Drive Root/apache-tomcat-8.0.15/conf/server2.xml";
-		System.out.println("Configuring Tomcat.. " + appFile);
+		logger.info("Configuring Tomcat.. " + appFile);
 		
 		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 		Document d = db.parse(appFile);
@@ -219,7 +209,6 @@ public class Me {
 		for(int nodeIndex = 0;nodeIndex < nl.getLength();nodeIndex++)
 		{
 			Node n = nl.item(nodeIndex);
-			//System.out.println("Node is.. " + n.getTextContent());
 			NamedNodeMap nnm = n.getAttributes();
 			Node portNode = nnm.getNamedItem("port");
 			portNode.setNodeValue(port);
@@ -239,35 +228,23 @@ public class Me {
 	public String findOpenPort()
 	{
 		// start with 7677 and see if you can find any
-		
-		System.out.println("Finding an open port.. ");
+		logger.info("Finding an open port.. ");
 		boolean found = false;
-		int port = 5355;int count = 0;
-		String server = "10.13.229.203";
-		server = "127.0.0.1";
+		int port = 5355;
+		int count = 0;
 		for(;!found && count < 5;port++, count++)
 		{
-			System.out.print("Trying.. " + port);
-			try
-			{
-				ServerSocket s = new ServerSocket(port) ;//"10.13.229.203", port);
-				//s.connect(new InetSocketAddress(server, port), 5000);//"localhost", port);
-				//s.accept();
+			logger.info("Trying.. " + port);
+			try {
+				ServerSocket s = new ServerSocket(port);
 				found = true;
 				s.close();
-				System.out.println("  Success !!!!");
+				logger.info("  Success !!!!");
 				//no error, found an open port, we can stop
 				break;
-			}catch (Exception ex)
-			{
-				// do nothing
-				//ex.printStackTrace();
-				System.out.println("  Fail");
-				//System.exit(0);
+			} catch (Exception ex) {
+				logger.error(STACKTRACE, ex);
 				found = false;
-				//ex.printStackTrace();
-			}finally
-			{
 			}
 		}
 		
@@ -282,13 +259,13 @@ public class Me {
 			is = new InputStreamReader(System.in);
 			br = new BufferedReader(is);
 			if(!found) {
-				System.out.println("Unable to find an open port. Please provide a port.");
+				logger.info("Unable to find an open port. Please provide a port.");
 				 try {
 					portStr = br.readLine();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
-				System.out.println("Using port: " + portStr);
+				logger.info("Using port: " + portStr);
 			} else {
 				portStr = port+"";
 			}
@@ -298,21 +275,21 @@ public class Me {
 					is.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			try {
 				if(br != null) {
 					br.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		return portStr;
 	}
 	
 	public void changeRDFMap(String homePath, String port, String rdfHome) {
-		System.out.println("Configuring RDF Map.. ");
+		logger.info("Configuring RDF Map.. ");
 		
 		String [] stringToReplace = {"BaseFolder", 
 									"LOG4J", 
@@ -347,31 +324,22 @@ public class Me {
 	}
 	
 	public void changeJS(String homePath, String port) throws Exception
-	{
-		// args[0]/webapps/semossweb/app/app.config.js
-		// args[0]/webapps/semossweb/olddev/app/scripts/config.js
-		// args[0]/conf/server
-		//cm.configurePort(args[0]);
-		
-		System.out.println("Modifying Web Configuration.....");
-		
+	{		
+		logger.info("Modifying Web Configuration.....");
+
 		String appPath = homePath + "/../tomcat/webapps/SemossWeb/core/app.config.js";
 		String altPath = appPath + "temp";
-		
+		logger.info("Web Config " + appPath);
+		logger.info("Web Config 2 " + altPath);
 
-//		String appPath = homePath + "/Webcontent/dev/app/app.config1.js";
-//		String altPath = homePath + "/Webcontent/dev/app/app.config2.js";
-		System.out.println("Web Config " + appPath);
-		System.out.println("Web Config 2 " + altPath);
-		
 		String input = null;
-		
 		BufferedReader br = null;
 		InputStreamReader isr = null;
 		FileInputStream fis = null;
 		BufferedWriter bw = null;
 		OutputStreamWriter osw = null;
 		FileOutputStream fos = null;
+
 		try {
 			fis = new FileInputStream(appPath);
 			isr = new InputStreamReader(fis);
@@ -394,7 +362,7 @@ public class Me {
 			bw.close();
 			br.close();
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			try {
 				if(fis != null) {
@@ -416,7 +384,7 @@ public class Me {
 					bw.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		replaceFiles(appPath, altPath);
@@ -424,10 +392,8 @@ public class Me {
 		// the embed app.config
 		appPath = homePath + "/../tomcat/webapps/SemossWeb/embed/app.config.js";
 		altPath = appPath + "temp";
-//		appPath = homePath + "/Webcontent/dev/olddev/app/scripts/config.js";
-//		altPath = homePath + "/Webcontent/dev/olddev/app/scripts/config2.js";
-
 		input = null;
+
 		try {
 			fis = new FileInputStream(appPath);
 			isr = new InputStreamReader(fis);
@@ -450,7 +416,7 @@ public class Me {
 			bw.close();
 			br.close();
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			try {
 				if(fis != null) {
@@ -472,7 +438,7 @@ public class Me {
 					bw.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		
@@ -481,11 +447,8 @@ public class Me {
 		// the playsheet app.config
 		appPath = homePath + "/../tomcat/webapps/SemossWeb/playsheet/app.config.js";
 		altPath = appPath + "temp";
-		//				appPath = homePath + "/Webcontent/dev/olddev/app/scripts/config.js";
-		//				altPath = homePath + "/Webcontent/dev/olddev/app/scripts/config2.js";
-
 		input = null;
-		
+
 		try {
 			fis = new FileInputStream(appPath);
 			isr = new InputStreamReader(fis);
@@ -508,7 +471,7 @@ public class Me {
 			bw.close();
 			br.close();
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			try {
 				if(fis != null) {
@@ -530,7 +493,7 @@ public class Me {
 					bw.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		
@@ -557,7 +520,7 @@ public class Me {
 		 * 4) if no, just write out the line as is
 		 * 
 		 */
-		List<String> content = new ArrayList<String>();
+		List<String> content = new ArrayList<>();
 		BufferedReader reader = null;
 		FileReader fr = null;
 		try{
@@ -597,19 +560,23 @@ public class Me {
 				fileOut.write(lineBreak);
 			}
 		} catch(IOException e){
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally{
 			// close the readers
-			try{
-				reader.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+			if (reader != null) {
+				try{
+					reader.close();
+				} catch (IOException e) {
+					logger.error(STACKTRACE, e);
+				}
 			}
 
-			try{
-				fileOut.close();
-			} catch (IOException e){
-				e.printStackTrace();
+			if (fileOut != null) {
+				try{
+					fileOut.close();
+				} catch (IOException e){
+					logger.error(STACKTRACE, e);
+				}
 			}
 		}
 	}
@@ -618,31 +585,25 @@ public class Me {
 	{
 		// the web.xml is sitting in 
 		// args[0]/webapps/monolith/webcontent/web-inf
-		
-		
-		Hashtable thingsToWatch= new Hashtable();
+
+		Hashtable<String, String> thingsToWatch= new Hashtable<>();
 		thingsToWatch.put("file-upload", homePath + "/upload");
 		thingsToWatch.put("temp-file-upload", homePath + "/upload");
 		thingsToWatch.put("RDF-MAP", homePath + "/RDF_Map.prop");
-		
 
 		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 		String appFile = homePath + "/../tomcat/webapps/Monolith/WEB-INF/web.xml";
-		System.out.println("Configuring web.xml " + appFile);
+		logger.info("Configuring web.xml " + appFile);
 		Document d = db.parse(appFile);
 		NodeList nl = d.getElementsByTagName("context-param");
 		for(int nodeIndex = 0;nodeIndex < nl.getLength();nodeIndex++)
 		{
 			Node n = nl.item(nodeIndex);
-			//System.out.println("Node is.. " + n.getTextContent());
-
 			NodeList cl = n.getChildNodes();
-			//System.out.println("New Node.. >>>>>>>>>>>>>>>>>");
-			
+
 			for(int childIndex = 0;childIndex < cl.getLength();childIndex++)
 			{
 				Node c = cl.item(childIndex);
-				//System.out.println("child is.. " + c.getNodeName() + ">>" + c.getTextContent());
 
 				// usually if something is armed
 				// I need to get the value of the one after that
@@ -653,36 +614,32 @@ public class Me {
 				}
 			}
 		}
-		
-		
+
 		// write it back
 		String altFile = appFile + "temp";
-		//FileWriter fw = new FileWriter();
 		TransformerFactory tf = TransformerFactory.newInstance();
 		DOMSource source = new DOMSource(d);
 		StreamResult sr = new StreamResult(new File(altFile));
-		
-		
-		
+
 		tf.newTransformer().transform(source, sr);
-		
 		replaceFiles(appFile, altFile);
 	}
 	
 	private void genOpenBrowser(String homePath, String port) throws Exception
 	{
 		String browserBat = homePath + "/config/openBrowser.bat";
-		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(browserBat)));
-		
-		writer.write("ECHO Opening browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS...");
-		writer.write("\n\n");
-		writer.write("ECHO OFF\n\n");
-		writer.write("IF EXIST \"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\" (");
-		writer.write("  START \"Chrome\" chrome --new-window \"http://localhost:" + port + "/SemossWeb/\"");	
-		writer.write("			) ELSE (");
-		writer.write("  START \"\" \"http://localhost:" + port + "/SemossWeb/\"");
-		writer.write(")");
-		writer.flush();writer.close();
-		
+
+		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(browserBat)))) {
+			writer.write("ECHO Opening browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS...");
+			writer.write("\n\n");
+			writer.write("ECHO OFF\n\n");
+			writer.write("IF EXIST \"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\" (");
+			writer.write("  START \"Chrome\" chrome --new-window \"http://localhost:" + port + "/SemossWeb/\"");	
+			writer.write("			) ELSE (");
+			writer.write("  START \"\" \"http://localhost:" + port + "/SemossWeb/\"");
+			writer.write(")");
+			writer.flush();
+			writer.close();
+		}		
 	} 
 }

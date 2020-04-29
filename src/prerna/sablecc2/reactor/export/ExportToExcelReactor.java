@@ -74,6 +74,7 @@ import prerna.util.DIHelper;
 public class ExportToExcelReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = ExportToExcelReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 
 	protected String fileLocation = null;
 	protected Logger logger;
@@ -115,7 +116,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 			try {
 				numRowsToExport = Integer.parseInt(limit);
 			} catch (NumberFormatException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 
@@ -131,7 +132,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 			InsightSheet sheet = sheetMap.get(sheetId);
 			String sheetName = sheet.getSheetLabel();
 			sheetAlias.put(sheetId, sheetName);
-			HashMap<String, Object> sheetChartMap = new HashMap<String, Object>();
+			HashMap<String, Object> sheetChartMap = new HashMap<>();
 			sheetChartMap.put("colIndex", 0);
 			sheetChartMap.put("rowIndex", 0);
 			sheetChartMap.put("chartIndex", 1);
@@ -209,9 +210,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 				try {
 					picture = IOUtils.toByteArray(new FileInputStream(semossLogoPath));
 				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
+				} catch (IOException ioe) {
+					logger.error(STACKTRACE, ioe);
 				}
 
 				// Insert image into workbook
@@ -280,7 +281,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFSheet sheet = workbook.getSheet(sheetId);
 
 		// Insert chart if supported
-		String plotType = (String) tOptions.getLayout(panelId);
+		String plotType = tOptions.getLayout(panelId);
 		if (plotType.equals("Line")) {
 			insertLineChart(sheet, options, sheetId, panelId);
 		} else if (plotType.equals("Scatter")) {
@@ -358,7 +359,12 @@ public class ExportToExcelReactor extends AbstractReactor {
 				Cell cell = headerRow.createCell(curSheetCol);
 				cell.setCellValue(headers[i]);
 				cell.setCellStyle(headerCellStyle);
-				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+				
+				if(headerInfo.get(i).containsKey("type")) {
+					typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
+				} else {
+					typesArr[i] = SemossDataType.STRING;
+				}
 			}
 
 			// generate the data row
@@ -442,17 +448,18 @@ public class ExportToExcelReactor extends AbstractReactor {
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
 		List<String> headerList = Arrays.asList(headers);
 
-		for (String header : headers) {
-			Map<String, Object> columnMap = new HashMap<>();
-			columnMap.put("startRow", 1);
-			columnMap.put("endRow", excelRowCounter - 1);
-			// find header index in list
-			int headerIndex = headerList.indexOf(header);
-			columnMap.put("startCol", excelColStart + headerIndex);
-			columnMap.put("endCol", excelColStart + headerIndex);
-			panelMap.put(header, columnMap);
+		if (headers != null && headers.length > 0) {
+			for (String header : headers) {
+				Map<String, Object> columnMap = new HashMap<>();
+				columnMap.put("startRow", 1);
+				columnMap.put("endRow", excelRowCounter - 1);
+				// find header index in list
+				int headerIndex = headerList.indexOf(header);
+				columnMap.put("startCol", excelColStart + headerIndex);
+				columnMap.put("endCol", excelColStart + headerIndex);
+				panelMap.put(header, columnMap);
+			}
 		}
-
 	}
 
 	private void insertLineChart(XSSFSheet sheet, Map<String, Object> options, String sheetId, String panelId) {
@@ -721,6 +728,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		int xEndRow = (int) xColumnMap.get("endRow");
 		CellRangeAddress xsCellRange = new CellRangeAddress(xStartRow, xEndRow, xStartCol, xEndCol);
 		XDDFNumericalDataSource<Double> xs = XDDFDataSourcesFactory.fromNumericCellRange(sheet, xsCellRange);
+
 		return xs;
 	}
 
@@ -731,6 +739,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		int yEndRow = (int) yColumnMap.get("endRow");
 		CellRangeAddress ysCellRange = new CellRangeAddress(yStartRow, yEndRow, yStartCol, yEndCol);
 		XDDFNumericalDataSource<Double> ys = XDDFDataSourcesFactory.fromNumericCellRange(sheet, ysCellRange);
+
 		return ys;
 	}
 }

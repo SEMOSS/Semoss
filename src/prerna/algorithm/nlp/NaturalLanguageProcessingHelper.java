@@ -31,7 +31,7 @@ import edu.stanford.nlp.trees.TypedDependency;
 
 public final class NaturalLanguageProcessingHelper {
 
-	private static final Logger LOGGER = LogManager.getLogger(NaturalLanguageProcessingHelper.class.getName());
+	private static final Logger logger = LogManager.getLogger(NaturalLanguageProcessingHelper.class);
 	
 	private NaturalLanguageProcessingHelper() {
 
@@ -77,7 +77,7 @@ public final class NaturalLanguageProcessingHelper {
 		try {
 			taggedWords.addAll(treeBank.taggedYield());
 		} catch(NullPointerException e) {
-			LOGGER.info("The following sentence failed to be loadede:  " + sentence);
+			logger.info("The following sentence failed to be loadede:  " + sentence);
 			return false;
 		}
 		// Store the dependency relations between nodes in a tree
@@ -102,7 +102,7 @@ public final class NaturalLanguageProcessingHelper {
 		for(; i < size; i++)
 		{
 			TypedDependency one = tdl.get(i);
-			Vector<TypedDependency> baseVector = new Vector<TypedDependency>();
+			Vector<TypedDependency> baseVector = new Vector<>();
 			GrammaticalRelation rel = one.reln();
 
 			//if this type of relation already exists
@@ -122,9 +122,9 @@ public final class NaturalLanguageProcessingHelper {
 	 */
 	public static Hashtable<GrammaticalRelation, Vector<TypedDependency>> getTypeDependencyHash(LexicalizedParser lp, String searchString)
 	{
-		List<TypedDependency> tdl = new ArrayList<TypedDependency>();
+		List<TypedDependency> tdl = new ArrayList<>();
 		createDepList(lp, searchString, tdl, new ArrayList<TaggedWord>()); //create dependencies
-		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
+		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<>();
 		setTypeDependencyHash(tdl, nodeHash);
 		return nodeHash;
 	}
@@ -326,32 +326,28 @@ public final class NaturalLanguageProcessingHelper {
 		String finalObject = "";
 		boolean npFound = false;
 		TreeGraphNode parentSearcher = node;
-		while(!npFound)
-		{
-			if(!parentSearcher.label().toString().startsWith("NP"))
-			{
-//				System.out.println(parentSearcher.label().toString());
+		while(!npFound) {
+			if(parentSearcher != null && !parentSearcher.label().toString().startsWith("NP")) {
 				if(parentSearcher.parent() instanceof TreeGraphNode)
 					parentSearcher = (TreeGraphNode) parentSearcher.parent();
-				else
-				{
+				else {
 					npFound = true;
 					parentSearcher = null;
 				}
 			}
-			else 
-			{
-//				System.out.println(parentSearcher.label().toString());
+			else {
 				npFound = true;
-				List<LabeledWord> lw = parentSearcher.labeledYield();
-				// if this is not a noun then I need find the actual proper noun
-				// and it may be because there is a CCOMP or XCOMP with this label
-				// or there is an amod with this label
-				for(int labIndex = 0; labIndex < lw.size();labIndex++)
-				{
-					finalObject = finalObject + lw.get(labIndex).word();
-					if(labIndex != lw.size() - 1) {
-						finalObject += " ";
+				if (parentSearcher != null) {
+					List<LabeledWord> lw = parentSearcher.labeledYield();
+					// if this is not a noun then I need find the actual proper noun
+					// and it may be because there is a CCOMP or XCOMP with this label
+					// or there is an amod with this label
+					for(int labIndex = 0; labIndex < lw.size();labIndex++)
+					{
+						finalObject = finalObject + lw.get(labIndex).word();
+						if(labIndex != lw.size() - 1) {
+							finalObject += " ";
+						}
 					}
 				}
 			}
@@ -459,29 +455,26 @@ public final class NaturalLanguageProcessingHelper {
 		int size = col.length;
 		for(int i=0; i < size; i++) {
 			String s1 = col[i].toString();
-			String s_s1 = RiTa.singularize(s1.toLowerCase());
+			String ss1 = RiTa.singularize(s1.toLowerCase());
 			// compare against all other strings in col
 			double minSimVal = 2.0;
 			for(int j=0; j < size; j++) {
 				if(i!=j) {
 					String s2 = col[j].toString();
-					String s_s2 = RiTa.singularize(s2.toLowerCase());
-					double newSim = wordnet.getDistance(s_s1, s_s2, "n");
+					String ss2 = RiTa.singularize(s2.toLowerCase());
+					double newSim = wordnet.getDistance(ss1, ss2, "n");
 					if(newSim < minSimVal) {
 						minSimVal = newSim;
 					}
 				}
 			}
-//			System.out.println(s1 + " "+minSimVal);
 			if(minSimVal != 1) {
 				numOfVals++;
 				sumMinSimilarity += minSimVal;
 			}
 		}
 		double avgMinSimilarity = sumMinSimilarity / numOfVals;
-//		System.out.println("Num ones: "+numOfOnes);
-//		System.out.println("Avg Min Sim: "+avgMinSimilarity);
-		
+
 		return avgMinSimilarity;
 	}
 }

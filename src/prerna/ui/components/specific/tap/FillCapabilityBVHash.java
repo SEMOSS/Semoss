@@ -47,14 +47,16 @@ import prerna.util.Utility;
  * This class fills the business value hashtable.
  */
 public class FillCapabilityBVHash implements Runnable{
+	static final Logger logger = LogManager.getLogger(FillCapabilityBVHash.class.getName());
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	String query = null;
 	IEngine engine = null;
-	Hashtable<String, Object> BVhash = new Hashtable<String, Object>();
+	Hashtable<String, Object> BVhash = new Hashtable<>();
 	ISelectWrapper wrapper;
 	Hashtable tempSelectHash = new Hashtable();
-	static final Logger logger = LogManager.getLogger(FillCapabilityBVHash.class.getName());
-	
+
 	//Necessary items to create a filler
 	/**
 	 * Constructor for FillBVHash.
@@ -89,8 +91,7 @@ public class FillCapabilityBVHash implements Runnable{
 			DIHelper.getInstance().setLocalProperty(Constants.CAPABILITY_BUSINESS_VALUE, BVhash);
 			
 		} catch (RuntimeException e) {
-			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -108,19 +109,22 @@ public class FillCapabilityBVHash implements Runnable{
 		int count = 0;
 		//ArrayList<ArrayList<Double>> weightValues = new ArrayList<ArrayList<Double>>();
 		double[][] matrix = new double[5000][5000];
-		ArrayList<String> colLabels = new ArrayList<String>();
-		ArrayList<String> rowLabels = new ArrayList<String>();
+		ArrayList<String> colLabels = new ArrayList<>();
+		ArrayList<String> rowLabels = new ArrayList<>();
 		
 		String key = null;
 		// now get the bindings and generate the data
 		try {
-			String[] variables = wrapper.getVariables();
 			while(wrapper.hasNext())
 			{
 				ISelectStatement sjss = wrapper.next();
 				
 				while(sjss==null && wrapper.hasNext()) {
 					sjss=wrapper.next();
+				}
+
+				if (sjss == null) {
+					throw new NullPointerException("sjss cannot be null here");
 				}
 				//make key
 				if(count == 0){
@@ -142,7 +146,7 @@ public class FillCapabilityBVHash implements Runnable{
 				String var1 = sjss.getVar(names[1]).toString();
 				String var2 = sjss.getVar(names[2]).toString();
 
-				if(key.endsWith("prop"))
+				if(key != null && key.endsWith("prop"))
 				{
 					if (!rowLabels.contains(var0)){
 						rowLabels.add(var0);
@@ -225,8 +229,7 @@ public class FillCapabilityBVHash implements Runnable{
 		try {
 			FillWithSelect();
 		} catch (RuntimeException e) {
-			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 
 	}

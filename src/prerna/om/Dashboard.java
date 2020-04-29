@@ -15,9 +15,10 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
+@Deprecated
 public class Dashboard implements IDataMaker {
 
-	private static final Logger LOGGER = LogManager.getLogger(Dashboard.class.getName());
+	private static final Logger logger = LogManager.getLogger(Dashboard.class.getName());
 	private String insightID;
 	private String userID;
 //	private DataFrameJoiner joiner;
@@ -49,7 +50,7 @@ public class Dashboard implements IDataMaker {
 	
 	@Override
 	public void processPostTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame) {
-		LOGGER.info("We are processing " + transforms.size() + " post transformations");
+		logger.info("We are processing " + transforms.size() + " post transformations");
 		// if other data frames present, create new array with this at position 0
 		IDataMaker[] extendedArray = new IDataMaker[]{this};
 		if(dataFrame.length > 0) {

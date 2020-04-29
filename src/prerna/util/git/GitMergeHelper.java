@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeCommand;
@@ -24,6 +26,9 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 
 public class GitMergeHelper {
+	private static final Logger logger = LogManager.getLogger(GitMergeHelper.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	private GitMergeHelper() {
 
@@ -60,14 +65,14 @@ public class GitMergeHelper {
 				MergeResult res = mc.call(); 
 				boolean retBoolean = true;
 				if (res.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)) {
-					System.out.println(res.getConflicts().toString());
+					logger.debug(res.getConflicts().toString());
 					retBoolean = false;
 					Iterator <String> files = res.getConflicts().keySet().iterator();
-					Vector <String> delFiles = new Vector<String>();
+					Vector <String> delFiles = new Vector<>();
 					while(files.hasNext())
 					{
 						String thisFile = files.next();
-						System.out.println("File is" + thisFile);
+						logger.debug("File is" + thisFile);
 						if(!delFiles.contains(thisFile))
 							delFiles.add(thisFile);
 					}
@@ -94,24 +99,24 @@ public class GitMergeHelper {
 				// I will attempt this just one more time to merge
 				merge(localRepository, startPoint, branchName, numAttempts, maxAttempts, delete);
 			}
-		} catch (NoFilepatternException e) {
-			e.printStackTrace();
-		} catch (NoHeadException e) {
-			e.printStackTrace();
-		} catch (NoMessageException e) {
-			e.printStackTrace();
-		} catch (UnmergedPathsException e) {
-			e.printStackTrace();
-		} catch (ConcurrentRefUpdateException e) {
-			e.printStackTrace();
-		} catch (WrongRepositoryStateException e) {
-			e.printStackTrace();
-		} catch (AbortedByHookException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (GitAPIException e) {
-			e.printStackTrace();
+		} catch (NoFilepatternException nfpe) {
+			logger.error(STACKTRACE, nfpe);
+		} catch (NoHeadException nhe) {
+			logger.error(STACKTRACE, nhe);
+		} catch (NoMessageException nme) {
+			logger.error(STACKTRACE, nme);
+		} catch (UnmergedPathsException upe) {
+			logger.error(STACKTRACE, upe);
+		} catch (ConcurrentRefUpdateException crue) {
+			logger.error(STACKTRACE, crue);
+		} catch (WrongRepositoryStateException wrse) {
+			logger.error(STACKTRACE, wrse);
+		} catch (AbortedByHookException abhe) {
+			logger.error(STACKTRACE, abhe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
+		} catch (GitAPIException gae) {
+			logger.error(STACKTRACE, gae);
 		} finally {
 			if(thisRepo != null) {
 				thisRepo.close();
@@ -145,12 +150,14 @@ public class GitMergeHelper {
 		try {
 			thisGit = Git.open(dirFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		try {
-			thisGit.reset().setMode(ResetType.HARD).setRef("HEAD").call();
+			if (thisGit != null) {
+				thisGit.reset().setMode(ResetType.HARD).setRef("HEAD").call();
+			}
 		} catch (GitAPIException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(thisGit != null) {
 				thisGit.close();

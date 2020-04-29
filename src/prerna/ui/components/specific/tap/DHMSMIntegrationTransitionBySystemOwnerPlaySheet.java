@@ -42,50 +42,52 @@ import prerna.util.Utility;
 
 @SuppressWarnings("serial")
 public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends TablePlaySheet {
-	
-	private static final Logger logger = LogManager.getLogger(DHMSMIntegrationTransitionBySystemOwnerPlaySheet.class.getName());
+	private static final Logger logger = LogManager.getLogger(DHMSMIntegrationTransitionBySystemOwnerPlaySheet.class);
 
+	private static final String STACKTRACE = "StackTrace: ";
 	private String lpiSysQuery = "SELECT DISTINCT ?sys WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?sys <http://semoss.org/ontologies/Relation/Contains/Disposition> 'LPI'} {?sys <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?sys <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved')) BIND(<@SYS_OWNER@> AS ?owner) {?sys <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} } ORDER BY ?sys";
-	
+
 	@Override
 	public void createData() {
-		
 		int counter = 0;
 		String sysOwner = this.query;
 		lpiSysQuery = lpiSysQuery.replace("@SYS_OWNER@", sysOwner);
-		IEngine TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-		if(TAP_Core_Data == null) {
-			Utility.showError("Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");
+		IEngine tapCoreData = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		if (tapCoreData == null) {
+			Utility.showError(
+					"Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");
 		}
-		
+
 		DHMSMIntegrationTransitionCostWriter generateData = null;
 		try {
 			generateData = new DHMSMIntegrationTransitionCostWriter();
 		} catch (IOException e1) {
-			e1.printStackTrace();
-		} 
+			logger.error(STACKTRACE, e1);
+		}
 		DHMSMIntegrationTransitionBySystemOwnerWriter writer = new DHMSMIntegrationTransitionBySystemOwnerWriter();
-		
-		ISelectWrapper sjsw = Utility.processQuery(TAP_Core_Data, lpiSysQuery);
+
+		ISelectWrapper sjsw = Utility.processQuery(tapCoreData, lpiSysQuery);
 		String[] names = sjsw.getVariables();
-		while(sjsw.hasNext()) {
+		while (sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
 			String sysURI = sjss.getRawVar(names[0]).toString();
 			try {
-				generateData.setSysURI(sysURI);
-				generateData.calculateValuesForReport();
-				writer.setDataSource(generateData);
-				writer.write(counter);
+				if (generateData != null) {
+					generateData.setSysURI(sysURI);
+					generateData.calculateValuesForReport();
+					writer.setDataSource(generateData);
+					writer.write(counter);
+				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				Utility.showError(e.getMessage());
 			}
 			counter++;
 		}
-		
+
 		writer.writeFile(Utility.getInstanceName(sysOwner));
 	}
-	
+
 	@Override
 	public void createView() {
 		Utility.showMessage("Success!");
