@@ -77,8 +77,10 @@ public class TextToGraphic {
     	return c;
     }
     
+    /*
     public static void main(String[] args) {
     	TextToGraphic.makeImage("MovieDatabase", "C:\\workspace\\Semoss_Dev\\image.png");
     }
+    */
 
 }

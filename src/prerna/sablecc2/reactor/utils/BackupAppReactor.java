@@ -38,19 +38,19 @@ public class BackupAppReactor extends AbstractReactor {
 		ENGINE_TYPE dbType = engine.getEngineType();
 		
 		// get db directory and dates for renaming the backup file
-		String dbDir = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\" + dbName;
+		String dbDir = DIHelper.getInstance().getProperty("BaseFolder") + DIR_SEPARATOR + "db" + DIR_SEPARATOR + dbName;
 		DateFormat dateFormat = new SimpleDateFormat("ddMMyyyy_HHmmss");
 		Date date = new Date();
 		String todayDate = dateFormat.format(date);
 		
 		// only backup if its an RDBMS or RDF
 		if (dbType == IEngine.ENGINE_TYPE.RDBMS) {
-			File originalFile = new File(dbDir + "\\database.mv.db");
-			File newFile = new File(dbDir + "\\backup\\database_" + todayDate + ".mv.db");
+			File originalFile = new File(dbDir + DIR_SEPARATOR + "database.mv.db");
+			File newFile = new File(dbDir + DIR_SEPARATOR + "backup" + DIR_SEPARATOR + "database_" + todayDate + ".mv.db");
 			copyFile(originalFile, newFile);
 		} else if (dbType == IEngine.ENGINE_TYPE.SESAME){
-			File originalFile = new File(dbDir + "\\" + dbName + ".jnl");
-			File newFile = new File(dbDir + "\\backup\\" + dbName + "_" + todayDate + ".jnl");
+			File originalFile = new File(dbDir + DIR_SEPARATOR + dbName + ".jnl");
+			File newFile = new File(dbDir + DIR_SEPARATOR + "backup" + DIR_SEPARATOR + dbName + "_" + todayDate + ".jnl");
 			copyFile(originalFile, newFile);
 		} else {
 			throw new IllegalArgumentException("Backup failed! Note: only H2 and RDF database support backups.");

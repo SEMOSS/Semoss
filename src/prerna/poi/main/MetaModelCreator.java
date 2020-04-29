@@ -541,6 +541,8 @@ public class MetaModelCreator {
 	
 	
 	//Use this to test metamodel creator
+	
+	/*
 	public static void main(String[] args) {
 
 		String file = "C:\\Users\\rluthar\\Documents\\Movie_Data.csv";
@@ -564,5 +566,6 @@ public class MetaModelCreator {
 
 		System.out.println("\nMetaModelCreator Test Complete");
 	}
+	*/
 
 }

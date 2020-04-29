@@ -2370,7 +2370,7 @@ public class OwlTemporalEngineMeta {
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
-	
+	/*
 	public static void main(String[] args) {
 		String fileName = "C:\\Users\\suzikim\\workspace\\Semoss\\InsightCache\\ENGINENAMETEMP__ENGINEIDTEMP\\ENGINENAMETEMP__2_70a0ada9-bb19-449b-8656-d5f8a525a578\\METADATA__FRAME697000.owl";
 //		OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta();
@@ -2385,5 +2385,6 @@ public class OwlTemporalEngineMeta {
 		meta.getHeaderToTypeMap();
 		
 	}
+	*/
 
 }

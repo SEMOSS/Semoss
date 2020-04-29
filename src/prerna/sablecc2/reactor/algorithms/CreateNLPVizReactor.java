@@ -151,7 +151,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		}
 
 		// now let's look for the shared history vs personal history
-		File userHistory = new File(baseFolder + "\\R\\Recommendations\\dataitem-user-history.rds");
+		File userHistory = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-user-history.rds");
 		if (!userHistory.exists()) {
 			// user history does not exist, let's use shared history
 			fileroot = "shared";

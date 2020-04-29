@@ -25,7 +25,8 @@ public class InsightComment {
 	private static Logger logger = Logger.getLogger(InsightComment.class);
 	private static Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	private static DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
-	
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	// extension
 	public static final String COMMENT_EXTENSION = ".c";
 
@@ -90,12 +91,12 @@ public class InsightComment {
 
 		String json = gson.toJson(map);
 		String baseDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "\\" + Constants.DB + "\\" + SmssUtilities.getUniqueName(this.engineName, this.engineId) + "\\version\\" + this.rdbmsId;
+				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) + DIR_SEPARATOR + "version" + DIR_SEPARATOR + this.rdbmsId;
 		
 		File path = new File(baseDir);
 		// create insight directory if it doesn't exist
 		path.mkdirs();
-		String commentInfoPath = baseDir + "\\" + this.id + "_" + this.createdTimeStamp +  COMMENT_EXTENSION;
+		String commentInfoPath = baseDir + DIR_SEPARATOR + this.id + "_" + this.createdTimeStamp +  COMMENT_EXTENSION;
 		// create file
 		File f = new File(commentInfoPath);
 		try {
