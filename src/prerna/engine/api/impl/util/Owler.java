@@ -690,6 +690,7 @@ public class Owler extends AbstractOwler {
 	////////////////////////////////// TESTING //////////////////////////////////
 	////////////////////////////////// TESTING //////////////////////////////////
 
+	/*
 	public static void main(String[] args) {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		Owler owler = new Owler("C:\\workspace\\Semoss_Dev\\themes_OWL.OWL", IEngine.ENGINE_TYPE.RDBMS);
@@ -722,6 +723,7 @@ public class Owler extends AbstractOwler {
 
 		return owl;
 	}
+	*/
 
 	////////////////////////////////// END TESTING //////////////////////////////////
 }

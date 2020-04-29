@@ -36,7 +36,7 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 			// Updating "dataquery.tsv" and storing it in working directory
 			String FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/query";
 			String FILE_NAME = "dataitem-dataquery.tsv";
-			String path = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\";
+			String path = DIHelper.getInstance().getProperty("BaseFolder") + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR;
 
 			logger.info("Cacheing data query file");
 			long start = System.currentTimeMillis();
@@ -58,7 +58,7 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 				start = System.currentTimeMillis();
 				FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/visualization";
 				FILE_NAME = "dataitem-visualization.tsv";
-				path = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\";
+				path = DIHelper.getInstance().getProperty("BaseFolder") + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR;
 				Utility.copyURLtoFile(FILE_URL, path + FILE_NAME);
 				end = System.currentTimeMillis();
 				logger.info("Cacheing time " + (end - start) + " ms");
