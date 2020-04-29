@@ -19,6 +19,9 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -44,6 +47,10 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class MasterDatabaseUtility {
+
+	private static final Logger logger = LogManager.getLogger(MasterDatabaseUtility.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	// -----------------------------------------   RDBMS CALLS ---------------------------------------
 
@@ -105,14 +112,14 @@ public class MasterDatabaseUtility {
 		}
 		// add index
 		if(allowIfExistsIndexs) {
-			List<String> iCols = new Vector<String>();
+			List<String> iCols = new Vector<>();
 			iCols.add("ENGINE");
 			iCols.add("LOCALCONCEPTID");
 			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", iCols));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(engine, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", schema)) {
-				List<String> iCols = new Vector<String>();
+				List<String> iCols = new Vector<>();
 				iCols.add("ENGINE");
 				iCols.add("LOCALCONCEPTID");
 				executeSql(conn, queryUtil.createIndex("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", iCols));
@@ -247,7 +254,9 @@ public class MasterDatabaseUtility {
 		} catch(Exception e) {
 			require = true;
 		} finally {
-			wrapper.cleanUp();
+			if (wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 		// just delete and let the other methods remake the tables
@@ -317,9 +326,11 @@ public class MasterDatabaseUtility {
 			stmt.execute(sql);
 		} finally {
 			try {
-				stmt.close();
+				if (stmt != null) {
+					stmt.close();
+				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 	}
@@ -407,7 +418,7 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy("ENGINECONCEPT__PK");
 		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 
-		List<Object[]> ret = new ArrayList<Object[]>();
+		List<Object[]> ret = new ArrayList<>();
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -419,21 +430,19 @@ public class MasterDatabaseUtility {
 					data[0] = data[1];
 				}
 				Object type = data[2];
-				if(type != null) {
-					if(type.equals("DOUBLE") || type.equals("INT")) {
-						data[2] = "NUMBER";
-					}
+				if(type != null && (type.equals("DOUBLE") || type.equals("INT"))) {
+					data[2] = "NUMBER";
 				}
 				ret.add(data);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
 			}
 		}
-		
+
 		return ret;
 	}
 
@@ -457,7 +466,7 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
 		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 
-		List<Object[]> ret = new ArrayList<Object[]>();
+		List<Object[]> ret = new ArrayList<>();
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -469,15 +478,13 @@ public class MasterDatabaseUtility {
 					data[1] = data[2];
 				}
 				Object type = data[3];
-				if(type != null) {
-					if(type.equals("DOUBLE") || type.equals("INT")) {
-						data[3] = "NUMBER";
-					}
+				if(type != null && (type.equals("DOUBLE") || type.equals("INT"))) {
+					data[3] = "NUMBER";
 				}
 				ret.add(data);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -511,7 +518,7 @@ public class MasterDatabaseUtility {
 	public static List<Map<String, Object>> getDatabaseConnections(List<String> localConceptIds, List<String> engineFilter) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
-		List<Map<String, Object>> returnData = new Vector<Map<String, Object>>();
+		List<Map<String, Object>> returnData = new Vector<>();
 		
 		/*
 		 * Grab all the matching tables and columns based on the logical names
@@ -522,10 +529,10 @@ public class MasterDatabaseUtility {
 		// store a list of the parent ids to the Object[] of results 
 		// that were matches as something
 		// that is a possible join
-		Map<String, Object[]> parentEquivMap = new HashMap<String, Object[]>();
+		Map<String, Object[]> parentEquivMap = new HashMap<>();
 		Set<String> parentIds = new HashSet<String>();
-		List<String> idsForRelationships = new Vector<String>();
-		List<String> idsForProperties = new Vector<String>();
+		List<String> idsForRelationships = new Vector<>();
+		List<String> idsForProperties = new Vector<>();
 		
 		// this will give me all the tables that have the logical name or 
 		// have a column with the logical name 
@@ -587,7 +594,7 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -646,7 +653,7 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -701,7 +708,7 @@ public class MasterDatabaseUtility {
 				}
 
 				// if we passed the above test, add the valid connection
-				Map<String, Object> mapRow = new HashMap<String, Object>();
+				Map<String, Object> mapRow = new HashMap<>();
 				mapRow.put("app_id", engineId);
 				mapRow.put("app_name", engineName);
 				mapRow.put("table", parent);
@@ -715,7 +722,7 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -742,7 +749,7 @@ public class MasterDatabaseUtility {
 		qs.addRelation("ENGINERELATION__TARGETCONCEPTID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 		qs.addOrderBy("ENGINERELATION__ENGINE");
 		
-		Map<String, Object[]> relationshipEquivMap = new HashMap<String, Object[]>();
+		Map<String, Object[]> relationshipEquivMap = new HashMap<>();
 		
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
@@ -772,7 +779,7 @@ public class MasterDatabaseUtility {
 				// mean that the source is the equivalent concept
 
 				// if we passed the above test, add the valid connection
-				Map<String, Object> mapRow = new HashMap<String, Object>();
+				Map<String, Object> mapRow = new HashMap<>();
 				mapRow.put("app_id", engineId);
 				mapRow.put("app_name", engineName);
 				if(downstreamParent == null) {
@@ -791,7 +798,7 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -830,7 +837,7 @@ public class MasterDatabaseUtility {
 					Object[] equivTableCol = relationshipEquivMap.get(parentId);
 					
 					// if we passed the above test, add the valid connection
-					Map<String, Object> mapRow = new HashMap<String, Object>();
+					Map<String, Object> mapRow = new HashMap<>();
 					mapRow.put("app_id", engineId);
 					mapRow.put("app_name", engineName);
 					mapRow.put("table", parentName);
@@ -845,7 +852,7 @@ public class MasterDatabaseUtility {
 					returnData.add(mapRow);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -902,7 +909,7 @@ public class MasterDatabaseUtility {
 				// mean that the source is the equivalent concept
 
 				// if we passed the above test, add the valid connection
-				Map<String, Object> mapRow = new HashMap<String, Object>();
+				Map<String, Object> mapRow = new HashMap<>();
 				mapRow.put("app_id", engineId);
 				mapRow.put("app_name", engineName);
 				if(upstreamParent == null) {
@@ -921,7 +928,7 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			logger.error(STACKTRACE, e1);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -960,7 +967,7 @@ public class MasterDatabaseUtility {
 					Object[] equivTableCol = relationshipEquivMap.get(parentId);
 					
 					// if we passed the above test, add the valid connection
-					Map<String, Object> mapRow = new HashMap<String, Object>();
+					Map<String, Object> mapRow = new HashMap<>();
 					mapRow.put("app_id", engineId);
 					mapRow.put("app_name", engineName);
 					mapRow.put("table", parentName);
@@ -975,7 +982,7 @@ public class MasterDatabaseUtility {
 					returnData.add(mapRow);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -998,11 +1005,11 @@ public class MasterDatabaseUtility {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		// idHash - physical ID to the name of the node
-		Hashtable <String, MetamodelVertex> nodeHash = new Hashtable <String, MetamodelVertex>();
+		Hashtable <String, MetamodelVertex> nodeHash = new Hashtable <>();
 
-		Map<String, String> physicalDataTypes = new HashMap<String, String>();
-		Map<String, String> dataTypes = new HashMap<String, String>();
-		Map<String, String> additionalDataTypes = new HashMap<String, String>();
+		Map<String, String> physicalDataTypes = new HashMap<>();
+		Map<String, String> dataTypes = new HashMap<>();
+		Map<String, String> additionalDataTypes = new HashMap<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
@@ -1074,14 +1081,14 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			logger.error(STACKTRACE, e1);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
 			}
 		}
 
-		Map<String, Map<String, String>> edgeHash = new Hashtable<String, Map<String, String>>();
+		Map<String, Map<String, String>> edgeHash = new Hashtable<>();
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCEPROPERTY"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETPROPERTY"));
@@ -1095,7 +1102,7 @@ public class MasterDatabaseUtility {
 				String endName = row[1].toString();
 				String relName = row[2].toString();
 
-				Map<String, String> newEdge = new Hashtable<String, String>();
+				Map<String, String> newEdge = new Hashtable<>();
 				// need to check to see if the idHash has it else put it in
 				newEdge.put("source", startName);
 				newEdge.put("target", endName);
@@ -1103,14 +1110,14 @@ public class MasterDatabaseUtility {
 				edgeHash.put(endName + "-" + endName + "-" + relName, newEdge);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
 			}
 		}
 
-		Map<String, Object> finalHash = new Hashtable<String, Object>();
+		Map<String, Object> finalHash = new Hashtable<>();
 		finalHash.put("nodes", nodeHash.values().toArray());
 		finalHash.put("edges", edgeHash.values().toArray());
 		if(includeDataTypes) {
@@ -1158,7 +1165,7 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__ENGINE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK"));
 		
-		Map<String, List<String>> queryData = new HashMap<String, List<String>>();
+		Map<String, List<String>> queryData = new HashMap<>();
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1179,7 +1186,7 @@ public class MasterDatabaseUtility {
 				if(queryData.containsKey(parentName)) {
 					propList = queryData.get(parentName);
 				} else {
-					propList = new ArrayList<String>();
+					propList = new ArrayList<>();
 					// add to the engine map
 					queryData.put(parentName, propList);
 				}
@@ -1188,7 +1195,7 @@ public class MasterDatabaseUtility {
 				propList.add(columnName);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1238,8 +1245,8 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__ENGINE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK"));
 		
-		Map<String, Object[]> returnHash = new TreeMap<String, Object[]>();
-		Map<String, Map<String, MetamodelVertex>> queryData = new TreeMap<String, Map<String, MetamodelVertex>>();
+		Map<String, Object[]> returnHash = new TreeMap<>();
+		Map<String, Map<String, MetamodelVertex>> queryData = new TreeMap<>();
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1259,7 +1266,7 @@ public class MasterDatabaseUtility {
 				if(queryData.containsKey(engineId)) {
 					engineMap  = queryData.get(engineId);
 				} else {
-					engineMap = new TreeMap<String, MetamodelVertex>();
+					engineMap = new TreeMap<>();
 					// add to query data map
 					queryData.put(engineId, engineMap);
 				}
@@ -1278,7 +1285,7 @@ public class MasterDatabaseUtility {
 				vert.addProperty(columnName);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1319,12 +1326,12 @@ public class MasterDatabaseUtility {
 //				+ "and c.localconceptid=ec.localconceptid";
 		
 		// id to concept
-		Hashtable <String, String> idToName = new Hashtable <String, String>();
+		Hashtable <String, String> idToName = new Hashtable <>();
 
 		// this is the final return object
 		// engine > concept > downstream > items
 		// retMap > conceptSpecific > stream
-		Map<String, Map> retMap = new TreeMap<String, Map>();
+		Map<String, Map> retMap = new TreeMap<>();
 		
 		{
 			SelectQueryStruct qs = new SelectQueryStruct();
@@ -1357,18 +1364,18 @@ public class MasterDatabaseUtility {
 					if(retMap.containsKey(engineId)) {
 						conceptSpecific = retMap.get(engineId);
 					} else {
-						conceptSpecific = new TreeMap<String, Object>();
+						conceptSpecific = new TreeMap<>();
 					}
 					retMap.put(engineId, conceptSpecific);
 	
-					Hashtable <String, String> stream = new Hashtable<String, String>();
+					Hashtable <String, String> stream = new Hashtable<>();
 					stream.put("equivalentConcept", equivalentConcept);
 	
 					conceptSpecific.put(conceptualName, stream);
 					retMap.put(engineId, conceptSpecific);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1436,8 +1443,8 @@ public class MasterDatabaseUtility {
 					Map <String, Map> engineSpecific = retMap.get(engineId);
 					Map <String, Object> conceptSpecific = engineSpecific.get(coreConceptName);
 	
-					Set<String> downstreams = new TreeSet<String>();
-					Set<String> physicalNames = new TreeSet<String>();
+					Set<String> downstreams = new TreeSet<>();
+					Set<String> physicalNames = new TreeSet<>();
 	
 					if(conceptSpecific.containsKey("upstream")) {
 						downstreams = (Set<String>)conceptSpecific.get("upstream");
@@ -1454,7 +1461,7 @@ public class MasterDatabaseUtility {
 					retMap.put(engineId, engineSpecific);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1518,8 +1525,8 @@ public class MasterDatabaseUtility {
 					Map <String, Map> engineSpecific = retMap.get(engineId);
 					Map <String, Object> conceptSpecific = engineSpecific.get(coreConceptName);
 	
-					Set<String> upstreams = new TreeSet<String>();
-					Set<String> physicalNames = new TreeSet<String>();
+					Set<String> upstreams = new TreeSet<>();
+					Set<String> physicalNames = new TreeSet<>();
 	
 					if(conceptSpecific.containsKey("downstream")) {
 						upstreams = (Set<String>)conceptSpecific.get("downstream");
@@ -1537,7 +1544,7 @@ public class MasterDatabaseUtility {
 					retMap.put(engineId, engineSpecific);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1606,7 +1613,7 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK", "desc"));
 		
-		Set<String> selectors = new TreeSet<String>();
+		Set<String> selectors = new TreeSet<>();
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
@@ -1619,7 +1626,7 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1647,9 +1654,8 @@ public class MasterDatabaseUtility {
 			// additional filters
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", parentPixelName));
 		}
-		
-		String result = QueryExecutionUtility.flushToString(engine, qs);
-		return result;
+
+		return QueryExecutionUtility.flushToString(engine, qs);
 	}
 
 	/**
@@ -1683,7 +1689,7 @@ public class MasterDatabaseUtility {
 	public static Map<String, List<String>> getEngineLogicalNames(String engineId) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		
-		Map<String, List<String>> engineLogicalNames = new HashMap<String, List<String>>();
+		Map<String, List<String>> engineLogicalNames = new HashMap<>();
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
@@ -1713,7 +1719,7 @@ public class MasterDatabaseUtility {
 				if(engineLogicalNames.containsKey(uniqueName)) {
 					logicalNames = engineLogicalNames.get(uniqueName);
 				} else {
-					logicalNames = new Vector<String>();
+					logicalNames = new Vector<>();
 					// store in the map
 					engineLogicalNames.put(uniqueName, logicalNames);
 				}
@@ -1721,7 +1727,7 @@ public class MasterDatabaseUtility {
 				logicalNames.add(logicalName);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1734,7 +1740,7 @@ public class MasterDatabaseUtility {
 	public static Map<String, String> getEngineDescriptions(String engineId) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		
-		Map<String, String> engineDescriptions = new HashMap<String, String>();
+		Map<String, String> engineDescriptions = new HashMap<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
@@ -1762,7 +1768,7 @@ public class MasterDatabaseUtility {
 				engineDescriptions.put(uniqueName, description);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1828,7 +1834,7 @@ public class MasterDatabaseUtility {
 		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__SEMOSSNAME"));
 		
-		List<String> retArr = new Vector<String>();
+		List<String> retArr = new Vector<>();
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1842,7 +1848,7 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1995,14 +2001,14 @@ public class MasterDatabaseUtility {
 				rs.close();
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		try {
 			if(stmt != null) {
 				stmt.close();
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -2073,7 +2079,7 @@ public class MasterDatabaseUtility {
 	public static List<String[]> getConceptualConnections(List<String> conceptualNames, Collection<String> engineFilters) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
-		List<String[]> results = new Vector<String[]>();
+		List<String[]> results = new Vector<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
@@ -2104,7 +2110,7 @@ public class MasterDatabaseUtility {
 				results.add(row);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -2123,7 +2129,7 @@ public class MasterDatabaseUtility {
 	public static List<String[]> getConceptualToLogicalToPhysicalModel(List<String> conceptualNames, Collection<String> engineFilters) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
-		List<String[]> results = new Vector<String[]>();
+		List<String[]> results = new Vector<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
@@ -2158,7 +2164,7 @@ public class MasterDatabaseUtility {
 				results.add(row);
 			}
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -2205,7 +2211,7 @@ public class MasterDatabaseUtility {
 				String targetConceptual = rs.getString(6);
 				String targetPhysical = rs.getString(7);
 
-				List<String> targetPhysicals = new Vector<String>();
+				List<String> targetPhysicals = new Vector<>();
 				if (map.containsKey(sourcePhysical)) {
 					targetPhysicals = map.get(sourcePhysical);
 				}
@@ -2214,7 +2220,7 @@ public class MasterDatabaseUtility {
 				map.put(sourcePhysical, targetPhysicals);
 			}
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			logger.error(STACKTRACE, ex);
 		} finally {
 			closeStreams(stmt, rs);
 		}
@@ -2460,7 +2466,7 @@ public class MasterDatabaseUtility {
 		Connection conn = engine.makeConnection();
 		Statement stmt = null;
 		ResultSet rs = null;
-		HashMap<String, Object> configMap = new HashMap<String, Object>();
+		HashMap<String, Object> configMap = new HashMap<>();
 		try {
 			String query = "select distinct filename FROM xrayconfigs;";
 			stmt = conn.createStatement();
@@ -2502,7 +2508,7 @@ public class MasterDatabaseUtility {
 				configFile = rs.getString(1);
 			}
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			logger.error(STACKTRACE, ex);
 		} finally {
 			closeStreams(stmt, rs);
 		}
@@ -2533,11 +2539,11 @@ public class MasterDatabaseUtility {
 		ResultSet rs = null;
 		// creates e-c-p node names for fe to parse
 		String delim = "-";
-		Map<String, Object> finalHash = new Hashtable<String, Object>();
+		Map<String, Object> finalHash = new Hashtable<>();
 
 		// idHash - physical ID to the name of the node
-		Hashtable<String, String> idHash = new Hashtable<String, String>();
-		Hashtable<String, MetamodelVertex> nodeHash = new Hashtable<String, MetamodelVertex>();
+		Hashtable<String, String> idHash = new Hashtable<>();
+		Hashtable<String, MetamodelVertex> nodeHash = new Hashtable<>();
 
 		try {
 			String nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property from "
@@ -2578,7 +2584,7 @@ public class MasterDatabaseUtility {
 				//				}
 			}
 		} catch (SQLException ex) {
-			ex.printStackTrace();
+			logger.error(STACKTRACE, ex);
 		} finally {
 			// do not close the stmt
 			// reuse it below
@@ -2597,7 +2603,7 @@ public class MasterDatabaseUtility {
 			}
 			rs = stmt.executeQuery(edgeQuery);
 
-			Hashtable<String, Hashtable> edgeHash = new Hashtable<String, Hashtable>();
+			Hashtable<String, Hashtable> edgeHash = new Hashtable<>();
 			while (rs.next()) {
 				String startId = rs.getString(1);
 				String endId = rs.getString(2);
@@ -2614,11 +2620,11 @@ public class MasterDatabaseUtility {
 				boolean foundNode = true;
 				if (!nodeHash.containsKey(engineName + delim + sourceName)) {
 					foundNode = false;
-					System.out.println("Unable to find node " + sourceName);
+					logger.debug("Unable to find node " + sourceName);
 				}
 				if (!nodeHash.containsKey(engineName + delim + targetName)) {
 					foundNode = false;
-					System.out.println("Unable to find node " + targetName);
+					logger.debug("Unable to find node " + targetName);
 				}
 
 				if (foundNode) {
@@ -2629,7 +2635,7 @@ public class MasterDatabaseUtility {
 			finalHash.put("edges", edgeHash);
 
 		} catch (SQLException ex) {
-			ex.printStackTrace();
+			logger.error(STACKTRACE, ex);
 		} finally {
 			closeStreams(stmt, rs);
 		}
@@ -2645,7 +2651,7 @@ public class MasterDatabaseUtility {
 	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
-		List<String> pixelNames = new Vector<String>();
+		List<String> pixelNames = new Vector<>();
 		pixelNames.add("Studio");
 		List<String> ids = getLocalConceptIdsFromPixelName(pixelNames);
 		
@@ -2656,7 +2662,7 @@ public class MasterDatabaseUtility {
 				.create();
 
 		List<String> values = null;
-		System.out.println(gson.toJson(getDatabaseConnections(ids, values)));
+		logger.debug(gson.toJson(getDatabaseConnections(ids, values)));
 		
 //		System.out.println(gson.toJson(getPKColumnsWithData("2da0688f-fc35-4427-aba5-7bd7b7ac9472"))); 
 //		System.out.println(gson.toJson(getPKColumnsWithData("67b6499d-03b2-463f-9169-396f4cce8955"))); 

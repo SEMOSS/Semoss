@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
@@ -17,7 +19,9 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 public class GitPushUtils {
+	private static final Logger logger = LogManager.getLogger(GitPushUtils.class);
 
+	private static final String STACKTRACE = "StackTrace: ";
 	/**
 	 * This class is not intended to be extended or used outside of its static method
 	 */
@@ -34,7 +38,7 @@ public class GitPushUtils {
 			thisGit = Git.open(new File(gitFolder));
 			status = thisGit.status().call();
 		} catch (IOException | NoWorkTreeException | GitAPIException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
 		
@@ -65,7 +69,7 @@ public class GitPushUtils {
 			try {
 				ac.call();
 			} catch (GitAPIException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to add files to Git directory at " + gitFolder);
 			}
 		}
@@ -85,26 +89,35 @@ public class GitPushUtils {
 			return;
 		}
 		Git thisGit = null;
+		AddCommand ac = null;
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
-		AddCommand ac = thisGit.add();
-		for(String daFile : files) {
-			if(daFile.contains("version")) {
-				daFile = daFile.substring(daFile.indexOf("version") + 8);
+		if (thisGit != null) {
+			ac = thisGit.add();
+		}
+
+		if (ac != null) {
+			for(String daFile : files) {
+				if(daFile.contains("version")) {
+					daFile = daFile.substring(daFile.indexOf("version") + 8);
+				}
+				daFile = daFile.replace("\\", "/");
+				ac.addFilepattern(daFile);
 			}
-			daFile = daFile.replace("\\", "/");
-			ac.addFilepattern(daFile);
+			try {
+				ac.call();
+			} catch (GitAPIException e) {
+				logger.error(STACKTRACE, e);
+			}
 		}
-		try {
-			ac.call();
-		} catch (GitAPIException e) {
-			e.printStackTrace();
+
+		if (thisGit != null) {
+			thisGit.close();
 		}
-		thisGit.close();
 	}
 	
 	/**
@@ -122,7 +135,7 @@ public class GitPushUtils {
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		AddCommand ac = thisGit.add();
 		for(File f : files) {
@@ -136,7 +149,7 @@ public class GitPushUtils {
 		try {
 			ac.call();
 		} catch (GitAPIException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		thisGit.close();
 	}
@@ -160,7 +173,7 @@ public class GitPushUtils {
 		try {
 			thisGit = Git.open(new File(gitFolder));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
 
@@ -177,7 +190,7 @@ public class GitPushUtils {
 			.setAuthor(author, email)
 			.call();
 		} catch (GitAPIException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		thisGit.close();
 	}
@@ -198,21 +211,23 @@ public class GitPushUtils {
 			try {
 				thisGit = Git.open(dirFile);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			CredentialsProvider cp = new UsernamePasswordCredentialsProvider(userName, password);
 			RefSpec spec = new RefSpec("+refs/heads/master:refs/heads/master");
-	
-			PushCommand pc = thisGit.push();
-			pc.setRefSpecs(spec);
-			pc.setRemote(remoteToPush);
-			pc.setCredentialsProvider(cp);
-			try {
-				pc.call();
-			} catch (GitAPIException e) {
-				e.printStackTrace();
+			
+			if (thisGit != null) {
+				PushCommand pc = thisGit.push();
+				pc.setRefSpecs(spec);
+				pc.setRemote(remoteToPush);
+				pc.setCredentialsProvider(cp);
+				try {
+					pc.call();
+				} catch (GitAPIException e) {
+					logger.error(STACKTRACE, e);
+				}
+				thisGit.close();
 			}
-			thisGit.close();
 		}
 	}
 	
@@ -234,21 +249,23 @@ public class GitPushUtils {
 			try {
 				thisGit = Git.open(dirFile);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			CredentialsProvider cp = new UsernamePasswordCredentialsProvider(token, "");
 			RefSpec spec = new RefSpec("+refs/heads/master:refs/heads/master");
-	
-			PushCommand pc = thisGit.push();
-			pc.setRefSpecs(spec);
-			pc.setRemote(remoteToPush);
-			pc.setCredentialsProvider(cp);
-			try {
-				pc.call();
-			} catch (GitAPIException e) {
-				e.printStackTrace();
+
+			if (thisGit != null) {
+				PushCommand pc = thisGit.push();
+				pc.setRefSpecs(spec);
+				pc.setRemote(remoteToPush);
+				pc.setCredentialsProvider(cp);
+				try {
+					pc.call();
+				} catch (GitAPIException e) {
+					logger.error(STACKTRACE, e);
+				}
+				thisGit.close();
 			}
-			thisGit.close();
 		}
 	}
 
