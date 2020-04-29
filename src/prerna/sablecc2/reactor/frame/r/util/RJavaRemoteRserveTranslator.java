@@ -24,6 +24,8 @@ import prerna.util.Utility;
 
 public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	RJavaRemoteRserveTranslator() {
 
 	}
@@ -205,7 +207,7 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 		}
 		String insightCacheLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 		String csvInsightCacheFolder = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		String baseDir = insightCacheLoc + "\\" + csvInsightCacheFolder + "\\";
+		String baseDir = insightCacheLoc + DIR_SEPARATOR + csvInsightCacheFolder + DIR_SEPARATOR;
 		String tempFileLocation = baseDir + Utility.getRandomString(15) + ".R";
 		tempFileLocation = tempFileLocation.replace("\\", "/");
 

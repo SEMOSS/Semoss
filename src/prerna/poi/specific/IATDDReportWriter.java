@@ -57,6 +57,8 @@ import prerna.util.Utility;
 public class IATDDReportWriter {
 	
 	static final Logger logger = LogManager.getLogger(IndividualSystemTransitionReportWriter.class.getName());
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	private XSSFWorkbook wb;
 	private String selectedParam = "";
 	private static String fileLoc = "";
@@ -73,8 +75,8 @@ public class IATDDReportWriter {
 	public void makeWorkbook(String selectedParam, String templateName) {
 		this.selectedParam = selectedParam;
 		
-		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
-		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + templateName;
+		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
+		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR + templateName;
 
 		fileLoc += selectedParam + "_Catalog_Report.xlsx";
 		wb = new XSSFWorkbook();
