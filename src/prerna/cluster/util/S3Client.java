@@ -28,7 +28,6 @@ public class S3Client extends CloudClient{
 	public static final String S3_BUCKET_KEY = "S3_BUCKET"; 
 
 	private static final String SMSS_POSTFIX = "-smss";
-	private static final String FILE_SEPARATOR = System.getProperty("file.separator");
 
 	public static final String STORAGE = "STORAGE"; // says if this is local / cluster
 
