@@ -28,6 +28,7 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class GitSynchronizer {
 
@@ -229,7 +230,7 @@ public class GitSynchronizer {
 		List<String> delFiles = new Vector<String>();
 		
 		for(String filePath : filesToSync) {
-			File f = new File(filePath);
+			File f = new File(Utility.normalizePath(filePath));
 			if(f.exists()) {
 				addFiles.add(filePath);
 			} else {

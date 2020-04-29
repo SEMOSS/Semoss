@@ -48,7 +48,10 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 public class InstallCert {
+	
+	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	
     public static void main(String[] args) throws Exception {
 	String host;
 	int port;
@@ -66,7 +69,7 @@ public class InstallCert {
 
 	File file = new File("C:\\Java\\jdk1.8.0_161\\jre\\lib\\security\\cacerts");
 	if (file.isFile() == false) {
-	    char SEP = System.getProperty("file.separator").toCharArray()[0];
+	    char SEP = FILE_SEPARATOR.toCharArray()[0];
 	    File dir = new File(System.getProperty("java.home") + SEP
 		    + "lib" + SEP + "security");
 	    file = new File(dir, "C:\\Java\\jdk1.8.0_161\\jre\\lib\\security\\cacerts");

@@ -374,7 +374,7 @@ public class GitConsumer {
 		FileFilter mosfetFilter = new WildcardFileFilter(mosfetFilterList);
 		
 		// grab all the directories
-		File vFolder = new File(versionFolder);
+		File vFolder = new File(Utility.normalizePath(versionFolder));
 		File[] inDir = vFolder.listFiles();
 		for(File in : inDir) {
 			if(in.isDirectory()) {
