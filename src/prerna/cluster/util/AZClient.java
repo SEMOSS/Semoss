@@ -233,6 +233,7 @@ public class AZClient extends CloudClient {
 		return sasConstraints;
 
 	}
+	/*
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 		
@@ -295,6 +296,9 @@ public class AZClient extends CloudClient {
 		//			logger.debug(container);
 		//		}
 	}
+	*/
+	
+	
 	@Override
 	public void syncInsightsDB(String appId) throws IOException, InterruptedException{
 		IEngine engine = Utility.getEngine(appId, false, true);
