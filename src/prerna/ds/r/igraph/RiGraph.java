@@ -269,6 +269,7 @@ public class RiGraph extends AbstractTableDataFrame {
 		return DATA_MAKER_NAME;
 	}
 	
+	/*
 	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper();
 		String engineProp = "C:\\workspace2\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
@@ -305,6 +306,7 @@ public class RiGraph extends AbstractTableDataFrame {
 		o = translator.executeR("E(g)");
 		System.out.println(o);
 	}
+	*/
 	 
 	@Override
 	public Double getMax(String columnHeader) {
