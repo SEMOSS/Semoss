@@ -36,7 +36,7 @@ public final class ZipUtils {
 	// buffer for read and write data to file
 	private static byte[] buffer = new byte[2048];
 
-	public static final String FILE_SEPARATOR = System.getProperty("file.separator");
+	public static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private ZipUtils() {
 

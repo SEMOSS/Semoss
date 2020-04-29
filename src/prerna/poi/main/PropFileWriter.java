@@ -68,6 +68,8 @@ public class PropFileWriter {
 	private String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
 	private String impalaEngine = "prerna.engine.impl.rdbms.ImpalaEngine";
 	private String defaultTinkerEngine = "prerna.engine.impl.tinker.TinkerEngine";
+	private static final String FS = java.nio.file.FileSystems.getDefault().getSeparator();
+
 
 	private RdbmsTypeEnum dbDriverType = RdbmsTypeEnum.H2_DB;
 	AbstractSqlQueryUtil queryUtil;
@@ -102,27 +104,27 @@ public class PropFileWriter {
 			throw new IllegalArgumentException("Database name is invalid.");
 		}
 		this.engineName = dbName;
-		engineDirectoryName = "db" + System.getProperty("file.separator") + SmssUtilities.getUniqueName(dbName, this.engineID);
-		engineDirectory = new File(baseDirectory + System.getProperty("file.separator") + engineDirectoryName);
+		engineDirectoryName = "db" + FS + SmssUtilities.getUniqueName(dbName, this.engineID);
+		engineDirectory = new File(baseDirectory + FS + engineDirectoryName);
 		try {
 			// make the new folder to store everything in
 			if(!engineDirectory.exists())
 				engineDirectory.mkdir();
 			// define the owlFile location
 			// replace the engine name with engine
-			//this.owlFile = "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_OWL.OWL";
-			this.owlFile = "db" + System.getProperty("file.separator") + SmssUtilities.getUniqueName(dbName, this.engineID) + System.getProperty("file.separator") + engineName + "_OWL.OWL";
+			//this.owlFile = "db" + FS + engineName + FS + engineName + "_OWL.OWL";
+			this.owlFile = "db" + FS+ SmssUtilities.getUniqueName(dbName, this.engineID) + FS + engineName + "_OWL.OWL";
 			if(owlFile.contains("\\")) {
 				owlFile = owlFile.replaceAll("\\\\", "/");
 			}
 			// if owlFile is null (which it is upon loading a new engine, create a new one
-			File owlF = new File(baseDirectory + System.getProperty("file.separator") + owlFile);
+			File owlF = new File(baseDirectory + FS + owlFile);
 			if(!owlF.exists()) { 
 				PrintWriter writer = null;
 				//input default parameters s.t. it is loaded and doesn't produce errors
 				try {
 					owlF.createNewFile();
-					writer = new PrintWriter(baseDirectory + System.getProperty("file.separator") + owlFile);
+					writer = new PrintWriter(baseDirectory + FS + owlFile);
 					writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 					writer.println("<rdf:RDF");
 					writer.println("\txmlns:rdfs=\"http://www.w3.org/2000/01/rdf-schema#\"");
@@ -137,11 +139,11 @@ public class PropFileWriter {
 				}
 			}
 			// change it to @ENGINE@
-			this.owlFile = "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + engineName + "_OWL.OWL";
+			this.owlFile = "db" + FS + "@ENGINE@" + FS + engineName + "_OWL.OWL";
 
 			// Now we have all of the different file required for an engine taken care of, update the map file
 			if (dbPropFile == null || dbPropFile.equals("")) {
-				propFileName = baseDirectory + System.getProperty("file.separator") + defaultDBPropName;
+				propFileName = baseDirectory + FS + defaultDBPropName;
 				writeCustomDBProp(propFileName, dbName, dbType, fileName);
 			} else {
 				if(((new File(dbPropFile)).getPath().contains(engineDirectory.getPath()))) {
@@ -196,7 +198,7 @@ public class PropFileWriter {
 			}
 			// replacing dbname with the engine name
 			// @ENGINE@
-			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database" + "\n");
+			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + FS + "@ENGINE@" + FS + "insights_database" + "\n");
 			pw.write(Constants.RELOAD_INSIGHTS + "\tfalse\n");
 			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
 			if (dbType == ImportOptions.DB_TYPE.RDBMS) {
@@ -213,7 +215,7 @@ public class PropFileWriter {
 				pw.write(Constants.DRIVER + "\t" + queryUtil.getDriver() + "\n");
 				pw.write(Constants.USERNAME + "\t" + queryUtil.getUsername() + "\n");
 				pw.write(Constants.PASSWORD + "\t" + queryUtil.getPassword() + "\n");
-				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
+				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", FS);
 				if(queryUtil.getDbType() == RdbmsTypeEnum.H2_DB) {
 					if(fileName == null) {
 						pw.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL() + "\n");
@@ -237,7 +239,7 @@ public class PropFileWriter {
 				String currentLine;
 				while ((currentLine = read.readLine()) != null) {
 					if (currentLine.contains("@FileName@")) {
-						currentLine = currentLine.replace("@FileName@", "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + dbname + ".jnl");
+						currentLine = currentLine.replace("@FileName@", "db" + FS + "@ENGINE@" + FS + dbname + ".jnl");
 					}
 					pw.write(currentLine + "\n");
 				}
@@ -246,8 +248,8 @@ public class PropFileWriter {
 				// tinker-specific properties
 				// neo4j does not have an extension
 				// basefolder/db/engine/engine
-				String tinkerPath = " @BaseFolder@" + System.getProperty("file.separator") + "db"
-						+ System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator")
+				String tinkerPath = " @BaseFolder@" + FS + "db"
+						+ FS + "@ENGINE@" + FS
 						+ "@ENGINE@";
 
 				if (this.tinkerDriverType == TINKER_DRIVER.NEO4J) {

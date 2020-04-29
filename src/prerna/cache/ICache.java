@@ -17,7 +17,7 @@ import com.google.gson.GsonBuilder;
 
 public interface ICache {
 	
-	String FILE_SEPARATOR = System.getProperty("file.separator");
+	String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();;
 	
 	/**
 	 * Removes invalid characters in a folder/file name and replaces with an underscore
