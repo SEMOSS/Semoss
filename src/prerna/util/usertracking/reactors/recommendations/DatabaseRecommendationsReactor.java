@@ -45,8 +45,8 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
 		// Check to make sure that the necessary files exist
-		File itemsim = new File(baseFolder + "\\R\\Recommendations\\dataitem-itemsim.rds");
-		File usersim = new File(baseFolder + "\\R\\Recommendations\\dataitem-usersim.rds");
+		File itemsim = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-itemsim.rds");
+		File usersim = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-usersim.rds");
 		if (!itemsim.exists() || !usersim.exists()) {
 			String message = "Necessary files missing to generate recommendations. Please run UpdateQueryData().";
 			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);

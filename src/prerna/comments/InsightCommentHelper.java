@@ -16,6 +16,8 @@ import prerna.util.DIHelper;
 public class InsightCommentHelper {
 
 	private static final String ILLEGAL_ARGUMENT_MESSAGE = "Tampered insight comments. Please undo all comment changes and resync";
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 
 	private InsightCommentHelper() {
 
@@ -33,8 +35,8 @@ public class InsightCommentHelper {
 		// so we can properly construct the ordering
 		InsightComment firstComment = null;
 
-		String baseDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + Constants.DB + "\\"
-				+ engineName + "\\version\\" + rdbmsId;
+		String baseDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR
+				+ engineName + DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId;
 
 		// find all the comment files in the directory
 		File dir = new File(baseDir);
