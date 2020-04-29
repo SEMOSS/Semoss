@@ -33,9 +33,9 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 	}
 
 	private static final String CLASS_NAME = GoogleUploaderReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 	private String fileLocation = null;
 	private Logger logger;
-	private String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
 	private String [] beanProps = {"id", "name", "type"}; // add is done when you have a list
 	private String jsonPattern = "[id, name, mimeType]";
 
@@ -44,26 +44,25 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 		organizeKeys();
 		String fileName = this.curRow.get(0).toString();
 
-		//String fileName = this.keyValue.get(this.keysToGet[0]);
 		if (fileName == null || fileName.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file name");
 		}
+
 		String accessToken=null;
 		User user = this.insight.getUser();
 		try{
-		if(user==null){
-			Map<String, Object> retMap = new HashMap<String, Object>();
-			retMap.put("type", "google");
-			retMap.put("message", "Please login to your Google account");
-			throwLoginError(retMap);
-		}
-		else if (user != null) {
-				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
-				accessToken=msToken.getAccess_token();
+			if (user == null) {
+				Map<String, Object> retMap = new HashMap<>();
+				retMap.put("type", "google");
+				retMap.put("message", "Please login to your Google account");
+				throwLoginError(retMap);
+			} else {
+					AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
+					accessToken=msToken.getAccess_token();
 			}
 		}
 		catch (Exception e) {
-			Map<String, Object> retMap = new HashMap<String, Object>();
+			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
 			throwLoginError(retMap);
@@ -82,20 +81,20 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 
 
 		//make post for initial metadata
-		String url_str="https://www.googleapis.com/drive/v3/files";
+		String urlStr="https://www.googleapis.com/drive/v3/files";
 		Hashtable params = new Hashtable();
 		params.put("name", fileName);
 		params.put("mimeType", "text/csv");
-		String output = AbstractHttpHelper.makePostCall(url_str, accessToken,params,true);
+		String output = AbstractHttpHelper.makePostCall(urlStr, accessToken,params,true);
 		RemoteItem upload = (RemoteItem)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
 		String uploadId=upload.getId();
 
 		//make an update call to the id to add data through binary post
-		String url_str2 = "https://www.googleapis.com/upload/drive/v3/files/"+uploadId+"?uploadType=media";
-		String output2 = AbstractHttpHelper.makeBinaryFilePatchCall(url_str2, accessToken, this.fileLocation.toString());
+		String urlStr2 = "https://www.googleapis.com/upload/drive/v3/files/"+uploadId+"?uploadType=media";
+		String output2 = AbstractHttpHelper.makeBinaryFilePatchCall(urlStr2, accessToken, this.fileLocation.toString());
 
 
-		return new NounMetadata(this.fileLocation.toString(), PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		return new NounMetadata(this.fileLocation, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 
 	@Override
@@ -108,7 +107,7 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 			try {
 				f.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 
 			FileWriter writer = null;
@@ -144,7 +143,12 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 						if( (i+1) != size) {
 							builder.append(",");
 						}
-						typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+
+						if(headerInfo.get(i).containsKey("type")) {
+							typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
+						} else {
+							typesArr[i] = SemossDataType.STRING;
+						}
 					}
 					// write the header to the file
 					bufferedWriter.write(builder.append("\n").toString());
@@ -195,7 +199,7 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 				}
 
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				try {
 					if(bufferedWriter != null) {
@@ -205,14 +209,14 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 						writer.close();
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 
 			long end = System.currentTimeMillis();
 			logger.info("Time to output file = " + (end-start) + " ms");
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			if(f.exists()) {
 				f.delete();
 			}

@@ -12,7 +12,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;

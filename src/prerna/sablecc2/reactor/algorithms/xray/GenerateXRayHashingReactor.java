@@ -98,11 +98,11 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 				+ DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace('\\', '/') 
 				+ "/R/XRay/encode_instances.R\", local=TRUE);");
 		
-		Map<String, Object> returnMap = new HashMap<String, Object>();
+		Map<String, Object> returnMap = new HashMap<>();
 		returnMap.put(this.keysToGet[0], folderName);
 		returnMap.put(this.keysToGet[1], space);
-		List<String> fileNames = new Vector<String>();
-		List<String> status = new Vector<String>();
+		List<String> fileNames = new Vector<>();
+		List<String> status = new Vector<>();
 		returnMap.put(FILES_KEY, fileNames);
 		returnMap.put(STATUS_KEY, status);
 		
@@ -112,10 +112,8 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 			Collection<String> pixelSelectors = MasterDatabaseUtility.getSelectorsWithinEngineRDBMS(appId);
 			
 			List<String> selectorFilters = null;
-			if(this.configMap != null) {
-				if(this.configMap.containsKey(appId)) {
-					selectorFilters = this.configMap.get(appId);
-				}
+			if(this.configMap != null && this.configMap.containsKey(appId)) {
+				selectorFilters = this.configMap.get(appId);
 			}
 			
 			for(String selector : pixelSelectors) {
@@ -174,7 +172,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 						}
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error("StackTrace: ", e);
 				} finally {
 					if(wrapper != null) {
 						wrapper.cleanUp();

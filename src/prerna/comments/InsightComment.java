@@ -11,6 +11,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
@@ -21,8 +22,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class InsightComment {
-
-	private static Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	private static Logger logger = Logger.getLogger(InsightComment.class);
+	private static Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	private static DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
 	
 	// extension
@@ -87,7 +88,7 @@ public class InsightComment {
 	public void writeToFile() {
 		Map<String, String> map = moveDataToMap();
 
-		String json = GSON.toJson(map);
+		String json = gson.toJson(map);
 		String baseDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 				+ "\\" + Constants.DB + "\\" + SmssUtilities.getUniqueName(this.engineName, this.engineId) + "\\version\\" + this.rdbmsId;
 		
@@ -101,7 +102,7 @@ public class InsightComment {
 			// write json to file
 			FileUtils.writeStringToFile(f, json);
 		} catch (IOException e1) {
-			e1.printStackTrace();
+			logger.error(e1.getStackTrace());
 		}
 	}
 	
@@ -118,7 +119,7 @@ public class InsightComment {
 	 * @return
 	 */
 	private Map<String, String> moveDataToMap() {
-		Map<String, String> map = new TreeMap<String, String>();
+		Map<String, String> map = new TreeMap<>();
 		map.put(ENGINE_ID_KEY, this.engineId);
 		if(this.engineName != null) {
 			map.put(ENGINE_KEY, this.engineName);
@@ -139,8 +140,8 @@ public class InsightComment {
 	}
 	
 	public void modifyExistingIdWithDate() {
-		String id = getIdMinusTimestamp(this.id);
-		this.id = id  + "_" + this.createdTimeStamp;
+		String existingId = getIdMinusTimestamp(this.id);
+		this.id = existingId  + "_" + this.createdTimeStamp;
 	}
 
 	/**

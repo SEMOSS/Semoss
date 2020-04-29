@@ -20,6 +20,8 @@ import java.util.Vector;
 import javax.net.ssl.SSLHandshakeException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.api.AddCommand;
@@ -68,6 +70,9 @@ import prerna.util.Utility;
 
 public class GitRepoUtils {
 
+	private static final Logger logger = LogManager.getLogger(GitRepoUtils.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	public static final String DUAL = "DUAL";
 	public static final String SUBSCRIBE = "SUBSCRIBE";
 	public static final String PUBLISH = "PUBLISH";
@@ -116,16 +121,16 @@ public class GitRepoUtils {
 			try {
 				ghr.create();
 			} catch(SSLHandshakeException ex) {
-				ex.printStackTrace();
+				logger.error(STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				makeRemoteRepository(gh, username, repoName, attempt);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				throw new IllegalArgumentException("Error with creating remote repository at " + username + "/" + repoName);
 			}
 		}
@@ -153,19 +158,17 @@ public class GitRepoUtils {
 				StoredConfig config = thisRepo.getConfig();
 				config.unsetSection("remote", repositoryName);
 				config.save();
-			}catch(HttpException ex)
-			{
-				ex.printStackTrace();
+			} catch(HttpException ex) {
+				logger.error(STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				removeRemote(localRepository, repositoryName, attempt);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to drop remote");
 			} finally {
 				if(thisRepo != null) {
@@ -201,19 +204,18 @@ public class GitRepoUtils {
 				try {
 					ghr = gh.getRepository(repositoryName);
 					ghr.delete();
-				} catch(HttpException ex)
-				{
-					ex.printStackTrace();
+				} catch(HttpException ex) {
+					logger.error(STACKTRACE, ex);
 					try {
 						InstallCertNow.please("github.com", null, null);
 					} catch (Exception e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 					attempt = attempt + 1;
 					deleteRemoteRepository(repositoryName, username, password, attempt);
-				}catch (IOException e) {
-					e.printStackTrace();
-					throw new IllegalArgumentException("Unalbe to delete remote repository at " + repositoryName);
+				} catch (IOException e) {
+					logger.error(STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to delete remote repository at " + repositoryName);
 				}
 			}
 		}
@@ -231,10 +233,10 @@ public class GitRepoUtils {
 			RemoteRemoveCommand remover = gFile.remoteRemove();
 			remover.setName(repositoryName.split("/")[1]);
 			remover.call();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		} catch (GitAPIException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -265,12 +267,11 @@ public class GitRepoUtils {
 				service.getRepository(username, repositoryName);
 			}catch(HttpException ex)
 			{
-				ex.printStackTrace();
+				logger.error(STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				checkRemoteRepository(repositoryName, username, password, attempt);
@@ -301,14 +302,13 @@ public class GitRepoUtils {
 		boolean returnVal = true;
 		String [] repoParts = null;
 		
-		if(attempt < 3)
-		{
+		if(attempt < 3) {
 			try {
 			GitHubClient client = GitHubClient.createClient("https://github.com");
 			if(oauth != null) {
 				client.setOAuth2Token(oauth);
 				GitHub gh = GitUtils.login(oauth);
-				System.out.println(gh.getMyself().getLogin());
+				logger.debug(gh.getMyself().getLogin());
 				if(!repositoryName.contains("/"))
 					repositoryName = gh.getMyself().getLogin() + "/" + repositoryName ;
 			}
@@ -319,19 +319,21 @@ public class GitRepoUtils {
 			
 				service.getRepository(repoParts[0], repoParts[1]);
 				
-			}catch(HttpException ex)
-			{
-				ex.printStackTrace();
+			} catch(HttpException ex) {
+				logger.error(STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				checkRemoteRepositoryO(repositoryName, oauth, attempt);
 			} catch (Exception ex) {
-				throw new IllegalArgumentException("Cannot find repo at " + repositoryName + " for username " + repoParts[0]);
+				if (repoParts != null) {
+					throw new IllegalArgumentException("Cannot find repo at " + repositoryName + " for username " + repoParts[0]);
+				} else {
+					throw new IllegalArgumentException("Cannot find repo at " + repositoryName + " for null username ");
+				}
 			}
 			return returnVal;
 		}
@@ -358,7 +360,7 @@ public class GitRepoUtils {
 			config.setString("remote", repoName , "fetch", "+refs/heads/*:refs/remotes/" + repoName + "/*");
 			config.save();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IllegalArgumentException("Error with adding the remote repository");
 		} finally {
 			if(thisRepo != null) {
@@ -388,15 +390,14 @@ public class GitRepoUtils {
 		try {
 			InstallCertNow.please("github.com", null, null);
 		} catch (Exception e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			logger.error(STACKTRACE, e1);
 		}
 
 		if(attempt < 3)
 		{
 			File file = new File(localRepo);
 			RefSpec spec = new RefSpec("refs/heads/master:refs/remotes/" + remoteRepo +"/master");
-			List <RefSpec> refList = new ArrayList<RefSpec>();
+			List <RefSpec> refList = new ArrayList<>();
 			refList.add(spec);
 			CredentialsProvider cp = null;
 			if(userName != null && password != null && !userName.isEmpty() && !password.isEmpty()) {
@@ -411,20 +412,17 @@ public class GitRepoUtils {
 					thisGit.fetch().setRemote(remoteRepo).setProgressMonitor(mon).call();
 				}
 				
-			}catch(TransportException ex)
-			{
-				ex.printStackTrace();
+			} catch(TransportException ex) {
+				logger.error(STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				return fetchRemote(localRepo, remoteRepo, userName, password, attempt);
-				
 			} catch (IOException | GitAPIException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				mon.endTask();
 				throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
 			} finally {
@@ -474,11 +472,11 @@ public class GitRepoUtils {
 				} else {
 					remoteMap.put("type", DUAL);
 				}
-				System.out.println("We have remote with details " + remoteMap);
+				logger.debug("We have remote with details " + remoteMap);
 				returnList.add(remoteMap);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(thisRepo != null) {
 				thisRepo.close();
@@ -518,18 +516,17 @@ public class GitRepoUtils {
 				}
 			}catch(HttpException ex)
 			{
-				ex.printStackTrace();
+				logger.error(STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				listRemotesForUser(username, password, attempt);
 				
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 	
 			return remoteRepos;
@@ -542,14 +539,11 @@ public class GitRepoUtils {
 	/*************** OAUTH Overloads Go Here ***********************/
 	/***************************************************************/
 
-
-
 	public static List<String> listRemotesForUser(String token) {
 		int attempt = 1;
 		return listRemotesForUser(token, attempt);
 	}
 
-		
 	/**
 	 * Get the list of repos for a given user
 	 * @param username
@@ -557,10 +551,8 @@ public class GitRepoUtils {
 	 * @return
 	 */
 	public static List<String> listRemotesForUser(String token, int attempt) {
-		if(attempt < 3)
-		{
-			
-			List<String> remoteRepos = new Vector<String>();
+		if(attempt < 3) {
+			List<String> remoteRepos = new Vector<>();
 			GitHubClient client = GitHubClient.createClient("https://github.com");
 			client.setOAuth2Token(token);
 			RepositoryService service = new RepositoryService(client);
@@ -569,20 +561,18 @@ public class GitRepoUtils {
 				for(int repIndex = 0;repIndex < repList.size();repIndex++) {
 					remoteRepos.add(repList.get(repIndex).getName());
 				}
-			}catch(HttpException ex)
-			{
-				ex.printStackTrace();
+			} catch(HttpException ex) {
+				logger.error(STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				listRemotesForUser(token, attempt);
 				
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 	
 			return remoteRepos;
@@ -591,7 +581,6 @@ public class GitRepoUtils {
 	}
 
 	public static void deleteRemoteRepository(String repositoryName, String token) {
-		
 		int attempt = 1;
 		deleteRemoteRepository(repositoryName, token, attempt);
 	}
@@ -605,8 +594,7 @@ public class GitRepoUtils {
 	 * @throws IOException
 	 */
 	public static void deleteRemoteRepository(String repositoryName, String token, int attempt) {
-		if(attempt < 3)
-		{
+		if(attempt < 3) {
 			String repoName = repositoryName.split("/")[1];
 			if(checkRemoteRepositoryO(repoName, token)) {
 				GitHub gh = GitUtils.login(token);
@@ -614,19 +602,17 @@ public class GitRepoUtils {
 				try {
 					ghr = gh.getRepository(repositoryName);
 					ghr.delete();
-				} catch(HttpException ex)
-				{
-					ex.printStackTrace();
+				} catch(HttpException ex) {
+					logger.error(STACKTRACE, ex);
 					try {
 						InstallCertNow.please("github.com", null, null);
 					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 					attempt = attempt + 1;
 					deleteRemoteRepository(repositoryName, token, attempt);
-				}catch (IOException e) {
-					e.printStackTrace();
+				} catch (IOException e) {
+					logger.error(STACKTRACE, e);
 					throw new IllegalArgumentException("Unalbe to delete remote repository at " + repositoryName);
 				}
 			}
@@ -649,8 +635,7 @@ public class GitRepoUtils {
 	 */
 	public static void fetchRemote(String localRepo, String remoteRepo, String token, int attempt) {
 		
-		if(attempt < 3)
-		{
+		if(attempt < 3) {
 			File file = new File(localRepo);
 			RefSpec spec = new RefSpec("refs/heads/master:refs/remotes/" + remoteRepo +"/master");
 			List <RefSpec> refList = new ArrayList<RefSpec>();
@@ -667,20 +652,18 @@ public class GitRepoUtils {
 				} else {
 					thisGit.fetch().setRemote(remoteRepo).call();
 				}
-			}catch(SSLHandshakeException ex)
-			{
-				ex.printStackTrace();
+			} catch(SSLHandshakeException ex) {
+				logger.error(STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				fetchRemote(localRepo, remoteRepo, token, attempt);
 				
 			} catch (IOException | GitAPIException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
 			} finally {
 				if(thisGit != null) {
@@ -715,14 +698,12 @@ public class GitRepoUtils {
 			}
 			comm = null;
 		}
-		
+
 		return comm;
-		
 	}
 	
 	// install the certificate
-	public static boolean addCertForDomain(String repoName)
-	{
+	public static boolean addCertForDomain(String repoName) {
 		try {
 			URI uri = new URI(repoName);
 			String domain = uri.getHost();
@@ -730,13 +711,11 @@ public class GitRepoUtils {
 			
 			InstallCertNow.please(domain, null, null);
 			return true;
-		} catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (URISyntaxException use) {
+			logger.error(STACKTRACE, use);
 			return false;
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			return false;
 		}
 	}
@@ -773,7 +752,6 @@ public class GitRepoUtils {
 			while(commits.hasNext())
 			{
 				RevCommit comm = commits.next();
-				//System.out.println(comm.getFullMessage());
 				row = new ArrayList();
 
 				row.add(comm.getCommitTime());
@@ -785,22 +763,19 @@ public class GitRepoUtils {
 				//tree.
 				
 				//if(first)
-				{
+				// {
 					//System.out.println(comm.getId());
 					//thisGit.revert().include(comm).call();
 					//first = false;
-				}
+				// }
 				//break;
 			}
-		} catch (NoHeadException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (NoHeadException nhe) {
+			logger.error(STACKTRACE, nhe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		return builder;
@@ -826,7 +801,6 @@ public class GitRepoUtils {
 
 			while (commits.hasNext()) {
 				RevCommit comm = commits.next();
-				// System.out.println(comm.getFullMessage());
 				Map<String, Object> commitMap = new HashMap();
 				commitMap.put("date", GitAssetUtils.getDate(comm.getCommitTime()));
 				commitMap.put("user", comm.getAuthorIdent().getName());
@@ -834,15 +808,12 @@ public class GitRepoUtils {
 				commitMap.put("id", comm.toObjectId().toString().replace("commit ", "").substring(0, 6));
 				commitList.add(commitMap);
 			}
-		} catch (NoHeadException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (NoHeadException nhe) {
+			logger.error(STACKTRACE, nhe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 
 		return commitList;
@@ -894,26 +865,20 @@ public class GitRepoUtils {
 				objectReader.close();
 				output = new String(bytes);
 			}			
-		} catch (MissingObjectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IncorrectObjectTypeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (CorruptObjectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (LargeObjectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (MissingObjectException moe) {
+			logger.error(STACKTRACE, moe);
+		} catch (IncorrectObjectTypeException iote) {
+			logger.error(STACKTRACE, iote);
+		} catch (CorruptObjectException coe) {
+			logger.error(STACKTRACE, coe);
+		} catch (LargeObjectException loe) {
+			logger.error(STACKTRACE, loe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
-		
+
 		return output;
 		
 	}
@@ -956,24 +921,18 @@ public class GitRepoUtils {
 				bytes = objectLoader.getBytes();
 				objectReader.close();
 			}			
-		} catch (MissingObjectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IncorrectObjectTypeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (CorruptObjectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (LargeObjectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (MissingObjectException moe) {
+			logger.error(STACKTRACE, moe);
+		} catch (IncorrectObjectTypeException iote) {
+			logger.error(STACKTRACE, iote);
+		} catch (CorruptObjectException coe) {
+			logger.error(STACKTRACE, coe);
+		} catch (LargeObjectException loe) {
+			logger.error(STACKTRACE, loe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		return bytes;
@@ -988,7 +947,7 @@ public class GitRepoUtils {
 			thisGit = Git.open(new File(gitFolder));
 			status = thisGit.status().call();
 		} catch (IOException | NoWorkTreeException | GitAPIException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
 		
@@ -1019,7 +978,7 @@ public class GitRepoUtils {
 			try {
 				ac.call();
 			} catch (GitAPIException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to add files to Git directory at " + gitFolder);
 			}
 		}
@@ -1033,14 +992,14 @@ public class GitRepoUtils {
 	 * @param files
 	 */
 	public static void addSpecificFiles(String localRepository, List<String> files) {
-		if(files == null || files.size() == 0) {
+		if(files == null || files.isEmpty()) {
 			return;
 		}
 		Git thisGit = null;
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
 		AddCommand ac = thisGit.add();
@@ -1054,7 +1013,7 @@ public class GitRepoUtils {
 		try {
 			ac.call();
 		} catch (GitAPIException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		thisGit.close();
 	}
@@ -1072,23 +1031,25 @@ public class GitRepoUtils {
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
-		AddCommand ac = thisGit.add();
-		for(File f : files) {
-			String daFile = f.getAbsolutePath();
-			if(daFile.contains("version")) {
-				daFile = daFile.substring(daFile.indexOf("version") + 8);
+		if (thisGit != null) {
+			AddCommand ac = thisGit.add();
+			for(File f : files) {
+				String daFile = f.getAbsolutePath();
+				if(daFile.contains("version")) {
+					daFile = daFile.substring(daFile.indexOf("version") + 8);
+				}
+				daFile = daFile.replace("\\", "/");
+				ac.addFilepattern(daFile);
 			}
-			daFile = daFile.replace("\\", "/");
-			ac.addFilepattern(daFile);
+			try {
+				ac.call();
+			} catch (GitAPIException e) {
+				logger.error(STACKTRACE, e);
+			}
+			thisGit.close();
 		}
-		try {
-			ac.call();
-		} catch (GitAPIException e) {
-			e.printStackTrace();
-		}
-		thisGit.close();
 	}
 	
 	public static void commitAddedFiles(String gitFolder) {
@@ -1104,7 +1065,7 @@ public class GitRepoUtils {
 		try {
 			thisGit = Git.open(new File(gitFolder));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
 
@@ -1121,13 +1082,12 @@ public class GitRepoUtils {
 			.setAuthor(author, email)
 			.call();
 		} catch (GitAPIException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		thisGit.close();
 	}
 
-	public static void revertCommit(String gitFolder, String comm1) 
-	{
+	public static void revertCommit(String gitFolder, String comm1) {
 		try {
 			Git thisGit = Git.open(new File(gitFolder));
 			RevCommit comm = findCommit(gitFolder, comm1);
@@ -1140,38 +1100,27 @@ public class GitRepoUtils {
 			//thisGit.revert().include(comm.getId()).setOurCommitName("new Commit").call();
 			thisGit.revert().include(thisGit.getRepository().resolve(Constants.HEAD)).setOurCommitName("new Commit").call();
 			//thisGit.commit().setMessage("Post Revert.. " ).call();
-		} catch (RevisionSyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoMessageException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnmergedPathsException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ConcurrentRefUpdateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (WrongRepositoryStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (AmbiguousObjectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IncorrectObjectTypeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (RevisionSyntaxException rse) {
+			logger.error(STACKTRACE, rse);
+		} catch (NoMessageException nme) {
+			logger.error(STACKTRACE, nme);
+		} catch (UnmergedPathsException upe) {
+			logger.error(STACKTRACE, upe);
+		} catch (ConcurrentRefUpdateException cfue) {
+			logger.error(STACKTRACE, cfue);
+		} catch (WrongRepositoryStateException wrse) {
+			logger.error(STACKTRACE, wrse);
+		} catch (AmbiguousObjectException aoe) {
+			logger.error(STACKTRACE, aoe);
+		} catch (IncorrectObjectTypeException iote) {
+			logger.error(STACKTRACE, iote);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
+		} catch (GitAPIException gae) {
+			logger.error(STACKTRACE, gae);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
-		
 	}
 	
 	public static void resetCommit(String gitFolder, String comm1) 
@@ -1183,18 +1132,14 @@ public class GitRepoUtils {
 			RevCommit comm = findCommit(gitFolder, comm1);
 			// revert sets it up where you go back as if nothing has happened
 			thisGit.reset().setRef(comm.getId().getName()).setMode(ResetType.HARD).call();
-		} catch (CheckoutConflictException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (CheckoutConflictException cce) {
+			logger.error(STACKTRACE, cce);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
+		} catch (GitAPIException gae) {
+			logger.error(STACKTRACE, gae);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}		
 	}
 	
@@ -1206,11 +1151,11 @@ public class GitRepoUtils {
 		// this needs to change
 		String cacheFolder = gitFolder;
 		String cacheFileName = null;
-		
+
 		try {
 			Git thisGit = Git.open(new File(gitFolder));
 			//ObjectId masterTreeId= thisGit.getRepository().resolve("refs/heads/master^" + commitID);
-			
+
 			RevCommit comm = null;
 			if(commId == null)
 			{
@@ -1244,24 +1189,18 @@ public class GitRepoUtils {
 			fos.write(bytes);
 			fos.close();
 			
-		} catch (MissingObjectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IncorrectObjectTypeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (CorruptObjectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (LargeObjectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (MissingObjectException moe) {
+			logger.error(STACKTRACE, moe);
+		} catch (IncorrectObjectTypeException iote) {
+			logger.error(STACKTRACE, iote);
+		} catch (CorruptObjectException coe) {
+			logger.error(STACKTRACE, coe);
+		} catch (LargeObjectException loe) {
+			logger.error(STACKTRACE, loe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		return cacheFileName;
@@ -1282,10 +1221,9 @@ public class GitRepoUtils {
 			pw.write(content);
 			pw.close();
 			addAllFiles(gitFolder, false);
-			commitAddedFiles(gitFolder, message); //, author, email); 
+			commitAddedFiles(gitFolder, message); 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 
 		
@@ -1313,15 +1251,12 @@ public class GitRepoUtils {
 			if (ClusterUtil.IS_CLUSTER) {
 				ClusterUtil.validateFolder(folder);
 			}
-		} catch (IllegalStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (IllegalStateException ise) {
+			logger.error(STACKTRACE, ise);
+		} catch (GitAPIException gae) {
+			logger.error(STACKTRACE, gae);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 	

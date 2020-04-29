@@ -60,12 +60,14 @@ public class OldInsight extends Insight {
 	 * YOU ARE PROBABLY DOING SOMETHING WRONG
 	 */
 	
-	private static final Logger LOGGER = LogManager.getLogger(OldInsight.class.getName());
+	private static final Logger logger = LogManager.getLogger(OldInsight.class);
 	
 	public static final transient String COMP = "Component";
 	public static final transient String POST_TRANS = "PostTrans";
 	public static final transient String PRE_TRANS = "PreTrans";
 	public static final transient String ACTION = "Action";
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	private transient IEngine mainEngine;										// the main engine where the insight is stored
 	private transient IEngine makeupEngine;										// the in-memory engine created to store the data maker components and transformations for the insight
@@ -132,7 +134,7 @@ public class OldInsight extends Insight {
 		if(insightMakeup != null){
 			this.makeupEngine = createMakeupEngine(insightMakeup);
 		} else{
-			System.err.println("Invalid insight. No insight makeup available");
+			logger.error("Invalid insight. No insight makeup available");
 		}
 	}
 
@@ -213,13 +215,13 @@ public class OldInsight extends Insight {
 			rc = myRepository.getConnection();
 			rc.add(nTriples, "semoss.org", RDFFormat.NTRIPLES);
 		} catch(RuntimeException ignored) {
-			ignored.printStackTrace();
-		} catch (RDFParseException e) {
-			e.printStackTrace();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, ignored);
+		} catch (RDFParseException rpe) {
+			logger.error(STACKTRACE, rpe);
+		} catch (RepositoryException re) {
+			logger.error(STACKTRACE, re);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		// set the rc in the in-memory engine
@@ -234,8 +236,8 @@ public class OldInsight extends Insight {
 	 * @return
 	 */
 	public List<DataMakerComponent> digestNTriples(IEngine makeupEng){
-		System.out.println("Creating data component array from makeup engine");
-		List<DataMakerComponent> dmCompVec = new Vector<DataMakerComponent>();
+		logger.debug("Creating data component array from makeup engine");
+		List<DataMakerComponent> dmCompVec = new Vector<>();
 		String countQuery = "SELECT (COUNT(DISTINCT(?Component)) AS ?Count) WHERE {?Component a <http://semoss.org/ontologies/Concept/Component>. BIND('x' AS ?x) } GROUP BY ?x";
 
 		ISelectWrapper countss = WrapperManager.getInstance().getSWrapper(makeupEng, countQuery);
@@ -243,7 +245,7 @@ public class OldInsight extends Insight {
 		while(countss.hasNext()){
 			ISelectStatement countst = countss.next();
 			total = (int) Double.parseDouble(countst.getVar("Count")+"");
-			System.out.println(" THERE ARE " + total + " COMPONENTS IN THIS INSIGHT  ");
+			logger.debug(" THERE ARE " + total + " COMPONENTS IN THIS INSIGHT  ");
 		}
 		//TODO: need to make sure preTrans, postTrans, and actions are all ordered
 		String theQuery = "SELECT ?Component ?Engine ?Query ?Metamodel ?DataMakerType ?PreTrans ?PostTrans ?Actions WHERE { {?Component a <http://semoss.org/ontologies/Concept/Component>} {?EngineURI a <http://semoss.org/ontologies/Concept/Engine>} {?EngineURI <http://semoss.org/ontologies/Relation/Contains/Name> ?Engine } {?Component <Comp:Eng> ?EngineURI} OPTIONAL {?Component <http://semoss.org/ontologies/Relation/Contains/Query> ?Query} OPTIONAL {?Component <http://semoss.org/ontologies/Relation/Contains/Metamodel> ?Metamodel} {?Component <http://semoss.org/ontologies/Relation/Contains/Order> ?Order} OPTIONAL {?Component <Comp:PreTrans> ?PreTrans} OPTIONAL {?Component <Comp:PostTrans> ?PostTrans} OPTIONAL {?Component <Comp:Action> ?Actions} } ORDER BY ?Order";
@@ -253,9 +255,9 @@ public class OldInsight extends Insight {
 		
 		String curComponent = null;
 		// Keeping a set of pre/post/action's that exist on each component such that they are not added twice when number of pre/post/actions is not the same
-		Set<String> preTransSet = new HashSet<String>();
-		Set<String> postTransSet = new HashSet<String>();
-		Set<String> actionSet = new HashSet<String>();
+		Set<String> preTransSet = new HashSet<>();
+		Set<String> postTransSet = new HashSet<>();
+		Set<String> actionSet = new HashSet<>();
 		while(ss.hasNext()){
 			ISelectStatement st = ss.next();
 			String component = st.getVar("Component")+"";
@@ -265,7 +267,7 @@ public class OldInsight extends Insight {
 				engine = MasterDatabaseUtility.testEngineIdIfAlias(engine);
 				String query = st.getVar("Query")+"";
 				String metamodelString = st.getVar("Metamodel")+"";
-				System.out.println(engine + " ::::::: " + component +" ::::::::: " + query + " :::::::::: " + metamodelString);
+				logger.debug(engine + " ::::::: " + component +" ::::::::: " + query + " :::::::::: " + metamodelString);
 				
 				DataMakerComponent dmc = null;
 				// old insights store information in a query string while new insights store the metamodel information to construct the query
@@ -274,13 +276,13 @@ public class OldInsight extends Insight {
 					dmCompVec.add(dmc);
 				}
 				else if (!metamodelString.isEmpty()){
-					LOGGER.info("trying to get QueryBuilderData object");
+					logger.info("trying to get QueryBuilderData object");
 					QueryBuilderData metamodelData = gson.fromJson(metamodelString, QueryBuilderData.class);
 					QueryStruct qsData = null;
 					if(metamodelData.getRelTriples() == null){
 						qsData = gson.fromJson(metamodelString, QueryStruct.class);
 						if(qsData.getSelectors() == null){
-							LOGGER.info("failed to get QueryBuilderData.... this must be a legacy insight with metamodel data. Setting metamodel data into QueryBuilderData");
+							logger.info("failed to get QueryBuilderData.... this must be a legacy insight with metamodel data. Setting metamodel data into QueryBuilderData");
 							Hashtable<String, Object> dataHash = gson.fromJson(metamodelString, new TypeToken<Hashtable<String, Object>>() {}.getType());
 							metamodelData = new QueryBuilderData(dataHash);
 						}
@@ -292,7 +294,9 @@ public class OldInsight extends Insight {
 					dmCompVec.add(dmc);
 				}
 				curComponent = COMP + component;
-				dmc.setId(curComponent);
+				if (dmc != null) {
+					dmc.setId(curComponent);
+				}
 				idx++;
 			}
 			
@@ -325,12 +329,12 @@ public class OldInsight extends Insight {
 	 * @param compId				The name of the component to make sure the preTransforamtion has the correct id
 	 */
 	private void addPreTrans(DataMakerComponent dmc, IEngine makeupEng, Object preTrans, String compId){
-		LOGGER.info("adding pre trans :::: " + preTrans);
+		logger.info("adding pre trans :::: " + preTrans);
 		Map<String, Object> props = getProperties(preTrans+"", makeupEng);
 		String type = props.get(ISEMOSSTransformation.TYPE) + "";
-		LOGGER.info("TRANS TYPE IS " + type);
+		logger.info("TRANS TYPE IS " + type);
 		ISEMOSSTransformation trans = Utility.getTransformation(this.mainEngine, type);
-		LOGGER.info("pre trans properties :::: " + props.toString());
+		logger.info("pre trans properties :::: " + props.toString());
 		trans.setProperties(props);
 		trans.setId(compId + ":" + PRE_TRANS + Utility.getInstanceName(preTrans + ""));
 		dmc.addPreTrans(trans);
@@ -344,12 +348,12 @@ public class OldInsight extends Insight {
 	 * @param compId				The name of the component to make sure the postTransformation has the correct id
 	 */
 	private void addPostTrans(DataMakerComponent dmc, IEngine makeupEng, Object postTrans, String compId){
-		LOGGER.info("adding post trans :::: " + postTrans);
+		logger.info("adding post trans :::: " + postTrans);
 		Map<String, Object> props = getProperties(postTrans+"", makeupEng);
 		String type = props.get(ISEMOSSTransformation.TYPE) + "";
-		LOGGER.info("TRANS TYPE IS " + type);
+		logger.info("TRANS TYPE IS " + type);
 		ISEMOSSTransformation trans = Utility.getTransformation(this.mainEngine, type);
-		LOGGER.info("post trans properties :::: " + props.toString());
+		logger.info("post trans properties :::: " + props.toString());
 		trans.setProperties(props);
 		trans.setId(compId + ":" + POST_TRANS + Utility.getInstanceName(postTrans + ""));
 		dmc.addPostTrans(trans);
@@ -363,12 +367,12 @@ public class OldInsight extends Insight {
 	 * @param compId				The name of the component to make sure the Action has the correct id
 	 */
 	private void addAction(DataMakerComponent dmc, IEngine makeupEng, Object action, String compId){
-		LOGGER.info("adding action :::: " + action);
+		logger.info("adding action :::: " + action);
 		Map<String, Object> props = getProperties(action+"", makeupEng);
 		String type = props.get(ISEMOSSAction.TYPE) + "";
-		LOGGER.info("TRANS TYPE IS " + type);
+		logger.info("TRANS TYPE IS " + type);
 		ISEMOSSAction actionObj = Utility.getAction(this.mainEngine, type);
-		LOGGER.info("action properties :::: " + props.toString());
+		logger.info("action properties :::: " + props.toString());
 		actionObj.setProperties(props);
 		actionObj.setId(compId + ":" + ACTION + Utility.getInstanceName(action + ""));
 		dmc.addAction(actionObj);
@@ -385,18 +389,18 @@ public class OldInsight extends Insight {
 				uri + 
 				"> AS ?obj) {?obj <http://semoss.org/ontologies/Relation/Contains/propMap> ?Value}}";
 		
-		LOGGER.info("Running query to get properties: " + propQuery);
+		logger.info("Running query to get properties: " + propQuery);
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(makeupEng, propQuery);
-		Map<String, Object> retMap = new HashMap<String, Object>();
+		Map<String, Object> retMap = new HashMap<>();
 		if(wrap.hasNext()){ // there should only be one prop map associated with each transformation or action
 			ISelectStatement ss = wrap.next();
 			String jsonPropMap = ss.getVar("Value") + "";
-			LOGGER.info(jsonPropMap);
+			logger.info(jsonPropMap);
 			retMap = gson.fromJson(jsonPropMap, Map.class);
 		}
 		if(wrap.hasNext()){
-			LOGGER.error("More than one prop map has shown up for uri ::::: " + uri);
-			LOGGER.error("Need to find reason why/how it was stored this way...");
+			logger.error("More than one prop map has shown up for uri ::::: " + uri);
+			logger.error("Need to find reason why/how it was stored this way...");
 		}
 		return retMap;
 	}
@@ -406,6 +410,7 @@ public class OldInsight extends Insight {
 	 * If cannot find specified dataMaker, get the playSheet and see if is supposed to be the data maker
 	 * @return
 	 */
+	@Override
 	public IDataMaker getDataMaker() {
 		if(this.dataMaker == null){
 			if(this.dataMakerName != null && !this.dataMakerName.isEmpty()) {
@@ -433,6 +438,7 @@ public class OldInsight extends Insight {
 	 * Setter for the data maker
 	 * @param dataMaker
 	 */
+	@Override
 	public void setDataMaker(IDataMaker dataMaker) {
 		this.dataMaker = dataMaker;
 		if(this.dataMaker.getUserId() == null) {
@@ -450,7 +456,7 @@ public class OldInsight extends Insight {
 		if(this.dmComponents == null && this.makeupEngine != null){
 			this.dmComponents = digestNTriples(this.makeupEngine);
 		} else if(this.dmComponents == null) {
-			this.dmComponents = new Vector<DataMakerComponent>();
+			this.dmComponents = new Vector<>();
 		}
 		return this.dmComponents;
 	}
@@ -487,10 +493,10 @@ public class OldInsight extends Insight {
 	 */
 	public void setDataTableAlign(String dataTableAlignJSON) {
 		if(dataTableAlignJSON != null && !dataTableAlignJSON.isEmpty()){
-			LOGGER.info("Setting json dataTableAlign " + dataTableAlignJSON);
+			logger.info("Setting json dataTableAlign " + dataTableAlignJSON);
 			this.dataTableAlign = gson.fromJson(dataTableAlignJSON, Map.class);
 		} else {
-			LOGGER.info("data table align is empty");
+			logger.info("data table align is empty");
 		}
 	}
 	
@@ -510,7 +516,7 @@ public class OldInsight extends Insight {
 				this.playSheet.setDataMaker(getDataMaker());
 			}
 			else {
-				LOGGER.error("Broken insight... cannot get playsheet :: " + this.layout);
+				logger.error("Broken insight... cannot get playsheet :: " + this.layout);
 			}
 		}
 		return this.playSheet;
@@ -532,6 +538,7 @@ public class OldInsight extends Insight {
 	 * Getter for the data maker name
 	 * @return
 	 */
+	@Override
 	public String getDataMakerName() {
 		if(this.dataMaker == null) {
 			return this.dataMakerName;
@@ -569,9 +576,6 @@ public class OldInsight extends Insight {
 		for(int i = 0; i < actions.size(); i++) {
 			actions.get(i).setId(compId + ":" + ACTION + i);
 		}
-//		if(component.getBuilderData() != null){
-//			QueryBuilderHelper.parsePath(component.getBuilderData(), component.getEngine()); // this really should just be a clean path call.. but for now we'll just parse it
-//		}
 		DataMakerComponent componentCopy = component.copy();
 		getDataMaker().processDataMakerComponent(componentCopy);
 		getDataMakerComponents().add(component);
@@ -599,7 +603,7 @@ public class OldInsight extends Insight {
 	}
 	
 	public DataMakerComponent getLastComponent() {
-		if(getDataMakerComponents().size()==0){
+		if(getDataMakerComponents().isEmpty()){
 			DataMakerComponent empty = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
 			this.dmComponents.add(empty);
 		}
@@ -637,7 +641,7 @@ public class OldInsight extends Insight {
 	 */
 	public void undoProcesses(List<String> processes){
 		// traverse backwards and undo everything in the list
-		List<DataMakerComponent> dmcListToRemove = new ArrayList<DataMakerComponent>();
+		List<DataMakerComponent> dmcListToRemove = new ArrayList<>();
 		for(int i = dmComponents.size()-1; i >= 0; i--) {
 			DataMakerComponent dmc = dmComponents.get(i);
 			List<ISEMOSSAction> actions = dmc.getActions();
@@ -681,8 +685,8 @@ public class OldInsight extends Insight {
 	 * @return						true if a JoinTransformation was removed, false otherwise. Used to signal whether the component still should be kept or not
 	 */
 	private boolean undoTransformations(List<ISEMOSSTransformation> trans, List<String> processes) {
-		LOGGER.info("Undoing transformations :  " + processes);
-		List<Integer> indicesToRemove = new ArrayList<Integer>();
+		logger.info("Undoing transformations :  " + processes);
+		List<Integer> indicesToRemove = new ArrayList<>();
 		// loop through and get the indices corresponding to the trans list to undo
 		for(int i = trans.size()-1; i >= 0; i--) {
 			ISEMOSSTransformation transformation = trans.get(i);
@@ -704,7 +708,7 @@ public class OldInsight extends Insight {
 				removedJoin = true;
 			}
 		}
-		LOGGER.info("Undo transformations complete. Join transformation undone : " + removedJoin);
+		logger.info("Undo transformations complete. Join transformation undone : " + removedJoin);
 		return removedJoin;
 	}
 	
@@ -713,12 +717,11 @@ public class OldInsight extends Insight {
 	 * @return
 	 */
 	public Map<String, Object> getWebData() {
-		Map<String, Object> retHash = new HashMap<String, Object>();
+		Map<String, Object> retHash = new HashMap<>();
 		retHash.put("insightID", this.insightId);
 		retHash.put("layout", this.layout);
 		retHash.put("title", this.insightName);
 		retHash.put("dataMakerName", this.dataMakerName);
-//		List<String> selectors = new ArrayList<String>();
 		if(dataTableAlign != null){ // some playsheets don't require data table align, like grid play sheet. Should probably change this so they all have data table align (like if i want to change the order of my columns)
 			retHash.put("dataTableAlign", dataTableAlign);
 //			for(String label : dataTableAlign.keySet()) {
@@ -775,7 +778,7 @@ public class OldInsight extends Insight {
 	}
 	
 	public Map<String, Object> getOutputWebData() {
-		Map<String, Object> retHash = new HashMap<String, Object>();
+		Map<String, Object> retHash = new HashMap<>();
 		retHash.put("insightID", this.insightId);
 		retHash.put("layout", this.layout);
 		retHash.put("title", this.insightName);
@@ -859,14 +862,13 @@ public class OldInsight extends Insight {
 					try {
 						insightDefinition = obj.getAsciiStream();
 					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 					
 					 try {
 						uiOptions = IOUtils.toString(insightDefinition);
 					} catch (IOException e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					} 
 				}
 			}
@@ -879,6 +881,7 @@ public class OldInsight extends Insight {
 		this.uiOptions = uiOptions;
 	}
 
+	@Override
 	public String getEngineId() {
 		if(this.mainEngine != null) {
 			return this.mainEngine.getEngineId();
@@ -886,7 +889,8 @@ public class OldInsight extends Insight {
 			return null;
 		}
 	}
-	
+
+	@Override
 	public String getEngineName() {
 		if(this.mainEngine != null) {
 			return this.mainEngine.getEngineName();
@@ -921,7 +925,7 @@ public class OldInsight extends Insight {
 		
 		// now that i've found where my first derived column is, i need to undo everything that comes after that in correct order
 		boolean hitFirst = false;
-		List<ISEMOSSTransformation> transToRedo = new Vector<ISEMOSSTransformation>();
+		List<ISEMOSSTransformation> transToRedo = new Vector<>();
 		for(int dmcIdx = dmcList.size() - 1; dmcIdx >= firstComp && !hitFirst; dmcIdx -- ){
 			DataMakerComponent dmc = dmcList.get(dmcIdx);
 			List<ISEMOSSTransformation> postList = dmc.getPostTrans();

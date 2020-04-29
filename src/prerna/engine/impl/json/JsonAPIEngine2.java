@@ -26,16 +26,17 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	// that uses jmes path instead to aggregate results
 	// evrything remains the same the way you get the output changes
 	
-	private static final Logger logger = LogManager.getLogger(JsonAPIEngine2.class.getName());
-	
+	private static final Logger logger = LogManager.getLogger(JsonAPIEngine2.class);
+
 	ObjectMapper mapper = null;
 	JsonNode input = null;
 	JmesPath<JsonNode> jmespath = new JacksonRuntime();
-	
+
 	public static final String ROOT = "root";
+	public static final String COUNT = "COUNT";
+	private static final String STACKTRACE = "StackTrace: ";
 
-
-
+	@Override
 	protected void loadDocument()
 	{
 		try {
@@ -43,16 +44,13 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 			if(prop.containsKey("input_type") && ((String)prop.get("input_type")).equalsIgnoreCase("file"))
 				input = mapper.readTree(new File(baseFolder + "/" + prop.getProperty("input_url")));
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
 
 	}
-		
-	
+
 	private ObjectMapper getMapper()
 	{
 		if(this.mapper == null)
@@ -62,18 +60,14 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	}
 	
 	@Override
-	protected Object getDocument(String json)
-	{
+	protected Object getDocument(String json) {
 		getMapper();
-		JsonNode retNode = input ; // if it is a document return it
-		if(json != null)
-		{
-			try
-			{
+		JsonNode retNode = input; // if it is a document return it
+		if (json != null) {
+			try {
 				retNode = mapper.readTree(json);
-			}catch(Exception ex)
-			{
-				
+			} catch (Exception ex) {
+				logger.error(STACKTRACE, ex);
 			}
 		}
 		return retNode;
@@ -162,8 +156,8 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 		if(retHash.containsKey("DATA"))
 			input = (ArrayNode)	retHash.get("DATA");
 		
-		if(retHash.containsKey("COUNT"))
-			totalRows = (Integer)	retHash.get("COUNT");
+		if(retHash.containsKey(COUNT))
+			totalRows = (Integer) retHash.get(COUNT);
 
 		// I can get everything I want in a single shot. Which is what I will do
 
@@ -178,7 +172,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 			totalRows = totalRows + numRows;
 			
 			// need to make the repeater
-			if(repeater != null)
+			if(REPEATER != null)
 			{
 				ArrayNode repeaterNode = mapper.createArrayNode();
 				for(int repeatIndex = 0;repeatIndex < numRows;repeatIndex++)
@@ -214,8 +208,9 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 
 		if(prop.containsKey("SEPARATOR"))
 			retHash.put("SEPARATOR", prop.get("SEPARATOR"));
-		
-		System.out.println("Output..  " + data);
+
+		logger.info("Output..  " + data);
+
 		return retHash;
 	}
 	
