@@ -10,9 +10,9 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 
-public class PySourceReactor extends AbstractReactor {
+public class PyLoadReactor extends AbstractReactor {
 
-	public PySourceReactor() {
+	public PyLoadReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
@@ -36,12 +36,11 @@ public class PySourceReactor extends AbstractReactor {
 		String assetOutput = assetFolder + "/" +  name + ".output";
 		
 		PyTranslator pyt = this.insight.getPyTranslator();
+		
+		//pyt.runScript(name +  " = smssutil.runwrapper('smss', '" + path + "')");
+		pyt.runScript(name +  " = smssutil.loadScript('smss', '" + path + "')");
 
-		System.err.println("Hello");
-		//pyt.runScript("smssutil.runwrapper(" +  path + ", " + assetOutput + ", " + assetOutput + "globals()\")");
-		//pyt.runScript(name +  " = smssutil.loadScript('smss', '" + path + "')");
-		pyt.runScript("smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())");
-
+		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
