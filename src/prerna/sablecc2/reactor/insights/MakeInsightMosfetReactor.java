@@ -84,7 +84,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 						+ DIR_SEPARATOR + "db"
 						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(app.getEngineName(), appId)
 						+ DIR_SEPARATOR + "version" 
-						+ DIR_SEPARATOR + id;
+						+ DIR_SEPARATOR + Utility.normalizePath(id);
 				
 				if(!override) {
 					File f = new File(mosfetPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);

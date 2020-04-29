@@ -70,6 +70,8 @@ import prerna.util.Utility;
 public class FactSheetWriter {
 
 	private static final Logger logger = LogManager.getLogger(FactSheetWriter.class.getName());
+	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 
 	public String systemName;
 
@@ -360,7 +362,7 @@ public class FactSheetWriter {
 
 		//Application Health Grid
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Images" + System.getProperty("file.separator");
+		String folder = FILE_SEPARATOR + "export" + FILE_SEPARATOR + "Images" + FILE_SEPARATOR;
 		String picFileName = systemName.replaceAll(":", "")+"_Health_Grid_Export.png";
 		String picFileLoc = workingDir + folder + picFileName;
 		FileInputStream inputStream = null;

@@ -33,6 +33,8 @@ public class InsightFilesToDatabaseReader {
 	
 	// keep track of the list of new tables created
 	private Set<String> newTables;
+	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	
 	public InsightFilesToDatabaseReader() {
 
@@ -385,7 +387,7 @@ public class InsightFilesToDatabaseReader {
 			engine.closeDB();
 		}
 		// delete the engine folder and all its contents
-		String engineFolderPath = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName;
+		String engineFolderPath = baseDirectory + FILE_SEPARATOR + "db" + FILE_SEPARATOR + engineName;
 		File engineFolderDir = new File(engineFolderPath);
 		if(engineFolderDir.exists()) {
 			File[] engineFiles = engineFolderDir.listFiles();
