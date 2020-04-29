@@ -64,6 +64,8 @@ import prerna.util.Utility;
 public class SourceReportGenButtonListener implements IChakraListener {
 
 	static final Logger logger = LogManager.getLogger(SourceReportGenButtonListener.class.getName());
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	ArrayList<String> queryArray = new ArrayList<String>();
 	ArrayList<String> outputArray = new ArrayList<String>();
 	
@@ -82,7 +84,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 		JTextField RFPNameField=(JTextField)DIHelper.getInstance().getLocalProp(ConstantsTAP.RFP_NAME_FIELD);
 		writer.RFPName = RFPNameField.getText();
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
 		String writeFileName = "Vendor Input Report " + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
 		String fileLoc = workingDir + folder + writeFileName;
 		String templateLoc = workingDir + folder + "Report_Template.xlsx";

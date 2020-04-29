@@ -82,7 +82,7 @@ public class RiGraph extends AbstractTableDataFrame {
 		BufferedWriter bufferedWriter = null;
 
 		String insightCacheDir = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-		final String FILE_SEPARATOR = System.getProperty("file.separator");
+		final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();;
 		String csvCache = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		String path = insightCacheDir + FILE_SEPARATOR + csvCache + FILE_SEPARATOR + Utility.getRandomString(10) + ".r";
 
