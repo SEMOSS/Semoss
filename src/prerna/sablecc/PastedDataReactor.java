@@ -19,6 +19,8 @@ import prerna.util.DIHelper;
 public class PastedDataReactor extends AbstractReactor {
 
 	public static final String DELIMITER = "delimiter";
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	
 	private String fileName;
 	
@@ -37,7 +39,7 @@ public class PastedDataReactor extends AbstractReactor {
 		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
 		String fileInfo = myStore.get(PKQLEnum.PASTED_DATA).toString().replace("<startInput>", "").replace("<endInput>", "");
 	
-		fileName = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\PastedData" + modifiedDate;
+		fileName = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "PastedData" + modifiedDate;
 		File file = new File(fileName);
 		FileWriter fw = null;
 		try {

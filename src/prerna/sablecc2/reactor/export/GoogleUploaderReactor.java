@@ -73,7 +73,7 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 		this.task = getTask();
 
 		// get a random file name
-		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + fileName + ".csv";
+		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + fileName + ".csv";
 		//make file
 		buildTask();
 

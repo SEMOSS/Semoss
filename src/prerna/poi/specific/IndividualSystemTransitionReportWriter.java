@@ -69,6 +69,8 @@ import prerna.util.Utility;
 public class IndividualSystemTransitionReportWriter {
 
 	static final Logger logger = LogManager.getLogger(IndividualSystemTransitionReportWriter.class.getName());
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	private XSSFWorkbook wb;
 	private String systemName = "";
 	private static String fileLoc = "";
@@ -95,8 +97,8 @@ public class IndividualSystemTransitionReportWriter {
 	{
 		this.systemName = systemName;
 		
-		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
-		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + templateName;//"Individual_System_Transition_Report_Template.xlsx";
+		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
+		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR + templateName;//"Individual_System_Transition_Report_Template.xlsx";
 		SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MMM_dd_yyyy");
         String date = DATE_FORMAT.format(new Date());
    
@@ -117,8 +119,8 @@ public class IndividualSystemTransitionReportWriter {
 	}
 	public void makeMedicalDevicesWorkbook(String templateName)
 	{
-		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
-		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + templateName;//"Individual_System_Transition_Report_Template.xlsx";
+		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
+		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR + templateName;//"Individual_System_Transition_Report_Template.xlsx";
 		SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MMM_dd_yyyy");
         String date = DATE_FORMAT.format(new Date());
    
@@ -145,7 +147,7 @@ public class IndividualSystemTransitionReportWriter {
 	{
 		this.systemName = systemName;
 		
-		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
+		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
 	
 		SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MMM_dd_yyyy");
         String date = DATE_FORMAT.format(new Date());

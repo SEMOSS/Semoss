@@ -37,7 +37,7 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 			// read datadistrict file
 			String[] relevantEngines = new String[10000]; //arbitrary size.. but should not have more than 10,000 relevant databases
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			File f = new File(baseFolder + "\\R\\Recommendations\\dataitem-datadistrict.rds");
+			File f = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-datadistrict.rds");
 
 			if (f.exists()) {
 				StringBuilder sb = new StringBuilder();
@@ -66,7 +66,7 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 
 			String FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/semantic" + extension;
 			String FILE_NAME = "dataitem-datasemantic.tsv";
-			String path = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\";
+			String path = DIHelper.getInstance().getProperty("BaseFolder") + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR;
 
 			// server is available: Begin Method
 			logger.info("Cacheing data semantic file");

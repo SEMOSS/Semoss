@@ -67,6 +67,8 @@ import prerna.util.Utility;
 public class OTMReportWriter {
 
 	static final Logger logger = LogManager.getLogger(OTMReportWriter.class.getName());
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	private XSSFWorkbook wb;
 
 	private static String fileLoc = "";
@@ -86,8 +88,8 @@ public class OTMReportWriter {
 	public void makeWorkbook(String systemName, String templateName)
 	{
 		
-		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + systemName;
-		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + templateName;//"Individual_System_Transition_Report_Template.xlsx";
+		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports"+ DIR_SEPARATOR + systemName;
+		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR + templateName;//"Individual_System_Transition_Report_Template.xlsx";
 
 		wb =new XSSFWorkbook();
 

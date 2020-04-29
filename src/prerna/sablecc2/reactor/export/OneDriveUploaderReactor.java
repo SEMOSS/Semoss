@@ -73,7 +73,7 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 
 		// get a random file name
 		String randomKey = UUID.randomUUID().toString();
-		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + randomKey + ".csv";
+		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + randomKey + ".csv";
 		//make file
 		buildTask();
 

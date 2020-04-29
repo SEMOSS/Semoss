@@ -44,7 +44,7 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 		// write the file on disk
 		Date date = new Date();
 		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
-		String fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\PastedData" + modifiedDate + ".csv";
+		String fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "PastedData" + modifiedDate + ".csv";
 		File file = new File(fileLocation);
 		FileWriter fw = null;
 		try {
