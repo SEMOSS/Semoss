@@ -17,7 +17,7 @@ import prerna.util.DIHelper;
 public class VersionReactor extends AbstractReactor {
 
 	private static Map<String, String> versionMap;
-	private static final String VER_PATH = DIHelper.getInstance().getProperty("BaseFolder") + System.getProperty("file.separator") + "ver.txt";
+	private static final String VER_PATH = DIHelper.getInstance().getProperty("BaseFolder") + java.nio.file.FileSystems.getDefault().getSeparator() + "ver.txt";
 	
 	@Override
 	public NounMetadata execute() {

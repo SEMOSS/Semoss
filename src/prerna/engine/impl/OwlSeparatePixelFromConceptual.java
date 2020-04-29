@@ -407,6 +407,7 @@ public class OwlSeparatePixelFromConceptual {
 		return true;
 	}
 	
+	/*
 	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		String smss = "C:\\workspace\\Semoss_Dev\\db\\MovieDates__2da0688f-fc35-4427-aba5-7bd7b7ac9472.smss";
@@ -430,5 +431,6 @@ public class OwlSeparatePixelFromConceptual {
 		}
 		
 	}
+	*/
 	
 }
