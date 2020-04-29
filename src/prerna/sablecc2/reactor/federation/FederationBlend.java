@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
@@ -30,11 +33,14 @@ import prerna.util.Utility;
 
 /*
  * Please use {@link #FuzzyMergeReactor.class}
+ * 
  */
 
 @Deprecated
 public class FederationBlend extends AbstractRFrameReactor {
-	
+	private static final Logger logger = LogManager.getLogger(FederationBlend.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	public static final String JOIN_TYPE = "joinType";
 	public static final String FRAME_COLUMN = "frameCol";
 	public static final String ADDITIONAL_COLS = "additionalCols";
@@ -114,7 +120,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 					col2Builder.append(",");
 					col3Builder.append(",");
 				}
-				String match = (String) allMatches.get(i);
+				String match = allMatches.get(i);
 				String col1 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame
 						+ "$combined %in% c(\"" + match + "\"), ]$col1)");
 				String col2 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame
@@ -142,7 +148,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 				if (i != 0) {
 					nonMatchCombo.append(",");
 				}
-				String match = (String) nonMatches.get(i);
+				String match = nonMatches.get(i);
 				nonMatchCombo.append("\"" + match + "\"");
 			}
 
@@ -163,9 +169,9 @@ public class FederationBlend extends AbstractRFrameReactor {
 		String frameName = frame.getName();
 
 		// get all columns to federate on
-		List<String> columnArray = new ArrayList<String>();
+		List<String> columnArray = new ArrayList<>();
 		columnArray.add(newCol);
-		List<String> inputCols = new ArrayList<String>();
+		List<String> inputCols = new ArrayList<>();
 		if (columns != null && !(columns.isEmpty())) {
 			inputCols.addAll(columns);
 			columnArray.addAll(inputCols);
@@ -215,10 +221,8 @@ public class FederationBlend extends AbstractRFrameReactor {
 			}
 			
 			// do we need to convert the join col to a string?
-			if(selector.getAlias().equals(newCol)) {
-				if(semossType == SemossDataType.DOUBLE || semossType == SemossDataType.INT) {
-					convertJoinColFromNum = true;
-				}
+			if(selector.getAlias().equals(newCol) && (semossType == SemossDataType.DOUBLE || semossType == SemossDataType.INT)) {
+				convertJoinColFromNum = true;
 			}
 			
 			// update meta data in frame
@@ -238,17 +242,19 @@ public class FederationBlend extends AbstractRFrameReactor {
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 			newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
 			}
 		}
-		
-		String loadFileRScript = RSyntaxHelper.getFReadSyntax(trg, newFile.getAbsolutePath(), "\\t");
-		//trg + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
-		this.rJavaTranslator.runR(loadFileRScript);
-		newFile.delete();
+
+		if (newFile != null) {
+			String loadFileRScript = RSyntaxHelper.getFReadSyntax(trg, newFile.getAbsolutePath(), "\\t");
+			//trg + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
+			this.rJavaTranslator.runR(loadFileRScript);
+			newFile.delete();
+		}
 
 		// get frame join column data type
 		OwlTemporalEngineMeta frameMeta = frame.getMetaData();
@@ -301,20 +307,19 @@ public class FederationBlend extends AbstractRFrameReactor {
 	private List<String> getColumns() {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(ADDITIONAL_COLS);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				List<Object> values = columnGrs.getAllValues();
-				List<String> strValues = new Vector<String>();
-				for (Object obj : values) {
-					strValues.add(obj.toString());
-				}
-				return strValues;
+		if (columnGrs != null && columnGrs.size() > 0) {
+			List<Object> values = columnGrs.getAllValues();
+			List<String> strValues = new Vector<>();
+			for (Object obj : values) {
+				strValues.add(obj.toString());
 			}
+
+			return strValues;
 		}
 
 		// else, we assume it is values in the curRow
 		List<Object> values = this.curRow.getAllValues();
-		List<String> strValues = new Vector<String>();
+		List<String> strValues = new Vector<>();
 		for (Object obj : values) {
 			strValues.add(obj.toString());
 		}
@@ -324,15 +329,11 @@ public class FederationBlend extends AbstractRFrameReactor {
 	private List<String> getInputList(String key) {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(key);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				List<String> values = columnGrs.getAllStrValues();
-				return values;
-			}
+		if (columnGrs != null && columnGrs.size() > 0) {
+			return columnGrs.getAllStrValues();
 		}
 		// else, we assume it is values in the curRow
-		List<String> values = this.curRow.getAllStrValues();
-		return values;
+		return this.curRow.getAllStrValues();
 	}
 
 	///////////////////////// KEYS /////////////////////////////////////
@@ -355,7 +356,8 @@ public class FederationBlend extends AbstractRFrameReactor {
 			return super.getDescriptionForKey(key);
 		}
 	}
-	
+
+	@Override
 	public String getName()
 	{
 		return "FederationBlend";

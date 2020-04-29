@@ -50,13 +50,14 @@ import org.apache.log4j.Logger;
 
 public class InstallCertNow {
 	private static final Logger logger = LogManager.getLogger(InstallCertNow.class.getName());
+	private static final String STACKTRACE = "StackTrace: ";
 
 	public static void main(String [] args)
 	{
 		try {
 			InstallCertNow.please("https://www.google.com/drive", null, null);
 		} catch (Exception e) {
-			logger.error(e.getStackTrace());
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
@@ -116,7 +117,7 @@ public class InstallCertNow {
 		    socket.close();
 		    logger.debug("No errors, certificate is already trusted");
 		} catch (SSLException e) {
-			logger.error(e.getStackTrace());
+			logger.error(STACKTRACE, e);
 		}
 	
 		X509Certificate[] chain = tm.chain;
@@ -143,7 +144,7 @@ public class InstallCertNow {
 		try {
 		    k = (line.length() == 0) ? 0 : Integer.parseInt(line) - 1;
 		} catch (NumberFormatException e) {
-			logger.error("KeyStore not changed" + e.getStackTrace());
+			logger.error("KeyStore not changed - StackTrace: ", e);
 		    return;
 		}
 	

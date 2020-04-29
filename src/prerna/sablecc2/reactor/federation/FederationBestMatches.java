@@ -4,6 +4,9 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngine;
@@ -26,6 +29,7 @@ import prerna.util.Utility;
 
 @Deprecated
 public class FederationBestMatches extends AbstractRFrameReactor {
+	private static final Logger logger = LogManager.getLogger(FederationBestMatches.class);
 	
 	public static final String FRAME_COLUMN = "frameCol";	
 	public static final String OUTPUT_FRAME_NAME = "outputFrame";
@@ -103,17 +107,19 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 			// write to file
 			 newFile = Utility.writeResultToFile(newFileLoc, it2, typesMap, "\t");
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 		} finally {
 			if(it2 != null) {
 				it2.cleanUp();
 			}
 		}
 
-		String loadFileRScript = rCol2 + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
-		this.rJavaTranslator.runR(loadFileRScript);
-		this.rJavaTranslator.runR(rCol2 + " <- as.character(" + rCol2 + "$" + newCol + ")");
-		newFile.delete();
+		if (newFile != null) {
+			String loadFileRScript = rCol2 + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
+			this.rJavaTranslator.runR(loadFileRScript);
+			this.rJavaTranslator.runR(rCol2 + " <- as.character(" + rCol2 + "$" + newCol + ")");
+			newFile.delete();
+		}
 		
 		// execute the scripts
 		this.rJavaTranslator.executeEmptyR(rTable1);

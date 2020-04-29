@@ -28,7 +28,7 @@ public class GetAvailableTagsReactor extends AbstractReactor {
 		// account for security
 		List<String> appFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appliedAppFilters = new Vector<String>();
+			appliedAppFilters = new Vector<>();
 			appFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
 			if(!inputFilters.isEmpty()) {
 				// loop through and compare what the user has access to
@@ -49,7 +49,7 @@ public class GetAvailableTagsReactor extends AbstractReactor {
 //			// keep null, we will not have an engine filter
 //		}
 		
-		if(AbstractSecurityUtils.securityEnabled() && appliedAppFilters.isEmpty()) {
+		if(AbstractSecurityUtils.securityEnabled() && appliedAppFilters != null && appliedAppFilters.isEmpty()) {
 			if(inputFilters.isEmpty()) {
 				return NounMetadata.getWarningNounMessage("User does not have access to any apps");
 			} else {
