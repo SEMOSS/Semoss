@@ -103,19 +103,19 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String tableExistsQuery(String tableName, String schema) {
 		// do not need to use the schema
-		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName + "'";
+		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
 	}
 	
 	@Override
 	public String getAllColumnDetails(String tableName, String schema) {
 		// do not need to use the schema
-		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "';";
+		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "';";
 	}
 	
 	@Override
 	public String columnDetailsQuery(String tableName, String columnName, String schema) {
 		// do not need to use the schema
-		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "' AND COLUMN_NAME='" + columnName + "';";
+		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "' AND COLUMN_NAME='" + columnName.toUpperCase() + "';";
 	}
 	
 	@Override
@@ -127,13 +127,13 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getIndexDetails(String indexName, String tableName, String schema) {
 		// do not use the schema
-		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME='" + indexName + "' AND TABLE_NAME='" + tableName + "';";
+		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME='" + indexName.toUpperCase() + "' AND TABLE_NAME='" + tableName.toUpperCase() + "';";
 	}
 	
 	@Override
 	public String allIndexForTableQuery(String tableName, String schema) {
 		// do not need to use the schema
-		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='" + tableName + "';";
+		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='" + tableName.toUpperCase() + "';";
 	}
 	
 }
