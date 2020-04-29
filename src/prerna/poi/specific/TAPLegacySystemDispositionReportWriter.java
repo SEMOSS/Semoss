@@ -70,6 +70,8 @@ import prerna.util.Utility;
 public class TAPLegacySystemDispositionReportWriter {
 
 	private static final Logger LOGGER = LogManager.getLogger(TAPLegacySystemDispositionReportWriter.class.getName());
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 
 	private String sysName;
 	private String sysURI;
@@ -157,7 +159,7 @@ public class TAPLegacySystemDispositionReportWriter {
 	public void writeToExcel() throws IOException
 	{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
 		String templateName = "TAP_Legacy_System_Dispositions_Template.xlsx";
 		try {
 			wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));

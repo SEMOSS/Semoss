@@ -52,7 +52,8 @@ import prerna.util.Utility;
 public class DHMSMIntegrationTransitionCostWriter {
 	
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMIntegrationTransitionCostWriter.class.getName());
-	
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	private Map<String, Map<String, Double>> sysCost = new HashMap<String, Map<String, Double>>();
 
 	private IEngine TAP_Core_Data;
@@ -156,7 +157,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 	
 	public void writeToExcel(String templateName, String fileName) throws IOException {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
 		
 		XSSFWorkbook wb;
 		try {
@@ -174,7 +175,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 	
 	public XSSFWorkbook generateWB(String templateName) throws IOException {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
 		
 		XSSFWorkbook wb;
 		try {

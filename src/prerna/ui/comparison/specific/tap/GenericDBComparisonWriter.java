@@ -42,6 +42,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GenericDBComparisonWriter {
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	// Instance level queries
 	final String getConceptsAndInstanceCountQuery = "SELECT DISTINCT ?concept (COUNT(DISTINCT ?instance) AS ?count) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?concept} } GROUP BY ?concept";
 	final String getInstanceAndPropCountQuery = "SELECT DISTINCT ?nodeType ?source (COUNT(DISTINCT ?entity) AS ?entityCount) WHERE { FILTER(?nodeType != <http://semoss.org/ontologies/Concept>){?nodeType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop } } GROUP BY ?nodeType ?source";
@@ -176,8 +178,8 @@ public class GenericDBComparisonWriter {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		Date date = new Date();
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd HH-mm-ss");
-		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Comparisons"
-				+ System.getProperty("file.separator");
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Comparisons"
+				+ DIR_SEPARATOR;
 		String resultName = newDBName + "~" + oldDBName + dateFormat.format(date) + "~DBComparisonResults.xlsx";
 		Utility.writeWorkbook(wb, workingDir + folder + resultName);
 	}

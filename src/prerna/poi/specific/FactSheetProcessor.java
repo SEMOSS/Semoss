@@ -55,6 +55,8 @@ import prerna.util.Utility;
  */
 public class FactSheetProcessor {
 	private static final Logger logger = LogManager.getLogger(FactSheetProcessor.class.getName());
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	protected String tapCoreEngine = "TAP_Core_Data";
 	protected String tapSiteEngine = "TAP_Site_Data";
 	protected String tapCostEngine = "TAP_Cost_Data";
@@ -355,7 +357,7 @@ public class FactSheetProcessor {
 	 */
 	public void writeToFile(String service, String systemName, Hashtable systemDataHash) {
 		FactSheetWriter writer = new FactSheetWriter();
-		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator") + "FactSheets" + System.getProperty("file.separator");
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR + "FactSheets" + DIR_SEPARATOR;
 		String writeFileName;
 		//		if (service != null) {
 		//			writeFileName = service.replaceAll(" ", "_") + "_" + systemName.replaceAll(":", "") + "_Fact_Sheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
