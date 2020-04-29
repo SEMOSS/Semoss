@@ -174,7 +174,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		this.frameName = cf.getFrameName();
 
 		// load the frame
-		String filePath = cf.getFrameCacheLocation();
+		String filePath = Utility.normalizePath(cf.getFrameCacheLocation());
 
 		// drop the aggregate if it exists since the opening of the script will
 		// fail otherwise

@@ -10,6 +10,7 @@ import java.util.Properties;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class SmssUtilities {
@@ -107,9 +108,9 @@ public class SmssUtilities {
 	 */
 	public static String getUniqueName(String engineName, String engineId) {
 		if(engineName == null) {
-			return engineId;
+			return Utility.normalizePath(engineId);
 		}
-		return engineName + "__" + engineId;
+		return Utility.normalizePath(engineName + "__" + engineId);
 	}
 	
 	
