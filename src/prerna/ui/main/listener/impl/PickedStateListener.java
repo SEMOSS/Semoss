@@ -57,7 +57,7 @@ import prerna.util.DIHelper;
  */
 public class PickedStateListener implements ItemListener {
 
-	static final Logger logger = LogManager.getLogger(PickedStateListener.class.getName());
+	private static final Logger logger = LogManager.getLogger(PickedStateListener.class);
 	VisualizationViewer viewer;
 	
 	/**
@@ -76,11 +76,9 @@ public class PickedStateListener implements ItemListener {
 	public void itemStateChanged(ItemEvent e) {
 		logger.debug(" Clicked");
 		logger.info(e.getSource());
-		PickedState pickedState = (PickedState) e.getSource();	
-		
+
 		GraphPlaySheet ps3 = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
-		
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.PROP_TABLE);
 		TableModel tm = new DefaultTableModel();
 		table.setModel(tm);
@@ -99,7 +97,7 @@ public class PickedStateListener implements ItemListener {
 		//so that we can add to them
 		Hashtable vertHash = new Hashtable();
 		VertexLabelFontTransformer vlft = null;
-		if(((GraphPlaySheet)ps3).searchPanel.btnHighlight.isSelected()) {
+		if((ps3).searchPanel.btnHighlight.isSelected()) {
 			vlft = (VertexLabelFontTransformer) viewer.getRenderContext().getVertexFontTransformer();
 			vertHash=vlft.getVertHash();
 		}
@@ -114,15 +112,16 @@ public class PickedStateListener implements ItemListener {
 			logger.info(" Name  >>> " + v.getProperty(Constants.VERTEX_NAME));
 			vst.setSelected(v.getURI());
 			// this needs to invoke the property table model stuff
-			
+
 			VertexPropertyTableModel pm = new VertexPropertyTableModel(ps3.getFilterData(),v);
 			table.setModel(pm);
-			//table.repaint();
 			pm.fireTableDataChanged();
 			logger.debug("Add this in - Prop Table");
 		}
 		if(ps3.searchPanel.btnHighlight.isSelected()) {
-			vlft.setVertHash(vertHash);
+			if (vlft != null) {
+				vlft.setVertHash(vertHash);
+			}
 			VertexPaintTransformer ptx = (VertexPaintTransformer)viewer.getRenderContext().getVertexFillPaintTransformer();
 			ptx.setVertHash(vertHash);
 		}

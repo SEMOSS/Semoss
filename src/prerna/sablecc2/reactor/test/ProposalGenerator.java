@@ -4,9 +4,18 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 public class ProposalGenerator {
+
+	private static final Logger logger = LogManager.getLogger(ProposalGenerator.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	public static void main(String[] args) {
 		
@@ -17,7 +26,7 @@ public class ProposalGenerator {
 		Map<String, String> aliases = generateAliases(atomicsToCreate);
 		generator.setConstants(aliases.keySet().toArray(new String[0]));
 		Map<String, String> pksls = generator.getRandomPixels(pkslsToCreate);
-		
+
 		String proposalName = "Custom";
 		String headerLine = "Alias,Hashcode,Value,Type,ProposalName";
 		BufferedWriter writer = null;
@@ -27,7 +36,11 @@ public class ProposalGenerator {
 			writer = new BufferedWriter(fw);
 			writer.write(headerLine+"\n");
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		}
+
+		if (writer == null) {
+			throw new NullPointerException("Buffered writer cannot be null here.");
 		}
 		
 		String type = "Atomic";
@@ -37,8 +50,7 @@ public class ProposalGenerator {
 			try {
 				writer.write(nextLine+"\n");
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			//write to file
 			//alias is header and alias, value is value, all are atomic
@@ -54,18 +66,18 @@ public class ProposalGenerator {
 			try {
 				writer.write(nextLine+"\n");
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		try {
 			writer.close();
-			fw.close();
+			if (fw != null) {
+				fw.close();
+			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
-		System.out.println("Done");
+		logger.info("Done");
 	}
 	
 	public static Map<String, String> generateAliases(int n) {

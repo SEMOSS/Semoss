@@ -34,9 +34,10 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class MetaHelper implements IExplorable {
-	
-	private static final Logger LOGGER = Logger.getLogger(MetaHelper.class.getName());
-	
+
+	private static final Logger logger = Logger.getLogger(MetaHelper.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
 	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
@@ -89,25 +90,21 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public Vector<String> getPerspectives() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Vector<String> getInsights(String perspective) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Vector<String> getInsights() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Vector<Insight> getInsight(String... id) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -152,16 +149,13 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public String getOWLDefinition() {
-		// TODO Auto-generated method stub
 		StringWriter output = new StringWriter();
 		try {
 			baseDataEngine.getRc().export(new RDFXMLWriter(output));
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (RepositoryException re) {
+			logger.error(STACKTRACE, re);
 		} catch (RDFHandlerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return output.toString();
 	}
@@ -180,26 +174,22 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public String getProperty(String key) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public RDBMSNativeEngine getInsightDatabase() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public String getInsightDefinition() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Vector<String> executeInsightQuery(String sparqlQuery,
 			boolean isDbQuery) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -214,7 +204,7 @@ public class MetaHelper implements IExplorable {
 				baseUri = data.getRawValues()[0] + "";
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrap != null) {
 				wrap.cleanUp();
@@ -237,8 +227,8 @@ public class MetaHelper implements IExplorable {
 	 * Runs a select query on the base data engine of this engine
 	 */
 	public Object execOntoSelectQuery(String query) {
-		LOGGER.debug("Running select query on base data engine of " + this.engineName);
-		LOGGER.debug("Query is " + query);
+		logger.debug("Running select query on base data engine of " + this.engineName);
+		logger.debug("Query is " + query);
 		return this.baseDataEngine.execQuery(query);
 	}
 
@@ -246,8 +236,8 @@ public class MetaHelper implements IExplorable {
 	 * Runs insert query on base data engine of this engine
 	 */
 	public void ontoInsertData(String query) {
-		LOGGER.debug("Running insert query on base data engine of " + this.engineName);
-		LOGGER.debug("Query is " + query);
+		logger.debug("Running insert query on base data engine of " + this.engineName);
+		logger.debug("Query is " + query);
 		baseDataEngine.insertData(query);
 	}
 
@@ -255,8 +245,8 @@ public class MetaHelper implements IExplorable {
 	 * This method runs an update query on the base data engine which contains all owl and metamodel information
 	 */
 	public void ontoRemoveData(String query) {
-		LOGGER.debug("Running update query on base data engine of " + this.engineName);
-		LOGGER.debug("Query is " + query);
+		logger.debug("Running update query on base data engine of " + this.engineName);
+		logger.debug("Query is " + query);
 		baseDataEngine.removeData(query);
 	}
 
@@ -270,7 +260,7 @@ public class MetaHelper implements IExplorable {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -292,7 +282,7 @@ public class MetaHelper implements IExplorable {
 			query += "BINDINGS ?NODE {" + bindings + "}";
 		}
 		// results to be stored
-		Map<String, String> retMap = new Hashtable<String, String>();
+		Map<String, String> retMap = new Hashtable<>();
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -304,7 +294,7 @@ public class MetaHelper implements IExplorable {
 				retMap.put(node, type);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -327,7 +317,7 @@ public class MetaHelper implements IExplorable {
 				return adtlType;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -349,7 +339,7 @@ public class MetaHelper implements IExplorable {
 			query += "BINDINGS ?NODE {" + bindings + "}";
 		}
 		// results to be stored
-		Map<String, String> retMap = new Hashtable<String, String>();
+		Map<String, String> retMap = new Hashtable<>();
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -358,14 +348,14 @@ public class MetaHelper implements IExplorable {
 				Object[] row = wrapper.next().getValues();
 				String node = row[0].toString();
 				String type = row[1].toString();
-				if (type != null && type != "") {
+				if (type != null && !type.equals("")) {
 					type = type.replace("ADTLTYPE:", "").replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "'").replace("((SPACE))", " ");
 					retMap.put(node, type);
 				}
 				retMap.put(node, type);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -378,7 +368,7 @@ public class MetaHelper implements IExplorable {
 	@Override
 	public Map<String, Object[]> getMetamodel() {
 		// create this from the query struct
-		Map<String, MetamodelVertex> tableToVert = new TreeMap<String, MetamodelVertex>();
+		Map<String, MetamodelVertex> tableToVert = new TreeMap<>();
 
 		String getSelectorsInformation = "SELECT DISTINCT ?concept ?property WHERE { "
 				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
@@ -412,14 +402,14 @@ public class MetaHelper implements IExplorable {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
 			}
 		}
 
-		List<Map<String, String>> relationships = new Vector<Map<String, String>>();
+		List<Map<String, String>> relationships = new Vector<>();
 
 		// query to get all the relationships 
 		String getRelationshipsInformation = "SELECT DISTINCT ?fromConceptualConcept ?rel ?toConceptualConcept WHERE { "
@@ -445,21 +435,21 @@ public class MetaHelper implements IExplorable {
 				String rel = row[1].toString();
 				String toConcept = row[2].toString();
 
-				Map<String, String> edgeMap = new TreeMap<String, String>();
+				Map<String, String> edgeMap = new TreeMap<>();
 				edgeMap.put("source", fromConcept);
 				edgeMap.put("target", toConcept + "");
 				edgeMap.put("rel", rel);
 				relationships.add(edgeMap);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
 			}
 		}
 
-		Map<String, Object[]> retObj = new Hashtable<String, Object[]>();
+		Map<String, Object[]> retObj = new Hashtable<>();
 		retObj.put("nodes", tableToVert.values().toArray());
 		retObj.put("edges", relationships.toArray());
 		return retObj;
@@ -467,7 +457,6 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public String getOWL() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 	
@@ -478,13 +467,11 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public boolean isBasic() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -505,7 +492,6 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public AuditDatabase generateAudit() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 	
@@ -560,7 +546,7 @@ public class MetaHelper implements IExplorable {
 				+ " {?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property} "
 				+ " {?property <http://semoss.org/ontologies/Relation/Pixel> ?pixelName}"
 				+ " }";
-		List<String> retArr = new Vector<String>();
+		List<String> retArr = new Vector<>();
 		Vector<String> pArr = Utility.getVectorOfReturn(query, baseDataEngine, false);
 		for(String p : pArr) {
 			retArr.add(conceptPixelName + "__" + p);
@@ -655,11 +641,11 @@ public class MetaHelper implements IExplorable {
 		List<String> retArr = Utility.getVectorOfReturn(query, baseDataEngine, true);
 		if(!retArr.isEmpty()) {
 			if(retArr.size() > 1) {
-				System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + physicalUri);
-				System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + physicalUri);
-				System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + physicalUri);
-				System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + physicalUri);
-				System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + physicalUri);
+				logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + physicalUri);
+				logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + physicalUri);
+				logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + physicalUri);
+				logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + physicalUri);
+				logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + physicalUri);
 			}
 			return retArr.get(0);
 		}
@@ -676,11 +662,11 @@ public class MetaHelper implements IExplorable {
 		List<String> retArr = Utility.getVectorOfReturn(query, baseDataEngine, true);
 		if(!retArr.isEmpty()) {
 			if(retArr.size() > 1) {
-				System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri);
-				System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri);
-				System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri);
-				System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri);
-				System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri);
+				logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri);
+				logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri);
+				logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri);
+				logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri);
+				logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri);
 			}
 			return retArr.get(0);
 		}
@@ -715,7 +701,7 @@ public class MetaHelper implements IExplorable {
 					return propPixel;
 				}
 			}
-			System.out.println("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri + " ::: " + propertyPhysicalUri);
+			logger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! " + conceptPhysicalUri + " ::: " + propertyPhysicalUri);
 			while(wrapper.hasNext()) {
 				Object[] raw = wrapper.next().getRawValues();
 				String propPixel = raw[0].toString();
@@ -724,9 +710,11 @@ public class MetaHelper implements IExplorable {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
-			wrapper.cleanUp();
+			if (wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		return null;
 	}
@@ -763,9 +751,11 @@ public class MetaHelper implements IExplorable {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
-			it.cleanUp();
+			if (it != null) {
+				it.cleanUp();
+			}
 		}
 		
 		return null;
@@ -786,9 +776,11 @@ public class MetaHelper implements IExplorable {
 				conceptualName = wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
-			wrapper.cleanUp();
+			if (wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		return conceptualName;
 	}
@@ -800,7 +792,7 @@ public class MetaHelper implements IExplorable {
 				+ "{?uri <" + OWL.sameAs.toString() + "> ?logical } "
 				+ "}";
 
-		Set<String> logicals = new TreeSet<String>();
+		Set<String> logicals = new TreeSet<>();
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
@@ -808,7 +800,7 @@ public class MetaHelper implements IExplorable {
 				logicals.add(wrapper.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -832,7 +824,7 @@ public class MetaHelper implements IExplorable {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -857,7 +849,7 @@ public class MetaHelper implements IExplorable {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
