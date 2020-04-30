@@ -25,7 +25,10 @@ import prerna.util.Utility;
 
 public final class OUSDPlaysheetHelper {
 
-	protected static final Logger LOGGER = LogManager.getLogger(OUSDPlaysheetHelper.class.getName());
+	protected static final Logger logger = LogManager.getLogger(OUSDPlaysheetHelper.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+	private static final String NO_PLAY_SHEET = "No such PlaySheet: ";
 
 	private OUSDPlaysheetHelper(){
 
@@ -37,31 +40,37 @@ public final class OUSDPlaysheetHelper {
 		try {
 			playSheet = (TablePlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException ex) {
-			ex.printStackTrace();
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-		} catch (IllegalAccessException e) {
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (NoSuchMethodException e) {
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(STACKTRACE, ex);
+			logger.fatal(NO_PLAY_SHEET+ playSheetClassName);
+		} catch (InstantiationException ie) {
+			logger.error(STACKTRACE, ie);
+			logger.fatal(NO_PLAY_SHEET+ playSheetClassName);
+		} catch (IllegalAccessException iae) {
+			logger.error(STACKTRACE, iae);
+			logger.fatal(NO_PLAY_SHEET+ playSheetClassName);
+		} catch (IllegalArgumentException iare) {
+			logger.error(STACKTRACE, iare);
+			logger.fatal(NO_PLAY_SHEET+ playSheetClassName);
+		} catch (InvocationTargetException ite) {
+			logger.error(STACKTRACE, ite);
+			logger.fatal(NO_PLAY_SHEET+ playSheetClassName);
+		} catch (NoSuchMethodException nsme) {
+			logger.error(STACKTRACE, nsme);
+			logger.fatal(NO_PLAY_SHEET+ playSheetClassName);
+		} catch (SecurityException se) {
+			logger.error(STACKTRACE, se);
+			logger.fatal(NO_PLAY_SHEET+ playSheetClassName);
 		}
+
+		if (playSheet == null) {
+			throw new NullPointerException("playSheet can't be null here.");
+		}
+
 		playSheet.setDataMaker(dataFrame);
 		playSheet.setQuestionID(questionNumber);
 		playSheet.setTitle(title);
 		playSheet.processQueryData();
+
 		return (Hashtable) playSheet.getDataMakerOutput();
 	}
 
@@ -82,7 +91,7 @@ public final class OUSDPlaysheetHelper {
 		for(String engine: engines){
 			if(engine == null || engine.isEmpty()){
 				continue;
-			}else if(!engine.contains(costDbName)){
+			} else if(!engine.contains(costDbName)) {
 				continue;
 			}
 
@@ -91,13 +100,12 @@ public final class OUSDPlaysheetHelper {
 			if(highestVersion == null || highestVersion.compareToIgnoreCase(versionId) < 0){
 				highestVersion = versionId;
 				updatedEngine = engine;
-			}else{
+			} else {
 				continue;
 			}
 		}
 
 		return updatedEngine;
-
 	}
 
 	/**
@@ -108,14 +116,14 @@ public final class OUSDPlaysheetHelper {
 	 */
 	public static Map<String, List<String>> mapSetup(List<Object[]> table, Integer keyIdx, Integer valueIdx){
 
-		Map<String, List<String>> returnMap = new HashMap<String, List<String>>();
+		Map<String, List<String>> returnMap = new HashMap<>();
 		for(Object[] row: table){
 			String key = row[keyIdx].toString();
 			String value = row[valueIdx].toString();
 			if(returnMap.keySet().contains(key)){
 				returnMap.get(key).add(value);					
 			}else{
-				List<String> newList = new ArrayList<String>();
+				List<String> newList = new ArrayList<>();
 				newList.add(value);
 				returnMap.put(key, newList);
 			}
@@ -125,7 +133,7 @@ public final class OUSDPlaysheetHelper {
 
 	public static Object[] createSysLists(List<String> returnList){
 		String sysBindingsString = "";
-		List<String> sysArray = new ArrayList<String>();
+		List<String> sysArray = new ArrayList<>();
 		for(String system: returnList){
 			if(!sysArray.contains(system)){
 				sysBindingsString = sysBindingsString + "(<http://semoss.org/ontologies/Concept/System/" + system + ">)";
@@ -144,7 +152,7 @@ public final class OUSDPlaysheetHelper {
 	 */
 	public static String bluBindingStringMaker(Map<String, List<String>> bluMap){
 		String bluBindingString = "";
-		List<String> bluArray = new ArrayList<String>();
+		List<String> bluArray = new ArrayList<>();
 
 		for(String blu: bluMap.keySet()){
 			if(!bluArray.contains(blu)){
@@ -164,14 +172,14 @@ public final class OUSDPlaysheetHelper {
 	 */
 	public static Map<String, List<String>> systemToGranularBLU(List<Object[]> bluData, Map<String, List<String>> dataMap, Map<String, List<String>> bluMap){
 
-		Map<String, List<String>> granularReturnMap = new HashMap<String, List<String>>();
+		Map<String, List<String>> granularReturnMap = new HashMap<>();
 		for(Object[] row: bluData){
 			String blu = Utility.getInstanceName(row[0].toString());
 			String dataObj = Utility.getInstanceName(row[1].toString());
 
-			List<String> bluValues = new ArrayList<String>();
-			List<String> dataValues = new ArrayList<String>();
-			List<String> systems = new ArrayList<String>();
+			List<String> bluValues = new ArrayList<>();
+			List<String> dataValues = new ArrayList<>();
+			List<String> systems = new ArrayList<>();
 
 			if(bluMap.keySet().contains(blu)){
 				bluValues = bluMap.get(blu);
@@ -203,9 +211,9 @@ public final class OUSDPlaysheetHelper {
 
 	public static OUSDTimeline buildTimeline(IEngine engine, String timelineName, String owner) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
 
-		timelineName = timelineName.toUpperCase().replaceAll(" ", "_");
+		timelineName = timelineName.toUpperCase().replace(" ", "_");
 
-		String timelineClassName = (String) engine.getProperty(timelineName);
+		String timelineClassName = engine.getProperty(timelineName);
 
 		Class<?> timeClass = Class.forName(timelineClassName);
 		ITimelineGenerator time = (ITimelineGenerator) timeClass.newInstance();
@@ -227,19 +235,20 @@ public final class OUSDPlaysheetHelper {
 
 	private static OUSDTimeline fillTimeline(OUSDTimeline timeline, IEngine engine, String owner){
 
-		List<String> systemList = new ArrayList<String>();
+		List<String> systemList = new ArrayList<>();
 
-		Map<String, Double> sysBudget = new HashMap<String, Double>();
-		Map<String, List<String>> bluMap = new HashMap<String, List<String>>();
-		Map<String, List<String>> dataSystemMap = new HashMap<String, List<String>>();
-		Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>();
-		Map<String, List<List<String>>> sdsMap = new HashMap<String, List<List<String>>>();
-		Map<String, List<String>> targetMap = new HashMap<String, List<String>>();
+		Map<String, Double> sysBudget = new HashMap<>();
+		Map<String, List<String>> bluMap = new HashMap<>();
+		Map<String, List<String>> dataSystemMap = new HashMap<>();
+		Map<String, List<String>> granularBLUMap = new HashMap<>();
+		Map<String, List<List<String>>> sdsMap = new HashMap<>();
+		Map<String, List<String>> targetMap = new HashMap<>();
+		List<String> owners = new ArrayList<>();
 
-		List<String> owners = new ArrayList<String>();
 		if(owner == null){
 			owner = "DFAS";
 		}
+
 		owners.add(owner);
 		List<String> osystems = OUSDQueryHelper.getSystemsByOwners(engine, owners);
 
@@ -303,7 +312,7 @@ public final class OUSDPlaysheetHelper {
 		calc.setGroupData((Map<String, List<String>>)groupData[0], (Map<String, List<String>>)groupData[1], (List<String>)groupData[2]);
 		calc.setFailure(failureRate);
 
-		List<String> systemList = new ArrayList<String>();
+		List<String> systemList = new ArrayList<>();
 		for(String system: sysList){
 			systemList.add(system);
 		}
@@ -313,8 +322,8 @@ public final class OUSDPlaysheetHelper {
 
 		Map<String, Map<String, List<String>>> bluDataSystemMap = OUSDPlaysheetHelper.combineMaps(activityDataSystemMap, activityBluSystemMap);
 
-		List<String> decomList = new ArrayList<String>();
-		List<Double> treeList = new ArrayList<Double>();
+		List<String> decomList = new ArrayList<>();
+		List<Double> treeList = new ArrayList<>();
 		calc.setBluMap(bluDataSystemMap);
 		calc.setData(systemList);
 
@@ -327,7 +336,7 @@ public final class OUSDPlaysheetHelper {
 					treeMax = value;
 				}
 			}
-			//			this.treeMax = (double) ((1)/(1 - treeMax));
+			// this.treeMax = (double) ((1)/(1 - treeMax));
 			treeList.add(treeMax);
 			timeline.setTreeMaxList(treeList);
 			List<String> updatedSystems = systemList;
@@ -347,7 +356,7 @@ public final class OUSDPlaysheetHelper {
 				List<String> systems = bluDataSystem.get(bluData);
 				for(String system: systems){
 					if(decomList.contains(system)){
-						List<String> updatedSystems = new ArrayList<String>(systems);
+						List<String> updatedSystems = new ArrayList<>(systems);
 						updatedSystems.remove(system);
 						systems = updatedSystems;
 						bluDataSystem.put(bluData, updatedSystems);
@@ -360,7 +369,7 @@ public final class OUSDPlaysheetHelper {
 	}
 
 	public static Map<String, Map<String, List<String>>> combineMaps(Map<String, Map<String, List<String>>> mapOne, Map<String, Map<String, List<String>>> mapTwo){
-		Map<String, Map<String, List<String>>> combinedMap = new HashMap<String, Map<String, List<String>>>();
+		Map<String, Map<String, List<String>>> combinedMap = new HashMap<>();
 		combinedMap.putAll(mapOne);
 		for(String key : mapTwo.keySet()) {
 			Map<String, List<String>> subMapTwo = mapTwo.get(key);

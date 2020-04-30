@@ -95,7 +95,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		String engineName = (String)list.getSelectedValue();
 
-		Map<String, List<Object>> paramHash = new HashMap<String, List<Object>>();
+		Map<String, List<Object>> paramHash = new HashMap<>();
 		OldInsight insight = null;
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
@@ -104,7 +104,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		// 2. Not custom; Yes overlay ---- get new insight, get dmc from that insight, set dmc in stored insight
 		// 3. Yes custom; Not overlay ---- create new insight, create dmc, set in new insight
 		// 4. Yes custom; Yes overlay ---- create dmc, set in stored insight
-		Vector<DataMakerComponent> dmcList = new Vector<DataMakerComponent>();
+		Vector<DataMakerComponent> dmcList = new Vector<>();
 
 		if (appendBtn.isSelected()) { // if it is overlay, we will be setting a dmc into the stored insight to run
 			logger.debug("Appending ");
@@ -164,8 +164,8 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 	}
 	
 	private Map<String, List<Object>> getParamHash(){
-		Map<String, List<Object>> paramHash = new HashMap<String, List<Object>>();
-		//get Swing UI and set ParamHash";
+		Map<String, List<Object>> paramHash = new HashMap<>();
+		// get Swing UI and set ParamHash;
 		JPanel panel = (JPanel) DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
 		// get the currently visible panel
 		Component[] comps = panel.getComponents();
@@ -175,17 +175,19 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 			if (comps[compIndex].isVisible())
 				curPanel = (JComponent) comps[compIndex];
 		// get all the param field
-		Component[] fields = curPanel.getComponents();
-		for (int compIndex = 0; compIndex < fields.length; compIndex++) {
-			if (fields[compIndex] instanceof ParamComboBox) {
-				String fieldName = ((ParamComboBox) fields[compIndex]).getParamName();
-				String fieldValue = ((ParamComboBox) fields[compIndex]).getSelectedItem() + "";
-				String uriFill = ((ParamComboBox) fields[compIndex]).getURI(fieldValue);
-				if (uriFill == null)
-					uriFill = fieldValue;
-				List<Object> uriFillList = new ArrayList<Object>();
-				uriFillList.add(uriFill);
-				paramHash.put(fieldName, uriFillList);
+		if (curPanel != null) {
+			Component[] fields = curPanel.getComponents();
+			for (int compIndex = 0; compIndex < fields.length; compIndex++) {
+				if (fields[compIndex] instanceof ParamComboBox) {
+					String fieldName = ((ParamComboBox) fields[compIndex]).getParamName();
+					String fieldValue = ((ParamComboBox) fields[compIndex]).getSelectedItem() + "";
+					String uriFill = ((ParamComboBox) fields[compIndex]).getURI(fieldValue);
+					if (uriFill == null)
+						uriFill = fieldValue;
+					List<Object> uriFillList = new ArrayList<>();
+					uriFillList.add(uriFill);
+					paramHash.put(fieldName, uriFillList);
+				}
 			}
 		}
 		return paramHash;
@@ -197,14 +199,14 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		if( ((OldInsight) ((AbstractEngine)engine).getInsight(insightString).get(0)).getOutput().equals("Unknown")){
 			insightString = insightStringSplit[1];
 		}
-		OldInsight selectedInsight = (OldInsight) engine.getInsight(insightString).get(0);
-		return selectedInsight;
+
+		return (OldInsight) engine.getInsight(insightString).get(0);
 	}
 	
 	private DataMakerComponent createDMC(String engineName){
 		String query = ((JTextArea) DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD)).getText();
-		DataMakerComponent dmc = new DataMakerComponent(engineName, query);
-		return dmc;
+
+		return new DataMakerComponent(engineName, query);
 	}
 	
 	private String getPlaySheetString(){

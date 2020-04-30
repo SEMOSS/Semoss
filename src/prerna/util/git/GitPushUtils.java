@@ -132,12 +132,15 @@ public class GitPushUtils {
 			return;
 		}
 		Git thisGit = null;
+		AddCommand ac = null;
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
 			logger.error(STACKTRACE, e);
 		}
-		AddCommand ac = thisGit.add();
+		if (thisGit != null) {
+			ac = thisGit.add();
+		}
 		for(File f : files) {
 			String daFile = f.getAbsolutePath();
 			if(daFile.contains("version")) {
@@ -151,7 +154,10 @@ public class GitPushUtils {
 		} catch (GitAPIException e) {
 			logger.error(STACKTRACE, e);
 		}
-		thisGit.close();
+
+		if (thisGit != null) {
+			thisGit.close();
+		}
 	}
 	
 	@Deprecated

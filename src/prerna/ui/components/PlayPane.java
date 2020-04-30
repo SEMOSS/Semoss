@@ -129,8 +129,11 @@ import prerna.util.DIHelper;
  * The playpane houses all of the components that create the user interface in SEMOSS.
  */
 public class PlayPane extends JFrame {
-	static final Logger logger = LogManager.getLogger(PlayPane.class.getName());
-	
+
+	static final Logger logger = LogManager.getLogger(PlayPane.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	// Left Control Panel Components
 	public JComboBox perspectiveSelector, questionSelector, playSheetComboBox;
 	public JPanel paramPanel;
@@ -372,7 +375,6 @@ public class PlayPane extends JFrame {
 		
 		// run through the view components
 		for (int fieldIndex = 0; fieldIndex < fields.length; fieldIndex++) {
-			// logger.info(fields[fieldIndex].getName());
 			Object obj = fields[fieldIndex].get(this);
 			logger.debug("Object set to " + obj);
 			String fieldName = fields[fieldIndex].getName();
@@ -418,12 +420,12 @@ public class PlayPane extends JFrame {
 							((JTextPane) obj).addFocusListener((FocusListener) listener);
 						else
 							((JInternalFrame) obj).addInternalFrameListener((InternalFrameListener) listener);
-						System.out.println(ctrlName + ":" + listener);
+						logger.info(ctrlName + ":" + listener);
 						DIHelper.getInstance().setLocalProperty(ctrlName, listener);
 					}
 				}
 			}
-			System.out.println(fieldName + ":" + obj);
+			logger.info(fieldName + ":" + obj);
 			logger.debug("Loading <" + fieldName + "> <> " + obj);
 			DIHelper.getInstance().setLocalProperty(fieldName, obj);
 		}
@@ -586,16 +588,19 @@ public class PlayPane extends JFrame {
 			}
 			releaseNotesData = releaseNotesData + "";
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			try {
 				if (releaseNotesTextReader != null)
 					releaseNotesTextReader.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
-		releaseNotesTextReader.close();
+
+		if (releaseNotesTextReader != null) {
+			releaseNotesTextReader.close();
+		}
 		
 		JPanel imExPanel = new JPanel();
 		imExPanel.setBackground(SystemColor.control);

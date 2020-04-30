@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.cache.InsightCacheUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -15,6 +18,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.OpenInsightReactor;
 
 public class ReloadInsightReactor extends OpenInsightReactor {
+
+	private static final Logger logger = LogManager.getLogger(ReloadInsightReactor.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	@Override
 	public NounMetadata execute() {
@@ -43,7 +50,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 				}
 			} catch (IOException | RuntimeException e) {
 				hasCache = true;
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		
@@ -61,7 +68,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 			} catch (IOException | RuntimeException e) {
 				InsightCacheUtility.deleteCache(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId());
 				additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		
@@ -72,24 +79,25 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 				try {
 					InsightCacheUtility.cacheInsight(this.insight, getCachedRecipeVariableExclusion(runner));
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		} else {
 			// this means the cache worked!
 			// lets swap the insight with the cached one
-			
-			// set user 
-			cachedInsight.setUser(this.insight.getUser());
-			// add the insight to the insight store
-			this.insight = cachedInsight;
-			InsightStore.getInstance().put(this.insight);
-			InsightStore.getInstance().addToSessionHash(getSessionId(), this.insight.getInsightId());
-			this.insight.setUser(this.insight.getUser());
+			// set user
+			if (cachedInsight != null && this.insight != null) {
+				cachedInsight.setUser(this.insight.getUser());
+				// add the insight to the insight store
+				this.insight = cachedInsight;
+				InsightStore.getInstance().put(this.insight);
+				InsightStore.getInstance().addToSessionHash(getSessionId(), this.insight.getInsightId());
+				this.insight.setUser(this.insight.getUser());
+			}
 		}
 		
 		// return the recipe steps
-		Map<String, Object> runnerWraper = new HashMap<String, Object>();
+		Map<String, Object> runnerWraper = new HashMap<>();
 		runnerWraper.put("runner", runner);
 		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
 		if(additionalMeta != null) {

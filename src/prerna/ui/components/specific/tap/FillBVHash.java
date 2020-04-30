@@ -176,7 +176,7 @@ public class FillBVHash implements Runnable{
 				String var1 = Utility.getInstanceName(sjss.getVar(names[1])+"");
 				String var2 = Utility.getInstanceName(sjss.getVar(names[2])+"").replaceAll("\"", "");*/
 				//if BP/Act, need to get the necessary properties associated with the BP
-				if(key.equals("BusinessProcess/Activity")&&(sjss.getVar(names[3]) instanceof String)){
+				if(key != null && key.equals("BusinessProcess/Activity") && (sjss.getVar(names[3]) instanceof String)){
 					//String var3 = Utility.getInstanceName(sjss.getVar(names[3])+"");
 					String var3 = sjss.getVar(names[3]).toString();
 					double[] propArray = bpPropHash.get(var3);
