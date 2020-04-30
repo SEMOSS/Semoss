@@ -20,7 +20,9 @@ import prerna.util.Utility;
 
 public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelectWrapper {
 
-	private static final Logger LOGGER = LogManager.getLogger(RawJenaSelectWrapper.class.getName());
+	private static final Logger logger = LogManager.getLogger(RawJenaSelectWrapper.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	private ResultSet rs = null;
 
 	@Override
@@ -90,10 +92,10 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 
 	private Object getRealValue(RDFNode node){
 		if(node.isAnon()) {
-			LOGGER.debug("Ok.. an anon node");
+			logger.debug("Ok.. an anon node");
 			return Utility.getNextID();
 		} else {
-			LOGGER.debug("Raw data JENA For Column ");
+			logger.debug("Raw data JENA For Column ");
 			return Utility.getInstanceName(node + "");
 		}
 	}
@@ -118,7 +120,7 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 					}
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				this.types = new SemossDataType[this.numColumns];
 				for(int i = 0; i < this.numColumns; i++) {
 					this.types[i] = SemossDataType.STRING;
@@ -130,7 +132,6 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 
 	@Override
 	public void cleanUp() {
-		// TODO Auto-generated method stub
 		// there is no close on this rs object...
 	}
 	
@@ -138,19 +139,19 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	public long getNumRows() {
 		if(this.numRows == 0) {
 			String query = "select count(*) where { " + this.query + "}";
-			ResultSet rs = null;
+			ResultSet resultSet = null;
 			try {
-				rs = (ResultSet) engine.execQuery(query);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			if(rs.hasNext()) {
-				QuerySolution row = rs.next();
-				RDFNode node = row.get("count");
-				Object cleanValue = getRealValue(node);
-				if(cleanValue instanceof Number) {
-					this.numRows = ((Number) cleanValue).longValue();
+				resultSet = (ResultSet) engine.execQuery(query);
+				if(resultSet != null && resultSet.hasNext()) {
+					QuerySolution row = resultSet.next();
+					RDFNode node = row.get("count");
+					Object cleanValue = getRealValue(node);
+					if(cleanValue instanceof Number) {
+						this.numRows = ((Number) cleanValue).longValue();
+					}
 				}
+			} catch (Exception e) {
+				logger.error(STACKTRACE, e);
 			}
 		}
 		return this.numRows;

@@ -31,16 +31,17 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class RdbmsFrameBuilder {
 
-	private static final String CLASS_NAME = RdbmsFrameBuilder.class.getName();
-	private Logger logger = LogManager.getLogger(CLASS_NAME);
-	
+	private Logger logger = LogManager.getLogger(RdbmsFrameBuilder.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	protected Connection conn;
 	protected String schema;
 	protected AbstractSqlQueryUtil queryUtil;
 	
 	// keep track of the indices that exist in the table for optimal speed in sorting
-	protected Map<String, String> columnIndexMap = new Hashtable<String, String>();
-	protected Map<String, String> multiColumnIndexMap = new Hashtable<String, String>();
+	protected Map<String, String> columnIndexMap = new Hashtable<>();
+	protected Map<String, String> multiColumnIndexMap = new Hashtable<>();
 	
 	public RdbmsFrameBuilder(Connection conn, String schema, AbstractSqlQueryUtil util) {
 		this.conn = conn;
@@ -75,7 +76,7 @@ public class RdbmsFrameBuilder {
 				runQuery(createTable);
 			}
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			logger.error(STACKTRACE, ex);
 			create = false;
 		}
 
@@ -86,7 +87,7 @@ public class RdbmsFrameBuilder {
 				runQuery(insert);
 			}
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			logger.error(STACKTRACE, ex);
 		}
 	}
 	
@@ -135,6 +136,9 @@ public class RdbmsFrameBuilder {
 
 				// we need to loop through every value and cast appropriately
 				for (int colIndex = 0; colIndex < nextRow.length; colIndex++) {
+					if (types == null || types[colIndex] == null) {
+						throw new NullPointerException("types array or elements of types array cannot be null here.");
+					}
 					SemossDataType type = types[colIndex];
 					if (type == SemossDataType.INT) {
 						if(nextRow[colIndex] instanceof Number) {
@@ -225,7 +229,7 @@ public class RdbmsFrameBuilder {
 			ps.executeBatch(); // insert any remaining records
 			ps.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -243,7 +247,7 @@ public class RdbmsFrameBuilder {
 			// create the prepared statement using the sql query defined
 			ps = this.conn.prepareStatement(sql);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 
 		return ps;
@@ -265,7 +269,7 @@ public class RdbmsFrameBuilder {
 			// create the prepared statement using the sql query defined
 			ps = this.conn.prepareStatement(sql);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 
 		return ps;
@@ -277,7 +281,7 @@ public class RdbmsFrameBuilder {
 			// create the prepared statement using the sql query defined
 			ps = this.conn.prepareStatement(sql);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 
 		return ps;
@@ -298,8 +302,8 @@ public class RdbmsFrameBuilder {
 		types = this.queryUtil.cleanTypes(types);
 		try {
 			if (this.queryUtil.tableExists(this.conn, tableName, this.schema)) {
-				List<String> newHeaders = new ArrayList<String>();
-				List<String> newTypes = new ArrayList<String>();
+				List<String> newHeaders = new ArrayList<>();
+				List<String> newTypes = new ArrayList<>();
 
 				// determine the new headers and types
 				List<String> currentHeaders = this.queryUtil.getTableColumns(this.conn, tableName, this.schema);
@@ -316,8 +320,8 @@ public class RdbmsFrameBuilder {
 					// if there is an index
 					// definitely get rid of it
 					// or this takes forever on big data
-					List<String[]> indicesToAdd = new Vector<String[]>();
-					Set<String> colIndexMapKeys = new HashSet<String>(this.columnIndexMap.keySet());
+					List<String[]> indicesToAdd = new Vector<>();
+					Set<String> colIndexMapKeys = new HashSet<>(this.columnIndexMap.keySet());
 					for(String tableColConcat : colIndexMapKeys) {
 						// table name and col name are appended together with +++
 						String[] tableCol = tableColConcat.split("\\+\\+\\+");
@@ -351,7 +355,7 @@ public class RdbmsFrameBuilder {
 				logger.info("Finished generating SQL table");
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			logger.error(STACKTRACE, e1);
 		}
 	}
 	
@@ -383,7 +387,7 @@ public class RdbmsFrameBuilder {
 				logger.info("Finished generating indices on SQL Table on column = " + colName);
 			} catch (Exception e) {
 				logger.debug("ERROR WITH INDEX !!! " + indexSql);
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 	}
@@ -404,7 +408,7 @@ public class RdbmsFrameBuilder {
 				logger.info("Finished generating indices on SQL Table on columns = " + StringUtils.join(colNames, ", "));
 			} catch (Exception e) {
 				logger.debug("ERROR WITH INDEX !!! " + multiColIndexName);
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 	}
@@ -417,7 +421,7 @@ public class RdbmsFrameBuilder {
 			try {
 				runQuery(queryUtil.dropIndex(indexName, tableName));
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 	}
@@ -430,16 +434,13 @@ public class RdbmsFrameBuilder {
 			try {
 				runQuery(queryUtil.dropIndex(indexName, tableName));
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 	}
 	
 	public boolean columnIndexed(String tableName, String colName) {
-		if (columnIndexMap.containsKey(tableName + "+++" + colName)) {
-			return true;
-		}
-		return false;
+		return columnIndexMap.containsKey(tableName + "+++" + colName);
 	}
 	
 	public void removeAllIndexes() {
@@ -513,20 +514,20 @@ public class RdbmsFrameBuilder {
 					return false;
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if (rs != null) {
 					try {
 						rs.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 				}
 				if(stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 				}
 			}
@@ -550,20 +551,20 @@ public class RdbmsFrameBuilder {
 				return rs.getInt(1);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(rs != null) {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
@@ -577,7 +578,7 @@ public class RdbmsFrameBuilder {
 	 */
 	private String getRandomValues() {
 		String uuid = UUID.randomUUID().toString();
-		uuid = uuid.replaceAll("-", "_");
+		uuid = uuid.replace("-", "_");
 		// table names will be upper case because that is how it is set in
 		// information schema
 		return uuid.toUpperCase();

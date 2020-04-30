@@ -93,10 +93,9 @@ public class APIReactor extends AbstractQueryStructReactor {
 			String source = "";
 			String operation = "";
 			// may be I can fit all these things into the alias map and call it a day.
-			HashMap map = null;
+			HashMap map = new HashMap();;
 
 			// also need a headersmap
-
 			if (this.getNounStore().getNoun("aliasMap") != null)
 				map = (HashMap) this.getNounStore().getNoun("aliasMap").getNoun(0).getValue();
 
@@ -105,25 +104,23 @@ public class APIReactor extends AbstractQueryStructReactor {
 
 			Properties aliasProp = getAlias(null);
 
-			if (map != null) {
-				Iterator keys = map.keySet().iterator();
-				while (keys.hasNext()) {
-					Object thisKey = keys.next();
-					aliasProp.put(thisKey, map.get(thisKey));
-				}
+			Iterator keys = map.keySet().iterator();
+			while (keys.hasNext()) {
+				Object thisKey = keys.next();
+				aliasProp.put(thisKey, map.get(thisKey));
+			}
 
-				// mandatory input is not there set it
-				if (!aliasProp.containsKey("mandatory_input"))
-					aliasProp.put("mandatory_input", "");
+			// mandatory input is not there set it
+			if (!aliasProp.containsKey("mandatory_input"))
+				aliasProp.put("mandatory_input", "");
 
-				if (engine != null) {
-					engine.setProp(aliasProp);
+			if (engine != null) {
+				engine.setProp(aliasProp);
 
-					String engineName = apiType + Utility.getRandomString(6);
-					qs.setEngineId(engineName);
-					qs.setEngine(engine);
-					engine.setEngineId(engineName);
-				}
+				String engineName = apiType + Utility.getRandomString(6);
+				qs.setEngineId(engineName);
+				qs.setEngine(engine);
+				engine.setEngineId(engineName);
 			}
 		}
 	}

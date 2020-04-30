@@ -13,6 +13,9 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.om.Insight;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -31,6 +34,8 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class PixelRunner {
 
+	private static final Logger logger = LogManager.getLogger(PixelRunner.class);
+
 	/**
 	 * Runs a given pixel expression (can be multiple if semicolon delimited) on a provided data maker 
 	 * @param expression			The sequence of semicolon delimited pixel expressions.
@@ -39,12 +44,12 @@ public class PixelRunner {
 	 */
 	
 	protected Insight insight = null;
-	protected List<NounMetadata> results = new Vector<NounMetadata>();
-	protected List<String> pixelExpression = new Vector<String>();
-	protected List<Boolean> isMeta = new Vector<Boolean>();
+	protected List<NounMetadata> results = new Vector<>();
+	protected List<String> pixelExpression = new Vector<>();
+	protected List<Boolean> isMeta = new Vector<>();
 	
-	protected List<String> encodingList = new Vector<String>();
-	protected Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
+	protected List<String> encodingList = new Vector<>();
+	protected Map<String, String> encodedTextToOriginal = new HashMap<>();
 	
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
@@ -66,7 +71,7 @@ public class PixelRunner {
 			// we only need to catch invalid syntax here
 			// other exceptions are caught in lazy translation
 			trackInvalidSyntaxError(expression, e);
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 			String eMessage = e.getMessage();
 			if(eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -82,9 +87,11 @@ public class PixelRunner {
 			addInvalidSyntaxResult(expression, new NounMetadata(eMessage, PixelDataType.INVALID_SYNTAX, PixelOperationType.ERROR, PixelOperationType.INVALID_SYNTAX), false);
 		} finally {
 			// help clean up
-			PixelPlanner planner = translation.getPlanner();
-			planner.dropGraph();
-			planner.getVarStore().remove("$RESULT");
+			if (translation != null) {
+				PixelPlanner planner = translation.getPlanner();
+				planner.dropGraph();
+				planner.getVarStore().remove("$RESULT");
+			}
 			this.encodingList.clear();
 			this.encodedTextToOriginal.clear();
 		}
@@ -196,7 +203,7 @@ public class PixelRunner {
 	public static void main(String[] args) throws Exception {
 		String pixel = "A = 10; B = \"Apple\";";
 		List<String> x = parsePixel(pixel);
-		System.out.println(x);
+		logger.info(x);
 	}
 	
 	/**
@@ -217,7 +224,7 @@ public class PixelRunner {
 			pixelList.add(script.toString());
 		}
 		return pixelList;
-	}	
+	}
 	
 	/**
 	 * 

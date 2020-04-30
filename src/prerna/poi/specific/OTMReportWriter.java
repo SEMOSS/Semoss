@@ -66,11 +66,12 @@ import prerna.util.Utility;
  */
 public class OTMReportWriter {
 
-	static final Logger logger = LogManager.getLogger(OTMReportWriter.class.getName());
+	private static final Logger logger = LogManager.getLogger(OTMReportWriter.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private XSSFWorkbook wb;
-
 	private static String fileLoc = "";
 	private static String templateLoc = "";
 
@@ -119,10 +120,8 @@ public class OTMReportWriter {
 	 * 
 	 * @return boolean True if System has a workbook
 	 */
-	public boolean hasWorkbook()
-	{
-		if(wb == null) return false;
-		return true;
+	public boolean hasWorkbook() {
+		return wb != null;
 	}
 
 	/**
@@ -138,7 +137,7 @@ public class OTMReportWriter {
 			success = true;
 		} catch (Exception ex) {
 			success = false;
-			ex.printStackTrace();
+			logger.error(STACKTRACE, ex);
 		}
 		return success;
 	}
@@ -202,7 +201,7 @@ public class OTMReportWriter {
 		fList = sortArrayList(fList, 1);
 		rList = sortArrayList(rList, 1);
 		
-		ArrayList<Object[]> cList = new ArrayList<Object[]>();
+		ArrayList<Object[]> cList = new ArrayList<>();
 		boolean finished = false;
 		int f = 0;
 		int r = 0;
@@ -218,7 +217,6 @@ public class OTMReportWriter {
 			{
 				//Add rList Element
 				Object[] rRowValues = rList.get(r);
-				//System.out.println( "Only R Left\nrSystem:" +(String)rRowValues[1]);
 				Object[] cRowValues = new Object[5];
 				cRowValues[0] = rRowValues[0];
 				cRowValues[1] = rRowValues[1];
@@ -232,7 +230,6 @@ public class OTMReportWriter {
 			{
 				//Add fList Element
 				Object[] fRowValues = fList.get(f);
-				//System.out.println( "Only F Left\nfSystem:" +(String)fRowValues[1]);
 				Object[] cRowValues = new Object[5];
 				cRowValues[0] = fRowValues[0];
 				cRowValues[1] = fRowValues[1];
@@ -247,11 +244,8 @@ public class OTMReportWriter {
 				Object[] rRowValues = rList.get(r);
 				Object[] fRowValues = fList.get(f);
 				Object[] cRowValues = new Object[5];
-				//System.out.println( "fSystem:" +(String)fRowValues[1]);
-				//System.out.println( "rSystem:" +(String)rRowValues[1]);
 				if( ((String)rRowValues[1]).compareToIgnoreCase((String)fRowValues[1]) == 0 ) //Same System
 				{
-					//System.out.println("Same");
 					cRowValues[0] = fRowValues[0];
 					cRowValues[1] = fRowValues[1];
 					cRowValues[2] = fRowValues[2];
@@ -262,7 +256,6 @@ public class OTMReportWriter {
 				}
 				else if( ((String)rRowValues[1]).compareToIgnoreCase((String)fRowValues[1]) < 0 ) //rlist < flist
 				{
-					//System.out.println("r<");
 					//add rList Element
 					cRowValues[0] = rRowValues[0];
 					cRowValues[1] = rRowValues[1];
@@ -273,7 +266,6 @@ public class OTMReportWriter {
 				}
 				else //String 1 > String 2
 				{
-					//System.out.println("f<");
 					cRowValues[0] = fRowValues[0];
 					cRowValues[1] = fRowValues[1];
 					cRowValues[2] = fRowValues[2];
@@ -286,11 +278,10 @@ public class OTMReportWriter {
 			}
 		}
 		
-		HashMap<String, Object> dataHash = new HashMap<String, Object>();
+		HashMap<String, Object> dataHash = new HashMap<>();
 		dataHash.put(DHMSMTransitionUtility.DATA_KEY, cList);
+
 		writeListSheet(sheetName, dataHash, 1);
-		
-		
 	}
 	
 	/**
@@ -308,22 +299,18 @@ public class OTMReportWriter {
 		ArrayList<Object[]> sysList = (ArrayList<Object[]>)sysInfo.get(DHMSMTransitionUtility.DATA_KEY);
 		dataList = sortArrayList(dataList, 0);
 		sysList = sortArrayList(sysList, 0);
-		//printArrayList(sysList);
 		sysList = deleteDuplicates(sysList,0);
-		//printArrayList(sysList);
-		//System.out.println("Sheet Name: " + sheetToWriteOver.getSheetName() );
 
 		int rowToStart = 3;
 		int wave = 255;
 		int year = 0;
-		int IOCyear = 0;
+		int iocYear = 0;
 		int quarter = 0;
-		int IOCquarter = 0;
+		int iocQuarter = 0;
 		
 		XSSFRow rowToWriteOn = null;
 		XSSFCell cellToWriteOn = null;
-		//System.out.println("DataList.size: " + dataList.size());
-		
+
 		//Find IOC Wave
 		boolean flag = true;
 		int x = 0;
@@ -332,8 +319,8 @@ public class OTMReportWriter {
 			Object[] resultRowValues = dataList.get(x);
 			if( resultRowValues[1].equals("IOC"))
 			{
-				IOCquarter = Integer.parseInt((String)resultRowValues[2]);
-				IOCyear = Integer.parseInt((String)resultRowValues[3]);
+				iocQuarter = Integer.parseInt((String)resultRowValues[2]);
+				iocYear = Integer.parseInt((String)resultRowValues[3]);
 				flag = false;
 			}
 			x++;
@@ -357,9 +344,9 @@ public class OTMReportWriter {
 				cellToWriteOn = rowToWriteOn.createCell(1);
 				printToCell( "IOC", cellToWriteOn, myStyles.get("rightStyle") );
 				cellToWriteOn = rowToWriteOn.createCell(2);
-				printToCell(IOCquarter, cellToWriteOn);
+				printToCell(iocQuarter, cellToWriteOn);
 				cellToWriteOn = rowToWriteOn.createCell(3);
-				printToCell(IOCyear, cellToWriteOn);
+				printToCell(iocYear, cellToWriteOn);
 			}
 			else if( row >= 0)
 			{
@@ -431,8 +418,7 @@ public class OTMReportWriter {
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get(DHMSMTransitionUtility.DATA_KEY);
 		dataList = sortArrayList(dataList, 0);
-		//System.out.println("Sheet Name: " + sheetToWriteOver.getSheetName() );
-		String LastSystem = "";
+		String lastSystem = "";
 		
 		int rowToStart = 3;
 		int printRow = 0;
@@ -440,48 +426,52 @@ public class OTMReportWriter {
 		boolean initial = true;
 		XSSFRow rowToWriteOn = null;
 		XSSFCell cellToWriteOn = null;
-		//System.out.println("DataList.size: " + dataList.size());
-		for (int row=0; row<dataList.size(); row++) {
+		for (int row = 0; row < dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
 
-			if( LastSystem.compareToIgnoreCase((String)resultRowValues[0]) != 0 )
-			{
-				if(colIncrease == 0 && !initial)
-				{
+			if (lastSystem.compareToIgnoreCase((String) resultRowValues[0]) != 0) {
+				if (colIncrease == 0 && !initial) {
 					colIncrease++;
-					cellToWriteOn = rowToWriteOn.createCell(resultRowValues.length-1+colIncrease);
-					printToCell("", cellToWriteOn);
+					if (rowToWriteOn != null) {
+						cellToWriteOn = rowToWriteOn.createCell(resultRowValues.length - 1 + colIncrease);
+					}
+					if (cellToWriteOn != null) {
+						printToCell("", cellToWriteOn);
+					}
 				}
 				initial = false;
 				colIncrease = 0;
-				rowToWriteOn = sheetToWriteOver.createRow(rowToStart+printRow);
-				for (int col=0; col < resultRowValues.length; col++) 
-				{
+				rowToWriteOn = sheetToWriteOver.createRow(rowToStart + printRow);
+				for (int col = 0; col < resultRowValues.length; col++) {
 					cellToWriteOn = rowToWriteOn.createCell(col);
-					if( col == 4 || col == 5 ) { printToCell(resultRowValues[col], cellToWriteOn, myStyles.get("rightStyle")); }
-					else if( col != 3 ){ printToCell(resultRowValues[col], cellToWriteOn); }
-					else 
-					{
-						if( ((String)resultRowValues[col]).compareTo("Y") == 0)	{printToCell("Central (Single Instance)", cellToWriteOn);}
-						else { printToCell("Local (Multiple Instances)", cellToWriteOn);}
-								
+					if (col == 4 || col == 5) {
+						printToCell(resultRowValues[col], cellToWriteOn, myStyles.get("rightStyle"));
+					} else if (col != 3) {
+						printToCell(resultRowValues[col], cellToWriteOn);
+					} else {
+						if (((String) resultRowValues[col]).compareTo("Y") == 0) {
+							printToCell("Central (Single Instance)", cellToWriteOn);
+						} else {
+							printToCell("Local (Multiple Instances)", cellToWriteOn);
+						}
+
 					}
 				}
 				printRow++;
-				LastSystem = (String)resultRowValues[0];
-			}
-			else
-			{
+				lastSystem = (String) resultRowValues[0];
+			} else {
 				colIncrease++;
-				cellToWriteOn = rowToWriteOn.createCell(resultRowValues.length-1+colIncrease);
-				printToCell(resultRowValues[resultRowValues.length-1], cellToWriteOn);
+				if (rowToWriteOn != null) {
+					cellToWriteOn = rowToWriteOn.createCell(resultRowValues.length - 1 + colIncrease);
+				}
+				printToCell(resultRowValues[resultRowValues.length - 1], cellToWriteOn);
 			}
 		}
 	}
 	
 	private ArrayList<Object[]> deleteDuplicates( ArrayList<Object[]> inList, int column )
 	{
-		ArrayList<Object[]> outList = new ArrayList<Object[]>();
+		ArrayList<Object[]> outList = new ArrayList<>();
 		String current = "";
 		for( int i = 0; i < inList.size(); i++ )
 		{
@@ -503,7 +493,7 @@ public class OTMReportWriter {
 	 */
 	private ArrayList<Object[]> sortArrayList( ArrayList<Object[]> inList, int column )
 	{
-		ArrayList<Object[]> outList = new ArrayList<Object[]>();
+		ArrayList<Object[]> outList = new ArrayList<>();
 		
 		//Sorting Loops
 		for( int i = 0; i < inList.size(); i++)
@@ -526,7 +516,7 @@ public class OTMReportWriter {
 			outList.add(index, row);
 		}
 		//Warn if size has diminished
-		if(outList.size() != inList.size())	{System.out.println("Warning: Data Lost in Single Column Sort");}
+		if(outList.size() != inList.size())	{logger.warn("Warning: Data Lost in Single Column Sort");}
 		return outList;
 	}
 	
@@ -541,9 +531,9 @@ public class OTMReportWriter {
 	private ArrayList<Object[]> sortArrayList( ArrayList<Object[]> inList, int column1, int column2 )
 	{
 		//Dimension needed array Lists
-		ArrayList<Object[]> outList = new ArrayList<Object[]>();
-		ArrayList<Object[]> primList = new ArrayList<Object[]>();
-		ArrayList<Object[]> secList = new ArrayList<Object[]>();
+		ArrayList<Object[]> outList = new ArrayList<>();
+		ArrayList<Object[]> primList = null;
+		ArrayList<Object[]> secList = new ArrayList<>();
 		//Sort the array list by the primary column
 		primList = sortArrayList(inList, column1);
 		
@@ -553,14 +543,14 @@ public class OTMReportWriter {
 			Object[] row = primList.get(i);
 			if( ((String)row[column1]).compareTo(current) !=0 )//Different
 			{
-				if( secList.size() != 0 )
+				if( !secList.isEmpty() )
 				{
 					//Sort sec Arraylist by Secondary Column
 					secList = sortArrayList(secList,column2);
 					//Add Elements to outList
 					outList.addAll(secList);
 					//Clear secList
-					secList = new ArrayList<Object[]>();
+					secList = new ArrayList<>();
 				}
 				//Set current primary column value
 				current = (String)row[column1];
@@ -580,7 +570,7 @@ public class OTMReportWriter {
 		outList.addAll(secList);
 		
 		//Warn if size has diminished
-		if(outList.size() != inList.size())	{System.out.println("Warning: Data Lost in Double Column Sort");}
+		if(outList.size() != inList.size())	{logger.warn("Warning: Data Lost in Double Column Sort");}
 		return outList;
 	}
 	
@@ -597,11 +587,10 @@ public class OTMReportWriter {
 			Object[] row = inList.get(i);
 			for( int j = 0; j < row.length; j++)
 			{
-				
-				System.out.print(row[j]+ "\t");
+				logger.info(row[j]+ "\t");
 			}
 			//Add a new line character at the end of a arraylist print
-			System.out.print("\n");
+			logger.info("\n");
 		}
 	}
 	
@@ -641,7 +630,7 @@ public class OTMReportWriter {
 		else if(objectToWrite instanceof Integer)
 			cellToWriteOn.setCellValue((Integer)objectToWrite);
 		else
-			cellToWriteOn.setCellValue(((String)objectToWrite).replaceAll("\"", "").replaceAll("_"," "));	
+			cellToWriteOn.setCellValue(((String)objectToWrite).replaceAll("\"", "").replace("_"," "));	
 	}
 	
 	private void printToCell( Object objectToWrite, XSSFCell cellToWriteOn)
@@ -658,7 +647,7 @@ public class OTMReportWriter {
 		}
 		else
 		{
-			cellToWriteOn.setCellValue(((String)objectToWrite).replaceAll("\"", "").replaceAll("_"," "));
+			cellToWriteOn.setCellValue(((String)objectToWrite).replaceAll("\"", "").replace("_"," "));
 			cellToWriteOn.setCellStyle(myStyles.get("normalStyle"));
 		}
 		
@@ -690,7 +679,7 @@ public class OTMReportWriter {
 	 */
 	private void makeStyles(XSSFWorkbook workbook)
 	{
-		myStyles = new Hashtable<String,XSSFCellStyle>();
+		myStyles = new Hashtable<>();
 		XSSFCellStyle headerStyle = createBorderedStyle(workbook);
 		Font boldFont = workbook.createFont();
 		boldFont.setBold(true);

@@ -10,10 +10,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsConnectionHelper {
+
+	private static final Logger logger = LogManager.getLogger(RdbmsConnectionHelper.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	private RdbmsConnectionHelper() {
 
@@ -39,7 +45,7 @@ public class RdbmsConnectionHelper {
 				Class.forName(driver);
 			}
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new SQLException("Unable to find driver for engine type");
 		}
 
@@ -52,7 +58,7 @@ public class RdbmsConnectionHelper {
 				conn = DriverManager.getConnection(connectionUrl, userName, password);
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new SQLException(e.getMessage());
 		}
 
@@ -260,18 +266,18 @@ public class RdbmsConnectionHelper {
 		try {
 			driverName = meta.getDriverName().toLowerCase();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 
 		// in oracle
 		// the datbase/schema/user are all considered the same thing
 		// so here, if we want to filter
 		// we use the user name
-		if(driverName.contains("oracle") || (rdbmsType != null && rdbmsType == RdbmsTypeEnum.ORACLE)) {
+		if((driverName != null && driverName.contains("oracle")) || (rdbmsType != null && rdbmsType == RdbmsTypeEnum.ORACLE)) {
 			try {
 				schema = meta.getUserName();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 
@@ -287,23 +293,23 @@ public class RdbmsConnectionHelper {
 				schema = con.getSchema();
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		//hive doesn't support getURL
-		if(!(rdbmsType==RdbmsTypeEnum.HIVE)){
-		String url = null;
-		try {
-			url = meta.getURL();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-
-		schema = predictSchemaFromUrl(url);
-		if(schema != null) {
-			return schema;
-		}
+		if(rdbmsType != RdbmsTypeEnum.HIVE){
+			String url = null;
+			try {
+				url = meta.getURL();
+			} catch (SQLException e) {
+				logger.error(STACKTRACE, e);
+			}
+			
+	
+			schema = predictSchemaFromUrl(url);
+			if(schema != null) {
+				return schema;
+			}
 		}
 		schema = predictSchemaFromUrl(connectionUrl);
 		if(schema != null) {
@@ -336,13 +342,13 @@ public class RdbmsConnectionHelper {
 					}
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(schemaRs != null) {
 					try {
 						schemaRs.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 				}
 			}
@@ -361,13 +367,13 @@ public class RdbmsConnectionHelper {
 					}
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(catalogRs != null) {
 					try {
 						catalogRs.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 				}
 			}
