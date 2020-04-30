@@ -72,7 +72,7 @@ public class RemoveQueryListener extends SparqlAreaListener {
 
 	// right hand side panel
 	JComponent rightPanel = null;
-	static final Logger logger = LogManager.getLogger(RemoveQueryListener.class.getName());
+	static final Logger logger = LogManager.getLogger(RemoveQueryListener.class);
 
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
@@ -105,9 +105,13 @@ public class RemoveQueryListener extends SparqlAreaListener {
 				if(comps[compIndex].isVisible())
 					curPanel = (JComponent)comps[compIndex];
 
+			if (curPanel == null) {
+				throw new NullPointerException("Current Jcomponent Panel should not be null here.");
+			}
+
 			// get all the param field
 			Component [] fields = curPanel.getComponents();
-			Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+			Map<String, List<Object>> paramHash = new Hashtable<>();
 			String title = " - ";
 			for(int compIndex = 0;compIndex < fields.length;compIndex++)
 			{			
@@ -115,7 +119,7 @@ public class RemoveQueryListener extends SparqlAreaListener {
 				{	
 					String fieldName = ((ParamComboBox)fields[compIndex]).getParamName();
 					String fieldValue = ((ParamComboBox)fields[compIndex]).getSelectedItem() + "";
-					List<Object> fieldList = new ArrayList<Object>();
+					List<Object> fieldList = new ArrayList<>();
 					fieldList.add(fieldValue);
 					paramHash.put(fieldName, fieldList);
 					title = title + " " +  fieldValue;
@@ -205,7 +209,7 @@ public class RemoveQueryListener extends SparqlAreaListener {
 				if(tokens.hasMoreTokens())
 					varType = tokens.nextToken();
 				logger.debug(varName + "<<>>" + varType);
-				List<Object> valList = new ArrayList<Object>();
+				List<Object> valList = new ArrayList<>();
 				valList.add("@" + varName + "@");
 				paramHash.put(key, valList);
 			}

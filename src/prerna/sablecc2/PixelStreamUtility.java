@@ -48,8 +48,9 @@ import prerna.util.insight.InsightUtility;
 
 public class PixelStreamUtility {
 
-	private static final String CLASS_NAME = PixelStreamUtility.class.getName();
-	private static final Logger LOGGER = Logger.getLogger(CLASS_NAME);
+	private static final Logger logger = Logger.getLogger(PixelStreamUtility.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	private static Gson getDefaultGson() {
 		return GsonUtility.getDefaultGson();
@@ -84,13 +85,13 @@ public class PixelStreamUtility {
 					try {
 						ps = new PrintStream(outputStream, true, "UTF-8");
 						// we want to ignore the first index since it will be a job
-						LOGGER.debug("Starting to generate response");
+						logger.debug("Starting to generate response");
 						long start = System.currentTimeMillis();
 						processPixelRunner(ps, gson, runner);
 						long end = System.currentTimeMillis();
-						LOGGER.debug("Time to generate json response = " + (end-start) + "ms");
+						logger.debug("Time to generate json response = " + (end-start) + "ms");
 					} catch(Exception e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					} finally {
 						if(ps != null) {
 							ps.close();
@@ -99,7 +100,7 @@ public class PixelStreamUtility {
 					}
 				}};
 		} catch (Exception e) {
-			LOGGER.error("Failed to write object to stream");
+			logger.error("Failed to write object to stream");
 		}
 		return null;
 	}
@@ -125,7 +126,7 @@ public class PixelStreamUtility {
 						// we want to ignore the first index since it will be a job
 						processPixelRunner(ps, gson, runner);
 					} catch(Exception e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 						// ugh... this is unfortunate
 					} finally {
 						if(ps != null) {
@@ -136,13 +137,15 @@ public class PixelStreamUtility {
 			fos = new FileOutputStream(fileToWrite);
 			output.write(fos);
 		} catch (Exception e) {
-			LOGGER.error("Failed to write object to stream");
+			logger.error("Failed to write object to stream");
 		} finally {
 			try {
-				fos.flush();
-				fos.close();
+				if (fos != null) {
+					fos.flush();
+					fos.close();
+				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		
@@ -164,7 +167,7 @@ public class PixelStreamUtility {
 						ps = new PrintStream(outputStream, true, "UTF-8");
 						processPixelRunnerForTest(ps,gson,runner);
 					} catch(Exception e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					} finally {
 						if(ps != null) {
 							ps.close();
@@ -174,13 +177,15 @@ public class PixelStreamUtility {
 			fos = new FileOutputStream(fileToWrite);
 			output.write(fos);
 		} catch (Exception e) {
-			LOGGER.error("Failed to write object to stream");
+			logger.error("Failed to write object to stream");
 		} finally {
 			try {
-				fos.flush();
-				fos.close();
+				if (fos != null) {
+					fos.flush();
+					fos.close();
+				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		
@@ -321,7 +326,7 @@ public class PixelStreamUtility {
 			// return the table name of the frame
 			// FE needs this to create proper QS
 			// this has no meaning for graphs
-			Map<String, String> frameData = new HashMap<String, String>();
+			Map<String, String> frameData = new HashMap<>();
 			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 			frameData.put("type", FrameFactory.getFrameType(frame));
 			String name = frame.getName();
@@ -414,10 +419,10 @@ public class PixelStreamUtility {
 
 					// try to see if extreme cache is enabled
 					// this can come by the way of pragma as well
-					String X_CACHE = "False";
+					String xCache = "False";
 					String qsPragma = task.getPragma("xCache");
 					if(qsPragma != null) {// try to see if the query is telling you to - obviously the server setting overrides ?
-						X_CACHE = qsPragma;
+						xCache = qsPragma;
 					}
 					
 					// we need to use a try catch
@@ -434,7 +439,7 @@ public class PixelStreamUtility {
 						// if no xcache
 						// just flush out as normal
 						boolean noCache = false;
-						if(X_CACHE.equalsIgnoreCase("False")) {
+						if(xCache.equalsIgnoreCase("False")) {
 							noCache = true;
 						}
 						if(!noCache && task instanceof BasicIteratorTask) {
@@ -537,7 +542,7 @@ public class PixelStreamUtility {
 						}
 					} catch(Exception e) {
 						// on no, this is not good
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 
 						// let us send back an error
 						ps.print("\"output\":");
@@ -626,12 +631,12 @@ public class PixelStreamUtility {
 					}
 					ps.print("}");
 				} else {
-					LOGGER.info("Starting time to convert data to json");
+					logger.info("Starting time to convert data to json");
 					long start = System.currentTimeMillis();
 					ps.print(gson.toJson(noun.getValue()));
 					ps.flush();
 					long end = System.currentTimeMillis();
-					LOGGER.info("Total time to convert to json = " + (end-start) + "ms");
+					logger.info("Total time to convert to json = " + (end-start) + "ms");
 				}
 				ps.print(",\"operationType\":");
 				ps.print(gson.toJson(noun.getOpType()));

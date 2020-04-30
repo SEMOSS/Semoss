@@ -43,7 +43,9 @@ import prerna.sablecc2.translations.ReplaceDatasourceTranslation;
 
 public class PixelUtility {
 
-	private static final Logger LOGGER = LogManager.getLogger(PixelUtility.class.getName());
+	private static final Logger logger = LogManager.getLogger(PixelUtility.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	
 	/**
 	 * 
@@ -57,8 +59,7 @@ public class PixelUtility {
 	 * @throws ParserException 
 	 */
 	public static Set<String> validatePixel(String pixelExpression) throws ParserException, LexerException, IOException {
-		Set<String> set = PixelRunner.validatePixel(pixelExpression);
-		return set;
+		return PixelRunner.validatePixel(pixelExpression);
 	}
 	
 	/**
@@ -88,7 +89,6 @@ public class PixelUtility {
 		if(value instanceof Number) {
 			noun = new NounMetadata(((Number)value).doubleValue(), PixelDataType.CONST_DECIMAL);
 		} else if(value instanceof String) {
-			
 			if(isLiteral((String)value)) {
 				//we have a literal
 				String literal = removeSurroundingQuotes((String)value);
@@ -136,12 +136,12 @@ public class PixelUtility {
 											new ByteArrayInputStream(pixelString.getBytes("UTF-8")), "UTF-8"))));
 			Start tree = p.parse();
 			tree.apply(translation);
-		} catch (ParserException | LexerException | IOException e) {
-			LOGGER.error("FAILED ON :::: " + pixelString);
-			e.printStackTrace();
+		} catch (ParserException | LexerException | IOException ioe) {
+			logger.error("FAILED ON :::: " + pixelString);
+			logger.error(STACKTRACE, ioe);
 		} catch(Exception e) {
-			LOGGER.error("FAILED ON :::: " + pixelString);
-			e.printStackTrace();
+			logger.error("FAILED ON :::: " + pixelString);
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
@@ -230,7 +230,7 @@ public class PixelUtility {
 			tree.apply(translation);
 			return translation.hasParam();
 		} catch (ParserException | LexerException | IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			String eMessage = e.getMessage();
 			if(eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -242,7 +242,7 @@ public class PixelUtility {
 					eMessage += ". Error in syntax around " + pixel.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
 				}
 			}
-			LOGGER.info(eMessage);
+			logger.info(eMessage);
 		}
 		return false;
 	}
@@ -287,7 +287,7 @@ public class PixelUtility {
 			tree.apply(translation);
 			return translation.isDashboard();
 		} catch (ParserException | LexerException | IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			String eMessage = e.getMessage();
 			if(eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -299,7 +299,7 @@ public class PixelUtility {
 					eMessage += ". Error in syntax around " + pixel.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
 				}
 			}
-			LOGGER.info(eMessage);
+			logger.info(eMessage);
 		}
 		return false;
 	}
@@ -327,7 +327,7 @@ public class PixelUtility {
 			ret[1] =translation.getValues();
 			return ret;
 		} catch (ParserException | LexerException | IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -401,11 +401,10 @@ public class PixelUtility {
 			// apply the translation.
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
-		
-		List<Map<String, Object>> sourcePixels = translation.getDatasourcePixels();
-		return sourcePixels;
+
+		return translation.getDatasourcePixels();
 	}
 	
 	/**
@@ -430,7 +429,7 @@ public class PixelUtility {
 			// apply the translation.
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		return translation.getPixels();
@@ -474,7 +473,7 @@ public class PixelUtility {
 				// apply the translation.
 				tree.apply(translation);
 			} catch (ParserException | LexerException | IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			
 		}
@@ -495,34 +494,34 @@ public class PixelUtility {
 		}
 		Map<String, Map<String, String>> processedParams = translation.getParamToSource();
 		
-		List<Map<String, Object>> vec = new Vector<Map<String, Object>>();
-		Map<String, Object> map = new LinkedHashMap<String, Object>();
+		List<Map<String, Object>> vec = new Vector<>();
+		Map<String, Object> map = new LinkedHashMap<>();
 		// recipe is the query
 		map.put("query", fullRecipe.toString());
 		map.put("label", insightName);
 		map.put("description", "Please select paramters for the insight");
 		// add params
-		List<Map<String, Object>> paramList = new Vector<Map<String, Object>>();
+		List<Map<String, Object>> paramList = new Vector<>();
 		for(String param : params) {
 			// each param gets its own search
-			Map<String, Object> paramSearchMap = new LinkedHashMap<String, Object>();
+			Map<String, Object> paramSearchMap = new LinkedHashMap<>();
 			paramSearchMap.put("paramName", param + "_Search");
 			paramSearchMap.put("view", false);
-			Map<String, String> paramSearchModel = new LinkedHashMap<String, String>();
+			Map<String, String> paramSearchModel = new LinkedHashMap<>();
 			paramSearchModel.put("defaultValue", "");
 			paramSearchMap.put("model", paramSearchModel);
 			
 			// and now for the param itself
-			Map<String, Object> paramMap = new LinkedHashMap<String, Object>();
+			Map<String, Object> paramMap = new LinkedHashMap<>();
 			paramMap.put("paramName", param);
 			paramMap.put("required", true);
 			paramMap.put("useSelectedValues", true);
 			// nested map for view
-			Map<String, Object> paramViewMap = new LinkedHashMap<String, Object>();
+			Map<String, Object> paramViewMap = new LinkedHashMap<>();
 			paramViewMap.put("displayType", "checklist");
 			paramViewMap.put("label", "Select an Instance Of The Parameter : " + param);
 			// nested attributes map within nested view map
-			Map<String, Boolean> paramViewAttrMap = new LinkedHashMap<String, Boolean>();
+			Map<String, Boolean> paramViewAttrMap = new LinkedHashMap<>();
 			paramViewAttrMap.put("searchable", true);
 			paramViewAttrMap.put("multiple", true);
 			paramViewAttrMap.put("quickselect", true);
@@ -530,7 +529,7 @@ public class PixelUtility {
 			// add view
 			paramMap.put("view", paramViewMap);
 			// nested map for model
-			Map<String, Object> modelMap = new LinkedHashMap<String, Object>();
+			Map<String, Object> modelMap = new LinkedHashMap<>();
 			Map<String, String> processedParam = processedParams.get(param);
 			String physicalQs = processedParam.get("qs");
 			String paramQ = "(infinite = " + processedParam.get("source") + " | Select(" + physicalQs 
@@ -553,8 +552,7 @@ public class PixelUtility {
 		vec.add(map);
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		String finalRecipe = "AddPanel(0); Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");"; 
-		return finalRecipe;
+		return "AddPanel(0); Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");";
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -567,8 +565,8 @@ public class PixelUtility {
 	 */
 	public static List<List<PipelineOperation>> generatePipeline(Insight in, String pixel) {
 		PipelineTranslation translation = null;
-		List<String> encodingList = new Vector<String>();
-		Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
+		List<String> encodingList = new Vector<>();
+		Map<String, String> encodedTextToOriginal = new HashMap<>();
 		try {
 			pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodingList, encodedTextToOriginal);
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
@@ -598,7 +596,11 @@ public class PixelUtility {
 			}
 			throw new IllegalArgumentException(eMessage, e);
 		}
-		
+
+		if (translation == null) {
+			throw new NullPointerException("Pipeline translation should not be null here.");
+		}
+
 		return translation.getAllRoutines();
 	}
 	

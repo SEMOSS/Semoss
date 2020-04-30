@@ -60,15 +60,15 @@ public class QuestionModSelectorListener implements IChakraListener {
 	JTextField questionPerspectiveField = new JTextField();
 	JTextField questionField = new JTextField();
 	JTextField questionLayoutField = new JTextField();
-	JList<String> parameterDependList = new JList<String>();
-	JList<String> parameterQueryList = new JList<String>();
-	JList<String> parameterOptionList = new JList<String>();
-	JComboBox<String> questionPerspectiveSelector = new JComboBox<String>();
+	JList<String> parameterDependList = new JList<>();
+	JList<String> parameterQueryList = new JList<>();
+	JList<String> parameterOptionList = new JList<>();
+	JComboBox<String> questionPerspectiveSelector = new JComboBox<>();
 	JRadioButton addQuestionModTypeBtn = new JRadioButton();
-	JComboBox<String> questionModSelector = new JComboBox<String>();
-	JComboBox<String> questionDBSelector = new JComboBox<String>();
-	JComboBox<String> questionOrderComboBox = new JComboBox<String>();
-	JComboBox<String> questionLayoutComboBox = new JComboBox<String>();
+	JComboBox<String> questionModSelector = new JComboBox<>();
+	JComboBox<String> questionDBSelector = new JComboBox<>();
+	JComboBox<String> questionOrderComboBox = new JComboBox<>();
+	JComboBox<String> questionLayoutComboBox = new JComboBox<>();
 
 	String engineName = null;
 	String question = null;
@@ -76,9 +76,9 @@ public class QuestionModSelectorListener implements IChakraListener {
 	String perspective = null;
 	Map<String, String> qM = null;
 	String order;
-	Vector<String> parameterQueryVector = new Vector<String>();
-	Vector<String> dependVector = new Vector<String>();
-	Vector<String> optionVector = new Vector<String>();
+	Vector<String> parameterQueryVector = new Vector<>();
+	Vector<String> dependVector = new Vector<>();
+	Vector<String> optionVector = new Vector<>();
 
 	public void getFieldData() {
 		questionSparqlTextPane = (JTextPane) DIHelper.getInstance().getLocalProp(Constants.QUESTION_SPARQL_TEXT_PANE);
@@ -143,8 +143,10 @@ public class QuestionModSelectorListener implements IChakraListener {
 			} else {
 				in = (OldInsight) vectorInsight.get(0);
 			}
-			
-			order = in.getOrder();
+
+			if (in != null) {
+				order = in.getOrder();
+			}
 			
 			List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(engine.getInsightDatabase(), questionId);
 
@@ -243,7 +245,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 	 */
 	@Override
 	public void setView(JComponent view) {
-
+		// setView empty
 	}
 
 }
