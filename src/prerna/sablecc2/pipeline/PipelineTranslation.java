@@ -67,13 +67,14 @@ import prerna.util.gson.GsonUtility;
 
 public class PipelineTranslation extends LazyTranslation {
 
-	private static final Logger LOGGER = LogManager.getLogger(PipelineTranslation.class.getName());
+	private static final Logger logger = LogManager.getLogger(PipelineTranslation.class);
 	private static Map<String, String> reactorToId = null;
+	private static final String STACKTRACE = "StackTrace: ";
 	
-	private static Map<AbstractQueryStruct.QUERY_STRUCT_TYPE, String> qsToWidget = new HashMap<AbstractQueryStruct.QUERY_STRUCT_TYPE, String>();
-	private static List<String> qsReactors = new Vector<String>();
-	private static List<String> fileReactors = new Vector<String>();
-	private static List<String> codeBlocks = new Vector<String>();
+	private static Map<AbstractQueryStruct.QUERY_STRUCT_TYPE, String> qsToWidget = new HashMap<>();
+	private static List<String> qsReactors = new Vector<>();
+	private static List<String> fileReactors = new Vector<>();
+	private static List<String> codeBlocks = new Vector<>();
 	static {
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE, "pipeline-file");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, "pipeline-app");
@@ -102,7 +103,7 @@ public class PipelineTranslation extends LazyTranslation {
 		codeBlocks.add("Java");
 	}
 	
-	private List<List<PipelineOperation>> allRoutines = new Vector<List<PipelineOperation>>();
+	private List<List<PipelineOperation>> allRoutines = new Vector<>();
 	private List<PipelineOperation> curRoutine;
 	
 	public PipelineTranslation(Insight insight) {
@@ -121,14 +122,14 @@ public class PipelineTranslation extends LazyTranslation {
 	
 	@Override
 	public void caseARoutineConfiguration(ARoutineConfiguration node) {
-        List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
+        List<PRoutine> copy = new ArrayList<>(node.getRoutine());
         int size = copy.size();
         for(int pixelstep = 0; pixelstep < size; pixelstep++)
         {
         	PRoutine e = copy.get(pixelstep);
         	try {
         		this.resultKey = "$RESULT_" + e.hashCode();
-            	this.curRoutine = new Vector<PipelineOperation>();
+            	this.curRoutine = new Vector<>();
         		this.allRoutines.add(this.curRoutine);
 
         		e.apply(this);
@@ -136,7 +137,7 @@ public class PipelineTranslation extends LazyTranslation {
         		this.currentFrame = null;
         	} catch(SemossPixelException ex) {
         		trackError(e.toString(), this.isMeta, ex);
-        		ex.printStackTrace();
+        		logger.error(STACKTRACE, ex);
         		// if we want to continue the thread of execution
         		// nothing special
         		// just add the error to the return
@@ -153,7 +154,7 @@ public class PipelineTranslation extends LazyTranslation {
         		}
         	} catch(Exception ex) {
         		trackError(e.toString(), this.isMeta, ex);
-        		ex.printStackTrace();
+        		logger.error(STACKTRACE, ex);
         		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
         	}
@@ -174,7 +175,7 @@ public class PipelineTranslation extends LazyTranslation {
 
 	    	String idInput = node.getId().getText().trim();
 
-			Map<String, Object> obj = new HashMap<String, Object>();
+			Map<String, Object> obj = new HashMap<>();
 			if(this.planner.hasVariable(idInput)) {
 				NounMetadata noun = this.planner.getVariable(idInput);
 				if(noun.getNounType() != PixelDataType.LAMBDA) {
@@ -204,7 +205,7 @@ public class PipelineTranslation extends LazyTranslation {
 	public void inAWordWordOrId(AWordWordOrId node) {
 		super.inAWordWordOrId(node);
 		if(this.curReactor == null) {
-			Map<String, Object> obj = new HashMap<String, Object>();
+			Map<String, Object> obj = new HashMap<>();
 			obj.put("type", "STRING");
 			obj.put("value", PixelUtility.removeSurroundingQuotes(node.getWord().getText().toString()));
 			
@@ -218,7 +219,7 @@ public class PipelineTranslation extends LazyTranslation {
 	public void inAFractionDecimal(AFractionDecimal node) {
 		super.inAFractionDecimal(node);
 		if(this.curReactor == null) {
-			Map<String, Object> obj = new HashMap<String, Object>();
+			Map<String, Object> obj = new HashMap<>();
 			obj.put("type", "NUMBER");
 			String fraction = (node.getFraction()+"").trim();
 			Number retNum = new BigDecimal("0." + fraction);
@@ -234,7 +235,7 @@ public class PipelineTranslation extends LazyTranslation {
 	public void inAWholeDecimal(AWholeDecimal node) {
 		super.inAWholeDecimal(node);
 		if(this.curReactor == null) {
-			Map<String, Object> obj = new HashMap<String, Object>();
+			Map<String, Object> obj = new HashMap<>();
 			obj.put("type", "NUMBER");
 
 			boolean isDouble = false;
@@ -271,7 +272,7 @@ public class PipelineTranslation extends LazyTranslation {
 		if(this.curReactor == null) {
 			String booleanStr = node.getBoolean().toString().trim();
 	    	Boolean bool = Boolean.parseBoolean(booleanStr);
-	    	Map<String, Object> obj = new HashMap<String, Object>();
+	    	Map<String, Object> obj = new HashMap<>();
 			obj.put("type", "BOOLEAN");
 			obj.put("value", bool);
 			ConstantPipelineOperation op = new ConstantPipelineOperation("direct value", node.toString());
@@ -295,14 +296,14 @@ public class PipelineTranslation extends LazyTranslation {
     			curReactor.updatePlan();
     			addRoutine();
     		} catch(Exception e) {
-    			e.printStackTrace();
+    			logger.error(STACKTRACE, e);
     			throw new IllegalArgumentException(e.getMessage());
     		}
     		// get the parent
     		Object parent = curReactor.Out();
     		// set the parent as the curReactor if it is present
     		prevReactor = curReactor;
-    		if(parent != null && parent instanceof IReactor) {
+    		if(parent instanceof IReactor) {
     			curReactor = (IReactor) parent;
     		} else {
     			curReactor = null;
@@ -387,7 +388,7 @@ public class PipelineTranslation extends LazyTranslation {
     }
     
     private void combineQSComponents(PipelineOperation op) {
-    	Map<String, Object> qsMap = new HashMap<String, Object>();
+    	Map<String, Object> qsMap = new HashMap<>();
     	// we will add the qs at the end
     	// since we could reassign the qs object
     	SelectQueryStruct qs = new SelectQueryStruct();
@@ -511,7 +512,7 @@ public class PipelineTranslation extends LazyTranslation {
     			String rdfType = getStringOpNounInput(RDFFileSourceReactor.RDF_TYPE, nounInputs);
 				String baseUri = getStringOpNounInput(RDFFileSourceReactor.BASE_URI, nounInputs);
     			
-    			Map<String, Object> config = new HashMap<String, Object>();
+    			Map<String, Object> config = new HashMap<>();
     			config.put(ReactorKeysEnum.FILE_PATH.getKey(), filePath);
     			config.put(RDFFileSourceReactor.RDF_TYPE, rdfType);
     			config.put(RDFFileSourceReactor.BASE_URI, baseUri);
@@ -544,7 +545,7 @@ public class PipelineTranslation extends LazyTranslation {
 				String password = getStringOpNounInput(ReactorKeysEnum.USERNAME.getKey(), nounInputs);
     			String connectionUrl = getStringOpNounInput(ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), nounInputs);
     			
-    			Map<String, Object> config = new HashMap<String, Object>();
+    			Map<String, Object> config = new HashMap<>();
     			config.put(ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), connectionUrl);
     			config.put(ReactorKeysEnum.DB_DRIVER_KEY.getKey(), driver);
     			config.put(ReactorKeysEnum.USERNAME.getKey(), username);
@@ -582,7 +583,7 @@ public class PipelineTranslation extends LazyTranslation {
 				// we can reconstruct the map looking at each pair of obj/val that is passed in
 				List<Map> inputs = nounMapVal.getRowInputs();
 				
-				output = new HashMap<String, String>();
+				output = new HashMap<>();
 				for(int i = 0; i < inputs.size(); i=i+2) {
 					Map<String, Object> keyMap = inputs.get(i);
 					Map<String, Object> valMap = inputs.get(i+1);
@@ -658,7 +659,7 @@ public class PipelineTranslation extends LazyTranslation {
     }
     
     private Map<String, Object> processLambdaNounMap(NounMetadata noun) {
-    	Map<String, Object> lambdaMap = new HashMap<String, Object>();
+    	Map<String, Object> lambdaMap = new HashMap<>();
     	lambdaMap.put("type", noun.getNounType());
     	// the value is another PixelOperation
     	lambdaMap.put("value", generatePipelineOperation(  (IReactor) noun.getValue()));
@@ -666,14 +667,14 @@ public class PipelineTranslation extends LazyTranslation {
     }
     
     private Map<String, Object> processBasicNounMap(NounMetadata noun) {
-    	Map<String, Object> basicInput = new HashMap<String, Object>();
+    	Map<String, Object> basicInput = new HashMap<>();
 		basicInput.put("type", noun.getNounType());
 		basicInput.put("value", noun.getValue());
 		return basicInput;
     }
     
     private Map<String, Object> processFrameNounMap(NounMetadata noun) {
-    	Map<String, Object> frameMap = new HashMap<String, Object>();
+    	Map<String, Object> frameMap = new HashMap<>();
 		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 		frameMap.put("type", FrameFactory.getFrameType(frame));
 		String name = frame.getName();
@@ -694,13 +695,14 @@ public class PipelineTranslation extends LazyTranslation {
      * @param nodeString - full operation
      * @return	IReactor		A new instance of the reactor
      */
+    @Override
     protected IReactor getReactor(String reactorId, String nodeString) {
     	try {
     		return super.getReactor(reactorId, nodeString);
     	} catch(Exception e) {
     		// error finding reactor
     		// just return a generic reactor placeholder
-    		LOGGER.info("Error finding reactor " + reactorId);
+    		logger.error("Error finding reactor " + reactorId);
     	}
     	
     	UndeterminedPipelineReactor reactor = new UndeterminedPipelineReactor();
@@ -716,7 +718,7 @@ public class PipelineTranslation extends LazyTranslation {
 				CSVFileHelper helper = new CSVFileHelper();
 				helper.parse(reactorWidgetFile.getAbsolutePath());
 				
-				PipelineTranslation.reactorToId = new HashMap<String, String>();
+				PipelineTranslation.reactorToId = new HashMap<>();
 				
 				String[] row = null;
 				while( (row = helper.getNextRow()) != null ) {
@@ -777,8 +779,8 @@ public class PipelineTranslation extends LazyTranslation {
 		Insight in = new Insight();
 		in.getVarStore().put("FRAME238470", new NounMetadata(new H2Frame("FRAME238470"), PixelDataType.FRAME));
 		PipelineTranslation translation = null;
-		List<String> encodingList = new Vector<String>();
-		Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
+		List<String> encodingList = new Vector<>();
+		Map<String, String> encodedTextToOriginal = new HashMap<>();
 		try {
 			pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodingList, encodedTextToOriginal);
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
@@ -795,7 +797,7 @@ public class PipelineTranslation extends LazyTranslation {
 		} catch (ParserException | LexerException | IOException e) {
 			// we only need to catch invalid syntax here
 			// other exceptions are caught in lazy translation
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			String eMessage = e.getMessage();
 			if(eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -807,7 +809,7 @@ public class PipelineTranslation extends LazyTranslation {
 					eMessage += ". Error in syntax around " + pixel.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
 				}
 			}
-			System.out.println(eMessage);
+			logger.info(eMessage);
 		}
 		
 //		PixelPlanner thisPlanner = translation.getPlanner();
@@ -824,7 +826,9 @@ public class PipelineTranslation extends LazyTranslation {
 //		}
 		
 		Gson gson = GsonUtility.getDefaultGson(true);
-		System.out.println(gson.toJson(translation.allRoutines));
+		if (translation != null) {
+			logger.info(gson.toJson(translation.allRoutines));
+		}
 	}
 	
 }

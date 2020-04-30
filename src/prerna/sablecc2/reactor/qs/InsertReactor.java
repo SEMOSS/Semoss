@@ -158,8 +158,11 @@ public class InsertReactor extends AbstractReactor {
 							new NounMetadata("An error occured trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 
 				}
-				AuditDatabase audit = engine.generateAudit();
-				audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
+
+				if (engine != null) {
+					AuditDatabase audit = engine.generateAudit();
+					audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
+				}
 			} else {
 				try {
 					if (frame != null) {

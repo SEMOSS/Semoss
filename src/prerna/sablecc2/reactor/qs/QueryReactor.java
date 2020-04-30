@@ -8,11 +8,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 public class QueryReactor extends AbstractQueryStructReactor {
-	
+
 	public QueryReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_KEY.getKey()};
 	}
-	
+
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		//grab the query
@@ -34,19 +34,23 @@ public class QueryReactor extends AbstractQueryStructReactor {
 				hardQs.setEngine(qs.getEngine());
 				hardQs.setEngineId(qs.getEngineId());
 				hardQs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-			
 			} else {
 				hardQs = new HardSelectQueryStruct();
 				hardQs.setFrame(qs.getFrame());
 				hardQs.setQsType(QUERY_STRUCT_TYPE.RAW_FRAME_QUERY);
 			}
 		}
+
+		if (hardQs == null) {
+			throw new NullPointerException("HardSelectQueryStruct hardQs should not be null here.");
+		}
+
 		hardQs.setQuery(query);
-		
 		//override it with new query struct
 		hardQs.setBigDataEngine(this.qs.getBigDataEngine());
 		hardQs.setPragmap(this.qs.getPragmap());
 		this.qs = hardQs;
+
 		return this.qs;
 	}
 	
