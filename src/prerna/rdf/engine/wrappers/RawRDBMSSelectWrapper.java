@@ -10,8 +10,11 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -24,12 +27,16 @@ import prerna.util.ConnectionUtils;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
+	private static final Logger logger = LogManager.getLogger(RawRDBMSSelectWrapper.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	protected BasicDataSource dataSource = null;
 	protected Connection conn = null;
 	protected Statement stmt = null;
 	protected ResultSet rs = null;
 	protected boolean closedConnection = false;
-	
+
 	protected int numColumns = 0;
 	protected int[] colTypes = null;
 	protected SemossDataType[] types;
@@ -58,7 +65,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			// go through and collect the metadata around the query
 			setVariables();
 		} catch (Exception e){
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			if(this.useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, rs, stmt);
 			} else {
@@ -69,7 +76,11 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 	@Override
 	public IHeadersDataRow next() {
-		if(currRow == null) {
+		if (!hasNext()) {
+			throw new NoSuchElementException();
+		}
+
+		if (currRow == null) {
 			hasNext();
 		}
 		// grab the current row we have
@@ -101,7 +112,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 
 		return false;
@@ -135,8 +146,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 							val = new SemossDate(dateValStr, "yyyy-MM-dd");
 						} catch(Exception e2) {
 							// out of luck...
-							e.printStackTrace();
-							e2.printStackTrace();
+							logger.error(STACKTRACE, e);
+							logger.error(STACKTRACE, e2);
 						}
 					}
 				} else if(type == Types.TIMESTAMP) {
@@ -156,8 +167,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 							val = new SemossDate(dateValStr, "yyyy-MM-dd HH:mm:ss");
 						} catch(Exception e2) {
 							// out of luck...
-							e.printStackTrace();
-							e2.printStackTrace();
+							logger.error(STACKTRACE, e);
+							logger.error(STACKTRACE, e2);
 						}
 					}
 				} else if(type == Types.CLOB) {
@@ -214,7 +225,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				types[colIndex-1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -246,14 +257,14 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				this.rs.close();
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		try {
 			if(this.stmt != null) {
 				this.stmt.close();
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		if(this.closeConnectionAfterExecution) {
 			try {
@@ -261,7 +272,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					this.conn.close();
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		if(this.dataSource != null) {
@@ -273,7 +284,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					this.conn.close();
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		this.closedConnection = true;
@@ -287,46 +298,48 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			try {
 				query = parser.processQuery(this.query);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				query = this.query;
 			}
 			query = "select count(*) from (" + query + ") t";
-			Connection conn = null;
-			Statement stmt = null;
-			ResultSet rs = null;
+			Connection connection = null;
+			Statement statement = null;
+			ResultSet resultSet = null;
 			try {
 				if(this.dataSource != null) {
-					conn = this.dataSource.getConnection();
-					stmt = conn.createStatement();
+					connection = this.dataSource.getConnection();
+					statement = connection.createStatement();
 				} else {
-					stmt = this.conn.createStatement();
+					statement = this.conn.createStatement();
 				}
-				rs = stmt.executeQuery(query);
-				if(rs.next()) {
-					this.numRows = rs.getLong(1);
+				resultSet = statement.executeQuery(query);
+				if(resultSet.next()) {
+					this.numRows = resultSet.getLong(1);
 				}
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
-				if(rs != null) {
+				if(resultSet != null) {
 					try {
-						rs.close();
+						resultSet.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 				}
-				if(stmt != null) {
+				if(statement != null) {
 					try {
-						stmt.close();
+						statement.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 				}
 				if(this.dataSource != null) {
 					try {
-						conn.close();
+						if (connection != null) {
+							connection.close();
+						}
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 				}
 			}
@@ -368,7 +381,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			this.rs = this.stmt.executeQuery(query);
 			setVariables();
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			if(closeIfFail) {
 				ConnectionUtils.closeAllConnections(conn, rs, stmt);
 			}

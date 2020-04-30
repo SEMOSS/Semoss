@@ -31,6 +31,8 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 	}
 
 	private static final String CLASS_NAME = OneDriveUploaderReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
+
 	private String fileLocation = null;
 	private Logger logger;
 
@@ -39,7 +41,6 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 		organizeKeys();
 		String fileName = this.curRow.get(0).toString();
 
-		//String fileName = this.keyValue.get(this.keysToGet[0]);
 		if (fileName == null || fileName.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file name");
 		}
@@ -50,18 +51,18 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 
 		try{
 			if(user==null){
-				Map<String, Object> retMap = new HashMap<String, Object>();
+				Map<String, Object> retMap = new HashMap<>();
 				retMap.put("type", "microsoft");
 				retMap.put("message", "Please login to your Microsoft account");
 				throwLoginError(retMap);
 			}
-			else if (user != null) {
+			else {
 				AccessToken msToken = user.getAccessToken(AuthProvider.MS);
 				accessToken=msToken.getAccess_token();
 			}
 		}
 		catch (Exception e) {
-			Map<String, Object> retMap = new HashMap<String, Object>();
+			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("type", "microsoft");
 			retMap.put("message", "Please login to your Microsoft account");
 			throwLoginError(retMap);
@@ -79,8 +80,8 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 
 
 		//make call to OneDrive
-		String url_str = "https://graph.microsoft.com/v1.0/me/drive/items/root:/"+fileName+".csv:/content";
-		String output = AbstractHttpHelper.makeBinaryFilePutCall(url_str, accessToken, fileName, this.fileLocation.toString());
+		String urlStr = "https://graph.microsoft.com/v1.0/me/drive/items/root:/"+fileName+".csv:/content";
+		String output = AbstractHttpHelper.makeBinaryFilePutCall(urlStr, accessToken, fileName, this.fileLocation.toString());
 
 		return new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
@@ -95,7 +96,7 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 			try {
 				f.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 
 			FileWriter writer = null;
@@ -131,7 +132,12 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 						if( (i+1) != size) {
 							builder.append(",");
 						}
-						typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+
+						if(headerInfo.get(i).containsKey("type")) {
+							typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
+						} else {
+							typesArr[i] = SemossDataType.STRING;
+						}
 					}
 					// write the header to the file
 					bufferedWriter.write(builder.append("\n").toString());
@@ -182,7 +188,7 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 				}
 
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				try {
 					if(bufferedWriter != null) {
@@ -192,14 +198,14 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 						writer.close();
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 
 			long end = System.currentTimeMillis();
 			logger.info("Time to output file = " + (end-start) + " ms");
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			if(f.exists()) {
 				f.delete();
 			}
