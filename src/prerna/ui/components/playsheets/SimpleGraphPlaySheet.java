@@ -44,7 +44,9 @@ import prerna.om.GraphDataModel;
  */
 public class SimpleGraphPlaySheet extends GraphPlaySheet{
 
-	private static final Logger logger = LogManager.getLogger(SimpleGraphPlaySheet.class.getName());
+	private static final Logger logger = LogManager.getLogger(SimpleGraphPlaySheet.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	/**
 	 * Method createForest.  Takes the base information from the query and inserts it into the jena model.
 	 */
@@ -72,66 +74,65 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 		
 
 		SesameJenaConstructWrapper sjw = null;
-		while(sjw.hasNext())
-		{
-			// read the subject predicate object
-			// add it to the in memory jena model
-			// get the properties
-			// add it to the in memory jena model
-			SesameJenaConstructStatement st = sjw.next();
-			Object obj = st.getObject();
-			logger.debug(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
-			//predData.addPredicate2(st.getPredicate());
-			//predData.addConceptAvailable(st.getSubject());//, st.getSubject());
-			//predData.addPredicateAvailable(st.getPredicate());//, st.getPredicate());
-
-			if(subjects.indexOf(st.getSubject()) < 0)
+		if (sjw != null) {
+			while(sjw.hasNext())
 			{
-				if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
-					subjects.append("(<" + st.getSubject() + ">)");
-				else
-					subjects.append("<" + st.getSubject() + ">");
-			}
-			if(predicates.indexOf(st.getPredicate()) < 0)
-			{
-				if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
-					predicates.append("(<" + st.getPredicate() +">)");
-				else
-					predicates.append( "<" + st.getPredicate() +">");
-			}
-			// need to find a way to do this for jena too
-			if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal))
-			{			
-				if(objects.indexOf(obj+"") < 0)
+				// read the subject predicate object
+				// add it to the in memory jena model
+				// get the properties
+				// add it to the in memory jena model
+				SesameJenaConstructStatement st = sjw.next();
+				Object obj = st.getObject();
+				logger.debug(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
+				//predData.addPredicate2(st.getPredicate());
+				//predData.addConceptAvailable(st.getSubject());//, st.getSubject());
+				//predData.addPredicateAvailable(st.getPredicate());//, st.getPredicate());
+	
+				if(subjects.indexOf(st.getSubject()) < 0)
 				{
 					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
-						objects.append("(<" + obj +">)");
+						subjects.append("(<" + st.getSubject() + ">)");
 					else
-						objects.append("<" + obj +">");
+						subjects.append("<" + st.getSubject() + ">");
 				}
+				if(predicates.indexOf(st.getPredicate()) < 0)
+				{
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+						predicates.append("(<" + st.getPredicate() +">)");
+					else
+						predicates.append( "<" + st.getPredicate() +">");
+				}
+				// need to find a way to do this for jena too
+				if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal))
+				{			
+					if(objects.indexOf(obj+"") < 0)
+					{
+						if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+							objects.append("(<" + obj +">)");
+						else
+							objects.append("<" + obj +">");
+					}
+				}
+				//addToJenaModel(st);
+	//			addToSesame(st, false, false);
+	//			if (search) addToJenaModel3(st);
 			}
-			//addToJenaModel(st);
-//			addToSesame(st, false, false);
-//			if (search) addToJenaModel3(st);
-		}		
+		}
 		try {
 			genBaseConcepts();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		try {
 			genBaseGraph(); //subjects2, predicates2, subjects2);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 //		try {
 //			RDFEngineHelper.loadLabels(engine, subjects.toString() + objects.toString(), this);
 //		} catch (Exception e) {
-//			// TODO: Specify exception
-//			e.printStackTrace();
+//			logger.error(STACKTRACE, e);
 //		}
 		genAllData();
 
@@ -202,7 +203,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 			}
 		}catch(RuntimeException ex)
 		{
-			ex.printStackTrace();
+			logger.error(STACKTRACE, ex);
 		}
 	}
 
@@ -328,8 +329,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 //						}
 			}
 		} catch (RuntimeException e) {
-			// TODO: Specify exception
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		//}		
 	}

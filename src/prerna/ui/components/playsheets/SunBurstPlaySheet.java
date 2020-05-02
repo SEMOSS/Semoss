@@ -29,12 +29,12 @@ import java.util.Set;
 
 import javax.swing.DefaultListModel;
 
+import com.ibm.icu.util.StringTokenizer;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-
-import com.ibm.icu.util.StringTokenizer;
 
 /**
  * The Play Sheet for creating a SunBurst diagram using names and children.
@@ -61,9 +61,9 @@ public class SunBurstPlaySheet extends BrowserPlaySheet {
 	 */
 
 	public void processQueryData() {
-		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
+		Hashtable<String, Object> allHash = new Hashtable<>();
 
-		Map<String, Map<String, Map>> rootMap = new HashMap<String, Map<String, Map>>();
+		Map<String, Map<String, Map>> rootMap = new HashMap<>();
 		Map<String, Map> currentMap;
 
 		Iterator<IHeadersDataRow> it = dataFrame.iterator();
@@ -82,7 +82,7 @@ public class SunBurstPlaySheet extends BrowserPlaySheet {
 			currentMap = rootMap.get(currentValue); // assign for root
 
 			if (currentMap == null) {
-				currentMap = new HashMap<String, Map>();
+				currentMap = new HashMap<>();
 				rootMap.put(currentValue, currentMap);
 			}
 
@@ -100,7 +100,7 @@ public class SunBurstPlaySheet extends BrowserPlaySheet {
 
 				// new value
 				if (nextMap == null) {
-					nextMap = new HashMap<String, Map>();
+					nextMap = new HashMap<>();
 					currentMap.put(currentValue, nextMap);
 				}
 
@@ -114,8 +114,6 @@ public class SunBurstPlaySheet extends BrowserPlaySheet {
 		HashSet hashSet = new HashSet();
 		
 		processTree(rootMap, hashSet);
-		//System.out.println(rootMap);
-		//printHashSet(hashSet);
 
 		String root = null;		
 		String engineNameRoot = null;
@@ -130,7 +128,10 @@ public class SunBurstPlaySheet extends BrowserPlaySheet {
 			if (engine.isConnected())
 				engineNameRoot = engineName;
 		}
-		//System.out.println(engineNameRoot);
+
+		if (engineNameRoot == null) {
+			throw new NullPointerException("engineNameRoot cannot be null here.");
+		}
 
 		//sets the name of the root depending on db that is connected and being queried
 		if(engineNameRoot.equalsIgnoreCase("VA_MainDB")){

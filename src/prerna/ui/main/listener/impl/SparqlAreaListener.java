@@ -63,13 +63,19 @@ public class SparqlAreaListener extends AbstractListener {
 		// get the currently visible panel
 		Component [] comps = panel.getComponents();
 		JComponent curPanel = null;
-		for(int compIndex = 0;compIndex < comps.length && curPanel == null;compIndex++)
-			if(comps[compIndex].isVisible())
+		for(int compIndex = 0;compIndex < comps.length && curPanel == null;compIndex++) {
+			if(comps[compIndex].isVisible()) {
 				curPanel = (JComponent)comps[compIndex];
-		
+			}
+		}
+
+		if (curPanel == null) {
+			throw new NullPointerException("curPanel cannot be null here.");
+		}
+
 		// get all the param field
 		Component [] fields = curPanel.getComponents();
-		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+		Map<String, List<Object>> paramHash = new Hashtable<>();
 		for(int compIndex = 0;compIndex < fields.length;compIndex++)
 		{
 			if(fields[compIndex] instanceof ParamComboBox)
@@ -77,7 +83,7 @@ public class SparqlAreaListener extends AbstractListener {
 				String fieldName = ((ParamComboBox)fields[compIndex]).getParamName();
 				String fieldValue = ((ParamComboBox)fields[compIndex]).getSelectedItem() + "";
 				
-				List<Object> fieldList = new ArrayList<Object>();
+				List<Object> fieldList = new ArrayList<>();
 				fieldList.add(fieldValue);
 				paramHash.put(fieldName, fieldList);
 			}	
