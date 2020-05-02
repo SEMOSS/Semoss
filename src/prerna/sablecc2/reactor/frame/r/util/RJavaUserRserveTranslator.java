@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.RFactor;
@@ -25,6 +27,10 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
+
+	private static final Logger logger = LogManager.getLogger(RJavaUserRserveTranslator.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	private IRUserConnection rcon;
 	private boolean envConfig = false;
@@ -93,7 +99,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		} else {
 			AuthProvider primaryProvider = user.getPrimaryLogin();
 			AccessToken token = user.getAccessToken(primaryProvider);
-			userInfo = primaryProvider.name() + "___" + token.getName().replaceAll(" ", "_");
+			userInfo = primaryProvider.name() + "___" + token.getName().replace(" ", "_");
 		}
 		return userInfo; 
 	}
@@ -132,7 +138,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	public Object executeR(String rScript) {
 		// escape quotes
 		rScript = rScript.replaceAll("\"", "\\\"");
-		rScript = rScript.replaceAll("'", "\\'");
+		rScript = rScript.replace("'", "\\'");
 		rScript = encapsulateForEnv(rScript);
 		return rcon.eval(rScript);
 	}
@@ -141,7 +147,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	public void executeEmptyR(String rScript) {
 		// escape quotes
 		rScript = rScript.replaceAll("\"", "\\\"");
-		rScript = rScript.replaceAll("'", "\\'");
+		rScript = rScript.replace("'", "\\'");
 		rScript = encapsulateForEnv(rScript);
 		rcon.voidEval(rScript);
 	}
@@ -240,7 +246,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			
 			return arr;
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -361,7 +367,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			}
 			int[] counts = (int[]) histJ.get("counts");
 
-			Map<String, Object> retMap = new HashMap<String, Object>();
+			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("breaks", breaks);
 			retMap.put("counts", counts);
 			return retMap;
@@ -407,7 +413,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.debug(e);
+					logger.error(STACKTRACE, e);
 				}
 				// in case values cannot be put into an array
 				// for an integer
@@ -419,7 +425,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.debug(e);
+					logger.error(STACKTRACE, e);
 				}
 
 			} else {
@@ -435,7 +441,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.debug(e);
+					logger.error(STACKTRACE, e);
 				}
 				// for a string
 				try {
@@ -446,12 +452,12 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.debug(e);
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
 
-		Map<String, Object> retMap = new HashMap<String, Object>();
+		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("headers", colNames);
 		retMap.put("data", dataMatrix);
 
@@ -466,7 +472,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
-		List<Object[]> retArr = new Vector<Object[]>(500);
+		List<Object[]> retArr = new Vector<>(500);
 		rScript = encapsulateForEnv(rScript);
 		REXP rs = rcon.eval(rScript);
 		try {
@@ -487,7 +493,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				REXP val = (REXP) result.get(columnIndex);
 				if(val.isFactor()) {
 					RFactor data = val.asFactor();
-					if(retArr.size() == 0) {
+					if(retArr.isEmpty()) {
 						for(int i = 0; i < data.size(); i++) {
 							Object[] values = new Object[numColumns];
 							values[colNum] = data.at(i);
@@ -512,9 +518,9 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 					int[] data = val.asIntegers();
 					boolean[] na = val.isNA();
-					if(isFactor) {
+					if(isFactor && attributeList != null) {
 						String[] levels = ((REXP) attributeList.get("levels")).asStrings();
-						if(retArr.size() == 0) {
+						if(retArr.isEmpty()) {
 							for(int i = 0; i < data.length; i++) {
 								Object[] values = new Object[numColumns];
 								if(na[i]) {
@@ -536,7 +542,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 							}
 						}
 					} else {
-						if(retArr.size() == 0) {
+						if(retArr.isEmpty()) {
 							for(int i = 0; i < data.length; i++) {
 								Object[] values = new Object[numColumns];
 								if(na[i]) {
@@ -561,7 +567,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				} else if(val.isNumeric()) {
 					double[] data = val.asDoubles();
 					boolean[] na = val.isNA();
-					if(retArr.size() == 0) {
+					if(retArr.isEmpty()) {
 						for(int i = 0; i < data.length; i++) {
 							Object[] values = new Object[numColumns];
 							if(na[i]) {
@@ -584,7 +590,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 				} else if(val.isString()) {
 					String[] data = val.asStrings();
-					if(retArr.size() == 0) {
+					if(retArr.isEmpty()) {
 						for(int i = 0; i < data.length; i++) {
 							Object[] values = new Object[numColumns];
 							values[colNum] = data[i];
@@ -598,7 +604,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 				} else if(val.isFactor()) {
 					RFactor data = val.asFactor();
-					if(retArr.size() == 0) {
+					if(retArr.isEmpty()) {
 						for(int i = 0; i < data.size(); i++) {
 							Object[] values = new Object[numColumns];
 							values[colNum] = data.at(i);

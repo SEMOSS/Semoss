@@ -50,7 +50,7 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 		// i am also going to store
 		// a task id to panel map
 		// which will be used for the json cache of the view
-		panelIdToTaskList = new Vector<Map<String, String>>();
+		panelIdToTaskList = new Vector<>();
 		
 		Set<String> tasks = value.getTaskIds();
 		for(String taskId : tasks) {
@@ -65,7 +65,9 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 				adapter = new ConstantDataTaskAdapter();
 			}
 			out.name("task");
-			adapter.write(out, t); 
+			if (adapter != null) {
+				adapter.write(out, t); 
+			}
 
 			// store the task to panel ids
 			// note: this works because the tasks are stored in order
@@ -73,7 +75,7 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 			if(taskOptions != null && !taskOptions.isEmpty()) {
 				Set<String> panelIds = taskOptions.getPanelIds();
 				for(String panelId : panelIds) {
-					Map<String, String> panelToTask = new HashMap<String, String>();
+					Map<String, String> panelToTask = new HashMap<>();
 					panelToTask.put(panelId, taskId);
 					panelIdToTaskList.add(panelToTask);
 				}
@@ -146,7 +148,9 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 			in.endObject();
 			
 			// store the task
-			tStore.addTask(task.getId(), task);
+			if (task != null) {
+				tStore.addTask(task.getId(), task);
+			}
 		}
 		// end the tasks array
 		in.endArray();
