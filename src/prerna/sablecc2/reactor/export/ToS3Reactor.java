@@ -51,6 +51,7 @@ public class ToS3Reactor extends TaskBuilderReactor {
 
 	
 	private static final String CLASS_NAME = ToS3Reactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 	private String fileLocation = null;
 	private Logger logger;
 
@@ -63,8 +64,6 @@ public class ToS3Reactor extends TaskBuilderReactor {
 		String bucketName = this.keyValue.get(this.keysToGet[1]);
 		String clientRegion = this.keyValue.get(this.keysToGet[2]);
 
-
-		//String fileName = this.keyValue.get(this.keysToGet[0]);
 		if (fileName == null || fileName.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file name");
 		}
@@ -83,9 +82,6 @@ public class ToS3Reactor extends TaskBuilderReactor {
 		//make file
 		buildTask();
 
-
-		
-		
 		File fileToPush = new File(this.fileLocation);
 
 		AWSCredentials creds = S3Utils.getInstance().getS3Creds();
@@ -94,23 +90,24 @@ public class ToS3Reactor extends TaskBuilderReactor {
 					.withRegion(clientRegion)
 					.withCredentials(new AWSStaticCredentialsProvider(creds))
 					.build();
-			TransferManager xfer_mgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
+			TransferManager xferMgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
 			try {
-				Upload xfer = xfer_mgr.upload(bucketName, fileToPush.getName(), fileToPush);
+				Upload xfer = xferMgr.upload(bucketName, fileToPush.getName(), fileToPush);
 				try {
 					xfer.waitForCompletion();
 				} catch (AmazonServiceException e) {
-					System.err.println("Amazon service error: " + e.getMessage());
-				} catch (AmazonClientException e) {
-					System.err.println("Amazon client error: " + e.getMessage());
-				} catch (InterruptedException e) {
-					System.err.println("Transfer interrupted: " + e.getMessage());
+					logger.error("Amazon service error: " + e.getMessage());
+				} catch (AmazonClientException ace) {
+					logger.error("Amazon client error: " + ace.getMessage());
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					logger.error("Transfer interrupted: " + ie.getMessage());
 				}
 			} catch (AmazonServiceException e) {
-				System.err.println(e.getErrorMessage());
+				logger.error(e.getErrorMessage());
 				System.exit(1);
 			}
-			xfer_mgr.shutdownNow();
+			xferMgr.shutdownNow();
 		}
 		
 
@@ -128,7 +125,7 @@ public class ToS3Reactor extends TaskBuilderReactor {
 			try {
 				f.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 
 			FileWriter writer = null;
@@ -225,14 +222,14 @@ public class ToS3Reactor extends TaskBuilderReactor {
 						writer.close();
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 
 			long end = System.currentTimeMillis();
 			logger.info("Time to output file = " + (end-start) + " ms");
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			if(f.exists()) {
 				f.delete();
 			}

@@ -675,7 +675,7 @@ public class Utility {
 		}
 
 		// if the wrapper is not empty, calculations have already been performed.
-		if (!selectWrapper.hasNext()) {
+		if (selectWrapper != null && !selectWrapper.hasNext()) {
 			check = false;
 		}
 
@@ -852,13 +852,17 @@ public class Utility {
 		} finally {
 			// close the readers
 			try {
-				reader.close();
+				if (reader != null) {
+					reader.close();
+				}
 			} catch (IOException ioe) {
 				logger.error(STACKTRACE, ioe);
 			}
 
 			try {
-				fileOut.close();
+				if (fileOut != null) {
+					fileOut.close();
+				}
 			} catch (IOException ioe) {
 				logger.error(STACKTRACE, ioe);
 			}
@@ -919,13 +923,17 @@ public class Utility {
 		} finally {
 			// close the readers
 			try {
-				reader.close();
+				if (reader != null) {
+					reader.close();
+				}
 			} catch (IOException ioe) {
 				logger.error(STACKTRACE, ioe);
 			}
 
 			try {
-				fileOut.close();
+				if (fileOut != null) {
+					fileOut.close();
+				}
 			} catch (IOException ioe) {
 				logger.error(STACKTRACE, ioe);
 			}
