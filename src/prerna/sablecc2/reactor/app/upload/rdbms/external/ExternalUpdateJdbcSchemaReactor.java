@@ -42,7 +42,13 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		RDBMSNativeEngine nativeEngine = (RDBMSNativeEngine) Utility.getEngine(appId);
-		Connection connection = nativeEngine.getConnection();
+		Connection connection = null;
+		try {
+			connection = nativeEngine.getConnection();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
 
 		// tablename
 		List<Map<String, Object>> databaseTables = new ArrayList<Map<String, Object>>();

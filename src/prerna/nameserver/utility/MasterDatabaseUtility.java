@@ -2182,7 +2182,13 @@ public class MasterDatabaseUtility {
 	 */
 	public static Map<String, List<String>> databaseTranslator(String sourceDB, String targetDB) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
+		Connection conn = null;
+		try {
+			conn = engine.makeConnection();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		// select logicalname from concept where conceptualname='MovieBudget'
 		// and conceptualname != logicalname
 		// select distinct c.conceptualname, ec.physicalname from concept c,
@@ -2463,7 +2469,13 @@ public class MasterDatabaseUtility {
 	 */
 	public static HashMap<String, Object> getXrayConfigList() {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
+		Connection conn = null;
+		try {
+			conn = engine.makeConnection();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		Statement stmt = null;
 		ResultSet rs = null;
 		HashMap<String, Object> configMap = new HashMap<>();
@@ -2496,7 +2508,13 @@ public class MasterDatabaseUtility {
 	
 	public static String getXrayConfigFile(String filename) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
+		Connection conn = null;
+		try {
+			conn = engine.makeConnection();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		Statement stmt = null;
 		ResultSet rs = null;
 		String configFile = "";
@@ -2534,7 +2552,13 @@ public class MasterDatabaseUtility {
 		// get the edges next
 
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
+		Connection conn = null;
+		try {
+			conn = engine.makeConnection();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		Statement stmt = null;
 		ResultSet rs = null;
 		// creates e-c-p node names for fe to parse

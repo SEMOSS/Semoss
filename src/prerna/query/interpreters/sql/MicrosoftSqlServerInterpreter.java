@@ -115,8 +115,8 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 				// get the first value
 				String val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 				// get the first value
-				if(isSearch && val.endsWith("\\")) {
-					myObj.append(leftWrapper).append(val).append("\\").append(rightWrapper);
+				if(isSearch && val.contains("\\")) {
+					myObj.append(leftWrapper).append(val.replace("\\","\\\\")).append(rightWrapper);
 				} else {
 					myObj.append(leftWrapper).append(val).append(rightWrapper);
 				}
@@ -124,8 +124,8 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 				for(; i < size; i++) {
 					val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 					// get the other values
-					if(isSearch && val.endsWith("\\")) {
-						myObj.append(" , ").append(leftWrapper).append(val).append("\\").append(rightWrapper);
+					if(isSearch && val.contains("\\")) {
+						myObj.append(" , ").append(leftWrapper).append(val.replace("\\", "\\\\")).append(rightWrapper);
 					} else {
 						myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
 					}
@@ -184,8 +184,8 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 				// get the first value
 				String val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 				// get the first value
-				if(isSearch && val.endsWith("\\")) {
-					myObj.append(leftWrapper).append(val).append("\\").append(rightWrapper);
+				if(isSearch && val.contains("\\")) {
+					myObj.append(leftWrapper).append(val.replace("\\","\\\\")).append(rightWrapper);
 				} else {
 					myObj.append(leftWrapper).append(val).append(rightWrapper);
 				}
@@ -194,8 +194,8 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 					val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 					// get the first value
 					// get the other values
-					if(isSearch && val.endsWith("\\")) {
-						myObj.append(" , ").append(leftWrapper).append(val).append("\\").append(rightWrapper);
+					if(isSearch && val.contains("\\")) {
+						myObj.append(" , ").append(leftWrapper).append(val.replace("\\","\\\\")).append(rightWrapper);
 					} else {
 						myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
 					}

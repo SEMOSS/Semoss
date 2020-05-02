@@ -37,8 +37,13 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		RDBMSNativeEngine nativeEngine = (RDBMSNativeEngine) Utility.getEngine(appId);
-		Connection connection = nativeEngine.getConnection();
-		// nativeEngine.makeConnection();
+		Connection connection = null;
+		try {
+			connection = nativeEngine.getConnection();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		
 		// keep a list of tables and views
 		List<String> tables = new ArrayList<String>();

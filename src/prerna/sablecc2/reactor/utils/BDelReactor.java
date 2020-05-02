@@ -23,8 +23,13 @@ public class BDelReactor extends AbstractReactor {
 
 		organizeKeys();
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-		
+		Connection conn = null;
+		try {
+			conn = engine.makeConnection();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}		
 		
 		try {
 			// check to see if such a fancy name exists

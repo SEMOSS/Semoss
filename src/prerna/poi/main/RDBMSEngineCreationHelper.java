@@ -203,7 +203,13 @@ public class RDBMSEngineCreationHelper {
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine, Set<String> tablesToRetrieve) {
 		// get the metadata from the connection
 		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) rdbmsEngine;
-		Connection con = rdbms.makeConnection();
+		Connection con = null;
+		try {
+			con = rdbms.makeConnection();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
 		DatabaseMetaData meta = rdbms.getConnectionMetadata();
 		
 		String connectionUrl = null;
