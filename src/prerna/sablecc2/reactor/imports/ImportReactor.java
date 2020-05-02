@@ -53,7 +53,11 @@ public class ImportReactor extends AbstractReactor {
 				throw e;
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new SemossPixelException(getError("Error occured executing query before loading into frame"));
+				String message = "Error occured executing query to load into the frame";
+				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+					message += ". " + e.getMessage();
+				}
+				throw new SemossPixelException(getError(message));
 			}
 			try {
 				if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {

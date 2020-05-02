@@ -96,16 +96,19 @@ public class EngineInsightsHelper {
 		} else {
 			
 			// adding new insight metadata
-			if(!queryUtil.tableExists(insightsRdbms.getConnection(), "INSIGHTMETA", insightsRdbms.getSchema())) {
-				String[] columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"};
-				String[] types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT"};
-				try {
-					insightsRdbms.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
-				} catch (SQLException e) {
-					e.printStackTrace();
+			try {
+				if(!queryUtil.tableExists(insightsRdbms.getConnection(), "INSIGHTMETA", insightsRdbms.getSchema())) {
+					String[] columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"};
+					String[] types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT"};
+					try {
+						insightsRdbms.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
 				}
+			} catch (SQLException e) {
+				e.printStackTrace();
 			}
-			
 			
 //			// okay, might need to do some updates
 //			String q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='ID'";
