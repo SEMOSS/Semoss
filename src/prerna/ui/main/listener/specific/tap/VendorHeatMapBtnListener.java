@@ -51,8 +51,10 @@ import prerna.util.Utility;
  */
 public class VendorHeatMapBtnListener implements IChakraListener {
 
-	static final Logger logger = LogManager.getLogger(VendorHeatMapBtnListener.class.getName());
-	
+	static final Logger logger = LogManager.getLogger(VendorHeatMapBtnListener.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	/**
 	 * Method actionPerformed.
 	 * @param actionevent ActionEvent
@@ -67,7 +69,7 @@ public class VendorHeatMapBtnListener implements IChakraListener {
 		}
 		
 		JList repoList = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repo = (Object[])repoList.getSelectedValues();
+		Object[] repo = repoList.getSelectedValues();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
 		
 		
@@ -80,30 +82,33 @@ public class VendorHeatMapBtnListener implements IChakraListener {
 			playSheet = (IPlaySheet)Class.forName(layoutValue).getConstructor(null).newInstance(null);
 		}catch(RuntimeException ex)
 		{
-			ex.printStackTrace();
+			logger.error(STACKTRACE, ex);
 			logger.fatal(ex);
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-			logger.fatal(e);
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-			logger.fatal(e);
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-			logger.fatal(e);
-		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
-			logger.fatal(e);
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-			logger.fatal(e);
+		} catch (InstantiationException ie) {
+			logger.error(STACKTRACE, ie);
+			logger.fatal(ie);
+		} catch (IllegalAccessException iae) {
+			logger.error(STACKTRACE, iae);
+			logger.fatal(iae);
+		} catch (InvocationTargetException ite) {
+			logger.error(STACKTRACE, ite);
+			logger.fatal(ite);
+		} catch (NoSuchMethodException nsme) {
+			logger.error(STACKTRACE, nsme);
+			logger.fatal(nsme);
+		} catch (ClassNotFoundException cnfe) {
+			logger.error(STACKTRACE, cnfe);
+			logger.fatal(cnfe);
 		}
-		playSheet.setTitle("Question: " + "Vendor Heat Map");
-		playSheet.setQuestionID("Vendor_Heat_Map");
-		playSheet.setQuery(query);
-		playSheet.setRDFEngine((IEngine)engine);
-		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-		playSheet.setJDesktopPane(pane);
+
+		if (playSheet != null) {
+			playSheet.setTitle("Question: " + "Vendor Heat Map");
+			playSheet.setQuestionID("Vendor_Heat_Map");
+			playSheet.setQuery(query);
+			playSheet.setRDFEngine((IEngine)engine);
+			JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+			playSheet.setJDesktopPane(pane);
+		}
 	
 		// need to create the playsheet create runner and run it on new thread
 		playRunner = new PlaysheetCreateRunner(playSheet);
@@ -120,6 +125,6 @@ public class VendorHeatMapBtnListener implements IChakraListener {
 	 */
 	@Override
 	public void setView(JComponent view) {
-		
+		// set view
 	}
 }

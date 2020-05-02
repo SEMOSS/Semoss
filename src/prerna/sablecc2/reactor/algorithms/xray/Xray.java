@@ -39,6 +39,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Xray {
+
+	private static final String STACKTRACE = "StackTrace: ";
 	public static final String ENGINE_CONCEPT_PROPERTY_DELIMETER = ";";
 	private AbstractRJavaTranslator rJavaTranslator = null;
 	private String baseFolder = null;
@@ -47,12 +49,12 @@ public class Xray {
 	// variables used to create instance count frame
 	private boolean genCountFrame = false;
 	private String countDF = null;
-	private List<String> engineColumn = new Vector<String>();
-	private List<String> tableColumn = new Vector<String>();
-	private List<String> propColumn = new Vector<String>();
-	private List<Integer> countColumn = new Vector<Integer>();
+	private List<String> engineColumn = new Vector<>();
+	private List<String> tableColumn = new Vector<>();
+	private List<String> propColumn = new Vector<>();
+	private List<Integer> countColumn = new Vector<>();
 	// get list of engines used
-	private Set<String> engineList = new HashSet<String>();
+	private Set<String> engineList = new HashSet<>();
 
 	public Xray(AbstractRJavaTranslator rJavaTranslator, String baseFolder, Logger logger) {
 		this.rJavaTranslator = rJavaTranslator;
@@ -82,7 +84,7 @@ public class Xray {
 			FileUtils.cleanDirectory(new File(dataFolder));
 			FileUtils.cleanDirectory(new File(semanticFolder));
 		} catch (IOException e1) {
-			e1.printStackTrace();
+			logger.error(STACKTRACE, e1);
 		}
 
 		// get xray parameters
@@ -96,21 +98,21 @@ public class Xray {
 
 		// Write text files to run xray comparison from different sources
 		// outputFolder/database;table;column.txt
-		HashMap<String, String> engineNameLookup = new HashMap<String,String>();
+		HashMap<String, String> engineNameLookup = new HashMap<>();
 		List<Object> connectors = (List<Object>) config.get("connectors");
 		for (int i = 0; i < connectors.size(); i++) {
 			Map<String, Object> connection = (Map<String, Object>) connectors.get(i);
 			String connectorType = (String) connection.get("connectorType");
 			Map<String, Object> connectorData = (Map<String, Object>) connection.get("connectorData");
 			Map<String, Object> dataSelection = (Map<String, Object>) connection.get("dataSelection");
-			if (connectorType.toUpperCase().equals("LOCAL")) {
+			if (connectorType.equalsIgnoreCase("LOCAL")) {
 				writeLocalEngineToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode,
 						semanticFolder);
 				String id = connectorData.get("engineId") + "";
 				engineNameLookup.put(id, MasterDatabaseUtility.getEngineAliasForId(id));
-			} else if (connectorType.toUpperCase().equals("EXTERNAL")) {
+			} else if (connectorType.equalsIgnoreCase("EXTERNAL")) {
 				writeExternalToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode, semanticFolder);
-			} else if (connectorType.toUpperCase().equals("FILE")) {
+			} else if (connectorType.equalsIgnoreCase("FILE")) {
 				// process csv file reading
 				String sourceFile = (String) connectorData.get("filePath");
 				String extension = FilenameUtils.getExtension(sourceFile);
@@ -298,18 +300,18 @@ public class Xray {
 		xl.parse(excelFile);
 		String sheetName = (String) connectorData.get("worksheet");
 		// put all row data into a List<String[]>
-		List<Object[]> rowData = new ArrayList<Object[]>();
+		List<Object[]> rowData = new ArrayList<>();
 		Object[] row = null;
 		while ((row = xl.getNextRow(sheetName)) != null) {
 			rowData.add(row);
 		}
 		String[] headers = xl.getHeaders(sheetName);
-		List<String> selectedCols = new ArrayList<String>();
+		List<String> selectedCols = new ArrayList<>();
 		for (String col : dataSelection.keySet()) {
 			// make a list of selected columns
 			Map<String, Object> colInfo = (Map<String, Object>) dataSelection.get(col);
 			for (String cols : colInfo.keySet()) {
-				if ((Boolean) colInfo.get(cols) == true) {
+				if ((Boolean) colInfo.get(cols)) {
 					selectedCols.add(cols);
 				}
 			}
@@ -318,14 +320,14 @@ public class Xray {
 			// find the index of the selected column from the headers
 			int index = -1;
 			for (String header : headers) {
-				if (header.toUpperCase().equals(col.toUpperCase())) {
+				if (header.equalsIgnoreCase(col)) {
 					index = Arrays.asList(headers).indexOf(header);
 				}
 			}
 
 			// get instance values
 			if (index != -1) {
-				HashSet<Object> instances = new HashSet<Object>();
+				HashSet<Object> instances = new HashSet<>();
 				for (int j = 0; j < rowData.size(); j++) {
 					instances.add(rowData.get(j)[index]);
 				}
@@ -367,29 +369,34 @@ public class Xray {
 			try {
 				csv = new CSVReader(new FileReader(new File(csvFile)));
 			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		} else {
 			try {
 				csv = new CSVReader(new FileReader(new File(csvFile)));
 			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 
 		List<String[]> rowData = null;
+
+		if (csv == null) {
+			throw new NullPointerException("csv cannot be null here.");
+		}
+
 		try {
 			rowData = csv.readAll();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} // get all rows
 		String[] headers = rowData.get(0);
-		List<String> selectedCols = new ArrayList<String>();
+		List<String> selectedCols = new ArrayList<>();
 		for (String col : dataSelection.keySet()) {
 			// make a list of selected columns
 			Map<String, Object> colInfo = (Map<String, Object>) dataSelection.get(col);
 			for (String cols : colInfo.keySet()) {
-				if ((Boolean) colInfo.get(cols) == true) {
+				if ((Boolean) colInfo.get(cols)) {
 					selectedCols.add(cols);
 				}
 			}
@@ -402,14 +409,14 @@ public class Xray {
 			// array
 			int index = -1;
 			for (String header : headers) {
-				if (header.toUpperCase().equals(col.toUpperCase())) {
+				if (header.equalsIgnoreCase(col)) {
 					index = Arrays.asList(headers).indexOf(header);
 				}
 			}
 
 			// get instance values
 			if (index != -1) {
-				HashSet<Object> instances = new HashSet<Object>();
+				HashSet<Object> instances = new HashSet<>();
 				for (int j = 0; j < rowData.size(); j++) {
 					if (j == 1) {
 						continue;
@@ -487,7 +494,7 @@ public class Xray {
 						String fileName = dataFolder + "\\" + newDBName + ";" + table + ";" + column + ".txt";
 						fileName = fileName.replace("\\", "/");
 						// get instances
-						List<Object> instances = new ArrayList<Object>();
+						List<Object> instances = new ArrayList<>();
 						try {
 							while (rs.next()) {
 								Object value = rs.getString(1);
@@ -495,17 +502,17 @@ public class Xray {
 								if (value != null) {
 									row = ((String) value).replaceAll("\"", "\\\"");
 								}
-								instances.add(row.toString());
+								instances.add(row);
 							}
 						} catch (SQLException e) {
-							e.printStackTrace();
+							logger.error(STACKTRACE, e);
 						}
 						// encode and write to file
 						this.logger.info("Querying " + column + " from " + table + " in " + newDBName + " for X-ray comparison...");
 						encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 						stmt.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 				}
 			}
@@ -513,7 +520,7 @@ public class Xray {
 		try {
 			con.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -569,7 +576,7 @@ public class Xray {
 							sqs.addSelector(table, null);
 							sqs.setDistinct(true);
 							
-							List<Object> instances = new ArrayList<Object>();
+							List<Object> instances = new ArrayList<>();
 							IRawSelectWrapper iterator = null;
 							try {
 								iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
@@ -577,7 +584,7 @@ public class Xray {
 									instances.add(iterator.next().getValues()[0]);
 								}
 							} catch (Exception e) {
-								e.printStackTrace();
+								logger.error(STACKTRACE, e);
 							} finally {
 								if(iterator != null) {
 									iterator.cleanUp();
@@ -603,7 +610,7 @@ public class Xray {
 							sqs.addSelector(table, column);
 							sqs.setDistinct(true);
 							
-							List<Object> instances = new ArrayList<Object>(); 
+							List<Object> instances = new ArrayList<>(); 
 							IRawSelectWrapper iterator = null;
 							try {
 								iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
@@ -611,7 +618,7 @@ public class Xray {
 									instances.add(iterator.next().getValues()[0]);
 								}
 							} catch (Exception e) {
-								e.printStackTrace();
+								logger.error(STACKTRACE, e);
 							} finally {
 								if(iterator != null) {
 									iterator.cleanUp();
@@ -910,7 +917,7 @@ public class Xray {
 					count = num.intValue();
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(it != null) {
 					it.cleanUp();
