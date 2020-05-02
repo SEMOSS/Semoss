@@ -38,15 +38,15 @@ import java.util.Set;
 
 import javax.swing.JPanel;
 
+import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.swing.BrowserView;
+
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
-
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 /**
  * Heat Map that shows what gaps in data exist for systems to suppor their BLUs
@@ -142,7 +142,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		}
 	}
 	
-	public void createData(ArrayList<String> BLUNames, ArrayList<String> sysNames) {
+	public void createData(List<String> BLUNames, List<String> sysNames) {
 
 		addPanel();
 		SimilarityFunctions simfns = new SimilarityFunctions();	
@@ -167,7 +167,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		allHash.put("sysDup", false);
 	}
 	
-	private void processWrapper(ISelectWrapper sjw, String[] names, ArrayList<String> BLUNames, ArrayList<String> sysNames){
+	private void processWrapper(ISelectWrapper sjw, String[] names, List<String> BLUNames, List<String> sysNames){
 		
 		Hashtable<String, Hashtable<String, Object>> BLUDataHash = new Hashtable<String, Hashtable<String, Object>>();
 		try {

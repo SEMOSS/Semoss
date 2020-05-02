@@ -27,10 +27,7 @@ import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -41,8 +38,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.PixelPlanner;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -277,6 +272,11 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			}
 			rowCounter++;
 		}
+		
+		// fixed size at the end
+		for(int i = 0; i < 2 + properties.size(); i++) {
+			sheet.setColumnWidth(i, 5_000);
+		}
 	}
 	
 	public static void writeRelationshipSheet(
@@ -354,6 +354,11 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			}
 			rowCounter++;
 		}
+		
+		// fixed size at the end
+		for(int i = 0; i < 3 + edgeProps.size(); i++) {
+			sheet.setColumnWidth(i, 5_000);
+		}
 	}
 	
 	public static void writeLoader(Workbook wb) {
@@ -378,6 +383,10 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		
 		// the loader sheet first
 		wb.setSheetOrder("Loader", 0);
+		
+		// fixed size at the end
+		loader.setColumnWidth(0, 5_000);
+		loader.setColumnWidth(1, 5_000);
 	}
 	
 	public static String generateSparqlQuery(IEngine engine, String startNode, String endNode, String relName, List<String> edgeProps) {
