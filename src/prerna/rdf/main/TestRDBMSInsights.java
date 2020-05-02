@@ -2,6 +2,9 @@ package prerna.rdf.main;
 
 import java.util.Arrays;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -10,6 +13,8 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
 
 public class TestRDBMSInsights {
+
+	private static final Logger logger = LogManager.getLogger(TestRDBMSInsights.class);
 
 	public static void main(String[] args) {
 		
@@ -28,21 +33,15 @@ public class TestRDBMSInsights {
 			wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, query);
 			while(wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
-				System.out.println(Arrays.toString(row.getRawValues()));
+				logger.info(Arrays.toString(row.getRawValues()));
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
 			}
 		}
-		
-		
-		System.out.println(">>>>>>>>>>>>>");
-		System.out.println(">>>>>>>>>>>>>");
-		System.out.println(">>>>>>>>>>>>>");
-		System.out.println(">>>>>>>>>>>>>");
 
 		query = "select * from user_tables";
 		
@@ -50,12 +49,14 @@ public class TestRDBMSInsights {
 			wrapper = WrapperManager.getInstance().getRawWrapper(coreEngine, query);
 			while(wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
-				System.out.println(Arrays.toString(row.getRawValues()));
+				logger.info(Arrays.toString(row.getRawValues()));
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 		} finally {
-			wrapper.cleanUp();
+			if (wrapper != null) {
+				wrapper.cleanUp();
+			}
 		}
 		
 //		//TODO: put in correct path for your database
