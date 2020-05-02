@@ -89,6 +89,11 @@ public class PersistentHash {
 		}
 
 		// make sure the KVSTORE table exists
-		return queryUtil.tableExists(engine.getConnection(), TABLE_NAME, engine.getSchema());
+		try {
+			return queryUtil.tableExists(engine.getConnection(), TABLE_NAME, engine.getSchema());
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
 	}
 }
