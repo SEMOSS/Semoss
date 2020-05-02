@@ -9,6 +9,8 @@ import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RFileInputStream;
 import org.rosuda.REngine.Rserve.RFileOutputStream;
@@ -24,6 +26,10 @@ import prerna.util.Utility;
 
 public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 
+	private static final Logger logger = LogManager.getLogger(RJavaRemoteRserveTranslator.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	RJavaRemoteRserveTranslator() {
@@ -33,7 +39,7 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 	@Override
 	public void startR() {
 		if(this.insight != null) {
-			NounMetadata noun = (NounMetadata) this.insight.getVarStore().get(R_CONN);
+			NounMetadata noun = this.insight.getVarStore().get(R_CONN);
 			if (noun != null) {
 				retCon = (RConnection) this.insight.getVarStore().get(R_CONN).getValue();
 			}
@@ -78,6 +84,12 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 				//				masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
 				//				retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
 
+				if(retCon == null) {
+					throw new NullPointerException(
+							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
+									+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
+				}
+				
 				// load all the libraries
 				retCon.eval("library(splitstackshape);");
 				logger.info("Loaded packages splitstackshape");
@@ -103,10 +115,10 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 				}
 
 			} catch (Exception e) {
-				System.out.println(
+				logger.error(
 						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
 								+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				throw new IllegalArgumentException(
 						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
 								+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
@@ -114,56 +126,55 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 		}
 		// initialize the r environment
 		initREnv();
-
 	}
 
-	private void transferToServer( String client_file, String server_file ){
+	private void transferToServer( String clientFile, String serverFile ){
 		RConnection r = getRcon();
 		byte [] b = new byte[8192];
 		try{
 			/* the file on the client machine we read from */
-			BufferedInputStream client_stream = new BufferedInputStream( 
-					new FileInputStream( new File( client_file ) ) ); 
+			BufferedInputStream clientStream = new BufferedInputStream( 
+					new FileInputStream( new File( clientFile ) ) ); 
 
 			/* the file on the server we write to */
-			RFileOutputStream server_stream = r.createFile( server_file );
+			RFileOutputStream serverStream = r.createFile( serverFile );
 
 			/* typical java IO stuff */
-			int c = client_stream.read(b) ; 
+			int c = clientStream.read(b) ; 
 			while( c >= 0 ){
-				server_stream.write( b, 0, c ) ;
-				c = client_stream.read(b) ;
+				serverStream.write( b, 0, c ) ;
+				c = clientStream.read(b) ;
 			}
-			
-			server_stream.close();
-			client_stream.close(); 
+
+			serverStream.close();
+			clientStream.close(); 
 		} catch( IOException e){
-			e.printStackTrace(); 
+			logger.error(STACKTRACE, e);
 		}
 	}
 
-	private void transferToClient( String client_file, String server_file ){
+	private void transferToClient( String clientFile, String serverFile ){
 		RConnection r = getRcon();
 		byte[] b = new byte[8192];
 		try{
 			/* the file on the client machine we write to */
-			BufferedOutputStream client_stream = new BufferedOutputStream(
-					new FileOutputStream( new File( client_file ) ) );
+			BufferedOutputStream clientStream = new BufferedOutputStream(
+					new FileOutputStream( new File( clientFile ) ) );
 
 			/* the file on the server machine we read from */
-			RFileInputStream server_stream = r.openFile( server_file );
+			RFileInputStream serverStream = r.openFile( serverFile );
 
 			/* typical java io stuff */
-			int c = server_stream.read(b) ; 
+			int c = serverStream.read(b) ; 
 			while( c >= 0 ){
-				client_stream.write( b, 0, c ) ;
-				c = server_stream.read(b) ;
+				clientStream.write( b, 0, c ) ;
+				c = serverStream.read(b) ;
 			}
-			
-			client_stream.close();
-			server_stream.close(); 
+
+			clientStream.close();
+			serverStream.close(); 
 		} catch( IOException e){
-			e.printStackTrace(); 
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -180,8 +191,8 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 		try {
 			FileUtils.writeStringToFile(f, script);
 		} catch (IOException e1) {
-			System.out.println("Error in writing R script for execution!");
-			e1.printStackTrace();
+			logger.error("Error in writing R script for execution!");
+			logger.error(STACKTRACE, e1);
 		}
 
 		//Copy file over to server
@@ -220,16 +231,18 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 
 		if (remoteR){
 			try {
-				r.createFile( outputLoc );
+				if (r != null) {
+					r.createFile( outputLoc );
+				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		} else {
 			outputF = new File(outputLoc);
 			try {
 				outputF.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 
@@ -244,8 +257,8 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 					+ "sink(" + randomVariable + ", append=TRUE, type=\"message\"); " + script + " sink();";
 			FileUtils.writeStringToFile(f, script);
 		} catch (IOException e1) {
-			System.out.println("Error in writing R script for execution!");
-			e1.printStackTrace();
+			logger.error("Error in writing R script for execution!");
+			logger.error(STACKTRACE, e1);
 		}
 		String scriptOutput = null;
 		if (remoteR){
@@ -265,11 +278,13 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 					outputF = new File(outputLocLocal);
 					scriptOutput = FileUtils.readFileToString(outputF);
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			} finally {
 				f.delete();
-				outputF.delete();
+				if (outputF != null) {
+					outputF.delete();
+				}
 				//					executeEmptyR("file.remove(" + tempFileLocation + ");");
 				//					executeEmptyR("file.remove(" + outputLoc + ");");
 
@@ -283,7 +298,7 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 				try {
 					scriptOutput = FileUtils.readFileToString(outputF);
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			} finally {
 				f.delete();
@@ -295,6 +310,11 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 		this.executeEmptyR("rm(" + randomVariable + ")");
 		this.executeEmptyR("gc()");
 
+		if (scriptOutput == null) {
+			//			throw new NullPointerException("Neccesity to trim, scriptOutput cannot be null here.");
+			return "";
+		}
+
 		// return the final output
 		return scriptOutput.trim();
 	}
@@ -302,10 +322,10 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 	@Override
 	public Object executeR(String rScript) {
 		try {
-			System.out.println("executeR: " + rScript);
+			logger.info("executeR: " + rScript);
 			return retCon.eval(rScript);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -313,10 +333,10 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 	@Override
 	public void executeEmptyR(String rScript) {
 		try {
-			System.out.println("executeR: " + rScript);
+			logger.info("executeR: " + rScript);
 			retCon.voidEval(rScript);
 		} catch (RserveException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -340,7 +360,7 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 		//maybe there is something in the insight
 		else if(this.insight != null) {
 			logger.info("Retrieving existing R Connection...");
-			NounMetadata noun = (NounMetadata) this.insight.getVarStore().get(R_CONN);
+			NounMetadata noun = this.insight.getVarStore().get(R_CONN);
 			if (noun != null) {
 				rConTemp = (RConnection) this.insight.getVarStore().get(R_CONN).getValue();
 			}

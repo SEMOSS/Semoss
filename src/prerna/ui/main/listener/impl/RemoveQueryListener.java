@@ -196,7 +196,7 @@ public class RemoveQueryListener extends SparqlAreaListener {
 
 			// get all the parameters and names from the SPARQL
 			Hashtable params = Utility.getParams(sparql);
-			Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+			Map<String, List<Object>> paramHash = new Hashtable<>();
 			// for each of the params pick out the type now
 			Enumeration keys = params.keys();
 			while(keys.hasMoreElements())

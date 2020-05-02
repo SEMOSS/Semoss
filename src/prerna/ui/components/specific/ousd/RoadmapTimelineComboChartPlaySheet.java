@@ -21,27 +21,30 @@ import prerna.util.PlaySheetRDFMapBasedEnum;
 
 public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlaySheet {
 
-	private static final Logger logger = LogManager.getLogger(RoadmapTimelineComboChartPlaySheet.class.getName());
+	private static final Logger logger = LogManager.getLogger(RoadmapTimelineComboChartPlaySheet.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+	private static final String NO_PLAYSHEET = "No such PlaySheet: ";
+
 	protected Hashtable dataHash = new Hashtable();
-	
 
 	public void processThickQueryData()
 	{		
-		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
+		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList<>();
 		String[] names = dataFrame.getColumnHeaders();
 		String[] newHeaders = this.timelines.get(0).getCostSavingsHeaders();
 		//series name - all objects in that series (x : ... , y : ...)
 //		Iterator<Object[]> it = dataFrame.iterator(true);
 		Iterator<IHeadersDataRow> it = this.dataFrame.iterator();
-		List<Object> annlSavingsSeries = new ArrayList<Object>();
+		List<Object> annlSavingsSeries = new ArrayList<>();
 		annlSavingsSeries.add(newHeaders[1]);
-		List<Object> annlExpensesSeries = new ArrayList<Object>();
+		List<Object> annlExpensesSeries = new ArrayList<>();
 		annlExpensesSeries.add(newHeaders[2]);
-		List<Object> annlCashFlowSeries = new ArrayList<Object>();
+		List<Object> annlCashFlowSeries = new ArrayList<>();
 		annlCashFlowSeries.add(newHeaders[3]);
-		List<Object> cumNetSavingsSeries = new ArrayList<Object>();
+		List<Object> cumNetSavingsSeries = new ArrayList<>();
 		cumNetSavingsSeries.add(newHeaders[4]);
-		List<Object> ticks = new ArrayList<Object>();
+		List<Object> ticks = new ArrayList<>();
 		while(it.hasNext())
 		{
 			Object[] elemValues = it.next().getValues();
@@ -56,23 +59,23 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 			cumNetSavingsSeries.add(elemValues[4]);
 			
 		}
-		List<List<Object>> columns = new ArrayList<List<Object>>();
+		List<List<Object>> columns = new ArrayList<>();
 		columns.add(annlSavingsSeries);
 		columns.add(annlExpensesSeries);
 		columns.add(annlCashFlowSeries);
 		columns.add(cumNetSavingsSeries);
-		Map<String, Object> myHash = new HashMap<String, Object>();
+		Map<String, Object> myHash = new HashMap<>();
 		myHash.put("columns", columns);
 		myHash.put("type", "bar");
 		
-		Map<String, String> types = new HashMap<String, String>();
+		Map<String, String> types = new HashMap<>();
 		types.put(newHeaders[4], "line");
 		
 		myHash.put("types", types);
 //		myHash.put("groups", new Object[]{this.newHeaders[1], this.newHeaders[2], this.newHeaders[3]});
 		
 		
-		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
+		Hashtable<String, Object> columnChartHash = new Hashtable<>();
 		columnChartHash.put("names", names);
 		columnChartHash.put("data", myHash);
 		columnChartHash.put("ticks", ticks);
@@ -88,35 +91,37 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		try {
 			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException ex) {
-			ex.printStackTrace();
-			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-		} catch (IllegalAccessException e) {
-			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (NoSuchMethodException e) {
-			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			logger.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
+			logger.error(STACKTRACE, ex);
+			logger.fatal(NO_PLAYSHEET+ playSheetClassName);
+		} catch (InstantiationException ie) {
+			logger.error(STACKTRACE, ie);
+			logger.fatal(NO_PLAYSHEET+ playSheetClassName);
+		} catch (IllegalAccessException iae) {
+			logger.error(STACKTRACE, iae);
+			logger.fatal(NO_PLAYSHEET+ playSheetClassName);
+		} catch (IllegalArgumentException iare) {
+			logger.error(STACKTRACE, iare);
+			logger.fatal(NO_PLAYSHEET+ playSheetClassName);
+		} catch (InvocationTargetException ite) {
+			logger.error(STACKTRACE, ite);
+			logger.fatal(NO_PLAYSHEET+ playSheetClassName);
+		} catch (NoSuchMethodException nsme) {
+			logger.error(STACKTRACE, nsme);
+			logger.fatal(NO_PLAYSHEET+ playSheetClassName);
+		} catch (SecurityException se) {
+			logger.error(STACKTRACE, se);
+			logger.fatal(NO_PLAYSHEET+ playSheetClassName);
 		}
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		playSheet.fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/ousd-combo.html";
-		playSheet.setDataMaker(this.dataFrame);
-		playSheet.setQuestionID(this.questionNum);
-		playSheet.setTitle(this.title);
-		playSheet.pane = this.pane;
-		playSheet.setDataHash(dataHash);
-		playSheet.createView();
+		if (playSheet != null) {
+			playSheet.fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/ousd-combo.html";
+			playSheet.setDataMaker(this.dataFrame);
+			playSheet.setQuestionID(this.questionNum);
+			playSheet.setTitle(this.title);
+			playSheet.pane = this.pane;
+			playSheet.setDataHash(dataHash);
+			playSheet.createView();
+		}
 	}
 
 	@Override
@@ -126,7 +131,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		ret.put("layout", "OUSDCombo");
 		return ret;
 	}
-	
+
 	@Override
 	public void createData(){
 		buildTable(timelineNames, null);

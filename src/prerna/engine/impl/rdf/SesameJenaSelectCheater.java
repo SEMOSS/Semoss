@@ -60,18 +60,21 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	//IEngine engine = null;
 	transient BindingSet bs;
 	transient String query = null;	
-	static final Logger logger = LogManager.getLogger(SesameJenaSelectCheater.class.getName());
+	static final Logger logger = LogManager.getLogger(SesameJenaSelectCheater.class);
 	transient int count=0;
 	String [] var = null;
 	transient int tqrCount=0;
 	transient int triples;
 	String queryVar[];
 	transient SesameJenaSelectCheater proxy = null;
+	private static final String STACKTRACE = "StackTrace: ";
+
 	
 	/**
 	 * Method setEngine. Sets the engine.
 	 * @param engine IEngine - The engine that this is being set to.
 	 */
+	@Override
 	public void setEngine(IEngine engine)
 	{
 		logger.debug("Set the engine " );
@@ -83,6 +86,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	 * Method setQuery. - Sets the SPARQL query statement.
 	 * @param query String - The string version of the SPARQL query.
 	 */
+	@Override
 	public void setQuery(String query)
 	{
 		logger.debug("Setting the query " + query);
@@ -93,6 +97,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	 * Method execute. - Executes the SPARQL query based on the type of engine selected, and processes the variables.
 	 * @throws Exception 
 	 */
+	@Override
 	public void execute() throws Exception
 	{
 		if(engineType == IEngine.ENGINE_TYPE.SESAME)
@@ -116,7 +121,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 		{
 			// get the actual SesameJenaConstructWrapper from the engine
 			// this is json output
-			System.out.println("Trying to get the wrapper remotely now");
+			logger.info("Trying to get the wrapper remotely now");
 			processSelectVar();
 			count = 0;
 			proxy = (SesameJenaSelectCheater)((RemoteSemossSesameEngine)(engine)).execCheaterQuery(query);
@@ -154,8 +159,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return var;
 	}
@@ -232,11 +236,9 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 									ris.close();
 								}
 							} catch(IOException e) {
-								e.printStackTrace();
+								logger.error(STACKTRACE, e);
 							}
 						}
-
-						//logger.info(tqrCount);
 					}
 					sub = bs.getValue(queryVar[count*3].substring(1));
 					pred = bs.getValue(queryVar[count*3+1].substring(1));
@@ -257,16 +259,13 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			ex.printStackTrace();
 			retBool = false;
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			retBool = false;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 			retBool = false;
-		} catch (QueryEvaluationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (QueryEvaluationException ex) {
+			logger.error(STACKTRACE, ex);
 			retBool = false;
 		}
 		logger.debug(" Next " + retBool);
@@ -278,6 +277,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	
 	 * @return SesameJenaConstructStatement - returns the construct statement.
 	 * */
+	@Override
 	public SesameJenaConstructStatement next()
 	{
 		SesameJenaConstructStatement thisSt = null;
@@ -308,7 +308,6 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 						count=0;
 						bs = tqr.next();
 						tqrCount++;
-						//logger.info(tqrCount);
 					}
 					sub = bs.getValue(queryVar[count*3].substring(1));
 					pred = bs.getValue(queryVar[count*3+1].substring(1));
@@ -338,9 +337,8 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 				retSt = null;
 			}
 
-		}catch(Exception ex)
-		{
-			ex.printStackTrace();
+		} catch (Exception ex) {
+			logger.error(STACKTRACE, ex);
 		}
 		return thisSt;
 	}
@@ -359,10 +357,13 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 		    {
 		    	varString = matcher.group(1);
 		    }
-		    varString = varString.trim();
-		    queryVar = varString.split(" ");
-		    int num = queryVar.length+1;
-		    triples = (int) Math.floor(num/3);
+		    
+		    if (varString != null) {
+			    varString = varString.trim();
+			    queryVar = varString.split(" ");
+			    int num = queryVar.length+1;
+			    triples = num/3;
+		    }
 		}
 		else
 		{
@@ -372,10 +373,13 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 		    while (matcher.find()) {
 		        varString = matcher.group(1);
 		    }
-		    varString = varString.trim();
-		    queryVar = varString.split(" ");
-		    int num = queryVar.length+1;
-		    triples = (int) Math.floor(num/3);
+
+		    if (varString != null) {
+		    	varString = varString.trim();
+		    	queryVar = varString.split(" ");
+			    int num = queryVar.length+1;
+			    triples = num/3;
+		    }
 		}
 	}
 	
@@ -383,6 +387,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	 * Method setEngineType. Sets the engine type.
 	 * @param engineType Enum - The type engine that this is being set to.
 	 */
+	@Override
 	public void setEngineType(Enum engineType)
 	{
 		this.engineType = engineType;

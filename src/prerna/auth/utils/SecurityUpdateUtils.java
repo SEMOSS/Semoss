@@ -35,8 +35,10 @@ import prerna.util.Utility;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
-	private static final Logger LOGGER = Logger.getLogger(SecurityUpdateUtils.class);
-	
+	private static final Logger logger = Logger.getLogger(SecurityUpdateUtils.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	/**
 	 * Only used for static references
 	 */
@@ -90,7 +92,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String[] typeAndCost = getAppTypeAndCost(prop);
 		boolean engineExists = containsEngineId(appId);
 		if(engineExists && !reloadInsights) {
-			LOGGER.info("Security database already contains app with alias = " + appName);
+			logger.info("Security database already contains app with alias = " + appName);
 			return;
 		} else if(!engineExists) {
 			addEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
@@ -101,7 +103,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 		}
 		
-		LOGGER.info("Security database going to add app with alias = " + appName);
+		logger.info("Security database going to add app with alias = " + appName);
 		
 		// load just the insights database
 		// first see if engine is already loaded
@@ -111,7 +113,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			engineLoaded = true;
 			rne = Utility.getEngine(appId).getInsightDatabase();
 		} else {
-			rne = EngineInsightsHelper.loadInsightsEngine(prop, LOGGER);
+			rne = EngineInsightsHelper.loadInsightsEngine(prop, logger);
 		}
 		
 		// i need to delete any current insights for the app
@@ -120,7 +122,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		// if we are doing a reload
@@ -132,7 +134,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			// need to flush out the current insights w/ permissions
 			// will keep the same permissions
 			// and perform a delta
-			LOGGER.info("Reloading app. Retrieving existing insights with permissions");
+			logger.info("Reloading app. Retrieving existing insights with permissions");
 			String insightsWPer = "SELECT INSIGHTID FROM USERINSIGHTPERMISSION WHERE ENGINEID='" + appId + "'";
 			insightPermissionIds = QueryExecutionUtility.flushToSetString(securityDb, insightsWPer, false);
 			if(insightPermissionIds.isEmpty()) {
@@ -180,19 +182,19 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					
 					// batch commit based on size
 					if (++count % batchSize == 0) {
-						LOGGER.info("Executing batch .... row num = " + count);
+						logger.info("Executing batch .... row num = " + count);
 						ps.executeBatch();
 					}
 					
-					if(reloadInsights && existingInsightPermissions) {
+					if(reloadInsights && insightPermissionIds != null && existingInsightPermissions) {
 						insightPermissionIds.remove(insightId);
 					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -200,16 +202,16 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		
 		// well, we are done looping through now
-		LOGGER.info("Executing final batch .... row num = " + count);
+		logger.info("Executing final batch .... row num = " + count);
 		try {
 			ps.executeBatch();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} // insert any remaining records
 		try {
 			ps.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		count = 0;
@@ -220,7 +222,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		ps = securityDb.bulkInsertPreparedStatement(
@@ -247,15 +249,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					
 					// batch commit based on size
 					if (++count % batchSize == 0) {
-						LOGGER.info("Executing batch .... row num = " + count);
+						logger.info("Executing batch .... row num = " + count);
 						ps.executeBatch();
 					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -263,16 +265,16 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		
 		// well, we are done looping through now
-		LOGGER.info("Executing final batch .... row num = " + count);
+		logger.info("Executing final batch .... row num = " + count);
 		try {
 			ps.executeBatch();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} // insert any remaining records
 		try {
 			ps.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		// close the connection to the insights
@@ -283,12 +285,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		
 		if(reloadInsights) {
-			LOGGER.info("Modifying force reload to false");
+			logger.info("Modifying force reload to false");
 			Utility.changePropMapFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");	
 			
 			// need to remove existing insights w/ permissions that do not exist anymore
 			if(existingInsightPermissions && !insightPermissionIds.isEmpty()) {
-				LOGGER.info("Removing insights with permissions that no longer exist");
+				logger.info("Removing insights with permissions that no longer exist");
 				String deleteInsightPermissionQuery = "DELETE FROM USERINSIGHTPERMISSION "
 					+ "WHERE ENGINEID='" + appId + "'"
 					+ " AND INSIGHTID " + createFilter(insightPermissionIds);
@@ -296,12 +298,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					securityDb.removeData(deleteInsightPermissionQuery);
 					securityDb.commit();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
 		
-		LOGGER.info("Finished adding engine = " + appId);
+		logger.info("Finished adding engine = " + appId);
 	}
 	
 	/**
@@ -310,8 +312,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String[] getAppTypeAndCost(Properties prop) {
-		String app_type = null;
-		String app_cost = null;
+		String appType = null;
+		String appCost = null;
 		// the whole app cost stuff is completely made up...
 		// but it will look cool so we are doing it
 		String eType = prop.getProperty(Constants.ENGINE_TYPE);
@@ -321,45 +323,45 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				rdbmsType = "H2_DB";
 			}
 			rdbmsType = rdbmsType.toUpperCase();
-			app_type = rdbmsType;
+			appType = rdbmsType;
 			if(rdbmsType.equals("TERADATA") || rdbmsType.equals("DB2")) {
-				app_cost = "$$";
+				appCost = "$$";
 			} else {
-				app_cost = "";
+				appCost = "";
 			}
 		} else if(eType.equals("prerna.engine.impl.rdbms.ImpalaEngine")) {
-			app_type = "IMPALA";
-			app_cost = "$$$";
+			appType = "IMPALA";
+			appCost = "$$$";
 		} else if(eType.equals("prerna.engine.impl.rdf.BigDataEngine")) {
-			app_type = "RDF";
-			app_cost = "";
+			appType = "RDF";
+			appCost = "";
 		} else if(eType.equals("prerna.engine.impl.rdf.RDFFileSesameEngine")) {
-			app_type = "RDF";
-			app_cost = "";
+			appType = "RDF";
+			appCost = "";
 		} else if(eType.equals("prerna.ds.datastax.DataStaxGraphEngine")) {
-			app_type = "DATASTAX";
-			app_cost = "$$$";
+			appType = "DATASTAX";
+			appCost = "$$$";
 		} else if(eType.equals("prerna.engine.impl.solr.SolrEngine")) {
-			app_type = "SOLR";
-			app_cost = "$$";
+			appType = "SOLR";
+			appCost = "$$";
 		} else if(eType.equals("prerna.engine.impl.tinker.TinkerEngine")) {
 			String tinkerDriver = prop.getProperty(Constants.TINKER_DRIVER);
 			if(tinkerDriver.equalsIgnoreCase("neo4j")) {
-				app_type = "NEO4J";
-				app_cost = "";
+				appType = "NEO4J";
+				appCost = "";
 			} else {
-				app_type = "TINKER";
-				app_cost = "";
+				appType = "TINKER";
+				appCost = "";
 			}
 		} else if(eType.equals("prerna.engine.impl.json.JsonAPIEngine") || eType.equals("prerna.engine.impl.json.JsonAPIEngine2")) {
-			app_type = "JSON";
-			app_cost = "";
+			appType = "JSON";
+			appCost = "";
 		} else if(eType.equals("prerna.engine.impl.app.AppEngine")) {
-			app_type = "APP";
-			app_cost = "$";
+			appType = "APP";
+			appCost = "$";
 		}
 		
-		return new String[]{app_type, app_cost};
+		return new String[]{appType, appCost};
 	}
 	
 	/**
@@ -371,7 +373,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
@@ -388,37 +390,37 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		deleteQuery = "DELETE FROM WORKSPACEENGINE WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		deleteQuery = "DELETE FROM ASSETENGINE WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 //		//TODO: add the other tables...
 	}
@@ -447,7 +449,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
@@ -462,7 +464,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
@@ -472,7 +474,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
@@ -485,13 +487,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(update1);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		String update2 = "UPDATE INSIGHT SET GLOBAL=TRUE WHERE ENGINEID='" + engineId + "'";
 		try {
 			securityDb.insertData(update2);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
@@ -527,7 +529,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				try {
 					securityDb.insertData(updateQuery);
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				
 				// need to update any other permissions that were set for this user
@@ -535,7 +537,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				try {
 					securityDb.insertData(updateQuery);
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				
 				// need to update all the places the user id is used
@@ -543,7 +545,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				try {
 					securityDb.insertData(updateQuery);
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				
 				securityDb.commit();
@@ -571,7 +573,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 								securityDb.insertData(query);
 								securityDb.commit();
 							} catch (SQLException e) {
-								e.printStackTrace();
+								logger.error(STACKTRACE, e);
 							}
 							return true;
 						}
@@ -579,7 +581,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -602,7 +604,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				securityDb.insertData(query);
 				securityDb.commit();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				return false;
 			}
 			return true;
@@ -653,7 +655,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				securityDb.insertData(inserts.toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -693,14 +695,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			securityDb.insertData(builder.toString());
 		} else {
 			// are there new logins for this request that are needed, or not?
-			List<String> userIds = new Vector<String>();
+			List<String> userIds = new Vector<>();
 			List<AuthProvider> logins = user.getLogins();
 			for(AuthProvider provider : logins) {
 				userIds.add(user.getAccessToken(provider).getId());
 			}
 			
-			Set<String> uniqueRequestIds = new HashSet<String>();
-			List<String> curUserIds = new Vector<String>();
+			Set<String> uniqueRequestIds = new HashSet<>();
+			List<String> curUserIds = new Vector<>();
 			for(Map<String, Object> requestObj : existingRequests) {
 				uniqueRequestIds.add(requestObj.get("ID").toString());
 				curUserIds.add(requestObj.get("SUBMITTEDBY").toString());
