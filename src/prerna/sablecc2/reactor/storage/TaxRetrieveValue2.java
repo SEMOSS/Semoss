@@ -18,7 +18,7 @@ import prerna.sablecc2.reactor.PixelPlanner;
 
 public class TaxRetrieveValue2 extends AbstractReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(TaxRetrieveValue2.class.getName());
+	private static final Logger logger = LogManager.getLogger(TaxRetrieveValue2.class);
 
 	// TODO: find a common place to put these
 //	private static final String STORE_NOUN = "store";
@@ -39,8 +39,13 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 		try {
 			javaRunClass = javaClass.newInstance();
 		} catch (InstantiationException | IllegalAccessException e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 		}
+
+		if (javaRunClass == null) {
+			throw new NullPointerException("javaRunClass cannot be null here.");
+		}
+
 		javaRunClass.execute();
 		// for each scenario to hold the subportion
 		// of data to send back
@@ -50,7 +55,7 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 		int numGrs = grs.size();
 
 		// go through and get all the aliases the FE want
-		List<String> aliases = new Vector<String>();
+		List<String> aliases = new Vector<>();
 		for (int i = 0; i < numGrs; i++) {
 			String key = grs.get(i).toString();
 			aliases.add(key);
@@ -81,7 +86,7 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 	@Override
 	public List<NounMetadata> getOutputs() {
 		// output is the signature
-		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		List<NounMetadata> outputs = new Vector<>();
 		NounMetadata output = new NounMetadata(this.signature, PixelDataType.LAMBDA);
 		outputs.add(output);
 		return outputs;

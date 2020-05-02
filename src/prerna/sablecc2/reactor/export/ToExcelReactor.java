@@ -39,6 +39,7 @@ import prerna.util.DIHelper;
 public class ToExcelReactor extends TaskBuilderReactor {
 
 	private static final String CLASS_NAME = ToExcelReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 	
 	protected String fileLocation = null;
 	protected Logger logger;
@@ -195,6 +196,12 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			}
 		}
 		
+		// fixed size at the end
+		i = 0;
+		for(; i < size; i++) {
+			sheet.setColumnWidth(i, 5_000);
+		}
+		
 		addLogo(workbook, sheet, size + 1);
 
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
@@ -217,9 +224,9 @@ public class ToExcelReactor extends TaskBuilderReactor {
 				try {
 					picture = IOUtils.toByteArray(new FileInputStream(semossLogoPath));
 				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
+				} catch (IOException ioe) {
+					logger.error(STACKTRACE, ioe);
 				}
 				
 				// Insert image into workbook
