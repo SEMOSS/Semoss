@@ -10,6 +10,8 @@ import java.util.Vector;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
@@ -36,6 +38,8 @@ import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.Utility;
 
 public class TableUserTracker implements IUserTracker {
+
+	private static final Logger logger = LogManager.getLogger(TableUserTracker.class);
 
 	/**
 	 * Send the request for tracking
@@ -67,7 +71,7 @@ public class TableUserTracker implements IUserTracker {
 		}
 		
 		// keep the alias to bind to the correct meta
-		Map<String, String> aliasHash = new HashMap<String, String>();
+		Map<String, String> aliasHash = new HashMap<>();
 		// has to be defined after qs is converted to physical
 		List<IQuerySelector> selectors = qs.getSelectors();
 		
@@ -86,7 +90,7 @@ public class TableUserTracker implements IUserTracker {
 			aliasHash.put(alias, name);
 		}
 		
-		List<Object[]> rows = new Vector<Object[]>();
+		List<Object[]> rows = new Vector<>();
 		
 		String id = UUID.randomUUID().toString();
 		String[] insightDetails = getInsightDetailsString(in);
@@ -180,7 +184,7 @@ public class TableUserTracker implements IUserTracker {
 
 	@Override
 	public void trackAnalyticsWidget(Insight in, ITableDataFrame frame, String routineName, Map<String, List<String>> keyValue) {
-		List<Object[]> rows = new Vector<Object[]>();
+		List<Object[]> rows = new Vector<>();
 		
 		OwlTemporalEngineMeta meta = null;
 		if(frame != null) {
@@ -295,6 +299,11 @@ public class TableUserTracker implements IUserTracker {
 								table = split[0];
 								column = split[1];
 							}
+
+							if (meta == null) {
+								throw new NullPointerException("Frame metadata is null");
+							}
+
 							String dataType = meta.getHeaderTypeAsString(uniqueMetaName);
 							Long uniqueCount = getUniqueValueCount(engineId, table, column);
 							
@@ -350,7 +359,7 @@ public class TableUserTracker implements IUserTracker {
 	}
 
 	private void trackSelectQueryStructData(Insight in, SelectQueryStruct qs, String widgetType) {
-		List<Object[]> rows = new Vector<Object[]>();
+		List<Object[]> rows = new Vector<>();
 		
 		String id = UUID.randomUUID().toString();
 		String[] insightDetails = getInsightDetailsString(in);
@@ -442,7 +451,7 @@ public class TableUserTracker implements IUserTracker {
 			}
 			
 			// keep the alias to bind to the correct meta
-			Map<String, String> aliasHash = new HashMap<String, String>();
+			Map<String, String> aliasHash = new HashMap<>();
 			
 			// loop through QS
 			// figure out which selector column is part of the
@@ -461,7 +470,7 @@ public class TableUserTracker implements IUserTracker {
 			
 			for(IQuerySelector selector : selectors) {
 				String uniqueMetaName = aliasHash.get(selector.getAlias());
-				List<String[]> dbInfo = new Vector<String[]>();
+				List<String[]> dbInfo = new Vector<>();
 				if(selector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.CONSTANT) {
 					dbInfo = meta.getDatabaseInformation(uniqueMetaName);
 				}
@@ -702,7 +711,7 @@ public class TableUserTracker implements IUserTracker {
 	
 	@Override
 	public void trackInsightExecution(Insight in) {
-		List<Object[]> rows = new Vector<Object[]>();
+		List<Object[]> rows = new Vector<>();
 		String[] insightDetails = getInsightDetailsString(in);
 		Object[] row = new Object[7];
 		row[0] = RdbmsQueryBuilder.escapeForSQLStatement(in.getEngineId());
@@ -718,7 +727,7 @@ public class TableUserTracker implements IUserTracker {
 	
 	@Override
 	public void trackPixelExecution(Insight in, String pixel, boolean meta) {
-		List<Object[]> rows = new Vector<Object[]>();
+		List<Object[]> rows = new Vector<>();
 		String[] insightDetails = getInsightDetailsString(in);
 		Object[] row = new Object[6];
 		row[0] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[0]);
@@ -785,7 +794,7 @@ public class TableUserTracker implements IUserTracker {
 					}
 				} catch(Exception e) {
 					// will just print the error message but return null as the count
-					e.printStackTrace();
+					logger.error("StackTrace: ", e);
 				}
 			}
 		}
@@ -795,7 +804,7 @@ public class TableUserTracker implements IUserTracker {
 
 	@Override
 	public void trackError(Insight in, String pixel, String reactorName, String parentReactorName, boolean meta, Exception ex) {
-		List<Object[]> rows = new Vector<Object[]>();
+		List<Object[]> rows = new Vector<>();
 		
 		String id = UUID.randomUUID().toString();
 		String[] insightDetails = getInsightDetailsString(in);

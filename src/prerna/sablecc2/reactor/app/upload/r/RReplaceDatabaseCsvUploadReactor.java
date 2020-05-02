@@ -123,7 +123,7 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 			//			UploadUtilities.updateMetadata(this.engine.getEngineId());
 			logger.info("Complete");
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 			error = true;
 			if (e instanceof SemossPixelException) {
 				throw (SemossPixelException) e;
@@ -137,18 +137,20 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 			if(error) {
 				// need to revert
 				// delete the existing file
-				if(rEngineOldFile.exists()) {
+				if(rEngineOldFile != null && rEngineOldFile.exists()) {
 					rEngineOldFile.delete();
 				}
 				// replace it
 				try {
 					Files.copy(rEngineOldFileCopy, rEngineOldFile);
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error("StackTrace: ", e);
 				}
 			} else {
 				// delete the copy
-				rEngineOldFileCopy.delete();
+				if (rEngineOldFileCopy != null) {
+					rEngineOldFileCopy.delete();
+				}
 			}
 		}
 

@@ -9,6 +9,7 @@ import java.util.Vector;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -29,10 +30,13 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 
+	private static final Logger logger = LogManager.getLogger(RunMatrixRegressionReactor.class);
+
 	private static final String CLASS_NAME = RunMatrixRegressionReactor.class.getName();
 
 	private static final String Y_COLUMN = "yColumn";
 	private static final String X_COLUMNS = "xColumns";
+	private static final String STACKTRACE = "StackTrace: ";
 	
 	public RunMatrixRegressionReactor() {
 		this.keysToGet = new String[]{Y_COLUMN, X_COLUMNS, ReactorKeysEnum.DEFAULT_VALUE_KEY.getKey(), ReactorKeysEnum.PANEL.getKey()};
@@ -62,7 +66,7 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 		// and a dataTableAlign object
 		// in addition to the specific correlation data
 		String[] retHeaders = new String[numCols+1];
-		Map<String, String> dataTableAlign = new HashMap<String, String>();
+		Map<String, String> dataTableAlign = new HashMap<>();
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// add the predictor column
@@ -112,18 +116,22 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 			rowData = setValuesInOlsAndCorr(ols, it, numCols, numRows, missingVal, logger);
 			logger.info("Done iterating through data to determine regression");
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
-		
+
+		if (rowData == null) {
+			throw new NullPointerException("row data cannot be null here.");
+		}
+
 		// mock the data output
-		Map<String, Object> vizData = new HashMap<String, Object>();
+		Map<String, Object> vizData = new HashMap<>();
 		vizData.put("data", rowData);
 		vizData.put("headers", retHeaders);
 		vizData.put("layout", "ScatterplotMatrix");
 		vizData.put("panelId", getPanelId());
 		vizData.put("dataTableAlign", dataTableAlign);
 		// finally, i send the matrix data
-		Map<String, Object> specificData = new HashMap<String, Object>();
+		Map<String, Object> specificData = new HashMap<>();
 		specificData.put("one-row", true);
 		specificData.put("coefficients", ols.getCoefArray());
 		specificData.put("r2", ols.calculateRSquared());
@@ -214,7 +222,7 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 				return ((Number) countIt.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(countIt != null) {
 				countIt.cleanUp();
@@ -239,10 +247,8 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 	private String getPrediction(Logger logger) {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(Y_COLUMN);
-		if(columnGrs != null) {
-			if(columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
+		if(columnGrs != null && !columnGrs.isEmpty()) {
+			return columnGrs.get(0).toString();
 		}
 		
 		// else, we assume it is the first column
@@ -257,20 +263,18 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 	private List<String> getColumns() {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(X_COLUMNS);
-		if(columnGrs != null) {
-			if(columnGrs.size() > 0) {
-				List<Object> values = columnGrs.getAllValues();
-				List<String> strValues = new Vector<String>();
-				for(Object obj : values) {
-					strValues.add(obj.toString());
-				}
-				return strValues;
+		if(columnGrs != null && !columnGrs.isEmpty()) {
+			List<Object> values = columnGrs.getAllValues();
+			List<String> strValues = new Vector<>();
+			for(Object obj : values) {
+				strValues.add(obj.toString());
 			}
+			return strValues;
 		}
 
 		// else, we assume it is column values in the curRow
 		List<Object> values = this.curRow.getAllValues();
-		List<String> strValues = new Vector<String>();
+		List<String> strValues = new Vector<>();
 		for(Object obj : values) {
 			strValues.add(obj.toString());
 		}
@@ -282,28 +286,26 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
 		if(columnGrs != null) {
 			List<Object> columns = columnGrs.getAllNumericColumns();
-			if(columns.size() > 0) {
+			if(!columns.isEmpty()) {
 				return ((Number) columns.get(0)).doubleValue();
 			}
 		}
 		
 		// else, we assume it is column values in the curRow
 		List<Object> columns = this.curRow.getAllNumericColumns();
-		if(columns.size() > 0) {
+		if(!columns.isEmpty()) {
 			return ((Number) columns.get(0)).doubleValue();
 		}
 		
-		// return 0 by default;
+		// by default we return 0
 		return 0.0;
 	}
 	
 	private String getPanelId() {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
-		if(columnGrs != null) {
-			if(columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
+		if(columnGrs != null && !columnGrs.isEmpty()) {
+			return columnGrs.get(0).toString();
 		}
 		return null;
 	}

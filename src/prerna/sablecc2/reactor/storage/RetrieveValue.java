@@ -14,7 +14,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class RetrieveValue extends AbstractReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(RetrieveValue.class.getName());
+	private static final Logger logger = LogManager.getLogger(RetrieveValue.class);
 
 	//TODO: find a common place to put these
 	private static final String STORE_NOUN = "store";
@@ -53,12 +53,15 @@ public class RetrieveValue extends AbstractReactor {
 			try {
 				retStoreVar = storeVariable.getClass().newInstance();
 			} catch (InstantiationException | IllegalAccessException e) {
-				e.printStackTrace();
+				logger.error("StackTrace: ", e);
 			}
-			for(int i = 0; i < numGrs; i++) {
-				Object key = grs.get(i);
-				// we will append the subset of info into it
-				retStoreVar.put(key, storeVariable.get(key));
+
+			if (retStoreVar != null) {
+				for(int i = 0; i < numGrs; i++) {
+					Object key = grs.get(i);
+					// we will append the subset of info into it
+					retStoreVar.put(key, storeVariable.get(key));
+				}
 			}
 			
 			return new NounMetadata(retStoreVar, PixelDataType.IN_MEM_STORE);
@@ -91,7 +94,7 @@ public class RetrieveValue extends AbstractReactor {
 	@Override
 	public List<NounMetadata> getOutputs() {
 		// output is the signature
-		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		List<NounMetadata> outputs = new Vector<>();
 		NounMetadata output = new NounMetadata(this.signature, PixelDataType.LAMBDA);
 		outputs.add(output);
 		return outputs;

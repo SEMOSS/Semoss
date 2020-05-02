@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -12,6 +15,8 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
 
 public class RunAliasMatchReactor extends AbstractReactor {
+
+	private static final Logger logger = LogManager.getLogger(RunAliasMatchReactor.class);
 
 	private String aliasHeader = "Alias_1";
 	private String hashCodeHeader = "Hashcode";
@@ -22,35 +27,39 @@ public class RunAliasMatchReactor extends AbstractReactor {
 		try {
 			inputIterator = getInputIterator();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 		}
 		Iterator<IHeadersDataRow> proposalIterator = null;
 		try {
 			proposalIterator = getProposalIterator();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 		}
 		
 		//need to check if all aliases and all hashcodes are the same
 		Map<String, String> inputHash = new HashMap<>();
 		Map<String, String> proposalHash = new HashMap<>();
-		
-		while(inputIterator.hasNext()) {
-			IHeadersDataRow nextData = inputIterator.next();
-			String[] headers = nextData.getHeaders();
-			Object[] values = nextData.getValues();
-			int aliasIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, aliasHeader);
-			int hashIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, hashCodeHeader);
-			inputHash.put(values[aliasIndex].toString(), values[hashIndex].toString());
+
+		if (inputIterator != null) {
+			while(inputIterator.hasNext()) {
+				IHeadersDataRow nextData = inputIterator.next();
+				String[] headers = nextData.getHeaders();
+				Object[] values = nextData.getValues();
+				int aliasIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, aliasHeader);
+				int hashIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, hashCodeHeader);
+				inputHash.put(values[aliasIndex].toString(), values[hashIndex].toString());
+			}
 		}
-		
-		while(proposalIterator.hasNext()) {
-			IHeadersDataRow nextData = proposalIterator.next();
-			String[] headers = nextData.getHeaders();
-			Object[] values = nextData.getValues();
-			int aliasIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, aliasHeader);
-			int hashIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, hashCodeHeader);
-			proposalHash.put(values[aliasIndex].toString(), values[hashIndex].toString());
+
+		if (proposalIterator != null) {
+			while(proposalIterator.hasNext()) {
+				IHeadersDataRow nextData = proposalIterator.next();
+				String[] headers = nextData.getHeaders();
+				Object[] values = nextData.getValues();
+				int aliasIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, aliasHeader);
+				int hashIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, hashCodeHeader);
+				proposalHash.put(values[aliasIndex].toString(), values[hashIndex].toString());
+			}
 		}
 		
 		int count = 0;
@@ -60,16 +69,15 @@ public class RunAliasMatchReactor extends AbstractReactor {
 				String inputHashValue = inputHash.get(proposalKey);
 				if(!proposalHashValue.equals(inputHashValue)) {
 					count++;
-					System.out.println(proposalKey);
-					System.out.println("input: "+inputHashValue);
-					System.out.println("proposal: "+proposalHashValue);
-					System.out.println("________________________");
-					System.out.println();
+					logger.info(proposalKey);
+					logger.info("input: "+inputHashValue);
+					logger.info("proposal: "+proposalHashValue);
+					logger.info("________________________");
 				}
 			}
 		}
 		
-		System.out.println("TOTAL NOT MATCHING: "+count);
+		logger.info("TOTAL NOT MATCHING: "+count);
 		return null;
 	}
 	

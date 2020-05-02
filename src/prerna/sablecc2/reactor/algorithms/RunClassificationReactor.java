@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -31,9 +32,11 @@ import weka.core.Instances;
 
 public class RunClassificationReactor extends AbstractFrameReactor {
 
-	private static final String CLASS_NAME = RunClassificationReactor.class.getName();
+	private static final Logger logger = LogManager.getLogger(RunClassificationReactor.class);
 
+	private static final String CLASS_NAME = RunClassificationReactor.class.getName();
 	private static final String CLASSIFICATION_COLUMN = "classify";
+	private static final String STACKTRACE = "StackTrace: ";
 	
 	public RunClassificationReactor() {
 		this.keysToGet = new String[]{CLASSIFICATION_COLUMN, ReactorKeysEnum.ATTRIBUTES.getKey(), ReactorKeysEnum.PANEL.getKey()};
@@ -109,7 +112,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 			data = WekaReactorHelper.fillInstances(data, it, isNumeric, logger);
 			logger.info("Done converting frame into WEKA Instacnes data structure");
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			logger.error(STACKTRACE, e1);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -121,6 +124,10 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 			// one based for some weird reason..
 			data = WekaReactorHelper.discretizeNumericField(data, "1");
 			logger.info("Done with discretizing numerical column");
+		}
+
+		if (data == null) {
+			throw new NullPointerException("Instances data should not be null here");
 		}
 		data.setClassIndex(0);
 
@@ -154,24 +161,26 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 			try {
 				validation = classify(model, trainingSplits[j], testingSplits[j]);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
-			double newPctCorrect = validation.pctCorrect();
-			// ignore when weka gives a NaN for accuracy -> occurs when every instance in training set is unknown for variable being classified
-			if(Double.isNaN(newPctCorrect)) {
-				logger.info("Cannot use this classification since every instance in training set is unknown for " + retHeaders[0]);
-			} else {
-				if(newPctCorrect > accuracy) {
-					treeAsString = model.toString();
-					accuracy = newPctCorrect;
-					precision = validation.precision(1);
+			if (validation != null) {
+				double newPctCorrect = validation.pctCorrect();
+				// ignore when weka gives a NaN for accuracy -> occurs when every instance in training set is unknown for variable being classified
+				if(Double.isNaN(newPctCorrect)) {
+					logger.info("Cannot use this classification since every instance in training set is unknown for " + retHeaders[0]);
+				} else {
+					if(newPctCorrect > accuracy) {
+						treeAsString = model.toString();
+						accuracy = newPctCorrect;
+						precision = validation.precision(1);
+					}
 				}
 			}
 		}
 		logger.info("Done determining best model");
 		logger.info("Generating Decision Viz Data...");
 
-		Map<String, Object> vizData = new HashMap<String, Object>();
+		Map<String, Object> vizData = new HashMap<>();
 		vizData.put("name", "Decision Tree For " + retHeaders[0]);
 		vizData.put("layout", "Dendrogram");
 		vizData.put("panelId", getPanelId());
@@ -180,11 +189,11 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 		vizData.put("children", classificationMap);
 		// add the accuracy and precision
 		DecimalFormat df = new DecimalFormat("#%");
-		List<Map<String, String>> statList = new ArrayList<Map<String, String>>();
-		Map<String, String> statHash = new HashMap<String, String>();
+		List<Map<String, String>> statList = new ArrayList<>();
+		Map<String, String> statHash = new HashMap<>();
 		statHash.put("Accuracy", df.format(accuracy/100));
 		statList.add(statHash);
-		statHash = new Hashtable<String, String>();
+		statHash = new Hashtable<>();
 		statHash.put("Precision", df.format(precision));
 		statList.add(statHash);
 		vizData.put("stats", statList);
@@ -217,7 +226,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 				return ((Number) countIt.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(countIt != null) {
 				countIt.cleanUp();
@@ -245,7 +254,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 	
 	private Map<String, Map> processTreeString(String treeAsString) {
 		String[] treeSplit = treeAsString.split("\n");
-		Map<String, Map> treeMap = new HashMap<String, Map>();
+		Map<String, Map> treeMap = new HashMap<>();
 		// exception case when tree is a single node
 		if(treeSplit.length == 7 && treeSplit[6].equals("Size of the tree : 	1")) {
 			generateNodeTreeWithParenthesis(treeMap, treeSplit[2]);
@@ -253,7 +262,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 			String[] treeStringArr = new String[treeSplit.length - 7];
 			// indices based on weka J48 decision tree output
 			System.arraycopy(treeSplit, 3, treeStringArr, 0, treeStringArr.length);
-			generateTreeEndingWithParenthesis(treeMap, "", 0, treeStringArr, new Integer(0));
+			generateTreeEndingWithParenthesis(treeMap, "", 0, treeStringArr, Integer.valueOf(0));
 		}
 		return treeMap;
 	}
@@ -269,7 +278,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 		String endRegex = "(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))";
 		String lastRegex = "(\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))";
 				
-		Map<String, Map> currTree = new HashMap<String, Map>();
+		Map<String, Map> currTree = new HashMap<>();
 		if(!startKey.isEmpty()) {
 			rootMap.put(startKey, currTree);
 		}
@@ -283,12 +292,12 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 				} 
 				if(row.matches(endRegex)) {
 					String[] keyVal = row.replaceFirst(lastRegex, "").split(": ");
-					Map<String, Map> endMap = new HashMap<String, Map>();
+					Map<String, Map> endMap = new HashMap<>();
 					endMap.put(keyVal[1].trim(), new HashMap<String, Map>());
 					rootMap.put(keyVal[0].trim(), endMap);
 				} else {
 					String newRow = row.trim();
-					currTree = new HashMap<String, Map>();
+					currTree = new HashMap<>();
 					rootMap.put(newRow, currTree);
 					startKey = newRow;
 					subTreeIndex = 0;
@@ -298,7 +307,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 				return;
 			} else if(row.matches(endRegex)) {
 				String[] keyVal = row.substring(row.lastIndexOf("| ")+1, row.length()).trim().replaceFirst(lastRegex, "").split(": ");
-				Map<String, Map> endMap = new HashMap<String, Map>();
+				Map<String, Map> endMap = new HashMap<>();
 				endMap.put(keyVal[1].trim(), new HashMap<String, Map>());
 				currTree.put(keyVal[0].trim(), endMap);
 			} else {
@@ -321,16 +330,14 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 	private String getClassificationColumn(Logger logger) {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(CLASSIFICATION_COLUMN);
-		if(columnGrs != null) {
-			if(columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
+		if(columnGrs != null && !columnGrs.isEmpty()) {
+			return columnGrs.get(0).toString();
 		}
 		
 		// else, we assume it is the first column
 		if(this.curRow == null || this.curRow.size() == 0) {
 			String errorString = "Could not find the column predict";
-			logger.info(errorString);
+			logger.error(errorString);
 			throw new IllegalArgumentException(errorString);
 		}
 		return this.curRow.get(0).toString();
@@ -339,20 +346,18 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 	private List<String> getColumns() {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
-		if(columnGrs != null) {
-			if(columnGrs.size() > 0) {
-				List<Object> values = columnGrs.getAllValues();
-				List<String> strValues = new Vector<String>();
-				for(Object obj : values) {
-					strValues.add(obj.toString());
-				}
-				return strValues;
+		if(columnGrs != null && !columnGrs.isEmpty()) {
+			List<Object> values = columnGrs.getAllValues();
+			List<String> strValues = new Vector<>();
+			for(Object obj : values) {
+				strValues.add(obj.toString());
 			}
+			return strValues;
 		}
 		
 		// else, we assume it is column values in the curRow
 		List<Object> values = this.curRow.getAllValues();
-		List<String> strValues = new Vector<String>();
+		List<String> strValues = new Vector<>();
 		for(Object obj : values) {
 			strValues.add(obj.toString());
 		}
@@ -364,10 +369,8 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 	private String getPanelId() {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
-		if(columnGrs != null) {
-			if(columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
+		if(columnGrs != null && !columnGrs.isEmpty()) {
+			return columnGrs.get(0).toString();
 		}
 		return null;
 	}

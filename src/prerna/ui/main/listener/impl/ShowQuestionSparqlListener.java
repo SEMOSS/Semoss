@@ -75,7 +75,7 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 
 		// get the selected engine
 		JList<String> list = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repos = (Object[]) list.getSelectedValues();
+		Object[] repos = list.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
 		// get the selected question
 		Map<String, String> insightMap = (Map<String, String>) ((JComboBox<Map<String, String>>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem();
@@ -87,53 +87,56 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 		String sparql = Utility.normalizeParam(insight.getDataMakerComponents().get(0).getQuery());
 
 		// only allow use of get current sparql question btn when custom sparql btn is selected
-		if(btnCustomSparql.isSelected())
+		// when get current sparql question btn is pressed
+		if(btnCustomSparql.isSelected() && btnGetQuestionSparql.isEnabled())
 		{
-			// when get current sparql question btn is pressed
-			if(btnGetQuestionSparql.isEnabled())
-			{
-				// code is taken from QuestionListener performs param filling so that the query that is inputed is complete
-	
-				// populate query to display based on parameters 
-				JPanel panel = (JPanel) DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
-				DIHelper.getInstance().setLocalProperty(Constants.UNDO_BOOLEAN,false);
-				// get the currently visible panel
-				Component[] comps = panel.getComponents();
-				JComponent curPanel = null;
-				for (int compIndex = 0; compIndex < comps.length
-						&& curPanel == null; compIndex++)
-					if (comps[compIndex].isVisible())
-						curPanel = (JComponent) comps[compIndex];
+			// code is taken from QuestionListener performs param filling so that the query that is inputed is complete
 
-				// get all the param field
-				Component[] fields = curPanel.getComponents();
-				Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
-
-				for (int compIndex = 0; compIndex < fields.length; compIndex++) {
-					if (fields[compIndex] instanceof ParamComboBox) {
-						String fieldName = ((ParamComboBox) fields[compIndex]).getParamName();
-						String fieldValue = ((ParamComboBox) fields[compIndex]).getSelectedItem() + "";
-						String uriFill = ((ParamComboBox) fields[compIndex]).getURI(fieldValue);
-						if (uriFill == null) {
-							uriFill = fieldValue;
-						}
-						List<Object> uriList = new ArrayList<Object>();
-						uriList.add(uriFill);
-						paramHash.put(fieldName, uriList);
-					}
+			// populate query to display based on parameters 
+			JPanel panel = (JPanel) DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
+			DIHelper.getInstance().setLocalProperty(Constants.UNDO_BOOLEAN,false);
+			// get the currently visible panel
+			Component[] comps = panel.getComponents();
+			JComponent curPanel = null;
+			for (int compIndex = 0; compIndex < comps.length
+					&& curPanel == null; compIndex++) {
+				if (comps[compIndex].isVisible()) {
+					curPanel = (JComponent) comps[compIndex];
 				}
-				sparql = prerna.util.Utility.fillParam(sparql, paramHash);
-				
-				// set the sparql area with the query
-				area.setText(sparql);
-				area.setFont(new Font("Tahoma", Font.PLAIN, 11));
-				area.setForeground(Color.BLACK);
-				
-				// change the playsheet selected to the layout of the imported question query
-				String layoutValue = (String)DIHelper.getInstance().getLocalProp(Constants.CURRENT_PLAYSHEET);
-				JComboBox playSheetComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
-				playSheetComboBox.setSelectedItem(PlaySheetRDFMapBasedEnum.getNameFromClass(layoutValue));			
 			}
+
+			if (curPanel == null) {
+				throw new NullPointerException("curPanel cannot be null here.");
+			}
+
+			// get all the param field
+			Component[] fields = curPanel.getComponents();
+			Map<String, List<Object>> paramHash = new Hashtable<>();
+
+			for (int compIndex = 0; compIndex < fields.length; compIndex++) {
+				if (fields[compIndex] instanceof ParamComboBox) {
+					String fieldName = ((ParamComboBox) fields[compIndex]).getParamName();
+					String fieldValue = ((ParamComboBox) fields[compIndex]).getSelectedItem() + "";
+					String uriFill = ((ParamComboBox) fields[compIndex]).getURI(fieldValue);
+					if (uriFill == null) {
+						uriFill = fieldValue;
+					}
+					List<Object> uriList = new ArrayList<>();
+					uriList.add(uriFill);
+					paramHash.put(fieldName, uriList);
+				}
+			}
+			sparql = prerna.util.Utility.fillParam(sparql, paramHash);
+			
+			// set the sparql area with the query
+			area.setText(sparql);
+			area.setFont(new Font("Tahoma", Font.PLAIN, 11));
+			area.setForeground(Color.BLACK);
+			
+			// change the playsheet selected to the layout of the imported question query
+			String layoutValue = (String)DIHelper.getInstance().getLocalProp(Constants.CURRENT_PLAYSHEET);
+			JComboBox playSheetComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
+			playSheetComboBox.setSelectedItem(PlaySheetRDFMapBasedEnum.getNameFromClass(layoutValue));			
 		}
 	}
 	
