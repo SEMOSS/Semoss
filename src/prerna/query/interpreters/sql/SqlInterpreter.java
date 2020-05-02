@@ -47,17 +47,17 @@ import prerna.util.sql.SqlQueryUtilFactor;
 public class SqlInterpreter extends AbstractQueryInterpreter {
 	
 	// this keeps the table aliases
-	protected HashMap<String, String> aliases = new HashMap<String, String>();
+	protected HashMap<String, String> aliases = new HashMap<>();
 	
 	// keep track of processed tables used to ensure we don't re-add tables into the from string
-	protected HashMap<String, String> tablesProcessed = new HashMap<String, String>();
+	protected HashMap<String, String> tablesProcessed = new HashMap<>();
 	
 	// we will keep track of the conceptual names to physical names so we don't re-query the owl multiple times
-	protected transient Map<String, String> conceptualConceptToPhysicalMap = new HashMap<String, String>();
+	protected transient Map<String, String> conceptualConceptToPhysicalMap = new HashMap<>();
 	// need to also keep track of the properties
-	protected transient Map<String, String> conceptualPropertyToPhysicalMap = new HashMap<String, String>();
+	protected transient Map<String, String> conceptualPropertyToPhysicalMap = new HashMap<>();
 	// need to keep track of the primary key for tables
-	protected transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
+	protected transient Map<String, String> primaryKeyCache = new HashMap<>();
 
 	// we can create a statement without an engine... 
 	// but everything needs to be the physical schema
@@ -68,20 +68,20 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
 	// and the values are values
-	protected List<String> filterStatements = new Vector<String>();
-	protected List<String> havingFilterStatements = new Vector<String>();
+	protected List<String> filterStatements = new Vector<>();
+	protected List<String> havingFilterStatements = new Vector<>();
 	
-	protected transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
+	protected transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<>();
 	
 	protected String selectors = "";
-	protected Set<String> selectorList = new HashSet<String>();
+	protected Set<String> selectorList = new HashSet<>();
 	// keep selector alias
-	protected List<String> selectorAliases = new Vector<String>();
+	protected List<String> selectorAliases = new Vector<>();
 	// keep list of columns for tables
-	protected Map<String, List<String>> retTableToCols = new HashMap<String, List<String>>();
+	protected Map<String, List<String>> retTableToCols = new HashMap<>();
 	
 	protected String customFromAliasName = null;
-	protected List<String[]> froms = new Vector<String[]>();
+	protected List<String[]> froms = new Vector<>();
 	// store the joins in the object for easy use
 	protected SqlJoinStructList joinStructList = new SqlJoinStructList();
 	
@@ -170,7 +170,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// thus, the order matters 
 			// so get a good starting from table
 			// we can use any of the froms that is not part of the join
-			List<String> startPoints = new Vector<String>();
+			List<String> startPoints = new Vector<>();
 			if(joinStructList.isEmpty()) {
 				query.append(" FROM ");
 				String[] startPoint = froms.get(0);
@@ -616,11 +616,16 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		try {
 			innerInterpreter = this.getClass().newInstance();
 		} catch (InstantiationException | IllegalAccessException e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 		}
 		if(this.frame != null) {
 			subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
 		}
+
+		if (innerInterpreter == null) {
+			throw new NullPointerException("innerInterpreter cannot be null here.");
+		}
+
 		innerInterpreter.setQueryStruct(subQs);
 		innerInterpreter.setLogger(this.logger);
 		String innerQuery = innerInterpreter.composeQuery();
@@ -653,8 +658,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		// if it is null, then we know we have a column
 		// need to grab from metadata
 		if(leftDataType == null) {
-			String left_concept_property = leftSelector.getQueryStructName();
-			String[] leftConProp = getConceptProperty(left_concept_property);
+			String leftConceptProperty = leftSelector.getQueryStructName();
+			String[] leftConProp = getConceptProperty(leftConceptProperty);
 			String leftConcept = leftConProp[0];
 			String leftProperty = leftConProp[1];
 	
@@ -668,11 +673,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					leftDataType = leftDataType.replace("TYPE:", "");
 				}
 			} else if(frame != null) {
-				leftDataType = this.frame.getMetaData().getHeaderTypeAsString(left_concept_property);
+				leftDataType = this.frame.getMetaData().getHeaderTypeAsString(leftConceptProperty);
 			}
 		}
 		
-		List<Object> objects = new Vector<Object>();
+		List<Object> objects = new Vector<>();
 		// ugh... this is gross
 		if(rightComp.getValue() instanceof Collection) {
 			objects.addAll( (Collection) rightComp.getValue());
@@ -726,7 +731,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				// cannot use same logic as IN :(
 				int i = 0;
 				int size = objects.size();
-				List<Object> newObjects = new Vector<Object>();
+				List<Object> newObjects = new Vector<>();
 				newObjects.add(objects.get(i));
 				// always process as string
 				String myFilterFormatted = getFormatedObject("STRING", newObjects, thisComparator);
@@ -740,7 +745,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				filterBuilder.append(") " + thisFilterSearch + " (").append(myFilterFormatted.toLowerCase()).append(")");
 				i++;
 				for(; i < size; i++) {
-					newObjects = new Vector<Object>();
+					newObjects = new Vector<>();
 					newObjects.add(objects.get(i));
 					// always process as string
 					myFilterFormatted = getFormatedObject("STRING", newObjects, thisComparator);
@@ -767,7 +772,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 		
-		if(addNullCheck) {
+		if(addNullCheck && filterBuilder != null) {
 			filterBuilder.append(" )");
 		}
 		
@@ -806,7 +811,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		// ... what is the point of this... this is a dumb thing... you are dumb
 
 		PixelDataType lCompType = leftComp.getNounType();
-		List<Object> leftObjects = new Vector<Object>();
+		List<Object> leftObjects = new Vector<>();
 		// ugh... this is gross
 		if(leftComp.getValue() instanceof List) {
 			leftObjects.addAll( (List) leftComp.getValue());
@@ -823,7 +828,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		
 		
 		PixelDataType rCompType = rightComp.getNounType();
-		List<Object> rightObjects = new Vector<Object>();
+		List<Object> rightObjects = new Vector<>();
 		// ugh... this is gross
 		if(rightComp.getValue() instanceof Collection) {
 			rightObjects.addAll( (Collection) rightComp.getValue());
@@ -842,9 +847,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		/*
 		 * Add the filter syntax here once we have the correct physical names
 		 */
-		
+
 		StringBuilder filterBuilder = new StringBuilder();
-		filterBuilder.append(leftFilterFormatted.toString());
+		filterBuilder.append(leftFilterFormatted);
 		if(comparator.equals("==")) {
 			comparator = "=";
 		} else if(comparator.equals("<>")) {
@@ -1043,7 +1048,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	public StringBuilder appendOrderBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
 		List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
-		List<StringBuilder> validOrderBys = new Vector<StringBuilder>();
+		List<StringBuilder> validOrderBys = new Vector<>();
 		for(QueryColumnOrderBySelector orderBySelector : orderBy) {
 			String tableConceptualName = orderBySelector.getTable();
 			String columnConceptualName = orderBySelector.getColumn();
@@ -1382,7 +1387,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				}
 				else {
 					query = "SELECT ?relationship WHERE {<" + toURI + "> ?relationship <" + fromURI + "> } ORDER BY DESC(?relationship)";
-					System.out.println(query);
+					logger.debug("Relationship query " + query);
 					res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
 					if(res.hasNext()){
 						predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();

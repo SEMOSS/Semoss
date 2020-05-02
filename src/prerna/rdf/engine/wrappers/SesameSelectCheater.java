@@ -28,6 +28,7 @@
 package prerna.rdf.engine.wrappers;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,8 +46,10 @@ import prerna.util.Utility;
 
 public class SesameSelectCheater extends AbstractWrapper implements IConstructWrapper {
 
-	private static final Logger LOGGER = LogManager.getLogger(SesameSelectCheater.class.getName());
-	
+	private static final Logger logger = LogManager.getLogger(SesameSelectCheater.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	public transient TupleQueryResult tqr = null;
 	transient int count = 0;
 	transient String [] var = null;
@@ -59,8 +62,12 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 	@Override
 	public IConstructStatement next() {
 		IConstructStatement thisSt = new ConstructStatement();
-		
-		if(nextPred != null){
+
+		if(!hasNext()) {
+		      throw new NoSuchElementException();
+	    }
+
+		if(nextPred != null) {
 			// need to create triple saying pred is a sub prop of relationship
 			thisSt.setSubject(nextPred);
 			thisSt.setPredicate(RDFS.subPropertyOf +"");
@@ -74,7 +81,7 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 			{
 				bs = tqr.next();
 			}
-			LOGGER.debug("Adding a sesame statement ");
+			logger.debug("Adding a sesame statement ");
 			
 			// there should only be three values
 			Object sub=null;
@@ -87,7 +94,6 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 					count=0;
 					bs = tqr.next();
 					tqrCount++;
-					//logger.info(tqrCount);
 				}
 				sub = bs.getValue(queryVar[count*3].substring(1));
 				pred = bs.getValue(queryVar[count*3+1].substring(1));
@@ -109,8 +115,7 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 				count=0;
 			}
 		} catch (QueryEvaluationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return thisSt;
 	}
@@ -126,10 +131,12 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 		    {
 		    	varString = matcher.group(1);
 		    }
-		    varString = varString.trim();
-		    queryVar = varString.split(" ");
-		    int num = queryVar.length+1;
-		    triples = (int) Math.floor(num/3);
+		    if (varString != null) {
+		    	varString = varString.trim();
+		    	queryVar = varString.split(" ");
+			    int num = queryVar.length+1;
+			    triples = num/3;
+		    }
 		}
 		else
 		{
@@ -139,10 +146,13 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 		    while (matcher.find()) {
 		        varString = matcher.group(1);
 		    }
-		    varString = varString.trim();
-		    queryVar = varString.split(" ");
-		    int num = queryVar.length+1;
-		    triples = (int) Math.floor(num/3);
+
+		    if (varString != null) {
+			    varString = varString.trim();
+			    queryVar = varString.split(" ");
+			    int num = queryVar.length+1;
+			    triples = num/3;
+		    }
 		}
 	}
 
@@ -154,8 +164,7 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 			for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
 			return var;
 		} catch (QueryEvaluationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -180,8 +189,7 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 			if(!retBool)
 				tqr.close();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return retBool;
 	}
@@ -191,7 +199,7 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 		try {
 			tqr.close();
 		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 

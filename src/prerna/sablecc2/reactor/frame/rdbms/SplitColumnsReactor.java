@@ -12,6 +12,9 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -23,6 +26,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 
 public class SplitColumnsReactor extends AbstractFrameReactor {
+
+	private static final Logger logger = LogManager.getLogger(SplitColumnsReactor.class);
 
 	private static final String COLUMNS_KEY = "columns";
 	private static final String SEPARATOR_KEY = "sep";
@@ -57,7 +62,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 			Iterator<IHeadersDataRow> colIterator = frame.query(qs);
 
 			int highestIndex = 0;
-			List<String> addedColumns = new Vector<String>();
+			List<String> addedColumns = new Vector<>();
 
 			// keep a batch size so we dont get heapspace
 			final int batchSize = 5000;
@@ -100,6 +105,10 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 					}
 
 					int colIndex = 0;
+					if (ps == null) {
+						throw new NullPointerException("PreparedStatement ps cannot be null here.");
+					}
+
 					for(; colIndex < newVals.length; colIndex++) {
 						ps.setString(colIndex+1, newVals[colIndex]);
 					}
@@ -122,7 +131,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 				// do not forget to add the final things in the batch that have not been committed!
 				ps.executeBatch();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error("StackTrace: ", e);
 			}		
 			frame.syncHeaders();
 		}
@@ -155,14 +164,12 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 			return true;
 		}
 		String val = regexGrs.get(0).toString();
-		if(val.equalsIgnoreCase(REGEX)) {
-			return true;
-		}
-		return false;
+
+		return val.equalsIgnoreCase(REGEX);
 	}
 
 	private List<String> getColumns() {
-		List<String> cols = new ArrayList<String>();
+		List<String> cols = new ArrayList<>();
 
 		// try its own key
 		GenRowStruct colsGrs = this.store.getNoun(COLUMNS_KEY);

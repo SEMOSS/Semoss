@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.RFactor;
@@ -24,7 +26,11 @@ import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
 
 public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
-	private static ConcurrentMap<String, ReentrantLock> genEngineLock = new ConcurrentHashMap<String, ReentrantLock>();
+	private static final Logger logger = LogManager.getLogger(RJavaRserveTranslator.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
+	private static ConcurrentMap<String, ReentrantLock> genEngineLock = new ConcurrentHashMap<>();
 	
 	RConnection retCon;
 	String port;
@@ -58,7 +64,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public void startR() {
 		if(this.retCon == null && this.insight != null) {
-			NounMetadata noun = (NounMetadata) this.insight.getVarStore().get(R_CONN);
+			NounMetadata noun = this.insight.getVarStore().get(R_CONN);
 			if (noun != null) {
 				retCon = (RConnection) this.insight.getVarStore().get(R_CONN).getValue();
 			}
@@ -121,10 +127,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 						setMemoryLimit();
 					}
 				} catch (Exception e) {
-					System.out.println(
+					logger.error(
 							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n "
 									+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 					throw new IllegalArgumentException(
 							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n "
 									+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
@@ -132,7 +138,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					lock.unlock();
 				}
 			} catch(Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		initREnv();
@@ -177,12 +183,12 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			// escape quotes
 			rScript = rScript.replaceAll("\"", "\\\"");
-			rScript = rScript.replaceAll("'", "\\'");
+			rScript = rScript.replace("'", "\\'");
 			rScript = encapsulateForEnv(rScript);
 			logger.debug("Running rscript > " + rScript);
 			return evalRSync(rScript);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -191,12 +197,12 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public synchronized void executeEmptyR(String rScript) {
 		try {
 			rScript = rScript.replaceAll("\"", "\\\"");
-			rScript = rScript.replaceAll("'", "\\'");
+			rScript = rScript.replace("'", "\\'");
 			rScript = encapsulateForEnv(rScript);
 			logger.debug("Running rscript > " + rScript);
 			voidEvalRSync(rScript);
 		} catch (RserveException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
@@ -211,10 +217,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asString();
-		} catch (RserveException e) {
-			e.printStackTrace();
+		} catch (RserveException re) {
+			logger.error(STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -224,10 +230,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asStrings();
-		} catch (RserveException e) {
-			e.printStackTrace();
+		} catch (RserveException re) {
+			logger.error(STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -237,6 +243,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	 * 
 	 * @param frameName
 	 */
+	@Override
 	public String[] getColumnTypes(String frameName) {
 		String script = "sapply(" + frameName + ", class)";
 		script = encapsulateForEnv(script);
@@ -274,10 +281,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				
 				return arr;
 			} catch (REXPMismatchException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		} catch (RserveException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -289,10 +296,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			script = encapsulateForEnv(script);
 			number = evalRSync(script).asInteger();
 			return number;
-		} catch (RserveException e) {
-			e.printStackTrace();
+		} catch (RserveException re) {
+			logger.error(STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return number;
 	}
@@ -302,10 +309,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asIntegers();
-		} catch (RserveException e) {
-			e.printStackTrace();
+		} catch (RserveException re) {
+			logger.error(STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -317,10 +324,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			script = encapsulateForEnv(script);
 			number = evalRSync(script).asDouble();
 			return number;
-		} catch (RserveException e) {
-			e.printStackTrace();
+		} catch (RserveException re) {
+			logger.error(STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return number;
 	}
@@ -330,10 +337,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asDoubles();
-		} catch (RserveException e) {
-			e.printStackTrace();
+		} catch (RserveException re) {
+			logger.error(STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -343,10 +350,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asDoubleMatrix();
-		} catch (RserveException e) {
-			e.printStackTrace();
+		} catch (RserveException re) {
+			logger.error(STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -356,10 +363,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			script = encapsulateForEnv(script);
 			return evalRSync(script).asFactor();
-		} catch (RserveException e) {
-			e.printStackTrace();
+		} catch (RserveException re) {
+			logger.error(STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -373,10 +380,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			if(val != null) {
 				return (val.asInteger() == 1);
 			}
-		} catch (RserveException e) {
-			e.printStackTrace();
+		} catch (RserveException re) {
+			logger.error(STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return false;
 	}
@@ -395,21 +402,21 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			}
 			int[] counts = (int[]) histJ.get("counts");
 			
-			Map<String, Object> retMap = new HashMap<String, Object>();
+			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("breaks", breaks);
 			retMap.put("counts", counts);
 			return retMap;
-		} catch (RserveException e) {
-			e.printStackTrace();
+		} catch (RserveException re) {
+			logger.error(STACKTRACE, re);
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
 
 	@Override
 	public Map<String, Object> flushFrameAsTable(String framename, String[] colNames) {
-		List<Object[]> dataMatrix = new ArrayList<Object[]>();
+		List<Object[]> dataMatrix = new ArrayList<>();
 		
 		int numCols = colNames.length;
 		for (int i = 0; i < numCols; i++) {
@@ -429,7 +436,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException rme) {
-					rme.printStackTrace();
+					logger.error(STACKTRACE, rme);
 				}
 				//in case values cannot be doubles
 				try {
@@ -443,7 +450,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException rme) {
-					rme.printStackTrace();
+					logger.error(STACKTRACE, rme);
 				}
 				//in case values cannot be put into an array
 				//for an integer
@@ -455,7 +462,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException rme) {
-					rme.printStackTrace();
+					logger.error(STACKTRACE, rme);
 				}
 
 			} else {
@@ -471,7 +478,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException rme) {
-					rme.printStackTrace();
+					logger.error(STACKTRACE, rme);
 				}
 				//for a string
 				try {
@@ -482,12 +489,12 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException rme) {
-					rme.printStackTrace();
+					logger.error(STACKTRACE, rme);
 				}
 			}
 		}
 		
-		Map<String, Object> retMap = new HashMap<String, Object>();
+		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("headers", colNames);
 		retMap.put("data", dataMatrix);
 		
@@ -501,7 +508,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
-		List<Object[]> retArr = new Vector<Object[]>(500);
+		List<Object[]> retArr = new Vector<>(500);
 
 		REXP rs = (REXP) executeR(rScript);
 		try {
@@ -522,7 +529,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				REXP val = (REXP) result.get(columnIndex);
 				if(val.isFactor()) {
 					RFactor data = val.asFactor();
-					if(retArr.size() == 0) {
+					if(retArr.isEmpty()) {
 						for(int i = 0; i < data.size(); i++) {
 							Object[] values = new Object[numColumns];
 							values[colNum] = data.at(i);
@@ -547,9 +554,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					}
 					int[] data = val.asIntegers();
 					boolean[] na = val.isNA();
-					if(isFactor) {
+					if(isFactor && attributeList != null) {
 						String[] levels = ((REXP) attributeList.get("levels")).asStrings();
-						if(retArr.size() == 0) {
+						if(retArr.isEmpty()) {
 							for(int i = 0; i < data.length; i++) {
 								Object[] values = new Object[numColumns];
 								if(na[i]) {
@@ -571,7 +578,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 							}
 						}
 					} else {
-						if(retArr.size() == 0) {
+						if(retArr.isEmpty()) {
 							for(int i = 0; i < data.length; i++) {
 								Object[] values = new Object[numColumns];
 								if(na[i]) {
@@ -596,7 +603,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				} else if(val.isNumeric()) {
 					double[] data = val.asDoubles();
 					boolean[] na = val.isNA();
-					if(retArr.size() == 0) {
+					if(retArr.isEmpty()) {
 						for(int i = 0; i < data.length; i++) {
 							Object[] values = new Object[numColumns];
 							if(na[i]) {
@@ -619,7 +626,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					}
 				} else if(val.isString()) {
 					String[] data = val.asStrings();
-					if(retArr.size() == 0) {
+					if(retArr.isEmpty()) {
 						for(int i = 0; i < data.length; i++) {
 							Object[] values = new Object[numColumns];
 							values[colNum] = data[i];
@@ -633,7 +640,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					}
 				} else if(val.isFactor()) {
 					RFactor data = val.asFactor();
-					if(retArr.size() == 0) {
+					if(retArr.isEmpty()) {
 						for(int i = 0; i < data.size(); i++) {
 							Object[] values = new Object[numColumns];
 							values[colNum] = data.at(i);
@@ -705,7 +712,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			return evalRSync(rScript);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -715,7 +722,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			voidEvalRSync(rScript);
 		} catch (RserveException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 

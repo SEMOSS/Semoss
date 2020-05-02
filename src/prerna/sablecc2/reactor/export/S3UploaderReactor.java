@@ -54,6 +54,8 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 
 	
 	private static final String CLASS_NAME = S3UploaderReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
+
 	private String fileLocation = null;
 	private Logger logger;
 	private String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
@@ -68,8 +70,6 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 		String bucketName = this.keyValue.get(this.keysToGet[1]);
 		String clientRegion = this.keyValue.get(this.keysToGet[2]);
 
-
-		//String fileName = this.keyValue.get(this.keysToGet[0]);
 		if (fileName == null || fileName.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file name");
 		}
@@ -99,18 +99,18 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 				fis = new FileInputStream(f);
 				socialData.load(fis);
 			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (FileNotFoundException fnfe) {
+			logger.error(STACKTRACE, fnfe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(fis != null) {
 				try {
 					fis.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
@@ -128,23 +128,24 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 					.withRegion(clientRegion)
 					.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
 					.build();
-			TransferManager xfer_mgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
+			TransferManager xferMgr = TransferManagerBuilder.standard().withS3Client(s3Client).build();
 			try {
-				Upload xfer = xfer_mgr.upload(bucketName, fileToPush.getName(), fileToPush);
+				Upload xfer = xferMgr.upload(bucketName, fileToPush.getName(), fileToPush);
 				try {
 					xfer.waitForCompletion();
 				} catch (AmazonServiceException e) {
-					System.err.println("Amazon service error: " + e.getMessage());
+					logger.error("Amazon service error: " + e.getMessage());
 				} catch (AmazonClientException e) {
-					System.err.println("Amazon client error: " + e.getMessage());
+					logger.error("Amazon client error: " + e.getMessage());
 				} catch (InterruptedException e) {
-					System.err.println("Transfer interrupted: " + e.getMessage());
+					Thread.currentThread().interrupt();
+					logger.error("Transfer interrupted: " + e.getMessage());
 				}
 			} catch (AmazonServiceException e) {
-				System.err.println(e.getErrorMessage());
+				logger.error(e.getErrorMessage());
 				System.exit(1);
 			}
-			xfer_mgr.shutdownNow();
+			xferMgr.shutdownNow();
 		}
 		
 
@@ -162,7 +163,7 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 			try {
 				f.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 
 			FileWriter writer = null;
@@ -249,7 +250,7 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 				}
 
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				try {
 					if(bufferedWriter != null) {
@@ -259,14 +260,14 @@ public class S3UploaderReactor extends TaskBuilderReactor {
 						writer.close();
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 
 			long end = System.currentTimeMillis();
 			logger.info("Time to output file = " + (end-start) + " ms");
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			if(f.exists()) {
 				f.delete();
 			}
