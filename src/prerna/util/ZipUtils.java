@@ -26,12 +26,18 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 
 import prerna.util.gson.GsonUtility;
 
 public final class ZipUtils {
+
+	private static final Logger logger = LogManager.getLogger(ZipUtils.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	// buffer for read and write data to file
 	private static byte[] buffer = new byte[2048];
@@ -139,7 +145,7 @@ public final class ZipUtils {
 			ZipEntry entry = zipInput.getNextEntry();
 			while (entry != null) {
 				String entryName = entry.getName();
-				System.out.println(entryName);
+				logger.info(Utility.cleanLogString(entryName));
 				File file = null;
 				if (entryName.endsWith(".smss")) {
 					tempAbsolutePath = destinationFolder + FILE_SEPARATOR + entryName.replace(".smss", ".temp");
@@ -147,7 +153,7 @@ public final class ZipUtils {
 				} else {
 					file = new File(destinationFolder + FILE_SEPARATOR + entryName);
 				}
-				System.out.println("Unzip file " + entryName + " to " + file.getAbsolutePath());
+				logger.info("Unzip file " + Utility.cleanLogString(entryName) + " to " + file.getAbsolutePath());
 				// create the directory for the next entry
 				if (entryName.contains(FILE_SEPARATOR)) {
 					String[] dirStructure = entryName.split(FILE_SEPARATOR);
@@ -157,7 +163,7 @@ public final class ZipUtils {
 						if (!newDir.exists()) {
 							boolean success = newDir.mkdirs();
 							if (success == false) {
-								System.out.println("Problem creating Folder");
+								logger.info("Problem creating Folder");
 							}
 						}
 						// absolutePath = absolutePath + FILE_SEPARATOR +
@@ -178,22 +184,26 @@ public final class ZipUtils {
 			zipInput.closeEntry();
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			try {
 				if (zipInput != null) {
 					zipInput.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			try {
 				if (fInput != null) {
 					fInput.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
+		}
+
+		if (tempAbsolutePath == null) {
+			throw new NullPointerException("tempAbsolutePath cannot be null here.");
 		}
 
 		// convert .temp file to .smss
@@ -203,12 +213,12 @@ public final class ZipUtils {
 			FileUtils.copyFile(tempFile, smssFile);
 			smssFile.setReadable(true);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		try {
 			FileUtils.forceDelete(tempFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -220,12 +230,12 @@ public final class ZipUtils {
 				fOutput.write(buffer, 0, count);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			try {
 				fOutput.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 	}
@@ -261,8 +271,8 @@ public final class ZipUtils {
 			}
 		}
 		zipIn.close();
-		return files;
 
+		return files;
 	}
 
 	/**
@@ -301,9 +311,9 @@ public final class ZipUtils {
 					// clean file path for git
 					String filePath = file.toString();
 					if(file.startsWith("/")) {
-						filePath = filePath.toString().replaceFirst("/", "");
+						filePath = filePath.replaceFirst("/", "");
 						if(!filePath.equals(""))
-							files.add(filePath.toString());
+							files.add(filePath);
 					}
 					return FileVisitResult.CONTINUE;
 				}
@@ -312,8 +322,10 @@ public final class ZipUtils {
 				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
 					// clean file path for git
 					String pathDir = dir.toString().replaceFirst("/", "");
-					if(!pathDir.equals(""))
-					dirs.add(pathDir.toString());
+					if(!pathDir.equals("")) {
+						dirs.add(pathDir);
+					}
+
 					return super.preVisitDirectory(dir, attrs);
 				}
 			});
@@ -333,8 +345,7 @@ public final class ZipUtils {
 		Path zipUri = Paths.get(zip);		
 		Map<String, List<String>> map = listFilesInZip(zipUri);
 		Gson gson = GsonUtility.getDefaultGson();
-		System.out.println(gson.toJson(map));
-
+		logger.info(gson.toJson(map));
 	}
 
 }
