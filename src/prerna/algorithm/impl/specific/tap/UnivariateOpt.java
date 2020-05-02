@@ -32,6 +32,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -143,12 +144,12 @@ public class UnivariateOpt implements IAlgorithm{
 
 	}
 	
-	public void displayListOnTab(String[] colNames,ArrayList <Object []> list,JPanel panel) {
+	public void displayListOnTab(String[] colNames, List<Object[]> list, JPanel panel) {
 		displayListOnTab(colNames, list, panel, false);
 	}
 		
 
-	public void displayListOnTab(String[] colNames,ArrayList <Object []> list,JPanel panel, Boolean addScroll) {
+	public void displayListOnTab(String[] colNames, List<Object[]> list, JPanel panel, Boolean addScroll) {
 		GridScrollPane pane = new GridScrollPane(colNames, list);
 		if(addScroll)
 			pane.addHorizontalScroll();
