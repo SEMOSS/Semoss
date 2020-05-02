@@ -50,7 +50,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	protected boolean closeConnectionAfterExecution = false;
 	
 	@Override
-	public void execute() {
+	public void execute() throws Exception {
 		try {
 			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
 			this.stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
@@ -64,13 +64,14 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			this.dataSource = (BasicDataSource) map.get(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT);
 			// go through and collect the metadata around the query
 			setVariables();
-		} catch (Exception e){
+		} catch (Exception e) {
 			logger.error(STACKTRACE, e);
 			if(this.useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, rs, stmt);
 			} else {
 				ConnectionUtils.closeAllConnections(conn, rs, stmt);
 			}
+			throw e;
 		}
 	}
 
@@ -353,7 +354,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 	
 	@Override
-	public void reset() {
+	public void reset() throws Exception {
 		// close current stuff
 		// but we shouldn't close the connection
 		// so store whatever that boolean is as temp
