@@ -231,6 +231,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			init(connBuilder);
 			
 			try {
+				this.queryUtil = SqlQueryUtilFactor.initialize(this.dbType, this.connectionURL, this.userName, this.password);
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {
 					this.dataSource = connBuilder.getDataSource();
@@ -240,7 +241,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				}
 				this.engineConnected = true;
 				this.autoCommit = this.engineConn.getAutoCommit();
-				this.queryUtil = SqlQueryUtilFactor.initialize(this.dbType, this.connectionURL, this.userName, this.password);
 				this.queryUtil.enhanceConnection(this.engineConn);
 			} catch (SQLException e) {
 				e.printStackTrace();
@@ -278,7 +278,21 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		if(this.schema == null) {
 			DatabaseMetaData meta = getConnectionMetadata();
 			if(meta != null) {
-				this.schema = RdbmsConnectionHelper.getSchema(meta, getConnection(), this.connectionURL, this.dbType);
+				Connection conn = null;
+				try {
+					conn = getConnection();
+					this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
+				} catch(SQLException e) {
+					e.printStackTrace();
+				} finally {
+					if(this.datasourceConnected && conn != null) {
+						try {
+							conn.close();
+						} catch (SQLException e) {
+							e.printStackTrace();
+						}
+					}
+				}
 			}
 		}
 		return this.schema;
@@ -314,7 +328,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 
-	public Connection getConnection() {
+	public Connection getConnection() throws SQLException {
 		if(this.dataSource != null) {
 			// re-establish bad connections
 			if(this.dataSource.isClosed()) {
@@ -331,29 +345,21 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					e.printStackTrace();
 				}
 			}
-			
+
 			// return/generate a connection object
-			try {
-				return dataSource.getConnection();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+			return dataSource.getConnection();
 		}
 
-		try {
-			// re-establish bad connections
-			if(!isConnected() || this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
-				init(connBuilder);
-				this.engineConn = connBuilder.build();
-				if(useConnectionPooling) {
-					this.dataSource = connBuilder.getDataSource();
-					this.datasourceConnected = true;
-				}
-				this.engineConnected = true;
-				this.autoCommit = this.engineConn.getAutoCommit();
+		// re-establish bad connections
+		if(!isConnected() || this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
+			init(connBuilder);
+			this.engineConn = connBuilder.build();
+			if(useConnectionPooling) {
+				this.dataSource = connBuilder.getDataSource();
+				this.datasourceConnected = true;
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
+			this.engineConnected = true;
+			this.autoCommit = this.engineConn.getAutoCommit();
 		}
 
 		return this.engineConn;
@@ -465,45 +471,37 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return null;
 	}
 
-	public Map<String, Object> execQuery(String query)
+	public Map<String, Object> execQuery(String query) throws SQLException
 	{
-		Connection conn = null;
-		Statement stmt = null;
+		Map<String, Object> map = new HashMap<>();
+
+		Connection conn = getConnection();
+		Statement stmt = conn.createStatement();
 		ResultSet rs = null;
-		try {
-			conn = getConnection();
-			stmt = conn.createStatement();
-			Map<String, Object> map = new HashMap();
-			rs = stmt.executeQuery(query);
-			if(this.fetchSize > 0) {
-				try {
-					rs.setFetchSize(this.fetchSize);
-				} catch(Exception e) {
-					e.printStackTrace();
-				}
+		rs = stmt.executeQuery(query);
+		if(this.fetchSize > 0) {
+			try {
+				rs.setFetchSize(this.fetchSize);
+			} catch(Exception e) {
+				e.printStackTrace();
 			}
-			//normally would use instance.getClass() but when we retrieve the 
-			//references from the object we can't guarantee that they will not be null
-			//this makes it cleaner and less error prone.
-			map.put(RDBMSNativeEngine.RESULTSET_OBJECT, rs);
-			if(isConnected()){
-				map.put(RDBMSNativeEngine.CONNECTION_OBJECT, null);
-				map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, conn);
-			} else {
-				map.put(RDBMSNativeEngine.CONNECTION_OBJECT, conn);
-				map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, null);
-			}
-			if(this.dataSource != null) {
-				map.put(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT, this.dataSource);
-			}
-			map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
-			return map;
-		} catch (Exception e) {
-			LOGGER.error("Error executing SQL query = " + query);
-			LOGGER.error("Error message = " + e.getMessage());
-			e.printStackTrace();
 		}
-		return null;
+		//normally would use instance.getClass() but when we retrieve the 
+		//references from the object we can't guarantee that they will not be null
+		//this makes it cleaner and less error prone.
+		map.put(RDBMSNativeEngine.RESULTSET_OBJECT, rs);
+		if(isConnected()){
+			map.put(RDBMSNativeEngine.CONNECTION_OBJECT, null);
+			map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, conn);
+		} else {
+			map.put(RDBMSNativeEngine.CONNECTION_OBJECT, conn);
+			map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, null);
+		}
+		if(this.dataSource != null) {
+			map.put(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT, this.dataSource);
+		}
+		map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
+		return map;
 	}
 
 	/**
@@ -852,7 +850,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	// does not account for a pooled connection need to ensure
-	public Connection makeConnection() {
+	public Connection makeConnection() throws SQLException {
 		Connection retObject = getConnection();
 		if(conceptIdHash == null && Constants.LOCAL_MASTER_DB_NAME.equals(this.engineId)) {
 			if(PersistentHash.canInit(this)) {
