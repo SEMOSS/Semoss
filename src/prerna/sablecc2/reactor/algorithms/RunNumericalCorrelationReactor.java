@@ -26,7 +26,7 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 
 	private static final String CLASS_NAME = RunNumericalCorrelationReactor.class.getName();
-	
+
 	public RunNumericalCorrelationReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.ATTRIBUTES.getKey(), ReactorKeysEnum.DEFAULT_VALUE_KEY.getKey(), ReactorKeysEnum.PANEL.getKey()};
 	}
@@ -63,14 +63,18 @@ public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 			correlationData = runCorrelation(it, numCols, missingVal, logger);
 			logger.info("Done iterating through data to determine correlation");
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
 			}
 		}
 
-		List<Object[]> data = new Vector<Object[]>();
+		if (correlationData == null) {
+			throw new NullPointerException("correlationData cannot be null here.");
+		}
+
+		List<Object[]> data = new Vector<>();
 		for(int i = 0; i < numCols; i++) {
 			String numColName = numericalCols.get(i);
 			for(int j = 0; j < numCols; j++) {
@@ -193,7 +197,7 @@ public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();
-				List<String> strValues = new Vector<String>();
+				List<String> strValues = new Vector<>();
 				for(Object obj : values) {
 					strValues.add(obj.toString());
 				}
@@ -203,7 +207,7 @@ public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 		
 		// else, we assume it is column values in the curRow
 		List<Object> values = this.curRow.getAllValues();
-		List<String> strValues = new Vector<String>();
+		List<String> strValues = new Vector<>();
 		for(Object obj : values) {
 			strValues.add(obj.toString());
 		}
@@ -215,28 +219,26 @@ public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
 		if(columnGrs != null) {
 			List<Object> columns = columnGrs.getAllNumericColumns();
-			if(columns.size() > 0) {
+			if(!columns.isEmpty()) {
 				return ((Number) columns.get(0)).doubleValue();
 			}
 		}
 		
 		// else, we assume it is column values in the curRow
 		List<Object> columns = this.curRow.getAllNumericColumns();
-		if(columns.size() > 0) {
+		if(!columns.isEmpty()) {
 			return ((Number) columns.get(0)).doubleValue();
 		}
 		
-		// return 0 by default;
+		// we return 0 by default
 		return 0.0;
 	}
 	
 	private String getPanelId() {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
-		if(columnGrs != null) {
-			if(columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
+		if(columnGrs != null && !columnGrs.isEmpty()) {
+			return columnGrs.get(0).toString();
 		}
 		return null;
 	}

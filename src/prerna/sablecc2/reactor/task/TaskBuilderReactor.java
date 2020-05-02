@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -21,19 +22,21 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public abstract class TaskBuilderReactor extends AbstractReactor {
 
+	private static final Logger logger = LogManager.getLogger(TaskBuilderReactor.class);
+
 	private static final String CLASS_NAME = TaskBuilderReactor.class.getName();
 	protected ITask task;
 	protected List<NounMetadata> subAdditionalReturn;
 	
 	//This method is implemented by child classes, each class is responsible for building different pieces of the task
 	protected abstract void buildTask() throws Exception;
-	
+
 	public NounMetadata execute() {
 		this.task = getTask(); //initialize the task
 		try {
 			buildTask();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("StackTrace: ", e);
 			throw new SemossPixelException(e.getMessage());
 		} 
 		// append onto the task
@@ -48,7 +51,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		// because the same preference exists for the task
 		// and since out is called prior to update the planner
 		// the  cannot be null
-		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		List<NounMetadata> outputs = new Vector<>();
 		if(this.task != null) {
 			NounMetadata output = new NounMetadata(task, PixelDataType.TASK);
 			outputs.add(output);
@@ -134,10 +137,12 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			this.insight.getTaskStore().addTask(cdTask);
 			return cdTask;
 		}
-		
+
 		// set any additional details required
-		this.subAdditionalReturn = noun.getAdditionalReturn();
-		
+		if (noun != null) {
+			this.subAdditionalReturn = noun.getAdditionalReturn();
+		}
+
 		// handle some defaults
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// first, do a basic check

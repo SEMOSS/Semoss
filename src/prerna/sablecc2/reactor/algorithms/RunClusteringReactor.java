@@ -24,24 +24,24 @@ import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class RunClusteringReactor extends AbstractFrameReactor {
-	
+
 	private static final String CLASS_NAME = RunClusteringReactor.class.getName();
-	
+
 	/**
 	 * RunClustering(instance = column, numClusters = #, columns = attributeNamesList);
 	 */
-	
+
 	private String[] attributeNames;
 	private List<String> attributeNamesList;
-	private List<Cluster> clusters = new ArrayList<Cluster>();
-	private List<Integer> numInstancesInCluster = new ArrayList<Integer>();
+	private List<Cluster> clusters = new ArrayList<>();
+	private List<Integer> numInstancesInCluster = new ArrayList<>();
 	private boolean[] isNumeric;
 	private int numClusters;
 	private String instanceColumn;
 	private Map<String, IClusterDistanceMode.DistanceMeasure> distanceMeasure;
 	private int instanceIndex;
 	private boolean addToFrame = true;
-	private AlgorithmSingleColStore<Integer> results = new AlgorithmSingleColStore<Integer>();
+	private AlgorithmSingleColStore<Integer> results = new AlgorithmSingleColStore<>();
 	
 	public RunClusteringReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.CLUSTER_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey()};
@@ -69,7 +69,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 		}
 
 		if(this.distanceMeasure == null) {
-			distanceMeasure = new HashMap<String, IClusterDistanceMode.DistanceMeasure>();
+			distanceMeasure = new HashMap<>();
 			for(int i = 0; i < attributeNames.length; i++) {
 				if(isNumeric[i]) {
 					distanceMeasure.put(attributeNames[i], DistanceMeasure.MEAN);
@@ -114,7 +114,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 				boolean instanceChangeCluster = isInstanceChangedCluster(results, instanceName, bestCluster);
 				if (instanceChangeCluster) {
 					go = true;
-					Integer currCluster = (Integer) results.get(instanceName);
+					Integer currCluster = results.get(instanceName);
 					results.put(instanceName, bestCluster);
 					updateInstanceIndex(instance, attributeNames, isNumeric, clusters.get(bestCluster));
 					if (currCluster != null) {
@@ -243,6 +243,9 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 				counter++;
 			}
 			logger.setLevel(Level.INFO);
+			if (bestInstance == null) {
+				throw new NullPointerException("bestInstance should not be null here.");
+			}
 			logger.info("Found new initial instance for cluster # " + i + " with instance = " + bestInstance.get(0)[instanceIndex]);
 			logger.setLevel(Level.OFF);
 			
@@ -333,7 +336,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 
 	private List<String> getColumns() {
 		// see if defined as indiviudal key
-		List<String> retList = new ArrayList<String>();
+		List<String> retList = new ArrayList<>();
 		retList.add(this.instanceColumn);
 		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
 		if (columnGrs != null) {
