@@ -186,9 +186,10 @@ public class Insight {
 	private transient Map<String, Class> insightSpecificHash = new HashMap<String, Class>();
 		
 	// last panel id touched
-	String lastPanelId = null;
+	private String lastPanelId = null;
+	
 	// pragamp for all the pragmas like cache / raw / parquet etc. 
-	Map pragmap = new HashMap();
+	private Map pragmap = new HashMap();
 	
 	public NettyClient nc = null;
 	
@@ -1195,26 +1196,34 @@ public class Insight {
         // sys.path.remove - the remove is tricky however
 	}
 	
-
-	public void setLastQS(SelectQueryStruct lastQs) {
-		if(lastPanelId != null) {
-			setLastQS(lastQs, lastPanelId);
-		}
+	public void setLastPanelId(String panelId) {
+		this.lastPanelId = panelId;
 	}
-
+	
+	public String getLastPanelId() {
+		return this.lastPanelId;
+	}
+	
+	public void setLastTaskOptions(TaskOptions options, SelectQueryStruct lastQs, String panelId) {
+		if(insightPanels.containsKey(panelId)) {
+			InsightPanel panel = this.insightPanels.get(panelId);
+			if(panel == null) {
+				throw new IllegalArgumentException("Panel does not exist");
+			}
+			panel.setLastQs(lastQs);
+			panel.setOptions(options);
+		}
+		this.lastPanelId = panelId;
+	}
+	
 	public void setLastQS(SelectQueryStruct lastQs, String panelId) {
 		if(panelId != null) {
 			InsightPanel panel = this.insightPanels.get(panelId);
 			if(panel == null) {
 				throw new IllegalArgumentException("Panel does not exist");
 			}
-			panel.setLastQS(lastQs);
+			panel.setLastQs(lastQs);
 		}
-	}
-
-	public SelectQueryStruct getLastQS() {
-		// always get the first one
-		return getLastQS(lastPanelId);
 	}
 	
 	public SelectQueryStruct getLastQS(String panelId) {
@@ -1223,26 +1232,9 @@ public class Insight {
 			if(panel == null) {
 				throw new IllegalArgumentException("Panel does not exist");
 			}
-			return panel.getLastQS();
+			return panel.getLastQs();
 		}
 		return null;
-	}
-
-	
-	public void setLastTaskOptions(TaskOptions options) {
-		if(lastPanelId != null) {
-			setLastTaskOptions(options, lastPanelId);
-		}
-	}
-
-	public void setLastTaskOptions(TaskOptions options, String panelId) {
-		if(insightPanels.containsKey(panelId)) {
-			InsightPanel panel = this.insightPanels.get(panelId);
-			if(panel == null) {
-				throw new IllegalArgumentException("Panel does not exist");
-			}
-			panel.setOptions(options);
-		}
 	}
 
 	public TaskOptions getLastTaskOptions() {
@@ -1255,17 +1247,9 @@ public class Insight {
 			if(panel == null) {
 				throw new IllegalArgumentException("Panel does not exist");
 			}
-			return panel.getOptions();
+			return panel.getTaskOptions();
 		}
 		return null;
-	}
-	
-	public void setLastPanelId(String panelId) {
-		this.lastPanelId = panelId;
-	}
-	
-	public String getLastPanelId() {
-		return this.lastPanelId;
 	}
 	
 	// sets the pragma map to be used
@@ -1282,32 +1266,27 @@ public class Insight {
 		this.pragmap.clear();
 	}
 	
-	public int getCount()
-	{
+	public int getCount() {
 		count++;
 		return count;
 	}
 	
-	public String getTupleSpace()
-	{
+	public String getTupleSpace() {
 		return this.tupleSpace;
 	}
 	
-	public void setTupleSpace(String tupleSpace)
-	{
+	public void setTupleSpace(String tupleSpace) {
 		this.tupleSpace = tupleSpace;
 	}
 	
-	public void setHostPort(String host, String port)
-	{
-		if(!this.insightId.startsWith("Temp"))
+	public void setHostPort(String host, String port) {
+		if(!this.insightId.startsWith("Temp")) {
 			connectClient(host, port);
+		}
 	}
 		
-	public void connectClient(String host, String port)
-	{
-		if(this.nc == null)
-		{
+	public void connectClient(String host, String port) {
+		if(this.nc == null)	{
 			System.err.println("=========== Connecting Netty ==============");
 			this.nc = new NettyClient();
 			nc.connect(host, Integer.parseInt(port), false);
@@ -1327,10 +1306,8 @@ public class Insight {
 		LOGGER.info("Netty is connected");
 	}
 	
-	public void setNettyClient(NettyClient nc)
-	{
-		if(nc != null)
-		{
+	public void setNettyClient(NettyClient nc) {
+		if(nc != null) {
 			this.nc = nc;
 			this.pyt = new prerna.ds.py.TCPPyTranslator();
 			this.pyt.setInsight(this);

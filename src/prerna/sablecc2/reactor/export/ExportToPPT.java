@@ -107,8 +107,8 @@ public class ExportToPPT extends AbstractReactor {
 			List<InsightPanel> panelList = (List<InsightPanel>) sheetToPanelMap.get(sheetId);
 			for (InsightPanel panel : panelList) {
 				// for each panel get the task and task options
-				SelectQueryStruct qs = panel.getLastQS();
-				TaskOptions taskOptions = panel.getOptions();
+				SelectQueryStruct qs = panel.getLastQs();
+				TaskOptions taskOptions = panel.getTaskOptions();
 				IQuerySelector firstSelector = qs.getSelectors().get(0);
 				if (firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
 					qs.addOrderBy(firstSelector.getQueryStructName(), "ASC");
