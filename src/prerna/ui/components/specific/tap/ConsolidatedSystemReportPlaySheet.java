@@ -252,7 +252,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 	}
 
 	private ISelectWrapper processSelectQuery(IEngine engine, String query){
-		logger.info("PROCESSING SELECT QUERY: " + query);
+		logger.info("PROCESSING SELECT QUERY: " + Utility.cleanLogString(query));
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
