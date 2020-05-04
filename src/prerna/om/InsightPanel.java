@@ -54,27 +54,10 @@ public class InsightPanel {
 	private transient List<ColorByValueRule> colorByValue;
 	
 	// last qs
-	private transient SelectQueryStruct lastQS = null;
-	
+	private transient SelectQueryStruct lastQs = null;
 	// last task options
-	private transient TaskOptions options = null;
+	private transient TaskOptions taskOptions = null;
 	
-	public TaskOptions getOptions() {
-		return options;
-	}
-
-	public void setOptions(TaskOptions options) {
-		this.options = options;
-	}
-
-	public SelectQueryStruct getLastQS() {
-		return lastQS;
-	}
-
-	public void setLastQS(SelectQueryStruct lastQS) {
-		this.lastQS = lastQS;
-	}
-
 	public InsightPanel(String panelId, String sheetId) {
 		this.panelId = panelId;
 		this.sheetId = sheetId;
@@ -410,6 +393,14 @@ public class InsightPanel {
 	
 	public void setPanelView(String view) {
 		this.view = view;
+		if(this.view != null && !this.view.equals("visualization")) {
+			// null out the qs
+			// since we do not want to accidently paint over 
+			// the current display (pipeline, filter, etc.)
+			this.lastQs = null;
+			this.taskOptions = null;
+		}
+		
 		// set the current view options
 		Map<String, String> thisViewMap = this.viewOptionsMap.get(view);
 		// set the current view options
@@ -497,6 +488,22 @@ public class InsightPanel {
 		this.orderBys = orderBys;
 	}
 	
+	public TaskOptions getTaskOptions() {
+		return taskOptions;
+	}
+
+	public void setOptions(TaskOptions taskOptions) {
+		this.taskOptions = taskOptions;
+	}
+
+	public SelectQueryStruct getLastQs() {
+		return lastQs;
+	}
+
+	public void setLastQs(SelectQueryStruct lastQs) {
+		this.lastQs = lastQs;
+	}
+	
 	/**
 	 * Take all the properties of another insight panel
 	 * and set them for this panel
@@ -526,12 +533,12 @@ public class InsightPanel {
 		}
 
 		// copy the options and the qs too
-		if(existingPanel.options != null) {
-			Object existingPanelOptions = existingPanel.options.getOptions().get(existingPanel.panelId);
+		if(existingPanel.taskOptions != null) {
+			Object existingPanelOptions = existingPanel.taskOptions.getOptions().get(existingPanel.panelId);
 			Map <String, Object> optionMap = new HashMap<String, Object>();
 			optionMap.put(panelId, existingPanelOptions);
-			this.options = new TaskOptions(optionMap);
-			this.lastQS = existingPanel.lastQS;
+			this.taskOptions = new TaskOptions(optionMap);
+			this.lastQs = existingPanel.lastQs;
 		}
 	}
 	

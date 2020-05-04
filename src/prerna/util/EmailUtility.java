@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Properties;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -12,6 +13,7 @@ import javax.mail.BodyPart;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
@@ -37,7 +39,7 @@ public class EmailUtility {
 			email.setSubject(subject);
 			// Create a multipart message
 			Multipart multipart = new MimeMultipart();
-						
+
 			// Create the message part
 			if(isHtml) {
 				BodyPart messageBodyPart = new MimeBodyPart();
@@ -77,38 +79,111 @@ public class EmailUtility {
 
 		return false;
 	}
-	
-	
-    static class HTMLDataSource implements DataSource {
 
-        private String html;
+	static class HTMLDataSource implements DataSource {
 
-        public HTMLDataSource(String htmlString) {
-            html = htmlString;
-        }
+		private String html;
 
-        @Override
-        public InputStream getInputStream() throws IOException {
-            if (html == null) {
-            	throw new IOException("html message is null!");
-            }
-            return new ByteArrayInputStream(html.getBytes());
-        }
+		public HTMLDataSource(String htmlString) {
+			html = htmlString;
+		}
 
-        @Override
-        public OutputStream getOutputStream() throws IOException {
-            throw new IOException("This DataHandler cannot write HTML");
-        }
+		@Override
+		public InputStream getInputStream() throws IOException {
+			if (html == null) {
+				throw new IOException("html message is null!");
+			}
+			return new ByteArrayInputStream(html.getBytes());
+		}
 
-        @Override
-        public String getContentType() {
-            return "text/html";
-        }
+		@Override
+		public OutputStream getOutputStream() throws IOException {
+			throw new IOException("This DataHandler cannot write HTML");
+		}
 
-        @Override
-        public String getName() {
-            return "HTMLDataSource";
-        }
-    }
+		@Override
+		public String getContentType() {
+			return "text/html";
+		}
+
+		@Override
+		public String getName() {
+			return "HTMLDataSource";
+		}
+	}
+
+	public static void main(String[] args) {
+
+		// GMAIL
+//		String smtpHost = "smtp.gmail.com";
+//		String smtpPort = "465";
+//		String username = "***REMOVED***";
+//		String password = "camsqnndycsmhslp";
+//
+//		Properties props = new Properties();
+//		props.put("mail.smtp.host", smtpHost);
+//		props.put("mail.smtp.port", smtpPort);
+//		props.put("mail.smtp.socketFactory.port", smtpPort);
+//		props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+//		Session emailSession = null;
+//		if (username != null && password != null) {
+//			props.put("mail.smtp.auth", true);
+//			props.put("mail.smtp.starttls.enable", true);
+//			System.out.println("Making connection");
+//			emailSession  = Session.getInstance(props, new javax.mail.Authenticator() {
+//				protected PasswordAuthentication getPasswordAuthentication() {
+//					return new PasswordAuthentication(username, password);
+//				}
+//			});
+//		} else {
+//			System.out.println("Making connection");
+//			emailSession = Session.getInstance(props);
+//		}
+//
+//		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
+//		boolean isHtml = true;
+//
+//		System.out.println("Connection Made");
+//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"jgarabedian96@gmail.com", "***REMOVED***"}, "***REMOVED***", "Covid Response Test", message, isHtml, null);
+//		if(success) {
+//			System.out.println("Email Sent");
+//		} else {
+//			System.out.println("Email Failed");
+//		}
+		
+		Properties prop = Utility.loadProperties("P:/emailProperties.properties");
+		String username = prop.getProperty("username");
+//		if(username == null) {
+//			username = "***REMOVED***";
+//		}
+		String password = prop.getProperty("password");
+//		if(password == null) {
+//			password = "***REMOVED***"; 
+//		}
+		
+		Session emailSession = null;
+		if (username != null && password != null) {
+			System.out.println("Making connection");
+			emailSession  = Session.getInstance(prop, new javax.mail.Authenticator() {
+				protected PasswordAuthentication getPasswordAuthentication() {
+					return new PasswordAuthentication(username, password);
+				}
+			});
+		} else {
+			System.out.println("Making connection");
+			emailSession = Session.getInstance(prop);
+		}
+
+		String message = "<html><h1 style=\"color:blue;\">Covid</h1><p>Here is an html paragraph :)</p></html>";
+		boolean isHtml = true;
+
+		System.out.println("Connection Made");
+		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
+		if(success) {
+			System.out.println("Email Sent");
+		} else {
+			System.out.println("Email Failed");
+		}
+	}
 
 }
