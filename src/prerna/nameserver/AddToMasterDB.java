@@ -118,7 +118,7 @@ public class AddToMasterDB {
 		// insert the engine first
 		// engine is a type of engine
 		// keep the engine URI
-		logger.info("Starting to synchronize engine ::: " + engineName);
+		logger.info("Starting to synchronize engine ::: " + Utility.cleanLogString(engineName));
 
 		// grab the engine type
 		// if it is RDBMS vs RDF
@@ -153,8 +153,8 @@ public class AddToMasterDB {
 		// false denotes getting the physical names
 		List<String> concepts = helper.getPhysicalConcepts();
 		List<String[]> relationships = helper.getPhysicalRelationships();
-		logger.info("For engine " + engineName + " : Total Concepts Found = " + concepts.size());
-		logger.info("For engine " + engineName + " : Total Relationships Found = " + relationships.size());
+		logger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Concepts Found = " + concepts.size());
+		logger.info("For engine " + Utility.cleanLogString(engineName) + " : Total Relationships Found = " + relationships.size());
 
 		// iterate through all the concepts to insert into the local master
 		for (int conceptIndex = 0; conceptIndex < concepts.size(); conceptIndex++) {
