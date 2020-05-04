@@ -56,6 +56,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
+import org.owasp.esapi.ESAPI;
 
 import com.google.gson.Gson;
 
@@ -180,7 +181,10 @@ public abstract class AbstractEngine implements IEngine {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			if(propFile != null) {
 				this.propFile = propFile;
-				LOGGER.info("Opening DB - " + Utility.cleanLogString(engineName));
+			    String enginelog = engineName.replace('\n', '_').replace('\r', '_').replace('\t', '_');
+			    enginelog = ESAPI.encoder().encodeForHTML(enginelog);
+
+				LOGGER.info("Opening DB - " + enginelog);
 				this.prop = Utility.loadProperties(propFile);
 			}
 			if(this.prop != null) {
