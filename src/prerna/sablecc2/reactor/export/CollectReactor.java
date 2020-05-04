@@ -80,24 +80,18 @@ public class CollectReactor extends TaskBuilderReactor {
 		// I assume there is always some task options needed, but I dont know 
 		if(this.task.getTaskOptions() != null)
 		{
-			// I really hope this is only one
-			Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
-			while(panelIds.hasNext()) {
-				String panelId = panelIds.next();
-				this.insight.setLastPanelId(panelId);
-				this.insight.setLastTaskOptions(task.getTaskOptions(), panelId);
-			}
-			
-			// you need to do this after you set the last panel id
-			// keep the query struct
 			if (retOpType != PixelOperationType.PANEL_ORNAMENT_DATA && this.task instanceof BasicIteratorTask) {
 				prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
-				this.insight.setLastQS(sqs);
+				// I really hope this is only one
+				Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
+				while(panelIds.hasNext()) {
+					String panelId = panelIds.next();
+					this.insight.setLastTaskOptions(task.getTaskOptions(), sqs, panelId);
+				}
 			}
 		}
 		else
 		{
-			// there is no flipping way to get to a proper options here ?
 			// I am setting the panel id on the task options and getting it from here
 			TaskOptions taskOptions = this.insight.getLastTaskOptions();
 			if(taskOptions != null) {
