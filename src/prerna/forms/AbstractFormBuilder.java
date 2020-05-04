@@ -181,7 +181,7 @@ public abstract class AbstractFormBuilder {
 			}
 			createAuditTable.append(")");
 			String query = createAuditTable.toString();
-			LOGGER.info("SQL SCRIPT >>> " + query);
+			LOGGER.info("SQL SCRIPT >>> " + Utility.cleanLogString(query));
 			try {
 				this.formEng.insertData(query);
 			} catch (Exception e1) {
@@ -229,7 +229,7 @@ public abstract class AbstractFormBuilder {
 			// 3) perform an update
 			if(colsToAdd.size() > 0) {
 				String alterQuery = RdbmsQueryBuilder.makeAlter(auditLogTableName, colsToAdd.toArray(new String[] {}), colsToAddTypes.toArray(new String[] {}));
-				LOGGER.info("ALTERING TABLE: " + alterQuery);
+				LOGGER.info("ALTERING TABLE: " + Utility.cleanLogString(alterQuery));
 				try {
 					this.formEng.insertData(alterQuery);
 				} catch (Exception e1) {

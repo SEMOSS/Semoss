@@ -471,11 +471,11 @@ public class BaseFormsDataProcessor {
 		for (String outerKey: mapToPrint.keySet()){
 			count++;
             String key = outerKey.toString();
-            LOGGER.info("Outer key #" + count + " is: " + key);  
+            LOGGER.info(Utility.cleanLogString("Outer key #" + count + " is: " + key));  
             //loop through each inner key and print the key + value
             for (String innerKey: mapToPrint.get(key).keySet()) {
             	String key1 = innerKey.toString();
-            	LOGGER.info(">>>>>>" + key1 + " = " + mapToPrint.get(key).get(key1));
+            	LOGGER.info(Utility.cleanLogString(">>>>>>" + key1 + " = " + mapToPrint.get(key).get(key1)));
             }
             LOGGER.info("");
 		} 
@@ -495,11 +495,11 @@ public class BaseFormsDataProcessor {
 			//counter to count the values for printing
 			int countValue = 0;
             String keyString = key.toString();
-            LOGGER.info("Key #" + count + " is: " + key);  
+            LOGGER.info(Utility.cleanLogString("Key #" + count + " is: " + key));  
             //loop through each inner key and print the key + value
             for (String value: mapToPrint.get(key)) {
             	String valueString = value.toString();
-            	LOGGER.info(">>>>>>Value #" + countValue + " = " + valueString);
+            	LOGGER.info(Utility.cleanLogString(">>>>>>Value #" + countValue + " = " + valueString));
             	countValue++;
             }
             LOGGER.info("");
@@ -518,16 +518,16 @@ public class BaseFormsDataProcessor {
 			int secondcount = 0;
 			firstcount++;
             String firstkeyString = firstKey.toString();
-            LOGGER.info("Outer key #" + firstcount + " is: " + firstkeyString);  
+            LOGGER.info(Utility.cleanLogString("Outer key #" + firstcount + " is: " + firstkeyString));  
             //loop through each inner key and print the key + value
             
             for (String secondKey: mapToPrint.get(firstkeyString).keySet()) {
             	secondcount++;
             	String secondkeyString = secondKey.toString();
-            	LOGGER.info("   Inner Key #" + secondcount + " for " + firstkeyString + " is " + secondkeyString);
+            	LOGGER.info(Utility.cleanLogString("   Inner Key #" + secondcount + " for " + firstkeyString + " is " + secondkeyString));
             	for (String thirdKey: mapToPrint.get(firstkeyString).get(secondkeyString).keySet()) {
                 	String thirdkeyString = thirdKey.toString();
-                	LOGGER.info("      >>>" + thirdkeyString + " = " + mapToPrint.get(firstkeyString).get(secondkeyString).get(thirdkeyString));
+                	LOGGER.info(Utility.cleanLogString("      >>>" + thirdkeyString + " = " + mapToPrint.get(firstkeyString).get(secondkeyString).get(thirdkeyString)));
                 }
             	
             }

@@ -31,6 +31,7 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class DbTranslationEditor extends DepthFirstAdapter {
 
@@ -53,7 +54,7 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
 		for(PRoutine e : copy) {
 			String expression = e.toString();
-			LOGGER.info("Processing " + expression);
+			LOGGER.info("Processing " + Utility.cleanLogString(expression));
 			e.apply(this);
 			// if we ended up making the modificaiton
 			// the replacement string will not be null
