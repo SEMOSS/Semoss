@@ -2691,63 +2691,45 @@ public class Utility {
 	}
 
 	public static String findOpenPort() {
-		// start with 7677 and see if you can find any
-		logger.debug("Finding an open port.. ");
+		logger.info("Finding an open port.. ");
 		boolean found = false;
 
-		// need to talk to the oys and accomodate this logic of high and low
-		int lowPort = 1024;
-		int highPort = 6666;
+		int lowPort = 5355;
+		int highPort = lowPort + 10_000;
 
-		if (DIHelper.getInstance().getProperty("LOW_PORT") != null)
-			lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT"));
-
-		if (DIHelper.getInstance().getProperty("HIGH_PORT") != null)
-			highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT"));
-
-		int port = 5355;
-		int count = 0;
-		// String server = "10.13.229.203";
-		String server = "127.0.0.1";
-		for (; !found && count < 10000; port++, count++) {
-			logger.debug("Trying.. " + port);
+		if (DIHelper.getInstance().getProperty("LOW_PORT") != null) {
+			try {lowPort = Integer.parseInt(DIHelper.getInstance().getProperty("LOW_PORT")); } catch (Exception ignore) {};
+		}
+		
+		if (DIHelper.getInstance().getProperty("HIGH_PORT") != null) {
+			try {highPort = Integer.parseInt(DIHelper.getInstance().getProperty("HIGH_PORT")); } catch (Exception ignore) {};
+		}
+		
+		for (; !found && lowPort < highPort; lowPort++) {
+			logger.info("Trying port = " + lowPort);
 			try {
-				ServerSocket s = new ServerSocket(port); // "10.13.229.203", port);
-				// s.connect(new InetSocketAddress(server, port), 5000);//"localhost", port);
-				// s.accept();
+				ServerSocket s = new ServerSocket(lowPort); 
+				logger.info("Success with port = " + lowPort);
+				// no error, found an open port, we can stop
 				found = true;
 				s.close();
-				logger.debug("  Success !!!!");
-				// no error, found an open port, we can stop
 				break;
 			} catch (Exception ex) {
 				// do nothing
-				logger.debug("  Fail");
+				logger.info("Port " + lowPort + " Failed. " + ex.getMessage());
 				found = false;
-				logger.error(STACKTRACE, ex);
+//				logger.error(STACKTRACE, ex);
 			}
 		}
 
 		// if we found a port, return that port
-		if (found)
-			return port + "";
-
-		port--;
-		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-		String portStr = null;
-		if (!found) {
-			logger.debug("Unable to find an open port. Please provide a port.");
-			try {
-				portStr = br.readLine();
-			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
-			}
-			logger.debug("Using port: " + portStr);
-		} else {
-			portStr = port + "";
+		if (found) {
+			return lowPort + "";
 		}
-
-		return portStr;
+		
+		// no available ports in the range, either config is bad or something else is messed up
+		// just throw an exception
+		throw new IllegalArgumentException("Could not find available port to connect to");
 	}
 
 	/**

@@ -75,8 +75,11 @@ public class UploadInputUtility {
 
 	public static String getFilePath(NounStore store, Insight in) {
 		GenRowStruct fileGrs = store.getNoun(FILE_PATH);
+		if(fileGrs == null || fileGrs.isEmpty()) {
+			throw new IllegalArgumentException("Must pass in the relative file path as filePath=[\"input_path\"]");
+		}
+		
 		String fileLocation = fileGrs.get(0).toString();
-
 		if(new File(fileLocation).exists()) {
 			return fileLocation;
 		} 
