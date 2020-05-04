@@ -242,9 +242,9 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		} else  {
 			try {
 				String result = sendAction("execute");
-			  	LOGGER.info(result);
+			  	LOGGER.info(Utility.cleanLogString(result));
 			} catch (Exception e) {
-				LOGGER.error("Unable to execute remote wrapper with wrapper id = " + wrapperId, e);
+				LOGGER.error("Unable to execute remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
 			}
 		}
 	}
@@ -257,9 +257,9 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		if (!isLocal()) {
 			try {
 				String result = sendAction("setQuery");
-			  	LOGGER.info(result);
+			  	LOGGER.info(Utility.cleanLogString(result));
 			} catch (Exception e) {
-				LOGGER.error("Unable to set query for remote wrapper with wrapper id = " + wrapperId, e);
+				LOGGER.error("Unable to set query for remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
 			}
 		}
 	}
@@ -274,9 +274,9 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		if (!isLocal(engine)) {
 			try {
 				String result = sendAction(engine, "setEngine");
-			  	LOGGER.info(result);
+			  	LOGGER.info(Utility.cleanLogString(result));
 			} catch (Exception e) {
-				LOGGER.error("Unable to set engine for remote wrapper with wrapper id = " + wrapperId, e);
+				LOGGER.error("Unable to set engine for remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
 			}
 		}
 	}
@@ -293,9 +293,9 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		} else {
 			try {
 				String result = sendAction("cleanUp");
-			  	LOGGER.info(result);
+			  	LOGGER.info(Utility.cleanLogString(result));
 			} catch (Exception e) {
-				LOGGER.error("Unable to clean up remote wrapper with wrapper id = " + wrapperId, e);
+				LOGGER.error("Unable to clean up remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
 			}
 		}		
 	}
@@ -309,10 +309,10 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		} else {
 			try {
 				String result = sendAction("hasNext");
-			  	LOGGER.info(result);
+			  	LOGGER.info(Utility.cleanLogString(result));
 				return Boolean.parseBoolean(result);
 			} catch (Exception e) {
-				LOGGER.error("Unable to determine has next for remote wrapper with wrapper id = " + wrapperId, e);
+				LOGGER.error("Unable to determine has next for remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
 				return false;
 			}
 		}
@@ -327,12 +327,12 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		} else {
 			try {
 				String result = sendAction("next");
-			  	LOGGER.info(result);
+			  	LOGGER.info(Utility.cleanLogString(result));
 			  	IHeadersDataRowAdapter adapter = new IHeadersDataRowAdapter();
 			  	IHeadersDataRow row = adapter.fromJson(result);
 			  	return row;
 			} catch (Exception e) {
-				LOGGER.error("Unable to retrieve next row for remote wrapper with wrapper id = " + wrapperId, e);
+				LOGGER.error("Unable to retrieve next row for remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
 				return null;
 			}
 		}

@@ -180,7 +180,7 @@ public abstract class AbstractEngine implements IEngine {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			if(propFile != null) {
 				this.propFile = propFile;
-				LOGGER.info("Opening DB - " + engineName);
+				LOGGER.info("Opening DB - " + Utility.cleanLogString(engineName));
 				this.prop = Utility.loadProperties(propFile);
 			}
 			if(this.prop != null) {
@@ -219,7 +219,7 @@ public abstract class AbstractEngine implements IEngine {
 					// set the owl file
 					if(owlFile != null) {
 						owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
-						LOGGER.info("Loading OWL: " + owlFile);
+						LOGGER.info("Loading OWL: " + Utility.cleanLogString(owlFile));
 						setOWL(owlFile);
 					}
 				}
@@ -725,7 +725,7 @@ public abstract class AbstractEngine implements IEngine {
 		
 		if(!idString.isEmpty()) {
 			String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
-			LOGGER.info("Running insights query " + query);
+			LOGGER.info("Running insights query " + Utility.cleanLogString(query));
 			
 			IRawSelectWrapper wrap = null;
 			try {
