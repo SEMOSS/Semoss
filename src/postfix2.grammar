@@ -6,17 +6,18 @@ Helpers
  letter_b = ['A' .. 'Z'];
  digit = ['0' .. '9'];
  underscore = '_';
+ 
  // words in double quotes
- // allow for escaped double quotes
- double_quote = '"';
- escaped_double_quote = '\"';
- not_double_quote = [all - '"'] | escaped_double_quote;
- double_quote_word = double_quote not_double_quote* double_quote;
+ // allow for escaped double quotes 
+ escape_double_quote_sequence = '\"' | '\' ''' | '\\';
+ double_quote_string_character = [all - ['"' + '\']] | escape_double_quote_sequence;
+ double_quote_word = '"' double_quote_string_character* '"';
+
  // words in single quotes
  // does not allow for escaped single quotes
- single_quote = ''';
  not_single_quote = [all - '''];
- single_quote_word = single_quote not_single_quote* single_quote;
+ single_quote_word = ''' not_single_quote* ''';
+ 
  url_unescaped_chars = ('-' | '_' | '.' | '!' | '~' | '*' | '+' | ''' | '(' | ')' | '%');
  encoded_values = (letter_s | letter_b | digit | url_unescaped_chars);
  not_hash = [all - '#'];

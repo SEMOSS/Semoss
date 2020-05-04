@@ -364,7 +364,7 @@ import prerna.sablecc2.reactor.task.AutoTaskOptionsReactor;
 import prerna.sablecc2.reactor.task.CollectMetaReactor;
 import prerna.sablecc2.reactor.task.FormatReactor;
 import prerna.sablecc2.reactor.task.RemoveTaskReactor;
-import prerna.sablecc2.reactor.task.ResetAllReactor;
+import prerna.sablecc2.reactor.task.RefreshPanelTaskReactor;
 import prerna.sablecc2.reactor.task.ResetTaskReactor;
 import prerna.sablecc2.reactor.task.TaskOptionsReactor;
 import prerna.sablecc2.reactor.task.TaskReactor;
@@ -805,7 +805,7 @@ public class ReactorFactory {
 		reactorHash.put("Iterate", IterateReactor.class);
 		reactorHash.put("Task", TaskReactor.class); // defines the task
 		reactorHash.put("ResetTask", ResetTaskReactor.class); // reset a task
-		reactorHash.put("ResetAll", ResetAllReactor.class); // reset all panel tasks
+		reactorHash.put("ResetAll", RefreshPanelTaskReactor.class); // reset all panel tasks
 		reactorHash.put("RemoveTask", RemoveTaskReactor.class);
 		reactorHash.put("Collect", CollectReactor.class); // collect from task
 		reactorHash.put("CollectAll", CollectAllReactor.class); // collect from task

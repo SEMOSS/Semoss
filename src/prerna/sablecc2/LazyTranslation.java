@@ -641,6 +641,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         String word = PixelUtility.removeSurroundingQuotes(trimmedWord);
         // also replace any escaped quotes
         word = word.replace("\\\"", "\"");
+//        word = word.replace("\\\\", "\\");
        	// if its an assignment
     	// just put in results in case we are doing a |
     	if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
