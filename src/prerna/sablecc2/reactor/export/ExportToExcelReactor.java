@@ -144,9 +144,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 			InsightPanel panel = panelMap.get(panelId);
 			String sheetId = panel.getSheetId();
 			// for each panel get the task and task options
-			SelectQueryStruct qs = panel.getLastQS();
+			SelectQueryStruct qs = panel.getLastQs();
 			qs.setLimit(numRowsToExport);
-			TaskOptions taskOptions = panel.getOptions();
+			TaskOptions taskOptions = panel.getTaskOptions();
 			IQuerySelector firstSelector = qs.getSelectors().get(0);
 			if (firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
 				qs.addOrderBy(firstSelector.getQueryStructName(), "ASC");
@@ -167,8 +167,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 			InsightPanel panel = panelMap.get(panelId);
 			String sheetId = panel.getSheetId();
 			// for each panel get the task and task options
-			SelectQueryStruct qs = panel.getLastQS();
-			TaskOptions taskOptions = panel.getOptions();
+			SelectQueryStruct qs = panel.getLastQs();
+			TaskOptions taskOptions = panel.getTaskOptions();
 			ITask task = new BasicIteratorTask(qs);
 			task.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
 			task.setTaskOptions(taskOptions);
