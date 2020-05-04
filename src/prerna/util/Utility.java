@@ -3041,9 +3041,11 @@ public class Utility {
 
 	// ensure no CRLF injection into logs for forging records
 	public static String cleanLogString(String message) {
+		if(message == null) {
+			return message;
+		}
 		message = message.replace('\n', '_').replace('\r', '_').replace('\t', '_');
 		message = ESAPI.encoder().encodeForHTML(message);
-
 		return message;
 	}
 
