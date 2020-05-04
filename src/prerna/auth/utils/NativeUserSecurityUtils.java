@@ -300,6 +300,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(USER_ID));
 		qs.addSelector(new QueryColumnSelector(USER_NAME));
 		qs.addSelector(new QueryColumnSelector(USER_USERNAME));
 		qs.addSelector(new QueryColumnSelector(USER_EMAIL));
