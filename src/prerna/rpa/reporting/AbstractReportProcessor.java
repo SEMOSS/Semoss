@@ -16,6 +16,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rpa.RPAUtil;
+import prerna.util.Utility;
 
 /**
  * Framework for processing a multiple reports asynchronously.
@@ -103,12 +104,12 @@ public abstract class AbstractReportProcessor implements Runnable {
 				process.setJedisDataExceptionHandler(handler);
 				completionService.submit(process);
 			} catch (ReportProcessingException e) {
-				LOGGER.error("Failed to submit " + reportPath + " for processing.", e);
+				LOGGER.error("Failed to submit " + Utility.cleanLogString(reportPath) + " for processing.", e);
 			} catch (RejectedExecutionException e) {
 				
 				// If shutdownAndAwaitTermination method is called while submitting reports,
 				// this exception will occur
-				LOGGER.warn("Unable to submit " + reportPath + " for processing; this processor is no longer accepting new reports.");
+				LOGGER.warn("Unable to submit " + Utility.cleanLogString(reportPath) + " for processing; this processor is no longer accepting new reports.");
 			}
 		}
 		

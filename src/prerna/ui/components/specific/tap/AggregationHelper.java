@@ -88,7 +88,7 @@ public class AggregationHelper implements IAggregationHelper {
 					conceptTriple = false;
 				}
 				( (BigDataEngine) engine).addStatement(new Object[]{sub, pred, obj, conceptTriple});
-				LOGGER.info("ADDING INTO " + engine.getEngineId() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				LOGGER.info("ADDING INTO " + Utility.cleanLogString(engine.getEngineId()) + ": " + Utility.cleanLogString(sub) + ">>>>>" + Utility.cleanLogString(pred) + ">>>>>" + obj + ">>>>>");
 			}
 		}
 	}
@@ -106,7 +106,7 @@ public class AggregationHelper implements IAggregationHelper {
 					conceptTriple = false;
 				}
 				( (BigDataEngine) engine).removeStatement(new Object[]{sub, pred, obj, conceptTriple});
-				LOGGER.info("REMOVING FROM " + engine.getEngineId() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				LOGGER.info("REMOVING FROM " + Utility.cleanLogString(engine.getEngineId()) + ": " + Utility.cleanLogString(sub) + ">>>>>" + Utility.cleanLogString(pred) + ">>>>>" + obj + ">>>>>");
 			}
 		}		
 	}
@@ -169,7 +169,7 @@ public class AggregationHelper implements IAggregationHelper {
 		( (BigDataEngine) engine).addStatement(new Object[]{newConceptType, subclassOf, concept, true});
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
 		existingBaseEngine.addStatement(new Object[]{newConceptType, subclassOf, concept, true});
-		LOGGER.info("ADDING NEW CONCEPT TRIPLE: " + newConceptType + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
+		LOGGER.info(Utility.cleanLogString("ADDING NEW CONCEPT TRIPLE: " + newConceptType + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>"));
 	}
 
 	public void processNewRelationships(IEngine engine, String newRelationshipType) 
@@ -180,21 +180,21 @@ public class AggregationHelper implements IAggregationHelper {
 		( (BigDataEngine) engine).addStatement(new Object[]{newRelationshipType, subpropertyOf, relation, true});
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
 		existingBaseEngine.addStatement(new Object[]{newRelationshipType, subpropertyOf, relation, true});
-		LOGGER.info("ADDING NEW RELATIONSHIP TRIPLE: " + newRelationshipType + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
+		LOGGER.info(Utility.cleanLogString("ADDING NEW RELATIONSHIP TRIPLE: " + newRelationshipType + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>"));
 	}
 	
 	public void processNewConceptsAtInstanceLevel(IEngine engine, String subject, String object)
 	{
 		String pred = RDF.TYPE.toString();
 		((BigDataEngine) engine).addStatement(new Object[]{subject, pred, object, true});
-		LOGGER.info("ADDING CONCEPT INSTANCE TYPE TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>");				
+		LOGGER.info(Utility.cleanLogString("ADDING CONCEPT INSTANCE TYPE TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>"));				
 	}
 
 	public void processNewRelationshipsAtInstanceLevel(IEngine engine, String subject, String object) 
 	{
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
 		((BigDataEngine) engine).addStatement(new Object[]{subject, subpropertyOf, object, true});
-		LOGGER.info("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + subpropertyOf + ">>>>>" + object	+ ">>>>>");
+		LOGGER.info(Utility.cleanLogString("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + subpropertyOf + ">>>>>" + object	+ ">>>>>"));
 	}
 	
 	public void addToDataHash(Object[] returnTriple) 

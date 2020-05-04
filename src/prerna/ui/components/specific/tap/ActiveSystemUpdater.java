@@ -206,7 +206,7 @@ public class ActiveSystemUpdater {
 			while(iterator.hasNext())
 			{
 				String systemInstanceURI = iterator.next();
-				logger.info("Inserting: " + systemInstanceURI);
+				logger.info("Inserting: " + Utility.cleanLogString(systemInstanceURI));
 				( (BigDataEngine) engine).addStatement(new Object[]{systemInstanceURI, typeURI, activeSystemURI, true});
 			}
 			

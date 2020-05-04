@@ -125,9 +125,9 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 		//LOGGER.info("********* lastRow: " + lastRow);
 		
 		for (String key : map.keySet()) {
-			LOGGER.info("********* key: " + key);
+			LOGGER.info(Utility.cleanLogString("********* key: " + key));
 			int count = 0;
-			LOGGER.info("********* Removing interfaces for .... : " + key);
+			LOGGER.info("********* Removing interfaces for .... : " + Utility.cleanLogString(key));
 			for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
 		    	count = rIndex;
 		    	//LOGGER.info("********* rIndex: " + rIndex);
@@ -151,11 +151,11 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 					}
 				}
 			}
-			LOGGER.info("********* Removed interfaces for .... : " + key);
+			LOGGER.info("********* Removed interfaces for .... : " + Utility.cleanLogString(key));
 			
 		    HashMap<String, HashMap<String,String>> valueMap1 = map.get(key);
 		    for (String key1 : valueMap1.keySet()) {
-		    	LOGGER.info("********* key1: " + key1);
+		    	LOGGER.info("********* key1: " + Utility.cleanLogString(key1));
 		    	XSSFRow row = lSheet.createRow(count++);
 		    	XSSFCell cell0 = row.createCell(0);
 				cell0.setCellValue(count-1);
@@ -169,16 +169,16 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 				//mapofStrToString(valueMap1);
 				if (valueMap2.get("DCSite") == "" || valueMap2.get("DCSite") == null) {
 					//there is no DC site
-					LOGGER.info("DCSite == null, key1: " + key1.toString());
+					LOGGER.info("DCSite == null, key1: " + Utility.cleanLogString(key1.toString()));
 					addInterfaceName(row, key1);
 				} else {
 					//there is a DC site
-					LOGGER.info("DCSite != null, key1: " + key1.toString());
+					LOGGER.info("DCSite != null, key1: " + Utility.cleanLogString(key1.toString()));
 					addSiteSpecificInterfaceName(row, key1);
 				}
 				
 			    for (String key2 : valueMap2.keySet()) {
-			    	LOGGER.info("********* key2: " + key2);
+			    	LOGGER.info("********* key2: " + Utility.cleanLogString(key2));
 		    		String value = valueMap2.get(key2);
 		    		if(key2.equalsIgnoreCase("DataObject")){
 		    			int n = getDataObjectColNum(value);

@@ -40,6 +40,7 @@ import org.apache.log4j.Logger;
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.Browser;
@@ -112,7 +113,7 @@ public class BrowserGraphPanel extends JPanel{
 		//newHash.put("Edges", edgeHash);
 
 		Gson gson = new Gson();
-		logger.info("Converted " + gson.toJson(table));
+		logger.info("Converted " + Utility.cleanLogString(gson.toJson(table)));
 
 		//webBrowser.executeJavascript("helloWorld('" + gson.toJson(newHash) + "');"); //Please tell me this is awesome !!!!!!');");
 		//Please tell me this is awesome !!!!!!');");

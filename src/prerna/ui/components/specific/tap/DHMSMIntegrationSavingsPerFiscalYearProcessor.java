@@ -822,7 +822,7 @@ private final String masterQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?S
 	}
 	
 	private void processQuery(String query) {
-		LOGGER.info(query);
+		LOGGER.info(Utility.cleanLogString(query));
 
 		if(masterHash == null) {
 			masterHash = new HashMap<String, HashMap<String, ArrayList<String>>>();
