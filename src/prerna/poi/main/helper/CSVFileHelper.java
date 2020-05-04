@@ -289,7 +289,7 @@ public class CSVFileHelper {
 			parseColumns(new String[]{col});
 
 			if(logger != null) {
-				logger.info("Predicting data types for column = " + col);
+				logger.info("Predicting data types for column = " + Utility.cleanLogString(col));
 			}
 			
 			int rowCounter = 0;

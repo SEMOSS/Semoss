@@ -37,6 +37,8 @@ import javax.swing.JTextArea;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.util.Utility;
+
 public class DHMSMDeploymentStrategyProcessor {
 	
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMDeploymentStrategyProcessor.class.getName());
@@ -281,7 +283,7 @@ public class DHMSMDeploymentStrategyProcessor {
 			List<String> startWaves = waveForSites.get(site);
 			List<String> endWaves = waveForSites.get(site);
 			if((startWave==null || endWave == null) && (startWaves ==null || endWaves ==null)) {
-				LOGGER.error("No wave info for site "+site);
+				LOGGER.error("No wave info for site "+Utility.cleanLogString(site));
 				consoleArea.setText(consoleArea.getText()+"\nNo wave info for site "+site);
 			} else {
 				if((startWave==null || endWave == null)) {
@@ -305,7 +307,7 @@ public class DHMSMDeploymentStrategyProcessor {
 					double savings = 0.0;
 					String value = (String)siteList.get(siteIndex)[i];
 					if(value.contains("No")) {
-						LOGGER.info("No cost info for site "+site);
+						LOGGER.info("No cost info for site "+Utility.cleanLogString(site));
 						consoleArea.setText(consoleArea.getText()+"\nNo cost info for site "+site);
 					} else {
 						if(value.startsWith("$ "))
@@ -316,7 +318,7 @@ public class DHMSMDeploymentStrategyProcessor {
 					}
 					HashMap<String, Double> latLongHash = siteLocationHash.get(site);
 					if(latLongHash==null) {
-						LOGGER.info("No lat or long info for site "+site);
+						LOGGER.info("No lat or long info for site " + Utility.cleanLogString(site));
 						consoleArea.setText(consoleArea.getText()+"\nNo lat or long info for site "+site);
 					} else {
 						double latVal = latLongHash.get("Lat");
