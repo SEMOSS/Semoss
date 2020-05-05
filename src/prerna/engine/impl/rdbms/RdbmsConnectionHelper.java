@@ -317,7 +317,7 @@ public class RdbmsConnectionHelper {
 		}
 		
 		// add logic for when schema is called database
-		if(driverName.contains("teradata") || (rdbmsType != null && rdbmsType == RdbmsTypeEnum.TERADATA)) {
+		if((driverName != null && driverName.contains("teradata")) || (rdbmsType != null && rdbmsType == RdbmsTypeEnum.TERADATA)) {
 			schema = predictSchemaAsDatbaseFromUrl(connectionUrl);
 		}
 		if(schema != null) {

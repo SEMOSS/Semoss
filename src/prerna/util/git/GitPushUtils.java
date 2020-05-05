@@ -85,7 +85,7 @@ public class GitPushUtils {
 	@Deprecated
 	// this is moved to git repo utils
 	public static void addSpecificFiles(String localRepository, List<String> files) {
-		if(files == null || files.size() == 0) {
+		if(files == null || files.isEmpty()) {
 			return;
 		}
 		Git thisGit = null;
@@ -141,18 +141,21 @@ public class GitPushUtils {
 		if (thisGit != null) {
 			ac = thisGit.add();
 		}
-		for(File f : files) {
-			String daFile = f.getAbsolutePath();
-			if(daFile.contains("version")) {
-				daFile = daFile.substring(daFile.indexOf("version") + 8);
+
+		if (ac != null) {
+			for(File f : files) {
+				String daFile = f.getAbsolutePath();
+				if(daFile.contains("version")) {
+					daFile = daFile.substring(daFile.indexOf("version") + 8);
+				}
+				daFile = daFile.replace("\\", "/");
+				ac.addFilepattern(daFile);
 			}
-			daFile = daFile.replace("\\", "/");
-			ac.addFilepattern(daFile);
-		}
-		try {
-			ac.call();
-		} catch (GitAPIException e) {
-			logger.error(STACKTRACE, e);
+			try {
+				ac.call();
+			} catch (GitAPIException e) {
+				logger.error(STACKTRACE, e);
+			}
 		}
 
 		if (thisGit != null) {
