@@ -389,7 +389,13 @@ public class Xray {
 			rowData = csv.readAll();
 		} catch (IOException e) {
 			logger.error(STACKTRACE, e);
-		} // get all rows
+		}
+
+		if (rowData == null) {
+			throw new NullPointerException("rowData cannot be null here.");
+		}
+
+		// get all rows
 		String[] headers = rowData.get(0);
 		List<String> selectedCols = new ArrayList<>();
 		for (String col : dataSelection.keySet()) {
