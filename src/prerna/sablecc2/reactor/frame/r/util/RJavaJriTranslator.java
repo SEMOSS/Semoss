@@ -170,8 +170,8 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	@Override
 	public Object executeR(String rScript) {
 		try {
-			rScript = rScript.replaceAll("\"", "\\\"");
-			rScript = rScript.replaceAll("'", "\\'");
+			//rScript = rScript.replaceAll("\"", "\\\"");
+			//rScript = rScript.replaceAll("'", "\\'");
 			rScript = encapsulateForEnv(rScript);
 			logger.debug("Running rscript > " + rScript);
 			REXP rexp = engine.eval(rScript);
@@ -187,8 +187,8 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public void executeEmptyR(String rScript) {
-		rScript = rScript.replaceAll("\"", "\\\"");
-		rScript = rScript.replaceAll("'", "\\'");
+		//rScript = rScript.replaceAll("\"", "\\\"");
+		//rScript = rScript.replaceAll("'", "\\'");
 		rScript = encapsulateForEnv(rScript);
 		logger.debug("Running rscript > " + rScript);
 		engine.eval(rScript, false);
