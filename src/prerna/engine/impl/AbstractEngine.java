@@ -1398,6 +1398,8 @@ public abstract class AbstractEngine implements IEngine {
 			
 			String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";		
 
+			
+			
 			File inputFile = new File(passwordFileName);
 			if(inputFile.exists()) // if nothing is there return null
 			{
