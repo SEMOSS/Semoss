@@ -129,7 +129,9 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 					}
 				}
 				// do not forget to add the final things in the batch that have not been committed!
-				ps.executeBatch();
+				if (ps != null) {
+					ps.executeBatch();
+				}
 			} catch (SQLException e) {
 				logger.error("StackTrace: ", e);
 			}		

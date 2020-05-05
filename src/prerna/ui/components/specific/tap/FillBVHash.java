@@ -222,8 +222,8 @@ public class FillBVHash implements Runnable{
 
 			//if it is 
 			logger.debug("Creating new Value ");
-				
-				if(key.toLowerCase().contains("vendor"))
+
+				if(key != null && key.toLowerCase().contains("vendor"))
 				{
 					if (!rowLabels.contains(var0)){
 						rowLabels.add(var0);
@@ -253,7 +253,7 @@ public class FillBVHash implements Runnable{
 				int colLoc=colLabels.indexOf(vendorObject.substring(endIndex));
 				matrix[rowLoc][colLoc]=matrix[rowLoc][colLoc]/vendorObjectCount.get(vendorObject);
 			}
-		}catch (RuntimeException e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		tempSelectHash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);

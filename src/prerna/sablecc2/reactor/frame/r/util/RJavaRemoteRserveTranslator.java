@@ -302,7 +302,9 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 				}
 			} finally {
 				f.delete();
-				outputF.delete();
+				if (outputF != null) {
+					outputF.delete();
+				}
 			}
 		}
 
@@ -311,7 +313,7 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 		this.executeEmptyR("gc()");
 
 		if (scriptOutput == null) {
-			//			throw new NullPointerException("Neccesity to trim, scriptOutput cannot be null here.");
+			// throw new NullPointerException("Neccesity to trim, scriptOutput cannot be null here.");
 			return "";
 		}
 
