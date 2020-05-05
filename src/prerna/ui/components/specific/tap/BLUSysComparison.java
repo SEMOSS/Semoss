@@ -34,6 +34,7 @@ import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.swing.JPanel;
@@ -44,37 +45,34 @@ import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.ui.components.ChartControlPanel;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
 
 /**
  * Heat Map that shows what gaps in data exist for systems to suppor their BLUs
  */
-public class BLUSysComparison extends SimilarityHeatMapSheet{
+public class BLUSysComparison extends SimilarityHeatMapSheet {
+	private static final long serialVersionUID = 1L;
 
-	public ArrayList<String> systemNamesList = new ArrayList<String>();
-	String masterQuery = "SELECT DISTINCT ?System ?BLU ?Data (IF (BOUND (?Provide), 'Needed and Present', IF( BOUND(?ICD), 'Needed and Present', 'Needed but not Present')) AS ?Status) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{ { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>;} {?Consume <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?ICD ?Consume ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?ICD ?Payload ?Data} } UNION { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide ?Data} } } { SELECT DISTINCT ?System ?BLU ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Provide2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide2 ?BLU} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Requires <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Requires>;} {?BLU ?Requires ?Data} } } }";
-	String systemKey = "System";
-	String BLUKey = "BLU";
-	String dataKey = "Data";
-	String statusKey = "Status";
-	String statusTrueKey = "Needed and Present";
-	final String valueString = "Score";
-	final String keyString = "key";
-	ArrayList<String> BLUNames = new ArrayList<String>();
-	ArrayList<String> sysNames = new ArrayList<String>();
-	ChartControlPanel controlPanel;
+	transient List<String> systemNamesList = new ArrayList<>();
+	private static final String MASTER_QUERY = "SELECT DISTINCT ?System ?BLU ?Data (IF (BOUND (?Provide), 'Needed and Present', IF( BOUND(?ICD), 'Needed and Present', 'Needed but not Present')) AS ?Status) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{ { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>;} {?Consume <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?ICD ?Consume ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?ICD ?Payload ?Data} } UNION { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide ?Data} } } { SELECT DISTINCT ?System ?BLU ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Provide2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide2 ?BLU} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Requires <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Requires>;} {?BLU ?Requires ?Data} } } }";
+	private static final String SYSTEM_KEY = "System";
+	private static final String BLU_KEY = "BLU";
+	private static final String DATA_KEY = "Data";
+	private static final String STATUS_KEY = "Status";
+	private static final String STATUS_TRUE_KEY = "Needed and Present";
+	private static final String VALUE_STRING = "Score";
+	private static final String KEY_STRING = "key";
+	private static final String BLU_DATA = "BLU-Data";
 	SysToBLUDataGapsPlaySheet playSheet;
-
-	List<Object[]> list;
+	transient List<Object[]> list;
 	String[] names;
 
 	@Override
 	public List<Object[]> getList() {
 		return this.list;
 	}
-	
+
 	@Override
 	public String[] getNames() {
 		return this.names;
@@ -84,195 +82,181 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 	 * Constructor for CapSimHeatMapSheet.
 	 */
 	public BLUSysComparison() {
-		super();	
-	}	
+		super();
+	}
 
 	@Override
-	public void addPanel()
-	{
+	public void addPanel() {
 		browser = new Browser();
 		browserView = new BrowserView(browser);
 		try {
-//			table = new JTable();
 			JPanel mainPanel = new JPanel();
-//			setWindow();
-//			createControlPanel();
-			
 			BrowserPlaySheetListener psListener = new BrowserPlaySheetListener();
 			this.addInternalFrameListener(psListener);
 			this.setContentPane(mainPanel);
-			GridBagLayout gbl_mainPanel = new GridBagLayout();
-			gbl_mainPanel.columnWidths = new int[]{0, 0};
-			gbl_mainPanel.rowHeights = new int[]{0, 0};
-			gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-			mainPanel.setLayout(gbl_mainPanel);
-			
+			GridBagLayout gblMainPanel = new GridBagLayout();
+			gblMainPanel.columnWidths = new int[] { 0, 0 };
+			gblMainPanel.rowHeights = new int[] { 0, 0 };
+			gblMainPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+			gblMainPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
+			mainPanel.setLayout(gblMainPanel);
+
 			JPanel panel = new JPanel();
 			panel.setLayout(new BorderLayout());
 			panel.add(browserView, BorderLayout.CENTER);
-			GridBagConstraints gbc_scrollPane = new GridBagConstraints();
-			gbc_scrollPane.fill = GridBagConstraints.BOTH;
-			gbc_scrollPane.gridx = 0;
-			gbc_scrollPane.gridy = 0;
-			mainPanel.add(panel, gbc_scrollPane);
+			GridBagConstraints gbcScrollPane = new GridBagConstraints();
+			gbcScrollPane.fill = GridBagConstraints.BOTH;
+			gbcScrollPane.gridx = 0;
+			gbcScrollPane.gridy = 0;
+			mainPanel.add(panel, gbcScrollPane);
 
 			updateProgressBar("0%...Preprocessing", 0);
 			resetProgressBar();
 			JPanel barPanel = new JPanel();
 
-			GridBagConstraints gbc_barPanel = new GridBagConstraints();
-			gbc_barPanel.fill = GridBagConstraints.BOTH;
-			gbc_barPanel.gridx = 0;
-			gbc_barPanel.gridy = 1;
-			mainPanel.add(barPanel, gbc_barPanel);
+			GridBagConstraints gbcBarPanel = new GridBagConstraints();
+			gbcBarPanel.fill = GridBagConstraints.BOTH;
+			gbcBarPanel.gridx = 0;
+			gbcBarPanel.gridy = 1;
+			mainPanel.add(barPanel, gbcBarPanel);
 			barPanel.setLayout(new BorderLayout(0, 0));
 			barPanel.add(jBar, BorderLayout.CENTER);
 
 			playSheet.HeatPanel.add(this);
 
-//			this.pack();
 			this.setVisible(true);
 			this.setSelected(false);
 			this.setSelected(true);
 			logger.debug("Added the main pane");
-		}
-		catch (PropertyVetoException e) {
-			e.printStackTrace();
+		} catch (PropertyVetoException e) {
+			logger.debug(e.getStackTrace());
 		}
 	}
-	
-	public void createData(List<String> BLUNames, List<String> sysNames) {
+
+	public void createData(List<String> bluNames, List<String> sysNames) {
 
 		addPanel();
-		SimilarityFunctions simfns = new SimilarityFunctions();	
 		String comparisonType = "System-BLU Comparison";
 		logger.info("Creating " + comparisonType + " Heat Map.");
 		updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
-		
-		ISelectWrapper mainWrapper = WrapperManager.getInstance().getSWrapper(this.engine, masterQuery);
+
+		ISelectWrapper mainWrapper = WrapperManager.getInstance().getSWrapper(this.engine, MASTER_QUERY);
 		names = mainWrapper.getVariables();
-		processWrapper(mainWrapper, names, BLUNames, sysNames);
+		processWrapper(mainWrapper, bluNames, sysNames);
 		averageAdder();
-		
-		//Creating keyHash from paramDataHash
-		updateProgressBar("70%...Evaluating Business Logic Provided for a " + comparisonType, 70);		
-		
+
+		// Creating keyHash from paramDataHash
+		updateProgressBar("70%...Evaluating Business Logic Provided for a " + comparisonType, 70);
+
 		logger.info(systemNamesList);
 
 		allHash.put("xAxisTitle", "BLU");
-		allHash.put("title",  "Systems Support " + comparisonType);
+		allHash.put("title", "Systems Support " + comparisonType);
 		allHash.put("yAxisTitle", "System");
 		allHash.put("value", "Score");
 		allHash.put("sysDup", false);
 	}
-	
-	private void processWrapper(ISelectWrapper sjw, String[] names, List<String> BLUNames, List<String> sysNames){
-		
-		Hashtable<String, Hashtable<String, Object>> BLUDataHash = new Hashtable<String, Hashtable<String, Object>>();
+
+	private void processWrapper(ISelectWrapper sjw, List<String> bluNames, List<String> sysNames){
+
+		Hashtable<String, Hashtable<String, Object>> bluDataHash = new Hashtable<>();
+
 		try {
-			while(sjw.hasNext())
-			{
+			while (sjw.hasNext()) {
 				ISelectStatement sjss = sjw.next();
-				
-				Hashtable<String, Object> systemBLUHash = new Hashtable<String, Object>();
-				Hashtable<String, Object> keySystemBLUHash = new Hashtable<String, Object>();
-				Hashtable<String, Double> innerDataHash = new Hashtable<String, Double>();
-				String systemTemp = sjss.getVar(systemKey) + "";
-				String BLUTemp = sjss.getVar(BLUKey) + "";
+
+				Hashtable<String, Object> systemBLUHash = new Hashtable<>();
+				Hashtable<String, Object> keySystemBLUHash = new Hashtable<>();
+				Hashtable<String, Double> innerDataHash = new Hashtable<>();
+				String systemTemp = sjss.getVar(SYSTEM_KEY) + "";
+				String bluTemp = sjss.getVar(BLU_KEY) + "";
 				String dataTemp = "";
 				String statusTemp = "";
 				String sysBLUTemp = "";
 				Double dataValueTemp = 0.0;
-				
-				if(BLUNames.contains(sjss.getVar(BLUKey)) && sysNames.contains(sjss.getVar(systemKey))){
-					dataTemp = sjss.getVar(dataKey) + "";
-					statusTemp = sjss.getVar(statusKey) + "";
-				
-					if(statusTemp.equals(statusTrueKey)){
+
+				if (bluNames.contains(sjss.getVar(BLU_KEY)) && sysNames.contains(sjss.getVar(SYSTEM_KEY))) {
+					dataTemp = sjss.getVar(DATA_KEY) + "";
+					statusTemp = sjss.getVar(STATUS_KEY) + "";
+
+					if (statusTemp.equals(STATUS_TRUE_KEY)) {
 						dataValueTemp = 100.0;
 					}
-					
-					sysBLUTemp = systemTemp + "-" + BLUTemp;
-					
-					if(!BLUDataHash.containsKey(sysBLUTemp)){
+
+					sysBLUTemp = systemTemp + "-" + bluTemp;
+
+					if (!bluDataHash.containsKey(sysBLUTemp)) {
 						innerDataHash.put(dataTemp, dataValueTemp);
 						systemBLUHash.put("System", systemTemp);
-						systemBLUHash.put("BLU", BLUTemp);
+						systemBLUHash.put("BLU", bluTemp);
 						systemBLUHash.put("Data", innerDataHash);
-						BLUDataHash.put(sysBLUTemp, systemBLUHash);
-						
-						//for keyHash
+						bluDataHash.put(sysBLUTemp, systemBLUHash);
+
+						// for keyHash
 						keySystemBLUHash.put("System", systemTemp);
-						keySystemBLUHash.put("BLU", BLUTemp);
+						keySystemBLUHash.put("BLU", bluTemp);
 						keyHash.put(sysBLUTemp, keySystemBLUHash);
 
-					}
-					else{
-						systemBLUHash = (Hashtable<String, Object>) BLUDataHash.get(sysBLUTemp);
+					} else {
+						systemBLUHash = bluDataHash.get(sysBLUTemp);
 						innerDataHash = (Hashtable<String, Double>) systemBLUHash.get("Data");
 						innerDataHash.put(dataTemp, dataValueTemp);
 					}
 				}
 			}
-			paramDataHash.put("BLU-Data", BLUDataHash);
+			paramDataHash.put(BLU_DATA, bluDataHash);
 
-		} 
-		catch (RuntimeException e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
-		}	
+		}
 	}
-	
-	private void averageAdder(){
-		Hashtable<String, Hashtable<String, Object>> BLUDataHash = new Hashtable<String, Hashtable<String, Object>>();
-		
-		BLUDataHash = (Hashtable<String, Hashtable<String, Object>>) paramDataHash.get("BLU-Data"); 
-		
-		Set<String> sysBLUKeys = BLUDataHash.keySet();
-		try {		
-			for(String sysBLUKey: sysBLUKeys){
-				Hashtable<String, Object> systemBLUHash = new Hashtable<String, Object>();
-				Hashtable<String, Double> innerDataHash = new Hashtable<String, Double>();	
-				
-				systemBLUHash = (Hashtable<String, Object>) BLUDataHash.get(sysBLUKey);
-				innerDataHash = (Hashtable<String, Double>) systemBLUHash.get("Data");
-	
+
+	private void averageAdder() {
+		Hashtable<String, Hashtable<String, Object>> bluDataHash = paramDataHash.get(BLU_DATA);
+
+		Set<String> sysBLUKeys = bluDataHash.keySet();
+		try {
+			for (String sysBLUKey : sysBLUKeys) {
+				Hashtable<String, Object> systemBLUHash = bluDataHash.get(sysBLUKey);
+				Hashtable<String, Double> innerDataHash = (Hashtable<String, Double>) systemBLUHash.get("Data");
 				Double numerator = 0.0;
 				Double denominator = 0.0;
+				Double average = null;
+
 				Set<String> dataKeys = innerDataHash.keySet();
-				for(String dataKey: dataKeys){
+				for (String dataKey : dataKeys) {
 					numerator += innerDataHash.get(dataKey);
 					denominator++;
 				}
-				Double average = (double) (numerator/denominator);
-				systemBLUHash.put("Score", average);	
+				
+				if (denominator != 0) {
+					average = (numerator / denominator);
+				}
+				systemBLUHash.put("Score", average);
 			}
 		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}
 
-	public ArrayList retrieveValues(ArrayList<String> selectedVars, Hashtable<String, Double>minimumWeights, String key){
-		ArrayList<Hashtable> retHash = new ArrayList<Hashtable>();
-		Hashtable<String, Hashtable<String, Object>> BLUDataHash = new Hashtable<String, Hashtable<String, Object>>();
-		BLUDataHash = (Hashtable<String, Hashtable<String, Object>>) paramDataHash.get("BLU-Data");
-		Hashtable<String, Object> systemBLUHash = new Hashtable<String, Object>();		
-		systemBLUHash = (Hashtable<String, Object>) BLUDataHash.get(key);
-		Hashtable<String, Double> innerDataHash = new Hashtable<String, Double>();	
-		innerDataHash = (Hashtable<String, Double>) systemBLUHash.get("Data");
+	@Override
+	public List retrieveValues(List<String> selectedVars, Map<String, Double> minimumWeights, String key) {
+		List<Hashtable> retHash = new ArrayList<>();
+		Hashtable<String, Hashtable<String, Object>> bluDataHash = paramDataHash.get(BLU_DATA);
+		Hashtable<String, Object> systemBLUHash = bluDataHash.get(key);
+		Hashtable<String, Double> innerDataHash = (Hashtable<String, Double>) systemBLUHash.get("Data");
 		Set<String> innerDataKeys = innerDataHash.keySet();
-		for(String innerDataKey: innerDataKeys){
+
+		for (String innerDataKey : innerDataKeys) {
 			Hashtable newHash = new Hashtable();
-			newHash.put(keyString, innerDataKey);
-			newHash.put(valueString, innerDataHash.get(innerDataKey));
+			newHash.put(KEY_STRING, innerDataKey);
+			newHash.put(VALUE_STRING, innerDataHash.get(innerDataKey));
 			retHash.add(newHash);
-		}			
+		}
 		return retHash;
 	}
-	
+
 	public void setPlaySheet(IPlaySheet playSheet) {
 		this.playSheet = (SysToBLUDataGapsPlaySheet) playSheet;
 	}
 }
-
-
