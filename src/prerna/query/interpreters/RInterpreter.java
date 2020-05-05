@@ -2,6 +2,7 @@ package prerna.query.interpreters;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	// need to keep track of selectors
 	// to make sure the order by's are accurate
 	private List<String> validHeaders = new Vector<String>();
+	// keep track of date columns that are aggregated
+	private Map<String, SemossDataType> aggregatedDateVals = new HashMap<String, SemossDataType>();
 	
 	@Override
 	public String composeQuery() {
@@ -138,25 +141,14 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				if (validHeaders.contains(column)) {
 					addedColToDateChange = true;
 					String javaFormat = this.additionalTypes.get(this.dataTableName + "__" + column);
-					if(javaFormat == null) {
-						if(dataType == SemossDataType.DATE) {
-							javaFormat = "yyyy-MM-dd";
-						} else if(dataType == SemossDataType.TIMESTAMP) {
-							javaFormat = "yyyy-MM-dd HH:mm:ss";
-						}
-					}
-					String[] rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(javaFormat).split("\\|");
-					query.append("if (is.Date(" + tempVarName + "$" + column + ") || is.POSIXct(" + tempVarName + "$"
-							+ column + ")) {").append("options(digits.secs =" + rFormat[1] + ");")
-							.append(tempVarName + "$" + column + " <- format(" + tempVarName + "$" + column + ", format='"
-									+ rFormat[0] + "')");
-					// handle potential leading zero and second/millisecond delimiter
-					String rSubSyntax = getRSubSyntax(javaFormat, rFormat[0]);
-					if (rSubSyntax.length() > 0) {
-						query.append(" %>% " + rSubSyntax);
-					}
-					query.append("};");
+					addDateConversionFunction(query, tempVarName, column, dataType, javaFormat);
 				}
+			}
+		}
+		for(String column : aggregatedDateVals.keySet()) {
+			if (validHeaders.contains(column)) {
+				addedColToDateChange = true;
+				addDateConversionFunction(query, tempVarName, column, aggregatedDateVals.get(column), null);
 			}
 		}
 		
@@ -171,6 +163,28 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 
 		return query.toString();
+	}
+	
+	private void addDateConversionFunction(StringBuilder query, String tempVarName, String column, SemossDataType type, String javaFormatAdditionalType) {
+		String javaFormat = javaFormatAdditionalType;
+		if(javaFormat == null) {
+			if(type == SemossDataType.DATE) {
+				javaFormat = "yyyy-MM-dd";
+			} else if(type == SemossDataType.TIMESTAMP) {
+				javaFormat = "yyyy-MM-dd HH:mm:ss";
+			}
+		}
+		String[] rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(javaFormat).split("\\|");
+		query.append("if (is.Date(" + tempVarName + "$" + column + ") || is.POSIXct(" + tempVarName + "$"
+				+ column + ")) {").append("options(digits.secs =" + rFormat[1] + ");")
+				.append(tempVarName + "$" + column + " <- format(" + tempVarName + "$" + column + ", format='"
+						+ rFormat[0] + "')");
+		// handle potential leading zero and second/millisecond delimiter
+		String rSubSyntax = getRSubSyntax(javaFormat, rFormat[0]);
+		if (rSubSyntax.length() > 0) {
+			query.append(" %>% " + rSubSyntax);
+		}
+		query.append("};");
 	}
 	
 
@@ -342,6 +356,10 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	}
 	
 	private String processFunctionSelector(QueryFunctionSelector selector, String tableName, boolean includeTableName, boolean useAlias) {
+		boolean mathFunction = false;
+		boolean allDateColumns = true;
+		SemossDataType dateType = null;
+		
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		String function = selector.getFunction();
 
@@ -378,13 +396,14 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			}
 			
 			if(QueryFunctionHelper.determineTypeOfFunction(function).equals("NUMBER")) {
+				mathFunction = true;
 				if(selector.isDistinct()) {
-					expression.append("(unique(as.numeric(na.omit(");
-					endExpr.insert(0, ")))");
+					expression.append("(unique(na.omit(");
+					endExpr.insert(0, "))");
 					endExpr.append(")");
 				} else {
-					expression.append("(as.numeric(na.omit(");
-					endExpr.insert(0, "))");
+					expression.append("(na.omit(");
+					endExpr.insert(0, ")");
 					endExpr.append(")");
 				}
 			} else {
@@ -400,6 +419,32 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			} else {
 				expression.append(",").append(processSelector(innerSelectors.get(i), tableName, includeTableName, useAlias));
 			}
+			
+			if(mathFunction && innerSelectors.get(i).getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				String alias = innerSelectors.get(i).getAlias();
+				SemossDataType type = colDataTypes.get(alias);
+				if(type == null) {
+					type = colDataTypes.get(tableName + "__" + alias);
+				}
+				if(type == null || !(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP)) {
+					allDateColumns = false;
+				} else {
+					// it is either null to start
+					// and then we only care if the types range between timestamp / date
+					// always choose the lowest level
+					if(dateType == null) {
+						dateType = type;
+					} else if(dateType == SemossDataType.DATE && type == SemossDataType.TIMESTAMP) {
+						dateType = type;
+					}
+				}
+			} else {
+				allDateColumns = false;
+			}
+		}
+		
+		if(mathFunction && allDateColumns) {
+			this.aggregatedDateVals.put(selector.getAlias(), dateType);
 		}
 		expression.append(endExpr);
 		return expression.toString();

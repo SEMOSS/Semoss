@@ -43,10 +43,10 @@ import java.nio.file.Paths;
 import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -103,8 +103,9 @@ public abstract class AbstractEngine implements IEngine {
 	public static final String DATA_FILE = "DATA_FILE";
 	
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
+	private static final Logger LOGGER = LogManager.getLogger(AbstractEngine.class);
 	
-	private static final Logger LOGGER = LogManager.getLogger(AbstractEngine.class.getName());
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
 	private static final String GET_ALL_INSIGHTS_QUERY = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID ORDER BY ID";
@@ -188,18 +189,16 @@ public abstract class AbstractEngine implements IEngine {
 				this.prop = Utility.loadProperties(propFile);
 			}
 			if(this.prop != null) {
-				
 				// do the piece of encrypting here
 				boolean encryptFile = false;
-				if(DIHelper.getInstance().getProperty("ENCRYPT") != null)
+				if(DIHelper.getInstance().getProperty("ENCRYPT") != null) {
 					encryptFile = DIHelper.getInstance().getProperty("ENCRYPT").equalsIgnoreCase("true")?true:false;
-				
-				if(encryptFile)
-				{
-					if(this.prop.containsKey("PASSWORD") && !((String)this.prop.get("PASSWORD")).equalsIgnoreCase("encrypted password"))
-						prop = encryptPropFile(propFile);
 				}
 				
+				if(encryptFile && this.prop.containsKey("PASSWORD") && 
+					!((String)this.prop.get("PASSWORD")).equalsIgnoreCase("encrypted password")) {
+						prop = encryptPropFile(propFile);
+				}
 				
 				// grab the main properties
 				this.engineId = prop.getProperty(Constants.ENGINE);
@@ -462,7 +461,7 @@ public abstract class AbstractEngine implements IEngine {
 	 */
 	public void createBaseRelationEngine() {
 		RDFFileSesameEngine baseRelEngine = new RDFFileSesameEngine();
-		Hashtable baseHash = new Hashtable();
+		Hashtable baseHash = new Hashtable<>();
 		// If OWL file doesn't exist, go the old way and create the base
 		// relation engine
 		// String owlFileName =
@@ -1377,138 +1376,107 @@ public abstract class AbstractEngine implements IEngine {
         return envClassPath;
 	}
 
-	public String decryptPass(String propFile, boolean insight)
-	{
+	public String decryptPass(String propFile, boolean insight) {
 		String retString = null;
 		try {
 			Properties prop = new Properties();
 			File propF = new File(propFile);
 			prop.load(new FileInputStream(propF));
-
-			String engineAlias = prop.getProperty("ENGINE_ALIAS");
-			if(engineAlias != null)
-				engineAlias = engineAlias + "__";
-			else
-				engineAlias = "";
-
-			String dir = propF.getParent() + java.nio.file.FileSystems.getDefault().getSeparator() + engineAlias + prop.getProperty("ENGINE");
+			String dir = propF.getParent() + java.nio.file.FileSystems.getDefault().getSeparator() + SmssUtilities.getUniqueName(prop);
 			String passwordFileName = dir + java.nio.file.FileSystems.getDefault().getSeparator() + ".pass";
-			if(insight)
+			if(insight) {
 				passwordFileName = dir + java.nio.file.FileSystems.getDefault().getSeparator() + ".insight";
+			}
 			
 			String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";		
-
-			
-			
 			File inputFile = new File(passwordFileName);
-			if(inputFile.exists()) // if nothing is there return null
-			{
+			if(inputFile.exists()) {
+				// if nothing is there return null
 				SnowApi snow = new SnowApi();			
 				retString = snow.decryptMessage(creationTime, passwordFileName);
 			}			
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		return retString;
-		
 	}
 
 
-	public Properties encryptPropFile(String propFile)
-	{
+	public Properties encryptPropFile(String propFile) {
 		try {
 			Properties prop = new Properties();
 			File propF = new File(propFile);
 			prop.load(new FileInputStream(propF));
 
-			Enumeration keys = prop.keys();
-			
 			String passToEncrypt = null;
 			String insightPassToEncrypt = null;
-			
-			while(keys.hasMoreElements())
-			{
-				String thisKey = (String)keys.nextElement();
-				if(thisKey.equalsIgnoreCase("password"))
-				{
+
+			Iterator<Object> keys = prop.keySet().iterator();
+			while(keys.hasNext()) {
+				String thisKey = (String) keys.next();
+				if(thisKey.equalsIgnoreCase("password")) {
 					passToEncrypt = prop.getProperty(thisKey);
-					if(!passToEncrypt.equalsIgnoreCase("encrypted password"))
+					if(!passToEncrypt.equalsIgnoreCase("encrypted password")) {
 						prop.put(thisKey, "encrypted password");
-				}
-				if(thisKey.equalsIgnoreCase("insight_password"))
-				{
+					}
+				} else if(thisKey.equalsIgnoreCase("insight_password")) {
 					insightPassToEncrypt = prop.getProperty(thisKey);
-					if(!insightPassToEncrypt.equalsIgnoreCase("encrypted password"))
+					if(!insightPassToEncrypt.equalsIgnoreCase("encrypted password")) {
 						prop.put(thisKey, "encrypted password");
+					}
 				}
 			}	
 			
-			if(insightPassToEncrypt == null)
-			{
+			if(insightPassToEncrypt == null) {
 				prop.put("insight_password", "encrypted password");
 				insightPassToEncrypt = "";
 			}
 			
-			if(passToEncrypt != null && !passToEncrypt.equalsIgnoreCase("encrypted password") || (insightPassToEncrypt != null && insightPassToEncrypt.equalsIgnoreCase("encrypted password")))
-			{	
+			if(passToEncrypt != null && !passToEncrypt.equalsIgnoreCase("encrypted password") || 
+					(insightPassToEncrypt != null && insightPassToEncrypt.equalsIgnoreCase("encrypted password"))) {
 				// add the insight_password
-				
 				prop.store(new FileOutputStream(new File(propFile)), "Encrypted the password");
 				propF = new File(propFile);
-				
 				
 				// find the password to be used
 				// use the property file as a input
 				// I will use creation time as the password so if you move the file
 				// it wont work and you need reset the password
 				String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";		
-				String engineAlias = prop.getProperty("ENGINE_ALIAS");
-				if(engineAlias != null)
-					engineAlias = engineAlias + "__";
-				else
-					engineAlias = "";
-				
-				String dir = propF.getParent() + java.nio.file.FileSystems.getDefault().getSeparator() + engineAlias + prop.getProperty("ENGINE");
-
-				if(passToEncrypt != null)
-				{
-					String passwordFileName = dir + java.nio.file.FileSystems.getDefault().getSeparator() + ".pass";
+				String dir = propF.getParent() + DIR_SEPARATOR + SmssUtilities.getUniqueName(prop);
+				if(passToEncrypt != null) {
+					String passwordFileName = dir + DIR_SEPARATOR + ".pass";
 					
 					File passFile = new File(passwordFileName);
-					if(passFile.exists())
+					if(passFile.exists()) {
 						passFile.delete();
+					}
 					
 					SnowApi snow = new SnowApi();		
 					//System.out.println("Using cretion time.. " + creationTime);
 					snow.encryptMessage(passToEncrypt, creationTime, propFile, passwordFileName);
 				}
-				if(insightPassToEncrypt != null)
-				{
-					String passwordFileName = dir + java.nio.file.FileSystems.getDefault().getSeparator() + ".insight";
+				
+				if(insightPassToEncrypt != null) {
+					String passwordFileName = dir + DIR_SEPARATOR + ".insight";
 					
 					File passFile = new File(passwordFileName);
-					if(passFile.exists())
+					if(passFile.exists()) {
 						passFile.delete();
-					
+					}
 					SnowApi snow = new SnowApi();		
 					//System.out.println("Using cretion time.. " + creationTime);
 					snow.encryptMessage(insightPassToEncrypt, creationTime, propFile, passwordFileName);
-					
 				}
 			}
 			
-			
 			return prop;
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;

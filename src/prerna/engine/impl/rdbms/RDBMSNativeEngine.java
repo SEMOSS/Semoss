@@ -72,7 +72,7 @@ import prerna.util.sql.SqlQueryUtilFactor;
 
 public class RDBMSNativeEngine extends AbstractEngine {
 
-	private static final Logger LOGGER = LogManager.getLogger(RDBMSNativeEngine.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(RDBMSNativeEngine.class);
 	
 	public static final String STATEMENT_OBJECT = "STATEMENT_OBJECT";
 	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
@@ -144,14 +144,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			this.connectionURL = prop.getProperty(Constants.CONNECTION_URL);
 			this.userName = prop.getProperty(Constants.USERNAME);
 			
-			if(propFile != null)
-			{
+			if(propFile != null) {
 				this.password = decryptPass(propFile, false);
-				if(this.password == null)
-					this.password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
-			}
-			else
+			} 
+			if(this.password == null) {
 				this.password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
+			}
 			this.driver = prop.getProperty(Constants.DRIVER);
 			
 			// make a check to see if it is asking to use file
