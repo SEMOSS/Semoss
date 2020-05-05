@@ -10,7 +10,7 @@ import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.export.Formatter;
+import prerna.sablecc2.reactor.export.IFormatter;
 
 public interface ITask extends Iterator<IHeadersDataRow> {
 
@@ -40,8 +40,10 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	String getId();
 
 	void setFormat(String formatType);
+	
+	void setFormat(IFormatter formatter);
 
-	Formatter getFormatter();
+	IFormatter getFormatter();
 
 	void setFormatOptions(Map<String, Object> optionValues);
 
