@@ -11,6 +11,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -59,14 +60,30 @@ public class EngineInsightsHelper {
 		String connURL = null;
 		logger.info("Insight rdbms database location is " + Utility.cleanLogString(insightDatabaseLoc));
 		
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+
+		String engineAlias = null;
+		if(engineAlias != null)
+			engineAlias = engineAlias + "__";
+		else
+			engineAlias = "";
+
+		// decrypt the password
+		String propFile = baseFolder + java.nio.file.FileSystems.getDefault().getSeparator() + "db" + java.nio.file.FileSystems.getDefault().getSeparator() + engineAlias + engineId + ".smss";
+
+		String pass = insightsRdbms.decryptPass(propFile, true);
+		
+		if(pass == null)
+			pass = "";
+		
 		if(rdbmsInsightsType == RdbmsTypeEnum.SQLITE) {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":" + insightDatabaseLoc;
 			prop.put(Constants.USERNAME, "");
-			prop.put(Constants.PASSWORD, "");
+			prop.put(Constants.PASSWORD, pass);
 		} else {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":nio:" + insightDatabaseLoc.replace(".mv.db", "");
 			prop.put(Constants.USERNAME, "sa");
-			prop.put(Constants.PASSWORD, "");
+			prop.put(Constants.PASSWORD, pass);
 		}
 		logger.info("Insight rdbms database url is " + Utility.cleanLogString(connURL));
 		prop.put(Constants.CONNECTION_URL, connURL);
