@@ -39,10 +39,10 @@ public class MyAppsReactor extends AbstractReactor {
 
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser());
+			this.insight.getUser().setEngines(appInfo);
 		} else {
 			appInfo = SecurityQueryUtils.getAllDatabaseList();
 		}
-		this.insight.getUser().setEngines(appInfo);
 
 		int size = appInfo.size();
 		Map<String, Integer> index = new HashMap<>(appInfo.size());
