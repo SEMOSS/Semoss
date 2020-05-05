@@ -16,6 +16,7 @@ import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.gson.ColorByValueRuleAdapter;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.NumberAdapter;
+import prerna.util.gson.SelectQueryStructAdapter;
 
 public class InsightPanel {
 
@@ -57,7 +58,10 @@ public class InsightPanel {
 	private transient SelectQueryStruct lastQs = null;
 	// last task options
 	private transient TaskOptions taskOptions = null;
-	
+	// mapping from layer to task
+	private transient Map<String, TaskOptions> layerTaskOption = null;
+	private transient Map<String, SelectQueryStruct> layerQueryStruct = null;
+
 	public InsightPanel(String panelId, String sheetId) {
 		this.panelId = panelId;
 		this.sheetId = sheetId;
@@ -399,6 +403,7 @@ public class InsightPanel {
 			// the current display (pipeline, filter, etc.)
 			this.lastQs = null;
 			this.taskOptions = null;
+			this.layerTaskOption = null;
 		}
 		
 		// set the current view options
@@ -492,8 +497,39 @@ public class InsightPanel {
 		return taskOptions;
 	}
 
-	public void setOptions(TaskOptions taskOptions) {
+	public void setFinalViewOptions(SelectQueryStruct lastQs, TaskOptions taskOptions) {
+		this.lastQs = lastQs;
 		this.taskOptions = taskOptions;
+		// grab the panel map
+		if(this.taskOptions != null) {
+			String layer = this.taskOptions.getPanelLayerId(this.panelId);
+			if(layer == null) {
+				layer = "$DEFAULT_LAYER";
+			}
+			if(this.layerTaskOption == null) {
+				this.layerTaskOption = new HashMap<>();
+			}
+			this.layerTaskOption.put(layer, taskOptions);
+			if(this.layerQueryStruct == null) {
+				this.layerQueryStruct = new HashMap<>();
+			}
+			this.layerQueryStruct.put(layer, lastQs);
+		}
+	}
+	
+	public void removeLayerViewOptions(String layerId) {
+		if(this.layerTaskOption != null) {
+			this.layerTaskOption.remove(layerId);
+			this.layerQueryStruct.remove(layerId);
+		}
+	}
+	
+	public Map<String, TaskOptions> getLayerTaskOption() {
+		return this.layerTaskOption;
+	}
+	
+	public Map<String, SelectQueryStruct> getLayerQueryStruct() {
+		return this.layerQueryStruct;
 	}
 
 	public SelectQueryStruct getLastQs() {
@@ -501,7 +537,11 @@ public class InsightPanel {
 	}
 
 	public void setLastQs(SelectQueryStruct lastQs) {
-		this.lastQs = lastQs;
+		if(this.lastQs != null && this.taskOptions != null) {
+			setFinalViewOptions(lastQs, this.taskOptions);
+		} else {
+			this.lastQs = lastQs;
+		}
 	}
 	
 	/**
@@ -515,6 +555,7 @@ public class InsightPanel {
 				.excludeFieldsWithModifiers(Modifier.STATIC)
 				.registerTypeAdapter(Double.class, new NumberAdapter())
 				.registerTypeAdapter(ColorByValueRule.class, new ColorByValueRuleAdapter())
+				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
 				.create();
 		this.view = existingPanel.view;
 		if(existingPanel.panelLabel != null) {
@@ -535,10 +576,29 @@ public class InsightPanel {
 		// copy the options and the qs too
 		if(existingPanel.taskOptions != null) {
 			Object existingPanelOptions = existingPanel.taskOptions.getOptions().get(existingPanel.panelId);
-			Map <String, Object> optionMap = new HashMap<String, Object>();
+			Map<String, Object> optionMap = new HashMap<>();
 			optionMap.put(panelId, existingPanelOptions);
 			this.taskOptions = new TaskOptions(optionMap);
 			this.lastQs = existingPanel.lastQs;
+		}
+
+		if(existingPanel.layerQueryStruct != null) {
+			this.layerQueryStruct = new HashMap<>();
+			for(String layerId : existingPanel.layerQueryStruct.keySet()) {
+				SelectQueryStruct thisQs = existingPanel.layerQueryStruct.get(layerId);
+				SelectQueryStruct copyQs = gson.fromJson(gson.toJson(thisQs), SelectQueryStruct.class);
+				// set the data fields that are not copied over
+				copyQs.setFrame(thisQs.getFrame());
+				copyQs.setEngine(thisQs.getEngine());
+				layerQueryStruct.put(layerId, copyQs);
+			}
+		}
+
+		if(existingPanel.layerTaskOption != null) {
+			this.layerTaskOption = new HashMap<>();
+			for(String layerId : existingPanel.layerTaskOption.keySet()) {
+				this.layerTaskOption.put(layerId, existingPanel.layerTaskOption.get(layerId));
+			}
 		}
 	}
 	

@@ -1204,14 +1204,13 @@ public class Insight {
 		return this.lastPanelId;
 	}
 	
-	public void setLastTaskOptions(TaskOptions options, SelectQueryStruct lastQs, String panelId) {
+	public void setFinalViewOptions(String panelId, SelectQueryStruct lastQs, TaskOptions taskOptions) {
 		if(insightPanels.containsKey(panelId)) {
 			InsightPanel panel = this.insightPanels.get(panelId);
 			if(panel == null) {
-				throw new IllegalArgumentException("Panel does not exist");
+				throw new NullPointerException("Panel " + panelId + " does not exist");
 			}
-			panel.setLastQs(lastQs);
-			panel.setOptions(options);
+			panel.setFinalViewOptions(lastQs, taskOptions);
 		}
 		this.lastPanelId = panelId;
 	}
@@ -1220,7 +1219,7 @@ public class Insight {
 		if(panelId != null) {
 			InsightPanel panel = this.insightPanels.get(panelId);
 			if(panel == null) {
-				throw new IllegalArgumentException("Panel does not exist");
+				throw new NullPointerException("Panel " + panelId + " does not exist");
 			}
 			panel.setLastQs(lastQs);
 		}
@@ -1230,7 +1229,7 @@ public class Insight {
 		if(panelId != null && insightPanels.containsKey(panelId)) {
 			InsightPanel panel = this.insightPanels.get(panelId);
 			if(panel == null) {
-				throw new IllegalArgumentException("Panel does not exist");
+				throw new NullPointerException("Panel " + panelId + " does not exist");
 			}
 			return panel.getLastQs();
 		}
@@ -1245,7 +1244,7 @@ public class Insight {
 		if(panelId != null && insightPanels.containsKey(panelId)) {
 			InsightPanel panel = this.insightPanels.get(panelId);
 			if(panel == null) {
-				throw new IllegalArgumentException("Panel does not exist");
+				throw new NullPointerException("Panel " + panelId + " does not exist");
 			}
 			return panel.getTaskOptions();
 		}

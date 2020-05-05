@@ -91,7 +91,7 @@ public class CollectReactor extends TaskBuilderReactor {
 					// so if we pull the task options we have that information
 					// this is for {{@link RefreshPanelTaskReactor}}
 					task.getTaskOptions().setFormatter(task.getFormatter());
-					this.insight.setLastTaskOptions(task.getTaskOptions(), sqs, panelId);
+					this.insight.setFinalViewOptions(panelId, sqs, task.getTaskOptions());
 				}
 			}
 		}
