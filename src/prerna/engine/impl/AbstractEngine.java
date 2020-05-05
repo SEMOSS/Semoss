@@ -29,6 +29,7 @@ package prerna.engine.impl;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,9 +39,11 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -56,7 +59,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
-import org.owasp.esapi.ESAPI;
 
 import com.google.gson.Gson;
 
@@ -79,6 +81,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
+import prerna.security.SnowApi;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
@@ -185,10 +188,24 @@ public abstract class AbstractEngine implements IEngine {
 				this.prop = Utility.loadProperties(propFile);
 			}
 			if(this.prop != null) {
+				
+				// do the piece of encrypting here
+				boolean encryptFile = false;
+				if(DIHelper.getInstance().getProperty("ENCRYPT") != null)
+					encryptFile = DIHelper.getInstance().getProperty("ENCRYPT").equalsIgnoreCase("true")?true:false;
+				
+				if(encryptFile)
+				{
+					if(this.prop.containsKey("PASSWORD") && !((String)this.prop.get("PASSWORD")).equalsIgnoreCase("encrypted password"))
+						prop = encryptPropFile(propFile);
+				}
+				
+				
 				// grab the main properties
 				this.engineId = prop.getProperty(Constants.ENGINE);
 				this.engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 	
+				// 
 				// load the rdbms insights db
 				loadInsightsRdbms();
 				
@@ -1360,7 +1377,141 @@ public abstract class AbstractEngine implements IEngine {
         return envClassPath;
 	}
 
+	public String decryptPass(String propFile, boolean insight)
+	{
+		String retString = null;
+		try {
+			Properties prop = new Properties();
+			File propF = new File(propFile);
+			prop.load(new FileInputStream(propF));
 
+			String engineAlias = prop.getProperty("ENGINE_ALIAS");
+			if(engineAlias != null)
+				engineAlias = engineAlias + "__";
+			else
+				engineAlias = "";
+
+			String dir = propF.getParent() + java.nio.file.FileSystems.getDefault().getSeparator() + engineAlias + prop.getProperty("ENGINE");
+			String passwordFileName = dir + java.nio.file.FileSystems.getDefault().getSeparator() + ".pass";
+			if(insight)
+				passwordFileName = dir + java.nio.file.FileSystems.getDefault().getSeparator() + ".insight";
+			
+			String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";		
+
+			File inputFile = new File(passwordFileName);
+			if(inputFile.exists()) // if nothing is there return null
+			{
+				SnowApi snow = new SnowApi();			
+				retString = snow.decryptMessage(creationTime, passwordFileName);
+			}			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return retString;
+		
+	}
+
+
+	public Properties encryptPropFile(String propFile)
+	{
+		try {
+			Properties prop = new Properties();
+			File propF = new File(propFile);
+			prop.load(new FileInputStream(propF));
+
+			Enumeration keys = prop.keys();
+			
+			String passToEncrypt = null;
+			String insightPassToEncrypt = null;
+			
+			while(keys.hasMoreElements())
+			{
+				String thisKey = (String)keys.nextElement();
+				if(thisKey.equalsIgnoreCase("password"))
+				{
+					passToEncrypt = prop.getProperty(thisKey);
+					if(!passToEncrypt.equalsIgnoreCase("encrypted password"))
+						prop.put(thisKey, "encrypted password");
+				}
+				if(thisKey.equalsIgnoreCase("insight_password"))
+				{
+					insightPassToEncrypt = prop.getProperty(thisKey);
+					if(!insightPassToEncrypt.equalsIgnoreCase("encrypted password"))
+						prop.put(thisKey, "encrypted password");
+				}
+			}	
+			
+			if(insightPassToEncrypt == null)
+			{
+				prop.put("insight_password", "encrypted password");
+				insightPassToEncrypt = "";
+			}
+			
+			if(passToEncrypt != null && !passToEncrypt.equalsIgnoreCase("encrypted password") || (insightPassToEncrypt != null && insightPassToEncrypt.equalsIgnoreCase("encrypted password")))
+			{	
+				// add the insight_password
+				
+				prop.store(new FileOutputStream(new File(propFile)), "Encrypted the password");
+				propF = new File(propFile);
+				
+				
+				// find the password to be used
+				// use the property file as a input
+				// I will use creation time as the password so if you move the file
+				// it wont work and you need reset the password
+				String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";		
+				String engineAlias = prop.getProperty("ENGINE_ALIAS");
+				if(engineAlias != null)
+					engineAlias = engineAlias + "__";
+				else
+					engineAlias = "";
+				
+				String dir = propF.getParent() + java.nio.file.FileSystems.getDefault().getSeparator() + engineAlias + prop.getProperty("ENGINE");
+
+				if(passToEncrypt != null)
+				{
+					String passwordFileName = dir + java.nio.file.FileSystems.getDefault().getSeparator() + ".pass";
+					
+					File passFile = new File(passwordFileName);
+					if(passFile.exists())
+						passFile.delete();
+					
+					SnowApi snow = new SnowApi();		
+					//System.out.println("Using cretion time.. " + creationTime);
+					snow.encryptMessage(passToEncrypt, creationTime, propFile, passwordFileName);
+				}
+				if(insightPassToEncrypt != null)
+				{
+					String passwordFileName = dir + java.nio.file.FileSystems.getDefault().getSeparator() + ".insight";
+					
+					File passFile = new File(passwordFileName);
+					if(passFile.exists())
+						passFile.delete();
+					
+					SnowApi snow = new SnowApi();		
+					//System.out.println("Using cretion time.. " + creationTime);
+					snow.encryptMessage(insightPassToEncrypt, creationTime, propFile, passwordFileName);
+					
+				}
+			}
+			
+			
+			return prop;
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+		
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
@@ -1394,5 +1545,7 @@ public abstract class AbstractEngine implements IEngine {
 			System.out.println(props.remove(0));
 		}
 	}
+	
+	
 	
 }
