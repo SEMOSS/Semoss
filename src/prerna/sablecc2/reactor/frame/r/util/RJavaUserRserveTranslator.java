@@ -21,7 +21,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.impl.r.IRUserConnection;
-import prerna.engine.impl.r.RUserConnectionSingle;
 import prerna.engine.impl.r.RserveUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -138,7 +137,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	public Object executeR(String rScript) {
 		// escape quotes
 		rScript = rScript.replaceAll("\"", "\\\"");
-		rScript = rScript.replace("'", "\\'");
+		rScript = rScript.replaceAll("'", "\\'");
 		rScript = encapsulateForEnv(rScript);
 		return rcon.eval(rScript);
 	}
@@ -147,7 +146,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	public void executeEmptyR(String rScript) {
 		// escape quotes
 		rScript = rScript.replaceAll("\"", "\\\"");
-		rScript = rScript.replace("'", "\\'");
+		rScript = rScript.replaceAll("'", "\\'");
 		rScript = encapsulateForEnv(rScript);
 		rcon.voidEval(rScript);
 	}
