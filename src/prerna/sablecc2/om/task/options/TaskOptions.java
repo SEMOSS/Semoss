@@ -3,10 +3,13 @@ package prerna.sablecc2.om.task.options;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.sablecc2.reactor.export.IFormatter;
+
 public class TaskOptions {
 
 	private Map<String, Object> options;
 	private boolean ornament = false;
+	private transient IFormatter formatter;
 	
 	/**
 	 * Constructor for task options
@@ -65,5 +68,13 @@ public class TaskOptions {
 	
 	public void clear() {
 		this.options.clear();
+	}
+	
+	public void setFormatter(IFormatter formatter) {
+		this.formatter = formatter;
+	}
+	
+	public IFormatter getFormatter() {
+		return this.formatter;
 	}
 }

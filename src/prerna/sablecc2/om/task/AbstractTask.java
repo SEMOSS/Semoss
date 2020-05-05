@@ -12,7 +12,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.export.FormatFactory;
-import prerna.sablecc2.reactor.export.Formatter;
+import prerna.sablecc2.reactor.export.IFormatter;
 import prerna.sablecc2.reactor.export.TableFormatter;
 
 public abstract class AbstractTask implements ITask {
@@ -29,7 +29,7 @@ public abstract class AbstractTask implements ITask {
 	
 	// this holds the formatter to perform any viz specific transformations
 	// of the data
-	protected transient Formatter formatter = null;
+	protected transient IFormatter formatter = null;
 	// logger
 	protected transient Logger logger;
 	// internal offset
@@ -179,7 +179,7 @@ public abstract class AbstractTask implements ITask {
 	}
 	
 	@Override
-	public Formatter getFormatter() {
+	public IFormatter getFormatter() {
 		return this.formatter;
 	}
 	
@@ -200,6 +200,11 @@ public abstract class AbstractTask implements ITask {
 	@Override
 	public void setFormat(String format) {
 		this.formatter = FormatFactory.getFormatter(format);
+	}
+	
+	@Override
+	public void setFormat(IFormatter formatter) {
+		this.formatter = formatter;
 	}
 	
 	@Override

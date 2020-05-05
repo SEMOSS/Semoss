@@ -47,6 +47,12 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 					BasicIteratorTask task = new BasicIteratorTask(qs);
 					task.setLogger(logger);
 					task.setTaskOptions(taskOptions);
+					// we store the formatter in the task
+					// so we can ensure we are properly painting
+					// the visualization (graph visuals)
+					if(taskOptions.getFormatter() != null) {
+						task.setFormat(taskOptions.getFormatter());
+					}
 					task.setNumCollect(limit);
 					taskOutput.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
 				}

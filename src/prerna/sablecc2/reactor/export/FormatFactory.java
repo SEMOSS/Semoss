@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.export;
 
 public class FormatFactory {
 
-	public static Formatter getFormatter(String formatType) {
+	public static IFormatter getFormatter(String formatType) {
 		
 		switch(formatType.toUpperCase()) {
 		
