@@ -22,32 +22,33 @@ package prerna.security;
  * Written by Matthew Kwan - April 1997
  */
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.PrintWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStreamReader;
-import java.io.ByteArrayInputStream;
-import java.io.FileNotFoundException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 
-class Snow {
-	private static BufferedReader	stream_in;
-	private static OutputStream	stream_out;
-	private static InputStream	stream_message = null;
+public class Snow {
+	private  BufferedReader	stream_in;
+	private  OutputStream	stream_out;
+	private InputStream	stream_message = null;
 
-	private static boolean		compress_flag = false;
-	private static boolean		quiet_flag = false;
-	private static boolean		space_flag = false;
-	private static String		passwd_string = null;
-	private static int		line_length = 80;
+	private boolean		compress_flag = false;
+	private boolean		quiet_flag = false;
+	private boolean		space_flag = false;
+	private String		passwd_string = null;
+	private int		line_length = 80;
 
 
 		// Parse the command-line arguments.
-	private static boolean		parse_args (String argv[]) {
+	private  boolean		parse_args (String argv[]) {
 	    int		optind;
 
 	    for (optind = 0; optind < argv.length
@@ -143,6 +144,7 @@ class Snow {
 
 	    if (optind < argv.length) {
 		try {
+			// this is the input file it parses
 		    stream_in = new BufferedReader (new
 						FileReader (argv[optind]));
 		} catch (FileNotFoundException e) {
@@ -155,21 +157,23 @@ class Snow {
 
 	    if (!space_flag && optind + 1 < argv.length) {
 		try {
+			// this is the output file it writes to
 		    stream_out = new FileOutputStream (argv[optind + 1]);
+			
 		} catch (IOException e) {
 		    System.err.println ("Could not open file for writing: "
 							+ argv[optind + 1]);
 		    return (false);
 		}
 	    } else
-		stream_out = System.out;
+		stream_out = new ByteArrayOutputStream();
 
 	    return (true);
 	}
 
 
 		// Send the contents of the message stream to the bit filter.
-	private static boolean	message_encode (BitFilter bf) {
+	private  boolean	message_encode (BitFilter bf) {
 	    try {
 		int		v;
 
@@ -189,7 +193,7 @@ class Snow {
 	
 	
 	
-	public void runSnow(String [] argv)
+	public String runSnow(String [] argv)
 	{
 		parse_args (argv);
 	    if (space_flag) {
@@ -228,7 +232,7 @@ class Snow {
 		    stream_out.close ();
 		} catch (IOException e) {
 		    System.err.println ("Problem closing output file.");
-		    System.exit (1);
+		    //System.exit (1);
 		}
 	    }
 
@@ -236,14 +240,24 @@ class Snow {
 		stream_in.close ();
 	    } catch (IOException e) {
 		System.err.println ("Problem closing input file.");
-		System.exit (1);
+		//System.exit (1);
 	    }
+	    
+	    if(stream_out instanceof ByteArrayOutputStream)
+	    {
+	    	// print it out
+	    	String output = stream_out.toString();
+	    	return output;
+	    }
+	    return null;
 	}
 	
 
 		// Entry point to the program.
 	public static void	main (String argv[]) {
-	    if (!parse_args (argv)) {
+		Snow snow = new Snow();
+		
+	    if (!snow.parse_args (argv)) {
 		System.err.print ("Usage: Snow.class [-C][-Q][-S]");
 		System.err.print ("[-p passwd][-l line-len]");
 		System.err.println (" [-f file][-m message]");
@@ -251,40 +265,40 @@ class Snow {
 		System.exit (1);
 	    }
 
-	    if (space_flag) {
-		SnowEncode	se = new SnowEncode (true, quiet_flag, null,
-						stream_in, null, line_length);
+	    if (snow.space_flag) {
+		SnowEncode	se = new SnowEncode (true, snow.quiet_flag, null,
+				snow.stream_in, null, snow.line_length);
 
 		se.space_calculate ();
-	    } else if (stream_message != null) {
-		PrintWriter	pw = new PrintWriter (stream_out);
-		BitFilter	bf = new SnowEncode (true, quiet_flag, null,
-						stream_in, pw, line_length);
+	    } else if (snow.stream_message != null) {
+		PrintWriter	pw = new PrintWriter (snow.stream_out);
+		BitFilter	bf = new SnowEncode (true, snow.quiet_flag, null,
+				snow.stream_in, pw, snow.line_length);
 
-		if (passwd_string != null)
-		    bf = new SnowEncrypt (true, quiet_flag, bf, passwd_string);
-		if (compress_flag)
-		    bf = new SnowCompress (true, quiet_flag, bf);
-		if (!message_encode (bf))
+		if (snow.passwd_string != null)
+		    bf = new SnowEncrypt (true, snow.quiet_flag, bf, snow.passwd_string);
+		if (snow.compress_flag)
+		    bf = new SnowCompress (true, snow.quiet_flag, bf);
+		if (!snow.message_encode (bf))
 		    System.exit (1);
 
 		pw.close ();
 	    } else {
-		BitFilter	bf = new SnowOutput (quiet_flag, stream_out);
+		BitFilter	bf = new SnowOutput (snow.quiet_flag, snow.stream_out);
 		SnowEncode	se;
 
-		if (compress_flag)
-		    bf = new SnowCompress (false, quiet_flag, bf);
-		if (passwd_string != null)
-		    bf = new SnowEncrypt (false, quiet_flag, bf, passwd_string);
+		if (snow.compress_flag)
+		    bf = new SnowCompress (false, snow.quiet_flag, bf);
+		if (snow.passwd_string != null)
+		    bf = new SnowEncrypt (false, snow.quiet_flag, bf, snow.passwd_string);
 
-		se = new SnowEncode (false, quiet_flag, bf, stream_in, null,
-								line_length);
+		se = new SnowEncode (false, snow.quiet_flag, bf, snow.stream_in, null,
+				snow.line_length);
 		if (!se.decode ())
 		    System.exit (1);
 
 		try {
-		    stream_out.close ();
+			snow.stream_out.close ();
 		} catch (IOException e) {
 		    System.err.println ("Problem closing output file.");
 		    System.exit (1);
@@ -292,7 +306,7 @@ class Snow {
 	    }
 
 	    try {
-		stream_in.close ();
+	    	snow.stream_in.close ();
 	    } catch (IOException e) {
 		System.err.println ("Problem closing input file.");
 		System.exit (1);
