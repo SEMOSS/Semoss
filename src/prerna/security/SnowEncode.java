@@ -263,14 +263,14 @@ class SnowEncode extends BitFilter {
 		usage = Math.rint (usage * 100.0) / 100.0;	// Rounding
 
 		if (lines_extra > 0) {
-		    System.err.println (
+		    /*System.err.println (
 			"Message exceeded available space by approximately "
 						+ (usage - 100.0) + "%.");
 		    System.err.println ("An extra  " + lines_extra
-						+ " lines were added.");
+						+ " lines were added.");*/
 		} else {
-		    System.err.println ("Message used approximately "
-					+ usage + "% of available space.");
+		  /*  System.err.println ("Message used approximately "
+					+ usage + "% of available space.");*/
 		}
 	    }
 
@@ -280,7 +280,7 @@ class SnowEncode extends BitFilter {
 		// Decode the space count into actual bits.
 	private boolean		decode_bits (int spc) {
 	    if (spc > 7) {
-		System.err.println ("Illegal encoding of " + spc + " spaces.");
+		//System.err.println ("Illegal encoding of " + spc + " spaces.");
 		return (false);
 	    }
 
@@ -345,7 +345,7 @@ class SnowEncode extends BitFilter {
 	public boolean		decode () {
 	    boolean	start_tab_found = false;
 	    int		len;
-
+ 
 	    while ((len = read_whitespace (stream_in, buffer)) >= 0) {
 		int	start_idx = 0;
 
@@ -383,13 +383,13 @@ class SnowEncode extends BitFilter {
 	    }
 
 	    if (storage[0] == storage[1]) {
-		System.out.println ("File has storage capacity of "
-			+ storage[0] + " bits (" + storage[0] / 8 + " bytes)");
+	//	System.out.println ("File has storage capacity of "
+	//		+ storage[0] + " bits (" + storage[0] / 8 + " bytes)");
 	    } else {
-		System.out.println ("File has storage capacity of between "
-			+ storage[0] + " and " + storage[1] + " bits.");
-		System.out.println ("Approximately "
-				+ (storage[0] + storage[1]) / 16 + " bytes.");
+	//	System.out.println ("File has storage capacity of between "
+	//		+ storage[0] + " and " + storage[1] + " bits.");
+	//	System.out.println ("Approximately "
+	//			+ (storage[0] + storage[1]) / 16 + " bytes.");
 	    }
 	}
 }
