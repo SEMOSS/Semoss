@@ -30,7 +30,7 @@ import prerna.util.sql.SqlQueryUtilFactor;
 @Deprecated
 public class RDBMSFlatExcelUploader extends AbstractFileReader {
 
-	private static final Logger LOGGER = LogManager.getLogger(RDBMSFlatExcelUploader.class.getName());
+	private static final Logger logger = LogManager.getLogger(RDBMSFlatExcelUploader.class);
 	
 	// hold the existing rdbms structure
 	private Map<String, Map<String, String>> existingRDBMSStructure;
@@ -118,7 +118,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		// sets the custom base uri, sets the owl path, sets the smss location
 		// and returns the fileLocations split into an array based on ';' character
 		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
-		LOGGER.setLevel(Level.WARN);
+		logger.setLevel(Level.WARN);
 		try {
 			// create the engine and the owler
 			openRdbmsEngineWithoutConnection(appName, appID);
@@ -204,7 +204,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		// and returns the fileLocations split into an array based on ';' character
 		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
 
-		LOGGER.setLevel(Level.WARN);
+		logger.setLevel(Level.WARN);
 		try {
 			// create the engine and the owler
 			openEngineWithConnection(engineName);
@@ -273,7 +273,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 * @throws SQLException 
 	 */
 	private void processExcel(final String FILE_LOCATION, Map<String, Map<String, String[]>> excelMeta) throws IOException {
-		LOGGER.info("Processing excel file: " + FILE_LOCATION);
+		logger.info("Processing excel file: " + FILE_LOCATION);
 
 		// if excelMeta is null, we are not getting data type information from the FE, and we need to create this
 		// using all the file info
@@ -291,7 +291,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		// alright, we have the file
 		// now we need to loop through all the sheets and load as individual tables
 		for(String sheetName : excelMeta.keySet()) {
-			LOGGER.info("Processing excel sheet: " + sheetName);
+			logger.info("Processing excel sheet: " + Utility.cleanLogString(sheetName));
 			processSheet(sheetName, excelMeta.get(sheetName));	
 		}
 	}
@@ -412,7 +412,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 * 									for i = 0 to length of headers array
 	 */
 	private Map<String, Map<String, String[]>> parseExcelData(final String FILE_LOCATION) {
-		LOGGER.info("Processing excel file: " + FILE_LOCATION);
+		logger.info("Processing excel file: " + FILE_LOCATION);
 
 		// use the excel file helper to load the data
 		xlHelper = new XLFileHelper();
@@ -444,7 +444,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	}
 	
 	private void parseExcel(final String FILE_LOCATION, Map<String, Map<String, String[]>> excelMeta) {
-		LOGGER.info("Processing excel file: " + FILE_LOCATION);
+		logger.info("Processing excel file: " + FILE_LOCATION);
 
 		// use the excel file helper to load the data
 		xlHelper = new XLFileHelper();
@@ -493,7 +493,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 * @throws IOException 
 	 */
 	private void generateNewTableForExcelSheet(final String SHEET_NAME, final String TABLE_NAME, Map<String, String[]> sheetMeta) throws IOException {
-		LOGGER.info("Creating a new table from " + SHEET_NAME);
+		logger.info("Creating a new table from " + Utility.cleanLogString(SHEET_NAME));
 
 		// TODO: should this be static across all tables or made to be different?
 		final String UNIQUE_ROW_ID = TABLE_NAME + BASE_PRIM_KEY;
@@ -539,7 +539,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 			}
 		}
 		queryBuilder.append(")");
-		LOGGER.info("CREATE TABLE QUERY : " + queryBuilder.toString());
+		logger.info("CREATE TABLE QUERY : " + queryBuilder.toString());
 		try {
 			this.engine.insertData(queryBuilder.toString());
 		} catch (Exception e) {

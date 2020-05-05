@@ -23,6 +23,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
+import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 import weka.classifiers.Classifier;
@@ -135,12 +136,12 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 		double precision = -1;
 		
 		if(data.numDistinctValues(0) == 1) {
-			logger.info("There is only one distinct value for column " + retHeaders[0]);
+			logger.info("There is only one distinct value for column " + Utility.cleanLogString(retHeaders[0]));
 			accuracy = 100;
 			precision = 100;
 			//TODO: make the return object here and now and be done with it
 		} else if(data.numDistinctValues(0) == data.size()) {
-			String errorString = "The column to predict, " + retHeaders[0] + ", is a unique identifier in this table. Does not make sense to classify it.";
+			String errorString = "The column to predict, " + Utility.cleanLogString(retHeaders[0]) + ", is a unique identifier in this table. Does not make sense to classify it.";
 			logger.info(errorString);
 			throw new IllegalArgumentException(errorString);
 		}
@@ -167,7 +168,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 				double newPctCorrect = validation.pctCorrect();
 				// ignore when weka gives a NaN for accuracy -> occurs when every instance in training set is unknown for variable being classified
 				if(Double.isNaN(newPctCorrect)) {
-					logger.info("Cannot use this classification since every instance in training set is unknown for " + retHeaders[0]);
+					logger.info("Cannot use this classification since every instance in training set is unknown for " + Utility.cleanLogString(retHeaders[0]));
 				} else {
 					if(newPctCorrect > accuracy) {
 						treeAsString = model.toString();

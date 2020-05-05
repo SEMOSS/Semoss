@@ -18,6 +18,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 public class PredictExcelDataTypesReactor extends AbstractReactor {
 	
@@ -62,7 +63,7 @@ public class PredictExcelDataTypesReactor extends AbstractReactor {
 
 		Map<String, ExcelSheetPreProcessor> sProcessors = preProcessor.getSheetProcessors();
 		for (String sheet : sProcessors.keySet()) {
-			logger.info("Processing sheet: " + sheet);
+			logger.info("Processing sheet: " + Utility.cleanLogString(sheet));
 			ExcelSheetPreProcessor processor = sProcessors.get(sheet);
 			List<ExcelBlock> blocks = processor.getAllBlocks();
 			Map<String, Object> rangeInfo = new HashMap<String, Object>();

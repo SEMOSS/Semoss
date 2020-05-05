@@ -19,6 +19,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
@@ -105,12 +106,12 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 				// this will be table or view
 				String tableType = tablesRs.getString(TABLE_TYPE_STR).toUpperCase();
 				if(tableType.toUpperCase().contains("TABLE")) {
-					logger.info("Found table = " + table);
+					logger.info("Found table = " + Utility.cleanLogString(table));
 					tables.add(table);
 				} else {
 					// there may be views built from sys or information schema
 					// we want to ignore these
-					logger.info("Found view = " + table);
+					logger.info("Found view = " + Utility.cleanLogString(table));
 					views.add(table);
 				}
 			}

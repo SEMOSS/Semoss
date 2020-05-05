@@ -36,7 +36,7 @@ public class FormsSourceFilesConsolidationListener extends AbstractListener {
 		}
 		
 		LOGGER.info("SELECTED DATABASE ::: " + selectedFormsDb);
-		LOGGER.info("SELECTED FOLDER ::: " + sourceFolder);
+		LOGGER.info("SELECTED FOLDER ::: " + Utility.cleanLogString(sourceFolder.toString()));
 
 		IEngine selectedEngine = Utility.getEngine(selectedFormsDb);
 		
