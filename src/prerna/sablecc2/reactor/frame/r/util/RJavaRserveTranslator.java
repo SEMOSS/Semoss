@@ -182,8 +182,8 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public synchronized Object executeR(String rScript) {
 		try {
 			// escape quotes
-			rScript = rScript.replaceAll("\"", "\\\"");
-			rScript = rScript.replace("'", "\\'");
+			//rScript = rScript.replaceAll("\"", "\\\"");
+			//rScript = rScript.replace("'", "\\'");
 			rScript = encapsulateForEnv(rScript);
 			logger.debug("Running rscript > " + rScript);
 			return evalRSync(rScript);
@@ -196,8 +196,8 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public synchronized void executeEmptyR(String rScript) {
 		try {
-			rScript = rScript.replaceAll("\"", "\\\"");
-			rScript = rScript.replace("'", "\\'");
+			//rScript = rScript.replaceAll("\"", "\\\"");
+			//rScript = rScript.replace("'", "\\'");
 			rScript = encapsulateForEnv(rScript);
 			logger.debug("Running rscript > " + rScript);
 			voidEvalRSync(rScript);
