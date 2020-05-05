@@ -136,8 +136,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public Object executeR(String rScript) {
 		// escape quotes
-		rScript = rScript.replaceAll("\"", "\\\"");
-		rScript = rScript.replaceAll("'", "\\'");
+		//rScript = rScript.replaceAll("\"", "\\\"");
+		//rScript = rScript.replaceAll("'", "\\'");
 		rScript = encapsulateForEnv(rScript);
 		return rcon.eval(rScript);
 	}
@@ -145,8 +145,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public void executeEmptyR(String rScript) {
 		// escape quotes
-		rScript = rScript.replaceAll("\"", "\\\"");
-		rScript = rScript.replaceAll("'", "\\'");
+		//rScript = rScript.replaceAll("\"", "\\\"");
+		//rScript = rScript.replaceAll("'", "\\'");
 		rScript = encapsulateForEnv(rScript);
 		rcon.voidEval(rScript);
 	}
