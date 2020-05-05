@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.task;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -39,22 +40,34 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 		for(String panelId : insightPanelsMap.keySet()) {
 			if(panelIds == null || panelIds.contains(panelId)) {
 				InsightPanel panel = insightPanelsMap.get(panelId);
-				SelectQueryStruct qs = panel.getLastQs();
-				TaskOptions taskOptions = panel.getTaskOptions();
-	
-				if(qs != null && taskOptions != null) {
-					logger.info("Found task for panel = " + panelId);
-					BasicIteratorTask task = new BasicIteratorTask(qs);
-					task.setLogger(logger);
-					task.setTaskOptions(taskOptions);
-					// we store the formatter in the task
-					// so we can ensure we are properly painting
-					// the visualization (graph visuals)
-					if(taskOptions.getFormatter() != null) {
-						task.setFormat(taskOptions.getFormatter());
+				// need to account for layers
+				// so will loop through the layer maps
+				// that we are storing
+				Map<String, SelectQueryStruct> lQs = panel.getLayerQueryStruct();
+				Map<String, TaskOptions> lTaskOption = panel.getLayerTaskOption();
+
+				if(lQs != null && lTaskOption != null) {
+					Set<String> layers = lQs.keySet();
+					for(String layerId : layers) {
+						SelectQueryStruct qs = lQs.get(layerId);
+						TaskOptions taskOptions = lTaskOption.get(layerId);
+						
+						if(qs != null && taskOptions != null) {
+							logger.info("Found task for panel = " + panelId);
+							BasicIteratorTask task = new BasicIteratorTask(qs);
+							task.setLogger(logger);
+							task.setTaskOptions(taskOptions);
+							// we store the formatter in the task
+							// so we can ensure we are properly painting
+							// the visualization (graph visuals)
+							if(taskOptions.getFormatter() != null) {
+								task.setFormat(taskOptions.getFormatter());
+							}
+							task.setNumCollect(limit);
+							this.insight.getTaskStore().addTask(task);
+							taskOutput.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+						}
 					}
-					task.setNumCollect(limit);
-					taskOutput.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
 				}
 			}
 		}

@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.task;
 import java.util.HashMap;
 import java.util.Map;
 
+import prerna.om.InsightPanel;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -25,6 +26,14 @@ public class RemoveLayerReactor extends AbstractReactor {
 		Map<String, String> removeLayerMap = new HashMap<String, String>();
 		removeLayerMap.put("panel", panelId);
 		removeLayerMap.put("layer", layerId);
+		
+		// remove from the insight panel store
+		InsightPanel panel = this.insight.getInsightPanel(panelId);
+		if(panel == null) {
+			throw new NullPointerException("Panel " + panelId + " does not exist");
+		}
+		panel.removeLayerViewOptions(layerId);
+		
 		return new NounMetadata(removeLayerMap, PixelDataType.REMOVE_LAYER, PixelOperationType.REMOVE_LAYER);
 	}
 }
