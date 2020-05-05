@@ -6,6 +6,7 @@ import java.util.List;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -23,98 +24,65 @@ import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
-	/**
-	 * RunAssociatedLearning(attributes = ["Class_1", "Sex", "Survived","Age"], conf = [0.8],support = [0.005], rhsAttribute=["Survived"], panel=[999]);
-	 * RunAssociatedLearning(attributes = ["itemDescription"], idAttributes = ["Member_number","Date_1"], panel=[99]);
-	 * RunAssociatedLearning(attributes = ["itemDescription"], idAttributes = ["Member_number","Date_1"], conf = [0.1],support = [0.001], panel=[99]);
-	 * Input keys: 
-	 * 		1. attributes (required) 
-	 * 		2. idAttributes (optional)
-	 * 		3. conf (optional) - must be within (0,1] range (default: 0.8)
-	 * 		4. support (optional) - must be within (0,1] range (default: 0.1)
-	 * 		5. maxlen (optional) - an integer value for the maximal number of items per item set (default: 10 items)
-	 * 		6. sortby (optional) - must be either "confidence" or "lift" (default: lift) 
-	 * 		7. lhsAttributes (optional) - list of attributes (1 or many) being requested to appear on the left hand side of the rules 
-	 * 		8. rhsAttribute (optional) - 1 attribute being requested to appear on the right hand side of the rules 
-	 * 
-	 */
 	
-	private static final String CLASS_NAME = RunAssociatedLearningReactor.class.getName();
+	/**
+	 * RunAssociatedLearning(ruleSide=["Outcome"], column=["Nominated"] ,
+	 * values=["Y"] , attributes=["Genre" , "Nominated" ,"Rating"], conf =
+	 * [0.5],support = [0.005],lift=[1], panel=[0]);
+	 */
 
-	private static final String IDATTRIBUTES = "idAttributes";
+	private static final String RULE_SIDE = "ruleSide";
 	private static final String CONFIDENCE = "conf";
 	private static final String SUPPORT = "support";
-	private static final String MAXLEN = "maxlen";
-	private static final String SORTBY = "sortby";
-	private static final String LHSATTRIBUTES = "lhsAttributes";
-	private static final String RHSATTRIBUTE = "rhsAttribute";
+	private static final String LIFT = "lift";
 
 	public RunAssociatedLearningReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ATTRIBUTES.getKey(), IDATTRIBUTES, CONFIDENCE, 
-				SUPPORT, MAXLEN, SORTBY, LHSATTRIBUTES, RHSATTRIBUTE, ReactorKeysEnum.PANEL.getKey()};
+		this.keysToGet = new String[] { RULE_SIDE, ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUES.getKey(),
+				ReactorKeysEnum.ATTRIBUTES.getKey(), CONFIDENCE, SUPPORT, LIFT, ReactorKeysEnum.PANEL.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		init();
-		String[] packages = new String[] { "data.table", "dplyr", "arules" };
+		String[] packages = new String[] { "data.table", "dplyr", "arules", "stringr" };
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
-		String dtName = frame.getName();
+		String frameName = frame.getName();
 		List<String> colNames = Arrays.asList(frame.getColumnNames());
-		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
 		boolean implicitFilter = false;
 		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
-		StringBuilder sb = new StringBuilder();
+		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
 
 		// get inputs from pixel command
 		String panelId = getPanelId();
+		String column = getInputString(ReactorKeysEnum.COLUMN.getKey());
+		List<String> values = getInputList(ReactorKeysEnum.VALUES.getKey());
+		List<String> attrs = getInputList(ReactorKeysEnum.ATTRIBUTES.getKey());
+		String ruleSide = getInputString(RULE_SIDE).toLowerCase();
 		double conf = getInputDouble(CONFIDENCE);
 		double supp = getInputDouble(SUPPORT);
-		double maxlen = getInputDouble(MAXLEN);
-		List<String> attributesList = getInputList("0");
-		List<String> idAttributesList = getInputList(IDATTRIBUTES);
-		List<String> lhsVarList = getInputList(LHSATTRIBUTES);
-		if (lhsVarList != null & lhsVarList.size() > 0) {
-			for (int i = 0; i < lhsVarList.size(); i++) {
-				if (!colNames.contains(lhsVarList.get(i)))
-					throw new IllegalArgumentException("LHS attribute(s) contain invalid column name(s).");
-			}
+		double lift = getInputDouble(LIFT);
+
+		// make sure that column exists
+		if (!colNames.contains(column)) {
+			throw new IllegalArgumentException("Please select a valid column name");
 		}
-		String sortBy = getInputString(SORTBY);
-		String rhsVar = getInputString(RHSATTRIBUTE);
-		if (rhsVar != null && rhsVar != "") {
-			if (!colNames.contains(rhsVar)) {
-				throw new IllegalArgumentException("RHS attribut is an invalid column name.");
+
+		// make sure only attribute columns are included
+		boolean ruleColumnIncluded = false;
+		for (String a : attrs) {
+			String rType = this.rJavaTranslator.getString("unique(sapply(" + frameName + "$" + a + ",class))");
+			if (!rType.equalsIgnoreCase("character") && !rType.equalsIgnoreCase("factor")) {
+				throw new IllegalArgumentException("Please only select string columns as attributes");
+			}
+			if (a.equals(column)) {
+				ruleColumnIncluded = true;
 			}
 		}
 
-		String attrList_R = "attrList" + Utility.getRandomString(8);
-		String attrListStr = "'" + attributesList.toString().replace("[", "").replace("]", "").replace(" ", "").replace(",", "','")	+ "'";
-		sb.append(attrList_R + " <- c(" + attrListStr + ");");
-		StringBuilder substr = new StringBuilder();
-		if (idAttributesList != null && idAttributesList.size() > 0) {
-			String idAttributesListStr = "'" + idAttributesList.toString().replace("[", "").replace("]", "").replace(" ", "").replace(",", "','") + "'";
-			substr.append(",transactionIdList = c(" + idAttributesListStr + ")");
-		}
-		if (conf > 0) {
-			substr.append(",confidence = " + conf);
-		}
-		if (supp > 0) {
-			substr.append(",support = " + supp);
-		}
-		if (maxlen > 0) {
-			substr.append(",maxlen = " + maxlen);
-		}
-		if (sortBy != null && sortBy != "") {
-			substr.append(",sortBy = '" + sortBy.toLowerCase() + "'");
-		}
-		if (rhsVar != null && rhsVar != "") {
-			substr.append(",rhsSpecified = '" + rhsVar + "'");
-		}
-		if (lhsVarList != null && lhsVarList.size() > 0) {
-			String lhsVarListStr = "'" + lhsVarList.toString().replace("[", "").replace("]", "").replace(" ", "").replace(",", "','") + "'";
-			substr.append(",lhsSpecified = c(" + lhsVarListStr + ")");
+		// also make sure that the rule column is in the attrs
+		if (!ruleColumnIncluded) {
+			attrs.add(column);
 		}
 
 		// check if there are filters on the frame. if so then need to run
@@ -122,16 +90,12 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 		if (!frame.getFrameFilters().isEmpty()) {
 			// create a new qs to retrieve filtered frame
 			SelectQueryStruct qs = new SelectQueryStruct();
-			List<String> selectedCols = new ArrayList<String>(attributesList);
-			selectedCols.addAll(idAttributesList);
-			for (String s : selectedCols) {
-				qs.addSelector(new QueryColumnSelector(s));
-			}
+			qs.addSelector(new QueryColumnSelector(column));
 			qs.setImplicitFilters(frame.getFrameFilters());
 			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
 			RInterpreter interp = new RInterpreter();
 			interp.setQueryStruct(qs);
-			interp.setDataTableName(dtName);
+			interp.setDataTableName(frameName);
 			interp.setColDataTypes(meta.getHeaderToTypeMap());
 			String query = interp.composeQuery();
 			this.rJavaTranslator.runR(dtNameIF + "<- {" + query + "}");
@@ -141,56 +105,72 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR("rm(" + query.split(" <-")[0] + ");gc();");
 		}
 
-		String targetDt = implicitFilter ? dtNameIF : dtName;
+		String targetDt = implicitFilter ? dtNameIF : frameName;
 
-		// apriori r script
-		String scriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\Apriori.R";
-		scriptFilePath = scriptFilePath.replace("\\", "/");
-		sb.append("source(\"" + scriptFilePath + "\");");
+		String resultsFrame = runAssociatedRulesRScript(targetDt, ruleSide, column, values, attrs, supp, conf, lift);
+		int ruleslength = this.rJavaTranslator.getInt("nrow(" + resultsFrame + ")");
 
-		// set call to R function
-		String temp_R = "temp_R" + Utility.getRandomString(8);
-		if (substr.indexOf(",") == 0) {
-			substr.deleteCharAt(0);
-		}
-		sb.append(temp_R + " <- runApriori( " + targetDt + "," + attrList_R + "," + substr + ");");
-		String rulesLength_R = "rulesLength" + Utility.getRandomString(8);
-		sb.append(rulesLength_R + "<-" + temp_R + "$rulesLength;");
-		String rulesDt_R = "rulesDt" + Utility.getRandomString(8);
-		sb.append(rulesDt_R + "<-" + temp_R + "$rulesDt;");
-
-		// execute R
-		this.rJavaTranslator.runR(sb.toString());
-		int ruleslength = this.rJavaTranslator.getInt(rulesLength_R);
-
-		// clean up r temp variables
-		StringBuilder cleanUpScript = new StringBuilder();
-		cleanUpScript.append("rm(" + attrList_R + "," + temp_R + "," + rulesLength_R + "," + dtNameIF + ",runApriori);");
-		cleanUpScript.append("gc();");
-		this.rJavaTranslator.runR(cleanUpScript.toString());
-
-		if (ruleslength == 0) {
-			throw new IllegalArgumentException("Assocation Learning Algorithm ran successfully, but no results were found.");
-		}
-
-		String[] rulesDtColNames = this.rJavaTranslator.getColumns(rulesDt_R);
-		List<Object[]> data = this.rJavaTranslator.getBulkDataRow(rulesDt_R, rulesDtColNames);
-		this.rJavaTranslator.runR("rm(" + rulesDt_R + ");gc();");
+		String[] rulesDtColNames = this.rJavaTranslator.getColumns(resultsFrame);
+		List<Object[]> data = this.rJavaTranslator.getBulkDataRow(resultsFrame, rulesDtColNames);
+		this.rJavaTranslator.runR("rm(" + resultsFrame + ");gc();");
 
 		// task data includes task options
 		ITask taskData = ConstantTaskCreationHelper.getGridData(panelId, rulesDtColNames, data);
 		this.insight.getTaskStore().addTask(taskData);
 
 		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"AssociatedLearning", 
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "AssociatedLearning",
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Associated Learning ran successfully!"));
+		
+		// throw message based on result
+		if (ruleslength == 0) {
+			noun.addAdditionalReturn(NounMetadata.getErrorNounMessage("Assocation Learning Algorithm ran successfully, but no results were found"));
+		} else {
+			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Associated Learning ran successfully!"));
+		}
+		
 		return noun;
+	}
+
+	private String runAssociatedRulesRScript(String frameName, String ruleSide, String column, List<String> values,
+			List<String> attrs, double supp, double conf, double lift) {
+		// the name of the results table is what we will be passing to the FE
+		String resultsFrameName = "ResultsTable" + Utility.getRandomString(10);
+
+		// create a stringbuilder for our r syntax
+		StringBuilder rsb = new StringBuilder();
+
+		// source the r script that will run the outlier and impute routine
+		String scriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\association_rules.R";
+		scriptFilePath = scriptFilePath.replace("\\", "/");
+		rsb.append("source(\"" + scriptFilePath + "\");");
+
+		// create the premise/outcome string
+		List<String> valuePairings = new ArrayList<String>();
+		for (String v : values) {
+			valuePairings.add(column + "=" + v);
+		}
+		String rule = ruleSide + "=" + RSyntaxHelper.createStringRColVec(valuePairings);
+
+		// move attrs into R vector
+		String attrsR = RSyntaxHelper.createStringRColVec(attrs);
+
+		String frameAsDf = frameName + Utility.getRandomString(6);
+		rsb.append(RSyntaxHelper.asDataFrame(frameAsDf, frameName));
+		rsb.append(resultsFrameName + "<- get_association_rules(" + frameAsDf + ", " + attrsR + ", " + rule
+				+ ", support=" + supp + ", confidence=" + conf + ",lift=" + lift + "); ");
+
+		// run the script
+		this.rJavaTranslator.runR(rsb.toString());
+
+		// garbage collection
+		this.rJavaTranslator.executeEmptyR("rm(" + frameAsDf + "); gc();");
+
+		// return new frame
+		return resultsFrameName;
+
 	}
 
 	///////////////////////////////////////////////////////////////////////
@@ -215,9 +195,6 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 		if (grs != null && grs.size() > 0) {
 			noun = grs.getNoun(0);
 			value = noun.getValue().toString();
-			if (inputName == SORTBY && !value.equalsIgnoreCase("confidence") && !value.equalsIgnoreCase("lift")) {
-				throw new IllegalArgumentException("Sortby variable must be either 'confidence' or 'lift'.");
-			}
 		}
 		return value;
 	}
@@ -242,7 +219,7 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(this.keysToGet[8]);
+		GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();
