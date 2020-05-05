@@ -3050,6 +3050,9 @@ public class Utility {
 	}
 
 	public static String normalizePath(String stringToNormalize) {
+		if(stringToNormalize == null ) {
+			return stringToNormalize;
+		}
 		String normalizedString = FilenameUtils.normalize(stringToNormalize);
 
 		if (normalizedString == null) {
