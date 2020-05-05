@@ -38,6 +38,7 @@ import prerna.util.git.GitRepoUtils;
 public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final String STACKTRACE = "StackTrace: ";
 	
 	private Logger logger;
 
@@ -48,8 +49,8 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 	protected transient File tempSmss;
 	protected transient File smssFile;
 	
-	protected Map<String, String> typeMap = new HashMap<String, String>();
-	protected Map<String, String> nameMap = new HashMap<String, String>();
+	protected Map<String, String> typeMap = new HashMap<>();
+	protected Map<String, String> nameMap = new HashMap<>();
 	
 	@Override
 	public NounMetadata execute() {
@@ -110,7 +111,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			
 			ClusterUtil.reactorPushApp(this.newAppId);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			error = true;
 			if (e instanceof SemossPixelException) {
 				throw (SemossPixelException) e;
@@ -167,12 +168,10 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		String nodeType = this.keyValue.get(ReactorKeysEnum.GRAPH_TYPE_ID.getKey());
 		String nodeName = this.keyValue.get(ReactorKeysEnum.GRAPH_NAME_ID.getKey());
 		boolean useLabel = useLabel();
-		if (!useLabel) {
-			if (nodeType == null) {
-				SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph type id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
-			}
+		if (!useLabel && nodeType == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph type id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
 		}
 		if (nodeName == null) {
 			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph name id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -187,18 +186,22 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			metaMap = (Map<String, Object>) grs.get(0);
 		}
 
+		if (metaMap == null) {
+			throw new NullPointerException("Must provide a graph metamodel to upload");
+		}
+
 		// grab metadata
 		Map<String, Object> nodes = (Map<String, Object>) metaMap.get("nodes");
 		Map<String, Object> edges = (Map<String, Object>) metaMap.get("edges");
 		Set<String> concepts = nodes.keySet();
-		Map<String, String> conceptTypes = new HashMap<String, String>();
+		Map<String, String> conceptTypes = new HashMap<>();
 		Set<String> edgeLabels = new HashSet<>();
 		if(edges != null) {
 			edgeLabels = edges.keySet();
 		}
 
-		this.typeMap = new HashMap<String, String>();
-		this.nameMap = new HashMap<String, String>();
+		this.typeMap = new HashMap<>();
+		this.nameMap = new HashMap<>();
 		// create typeMap for smms
 		for (String concept : concepts) {
 			// if we use the label, we assue the concept is a string and only
@@ -215,7 +218,6 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 						this.typeMap.put(concept, nodeType);
 						this.nameMap.put(concept, nodeName);
 						break;
-
 					}
 				}
 			}
@@ -232,7 +234,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			this.tempSmss = generateTempSmss(owlFile);
 			DIHelper.getInstance().getCoreProp().setProperty(this.newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		logger.info("3. Complete");
@@ -263,7 +265,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			owler.commit();
 			owler.export();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			owler.closeOwl();
 		}
@@ -278,7 +280,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		try {
 			UploadUtilities.updateMetadata(this.newAppId);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		logger.info("6. Complete");
 
@@ -287,7 +289,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		try {
 			FileUtils.copyFile(this.tempSmss, this.smssFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		this.tempSmss.delete();
 		
@@ -332,7 +334,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 				FileUtils.forceDelete(this.appFolder);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
