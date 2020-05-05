@@ -139,11 +139,19 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				}
 			}
 			
-			// grab the values from the prop file
+			// grab the values from the prop file 
 			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
 			this.connectionURL = prop.getProperty(Constants.CONNECTION_URL);
 			this.userName = prop.getProperty(Constants.USERNAME);
-			this.password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
+			
+			if(propFile != null)
+			{
+				this.password = decryptPass(propFile, false);
+				if(this.password == null)
+					this.password = "";
+			}
+			else
+				this.password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
 			this.driver = prop.getProperty(Constants.DRIVER);
 			
 			// make a check to see if it is asking to use file
