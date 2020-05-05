@@ -4,7 +4,7 @@ import java.util.Map;
 
 import prerna.engine.api.IHeadersDataRow;
 
-public interface Formatter {
+public interface IFormatter {
 		
 	public void addData(IHeadersDataRow nextData);
 	
