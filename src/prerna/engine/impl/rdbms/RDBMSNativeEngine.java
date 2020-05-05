@@ -148,7 +148,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			{
 				this.password = decryptPass(propFile, false);
 				if(this.password == null)
-					this.password = "";
+					this.password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
 			}
 			else
 				this.password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
