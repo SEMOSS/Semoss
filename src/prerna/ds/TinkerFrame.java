@@ -16,6 +16,8 @@ import java.util.UUID;
 import javax.script.ScriptContext;
 import javax.script.ScriptException;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -59,7 +61,11 @@ import prerna.util.MyGraphIoMappingBuilder;
 import prerna.util.Utility;
 
 public class TinkerFrame extends AbstractTableDataFrame {
-	
+
+	private static final Logger logger = LogManager.getLogger(TinkerFrame.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	public static final String DATA_MAKER_NAME = "TinkerFrame";
 
 	public static final String PRIM_KEY = "_GEN_PRIM_KEY";
@@ -101,7 +107,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	private void setDefaultName() {
 		String uuid = UUID.randomUUID().toString().toUpperCase();
-		uuid = uuid.replaceAll("-", "_");
+		uuid = uuid.replace("-", "_");
 		setName("TINKER_" + uuid);
 	}
 
@@ -138,8 +144,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //	}
 	
 	private Map createVertStores2() {
-		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
-		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
+		Map<String, SEMOSSVertex> vertStore = new HashMap<>();
+		Map<String, SEMOSSEdge> edgeStore = new HashMap<>();
 		
 		//get all edges not attached to a filter node or is a filtered edge
 		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(TINKER_TYPE, TINKER_FILTER), __.bothV().in().has(TINKER_TYPE, TINKER_FILTER), __.V().has(PRIM_KEY, true)));
@@ -462,29 +468,29 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		GraphTraversal deleteVertices = GremlinBuilder.getIncompleteVertices(getSelectors(), this.g);
 //		while(deleteVertices.hasNext()) {
 //			Vertex v = (Vertex)deleteVertices.next();
-////			System.out.println(v.value(TINKER_NAME));
-////			System.out.println(v.edges(Direction.OUT).hasNext());
+////			logger.info(v.value(TINKER_NAME));
+////			logger.info(v.edges(Direction.OUT).hasNext());
 //			if(!(v.value(TINKER_TYPE).equals(META))){
-//				System.out.println(v.value(TINKER_NAME));
+//				logger.info(v.value(TINKER_NAME));
 //				if(v.edges(Direction.IN).hasNext()) {
-//					System.out.println("why?");
+//					logger.info("why?");
 //				}
 //				if(v.edges(Direction.OUT).hasNext()) {
-//					System.out.println("why2?");
+//					logger.info("why2?");
 //				}
-//				System.out.println(v.edges(Direction.OUT).hasNext());
-//				System.out.println(v.edges(Direction.IN).hasNext()); // == false)
+//				logger.info(v.edges(Direction.OUT).hasNext());
+//				logger.info(v.edges(Direction.IN).hasNext()); // == false)
 //				v.remove();
 //			} else {
-//				System.out.println("HERE!");
+//				logger.info("HERE!");
 //			}
 //		}
 //		
-//		System.out.println("*************************************");
+//		logger.info("*************************************");
 //		GraphTraversal totalVertices = g.traversal().V();
 //		while(totalVertices.hasNext()) {
 //			Vertex v = (Vertex)totalVertices.next();
-//			System.out.println(v.value(TINKER_NAME));
+//			logger.info(v.value(TINKER_NAME));
 //		}
 //	}
 
@@ -603,7 +609,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		String columnValue = columnHeader; //this.metaData.getValueForUniqueName(columnHeader);
 		GraphTraversal<Vertex, Vertex> primKeyTraversal = g.traversal().V().has(TINKER_NAME, PRIM_KEY).as("PrimKey").out(PRIM_KEY+EDGE_LABEL_DELIMETER+columnValue).has(TINKER_TYPE, columnValue).in(PRIM_KEY+EDGE_LABEL_DELIMETER+columnValue).has(TINKER_NAME, PRIM_KEY).as("PrimKey2").where("PrimKey", P.eq("PrimKey2"));
 		while(primKeyTraversal.hasNext()) {
-			Vertex nextPrimKey = (Vertex)primKeyTraversal.next();
+			Vertex nextPrimKey = primKeyTraversal.next();
 			Iterator<Vertex> verts = nextPrimKey.vertices(Direction.OUT);
 			
 			boolean delete = true;
@@ -641,16 +647,15 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		GraphTraversal gt = null;
 		try {
 			if(gremlinQuery!=null){
-				long start = System.currentTimeMillis();
 				logger.info("Gremlin is " + gremlinQuery);
 				try {
 					GremlinGroovyScriptEngine mengine = new GremlinGroovyScriptEngine();
 					mengine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
 
 					gt = (GraphTraversal)mengine.eval(gremlinQuery);
-					System.out.println("compiled gremlin :: " + gt);
+					logger.info("compiled gremlin :: " + gt);
 				} catch (ScriptException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 //				if(gt.hasNext()) {
 //					Object data = gt.next();
@@ -689,7 +694,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //			}
 			
 		}} catch (RuntimeException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return gt;
 		
@@ -708,7 +713,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				Object value = map.get(key);
 				degree = value;
 				
-				System.out.println(((Vertex)key).value(TINKER_ID) + "<<>>" + value);				
+				logger.info(((Vertex)key).value(TINKER_ID) + "<<>>" + value);				
 			}			
 		}
 		return degree;
@@ -740,8 +745,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			{
 				Object key = mapKeys.next();
 				Object value = map.get(key);
-				System.out.println(key + "<<>>" + value);				
-				//System.out.println(((Vertex)key).value(TINKER_ID) + "<<>>" + value);
+				logger.info(key + "<<>>" + value);				
+				//logger.info(((Vertex)key).value(TINKER_ID) + "<<>>" + value);
 			}			
 		}
 	}
@@ -824,40 +829,42 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		                    	  mengine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
 
 		                    	  gt = (GraphTraversal)mengine.eval(end);
-		                    	  System.out.println("compiled gremlin :: " + gt);
+		                    	  logger.info("compiled gremlin :: " + gt);
 		                      } catch (ScriptException e) {
-		                    	  e.printStackTrace();
+		                    	  logger.error(STACKTRACE, e);
 		                      }
-		                      while(gt.hasNext())
-		                      {
-		              			Object data = gt.next();
-
-		              			String node = "";
-		            			if(data instanceof Map) {
-		            				for(Object key : ((Map)data).keySet()) {
-		            					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
-		            					if(mapData.get(key) instanceof Vertex){
-					              			Iterator it = ((Vertex)mapData.get(key)).properties();
+		                      if (gt != null) {
+			                      while(gt.hasNext())
+			                      {
+			              			Object data = gt.next();
+	
+			              			String node = "";
+			            			if(data instanceof Map) {
+			            				for(Object key : ((Map)data).keySet()) {
+			            					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
+			            					if(mapData.get(key) instanceof Vertex){
+						              			Iterator it = ((Vertex)mapData.get(key)).properties();
+						              			while (it.hasNext()){
+						              				node = node + it.next();
+						              			}
+			            					} else {
+			            						node = node + mapData.get(key);
+			            					}
+					              			node = node + "       ::::::::::::           ";
+			            				}
+			            			} else {
+		            					if(data instanceof Vertex){
+					              			Iterator it = ((Vertex)data).properties();
 					              			while (it.hasNext()){
 					              				node = node + it.next();
 					              			}
 		            					} else {
-		            						node = node + mapData.get(key);
+		            						node = node + data;
 		            					}
-				              			node = node + "       ::::::::::::           ";
-		            				}
-		            			} else {
-	            					if(data instanceof Vertex){
-				              			Iterator it = ((Vertex)data).properties();
-				              			while (it.hasNext()){
-				              				node = node + it.next();
-				              			}
-	            					} else {
-	            						node = node + data;
-	            					}
-		            			}
-		            			
-		                        logger.warn(node);
+			            			}
+			            			
+			                        logger.warn(node);
+			                      }
 		                      }
 
 		                      long time2 = System.currentTimeMillis();
@@ -866,9 +873,9 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	                    	  end = "end";
 	                      }
                       } catch (RuntimeException e) {
-                            e.printStackTrace();
-                      } catch (IOException e) {
-                             e.printStackTrace();
+                            logger.error(STACKTRACE, e);
+                      } catch (IOException ioe) {
+                             logger.error(STACKTRACE, ioe);
                       }
                              
                 }
@@ -934,7 +941,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		try {
 			writer.writeGraph(frameFileName);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IOException("Error occured attempting to cache graph frame");
 		}
 		cf.setFrameCacheLocation(frameFileName);
@@ -954,7 +961,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			GryoIo reader = builder.create();
 			reader.readGraph(cf.getFrameCacheLocation());
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		
 		// open the meta details
@@ -1091,7 +1098,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public IRawSelectWrapper query(String query) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 	
@@ -1115,7 +1121,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 	
 	private Map<String, Map<String, List>> flushRelationships(List<String[]> rels) {
-		Map<String, Map<String, List>> relMap = new HashMap<String, Map<String, List>>();
+		Map<String, Map<String, List>> relMap = new HashMap<>();
 		// iterate through list
 		// and make it into a map
 		for(String[] rel : rels) {
@@ -1123,7 +1129,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			String end = rel[1];
 			String relType = rel[2];
 			
-			Map<String, List> nodeComparatorMap = new HashMap<String, List>();
+			Map<String, List> nodeComparatorMap = new HashMap<>();
 			if(relMap.containsKey(start)) {
 				nodeComparatorMap = relMap.get(start);
 			} else {
@@ -1250,12 +1256,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		logger.info("Processing Component..................................");
 
 		List<ISEMOSSTransformation>  preTrans = component.getPreTrans();
-		List<Map<String,String>> joinColList= new ArrayList<Map<String,String>> ();
+		List<Map<String,String>> joinColList= new ArrayList<> ();
 		String joinType = null;
-		List<prerna.sablecc2.om.Join> joins = new ArrayList<prerna.sablecc2.om.Join>();
+		List<prerna.sablecc2.om.Join> joins = new ArrayList<>();
 		for (ISEMOSSTransformation transformation : preTrans) {
 			if (transformation instanceof JoinTransformation) {
-				Map<String, String> joinMap = new HashMap<String, String>();
+				Map<String, String> joinMap = new HashMap<>();
 				String joinCol1 = (String) ((JoinTransformation) transformation).getProperties()
 						.get(JoinTransformation.COLUMN_ONE_KEY);
 				String joinCol2 = (String) ((JoinTransformation) transformation).getProperties()
@@ -1315,14 +1321,14 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			try {
 				importer.insertData();
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		} else {
 			try {
 				importer.mergeData(joins);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		}
@@ -1460,11 +1466,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		Iterator<Object[]> it = t.iterator();
 //		int count = 0; 
 //		while(it.hasNext()) {
-////			System.out.println(it.next());
+////			logger.info(it.next());
 //			it.next();
 //			count++;
 //		}
-//		System.out.println("COUNT IS: "+count);
+//		logger.info("COUNT IS: "+count);
 //		
 //		List<Object> list = new ArrayList<>();
 //		list.add("Drama");
@@ -1476,11 +1482,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		it = t.iterator();
 //		count = 0; 
 //		while(it.hasNext()) {
-////			System.out.println(it.next());
+////			logger.info(it.next());
 //			it.next();
 //			count++;
 //		}
-//		System.out.println("COUNT IS: "+count);
+//		logger.info("COUNT IS: "+count);
 ////		t.openSandbox();
 ////		testGroupBy();
 ////		testFilter();
@@ -1508,10 +1514,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //			b.addEdge("generic", a);
 //			//Edge e = g.(null, a, b, "sample");
 //		}	
-//		System.out.println("here.. ");
+//		logger.info("here.. ");
 //		Vertex v = g.traversal().V().has("name", "v1").next();
 //		//Vertex v = g.("name", "y").iterator().next();
-//		System.out.println("done.. ");
+//		logger.info("done.. ");
 //		
 //		
 //		g.close();
@@ -1551,7 +1557,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //			
 //			if(addRow) {
 //				deleteSet.add(row);
-//				System.out.println(Arrays.toString(row));
+//				logger.info(Arrays.toString(row));
 //			}
 //		}
 //		
@@ -1600,10 +1606,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //////		Object o = paths.next();
 ////		int count = 0;
 ////		while(paths.hasNext()){
-////		System.out.println(paths.next());
+////		logger.info(paths.next());
 ////		count++;
 ////		}
-////		System.out.println(count);
+////		logger.info(count);
 //	}
 //	
 //	public static void testFilter() {
@@ -1665,19 +1671,19 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		for(Vertex v : deleteVertices) {
 //			v.remove();
 //		}
-////		System.out.println(t.size());
+////		logger.info(t.size());
 ////		for(Object key : t.keySet()) {
 ////			Object o = t.get(key);
-////			System.out.println(key instanceof Vertex);
-////			System.out.println(o.toString());
+////			logger.info(key instanceof Vertex);
+////			logger.info(o.toString());
 ////		}
-//		System.out.println("Done");
+//		logger.info("Done");
 //	}
 //
 //	public void printTinker() {
 //		Iterator<Object[]> iterator = this.iterator();
 //		while(iterator.hasNext()) {
-//			System.out.println(Arrays.toString(iterator.next()));
+//			logger.info(Arrays.toString(iterator.next()));
 //		}
 //	}
 //	
@@ -1686,7 +1692,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		g = TinkerGraph.open();
 //		
 //		long now = System.nanoTime();
-//		System.out.println("Time now.. " + now);
+//		logger.info("Time now.. " + now);
 //		
 //		String [] types = {"Capability", "Business Process", "Activity", "DO", "System"};
 ////		String[] types = {"Capability"};
@@ -1734,39 +1740,39 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		}
 //		
 //		long graphTime = System.nanoTime();
-//		System.out.println("Time taken.. " + ((graphTime - now) / 1000000000) + " secs");
+//		logger.info("Time taken.. " + ((graphTime - now) / 1000000000) + " secs");
 //
 //		
-//		System.out.println("Graph Complete.. ");
+//		logger.info("Graph Complete.. ");
 //		
-//		System.out.println("Total Number of vertices... ");
+//		logger.info("Total Number of vertices... ");
 //		GraphTraversal gtCount = g.traversal().V().count();
 //		if(gtCount.hasNext())
-//			System.out.println("Vertices...  " + gtCount.next());
+//			logger.info("Vertices...  " + gtCount.next());
 //
 //		GraphTraversal gtECount = g.traversal().E().values("COUNT").sum();
 //		if(gtECount.hasNext())
-//			System.out.println("Edges...  " + gtECount.next());
+//			logger.info("Edges...  " + gtECount.next());
 //
 //		
-//		System.out.println("Trying group by on the custom graph");
+//		logger.info("Trying group by on the custom graph");
 //		GraphTraversal<Vertex, Map<Object, Object>> gt = g.traversal().V().group().by("TYPE").by(__.count());
 ////		GraphTraversal<Vertex, Map<Object, Object>> gt = g.traversal().V().group().by("TYPE").by(__.);
 //		if(gt.hasNext())
-//			System.out.println(gt.next());
-//		System.out.println("Completed group by");
+//			logger.info(gt.next());
+//		logger.info("Completed group by");
 //		
-//		System.out.println("Trying max");
+//		logger.info("Trying max");
 //		GraphTraversal<Vertex, Number> gt2 = g.traversal().V().has("TYPE", "Activity").values(TINKER_NAME).max();
 ////		if(gt2.hasNext())
-////			System.out.println(gt2.next());
-//		System.out.println("Trying max - complete");
+////			logger.info(gt2.next());
+//		logger.info("Trying max - complete");
 //
-//		System.out.println("Trying max group");
+//		logger.info("Trying max group");
 //		GraphTraversal  gt3 = g.traversal().V().group().by("TYPE").by(__.values("DATA").max());
 //		if(gt3.hasNext())
-//			System.out.println(gt3.next());
-//		System.out.println("Trying max group - complete");
+//			logger.info(gt3.next());
+//		logger.info("Trying max group - complete");
 //		
 //		
 //		GraphTraversal<Vertex, Map<String, Object>> gtAll = g.traversal().V().has("TYPE", "Capability").as("Cap").
@@ -1780,10 +1786,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		while(gtAll.hasNext())
 //		{
 //			//Map output = gtAll.next();
-//			System.out.println(gtAll.next());
+//			logger.info(gtAll.next());
 //			count++;
 //		}
-//		System.out.println("Count....  " + count);
+//		logger.info("Count....  " + count);
 //		
 //		/*
 //		GraphTraversal<Vertex, Long> gtAllC = g.traversal().V().has("TYPE", "Capability").as("Cap").out().as("BP").
@@ -1793,12 +1799,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		
 //		while(gtAllC.hasNext())
 //		{
-//			System.out.println("Total..  " + gtAllC.next());
+//			logger.info("Total..  " + gtAllC.next());
 //		}*/
 //
 //
 //		long opTime = System.nanoTime();
-//		System.out.println("Time taken.. for ops" + ((opTime - graphTime) / 1000000000) + " secs");
+//		logger.info("Time taken.. for ops" + ((opTime - graphTime) / 1000000000) + " secs");
 //		
 //		headerNames = types;
 //
@@ -1810,7 +1816,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		//getRawData();
 //		Iterator out = getIterator(cols);
 //		if(out.hasNext())
-//			System.out.println("Output is..  " + out.next());
+//			logger.info("Output is..  " + out.next());
 //	}
 //
 //	private void tryBuilder()
@@ -1849,20 +1855,20 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //			b.addEdge("generic", a);
 //			//Edge e = g.(null, a, b, "sample");
 //		}	
-//		System.out.println("here.. ");
+//		logger.info("here.. ");
 //		Vertex v = g.traversal().V().has("name", "v1").next();
 //		//Vertex v = g.("name", "y").iterator().next();
-//		System.out.println("done.. ");
+//		logger.info("done.. ");
 //		
 //		
 //		try {
-//			System.out.println("Writing to file... ");
+//			logger.info("Writing to file... ");
 //			g.close();
-//			System.out.println("written");
+//			logger.info("written");
 //
 //		} catch (Exception e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			logger.error(STACKTRACE, e);
 //		}
 //		
 //	}
@@ -1877,25 +1883,25 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		try {
 //			long time = System.nanoTime();
 //
-//			System.out.println("reading from file... ");
+//			logger.info("reading from file... ");
 //
 //			g.io(IoCore.gryo()).readGraph("C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\tinker.persist");
 //			long delta = System.nanoTime() - time;
-//			System.out.println("Search time in nanos " + (delta/1000000000));
+//			logger.info("Search time in nanos " + (delta/1000000000));
 //			
-//			System.out.println("complte");
+//			logger.info("complte");
 //			Vertex v = g.traversal().V().has("name", "v1").next();
 //			//Vertex v = g.("name", "y").iterator().next();
-//			System.out.println("done.. " + v);
+//			logger.info("done.. " + v);
 //			
 //			
 //			g.close();
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			logger.error(STACKTRACE, e);
 //		} catch (Exception e) {
 //			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//			logger.error(STACKTRACE, e);
 //		}
 //
 //	}
@@ -1926,11 +1932,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //				//Vertex v = (Vertex)thisPath.get()
 //				System.out.print(thisPath.get(index) + "");
 //			}
-//			System.out.println("\n--");
+//			logger.info("\n--");
 //		}
 //		
 //
-//		System.out.println("Trying select.. ");
+//		logger.info("Trying select.. ");
 //		
 //		
 //		GraphTraversal<Vertex, Map<String, Object>> gt2 = g.traversal().V().as("a").out().as("b").out().as("c").select("a","b","c");
@@ -1944,10 +1950,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //				Vertex v = (Vertex)map.get(keys.next());
 //				System.out.print(v.value("name") + "-");
 //			}
-//			System.out.println("\n--");
+//			logger.info("\n--");
 //		}
 //
-//		System.out.println("Trying Group By.. ");
+//		logger.info("Trying Group By.. ");
 //		
 //		GraphTraversal<Vertex,Map<Object,Object>> gt3 = g.traversal().V().as("a").group().by("name").by(__.count());
 //		
@@ -1960,15 +1966,15 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //				Object key = keys.next();
 //				System.out.print(key + "<>" + map.get(key));
 //			}
-//			System.out.println("\n--");
+//			logger.info("\n--");
 //		}
 //		
-//		System.out.println("Trying coalesce.. ");
+//		logger.info("Trying coalesce.. ");
 //		
 //		GraphTraversal<Vertex, Object> gt4 = g.traversal().V().coalesce(__.values("lang"), __.values("name"));
 //		while(gt4.hasNext())
 //		{
-//			System.out.println(gt4.next());
+//			logger.info(gt4.next());
 //			/*
 //			Map<Object, Object> map = gt4.next();
 //			Iterator <Object> keys = map.keySet().iterator();
@@ -1977,24 +1983,24 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //				Object key = keys.next();
 //				System.out.print(key + "<>" + map.get(key));
 //			}
-//			System.out.println("\n--");*/
+//			logger.info("\n--");*/
 //		}
 //
-//		System.out.println("Trying choose.. with constant");
+//		logger.info("Trying choose.. with constant");
 //		GraphTraversal<Vertex, Map<Object, Object>> gt5 = g.traversal().V().choose(__.has("lang"),__.values("lang"), __.constant("c#")).as("lang").group();
 //		while(gt5.hasNext())
 //		{
-//			System.out.println(gt5.next());
+//			logger.info(gt5.next());
 //		}
 //
-//		System.out.println("Trying choose.. with vertex");
+//		logger.info("Trying choose.. with vertex");
 //		GraphTraversal<Vertex, Map<Object, Object>> gt6 = g.traversal().V().choose(__.has("lang"),__.as("a"), __.as("b")).group();
 //		while(gt6.hasNext())
 //		{
-//			System.out.println(gt6.next());
+//			logger.info(gt6.next());
 //		}
 //		
-//		System.out.println("testing repeat.. ");
+//		logger.info("testing repeat.. ");
 //		GraphTraversal<Vertex, Path> gt7 = g.traversal().V(1).repeat(__.out()).times(2).path().by("name");
 //		while(gt7.hasNext())
 //		{
@@ -2004,48 +2010,48 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //				//Vertex v = (Vertex)thisPath.get()
 //				System.out.print(thisPath.get(index) + "");
 //			}
-//			System.out.println("\n--");
+//			logger.info("\n--");
 //		}
 //
-//		System.out.println("Trying.. until.. ");
+//		logger.info("Trying.. until.. ");
 //		//GraphTraversal<Vertex, Path> gt8 = g.traversal().V().as("a").until(__.has("name", "ripple")).as("b").repeat(__.out()).path().by("name");
 //		GraphTraversal<Vertex, Map<String, Object>> gt8 = g.traversal().V().as("a").where(__.has("name", "marko")).until(__.has("name", "ripple")).as("b").repeat(__.out()).select("a","b");
 //		while(gt8.hasNext())
 //		{
 //			Map thisPath = gt8.next();
-//			System.out.println(thisPath);
+//			logger.info(thisPath);
 //			/*for(int index = 0;index < thisPath.size();index++)
 //			{
 //				//Vertex v = (Vertex)thisPath.get()
-//				System.out.println(thisPath);
+//				logger.info(thisPath);
 //				System.out.print(thisPath.get(index));
 //			}*/
-//			System.out.println("\n--");
+//			logger.info("\n--");
 //		}
 //
-//		System.out.println("Trying arbitrary selects.. ");
+//		logger.info("Trying arbitrary selects.. ");
 //		GraphTraversal<Vertex, Vertex> gt9 = g.traversal().V().as("a").out().as("b").out().as("c");
 //		GraphTraversal<Vertex, Vertex> gt10 = gt9.select("c");
 //		while(gt10.hasNext())
 //		{
-//			System.out.println(gt10.next());
-//			System.out.println("\n--");
+//			logger.info(gt10.next());
+//			logger.info("\n--");
 //		}
 //
 //		//GroovyShell shell = new GroovyShell();
 //		
-//		System.out.println("Testing subgraph.. ");
+//		logger.info("Testing subgraph.. ");
 //		Graph sg = (Graph)g.traversal().E().hasLabel("knows").subgraph("subGraph").cap("subGraph").next();
 //		org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource source =  sg.traversal(sg.traversal().standard());
 //		GraphTraversal <Edge, Edge> output = source.E();
 //	
 //		while(output.hasNext())
 //		{
-//			System.out.println(output.next().inVertex().id());
+//			logger.info(output.next().inVertex().id());
 //		}
-//		System.out.println("It is a subgraph now.. ");
+//		logger.info("It is a subgraph now.. ");
 //		
-//		System.out.println("Testing partition"); // useful when I want to roll back and move forward // can also be used for filtering..
+//		logger.info("Testing partition"); // useful when I want to roll back and move forward // can also be used for filtering..
 //		SubgraphStrategy stratA = SubgraphStrategy.build().vertexCriterion(__.hasId(1)).create(); // putting id 1 into a separate subgraph
 //		//GraphTraversal<Vertex, Vertex> gt11 = g.traversal().V().has("name", P.not(P.within("marko", "ripple")));
 //		String [] names = {"marko", "ripple"};
@@ -2053,37 +2059,37 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		
 //		while(gt11.hasNext())
 //		{
-//			System.out.println(gt11.next());
+//			logger.info(gt11.next());
 //		}
-//		System.out.println("Now printing from partition");
+//		logger.info("Now printing from partition");
 //		GraphTraversalSource newGraph = GraphTraversalSource.build().with(stratA).create(g);
 //		gt11 = newGraph.V().has("name", P.within("marko"));
 //		//gt11 = newGraph.V();
 //		
 //		while(gt11.hasNext())
 //		{
-//			System.out.println(gt11.next());
+//			logger.info(gt11.next());
 //		}
 //		
 //		
-//		System.out.println("Testing.. variables.. ");
+//		logger.info("Testing.. variables.. ");
 //		
 //		String [] values = {"Hello World", "too"};
 //		g.variables().set("Data",values);
 //		
-//		System.out.println("Column Count ? ...  " + (
+//		logger.info("Column Count ? ...  " + (
 //				(String[])(g.variables().get("Data").get())
 //				).length
 //				);
 //		
-//		System.out.println("Getting max values and min values.. ");
-//		System.out.println(g.traversal().V().values("age").max().next());
-//		System.out.println("Getting Sum.... ");
-//		System.out.println(g.traversal().V().values("age").sum().next());
+//		logger.info("Getting max values and min values.. ");
+//		logger.info(g.traversal().V().values("age").max().next());
+//		logger.info("Getting Sum.... ");
+//		logger.info(g.traversal().V().values("age").sum().next());
 //		
 //		
-//		System.out.println("Trying count on vertex.. ");
-//		System.out.println(g.traversal().V().count().next());
+//		logger.info("Trying count on vertex.. ");
+//		logger.info(g.traversal().V().count().next());
 //		
 //		// Things to keep in the variables
 //		// String array of all the different nodes that are being added - Not sure given the graph
@@ -2140,7 +2146,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //           while(nextRound.size() > 0)
 //           {
 //                  Vector <String> realNR = new Vector<String>();
-//                  System.out.println("Came in here.. ");
+//                  logger.info("Came in here.. ");
 //                  for(int nextIndex = 0;nextIndex < nextRound.size();nextIndex++)
 //                  {
 //                        String element = nextRound.remove(nextIndex);
@@ -2166,7 +2172,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //                  
 //           }
 //           
-//           System.out.println(output);
+//           logger.info(output);
 //    }
 //    
 //    // adds all the childs and leaves it in the same state as before
@@ -2201,9 +2207,9 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //			poiReader = new FileInputStream(fileName);
 //			workbook = new XSSFWorkbook(poiReader);
 //		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
+//			logger.error(STACKTRACE, e);
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			logger.error(STACKTRACE, e);
 //		}
 //		
 //		XSSFSheet lSheet = workbook.getSheet("Sheet1");
@@ -2248,10 +2254,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //				}
 //			}
 //			tester.addRow(nextRow, headerList.toArray(new String[headerList.size()]));
-//			System.out.println("added row " + rIndex);
-//			System.out.println(rowMap.toString());
+//			logger.info("added row " + rIndex);
+//			logger.info(rowMap.toString());
 //		}
-//		System.out.println("loaded file " + fileName);
+//		logger.info("loaded file " + fileName);
 //		
 //		// 2 lines are used to create primary key table metagraph
 //		Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headerList.toArray(new String[headerList.size()]));

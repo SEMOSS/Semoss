@@ -601,13 +601,17 @@ public class Me {
 		} finally{
 			// close the readers
 			try{
-				reader.close();
+				if (reader != null) {
+					reader.close();
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 
 			try{
-				fileOut.close();
+				if (fileOut != null) {
+					fileOut.close();
+				}
 			} catch (IOException e){
 				e.printStackTrace();
 			}

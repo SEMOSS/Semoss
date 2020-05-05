@@ -185,6 +185,10 @@ public class QuestionModSelectorListener implements IChakraListener {
 				}
 			}
 
+			if (in == null) {
+				throw new NullPointerException("OldInsight in cannot be null here.");
+			}
+
 			// get the sparql from insight based on selected question
 //			String sparql = in.getSparql();
 			// get the layout
