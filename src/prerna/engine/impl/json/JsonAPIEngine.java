@@ -78,7 +78,7 @@ public class JsonAPIEngine extends AbstractEngine {
 
 			if(propFile != null) {
 				setPropFile(propFile);
-				logger.info("Opening DB - " + engineName);
+				logger.info("Opening DB - " + Utility.cleanLogString(engineName));
 				prop = Utility.loadProperties(propFile);
 			}
 			if(prop != null) {
@@ -114,7 +114,7 @@ public class JsonAPIEngine extends AbstractEngine {
 					// set the owl file
 					if(owlFile != null) {
 						owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
-						logger.info("Loading OWL: " + owlFile);
+						logger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
 						setOWL(owlFile);
 					}
 				}
@@ -363,7 +363,7 @@ public class JsonAPIEngine extends AbstractEngine {
 				logger.info("Length >> " + data[pathIndex].size());	
 
 			} catch(PathNotFoundException ex) {
-				logger.info("Path not found.. " + thisPath);
+				logger.info("Path not found.. " + Utility.cleanLogString(thisPath));
 				foundData = false;
 			}
 		}

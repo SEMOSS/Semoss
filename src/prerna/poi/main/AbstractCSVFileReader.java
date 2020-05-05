@@ -14,7 +14,7 @@ import prerna.poi.main.helper.CSVFileHelper;
 
 public abstract class AbstractCSVFileReader extends AbstractFileReader {
 
-	private static final Logger LOGGER = LogManager.getLogger(RDBMSReader.class.getName());
+	private static final Logger logger = LogManager.getLogger(RDBMSReader.class.getName());
 
 	protected List<String> relationArrayList = new ArrayList<String>();
 	protected List<String> nodePropArrayList = new ArrayList<String>();
@@ -71,7 +71,7 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 	 * @throws FileNotFoundException 
 	 */
 	protected void openCSVFile(final String FILE_LOCATION) {
-		LOGGER.info("Processing csv file: " + FILE_LOCATION);
+		logger.info("Processing csv file: " + FILE_LOCATION);
 
 		// use the csv file helper to load the data
 		csvHelper = new CSVFileHelper();
@@ -82,7 +82,7 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 
 		// get the headers for the csv
 		this.header = csvHelper.getHeaders();
-		LOGGER.info("Found headers: " + Arrays.toString(header));
+		logger.info("Found headers: " + Arrays.toString(header));
 
 		// such that the thick client works if a prop file is passed in
 		// we also need to adjust for when there are multiple files

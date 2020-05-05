@@ -573,7 +573,7 @@ public class DIHelper {
 					String qsDescr = prop.getProperty(qsKey);
 					qsDescr = count+". " + qsDescr;
 					String layoutName = prop.getProperty(qsKey + "_" + Constants.LAYOUT);
-					logger.info("Putting information " + qsDescr + "<>" + qsKey);
+					logger.info(Utility.cleanLogString("Putting information " + qsDescr + "<>" + qsKey));
 					qsHash.put(qsDescr, qsKey); // I do this because I will use this to look up other things later
 					layoutHash.put(qsKey + "_" + Constants.LAYOUT, layoutName);
 					engineLocalProp.put(qsDescr, qsKey);

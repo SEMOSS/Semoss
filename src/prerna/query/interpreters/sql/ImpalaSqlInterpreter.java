@@ -209,9 +209,9 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
 
 		if(query.length() > 500) {
-			logger.info("SQL QUERY....  " + query.substring(0,  500) + "...");
+			logger.info("SQL QUERY....  " + Utility.cleanLogString(query.substring(0,  500)) + "...");
 		} else {
-			logger.info("SQL QUERY....  " + query);
+			logger.info("SQL QUERY....  " + Utility.cleanLogString(query.toString()));
 		}
 
 		return query.toString();
@@ -317,9 +317,9 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		query1 = this.queryUtil.addLimitOffsetToQuery(query1, limit, offset);
 
 		if(query1.length() > 500) {
-			logger.info("SQL QUERY....  " + query1.substring(0,  500) + "...");
+			logger.info("SQL QUERY....  " + Utility.cleanLogString(query1.substring(0,  500)) + "...");
 		} else {
-			logger.info("SQL QUERY....  " + query1);
+			logger.info("SQL QUERY....  " + Utility.cleanLogString(query1.toString()));
 		}
 		System.out.println(query1);
 		return query1.toString();

@@ -23,7 +23,7 @@ import prerna.util.Utility;
 
 public class RserveUtil {
 
-	protected static final Logger LOGGER = LogManager.getLogger(RserveUtil.class.getName());
+	protected static final Logger logger = LogManager.getLogger(RserveUtil.class);
 	
 	private static final String R_FOLDER = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
 	private static final String R_DATA_EXT = ".RData";
@@ -151,7 +151,7 @@ public class RserveUtil {
 					ProcessBuilder pbTaskkill = new ProcessBuilder("taskkill", "/PID", pid, "/F").inheritIO();
 					Process processTaskkill = pbTaskkill.start();
 					processTaskkill.waitFor(7L, TimeUnit.SECONDS);
-					LOGGER.info("Stopped Rserve running on port " + port + " with the pid " + pid + ".");
+					logger.info("Stopped Rserve running on port " + port + " with the pid " + Utility.cleanLogString(pid) + ".");
 				}
 
 			} else {
@@ -168,7 +168,7 @@ public class RserveUtil {
 					ProcessBuilder pbKill = new ProcessBuilder("kill", "-9", pid).inheritIO();
 					Process processKill = pbKill.start();
 					processKill.waitFor(7L, TimeUnit.SECONDS);
-					LOGGER.info("Stopped Rserve running on port " + port + " with the pid " + pid + ".");
+					logger.info("Stopped Rserve running on port " + port + " with the pid " + Utility.cleanLogString(pid) + ".");
 				}
 			}
 		} finally {

@@ -112,19 +112,19 @@ public class DistanceDownstreamInserter {
 		String insertQuery = prepareInsert(distanceDownstreamHash, "DistanceDownstream", "integer");
 		UpdateProcessor updatePro = new UpdateProcessor();
 		updatePro.setQuery(insertQuery);
-		logger.info("Update Query 1 " + insertQuery);
+		logger.info("Update Query 1 " + Utility.cleanLogString(insertQuery));
 		System.out.println(insertQuery);
 		updatePro.processQuery();
 		
 		String insertSOAweightQuery = prepareInsert(soaValueHash, "weight", "double");
 		updatePro.setQuery(insertSOAweightQuery);
-		logger.info("Update Query 2 " + insertSOAweightQuery);
+		logger.info("Update Query 2 " + Utility.cleanLogString(insertSOAweightQuery));
 		updatePro.processQuery();
 		System.out.println(insertSOAweightQuery);
 
 		String insertNetworkWeightQuery = prepareInsert(networkValueHash, "NetworkWeight", "double");
 		updatePro.setQuery(insertNetworkWeightQuery);
-		logger.info("Update Query 3 " + insertNetworkWeightQuery);
+		logger.info("Update Query 3 " + Utility.cleanLogString(insertNetworkWeightQuery));
 		updatePro.processQuery();
 		System.out.println(insertNetworkWeightQuery);
 	}

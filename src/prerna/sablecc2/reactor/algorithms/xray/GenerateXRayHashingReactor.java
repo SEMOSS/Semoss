@@ -136,7 +136,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 				outputFileName += ".tsv";
 				String outputFile = this.folderPath + "/" + Utility.normalizePath(outputFileName);
 				if(!this.override && new File(outputFile).exists()) {
-					logger.info("Hash already exists for " + selector);
+					logger.info("Hash already exists for " + Utility.cleanLogString(selector));
 					
 					// add to list of files used
 					fileNames.add(outputFileName);
@@ -148,7 +148,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 				fileNames.add(outputFileName);
 				status.add("new");
 				
-				logger.info("Querying data for " + selector);
+				logger.info("Querying data for " + Utility.cleanLogString(selector));
 				SelectQueryStruct qs = new SelectQueryStruct();
 				qs.addSelector(new QueryColumnSelector(selector));
 				IRawSelectWrapper wrapper = null;
@@ -163,7 +163,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 						this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(randomFrame, f.getAbsolutePath(), "\t"));
 						// run the script which also outputs the file
 						// we care about the file name since we use that to split to know the source
-						logger.info("Generating hash for " + selector);
+						logger.info("Generating hash for " + Utility.cleanLogString(selector));
 						this.rJavaTranslator.executeEmptyR("encode_instances(" + randomFrame + ", \"" + outputFile + "\")");
 						logger.info("Done generating hash");
 					} finally {

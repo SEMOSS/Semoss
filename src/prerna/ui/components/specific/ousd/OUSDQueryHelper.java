@@ -18,7 +18,7 @@ import prerna.util.Utility;
 
 public class OUSDQueryHelper {
 
-	protected static final Logger LOGGER = LogManager.getLogger(OUSDQueryHelper.class.getName());
+	protected static final Logger logger = LogManager.getLogger(OUSDQueryHelper.class);
 	
 	/**
 	 * @param dbName
@@ -40,7 +40,7 @@ public class OUSDQueryHelper {
 
 		systemQuery = systemQuery.replaceAll("!OWNERS!", ownerBindings);
 		
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + systemQuery);
+		logger.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + Utility.cleanLogString(systemQuery));
 		List<String> systems =  new ArrayList<String>();
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(db, systemQuery);
 		String[] wNames = wrap.getVariables();
@@ -48,7 +48,7 @@ public class OUSDQueryHelper {
 			ISelectStatement iss = wrap.next();
 			systems.add((String) iss.getVar(wNames[0]));
 		}
-		LOGGER.info("RETRIEVED SYSTEM DATA::::: " + systems.toString());
+		logger.info("RETRIEVED SYSTEM DATA::::: " + systems.toString());
 
 		return systems;
 	}
@@ -61,19 +61,19 @@ public class OUSDQueryHelper {
 	private static Map<String, Double> getBudgetData(String costDbName, String budgetQuery){
 		IEngine costDb = null;
 
-		LOGGER.info("Cost db " + costDbName);
+		logger.info("Cost db " + Utility.cleanLogString(costDbName));
 
 		//costDbName = OUSDPlaysheetHelper.getCostDatabase(costDbName);
 		String id = MasterDatabaseUtility.testEngineIdIfAlias(costDbName + "_V4b");
 		costDb = Utility.getEngine(id);
 
 		boolean costDbExists = costDb!=null;
-		LOGGER.info("Cost db " + costDbName + " exists ::::  " + costDbExists);
+		logger.info(Utility.cleanLogString("Cost db " + costDbName + " exists ::::  " + costDbExists));
 		if(!costDbExists){
 			return null;
 		}
 
-		LOGGER.info("RUNNING COST QUERY::::::: db is " + costDbName + " and query is " + budgetQuery);
+		logger.info(Utility.cleanLogString("RUNNING COST QUERY::::::: db is " + costDbName + " and query is " + budgetQuery));
 		Map<String, Double> sysBudgets =  new HashMap<String, Double>();
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(costDb, budgetQuery);
 		String[] wNames = wrap.getVariables();
@@ -81,7 +81,7 @@ public class OUSDQueryHelper {
 			ISelectStatement iss = wrap.next();
 			sysBudgets.put((String) iss.getVar(wNames[0]), (Double) iss.getVar(wNames[1]));
 		}
-		LOGGER.info("Got cost data :: " + sysBudgets.toString());
+		logger.info("Got cost data :: " + sysBudgets.toString());
 
 		return sysBudgets;
 	}
@@ -93,7 +93,7 @@ public class OUSDQueryHelper {
 	public static Map<String, Double> getBudgetData(IEngine engine, String[] sysList){
 		String costEngineName = engine.getProperty(OUSDConstants.COST_ENGINE_NAME);
 		String budgetQuery = engine.getProperty(OUSDConstants.SYSTEM_SUSTAINMENT_BUDGET_QUERY);
-		LOGGER.info("COST DB NAME ::::::"+costEngineName);
+		logger.info("COST DB NAME ::::::"+Utility.cleanLogString(costEngineName));
 
 		//retrieve the budget numbers from the helper class
 		Map<String, Double> budgetMap = OUSDQueryHelper.getBudgetData(costEngineName, budgetQuery);
@@ -116,10 +116,10 @@ public class OUSDQueryHelper {
 	}
 	
 	public static List<String> getEnduringSystems(IEngine engine){
-		LOGGER.info("Cost db " + engine);
+		logger.info("Cost db " + Utility.cleanLogString(engine.toString()));
 
 		String enduringQuery = engine.getProperty(OUSDConstants.ENDURING_SYSTEM_QUERY);
-		LOGGER.info("RUNNING ENDURING SYSTEMS QUERY::::::: db is " + engine.getEngineName() + " and query is " + enduringQuery);
+		logger.info(Utility.cleanLogString("RUNNING ENDURING SYSTEMS QUERY::::::: db is " + engine.getEngineName() + " and query is " + enduringQuery));
 		List<String> sysBudgets =  new ArrayList<String>();
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, enduringQuery);
 		String[] wNames = wrap.getVariables();
@@ -127,7 +127,7 @@ public class OUSDQueryHelper {
 			ISelectStatement iss = wrap.next();
 			sysBudgets.add((String) iss.getVar(wNames[0]));
 		}
-		LOGGER.info("Got enduring data :: " + sysBudgets.toString());
+		logger.info("Got enduring data :: " + sysBudgets.toString());
 		return sysBudgets;
 	}
 	
@@ -140,7 +140,7 @@ public class OUSDQueryHelper {
 
 		String systemToSystemDataQuery = db.getProperty(OUSDConstants.SYSTEM_TO_SYSTEM_DATA_QUERY);
 
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + systemToSystemDataQuery);
+		logger.info(Utility.cleanLogString("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + systemToSystemDataQuery));
 		
 		Map<String, List<List<String>>> systemsToSystemData =  new HashMap<String, List<List<String>>>();
 		
@@ -162,7 +162,7 @@ public class OUSDQueryHelper {
 				systemsToSystemData.put(iss.getVar(wNames[0]).toString(), systemDataList);
 			}
 		}
-		LOGGER.info("RETRIEVED SYSTEM DATA::::: " + systemsToSystemData.toString());
+		logger.info("RETRIEVED SYSTEM DATA::::: " + systemsToSystemData.toString());
 
 		return systemsToSystemData;
 	}
@@ -178,7 +178,7 @@ public class OUSDQueryHelper {
 		
 		systemToSystemDataQuery = systemToSystemDataQuery.replaceAll("!SYSTEMS!", systemBindingString);
 
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + systemToSystemDataQuery);
+		logger.info(Utility.cleanLogString("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + systemToSystemDataQuery));
 
 		return getSingleLevelMap(db, systemToSystemDataQuery);
 	}
@@ -194,7 +194,7 @@ public class OUSDQueryHelper {
 		bluSystemQuery = bluSystemQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
 
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + bluSystemQuery);
+		logger.info(Utility.cleanLogString("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + bluSystemQuery));
 		
 		return getSingleLevelMap(db, bluSystemQuery);
 	}
@@ -210,7 +210,7 @@ public class OUSDQueryHelper {
 		systemTargetQuery = systemTargetQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
 
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + systemTargetQuery);
+		logger.info(Utility.cleanLogString("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + systemTargetQuery));
 		
 		return getSingleLevelMap(db, systemTargetQuery);
 	}
@@ -226,7 +226,7 @@ public class OUSDQueryHelper {
 		dataBLUQuery = dataBLUQuery.replace("!BLU!", bluBindingsString);
 		System.out.println(bluBindingsString);
 		
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + dataBLUQuery);
+		logger.info(Utility.cleanLogString("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + dataBLUQuery));
 		
 		List<Object[]> bluData =  new ArrayList<Object[]>();
 		
@@ -239,7 +239,7 @@ public class OUSDQueryHelper {
 			row[1] = iss.getVar(wNames[1]).toString();
 			bluData.add(row);
 		}
-		LOGGER.info("RETRIEVED SYSTEM DATA::::: " + bluData.toString());
+		logger.info(Utility.cleanLogString("RETRIEVED SYSTEM DATA::::: " + bluData.toString()));
 		
 		return bluData;
 	}
@@ -249,7 +249,7 @@ public class OUSDQueryHelper {
 		dataSystemQuery = dataSystemQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
 
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + dataSystemQuery);
+		logger.info(Utility.cleanLogString("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + dataSystemQuery));
 		
 		return getSingleLevelMap(db, dataSystemQuery);
 	}
@@ -259,7 +259,7 @@ public class OUSDQueryHelper {
 		retirementTypeQuery = retirementTypeQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
 
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + retirementTypeQuery);
+		logger.info(Utility.cleanLogString("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + retirementTypeQuery));
 		
 		return getSingleLevelMap(db, retirementTypeQuery);
 	}
@@ -271,7 +271,7 @@ public class OUSDQueryHelper {
 		activityBluSystemQuery = activityBluSystemQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
 		
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + activityBluSystemQuery);
+		logger.info(Utility.cleanLogString("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + activityBluSystemQuery));
 		
 		return getDualLevelMap(db, activityBluSystemQuery);
 	}
@@ -283,7 +283,7 @@ public class OUSDQueryHelper {
 		activityBluSystemQuery = activityBluSystemQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
 		
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + activityBluSystemQuery);
+		logger.info(Utility.cleanLogString("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + activityBluSystemQuery));
 		
 		return getDualLevelMap(db, activityBluSystemQuery);
 	}
@@ -295,7 +295,7 @@ public class OUSDQueryHelper {
 		activityDataSystemQuery = activityDataSystemQuery.replace("!SYSTEMS!", systemBindingsString);
 		System.out.println(systemBindingsString);
 		
-		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + activityDataSystemQuery);
+		logger.info(Utility.cleanLogString("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + activityDataSystemQuery));
 		
 		return getDualLevelMap(db, activityDataSystemQuery);
 	}
@@ -315,7 +315,7 @@ public class OUSDQueryHelper {
 				retirementTypeToSystemMap.put(iss.getVar(wNames[1]).toString(), systemData);
 			}
 		}
-		LOGGER.info("RETRIEVED SYSTEM DATA::::: " + retirementTypeToSystemMap.toString());
+		logger.info("RETRIEVED SYSTEM DATA::::: " + retirementTypeToSystemMap.toString());
 		
 		return retirementTypeToSystemMap;
 	}

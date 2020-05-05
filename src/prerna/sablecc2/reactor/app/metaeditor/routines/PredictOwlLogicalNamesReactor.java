@@ -102,7 +102,7 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 			try {
 				logicalNames.addAll(extractor.getLogicalNames(value));
 			} catch (Exception e) {
-				logger.info("ERROR ::: Could not process input = " + value);
+				logger.info("ERROR ::: Could not process input = " + Utility.cleanLogString(value));
 				e.printStackTrace();
 			}
 		}

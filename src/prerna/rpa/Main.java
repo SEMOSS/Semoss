@@ -23,7 +23,7 @@ public class Main {
 	
 	private static final Logger LOGGER = LogManager.getLogger(Main.class.getName());
 	
-	private static final String NEW_LINE = System.getProperty("line.separator");
+	private static final String NEW_LINE = System.lineSeparator();
 	
 	private static final String RPA_INTRO = 
 			NEW_LINE +
