@@ -10,6 +10,7 @@ import prerna.ds.rdbms.RdbmsFrameBuilder;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactor;
 import java.util.Properties;
@@ -114,10 +115,10 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 
 			prop.load(input);
 
-			logger.info("host: " + prop.getProperty(POSTGRES_HOST));
-			logger.info("port: " + prop.getProperty(POSTGRES_PORT));
-			logger.info("username: " + prop.getProperty(POSTGRES_USERNAME));
-			logger.info("password: " + prop.getProperty(POSTGRES_PASSWORD));
+			logger.info("host: " + Utility.cleanLogString(prop.getProperty(POSTGRES_HOST)));
+			logger.info("port: " + Utility.cleanLogString(prop.getProperty(POSTGRES_PORT)));
+			logger.info("username: " + Utility.cleanLogString(prop.getProperty(POSTGRES_USERNAME)));
+			logger.info("password: " + Utility.cleanLogString(prop.getProperty(POSTGRES_PASSWORD)));
 		} catch (IOException ex) {
 			logger.error("Error with loading properties in config file" + ex.getMessage());
 		}

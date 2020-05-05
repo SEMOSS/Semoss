@@ -24,6 +24,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class ExternalJdbcSchemaReactor extends AbstractReactor {
@@ -129,7 +130,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 
 				// this will be table or view
 				if(isTable) {
-					logger.info("Processing table = " + tableOrView);
+					logger.info("Processing table = " + Utility.cleanLogString(tableOrView));
 				} else {
 					// there may be views built from sys or information schema
 					// we want to ignore these
@@ -138,7 +139,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 							continue;
 						}
 					}
-					logger.info("Processing view = " + tableOrView);
+					logger.info("Processing view = " + Utility.cleanLogString(tableOrView));
 				}
 				// grab the table
 				// we want to get the following information

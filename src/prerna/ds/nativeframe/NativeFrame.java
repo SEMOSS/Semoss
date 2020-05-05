@@ -322,7 +322,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// if we still dont have an iterator
 		// create it
 		if(it == null) {
-			this.logger.info("Executing query on engine " + engine.getEngineId());
+			this.logger.info("Executing query on engine " + Utility.cleanLogString(engine.getEngineId()));
 			it = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			long end = System.currentTimeMillis();
 			this.logger.info("Engine execution time = " + (end-start) + "ms");

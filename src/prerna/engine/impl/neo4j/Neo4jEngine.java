@@ -20,6 +20,7 @@ import prerna.query.interpreters.CypherInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 /**
  * This is the connection to a remote neo4j graph database using the jdbc connection
@@ -84,7 +85,7 @@ public class Neo4jEngine extends AbstractEngine {
 			map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
 			return map;
 		} catch (Exception e) {
-			LOGGER.error("Error executing cypher query = " + query);
+			LOGGER.error("Error executing cypher query = " + Utility.cleanLogString(query));
 			LOGGER.error("Error message = " + e.getMessage());
 			e.printStackTrace();
 		}
@@ -106,7 +107,7 @@ public class Neo4jEngine extends AbstractEngine {
 				String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
 				String username = prop.getProperty(Constants.USERNAME);
 				String password = prop.getProperty(Constants.PASSWORD);
-				LOGGER.info("Connecting to remote graph: " + connectionURL);
+				LOGGER.info("Connecting to remote graph: " + Utility.cleanLogString(connectionURL));
 				conn = DriverManager.getConnection(connectionURL, username, password);
 				LOGGER.info("Done neo4j opening graph: ");
 			}

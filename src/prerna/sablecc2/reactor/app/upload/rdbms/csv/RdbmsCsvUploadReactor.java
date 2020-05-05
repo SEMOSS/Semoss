@@ -924,7 +924,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 			alterSql.append(")");
 
-			logger.info("ALTER TABLE SQL: " + alterSql.toString());
+			logger.info("ALTER TABLE SQL: " + Utility.cleanLogString(alterSql.toString()));
 			insertData(engine, alterSql.toString());
 		} else {
 			// see if all the columns are accoutned for in the table
@@ -971,7 +971,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		propMap.put(concept, conceptType);
 
 		sqlBuilder.append(")");
-		logger.info("CREATE TABLE SQL: " + sqlBuilder.toString());
+		logger.info("CREATE TABLE SQL: " + Utility.cleanLogString(sqlBuilder.toString()));
 		insertData(engine, sqlBuilder.toString());
 
 		addedTables.add(cleanConceptName.toUpperCase());
@@ -1176,7 +1176,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					wrapper.cleanUp();
 				} else {
 					//This REALLY shouldnt happen, but its here just in case...
-					logger.error("**** Error***** occurred during database clean up on table " + tableName);
+					logger.error("**** Error***** occurred during database clean up on table " + Utility.cleanLogString(tableName));
 					continue;
 				}
 
@@ -1197,13 +1197,13 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			// create indexes for ALL tables since we deleted all indexes before
 			Long lastTimeCheck = System.currentTimeMillis();
 			if (createIndexes) {
-				logger.info("Creating indexes for " + tableName);
+				logger.info("Creating indexes for " + Utility.cleanLogString(tableName));
 				for (String singleIndex : createIndex) {
 					insertData(engine, singleIndex);
-					logger.info(">>>>>" + singleIndex + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck) / 1000 + " sec");
+					logger.info(">>>>>" + Utility.cleanLogString(singleIndex) + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck) / 1000 + " sec");
 				}
 			} else {
-				logger.info("Will not create indexes for " + tableName);
+				logger.info("Will not create indexes for " + Utility.cleanLogString(tableName));
 			}
 		}
 	}

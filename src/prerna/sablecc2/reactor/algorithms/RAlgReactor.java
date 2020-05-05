@@ -12,6 +12,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RAlgReactor extends AbstractRFrameReactor {
 
@@ -54,7 +55,7 @@ public class RAlgReactor extends AbstractRFrameReactor {
 		script.append(");");
 		
 		String scriptStr = script.toString();
-		logger.info("Running script : " + scriptStr);
+		logger.info("Running script : " + Utility.cleanLogString(scriptStr));
 		this.rJavaTranslator.runR(scriptStr);
 		
 		return new NounMetadata(scriptStr, PixelDataType.CONST_STRING);

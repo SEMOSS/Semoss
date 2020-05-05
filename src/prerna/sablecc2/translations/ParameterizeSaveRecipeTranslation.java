@@ -49,10 +49,11 @@ import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.FileReadReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
+import prerna.util.Utility;
 
 public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 	
-	private static final Logger LOGGER = LogManager.getLogger(ParameterizeSaveRecipeTranslation.class.getName());
+	private static final Logger logger = LogManager.getLogger(ParameterizeSaveRecipeTranslation.class);
 
 	// this will store the list of pixels that were passed in
 	private List<String> pixels = new Vector<String>();
@@ -81,7 +82,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 			if(expression.contains("Import") || expression.contains("Merge")) {
         		this.resultKey = "$RESULT_" + e.hashCode();
 
-				LOGGER.info("Processing " + expression);
+				logger.info("Processing " + Utility.cleanLogString(expression));
 				e.apply(this);
 
 				// check if we have a QS to modify

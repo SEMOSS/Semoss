@@ -13,6 +13,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 public class RunAliasMatchReactor extends AbstractReactor {
 
@@ -69,7 +70,7 @@ public class RunAliasMatchReactor extends AbstractReactor {
 				String inputHashValue = inputHash.get(proposalKey);
 				if(!proposalHashValue.equals(inputHashValue)) {
 					count++;
-					logger.info(proposalKey);
+					logger.info(Utility.cleanLogString(proposalKey));
 					logger.info("input: "+inputHashValue);
 					logger.info("proposal: "+proposalHashValue);
 					logger.info("________________________");
