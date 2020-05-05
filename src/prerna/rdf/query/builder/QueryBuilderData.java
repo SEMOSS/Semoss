@@ -45,7 +45,7 @@ import prerna.util.Utility;
 
 public class QueryBuilderData {
 
-	static final Logger LOGGER = LogManager.getLogger(QueryBuilderData.class.getName());
+	static final Logger logger = LogManager.getLogger(QueryBuilderData.class);
 
 	Map<String, String> returnMapping;					// Logical name --> Physical Name
 	List<List<String>> relTriples;						// List of physical name triples
@@ -60,7 +60,7 @@ public class QueryBuilderData {
 	transient private final String NODE_PROPS_KEY = "SelectedNodeProps";
 
 	public QueryBuilderData(Map json){
-		LOGGER.info("Instantiating QueryBuilderData with json " + json);
+		logger.info("Instantiating QueryBuilderData with json " + json);
 
 		if(json.containsKey(NODE_PROPS_KEY)){
 			setNodeProps((List) json.get(NODE_PROPS_KEY));
@@ -78,7 +78,7 @@ public class QueryBuilderData {
 	}
 	
 	public QueryBuilderData(){
-		LOGGER.info("opening empty query builder data");
+		logger.info("opening empty query builder data");
 	}
 	
 	public void addRelTriple(List<String> trip){
@@ -89,7 +89,7 @@ public class QueryBuilderData {
 	}
 
 	public void setLimitReturnToVarsList(Boolean limitReturnToVarsList){
-		LOGGER.info("Setting to limit return var list :: " + limitReturnToVarsList);
+		logger.info("Setting to limit return var list :: " + limitReturnToVarsList);
 		this.limitReturnToVarsList = limitReturnToVarsList;
 	}
 
@@ -98,12 +98,12 @@ public class QueryBuilderData {
 	}
 
 	public void setVarReturnOrder(String var, int location){
-		LOGGER.info("setting var " + var + " return order to " + location);
+		logger.info("setting var " + var + " return order to " + location);
 		if(returnVars == null){
 			returnVars = new Vector<String>();
 		}
 		int varIdx = returnVars.indexOf(var);
-		LOGGER.info(var + " is currently in position " + varIdx);
+		logger.info(var + " is currently in position " + varIdx);
 		if(varIdx != -1){
 			returnVars.remove(var);
 			returnVars.add(location, var);
@@ -111,7 +111,7 @@ public class QueryBuilderData {
 		else if (location == 0){
 			returnVars.add(location, var);
 		}
-		LOGGER.info(var + " is now in position " + returnVars.indexOf(var));
+		logger.info(var + " is now in position " + returnVars.indexOf(var));
 	}
 
 	public List<String> getReturnVars(){
@@ -184,10 +184,10 @@ public class QueryBuilderData {
 		if(this.nodeProps != null){
 			for(Map<String, String> nodeProp: this.nodeProps){
 				String propVarName = nodeProp.get("varKey");
-				LOGGER.info("checking if we need to add property to edgeHash::: " + propVarName);
+				logger.info("checking if we need to add property to edgeHash::: " + propVarName);
 				if(!limitReturnToVarsList || this.returnVars.contains(propVarName)){
 					String nodeVarName = nodeProp.get("SubjectVar");
-					LOGGER.info("yes, adding now. " + propVarName + " is downstream of " + nodeVarName); // TODO: What if nodeVarName is not part of query return... ? what do we connect this property to?
+					logger.info("yes, adding now. " + propVarName + " is downstream of " + nodeVarName); // TODO: What if nodeVarName is not part of query return... ? what do we connect this property to?
 					Set<String> downNodeTypes = edgeHash.get(nodeVarName);
 					if(downNodeTypes == null){
 						downNodeTypes = new HashSet<String>();
@@ -203,12 +203,12 @@ public class QueryBuilderData {
 					String physObj = relTriple.get(2);
 					String logicalObj = getLogicalNameFromPhysicalURI(physObj);
 
-					LOGGER.info("checking if need need to add node to edgeHash:::: " + logicalObj);
+					logger.info("checking if need need to add node to edgeHash:::: " + Utility.cleanLogString(logicalObj));
 					if(!limitReturnToVarsList || this.returnVars.contains(logicalObj)){
 						// yes it seems valid. need to get subject logical name
 						String physSub = relTriple.get(0);
 						String logicalSub = getLogicalNameFromPhysicalURI(physSub);
-						LOGGER.info("yes, adding now. " + logicalObj + " is downstream of " + logicalSub); // TODO: What if subject is not part of query return... ? what do we connect this property to?
+						logger.info(Utility.cleanLogString("yes, adding now. " + logicalObj + " is downstream of " + logicalSub)); // TODO: What if subject is not part of query return... ? what do we connect this property to?
 						Set<String> downNodeTypes = edgeHash.get(logicalSub);
 						if(downNodeTypes == null){
 							downNodeTypes = new HashSet<String>();
@@ -371,10 +371,10 @@ public class QueryBuilderData {
 		if(this.nodeProps != null){
 			for(Map<String, String> nodeProp: this.nodeProps){
 				String propVarName = nodeProp.get("uriKey");
-				LOGGER.info("checking if we need to add property to edgeHash::: " + propVarName);
+				logger.info("checking if we need to add property to edgeHash::: " + propVarName);
 				if(!limitReturnToVarsList || this.returnVars.contains(propVarName)){
 					String nodeVarName = nodeProp.get("equivalentURI");
-					LOGGER.info("yes, adding now. " + propVarName + " is downstream of " + nodeVarName);
+					logger.info("yes, adding now. " + propVarName + " is downstream of " + nodeVarName);
 					qs.addSelector(Utility.getInstanceName(nodeVarName), Utility.getInstanceName(propVarName));
 				}
 			}
@@ -390,10 +390,10 @@ public class QueryBuilderData {
 					String physSub = relTriple.get(0);
 					String logicalSub = getLogicalNameFromPhysicalURI(physSub);
 
-					LOGGER.info("checking if need need to add node to edgeHash:::: " + logicalObj);
+					logger.info("checking if need need to add node to edgeHash:::: " + logicalObj);
 					if(!limitReturnToVarsList || this.returnVars.contains(logicalObj) ||  this.returnVars.contains(logicalSub)){
 						// yes it seems valid. need to get subject logical name
-						LOGGER.info("yes, adding now. " + logicalObj + " is downstream of " + logicalSub); // TODO: What if subject is not part of query return... ? what do we connect this property to?
+						logger.info("yes, adding now. " + logicalObj + " is downstream of " + logicalSub); // TODO: What if subject is not part of query return... ? what do we connect this property to?
 						
 						String physSubInst = Utility.getInstanceName(physSub);
 						String physObjInst = Utility.getInstanceName(physObj);

@@ -26,7 +26,7 @@ public class JedisToJDBCJob implements org.quartz.InterruptableJob {
 
 	private static final Logger LOGGER = LogManager.getLogger(JedisToJDBCJob.class.getName());
 	
-	private static final String NEW_LINE = System.getProperty("line.separator");
+	private static final String NEW_LINE = System.lineSeparator();
 
 	/** {@code String} */
 	public static final String IN_JEDIS_HASH_KEY = CommonDataKeys.JEDIS_HASH;

@@ -21,7 +21,7 @@ public class ExecuteSQLJob implements org.quartz.InterruptableJob {
 	
 	private static final Logger LOGGER = LogManager.getLogger(ExecuteSQLJob.class.getName());
 	
-	private static final String NEW_LINE = System.getProperty("line.separator");
+	private static final String NEW_LINE = System.lineSeparator();
 
 	// Connection details
 	// Since the package is JDBC, it is implied for these keys

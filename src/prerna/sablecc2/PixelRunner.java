@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import cern.colt.Arrays;
 import prerna.om.Insight;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -29,6 +30,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.PixelPlanner;
+import prerna.util.Utility;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -203,7 +205,7 @@ public class PixelRunner {
 	public static void main(String[] args) throws Exception {
 		String pixel = "A = 10; B = \"Apple\";";
 		List<String> x = parsePixel(pixel);
-		logger.info(x);
+		logger.info(Utility.cleanLogString(Arrays.toString(x.toArray())));
 	}
 	
 	/**

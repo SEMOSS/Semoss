@@ -25,7 +25,7 @@ public class GenerateHashedPrimkeyJob implements org.quartz.InterruptableJob {
 
 	private static final Logger LOGGER = LogManager.getLogger(GenerateHashedPrimkeyJob.class.getName());
 	
-	private static final String NEW_LINE = System.getProperty("line.separator");
+	private static final String NEW_LINE = System.lineSeparator();
 	private static final String RUNNING_SQL_MESSAGE = "Running the following SQL statement:";
 	
 	// Connection details

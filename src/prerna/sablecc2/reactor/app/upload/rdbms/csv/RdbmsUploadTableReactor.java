@@ -275,7 +275,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 			RDBMSEngineCreationHelper.insertNewTablesAsInsights(this.engine, owler, newTableSet);
 			logger.info(stepCounter + ". Complete");
 		} else {
-			logger.info("Found table " + tableToInsertInto + " that holds similar data! Will insert into this table");
+			logger.info("Found table " + Utility.cleanLogString(tableToInsertInto) + " that holds similar data! Will insert into this table");
 			bulkInsertFile(this.engine, this.helper, tableToInsertInto, headers, types, additionalTypes, clean);
 		}
 	}

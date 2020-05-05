@@ -105,7 +105,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 	
 	public void processData(IEngine engine, File sourceFolder){
 		LOGGER.info("SELECTED DATABASE ENGINE::: " + engine.getEngineId());
-		LOGGER.info("SELECTED SOURCE FOLDER ::: " + sourceFolder.getName());
+		LOGGER.info("SELECTED SOURCE FOLDER ::: " + Utility.cleanLogString(sourceFolder.getName()));
 
 		LOGGER.info("The Nonservices marked for review are: ");
 		NONSERVICES_REVIEWED_SYSTEMS_LIST = getReviewedSystems(engine, NONSERVICES_REVIEWED_SYSTEMS_QUERY);
@@ -413,7 +413,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 				}
 			}
 		    if(!systemFound){
-		    	LOGGER.info(" ************* System Not Found - Creating a row in SystemInformation Tab for: " + key);
+		    	LOGGER.info(" ************* System Not Found - Creating a row in SystemInformation Tab for: " + Utility.cleanLogString(key));
 		    	//system not found, create a new row
 		    	
 				XSSFRow row = lSheet.createRow(count++);
@@ -650,7 +650,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 						}
 					} 
 					else {
-						LOGGER.info("Could not find " + cleanedString + " in sheet");
+						LOGGER.info("Could not find " + Utility.cleanLogString(cleanedString) + " in sheet");
 					}
 				}
 			}

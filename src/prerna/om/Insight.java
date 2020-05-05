@@ -274,9 +274,9 @@ public class Insight {
 			for(int i = 0; i < size; i++) {
 				String pixelString = pixelList.get(i);
 				if(this.user != null) {
-					LOGGER.info(User.getSingleLogginName(this.user) + " Running >>> " + pixelString);
+					LOGGER.info(User.getSingleLogginName(this.user) + " Running >>> " + Utility.cleanLogString(pixelString));
 				} else {
-					LOGGER.info("No User Running >>> " + pixelString);
+					LOGGER.info("No User Running >>> " + Utility.cleanLogString(pixelString));
 				}
 				try {
 					runner.runPixel(pixelString, this);

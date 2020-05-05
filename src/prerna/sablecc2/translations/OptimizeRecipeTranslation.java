@@ -57,6 +57,7 @@ import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.insights.SetInsightGoldenLayoutReactor;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
+import prerna.util.Utility;
 
 public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
@@ -166,7 +167,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			//when we put the expression in the expression map, this is when we should change to the unencoded version
 			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodingList, encodedToOriginal);
 			expressionMap.put(index, expression);
-			LOGGER.info("Processing " + expression + "at index: " + index);
+			LOGGER.info("Processing " + Utility.cleanLogString(expression) + "at index: " + index);
 			e.apply(this);
 			// if we made it through all reactors of the expression without ever hitting TaskOptions, go ahead and add the expression to expressionsToKeep
 			// this is run for each expression
