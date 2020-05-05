@@ -11,6 +11,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -56,7 +57,7 @@ public class EngineInsightsHelper {
 		prop.put(Constants.DRIVER, rdbmsInsightsType.getDriver());
 		prop.put(Constants.RDBMS_TYPE, rdbmsInsightsType.getLabel());
 		String connURL = null;
-		logger.info("Insight rdbms database location is " + insightDatabaseLoc);
+		logger.info("Insight rdbms database location is " + Utility.cleanLogString(insightDatabaseLoc));
 		
 		if(rdbmsInsightsType == RdbmsTypeEnum.SQLITE) {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":" + insightDatabaseLoc;
@@ -67,7 +68,7 @@ public class EngineInsightsHelper {
 			prop.put(Constants.USERNAME, "sa");
 			prop.put(Constants.PASSWORD, "");
 		}
-		logger.info("Insight rdbms database url is " + connURL);
+		logger.info("Insight rdbms database url is " + Utility.cleanLogString(connURL));
 		prop.put(Constants.CONNECTION_URL, connURL);
 
 		insightsRdbms.setProp(prop);

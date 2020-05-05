@@ -87,12 +87,12 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 				// this will be table or view
 				String tableType = tablesRs.getString(TABLE_TYPE_STR).toUpperCase();
 				if(tableType.toUpperCase().contains("TABLE")) {
-					logger.info("Found table = " + table);
+					logger.info("Found table = " + Utility.cleanLogString(table));
 					tables.add(table);
 				} else {
 					// there may be views built from sys or information schema
 					// we want to ignore these
-					logger.info("Found view = " + table);
+					logger.info("Found view = " + Utility.cleanLogString(table));
 					views.add(table);
 				}
 			}

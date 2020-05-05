@@ -56,7 +56,7 @@ import prerna.util.Utility;
 
 public class QuestionAdministrator {
 
-	private static final Logger LOGGER = Logger.getLogger(QuestionAdministrator.class.getName());
+	private static final Logger logger = Logger.getLogger(QuestionAdministrator.class);
 	private static final String GET_LAST_INSIGHT_ID = "SELECT DISTINCT ID FROM QUESTION_ID ORDER BY ID DESC";
 	private static final String GET_IDS_FOR_PERSPECTIVES = "SELECT DISTINCT ID FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE IN ";
 	
@@ -82,12 +82,12 @@ public class QuestionAdministrator {
 			String uiOptions
 			) 
 	{
-		LOGGER.info("Adding new question with name :::: " + insightName);
-		LOGGER.info("Adding new question with perspective :::: " + perspective);
-		LOGGER.info("Adding new question with layout :::: " + layout);
-		LOGGER.info("Adding new question with order :::: " + order);
-		LOGGER.info("Adding new question with dataMaker :::: " + dataMaker);
-		LOGGER.info("Adding new question with dataTableAlign :::: " + dataTableAlign);
+		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
+		logger.info("Adding new question with perspective :::: " + Utility.cleanLogString(perspective));
+		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
+		logger.info("Adding new question with order :::: " + Utility.cleanLogString(order));
+		logger.info("Adding new question with dataMaker :::: " + Utility.cleanLogString(dataMaker));
+		logger.info("Adding new question with dataTableAlign :::: " + dataTableAlign);
 		//TODO: need to find best way to create question IDs
 		/* Current logic:
 		 * Find the last insight id (all insight ids based on engine name concatenated with "_*UNIQUE_NUMBER*"
@@ -143,7 +143,7 @@ public class QuestionAdministrator {
 			e.printStackTrace();
 		}
 
-		LOGGER.info("Done adding main part of question... now parameters");
+		logger.info("Done adding main part of question... now parameters");
 		//now add in parameters
 		addParameters(parameters, lastIDNum);
 		//now add in ui options
@@ -151,7 +151,7 @@ public class QuestionAdministrator {
 		
 		insightEngine.commit();
 
-		LOGGER.info("Done adding question");
+		logger.info("Done adding question");
 		
 		return lastIDNum;
 	}
@@ -282,7 +282,7 @@ public class QuestionAdministrator {
 	}
 	
 	public void reorderPerspective(String perspective, List<String> orderedInsightIds){
-		LOGGER.info("Reording perspective  "+ perspective + " to " + orderedInsightIds.toString());
+		logger.info("Reording perspective  "+ perspective + " to " + orderedInsightIds.toString());
 		
 		for(int idx = 0; idx < orderedInsightIds.size(); idx++){
 			String id = orderedInsightIds.get(idx);
@@ -306,7 +306,7 @@ public class QuestionAdministrator {
 	private void deleteInsight(String... insightIDs) {
 		String idsString = createString(insightIDs);
 		String questionQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
-		LOGGER.info("running remove query :::: " + questionQuery);
+		logger.info("running remove query :::: " + questionQuery);
 		try {
 			insightEngine.removeData(questionQuery);
 		} catch (Exception e) {
@@ -317,7 +317,7 @@ public class QuestionAdministrator {
 	private void deleteParameter(String... insightIDs) {
 		String idsString = createString(insightIDs);
 		String parameterQuery = "DELETE FROM PARAMETER_ID WHERE QUESTION_ID_FK IN " + idsString ;
-		LOGGER.info("running remove query :::: " + parameterQuery);
+		logger.info("running remove query :::: " + parameterQuery);
 		try {
 			insightEngine.removeData(parameterQuery);
 		} catch (Exception e) {
@@ -328,7 +328,7 @@ public class QuestionAdministrator {
 	private void deleteUiOptions(String... insightIDs) {
 		String idsString = createString(insightIDs);
 		String parameterQuery = "DELETE FROM UI WHERE QUESTION_ID_FK IN " + idsString ;
-		LOGGER.info("running remove query :::: " + parameterQuery);
+		logger.info("running remove query :::: " + parameterQuery);
 		try {
 			insightEngine.removeData(parameterQuery);
 		} catch (Exception e) {
@@ -356,9 +356,9 @@ public class QuestionAdministrator {
 	
 	private void addParameters(List<SEMOSSParam> parameters, String insightID) {
 		if(parameters != null) {
-			LOGGER.info("Beginning to add parameters for insight ");
+			logger.info("Beginning to add parameters for insight ");
 			for(SEMOSSParam param : parameters) {
-				LOGGER.info("Adding parameter with details " + param.toString());
+				logger.info("Adding parameter with details " + Utility.cleanLogString(param.toString()));
 				String paramID = "";
 				if(!param.getName().startsWith(insightID.concat("_")))
 					paramID = insightID.concat("_").concat(param.getName());
@@ -386,10 +386,10 @@ public class QuestionAdministrator {
 					}
 				}
 				String paramDependency = paramDependencyBuilder.toString();
-				LOGGER.info("Parameter depends on :::: " + paramDependency);
+				logger.info("Parameter depends on :::: " + Utility.cleanLogString(paramDependency));
 				
 				String paramQuery = param.getQuery();
-				LOGGER.info("Parameter has query :::: " + paramQuery);
+				logger.info("Parameter has query :::: " + paramQuery);
 				if(paramQuery == null) {
 					paramQuery = "";
 				} else {
@@ -404,7 +404,7 @@ public class QuestionAdministrator {
 					}
 				}
 				String paramOptions = paramOptionsBuilder.toString();
-				LOGGER.info("Parameter has options :::: " + paramOptions);
+				logger.info("Parameter has options :::: " + Utility.cleanLogString(paramOptions));
 				if(!paramOptions.isEmpty()) {
 					paramOptions = escapeForSQLStatement(paramOptions);
 				}
@@ -431,11 +431,11 @@ public class QuestionAdministrator {
 				}
 			}
 		}
-		LOGGER.info("Done adding parameters");
+		logger.info("Done adding parameters");
 	}
 	
 	protected String generateXMLInsightMakeup(List<DataMakerComponent> dmcList, List<SEMOSSParam> parameters) {
-		LOGGER.info("Generating NTriples for insight makeup");
+		logger.info("Generating NTriples for insight makeup");
 		StringBuilder builder = new StringBuilder();
 		Set<String> engineSet = new HashSet<String>();
 		Gson gson = new Gson();
@@ -475,7 +475,7 @@ public class QuestionAdministrator {
 			//  Post transformations --- if its a join and involves the parameter should be type inner
 			
 			
-			LOGGER.info("Creating nTriples for compoenent:::: " + i);
+			logger.info("Creating nTriples for compoenent:::: " + i);
 			// create component based on number "i"
 			builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Component> .\n");
 			// add order to component
@@ -487,7 +487,7 @@ public class QuestionAdministrator {
 			String engineName = dmc.getEngine().getEngineId();
 			String realEngineName = escapeForSQLStatement(engineName);
 			String cleanEngineName = Utility.cleanString(engineName, true);
-			LOGGER.info("Component " + i + " has engine name::: " + cleanEngineName);
+			logger.info("Component " + i + " has engine name::: " + cleanEngineName);
 			// create engine and add to component 
 			if(!engineSet.contains(cleanEngineName)) {
 				engineSet.add(cleanEngineName);
@@ -502,11 +502,11 @@ public class QuestionAdministrator {
 			if(query == null) {
 				involvedParams = getInvolvedParams(dmc, parameters, paramsAccountedFor);
 				String jsonMetamodel = gson.toJson(dmc.getQueryStruct());
-				LOGGER.info("Component " + i + " does NOT have query... instead saving metamodel::: " + jsonMetamodel);
+				logger.info("Component " + i + " does NOT have query... instead saving metamodel::: " + jsonMetamodel);
 				jsonMetamodel = escapeForNTripleAndSQLStatement(jsonMetamodel);
 				builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <http://semoss.org/ontologies/Relation/Contains/Metamodel> \"" + jsonMetamodel + "\" .\n");
 			} else {
-				LOGGER.info("Component " + i + " has query::: " + query);
+				logger.info("Component " + i + " has query::: " + Utility.cleanLogString(query));
 				involvedParams = getInvolvedParamsFromQuery(query, parameters, paramsAccountedFor);//
 				query = escapeForNTripleAndSQLStatement(query);
 				builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <http://semoss.org/ontologies/Relation/Contains/Query> \"" + query + "\" .\n");
@@ -515,16 +515,16 @@ public class QuestionAdministrator {
 			List<ISEMOSSTransformation> preTransformationList = dmc.getPreTrans();
 			int preIdx = 0;
 			if(preTransformationList != null && !preTransformationList.isEmpty()) {
-				LOGGER.info("Component " + i + " has pre-transformations!!");
+				logger.info("Component " + i + " has pre-transformations!!");
 				for(; preIdx < preTransformationList.size(); preIdx++) {
-					LOGGER.info("Component " + i + " .... building pre-transformation " + preIdx);
+					logger.info("Component " + i + " .... building pre-transformation " + preIdx);
 					ISEMOSSTransformation preTrans = preTransformationList.get(preIdx);
 					buildPreTransString(preTrans, preIdx, i, numPreTransformations, builder, involvedParams, gson);
 				}
 			}
 			while (!involvedParams.isEmpty()) { // these are the params that don't have a pretrans set up for them.
 				//    Add a pre trans with empty list
-				LOGGER.info("Component " + i + " .... building pre-transformation " + preIdx + " JUST FOR PARAM");
+				logger.info("Component " + i + " .... building pre-transformation " + preIdx + " JUST FOR PARAM");
 				SEMOSSParam param = involvedParams.remove(0);
 				ISEMOSSTransformation newPreTrans = buildEmptyFilterTrans(param.getName());
 				param.setComponentFilterId(OldInsight.COMP + i + ":" + OldInsight.PRE_TRANS + preIdx);
@@ -534,14 +534,14 @@ public class QuestionAdministrator {
 			numPreTransformations+=preIdx;
 			List<ISEMOSSTransformation> postTransformationList = dmc.getPostTrans();
 			if(postTransformationList != null && !postTransformationList.isEmpty()) {
-				LOGGER.info("Component " + i + " has post-transformations!!");
+				logger.info("Component " + i + " has post-transformations!!");
 				int j = 0;
 				int postTransListIdx = 0;
 				for(; postTransListIdx < postTransformationList.size(); postTransListIdx++) {
-					LOGGER.info("Component " + i + " .... building post-transformation " + j);
+					logger.info("Component " + i + " .... building post-transformation " + j);
 					ISEMOSSTransformation postTrans = postTransformationList.get(postTransListIdx);
 					if (postTrans instanceof FilterTransformation && filterInvolvesParams(parameters, (FilterTransformation)postTrans)){
-						LOGGER.info("Component " + i + " .... skipping this trans cuz involves param... will try next");
+						logger.info("Component " + i + " .... skipping this trans cuz involves param... will try next");
 						continue;
 					}
 					// add transformation based on "j"
@@ -567,10 +567,10 @@ public class QuestionAdministrator {
 			}
 			List<ISEMOSSAction> actionList = dmc.getActions();
 			if(actionList != null && !actionList.isEmpty()) {
-				LOGGER.info("Component " + i + " has actions!!");
+				logger.info("Component " + i + " has actions!!");
 				int j = 0;
 				for(; j < actionList.size(); j++) {
-					LOGGER.info("Component " + i + " .... building action " + j);
+					logger.info("Component " + i + " .... building action " + j);
 					ISEMOSSAction action = actionList.get(j);
 					// add transformation based on "j"
 					builder.append("<http://semoss.org/ontologies/Concept/Action/" + (j+numAction) + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Action> .\n");
@@ -589,8 +589,8 @@ public class QuestionAdministrator {
 			}
 		}
 		String clob = builder.toString();
-		LOGGER.info("Done building NTRIPLES");
-		LOGGER.debug("CLOB to save is :: " + clob);
+		logger.info("Done building NTRIPLES");
+		logger.debug("CLOB to save is :: " + clob);
 		
 		return clob;
 	}
@@ -691,7 +691,7 @@ public class QuestionAdministrator {
 			idsString = idsString + "'" + id + "', ";
 		}
 		idsString = idsString.substring(0, idsString.length() - 2) + ")";
-		LOGGER.info("IDs string :::: " + idsString);
+		logger.info("IDs string :::: " + idsString);
 		
 		return idsString;
 	}
@@ -795,24 +795,24 @@ public class QuestionAdministrator {
 					String paramURI = param.getType(); // this will either be the physical uri if coming from actions (e.g. ..Concept/Column/Table) or custom defined (e.g. Table:Column)
 					
 					if(paramURI==null){ // if paramURI is null this means it is a param with custom query or static options. in this case, it must be associated with the first component, so immediately add it
-						LOGGER.info("this param type is null. adding to first component! :)");
+						logger.info("this param type is null. adding to first component! :)");
 						involvedParams.add(param);
 						continue PARAMS_FOR;
 					}
 					
-					LOGGER.info("is my param : " + paramURI + " involved in query " + query );
+					logger.info("is my param : " + paramURI + " involved in query " + query );
 					Map<String, String> paramsInQuery = Utility.getParams(query);
 					for(String paramInQuery : paramsInQuery.keySet()){
-						LOGGER.info("checking param in query : " + paramInQuery);
+						logger.info("checking param in query : " + Utility.cleanLogString(paramInQuery));
 						String[] split = paramInQuery.split("-"); // this will be label-type where type is custom defined (e.g. Table:Column)
 						if(paramURI.equals(split[1])){
-							LOGGER.info("this param is involved");
+							logger.info("this param is involved");
 							involvedParams.add(param);
 							continue PARAMS_FOR;
 						}
 						String rebuiltParamUri = Utility.getInstanceName(paramURI) + ":"+ Utility.getClassName(paramURI);
 						if(rebuiltParamUri.equals(split[1])){
-							LOGGER.info("this param is involved");
+							logger.info("this param is involved");
 							involvedParams.add(param);
 							continue PARAMS_FOR;
 						}

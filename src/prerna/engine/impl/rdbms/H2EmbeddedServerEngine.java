@@ -48,9 +48,9 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 			}
 		}
 		
-		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + serverUrl);
-		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + serverUrl);
-		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + serverUrl);
+		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
+		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
+		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
 	}
 	
 	

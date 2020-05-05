@@ -24,7 +24,7 @@ public class ETLJob implements org.quartz.InterruptableJob {
 
 	private static final Logger LOGGER = LogManager.getLogger(ETLJob.class.getName());
 	
-	private static final String NEW_LINE = System.getProperty("line.separator");
+	private static final String NEW_LINE = System.lineSeparator();
 
 	// Inputs
 	// From

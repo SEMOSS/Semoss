@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -60,7 +61,7 @@ public class JedisUtil {
 			String keyQuery = "*";
 			Set<String> keys = jedis.keys(keyQuery);
 			for (String key : keys) {
-				LOGGER.info(key);
+				LOGGER.info(Utility.cleanLogString(key));
 			}
 			jedis.flushAll();
 			int nKeysLeft = jedis.keys(keyQuery).size();
@@ -85,7 +86,7 @@ public class JedisUtil {
 				jedis.del(key);
 				keysString.append(NEW_LINE).append(key);
 			}
-			LOGGER.info("Deleting the keys: " + keysString.toString());
+			LOGGER.info("Deleting the keys: " + Utility.cleanLogString(keysString.toString()));
 			int nKeysLeft = jedis.keys(keyQuery).size();
 			LOGGER.info(keys.size() - nKeysLeft + "/" + keys.size() + " keys for the prefix " + prefix + " deleted.");
 			if (nKeysLeft > 0) {
@@ -98,7 +99,7 @@ public class JedisUtil {
 	public static void logKeysForQuery(String keyQuery) {
 		try (Jedis jedis = JedisStore.getInstance().getResource()) {
 			for (String key : jedis.keys(keyQuery)) {
-				LOGGER.info(key);
+				LOGGER.info(Utility.cleanLogString(key));
 			}
 		}
 	}
@@ -124,7 +125,7 @@ public class JedisUtil {
 			}
 			membersString.append("}");
 		}
-		LOGGER.info(membersString.toString());
+		LOGGER.info(Utility.cleanLogString(membersString.toString()));
 	}
 	
 	public static void logHashMembers(String key) {
@@ -148,7 +149,7 @@ public class JedisUtil {
 			}
 			membersString.append("}");
 		}
-		LOGGER.info(membersString.toString());
+		LOGGER.info(Utility.cleanLogString(membersString.toString()));
 	}
 	
 }

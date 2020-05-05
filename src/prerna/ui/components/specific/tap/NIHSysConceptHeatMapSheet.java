@@ -28,6 +28,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +36,7 @@ import java.util.Set;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Utility;
 
 /**
  * Heat Map that shows what gaps in data exist for systems to suppor their BLUs
@@ -96,7 +98,7 @@ public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
 		//Creating keyHash from paramDataHash
 		updateProgressBar("70%...Evaluating Business Logic Provided for a " + comparisonType, 70);		
 		
-		logger.info(systemNamesList);
+		logger.info(Utility.cleanLogString(Arrays.toString(systemNamesList.toArray())));
 
 		allHash.put("xAxisTitle", "Concept");
 		allHash.put("title",  "Systems Support " + comparisonType);

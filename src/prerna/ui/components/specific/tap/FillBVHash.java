@@ -296,8 +296,8 @@ public class FillBVHash implements Runnable{
 				}
 			}
 			if(totalCheck == 0) {
-				logger.warn("Matrix filled with all zeros: " + key);
-				fileLogger.info("Matrix filled with all zeros: " + key);
+				logger.warn("Matrix filled with all zeros: " + Utility.cleanLogString(key));
+				fileLogger.info("Matrix filled with all zeros: " + Utility.cleanLogString(key));
 			}
 			BVhash.put(key+Constants.CALC_MATRIX, matrix);
 			BVhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);

@@ -107,7 +107,7 @@ public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 			try {
 				descriptions.addAll(extractor.getDescriptions(value));
 			} catch (Exception e) {
-				logger.info("ERROR ::: Could not process input = " + value);
+				logger.info("ERROR ::: Could not process input = " + Utility.cleanLogString(value));
 				e.printStackTrace();
 			}
 		}

@@ -649,7 +649,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			int numSystems = systemsWithCostList.size();
 			for (int sysIndex = 0; sysIndex < numSystems; sysIndex++) {
 				String systemName = systemsWithCostList.get(sysIndex);
-				LOGGER.info("Running query for system = " + systemName);
+				LOGGER.info("Running query for system = " + Utility.cleanLogString(systemName));
 				// this array will contain the values we want to insert into the 
 				// system cost frame
 				Object[] sysCostValues = new Object[systemSustainmentFrameSize];
@@ -918,7 +918,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 							String[] systemSiteCombo = systemsSiteComboList.get(sysIndex).split("\\+\\+\\+");
 							String systemName = systemSiteCombo[0];
 							String siteName = systemSiteCombo[1];
-							LOGGER.info("Running query for system = " + systemName + " and site = " + siteName);
+							LOGGER.info(Utility.cleanLogString("Running query for system = " + systemName + " and site = " + siteName));
 							// this array will contain the values we want to insert into the 
 							// system cost frame
 							Object[] sysCostValues = new Object[systemSustainmentFrameSize];
