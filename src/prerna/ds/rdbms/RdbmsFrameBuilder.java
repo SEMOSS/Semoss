@@ -373,7 +373,7 @@ public class RdbmsFrameBuilder {
 			long start = System.currentTimeMillis();
 
 			String indexSql = null;
-			logger.info("Generating index on SQL Table on column = " + colName);
+			logger.info("Generating index on SQL Table on column = " + Utility.cleanLogString(colName));
 			logger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			try {
 				String indexName = colName + "_INDEX_" + getRandomValues();
@@ -384,7 +384,7 @@ public class RdbmsFrameBuilder {
 				long end = System.currentTimeMillis();
 
 				logger.debug("TIME FOR INDEX CREATION = " + (end - start) + " ms");
-				logger.info("Finished generating indices on SQL Table on column = " + colName);
+				logger.info("Finished generating indices on SQL Table on column = " + Utility.cleanLogString(colName));
 			} catch (Exception e) {
 				logger.debug("ERROR WITH INDEX !!! " + indexSql);
 				logger.error(STACKTRACE, e);
@@ -415,7 +415,7 @@ public class RdbmsFrameBuilder {
 
 	protected void removeColumnIndex(String tableName, String colName) {
 		if (columnIndexMap.containsKey(tableName + "+++" + colName)) {
-			logger.info("Removing index on SQL Table column = " + colName);
+			logger.info("Removing index on SQL Table column = " + Utility.cleanLogString(colName));
 			logger.debug("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			String indexName = columnIndexMap.remove(tableName +  "+++" + colName);
 			try {
@@ -429,7 +429,7 @@ public class RdbmsFrameBuilder {
 	public void removeColumnIndex(String tableName, String[] colNames) {
 		String multiColIndexName = StringUtils.join(colNames, "__");
 		if (multiColumnIndexMap.containsKey(tableName + "+++" + multiColIndexName)) {
-			logger.info("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexName);
+			logger.info("DROPPING INDEX ON TABLE = " + Utility.cleanLogString(tableName) + " ON COLUMNS = " + multiColIndexName);
 			String indexName = multiColumnIndexMap.remove(tableName +  "+++" + multiColIndexName);
 			try {
 				runQuery(queryUtil.dropIndex(indexName, tableName));

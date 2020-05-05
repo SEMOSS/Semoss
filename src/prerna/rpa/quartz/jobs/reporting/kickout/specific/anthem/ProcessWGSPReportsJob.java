@@ -16,10 +16,11 @@ import prerna.rpa.reporting.AbstractReportProcessor;
 import prerna.rpa.reporting.ReportProcessingException;
 import prerna.rpa.reporting.kickout.specific.anthem.WGSPReportProcess;
 import prerna.rpa.reporting.kickout.specific.anthem.WGSPReportProcessor;
+import prerna.util.Utility;
 
 public class ProcessWGSPReportsJob implements org.quartz.InterruptableJob {
 
-	private static final Logger LOGGER = LogManager.getLogger(ProcessWGSPReportsJob.class.getName());
+	private static final Logger logger = LogManager.getLogger(ProcessWGSPReportsJob.class);
 	
 	// Constants
 	// These are optimized to this use case
@@ -69,7 +70,7 @@ public class ProcessWGSPReportsJob implements org.quartz.InterruptableJob {
 					return s.matches(REGEX) && !WGSPReportProcess.parseKickoutDate(s)
 							.before(ignoreBefore);
 				} catch (ParseException e) {
-					LOGGER.warn("Will not process " + s + "; unable to parse the kickout date.");
+					logger.warn("Will not process " + Utility.cleanLogString(s) + "; unable to parse the kickout date.");
 					return false;
 				}
 			}, N_THREADS, SHUTDOWN_TIMEOUT, prefix, ignoreSystems);
@@ -86,7 +87,7 @@ public class ProcessWGSPReportsJob implements org.quartz.InterruptableJob {
 
 	@Override
 	public void interrupt() throws UnableToInterruptJobException {
-		LOGGER.warn(jobName + ": " + "The " + jobName + " job was interrupted. Will stop accepting reports, but will allow existing processes to finish execution.");
+		logger.warn(jobName + ": " + "The " + jobName + " job was interrupted. Will stop accepting reports, but will allow existing processes to finish execution.");
 		if (reportProcessor != null) {
 			
 			// Attempt to gracefully shutdown threads

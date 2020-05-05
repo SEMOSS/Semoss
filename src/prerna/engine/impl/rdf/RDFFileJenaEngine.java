@@ -75,7 +75,7 @@ public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 	public void closeDB() {
 		super.closeDB();
 		jenaModel.close();
-		logger.info("Closing the database to the file " + propFile);		
+		logger.info("Closing the database to the file " + Utility.cleanLogString(propFile));		
 	}
 
 	/**
@@ -94,12 +94,12 @@ public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 		}
 		else if(q2.isConstructType()){
 			Model resultModel = qexec.execConstruct() ;
-			logger.info("Executing the RDF File Graph Query " + query);
+			logger.info("Executing the RDF File Graph Query " + Utility.cleanLogString(query));
 			return resultModel;
 		}
 		else if(q2.isAskType()){
 			Boolean bool = qexec.execAsk() ;
-			logger.info("Executing the RDF File ASK Query " + query);
+			logger.info("Executing the RDF File ASK Query " + Utility.cleanLogString(query));
 			return bool;
 		}
 		else

@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.util.Utility;
 
 public class JanusEngine extends TinkerEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(JanusEngine.class);
@@ -15,9 +16,9 @@ public class JanusEngine extends TinkerEngine {
 		super.openDB(propFile);
 		String janusConfFilePath = SmssUtilities.getJanusFile(prop).getAbsolutePath();
 		try {
-			LOGGER.info("Opening graph: " + janusConfFilePath);
+			LOGGER.info("Opening graph: " + Utility.cleanLogString(janusConfFilePath));
 			g = JanusGraphFactory.open(janusConfFilePath);
-			LOGGER.info("Done opening graph: " + janusConfFilePath);
+			LOGGER.info("Done opening graph: " + Utility.cleanLogString(janusConfFilePath));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

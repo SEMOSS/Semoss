@@ -335,7 +335,7 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 	@Override
 	public void executeEmptyR(String rScript) {
 		try {
-			logger.info("executeR: " + rScript);
+			logger.info("executeR: " + Utility.cleanLogString(rScript));
 			retCon.voidEval(rScript);
 		} catch (RserveException e) {
 			logger.error(STACKTRACE, e);

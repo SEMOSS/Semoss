@@ -34,6 +34,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.util.Utility;
 
 public class ReplaceDatasourceTranslation extends AbstractDatasourceModificationTranslation {
 
@@ -71,7 +72,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
     		this.resultKey = "$RESULT_" + e.hashCode();
 
 			String expression = e.toString();
-			LOGGER.info("Processing " + expression);
+			LOGGER.info("Processing " + Utility.cleanLogString(expression));
 
 			boolean process = false;
 			for(String iType : importTypes) {

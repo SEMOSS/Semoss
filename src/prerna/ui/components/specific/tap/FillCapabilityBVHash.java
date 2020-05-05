@@ -211,7 +211,7 @@ public class FillCapabilityBVHash implements Runnable{
 					totalCheck = totalCheck + values[row][col];
 				}
 			}
-			if(totalCheck == 0) logger.warn("Matrix filled with all zeros: " + key);
+			if(totalCheck == 0) logger.warn("Matrix filled with all zeros: " + Utility.cleanLogString(key));
 			BVhash.put(key+Constants.CALC_MATRIX, matrix);
 			BVhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
 			BVhash.put(key+Constants.CALC_ROW_LABELS, rowLabels);

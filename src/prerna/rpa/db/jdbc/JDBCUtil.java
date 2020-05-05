@@ -11,11 +11,13 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.quartz.JobExecutionException;
 
+import prerna.util.Utility;
+
 public class JDBCUtil {
 
 	private static final Logger LOGGER = LogManager.getLogger(JDBCUtil.class.getName());
 
-	private static final String NEW_LINE = System.getProperty("line.separator");
+	private static final String NEW_LINE = System.lineSeparator();
 	
 	private JDBCUtil() {
 		throw new IllegalStateException("Utility class");
@@ -161,7 +163,7 @@ public class JDBCUtil {
 		
 		// Print the header again
 		resultsString.append(formatRow(columnHeaders, columnWidth));
-		LOGGER.info(resultsString.toString());
+		LOGGER.info(Utility.cleanLogString(resultsString.toString()));
 		return rows.size();
 	}
 

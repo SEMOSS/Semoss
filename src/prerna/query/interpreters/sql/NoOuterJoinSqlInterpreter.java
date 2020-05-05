@@ -182,9 +182,9 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
 		
 		if(query.length() > 500) {
-			logger.info("SQL QUERY....  " + query.substring(0,  500) + "...");
+			logger.info("SQL QUERY....  " + Utility.cleanLogString(query.substring(0,  500)) + "...");
 		} else {
-			logger.info("SQL QUERY....  " + query);
+			logger.info("SQL QUERY....  " + Utility.cleanLogString(query.toString()));
 		}
 		
 		return query.toString();

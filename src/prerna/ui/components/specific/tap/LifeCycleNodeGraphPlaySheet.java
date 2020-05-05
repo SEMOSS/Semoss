@@ -40,6 +40,7 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 /**
  * This class creates the graph playsheet for lifecycle nodes.
@@ -129,7 +130,7 @@ public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 		if(query.startsWith("SELECT")||query.startsWith("CONSTRUCT"))
 			this.query=query;
 		else{
-		logger.info("New Query " + query);
+		logger.info("New Query " + Utility.cleanLogString(query));
 		int semi=query.indexOf(";");
 		int semi2=query.indexOf(";",semi+1);
 		Calendar now = Calendar.getInstance();

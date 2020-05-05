@@ -21,6 +21,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.CypherInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class Neo4jEmbeddedEngine extends AbstractEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Neo4jEmbeddedEngine.class);
@@ -57,9 +58,9 @@ public class Neo4jEmbeddedEngine extends AbstractEngine {
 
 		String neo4jFile = SmssUtilities.getNeo4jFile(prop).getAbsolutePath();
 		try {
-			LOGGER.info("Opening neo4j graph: " + neo4jFile);
+			LOGGER.info("Opening neo4j graph: " + Utility.cleanLogString(neo4jFile));
 			db = new GraphDatabaseFactory().newEmbeddedDatabase(new File(neo4jFile));
-			LOGGER.info("Done neo4j opening graph: " + neo4jFile);
+			LOGGER.info("Done neo4j opening graph: " + Utility.cleanLogString(neo4jFile));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class InsightAdministrator {
@@ -64,10 +65,10 @@ public class InsightAdministrator {
 	 * @param pixelRecipeToSave
 	 */
 	public String addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
-		LOGGER.info("Adding new question with insight id :::: " + insightId);
-		LOGGER.info("Adding new question with name :::: " + insightName);
-		LOGGER.info("Adding new question with layout :::: " + layout);
-		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pixelRecipeToSave));
+		LOGGER.info("Adding new question with insight id :::: " + Utility.cleanLogString(insightId));
+		LOGGER.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
+		LOGGER.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
+		LOGGER.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
 		
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
@@ -279,10 +280,10 @@ public class InsightAdministrator {
 	}
 	
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
-		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
-		LOGGER.info("Adding new question with name :::: " + insightName);
-		LOGGER.info("Adding new question with layout :::: " + layout);
-		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pixelRecipeToSave));
+		LOGGER.info("Modifying insight id :::: " + Utility.cleanLogString(existingRdbmsId));
+		LOGGER.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
+		LOGGER.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
+		LOGGER.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
 		
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
@@ -375,7 +376,7 @@ public class InsightAdministrator {
 	public void dropInsight(String... insightIDs) {		
 		String idsString = createString(insightIDs);
 		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
-		LOGGER.info("Running drop query :::: " + deleteQuery);
+		LOGGER.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
 		try {
 			insightEngine.removeData(deleteQuery);
 		} catch (Exception e) {
@@ -383,7 +384,7 @@ public class InsightAdministrator {
 		}
 		
 		deleteQuery = "DELETE FROM INSIGHTMETA WHERE INSIGHTID IN " + idsString;
-		LOGGER.info("Running drop query :::: " + deleteQuery);
+		LOGGER.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
 		try {
 			insightEngine.removeData(deleteQuery);
 		} catch (Exception e) {
@@ -399,7 +400,7 @@ public class InsightAdministrator {
 	public void dropInsight(Collection<String> insightIDs) throws Exception {		
 		String idsString = createString(insightIDs);
 		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
-		LOGGER.info("Running drop query :::: " + deleteQuery);
+		LOGGER.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
 		insightEngine.removeData(deleteQuery);
 	}
 	
