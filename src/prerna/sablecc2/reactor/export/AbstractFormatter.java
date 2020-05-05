@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.export;
 
 import java.util.Map;
 
-public abstract class AbstractFormatter implements Formatter {
+public abstract class AbstractFormatter implements IFormatter {
 
 	protected Map<String, Object> optionsMap;
 	

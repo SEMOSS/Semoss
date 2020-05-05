@@ -86,6 +86,11 @@ public class CollectReactor extends TaskBuilderReactor {
 				Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
 				while(panelIds.hasNext()) {
 					String panelId = panelIds.next();
+					// this is a bit silly
+					// but will set the formatter into the task options
+					// so if we pull the task options we have that information
+					// this is for {{@link RefreshPanelTaskReactor}}
+					task.getTaskOptions().setFormatter(task.getFormatter());
 					this.insight.setLastTaskOptions(task.getTaskOptions(), sqs, panelId);
 				}
 			}
