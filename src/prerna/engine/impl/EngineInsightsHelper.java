@@ -18,6 +18,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class EngineInsightsHelper {
 
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	private EngineInsightsHelper() {
 		
 	}
@@ -61,20 +63,13 @@ public class EngineInsightsHelper {
 		logger.info("Insight rdbms database location is " + Utility.cleanLogString(insightDatabaseLoc));
 		
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-
-		String engineAlias = null;
-		if(engineAlias != null)
-			engineAlias = engineAlias + "__";
-		else
-			engineAlias = "";
-
 		// decrypt the password
-		String propFile = baseFolder + java.nio.file.FileSystems.getDefault().getSeparator() + "db" + java.nio.file.FileSystems.getDefault().getSeparator() + engineAlias + engineId + ".smss";
+		String propFile = baseFolder + java.nio.file.FileSystems.getDefault().getSeparator() + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + ".smss";
 
 		String pass = insightsRdbms.decryptPass(propFile, true);
-		
-		if(pass == null)
+		if(pass == null) {
 			pass = "";
+		}
 		
 		if(rdbmsInsightsType == RdbmsTypeEnum.SQLITE) {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":" + insightDatabaseLoc;
