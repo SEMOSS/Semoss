@@ -137,9 +137,9 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 						try {
 							future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
 						} catch (TimeoutException | InterruptedException e) {
-							throw new IllegalArgumentException("Timout occured when running R script.", e);
+							throw new IllegalArgumentException("Timout occured when running R script = " + rScript, e);
 						} catch (ExecutionException e) {
-							throw new IllegalArgumentException("Failed to run R script.", e);
+							throw new IllegalArgumentException("Failed to run R script = " + rScript, e);
 						}
 					}
 				} finally {
