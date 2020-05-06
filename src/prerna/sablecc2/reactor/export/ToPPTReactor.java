@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.sl.usermodel.PictureData.PictureType;
 import org.apache.poi.util.Units;
@@ -29,10 +30,14 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ChromeDriverUtility;
+import prerna.util.Utility;
 
 public class ToPPTReactor extends AbstractReactor {
 
+	private static final Logger logger = LogManager.getLogger(ToPPTReactor.class);
+
 	private static final String CLASS_NAME = ToPPTReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 
 	public ToPPTReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.BASE_URL.getKey(), ReactorKeysEnum.URL.getKey(),
@@ -86,13 +91,11 @@ public class ToPPTReactor extends AbstractReactor {
 		for (String path : tempPaths) {
 			byte[] pic = null;
 			try {
-				pic = IOUtils.toByteArray(new FileInputStream(path));
+				pic = IOUtils.toByteArray(new FileInputStream(Utility.normalizePath(path)));
 			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
+			} catch (IOException ioe) {
+				logger.error(STACKTRACE, ioe);
 			}
 			XSLFPictureData picData = slideshow.addPicture(pic, PictureType.PNG);
 			Rectangle picBounds = createStandardPowerPointImageBounds();
@@ -105,11 +108,12 @@ public class ToPPTReactor extends AbstractReactor {
 		// Delete temp files
 		for (String path : tempPaths) {
 			try {
-				File f = new File(path);
+				File f = new File(Utility.normalizePath(path));
 				if (f.exists()) {
 					FileUtils.forceDelete(f);
 				}
 			} catch (IOException e) {
+				logger.error(STACKTRACE, e);
 			}
 		}
 
@@ -121,7 +125,7 @@ public class ToPPTReactor extends AbstractReactor {
 	private List<String> getUrls() {
 		GenRowStruct colGrs = this.store.getNoun(keysToGet[1]);
 		int size = colGrs.size();
-		List<String> columns = new ArrayList<String>();
+		List<String> columns = new ArrayList<>();
 		for (int i = 0; i < size; i++) {
 			columns.add(colGrs.get(i).toString());
 		}
@@ -152,10 +156,8 @@ public class ToPPTReactor extends AbstractReactor {
 		int heightOffsetDPIInt = (int) heightOffsetDPI;
 		int imageWidthDPIInt = (int) imageWidthDPI;
 		int imageHeightDPIInt = (int) imageHeightDPI;
-		Rectangle bounds = new java.awt.Rectangle(widthOffsetDPIInt, heightOffsetDPIInt, imageWidthDPIInt,
-				imageHeightDPIInt);
 
-		return bounds;
+		return new java.awt.Rectangle(widthOffsetDPIInt, heightOffsetDPIInt, imageWidthDPIInt, imageHeightDPIInt);
 	}
 
 	private void writeToFile(XMLSlideShow slideshow, String path) {
@@ -163,9 +165,9 @@ public class ToPPTReactor extends AbstractReactor {
 			OutputStream out = new FileOutputStream(path);
 			slideshow.write(out);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
 	}
 }

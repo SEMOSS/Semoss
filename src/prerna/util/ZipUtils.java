@@ -148,16 +148,16 @@ public final class ZipUtils {
 				logger.info(Utility.cleanLogString(entryName));
 				File file = null;
 				if (entryName.endsWith(".smss")) {
-					tempAbsolutePath = destinationFolder + FILE_SEPARATOR + entryName.replace(".smss", ".temp");
+					tempAbsolutePath = destinationFolder + FILE_SEPARATOR + Utility.normalizePath(entryName.replace(".smss", ".temp"));
 					file = new File(tempAbsolutePath);
 				} else {
-					file = new File(destinationFolder + FILE_SEPARATOR + entryName);
+					file = new File(destinationFolder + FILE_SEPARATOR + Utility.normalizePath(entryName));
 				}
 				logger.info("Unzip file " + Utility.cleanLogString(entryName) + " to " + file.getAbsolutePath());
 				// create the directory for the next entry
 				if (entryName.contains(FILE_SEPARATOR)) {
 					String[] dirStructure = entryName.split(FILE_SEPARATOR);
-					String absolutePath = destinationFolder + FILE_SEPARATOR + dirStructure[0];
+					String absolutePath = destinationFolder + FILE_SEPARATOR + Utility.normalizePath(dirStructure[0]);
 					for (int i = 0; i < dirStructure.length; i++) {
 						File newDir = new File(absolutePath);
 						if (!newDir.exists()) {
@@ -256,7 +256,7 @@ public final class ZipUtils {
 		Enumeration<? extends ZipEntry> entries = zipIn.entries();
 		while (entries.hasMoreElements()) {
 			ZipEntry entry = entries.nextElement();
-			String filePath = destination + FILE_SEPARATOR + entry.getName();
+			String filePath = destination + FILE_SEPARATOR + Utility.normalizePath(entry.getName());
 			if (entry.isDirectory()) {
 				File file = new File(filePath);
 				file.mkdirs();
@@ -283,7 +283,7 @@ public final class ZipUtils {
 	 * @throws IOException
 	 */
 	private static void extractFile(InputStream zipIn, String filePath) throws IOException {
-		BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(filePath));
+		BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(Utility.normalizePath(filePath)));
 		byte[] bytesIn = buffer;
 		int read = 0;
 		while ((read = zipIn.read(bytesIn)) != -1) {

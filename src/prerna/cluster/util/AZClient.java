@@ -475,7 +475,7 @@ public class AZClient extends CloudClient {
 				temp = new File(dbFolder + FILE_SEPARATOR + tempFolder);
 				temp.mkdir();
 				copy = new File(temp.getPath() + FILE_SEPARATOR + Utility.normalizePath(smss));
-				Files.copy(new File(smssFile), copy);
+				Files.copy(new File(Utility.normalizePath(smssFile)), copy);
 
 				// Push the smss
 				logger.debug("Pushing from source=" + smssFile + " to remote=" + smssContainer);

@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public abstract class CloudClient {
@@ -80,6 +81,7 @@ public abstract class CloudClient {
 		List<String> commandList = new ArrayList<>();
 		commandList.addAll(Arrays.asList(command));
 		commandList.add("--config");
+		System.out.println("remove");
 		commandList.add(configPath);
 		String[] newCommand = commandList.toArray(new String[] {});
 		return runAnyProcess(newCommand);	
@@ -103,7 +105,7 @@ public abstract class CloudClient {
 			Process p = null;
 			try {
 				ProcessBuilder pb = new ProcessBuilder(command);
-				pb.directory(new File(System.getProperty("user.home")));
+				pb.directory(new File(Utility.normalizePath(System.getProperty("user.home"))));
 				pb.redirectOutput(Redirect.PIPE);
 				pb.redirectError(Redirect.PIPE);
 				p = pb.start();

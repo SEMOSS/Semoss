@@ -180,7 +180,9 @@ public class S3Client extends CloudClient {
 		} else {
 			alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		}
-		String aliasAppId = alias + "__" + appId;
+
+		String normalizedAlias = Utility.normalizePath(alias);
+		String aliasAppId = normalizedAlias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 		String smss = aliasAppId + ".smss";
 		String smssFile = dbFolder + FILE_SEPARATOR + smss;
