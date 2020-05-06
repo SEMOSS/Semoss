@@ -142,7 +142,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 			//TODO: make the return object here and now and be done with it
 		} else if(data.numDistinctValues(0) == data.size()) {
 			String errorString = "The column to predict, " + Utility.cleanLogString(retHeaders[0]) + ", is a unique identifier in this table. Does not make sense to classify it.";
-			logger.info(errorString);
+			logger.info(Utility.cleanLogString(errorString));
 			throw new IllegalArgumentException(errorString);
 		}
 		
