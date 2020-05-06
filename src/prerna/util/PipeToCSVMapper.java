@@ -38,6 +38,8 @@ import java.util.Vector;
 
 public class PipeToCSVMapper {
 	
+	/*
+	
 	public static void main(String [] args) throws Exception
 	{
 		String srcFile = "C:/Users/pkapaleeswaran/Desktop/From C Drive Root/RFP/scienergy/morbidmapnew.txt";
@@ -103,6 +105,7 @@ public class PipeToCSVMapper {
 			}
 		}
 	}
+	*/
 	
 	public static Vector flattenArray(Vector inputVector, Hashtable hiColumns)
 	{
