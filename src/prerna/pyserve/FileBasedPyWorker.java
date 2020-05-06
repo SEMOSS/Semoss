@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -30,21 +29,23 @@ import jep.JepException;
 import jep.SharedInterpreter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class FileBasedPyWorker extends Thread implements IWorker{
 	
 	// basically a process which works by looking for commands in file space
 	private static final String CLASS_NAME = FileBasedPyWorker.class.getName();
 
-	List <String> commandList = new ArrayList<String>(); // this is giving the file name and that too relative
-	public static final Logger LOGGER = LogManager.getLogger(CLASS_NAME);
+	List <String> commandList = new ArrayList<>(); // this is giving the file name and that too relative
+	private static final String STACKTRACE = "StackTrace: ";
+	public static final Logger logger = LogManager.getLogger(CLASS_NAME);
 
 	String internalLock = "Internal Lock";
 	private static boolean first = true;
 	public Jep jep = null;
 	
 	public String [] command = null;
-	public Hashtable <String, Object> response = new Hashtable<String, Object>();
+	public Hashtable <String, Object> response = new Hashtable<>();
 	
 	public volatile boolean keepAlive = true;
 	public volatile boolean ready = false;
@@ -73,14 +74,14 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 		PropertyConfigurator.configure(args[0] + "/log4j.properties");
 	
 		FileBasedPyWorker worker = new FileBasedPyWorker();
-		System.out.println("Here.. ");
+		logger.info("Here.. ");
 		DIHelper.getInstance().loadCoreProp(args[1]);
 		DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		worker.prop = new Properties();
 		try {
-			worker.prop.load(new FileInputStream(args[1]));
-			System.out.println("Loaded the rdf map");
+			worker.prop.load(new FileInputStream(Utility.normalizePath(args[1])));
+			logger.info("Loaded the rdf map");
 			
 			// get the library for jep
 			//String jepLib = worker.prop.getProperty("JEP_LIB");
@@ -88,11 +89,9 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			//System.loadLibrary(jepLib);
 			
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
 		worker.mainFolder = args[0];
 		worker.watchDir(args[0]);
@@ -101,10 +100,10 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 	
 	public void watchDir(String dir)
 	{
-		LOGGER.info("Adding new watch for .. " + dir);
+		logger.info("Adding new watch for .. " + dir);
 		if(!foldersBeingWatched.contains(dir))
 		{
-			LOGGER.info("Creating File Thread " + dir);
+			logger.info("Creating File Thread " + dir);
 
 			FileThread ft = new FileThread();
 			ft.folderToWatch = dir;
@@ -124,15 +123,15 @@ public class FileBasedPyWorker extends Thread implements IWorker{
         URL[] urls = ((URLClassLoader)cl).getURLs();
 
         for(URL url: urls){
-        	LOGGER.info(url.getFile());
+        	logger.info(url.getFile());
         }
 	}
 	@Override
 	public void run() {
 		// wait to see if process is true
 		// if process is true - process, put the result and go back to sleep
-		LOGGER.debug("Running Python thread");
-		LOGGER.info("Classpath set to.. " );
+		logger.debug("Running Python thread");
+		logger.info("Classpath set to.. " );
 		//printCP();
 		getJep();
 		this.ready = true;
@@ -150,7 +149,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 					
 						//experimental 
 						
-						LOGGER.debug("Waiting for next command");
+						logger.debug("Waiting for next command");
 						ready = true;
 						response.clear();
 						// if someone wakes up
@@ -171,38 +170,38 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 																
 								Object thisResponse = null;
 							    try {
-							    	LOGGER.debug(">>>>>>>>>>>");
-							    	LOGGER.info("Executing Command .. [" + execCommand + "]");
-							    	LOGGER.debug("<<<<<<<<<<<");
+							    	logger.debug(">>>>>>>>>>>");
+							    	logger.info("Executing Command .. [" + execCommand + "]");
+							    	logger.debug("<<<<<<<<<<<");
 							    	try {
 							    		changeState(thisCommand, ".processing");
-							    		LOGGER.info("Starting process of the command " + execCommand);
+							    		logger.info("Starting process of the command " + execCommand);
 							    		thisResponse = jep.getValue(execCommand);
 							    		if(thisResponse != null)
 							    		{
-							    			//LOGGER.info("Writing response " + response + " to a file " + scriptFile);
+							    			//logger.info("Writing response " + response + " to a file " + scriptFile);
 							    			writeObjectToFile(thisResponse, scriptFile);
 							    		}
 							    		else
 							    		{
-							    			LOGGER.info("Response is set to null " + response);
+							    			logger.info("Response is set to null " + response);
 							    		}
 							    		//response.put(thisCommand, thisResponse);
 							    	}catch (Exception ex) {
 							    		try {
 							    			jep.eval(thisCommand);
-							    			LOGGER.info("Eval Complete");
+							    			logger.info("Eval Complete");
 							    		}catch(Exception ex2)
 							    		{
 							    			processError(thisCommand, ex2);
-							    			LOGGER.info(ex2);
+							    			logger.info(ex2);
 							    		}
 							    	}
-						    		LOGGER.info("Get Value Complete");
+						    		logger.info("Get Value Complete");
 						    		changeState(thisCommand, ".completed");
 									// seems like when there is an exception..I need to restart the thread
 								} catch (Exception e) {
-									LOGGER.error(e);
+									logger.error(e);
 								}
 							}
 							command = null;
@@ -214,9 +213,9 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 						// lock on some shit and sleep
 						synchronized(internalLock)
 						{
-							LOGGER.info("Sleeping now.. ");
+							logger.info("Sleeping now.. ");
 							internalLock.wait();
-							LOGGER.info("woke up ..Processing now..");
+							logger.info("woke up ..Processing now..");
 						}
 						
 					}
@@ -226,10 +225,11 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 					}
 				}
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				Thread.currentThread().interrupt();
+				logger.error(STACKTRACE, e);
 			}
 		}
-		LOGGER.debug("Thread ENDED");
+		logger.debug("Thread ENDED");
 	}
 	
 	private String getCommand(String scriptFile)
@@ -266,7 +266,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			    index = input.indexOf("\n");
 			}*/
 			
-			LOGGER.info("Number of new lines.. " + newlineCount);
+			logger.info("Number of new lines.. " + newlineCount);
 			
 			boolean multi = (newlineCount > 1) || 
 							( retString.contains("=") && !retString.contains("groupby") ) || 
@@ -292,10 +292,10 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 				retString = "smssutil.runwrapper(\"" + scriptFile + "\", \"" + outputFile + "\", \"" + outputFile + "\", globals())";
 			}
 			
-			LOGGER.debug("Multi set " + multi + " For command " + retString);
+			logger.debug("Multi set " + multi + " For command " + retString);
 		}catch(Exception ex)
 		{
-			LOGGER.error(ex);
+			logger.error(ex);
 		}
 		return retString;
 	}
@@ -303,31 +303,29 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 	private void changeState(String fileName, String stateName)
 	{
 		try {
-			LOGGER.info("Changing state of file " + fileName + " to " + stateName );
+			logger.info("Changing state of file " + fileName + " to " + stateName );
 			String newState = fileName + ".state" + stateName;
 			File daFile = new File(newState);
 			if(!daFile.exists())
 				daFile.createNewFile();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
 	private void processError(String fileName, Exception ex)
 	{
 		try {
-			LOGGER.info("Processing error ");
+			logger.info("Processing error ");
 			String outputFile = fileName + ".output";
 			StringWriter sw = new StringWriter();
 			ex.printStackTrace(new PrintWriter(sw));
 			FileUtils.writeStringToFile(new File(outputFile), sw.toString());
-			LOGGER.info("Errored with  " + ex.getMessage());
+			logger.info("Errored with  " + ex.getMessage());
 			changeState(fileName, ".completed");
 			
-		}catch(Exception ignored)
-		{
-			
+		} catch(Exception ignored) {
+			// ignore
 		}
 	}
 	
@@ -350,8 +348,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 				}
 			}				
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}		
 	}
 
@@ -373,8 +370,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			}
 			
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}		
 	}
 	
@@ -415,7 +411,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 	{
 		try {
 			
-			System.out.println("Finishing cleanup " + file);
+			logger.info("Finishing cleanup " + file);
 			new File(folderToWatch + "/" + file).delete();
 			String mainPyFile = file.replaceAll(".state.delivered", "");
 			
@@ -441,8 +437,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			
 			
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}		
 	}
 	
@@ -508,16 +503,16 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 				// this is so we do not get a GIL
 				//jep.eval("from java.lang import System");
 				
-				LOGGER.debug("Adding Syspath " + pyBase);				
+				logger.debug("Adding Syspath " + pyBase);				
 				jep.eval("sys.path.append('" + pyBase + "')" );
-				LOGGER.debug(jep.getValue("sys.path"));
+				logger.debug(jep.getValue("sys.path"));
 				
 				// these needs to be a better way to do this where we can add other things 
 				jep.eval("from clean import PyFrame");
 				jep.eval("import smssutil");
 			}
 		} catch (JepException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return jep;
 	}
@@ -545,7 +540,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 	public void writeObjectToFile(Object obj, String scriptFile)
 	{
 		try {
-			//LOGGER.info("Writing Object to.. " + scriptFile + obj);
+			//logger.info("Writing Object to.. " + scriptFile + obj);
 			File outFile = new File(scriptFile + ".smss_obj");
 			
 			FileOutputStream fos = new FileOutputStream(outFile);
@@ -560,18 +555,18 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			// try 2
 			/*
 			FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
-			LOGGER.info("Configuration succeeded");			
+			logger.info("Configuration succeeded");			
 			
-			System.out.println(">>");
+			logger.info(">>");
 			byte barray[] = conf.asByteArray(obj);
 			bos.write(barray);
-			LOGGER.info("Simple as byte succeeded");
+			logger.info("Simple as byte succeeded");
 			*/
 			
-			LOGGER.info("Starting write to FST");
+			logger.info("Starting write to FST");
 			FSTObjectOutput fo = new FSTObjectOutput(bos);
 			fo.writeObject(obj);
-			LOGGER.info("Completed write to FST");
+			logger.info("Completed write to FST");
 			fo.close();
 			
 			//ObjectOutputStream oos = new ObjectOutputStream(fos);
@@ -580,18 +575,14 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			bos.close();
 			//oos.close();
 			fos.close();
-			LOGGER.info("Completed write to FOS");
+			logger.info("Completed write to FOS");
 			
-			LOGGER.info("Completed writing object file");
+			logger.info("Completed writing object file");
 
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			LOGGER.error(e);
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			LOGGER.error(e);
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		}
 		
 	}

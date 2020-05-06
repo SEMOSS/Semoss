@@ -29,6 +29,8 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import prerna.util.Utility;
+
 public class Me {
 	// the idea here really simple
 	// look at where the batch file is 
@@ -117,7 +119,7 @@ public class Me {
 	
 	public void writePath(String semossHome, String rHome, String rDll, String jriDll, String rLib)
 	{
-		String fileName = semossHome + "/setPath.bat";
+		String fileName = Utility.normalizePath(semossHome) + "/setPath.bat";
 		BufferedWriter bw = null;
 		try{
 			bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
@@ -152,7 +154,7 @@ public class Me {
 	public void writeTomcatEnv(String semossHome, String rHome, String jriHome)
 	{
 		//-Djava.library.path=C:\Users\pkapaleeswaran\Documents\R\win-library\3.1\rJava\jri\x64;"C:\Program Files\R\R-3.2.4revised\bin\x64"
-		String fileName = semossHome + "/../tomcat/bin/" + "setenv.bat";
+		String fileName = Utility.normalizePath(semossHome) + "/../tomcat/bin/" + "setenv.bat";
 		BufferedWriter bw = null;
 		try {
 			//BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new PrintStream(System.out)));
@@ -187,7 +189,7 @@ public class Me {
 	public void writeConfigureFile(String homePath, String port) {
 		BufferedWriter writer = null;
 		try {
-			writer = new BufferedWriter(new FileWriter(homePath + "/configured.txt"));
+			writer = new BufferedWriter(new FileWriter(Utility.normalizePath(homePath) + "/configured.txt"));
 			writer.write("Port = " + port);
 			writer.write("SEMOSS Web = " + "http://localhost:" + port + "/SemossWeb/");
 			writer.flush();
@@ -226,13 +228,13 @@ public class Me {
 		}
 		
 		// write it back
-		String altFile = appFile + "temp";
+		String altFile = Utility.normalizePath(appFile) + "temp";
 		TransformerFactory tf = TransformerFactory.newInstance();
 		DOMSource source = new DOMSource(d);
 		StreamResult sr = new StreamResult(new File(altFile));
-		
+
 		tf.newTransformer().transform(source, sr);
-		
+
 		replaceFiles(appFile, altFile);
 	}
 	
@@ -540,8 +542,8 @@ public class Me {
 	public void replaceFiles(String fileToReplace, String fileToReplaceWith) throws Exception
 	{
 		// delete file to replace and replace with file to be replaced
-		File toRep = new File(fileToReplace);
-		File tobeRep = new File(fileToReplaceWith);
+		File toRep = new File(Utility.normalizePath(fileToReplace));
+		File tobeRep = new File(Utility.normalizePath(fileToReplaceWith));
 		Files.move(tobeRep.toPath(), toRep.toPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 	
@@ -660,7 +662,7 @@ public class Me {
 		
 		
 		// write it back
-		String altFile = appFile + "temp";
+		String altFile = Utility.normalizePath(appFile) + "temp";
 		//FileWriter fw = new FileWriter();
 		TransformerFactory tf = TransformerFactory.newInstance();
 		DOMSource source = new DOMSource(d);
@@ -675,7 +677,7 @@ public class Me {
 	
 	private void genOpenBrowser(String homePath, String port) throws Exception
 	{
-		String browserBat = homePath + "/config/openBrowser.bat";
+		String browserBat = Utility.normalizePath(homePath) + "/config/openBrowser.bat";
 
 		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(browserBat)))) {
 			writer.write("ECHO Opening browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS...");

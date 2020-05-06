@@ -32,12 +32,16 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.gson.InsightAdapter;
 
 public class InsightCacheUtility {
 
-	private static final Logger LOGGER = LogManager.getLogger(InsightCacheUtility.class);
+	private static final Logger logger = LogManager.getLogger(InsightCacheUtility.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	private static byte[] buffer = new byte[2048];
 
 	public static final String INSIGHT_ZIP = "InsightZip.zip";
@@ -79,10 +83,11 @@ public class InsightCacheUtility {
 		}
 		
 		String folderDir = getInsightCacheFolderPath(insight);
-		if(!(new File(folderDir).exists())) {
-			new File(folderDir).mkdirs();
+		String normalizedFolderDir = Utility.normalizePath(folderDir);
+		if(!(new File(normalizedFolderDir).exists())) {
+			new File(normalizedFolderDir).mkdirs();
 		}
-		File zipFile = new File(folderDir + DIR_SEPARATOR + INSIGHT_ZIP);
+		File zipFile = new File(normalizedFolderDir + DIR_SEPARATOR + INSIGHT_ZIP);
 
 		FileOutputStream fos = null;
 		ZipOutputStream zos = null;
@@ -96,16 +101,16 @@ public class InsightCacheUtility {
 			JsonWriter jWriter = new JsonWriter(writer);
 			iAdapter.write(jWriter, insight);
 			
-			String insightLoc = folderDir+ DIR_SEPARATOR + MAIN_INSIGHT_JSON;
+			String insightLoc = normalizedFolderDir + DIR_SEPARATOR + MAIN_INSIGHT_JSON;
 			File insightFile = new File(insightLoc);
 			try {
 				FileUtils.writeStringToFile(insightFile, writer.toString());
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			addToZipFile(insightFile, zos);
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			closeStream(zos);
 			closeStream(fos);
@@ -171,7 +176,7 @@ public class InsightCacheUtility {
 			Insight insight = iAdapter.read(jReader);
 			return insight;
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw e;
 		} finally {
 			closeStream(br);
@@ -207,7 +212,9 @@ public class InsightCacheUtility {
 		}
 		
 		String zipFileLoc = getInsightCacheFolderPath(insight) + DIR_SEPARATOR + INSIGHT_ZIP;
-		File zipFile = new File(zipFileLoc);
+		String normalizedZipFileLoc = Utility.normalizePath(zipFileLoc);
+		File zipFile = new File(normalizedZipFileLoc);
+
 		if(!zipFile.exists()) {
 			throw new IOException("Cannot find insight cache");
 		}
@@ -216,16 +223,11 @@ public class InsightCacheUtility {
 		ZipFile zip = null;
 		InputStream zis = null;
 		try {
-			zip = new ZipFile(zipFileLoc);
+			zip = new ZipFile(normalizedZipFileLoc);
 			zis = zip.getInputStream(viewData);
 			
 			String jsonString = IOUtils.toString(zis, "UTF-8");
 			
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
-			//TODO:
 			//TODO:
 			// this is here to try to delete old invalid caches
 			if(!jsonString.contains("CACHED_PANEL")) {
@@ -235,8 +237,8 @@ public class InsightCacheUtility {
 			Gson gson = new Gson();
 			return gson.fromJson(jsonString, Map.class);
 		} catch(Exception e) {
-			LOGGER.info("Error retrieving cache for " + rdbmsId);
-			e.printStackTrace();
+			logger.error("Error retrieving cache for " + rdbmsId);
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(zis != null) {
 				zis.close();
@@ -271,7 +273,7 @@ public class InsightCacheUtility {
 	
 	public static void unzipFile(ZipFile zip, String name, String path) throws FileNotFoundException {
 		byte[] buffer = new byte[1024];
-		File newFile = new File(path);
+		File newFile = new File(Utility.normalizePath(path));
 		FileOutputStream fos = null;
 		ZipEntry zipE = new ZipEntry(name);
 		InputStream zis = null;
@@ -283,20 +285,20 @@ public class InsightCacheUtility {
                 fos.write(buffer, 0, len);
             }
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(fos != null) {
 				try {
 					fos.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 			if(zis != null) {
 				try {
 					zis.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
@@ -311,7 +313,7 @@ public class InsightCacheUtility {
 			try {
 				is.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 	}

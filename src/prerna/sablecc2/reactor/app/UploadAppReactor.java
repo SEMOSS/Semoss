@@ -34,6 +34,7 @@ import prerna.util.ZipUtils;
 
 public class UploadAppReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = UploadAppReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 
 	public UploadAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
@@ -94,7 +95,7 @@ public class UploadAppReactor extends AbstractInsightReactor {
 			for (String filePath : fileList) {
 				if (filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
 					smssFileLoc = tempDbFolderPath + DIR_SEPARATOR + filePath;
-					smssFile = new File(smssFileLoc);
+					smssFile = new File(Utility.normalizePath(smssFileLoc));
 					// check if the file exists
 					if (!smssFile.exists()) {
 						// invalid file need to delete the files unzipped
@@ -112,7 +113,7 @@ public class UploadAppReactor extends AbstractInsightReactor {
 				try {
 					FileUtils.deleteDirectory(new File(tempDbFolderPath));
 				} catch (IOException ioe) {
-					ioe.printStackTrace();
+					logger.error(STACKTRACE, ioe);
 				}
 				SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("Unable to find " + Constants.SEMOSS_EXTENSION + " file."));
 				exception.setContinueThreadOfExecution(false);
@@ -120,11 +121,11 @@ public class UploadAppReactor extends AbstractInsightReactor {
 			}
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			try {
 				FileUtils.deleteDirectory(new File(tempDbFolderPath));
 			} catch (IOException e1) {
-				e1.printStackTrace();
+				logger.error(STACKTRACE, e1);
 			}
 			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("Unable to unzip files."));
 			exception.setContinueThreadOfExecution(false);
@@ -170,13 +171,13 @@ public class UploadAppReactor extends AbstractInsightReactor {
 			logger.info(step + ") Done");
 			step++;
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
 			try {
 				FileUtils.deleteDirectory(tempDbFolder);
 			} catch (IOException e) {
-
+				logger.error(STACKTRACE, e);
 			}
 		}
 
