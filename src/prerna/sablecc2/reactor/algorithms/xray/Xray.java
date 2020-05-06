@@ -333,7 +333,7 @@ public class Xray {
 				}
 				String filePath = dataFolder + "\\" + sheetName + ";" + col + ".txt";
 				filePath = filePath.replace("\\", "/");
-				this.logger.info("Getting " + col + " from excel sheet: " + sheetName + " for X-ray comparison...");
+				this.logger.info("Getting " + Utility.cleanLogString(col) + " from excel sheet: " + sheetName + " for X-ray comparison...");
 				// encode and write to file
 				encodeInstances(instances, dataComparison, filePath, semanticMode, semanticFolder);
 			}
@@ -433,7 +433,7 @@ public class Xray {
 				String fileName = dataFolder + "\\" + csvName + ";" + col + ".txt";
 				fileName = fileName.replace("\\", "/");
 				// encode data to fileName
-				this.logger.info("Getting " + col + " from " + csvName + " csv to run xray comparison... ");
+				this.logger.info("Getting " + Utility.cleanLogString(col) + " from " + csvName + " csv to run xray comparison... ");
 				encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 			}
 		}
@@ -514,7 +514,7 @@ public class Xray {
 							logger.error(STACKTRACE, e);
 						}
 						// encode and write to file
-						this.logger.info("Querying " + column + " from " + table + " in " + newDBName + " for X-ray comparison...");
+						this.logger.info("Querying " + column + " from " + Utility.cleanLogString(table) + " in " + newDBName + " for X-ray comparison...");
 						encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 						stmt.close();
 					} catch (SQLException e) {
@@ -596,7 +596,7 @@ public class Xray {
 									iterator.cleanUp();
 								}
 							}
-							this.logger.info("Querying table " + table + " from " + engineName + " for X-ray comparison");
+							this.logger.info("Querying table " + Utility.cleanLogString(table) + " from " + engineName + " for X-ray comparison");
 							// encode and write to file
 							encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 						}
@@ -630,7 +630,7 @@ public class Xray {
 									iterator.cleanUp();
 								}
 							}
-							this.logger.info("Querying " + column + " from " + table + " in " + engineName + " for X-ray comparison");
+							this.logger.info("Querying " + column + " from " + Utility.cleanLogString(table) + " in " + engineName + " for X-ray comparison");
 							// encode and write to file
 							encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 						}

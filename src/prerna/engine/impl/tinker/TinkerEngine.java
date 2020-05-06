@@ -35,11 +35,13 @@ import prerna.util.Utility;
 
 public class TinkerEngine extends AbstractEngine {
 
-	private static final Logger LOGGER = LogManager.getLogger(TinkerEngine.class.getName());
+	private static final Logger logger = LogManager.getLogger(TinkerEngine.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 
 	protected Graph g = null;
-	protected Map<String, String> typeMap = new HashMap<String, String>();
-	protected Map<String, String> nameMap = new HashMap<String, String>();
+	protected Map<String, String> typeMap = new HashMap<>();
+	protected Map<String, String> nameMap = new HashMap<>();
 	protected boolean useLabel = false;
 	
 	public void openDB(String propFile) {
@@ -50,7 +52,7 @@ public class TinkerEngine extends AbstractEngine {
 			try {
 				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 
@@ -60,7 +62,7 @@ public class TinkerEngine extends AbstractEngine {
 			try {
 				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		
@@ -72,7 +74,7 @@ public class TinkerEngine extends AbstractEngine {
 		// open normal tinker engine
 		if (prop.getProperty(Constants.TINKER_FILE) != null) {
 			String fileLocation = SmssUtilities.getTinkerFile(prop).getAbsolutePath();
-			LOGGER.info("Opening graph:  " + fileLocation);
+			logger.info("Opening graph:  " + Utility.cleanLogString(fileLocation));
 			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
 			if (tinkerDriver == TINKER_DRIVER.NEO4J) {
 				g = Neo4jGraph.open(fileLocation);
@@ -108,7 +110,7 @@ public class TinkerEngine extends AbstractEngine {
 						reader.readGraph(fileLocation);
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
@@ -132,7 +134,7 @@ public class TinkerEngine extends AbstractEngine {
 
 	@Override
 	public Vector<Object> getEntityOfType(String typeUri) {
-		Vector<Object> columnsFromResult = new Vector<Object>();
+		Vector<Object> columnsFromResult = new Vector<>();
 		String conceptType = Utility.getInstanceName(typeUri);
 		GraphTraversal<Vertex, Object> vertIt = null;
 		// case for property
@@ -193,9 +195,9 @@ public class TinkerEngine extends AbstractEngine {
 				g.tx().commit();
 			}
 			long endTime = System.currentTimeMillis();
-			LOGGER.info("Successfully saved graph to file: " + fileLocation + "(" + (endTime - startTime) + " ms)");
+			logger.info("Successfully saved graph to file: " + fileLocation + "(" + (endTime - startTime) + " ms)");
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
