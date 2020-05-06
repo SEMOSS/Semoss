@@ -12,11 +12,12 @@ import org.quartz.UnableToInterruptJobException;
 
 import prerna.rpa.quartz.CommonDataKeys;
 import prerna.rpa.quartz.jobs.mail.EmailMessage;
+import prerna.util.Utility;
 
 public class SendEmailJob implements org.quartz.InterruptableJob {
 
-	private static final Logger LOGGER = LogManager.getLogger(SendEmailJob.class.getName());
-	
+	private static final Logger logger = LogManager.getLogger(SendEmailJob.class);
+
 	/** {@code String} **/
 	public static final String IN_FROM_KEY = SendEmailJob.class + ".from";
 	
@@ -56,12 +57,12 @@ public class SendEmailJob implements org.quartz.InterruptableJob {
 		// Do work
 		////////////////////
 		EmailMessage message = new EmailMessage(from, to, subject, body, bodyIsHTML, session);
-		LOGGER.info(message.toString());
+		logger.info(Utility.cleanLogString(message.toString()));
 		try {
 			message.send();
 		} catch (MessagingException e) {
 			String sendEmailExceptionMessage = "Failed to send the email with subject " + subject + ".";
-			LOGGER.error(sendEmailExceptionMessage);
+			logger.error(sendEmailExceptionMessage);
 			throw new JobExecutionException(sendEmailExceptionMessage, e);
 		}
 
@@ -73,7 +74,7 @@ public class SendEmailJob implements org.quartz.InterruptableJob {
 
 	@Override
 	public void interrupt() throws UnableToInterruptJobException {
-		LOGGER.warn("Received request to interrupt the " + jobName + " job. However, there is nothing to interrupt for this job.");
+		logger.warn("Received request to interrupt the " + jobName + " job. However, there is nothing to interrupt for this job.");
 	}
 
 }

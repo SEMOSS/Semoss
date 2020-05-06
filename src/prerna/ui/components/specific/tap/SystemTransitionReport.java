@@ -47,7 +47,7 @@ import com.bigdata.rdf.model.BigdataURIImpl;
 @SuppressWarnings("serial")
 public class SystemTransitionReport extends TablePlaySheet{
 
-	static final Logger logger = LogManager.getLogger(SystemTransitionReport.class.getName());
+	static final Logger logger = LogManager.getLogger(SystemTransitionReport.class);
 	private IEngine TAP_Core_Data;
 
 	@Override
@@ -68,7 +68,7 @@ public class SystemTransitionReport extends TablePlaySheet{
 		ISelectWrapper sjsw = processQuery(TAP_Core_Data, systemAndReport[0]);
 
 		String[] names = sjsw.getVariables();
-		ArrayList<String> systemList = new ArrayList<String>();
+		ArrayList<String> systemList = new ArrayList<>();
 		String systemListString = "";
 		while(sjsw.hasNext())
 		{
@@ -76,14 +76,14 @@ public class SystemTransitionReport extends TablePlaySheet{
 			BigdataURIImpl sysRawURI = (BigdataURIImpl)sjss.getRawVar(names[0]);
 			String sysURI = "<"+sysRawURI.stringValue()+">";
 			systemList.add(sysURI);
-			systemListString+= sysURI + " ";
+			systemListString += sysURI + " ";
 		}
 		logger.info("Creating System Transition Reports for systems >>> "+systemListString);
 
 		for(int i=0;i<systemList.size();i++)
 		{
 			String sysURI = systemList.get(i);
-			logger.info("Creating System Transition Report for system >>> " + sysURI + "$" + reportType);
+			logger.info("Creating System Transition Report for system >>> " + sysURI + "$" + Utility.cleanLogString(reportType));
 			IndividualSystemTransitionReport sysTransReport = new IndividualSystemTransitionReport();
 			sysTransReport.enableMessages(false);
 			sysTransReport.setQuery(sysURI + "$" + reportType);

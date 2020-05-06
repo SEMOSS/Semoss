@@ -13,9 +13,11 @@ import org.apache.log4j.Logger;
 import org.wikidata.wdtk.wikibaseapi.WbSearchEntitiesResult;
 import org.wikidata.wdtk.wikibaseapi.WikibaseDataFetcher;
 
+import prerna.util.Utility;
+
 public class WikiLogicalNameExtractor {
 
-	public static final Logger LOGGER = LogManager.getLogger(WikiLogicalNameExtractor.class.getName());
+	public static final Logger LOGGER = LogManager.getLogger(WikiLogicalNameExtractor.class);
 	private Logger logger;
 
 	public WikiLogicalNameExtractor() {
@@ -24,18 +26,18 @@ public class WikiLogicalNameExtractor {
 	
 	public List<String> getLogicalNames(String searchTerm) throws Exception {
 		Logger logger = getLogger();
-		List<String> logicalNames = new Vector<String>();
+		List<String> logicalNames = new Vector<>();
 
 		WikibaseDataFetcher wbdf = WikibaseDataFetcher.getWikidataDataFetcher();
 		searchTerm = splitCamelCase(searchTerm.trim().replace("_", " ")).replaceAll("\\s+", " ");
 		List<WbSearchEntitiesResult> searchResults = wbdf.searchEntities(searchTerm, new Long(10));
 		int numReturns = searchResults.size();
 		if(numReturns == 0) {
-			logger.info("Found no results searching for " + searchTerm);
+			logger.info("Found no results searching for " + Utility.cleanLogString(searchTerm));
 			return logicalNames;
 		}
-		logger.info("Querying wikidata returned " + numReturns + " results for " + searchTerm);
-		List<Callable<List<String>>> logicalNamesExtractors = new Vector<Callable<List<String>>>();
+		logger.info("Querying wikidata returned " + numReturns + " results for " + Utility.cleanLogString(searchTerm));
+		List<Callable<List<String>>> logicalNamesExtractors = new Vector<>();
 		for(int i = 0; i < searchResults.size(); i++) {
 			WbSearchEntitiesResult res = searchResults.get(i);
 			WikiLogicalNameCallable callable = new WikiLogicalNameCallable(wbdf, res);
@@ -56,7 +58,7 @@ public class WikiLogicalNameExtractor {
 				logicalNames.addAll(foundLogicalNames);
 				numReturns--;
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error("StackTrace: ", e);
 				throw e;
 			} finally {
 				executorService.shutdownNow();

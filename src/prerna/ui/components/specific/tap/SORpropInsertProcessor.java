@@ -46,7 +46,7 @@ import prerna.util.Utility;
 
 public class SORpropInsertProcessor extends AggregationHelper {
 	
-	private static final Logger LOGGER = LogManager.getLogger(SORpropInsertProcessor.class.getName());
+	private static final Logger logger = LogManager.getLogger(SORpropInsertProcessor.class);
 	private IEngine coreDB;
 	
 	private String tapCoreBaseURI = "http://health.mil/ontologies/Relation/";
@@ -101,7 +101,7 @@ public class SORpropInsertProcessor extends AggregationHelper {
 	
 	public boolean runCoreInsert() {
 		boolean methodSuccess = true;
-		LOGGER.info("Core DB is: " + coreDB.getEngineId());
+		logger.info("Core DB is: " + coreDB.getEngineId());
 		
 		//1. Query and store the Data
 		Hashtable<String, Set<String>> systemDataHash = getQueryResultHash(coreDB, SYSTEM_DATA_QUERY);
@@ -141,7 +141,7 @@ public class SORpropInsertProcessor extends AggregationHelper {
 		String data = "";
 		
 		if (system.contains("NSIPS")) {
-			System.out.println("HERE");
+			logger.info("HERE");
 		}
 		
 		//Add SOR "Yes"
@@ -191,10 +191,10 @@ public class SORpropInsertProcessor extends AggregationHelper {
 	}
 	
 	private Vector<String> concatHashToVector(Hashtable<String, Set<String>> concatHashTable) {
-		Vector<String> concatV = new Vector<String>();
+		Vector<String> concatV = new Vector<>();
 		String concatValue = "";
 		
-		Set<String> concatHashKeySet = new HashSet<String>();
+		Set<String> concatHashKeySet = new HashSet<>();
 		concatHashKeySet.addAll(concatHashTable.keySet());
 				
 		for (String key : concatHashKeySet) {
@@ -225,7 +225,7 @@ public class SORpropInsertProcessor extends AggregationHelper {
 		}
 		//logger.info("*****Prop URI: " + pred + ", predURI: " + semossPropertyBaseURI + "Calculated" + ", value: " + "yes");
 		addToAllRelationships(pred);					
-		LOGGER.info("System: " + sys + ", Data: " + dataObject + ", Pred: " + pred);
+		logger.info("System: " + Utility.cleanLogString(sys) + ", Data: " + Utility.cleanLogString(dataObject) + ", Pred: " + pred);
 	}
 	
 	public void setInsertCoreDB(String insertEngine) {
@@ -239,12 +239,12 @@ public class SORpropInsertProcessor extends AggregationHelper {
 	}
 	
 	public Hashtable<String, Set<String>> hashTableResultProcessor(ISelectWrapper sjsw) {
-		Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
+		Hashtable<String, Set<String>> aggregatedData = new Hashtable<>();
 		String[] vars = sjsw.getVariables();
 		while (sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();			
 			String sub = sjss.getRawVar(vars[0]).toString();
-			Set<String> pred = new HashSet<String>();
+			Set<String> pred = new HashSet<>();
 			pred.add(sjss.getRawVar(vars[1]).toString());
 			if (!aggregatedData.containsKey(sub))
 				{aggregatedData.put(sub, pred);}

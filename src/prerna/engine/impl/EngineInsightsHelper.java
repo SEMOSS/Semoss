@@ -64,9 +64,11 @@ public class EngineInsightsHelper {
 		
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		// decrypt the password
-		String propFile = baseFolder + java.nio.file.FileSystems.getDefault().getSeparator() + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + ".smss";
-
-		String pass = insightsRdbms.decryptPass(propFile, true);
+		String propFile = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + ".smss";
+		String pass = null;
+		if(new File(propFile).exists()) {
+			pass = insightsRdbms.decryptPass(propFile, true);
+		}
 		if(pass == null) {
 			pass = "";
 		}
