@@ -25,6 +25,8 @@ import org.eclipse.jgit.api.errors.WrongRepositoryStateException;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 
+import prerna.util.Utility;
+
 public class GitMergeHelper {
 	private static final Logger logger = LogManager.getLogger(GitMergeHelper.class);
 
@@ -133,7 +135,7 @@ public class GitMergeHelper {
 	 */
 	private static void wipeFiles(List <String> filesToWipe) {
 		for(int fileIndex = 0;fileIndex < filesToWipe.size();fileIndex++) {
-			File file = new File(filesToWipe.get(fileIndex));
+			File file = new File(Utility.normalizePath(filesToWipe.get(fileIndex)));
 			if(file.exists()) {
 				file.delete();
 			}				

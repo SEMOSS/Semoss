@@ -33,6 +33,7 @@ import prerna.util.git.GitRepoUtils;
 
 public class UploadInsightReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = UploadInsightReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 
 	public UploadInsightReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
@@ -75,7 +76,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 			for (String filePath : fileList) {
 				if (filePath.endsWith(MosfetFile.RECIPE_FILE)) {
 					mosfetFileLoc = versionFolder + DIR_SEPARATOR + filePath;
-					mosfetFile = new File(mosfetFileLoc);
+					mosfetFile = new File(Utility.normalizePath(mosfetFileLoc));
 					// check if the file exists
 					if (!mosfetFile.exists()) {
 						// invalid file need to delete the files unzipped
@@ -101,7 +102,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 			}
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			SemossPixelException exception = new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Unable to unzip files."));
 			exception.setContinueThreadOfExecution(false);
@@ -115,7 +116,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		try {
 			mosfet = MosfetFile.generateFromFile(mosfetFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			SemossPixelException exception = new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Unable to load the mosfet file."));
 			exception.setContinueThreadOfExecution(false);
@@ -156,7 +157,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 
 		ClusterUtil.reactorPushApp(appId);
 
-		Map<String, Object> returnMap = new HashMap<String, Object>();
+		Map<String, Object> returnMap = new HashMap<>();
 		returnMap.put("name", insightName);
 		returnMap.put("app_insight_id", newRdbmsId);
 		returnMap.put("app_name", app.getEngineName());

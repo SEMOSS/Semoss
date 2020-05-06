@@ -48,8 +48,12 @@ import javax.net.ssl.X509TrustManager;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.util.Utility;
+
 public class InstallCertNow {
-	private static final Logger logger = LogManager.getLogger(InstallCertNow.class.getName());
+
+	private static final Logger logger = LogManager.getLogger(InstallCertNow.class);
+
 	private static final String STACKTRACE = "StackTrace: ";
 
 	public static void main(String [] args)
@@ -76,7 +80,7 @@ public class InstallCertNow {
     		return;
 
     	// mod the java locl
-    	javaLoc = javaLoc + "/jre/lib/security/cacerts";
+    	javaLoc = Utility.normalizePath(javaLoc) + "/jre/lib/security/cacerts";
 
     	if(pass == null)
     		pass = "changeit";

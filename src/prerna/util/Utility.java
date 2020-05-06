@@ -66,13 +66,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
+import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -1037,7 +1040,7 @@ public class Utility {
 	public static void writeWorkbook(Workbook wb, String fileLoc) {
 		FileOutputStream newExcelFile = null;
 		try {
-			newExcelFile = new FileOutputStream(fileLoc);
+			newExcelFile = new FileOutputStream(Utility.normalizePath(fileLoc));
 			wb.write(newExcelFile);
 			newExcelFile.flush();
 		} catch (IOException ioe) {
@@ -1168,8 +1171,8 @@ public class Utility {
 		try {
 			URIBuilder uri = new URIBuilder(api);
 
-			logger.info("Getting data from the API...  " + api);
-			logger.info("Prams is " + params);
+			logger.info("Getting data from the API...  " + Utility.cleanLogString(api));
+			logger.info("Params are " + Utility.cleanLogMap(params, "HASHTABLE"));
 
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
@@ -3049,6 +3052,37 @@ public class Utility {
 		return message;
 	}
 
+	public static Map<String, String> cleanLogMap(Map<String, String> paramTable, String typeOfMap) {
+		Map<String, String> cleanedParams = null;
+
+		switch (typeOfMap.toUpperCase(Locale.ENGLISH)) {
+			case "HASHTABLE":
+				cleanedParams = new Hashtable<>();
+				break;
+			case "HASHMAP":
+				cleanedParams = new HashMap<>();
+				break;
+			case "LINKEDHASHMAP":
+				cleanedParams = new LinkedHashMap<>();
+				break;
+			case "TREEMAP":
+				cleanedParams = new TreeMap<>();
+				break;
+			default:
+				cleanedParams = new HashMap<>();
+				break;
+		}
+
+		for (Entry<String, String> map: paramTable.entrySet()) {
+			String cleanedKey = Utility.cleanLogString(map.getKey());
+			String cleanedValue = Utility.cleanLogString(map.getValue());
+
+			cleanedParams.put(cleanedKey, cleanedValue);
+		}
+
+		return cleanedParams;
+	}
+
 	public static String normalizePath(String stringToNormalize) {
 		if(stringToNormalize == null ) {
 			return stringToNormalize;
@@ -3056,7 +3090,7 @@ public class Utility {
 		String normalizedString = FilenameUtils.normalize(stringToNormalize);
 
 		if (normalizedString == null) {
-			logger.error("File path: " + stringToNormalize + " could not be normalized");
+			logger.error("File path: " + Utility.cleanLogString(stringToNormalize) + " could not be normalized");
 			throw new IllegalArgumentException();
 		}
 		normalizedString = normalizedString.replace("\\", "/");
@@ -3075,7 +3109,7 @@ public class Utility {
 		FileInputStream fis = null;
 		if (fileName != null) {
 			try {
-				fis = new FileInputStream(fileName);
+				fis = new FileInputStream(Utility.normalizePath(fileName));
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				logger.error(STACKTRACE, ioe);

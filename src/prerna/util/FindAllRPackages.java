@@ -13,6 +13,8 @@ import java.util.stream.Stream;
 
 public class FindAllRPackages {
 
+//	private static final Logger logger = LogManager.getLogger(FindAllRPackages.class);
+
 	private static final String LIBRARY_REGEX = "library\\((.*?)\\)";
 
 	public static void main(String[] args) throws IOException {
@@ -28,7 +30,7 @@ public class FindAllRPackages {
 		
 		Set<String> packages = new HashSet<>();
 		Files.walk(src)
-        .filter(f -> f.toFile().getName().endsWith(extension))
+        .filter(f -> (f.toFile().getName()).endsWith(extension))
         .forEach(f -> {
         	try (Stream<String> stream = Files.lines(f, Charset.forName("Cp1252"))) {
     			stream.forEach(l -> {
@@ -36,14 +38,17 @@ public class FindAllRPackages {
     				while(libraryMatcher.find()) {
     					String packageName = libraryMatcher.group(1);
     		            System.out.println(f.getFileName().toString() + ", found raw: " + packageName);
+//    		            logger.info(f.getFileName().toString() + ", found raw: " + packageName);
     		            packages.add(packageName);
     		        }
     			});
     		} catch (IOException e) {
     			e.printStackTrace();
+//    			logger.error("StackTrace: ", e);
     		}
         });
 		System.out.println("----------");
+//		logger.info("----------");
 		packages.stream().forEach(System.out::println);		
 	}
 }

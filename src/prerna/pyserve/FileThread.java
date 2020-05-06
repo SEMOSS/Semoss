@@ -17,14 +17,18 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.python.google.common.io.Files;
 
+import prerna.util.Utility;
+
 public class FileThread implements Runnable {
 	
 	String folderToWatch = null;
 	String extnToWatch = "py.go";
 	IWorker worker = null;
-	private static final String CLASS_NAME = FileThread.class.getName();
 
-	public static final Logger LOGGER = LogManager.getLogger(CLASS_NAME);
+	private static final String CLASS_NAME = FileThread.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
+
+	public static final Logger logger = LogManager.getLogger(CLASS_NAME);
 
 	public boolean keepAlive = true;
 
@@ -32,18 +36,16 @@ public class FileThread implements Runnable {
 	
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		LOGGER.info("Starting watch on.. " + folderToWatch);
+		logger.info("Starting watch on.. " + folderToWatch);
 		try {
 			
 			// create the ready file
-			File readFile = new File(folderToWatch + "/ready");
+			File readFile = new File(Utility.normalizePath(folderToWatch) + "/ready");
 			readFile.createNewFile();
 			
 			
 			WatchService watchService = FileSystems.getDefault().newWatchService();
-			Path path = Paths.get(folderToWatch);
+			Path path = Paths.get(Utility.normalizePath(folderToWatch));
 			WatchKey watchKey = path.register(
 					  watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
 			
@@ -75,24 +77,22 @@ public class FileThread implements Runnable {
 				    		//else if()// this is a modify request 
 				    		//else if(!file.endsWith(".completed"))
 				    		key.reset();
-			    		}catch(Exception ex)
-			    		{
-			    			ex.printStackTrace();
-			    		}
+					} catch (Exception ex) {
+						logger.error(STACKTRACE, ex);
+					}
 			    		//	processComplete(file);
 			    }
 			    if(!keepAlive)
 			    	break;
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Thread.currentThread().interrupt();
+			logger.error(STACKTRACE, e);
 		}
-		
-		LOGGER.info("Folder " + folderToWatch + " Thread Ended");
+
+		logger.info("Folder " + folderToWatch + " Thread Ended");
 	}
 	
 
