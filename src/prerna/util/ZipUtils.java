@@ -42,7 +42,10 @@ public final class ZipUtils {
 	// buffer for read and write data to file
 	private static byte[] buffer = new byte[2048];
 
-	public static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	// always need to use this for zipping up and unzipping 
+	// traversing will break if the file separator is a "\" 
+	// which is generated on windows 
+	public static final String FILE_SEPARATOR = "/";
 
 	private ZipUtils() {
 
@@ -337,10 +340,10 @@ public final class ZipUtils {
 	}
 
 	public static void main(String[] args) throws FileNotFoundException, IOException {
-		String dest = "C:\\Users\\SEMOSS\\workspace\\Semoss\\db\\Movie__6e41aba8-29da-4616-b2f9-647a8ef01313\\version";
-		dest = "C:\\Users\\SEMOSS\\workspace";
-		dest = dest.replace("\\", "/");
-		String zip = "C:\\Users\\SEMOSS\\Downloads\\Movie.zip";
+//		String dest = "C:\\Users\\SEMOSS\\workspace\\Semoss\\db\\Movie__6e41aba8-29da-4616-b2f9-647a8ef01313\\version";
+//		dest = "C:\\Users\\SEMOSS\\workspace";
+//		dest = dest.replace("\\", "/");
+		String zip = "C:\\Users\\mahkhalil\\Desktop\\Movie.zip";
 		zip = zip.replace("\\", "/");
 		Path zipUri = Paths.get(zip);		
 		Map<String, List<String>> map = listFilesInZip(zipUri);
