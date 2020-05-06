@@ -47,6 +47,8 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
  */
 public class SMSSFileWatcher extends AbstractFileWatcher {
 
+	private static final String STACKTRACE = "StackTrace: ";
+
 	/**
 	 * Processes SMSS files.
 	 * 
@@ -175,14 +177,13 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			frame2.repaint();
 
 		} catch (IOException ex) {
-			// TODO: Specify exception
-			ex.printStackTrace();
+			logger.error(STACKTRACE, ex);
 		} finally {
 			try {
 				if (fileIn != null)
 					fileIn.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		
@@ -230,7 +231,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 				String loadedEngineName = loadExistingDB(fileNames[fileIdx]);
 				engineNames[fileIdx] = loadedEngineName;
 			} catch (RuntimeException ex) {
-				ex.printStackTrace();
+				logger.error(STACKTRACE, ex);
 				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
@@ -242,7 +243,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 		// so delete the engines if the SMSS is not there anymore sure makes sense
 		for(String engine : engines) {
 			if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-				logger.info("Deleting the engine..... " + engine);
+				logger.info("Deleting the engine..... " + Utility.cleanLogString(engine));
 				remover.deleteEngineRDBMS(engine);
 			}
 		}

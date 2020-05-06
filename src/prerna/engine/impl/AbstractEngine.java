@@ -1379,13 +1379,13 @@ public abstract class AbstractEngine implements IEngine {
 	public String decryptPass(String propFile, boolean insight) {
 		String retString = null;
 		try {
-			Properties prop = new Properties();
 			File propF = new File(propFile);
+			Properties prop = new Properties();
 			prop.load(new FileInputStream(propF));
-			String dir = propF.getParent() + java.nio.file.FileSystems.getDefault().getSeparator() + SmssUtilities.getUniqueName(prop);
-			String passwordFileName = dir + java.nio.file.FileSystems.getDefault().getSeparator() + ".pass";
+			String dir = propF.getParent() + DIR_SEPARATOR + SmssUtilities.getUniqueName(prop);
+			String passwordFileName = dir + DIR_SEPARATOR + ".pass";
 			if(insight) {
-				passwordFileName = dir + java.nio.file.FileSystems.getDefault().getSeparator() + ".insight";
+				passwordFileName = dir + DIR_SEPARATOR + ".insight";
 			}
 			
 			String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";		

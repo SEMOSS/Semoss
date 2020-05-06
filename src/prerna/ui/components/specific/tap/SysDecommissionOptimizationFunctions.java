@@ -42,11 +42,11 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class SysDecommissionOptimizationFunctions {
-	
 
-	protected static final Logger logger = LogManager.getLogger(SysDecommissionOptimizationFunctions.class.getName());
+	protected static final Logger logger = LogManager.getLogger(SysDecommissionOptimizationFunctions.class);
 	
 	//stores list of systems and then hashtable of systems to their min time and work volumes
 	private Hashtable<String, Double> sysToMinTimeHashPerSite;
@@ -168,10 +168,10 @@ public class SysDecommissionOptimizationFunctions {
 		
 		calculateResourceAndOutput();
 
-		System.out.println("Resources constraint: "+Math.ceil(resourcesConstraint));
-		System.out.println("Resources used: "+Math.ceil(resourcesPossible));
-		System.out.println("Time used in years: "+minPossibleTimeAllSystems / 365.0);
-		System.out.println("Total cost: "+costAllSysAllSites);
+		logger.info("Resources constraint: "+ resourcesConstraint);
+		logger.info("Resources used: "+Math.ceil(resourcesPossible));
+		logger.info("Time used in years: "+minPossibleTimeAllSystems / 365.0);
+		logger.info("Total cost: "+costAllSysAllSites);
 
 	}
 	public void optimizeResource()
@@ -184,10 +184,10 @@ public class SysDecommissionOptimizationFunctions {
 		
 		calculateResourceAndOutput();
 		
-		System.out.println("Time constraint:"+timeConstraint / 365.0);
-		System.out.println("Time actually used in years:"+minPossibleTimeAllSystems / 365.0);
-		System.out.println("Resources used: "+Math.ceil(resourcesPossible));
-		System.out.println("Total cost: "+costAllSysAllSites);
+		logger.info("Time constraint:"+timeConstraint / 365.0);
+		logger.info("Time actually used in years:"+minPossibleTimeAllSystems / 365.0);
+		logger.info("Resources used: "+Math.ceil(resourcesPossible));
+		logger.info("Total cost: "+costAllSysAllSites);
 	}
 	public void optimize(double budget, double minYears)
 	{
@@ -211,7 +211,7 @@ public class SysDecommissionOptimizationFunctions {
 	 */
 	public double adjustTimeToTransform(double budget, double years)
 	{
-		sysToPossibleResourceAllocationHash = new Hashtable<String, Double>();
+		sysToPossibleResourceAllocationHash = new Hashtable<>();
 		minPossibleTimeAllSystems = 0.0;
 		//instantiate();
 		resourcesPossible = budget / (workHoursInYear*hourlyCost);
@@ -220,29 +220,29 @@ public class SysDecommissionOptimizationFunctions {
 		calculateResourceAllocationPerSystem();
 //		calculateTimeToTransformPerSystem(years);
 		calculateMinTimeToTransform();
-		System.out.println("Years: "+years + " and Adjusted Years"+minPossibleTimeAllSystems / 365.0);
+		logger.info("Years: "+years + " and Adjusted Years"+minPossibleTimeAllSystems / 365.0);
 		return Math.max(minPossibleTimeAllSystems / 365.0,years);
 		
 	}
 	public void instantiate()
 	{
-		sysToMinTimeHashPerSite = new Hashtable<String, Double>();
-		sysToWorkVolHashPerSite = new Hashtable<String, Double>();
-//		sysToMinTimeHashAllSites = new Hashtable<String, Double>();
-		sysToWorkVolHashAllSites = new Hashtable<String, Double>();
-		sysToDataToLOEHash = new Hashtable<String, Hashtable<String,Double>>();
-		sysToSiteHash = new Hashtable<String, ArrayList<String>>();
-		sysToDispositionHash = new Hashtable<String, String>();
-		sysToOwnerHash = new Hashtable<String, String>();
-//		sysToSustainmentCost = new Hashtable<String,Double>();
-		sysToSiteCountHash = new Hashtable<String, Integer>();
-		sysToPossibleResourceAllocationHash = new Hashtable<String, Double>();
-		sysToResourceAllocationFirstSiteHash = new Hashtable<String, Double>();
-		sysToResourceAllocationOtherSitesHash = new Hashtable<String, Double>();
-		sysToNumSimultaneousTransformHash = new Hashtable<String, Double>();
-		outputList = new ArrayList<Object[]>();
-		systemsWithNoSite = new ArrayList<String>();
-		sortedSysList = new Vector<String>();
+		sysToMinTimeHashPerSite = new Hashtable<>();
+		sysToWorkVolHashPerSite = new Hashtable<>();
+//		sysToMinTimeHashAllSites = new Hashtable<>();
+		sysToWorkVolHashAllSites = new Hashtable<>();
+		sysToDataToLOEHash = new Hashtable<>();
+		sysToSiteHash = new Hashtable<>();
+		sysToDispositionHash = new Hashtable<>();
+		sysToOwnerHash = new Hashtable<>();
+//		sysToSustainmentCost = new Hashtable<>();
+		sysToSiteCountHash = new Hashtable<>();
+		sysToPossibleResourceAllocationHash = new Hashtable<>();
+		sysToResourceAllocationFirstSiteHash = new Hashtable<>();
+		sysToResourceAllocationOtherSitesHash = new Hashtable<>();
+		sysToNumSimultaneousTransformHash = new Hashtable<>();
+		outputList = new ArrayList<>();
+		systemsWithNoSite = new ArrayList<>();
+		sortedSysList = new Vector<>();
 		
 		resourcesPossible = 0.0;
 		minNecessaryTimeAllSystems = 0.0;
@@ -370,7 +370,7 @@ public class SysDecommissionOptimizationFunctions {
 		{
 			sysToMinTimeHashPerSite.remove(sys);
 			sysToWorkVolHashPerSite.remove(sys);
-			logger.info(sys+"...removing because no site data");
+			logger.info(Utility.cleanLogString(sys) + "...removing because no site data");
 		}
 	}
 	
@@ -479,19 +479,17 @@ public class SysDecommissionOptimizationFunctions {
 	{
 		for(String sys : sysToMinTimeHashPerSite.keySet())
 		{
-			System.out.print(sys + "$" + sysToMinTimeHashPerSite.get(sys) / 365.0 + "$" + sysToWorkVolHashPerSite.get(sys) / 365.0);
+			logger.info(sys + "$" + sysToMinTimeHashPerSite.get(sys) / 365.0 + "$" + sysToWorkVolHashPerSite.get(sys) / 365.0);
 			if(sysToSiteHash.containsKey(sys))
-				System.out.print("$" + sysToSiteHash.get(sys).size());
+				logger.info("$" + sysToSiteHash.get(sys).size());
 			else
-				System.out.print("$" + "not found");
-			System.out.print("$" + sysToPossibleResourceAllocationHash.get(sys) + "$" + sysToNumSimultaneousTransformHash.get(sys));
-			System.out.println();
+				logger.info("$" + "not found");
+			logger.info("$" + sysToPossibleResourceAllocationHash.get(sys) + "$" + sysToNumSimultaneousTransformHash.get(sys));
 		}
 		
-		System.out.println("resources used: "+resourcesPossible);
-		System.out.println("min time with unlimited resources: "+minNecessaryTimeAllSystems / 365.0);
-		System.out.println("min time with resources used: "+minPossibleTimeAllSystems / 365.0);		
-		System.out.println();
+		logger.info("resources used: "+resourcesPossible);
+		logger.info("min time with unlimited resources: "+minNecessaryTimeAllSystems / 365.0);
+		logger.info("min time with resources used: "+minPossibleTimeAllSystems / 365.0);		
 	}
 	
 	public void makeArrayList()
@@ -637,7 +635,7 @@ public class SysDecommissionOptimizationFunctions {
 					}
 					else
 					{
-						Hashtable<String, Double> dataCostHash = new Hashtable<String, Double> ();
+						Hashtable<String, Double> dataCostHash = new Hashtable<> ();
 						dataCostHash.put(data+"$"+ser,  loe);
 						sysToDataToLOEHash.put(system, dataCostHash);
 					}
@@ -697,7 +695,7 @@ public class SysDecommissionOptimizationFunctions {
 				}
 				else
 				{
-					ArrayList<String> siteList = new ArrayList<String>();
+					ArrayList<String> siteList = new ArrayList<>();
 					siteList.add(site);
 					sysToSiteHash.put(system, siteList);
 				}
@@ -706,7 +704,7 @@ public class SysDecommissionOptimizationFunctions {
 	}
 	private void sortSysList()
 	{
-		sortedSysList = new Vector<String>(sysToMinTimeHashPerSite.keySet());
+		sortedSysList = new Vector<>(sysToMinTimeHashPerSite.keySet());
 		Collections.sort(sortedSysList);
 	}
 }

@@ -13,15 +13,17 @@ import org.apache.log4j.Logger;
 import org.wikidata.wdtk.wikibaseapi.WbSearchEntitiesResult;
 import org.wikidata.wdtk.wikibaseapi.WikibaseDataFetcher;
 
+import prerna.util.Utility;
+
 public class WikiDescriptionExtractor {
 
-	private static List<String> ignoreResultsList = new Vector<String>();
+	private static List<String> ignoreResultsList = new Vector<>();
 	static {
 		ignoreResultsList.add("Wikimedia disambiguation page");
 		ignoreResultsList.add("scientific article published on");
 	}
-	
-	public static final Logger LOGGER = LogManager.getLogger(WikiDescriptionExtractor.class.getName());
+
+	public static final Logger LOGGER = LogManager.getLogger(WikiDescriptionExtractor.class);
 	private Logger logger;
 
 	public WikiDescriptionExtractor() {
@@ -30,18 +32,18 @@ public class WikiDescriptionExtractor {
 	
 	public List<String> getDescriptions(String searchTerm) throws Exception {
 		Logger logger = getLogger();
-		List<String> descriptionList = new Vector<String>();
+		List<String> descriptionList = new Vector<>();
 
 		WikibaseDataFetcher wbdf = WikibaseDataFetcher.getWikidataDataFetcher();
 		searchTerm = searchTerm.trim().replace("_", " ");
 		List<WbSearchEntitiesResult> searchResults = wbdf.searchEntities(searchTerm, new Long(10));
 		int numReturns = searchResults.size();
 		if(numReturns == 0) {
-			logger.info("Found no results searching for " + searchTerm);
+			logger.info("Found no results searching for " + Utility.cleanLogString(searchTerm));
 			return descriptionList;
 		}
-		logger.info("Querying wikidata returned " + numReturns + " results for " + searchTerm);
-		List<Callable<String>> descriptionExtractors = new Vector<Callable<String>>();
+		logger.info("Querying wikidata returned " + numReturns + " results for " + Utility.cleanLogString(searchTerm));
+		List<Callable<String>> descriptionExtractors = new Vector<>();
 		for(int i = 0; i < searchResults.size(); i++) {
 			WbSearchEntitiesResult res = searchResults.get(i);
 			WikiDescriptionCallable callable = new WikiDescriptionCallable(wbdf, res);
@@ -76,7 +78,7 @@ public class WikiDescriptionExtractor {
 				}
 				numReturns--;
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error("StackTrace: ", e);
 				throw e;
 			} finally {
 				executorService.shutdownNow();
