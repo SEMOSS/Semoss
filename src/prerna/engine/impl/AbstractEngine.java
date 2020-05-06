@@ -185,7 +185,7 @@ public abstract class AbstractEngine implements IEngine {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			if(propFile != null) {
 				this.propFile = propFile;
-				LOGGER.info("Opening DB - " + engineName);
+				LOGGER.info("Opening DB - " + Utility.cleanLogString(engineName));
 				this.prop = Utility.loadProperties(propFile);
 			}
 			if(this.prop != null) {

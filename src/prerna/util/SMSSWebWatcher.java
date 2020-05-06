@@ -199,7 +199,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					Utility.synchronizeEngineMetadata(engineId);
 					SecurityUpdateUtils.addApp(engineId);
 				} else {
-					logger.info("Ignoring engine ... " + prop.getProperty(Constants.ENGINE_ALIAS) + " >>> " + engineId );
+					logger.info("Ignoring engine ... " + Utility.cleanLogString(prop.getProperty(Constants.ENGINE_ALIAS)) + " >>> " + engineId );
 				}
 			}
 		} catch(Exception e){
