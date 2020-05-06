@@ -390,10 +390,10 @@ public class QueryBuilderData {
 					String physSub = relTriple.get(0);
 					String logicalSub = getLogicalNameFromPhysicalURI(physSub);
 
-					logger.info("checking if need need to add node to edgeHash:::: " + logicalObj);
+					logger.info("checking if need need to add node to edgeHash:::: " + Utility.cleanLogString(logicalObj));
 					if(!limitReturnToVarsList || this.returnVars.contains(logicalObj) ||  this.returnVars.contains(logicalSub)){
 						// yes it seems valid. need to get subject logical name
-						logger.info("yes, adding now. " + logicalObj + " is downstream of " + logicalSub); // TODO: What if subject is not part of query return... ? what do we connect this property to?
+						logger.info("yes, adding now. " + Utility.cleanLogString(logicalObj) + " is downstream of " + Utility.cleanLogString(logicalSub)); // TODO: What if subject is not part of query return... ? what do we connect this property to?
 						
 						String physSubInst = Utility.getInstanceName(physSub);
 						String physObjInst = Utility.getInstanceName(physObj);

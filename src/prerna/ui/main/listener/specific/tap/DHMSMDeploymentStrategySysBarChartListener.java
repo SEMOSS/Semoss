@@ -38,6 +38,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.specific.tap.DHMSMDeploymentStrategyPlaySheet;
+import prerna.util.Utility;
 
 /**
  */
@@ -107,14 +108,14 @@ public class DHMSMDeploymentStrategySysBarChartListener implements ActionListene
 				//create a new double[] for that system
 				int sysIndex = findSystem(system);
 				if(sysIndex == -1) {
-					LOGGER.error("Could not find savings data for system "+system);
+					LOGGER.error("Could not find savings data for system "+Utility.cleanLogString(system));
 					consoleArea.setText(consoleArea.getText()+"\nCould not find savings data for system "+system);
 				}
 				double[] systemSavings = new double[sysSavingsHeaders.length - 2];
 				for(int i=1;i<sysSavingsHeaders.length - 1;i++) {
 					String value = (String)savingsList.get(sysIndex)[i];
 					if(value.contains("No")) {
-						LOGGER.info("No cost info for system "+system);
+						LOGGER.info("No cost info for system "+ Utility.cleanLogString(system));
 						consoleArea.setText(consoleArea.getText()+"\nNo cost info for system "+system);
 					} else {
 						if(value.startsWith("$ "))
