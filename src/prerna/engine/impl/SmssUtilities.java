@@ -35,8 +35,8 @@ public class SmssUtilities {
 		String owlFile = baseFolder + DIR_SEPARATOR + prop.getProperty(Constants.OWL);
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		File owl = new File(owlFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
-		return owl;
+
+		return new File(Utility.normalizePath(owlFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
 	
 	/**
@@ -52,7 +52,7 @@ public class SmssUtilities {
 		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsInsightsType);
 
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String rdbmsInsights = baseFolder + DIR_SEPARATOR + prop.getProperty(Constants.RDBMS_INSIGHTS);
+		String rdbmsInsights = Utility.normalizePath(baseFolder) + DIR_SEPARATOR + Utility.normalizePath(prop.getProperty(Constants.RDBMS_INSIGHTS));
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 		
@@ -84,8 +84,8 @@ public class SmssUtilities {
 		String engineProps = baseFolder + DIR_SEPARATOR + prop.getProperty(Constants.ENGINE_PROPERTIES);
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		File eProps = new File(engineProps.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
-		return eProps;
+
+		return new File(Utility.normalizePath(engineProps.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
 	
 	/**
@@ -136,8 +136,8 @@ public class SmssUtilities {
 		String jnlLocation = baseFolder + DIR_SEPARATOR + prop.getProperty(PROP_NAME);
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		File jnl = new File(jnlLocation.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
-		return jnl;
+
+		return new File(Utility.normalizePath(jnlLocation.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
 	
 	/**
@@ -153,17 +153,10 @@ public class SmssUtilities {
 		String rdfFileLoc = baseFolder + DIR_SEPARATOR + prop.getProperty(Constants.RDF_FILE_NAME);
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		File rdfFile = new File(rdfFileLoc.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
-		return rdfFile;
+
+		return new File(Utility.normalizePath(rdfFileLoc.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
-	
-	
-	
-	
-	
-	
-	
-	
+
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
@@ -189,8 +182,8 @@ public class SmssUtilities {
 		String dataFile = baseFolder + DIR_SEPARATOR + dataSuffix;
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		File file = new File(dataFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
-		return file;
+
+		return new File(Utility.normalizePath(dataFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
 	
 	
@@ -227,8 +220,8 @@ public class SmssUtilities {
 		}
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		File tinker = new File(tinkerFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
-		return tinker;
+
+		return new File(Utility.normalizePath(tinkerFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
 	
 	/**
@@ -251,8 +244,8 @@ public class SmssUtilities {
 		}
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		File file = new File(neo4jFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
-		return file;
+
+		return new File(Utility.normalizePath(neo4jFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
 	
 	/**
@@ -275,8 +268,8 @@ public class SmssUtilities {
 		}
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		File tinker = new File(janusFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
-		return tinker;
+
+		return new File(Utility.normalizePath(janusFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
 	
 	/**

@@ -11,6 +11,8 @@ import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -39,9 +41,13 @@ import prerna.util.gson.SelectQueryStructAdapter;
 
 public class NativeFrame extends AbstractTableDataFrame {
 
+	private static final Logger logger = LogManager.getLogger(NativeFrame.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	public static final String DATA_MAKER_NAME = "NativeFrame";
 
-	private static List<IEngine.ENGINE_TYPE> cacheEngines = new Vector<IEngine.ENGINE_TYPE>();
+	private static List<IEngine.ENGINE_TYPE> cacheEngines = new Vector<>();
 	static {
 		cacheEngines.add(IEngine.ENGINE_TYPE.SESAME);
 		cacheEngines.add(IEngine.ENGINE_TYPE.JENA);
@@ -94,7 +100,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 				it = query(mQs);
 				return ((Number) it.next().getValues()[1]).doubleValue();
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(it != null) {
 					it.cleanUp();
@@ -127,7 +133,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 				it = query(mQs);
 				return ((Number) it.next().getValues()[1]).doubleValue();
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(it != null) {
 					it.cleanUp();
@@ -161,7 +167,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 				values.add(it.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -185,7 +191,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// merge the joins
 		newQs.mergeRelations(qs.getRelations());
 
-		List<Object> values = new Vector<Object>();
+		List<Object> values = new Vector<>();
 
 		IRawSelectWrapper it = null;
 		try {
@@ -194,7 +200,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 				values.add(it.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -240,7 +246,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			it = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
 			empty = it.hasNext();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -352,7 +358,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			adapter.write(jWriter, this.qs);
 			FileUtils.writeStringToFile(new File(frameFileName), writer.toString());
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IOException("Error occured attempting to save native frame");
 		}
 		cf.setFrameCacheLocation(frameFileName);
@@ -367,12 +373,12 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// load the frame
 		// this is just the QS
 		try {
-			StringReader reader = new StringReader(FileUtils.readFileToString(new File(cf.getFrameCacheLocation())));
+			StringReader reader = new StringReader(FileUtils.readFileToString(new File(Utility.normalizePath(cf.getFrameCacheLocation()))));
 			JsonReader jReader = new JsonReader(reader);
 			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 			this.qs = adapter.read(jReader);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 
 		// open the meta details

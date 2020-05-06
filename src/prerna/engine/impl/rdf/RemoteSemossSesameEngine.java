@@ -65,7 +65,9 @@ import prerna.util.Utility;
 
 public class RemoteSemossSesameEngine extends AbstractEngine {
 
-	private static final Logger logger = LogManager.getLogger(RemoteSemossSesameEngine.class.getName());
+	private static final Logger logger = LogManager.getLogger(RemoteSemossSesameEngine.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
 	// things this needs to override
 	// OpenDB
 	// CloseDB
@@ -85,16 +87,17 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 		try {
 			
 				// get the URI for the remote
-				System.err.println("Loading file ENGINE " + propFile);
+				logger.info("Loading file ENGINE " + propFile);
 				String owlFile = "";
 				
 				
 				if(propFile != null)
 				{
-					String baseFolder = DIHelper.getInstance().getProperty(
-					"BaseFolder");
-					if(!propFile.contains(baseFolder))
-						propFile = baseFolder + "/db/" + propFile;
+					String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+					String normalizedBaseFolder = Utility.normalizePath(baseFolder);
+
+					if(!propFile.contains(normalizedBaseFolder))
+						propFile = normalizedBaseFolder + "/db/" + propFile;
 					
 					prop = Utility.loadProperties(propFile);
 					// need some way to indicate that this is a new database. this will happen later
@@ -112,8 +115,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 							dirFolder.mkdir();
 						
 					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						logger.error(STACKTRACE, e);
 					}
 
 					insightDatabaseLoc = prop.getProperty("RDBMS_INSIGHTS");
@@ -164,39 +166,36 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 				String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
 				try {
-					String owlFileName = baseFolder + "/" + owlFile;
+					String owlFileName = Utility.normalizePath(baseFolder) + "/" + Utility.normalizePath(owlFile);
 					FileWriter fw = new FileWriter(owlFileName);
 					RDFXMLWriter writer = new RDFXMLWriter(fw);
 					baseDataEngine.writeData(writer);
 				} catch (RDFHandlerException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+					logger.error(STACKTRACE, e1);
 				}
 				
 				try {
 					this.setBaseHash(RDFEngineHelper.createBaseFilterHash(rc));
 				} catch (MalformedQueryException e) {
-					e.printStackTrace();
-				} catch (QueryEvaluationException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
+				} catch (QueryEvaluationException qee) {
+					logger.error(STACKTRACE, qee);
 				}
 				
 				// yup.. we are open for business
 				connected = true;
-		}catch(RuntimeException ex)
-		{
-			// will do something later
-			ex.printStackTrace();
+		} catch (RuntimeException ex) {
+			logger.error(STACKTRACE, ex);
 			connected = false;
-		} catch (RDFParseException e) {
-			e.printStackTrace();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}		
+		} catch (RDFParseException rde) {
+			logger.error(STACKTRACE, rde);
+		} catch (RepositoryException re) {
+			logger.error(STACKTRACE, re);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
+		} catch (SQLException sqe) {
+			logger.error(STACKTRACE, sqe);
+		}	
 	}
 
 	// TODO: do we really need this?
@@ -227,8 +226,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 			rc = myRepository.getConnection();
 			return rc;
 		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		return null;
 	}
@@ -236,7 +234,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	@Override
 	public Object execQuery(String query) {
 		// this will call the engine and gets then flushes it into sesame jena wrapper
-		Hashtable <String,String> params = new Hashtable<String, String>();
+		Hashtable <String,String> params = new Hashtable<>();
 		params.put("query", query);
 		// get the result
 		Gson gson = new Gson();
@@ -265,7 +263,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	public Object execCheaterQuery(String query)
 	{
 		// this will call the engine and gets then flushes it into sesame jena construct wrapper
-		Hashtable <String,String> params = new Hashtable<String, String>();
+		Hashtable <String,String> params = new Hashtable<>();
 		params.put("query", query);
 		// get the result
 		String output = Utility.retrieveResult(api + "/s-" + database + "/execCheaterQuery", params);
@@ -280,7 +278,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	// gets the from neighborhood for a given node
 	public Vector <String> getFromNeighbors(String nodeType, int neighborHood)
 	{
-		Hashtable <String,String> params = new Hashtable<String, String>();
+		Hashtable <String,String> params = new Hashtable<>();
 		params.put("nodeType", nodeType);
 		params.put("neighborHood", neighborHood+"");
 		// get the result
@@ -295,7 +293,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	// gets the to nodes
 	public Vector <String> getToNeighbors(String nodeType, int neighborHood)
 	{
-		Hashtable <String,String> params = new Hashtable<String, String>();
+		Hashtable <String,String> params = new Hashtable<>();
 		params.put("nodeType", nodeType);
 		params.put("neighborHood", neighborHood+"");
 		// get the result
@@ -311,7 +309,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	// gets the from and to nodes
 	public Vector <String> getNeighbors(String nodeType, int neighborHood)
 	{
-		Hashtable <String,String> params = new Hashtable<String, String>();
+		Hashtable <String,String> params = new Hashtable<>();
 		params.put("nodeType", nodeType);
 		params.put("neighborHood", neighborHood+"");
 		// get the result
@@ -354,10 +352,10 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 		try {
 			rsw.execute();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		//SesameSelectWrapper ssw = (SesameSelectWrapper) this.execQuery(sparqlQuery);
-		Vector<Object> strVector = new Vector<Object>();
+		Vector<Object> strVector = new Vector<>();
 		while(rsw.hasNext()){
 			ISelectStatement sss = rsw.next();
 			strVector.add(sss.getRawVar(Constants.ENTITY)+ "");
@@ -373,7 +371,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	 * @return the Vector of Strings representing the full uris of all of the instances of the passed in type */
 	public Vector<Object> getEntityOfType(String type)
 	{
-		Hashtable <String,String> params = new Hashtable<String, String>();
+		Hashtable <String,String> params = new Hashtable<>();
 		params.put("sparqlQuery", type);
 		// get the result
 		String output = Utility.retrieveResult(api + "/s-" + database + "/getEntityOfType", params);

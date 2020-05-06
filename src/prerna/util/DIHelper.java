@@ -632,7 +632,7 @@ public class DIHelper {
 		  FileInputStream fileIn = null;
 			try {
 				coreProp = new Properties();
-				fileIn = new FileInputStream(fileName);
+				fileIn = new FileInputStream(Utility.normalizePath(fileName));
 				coreProp.load(fileIn);
 				coreProp.put(Constants.DIHELPER_PROP_FILE_LOCATION, fileName);
 			} catch (FileNotFoundException e) {

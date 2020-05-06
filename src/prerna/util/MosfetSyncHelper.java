@@ -19,6 +19,7 @@ public class MosfetSyncHelper {
 
 	// get the directory separator
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final String STACKTRACE = "StackTrace: ";
 
 	// ADDED
 	public static final String ADD = "ADD";
@@ -67,13 +68,13 @@ public class MosfetSyncHelper {
 
 	private static void processAddedFiles(List<String> list, Logger logger) {
 		for(String fileLocation : list) {
-			File file = new File(fileLocation);
+			File file = new File(Utility.normalizePath(fileLocation));
 			MosfetFile mosfetFile;
 			try {
 				mosfetFile = MosfetFile.generateFromFile(file);
 			} catch (IOException e) {
 				outputError(logger, "MOSFET file is not in valid JSON format");
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				continue;
 			}
 			processAddedFile(mosfetFile, logger);
@@ -98,13 +99,13 @@ public class MosfetSyncHelper {
 
 	private static void processModifiedFiles(List<String> list, Logger logger) {
 		for(String fileLocation : list) {
-			File file = new File(fileLocation);
+			File file = new File(Utility.normalizePath(fileLocation));
 			MosfetFile mosfetFile;
 			try {
 				mosfetFile = MosfetFile.generateFromFile(file);
 			} catch (IOException e) {
 				outputError(logger, "MOSFET file is not in valid JSON format");
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				continue;
 			}
 			processModifiedFiles(mosfetFile, logger);
@@ -119,13 +120,13 @@ public class MosfetSyncHelper {
 
 	private static void processDelete(List<String> list, Logger logger) {
 		for(String fileLocation : list) {
-			File file = new File(fileLocation);
+			File file = new File(Utility.normalizePath(fileLocation));
 			MosfetFile mosfetFile;
 			try {
 				mosfetFile = MosfetFile.generateFromFile(file);
 			} catch (IOException e) {
 				outputError(logger, "MOSFET file is not in valid JSON format");
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 				continue;
 			}
 			logger.info("Start deleting mosfet file");

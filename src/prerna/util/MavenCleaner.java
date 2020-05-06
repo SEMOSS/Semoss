@@ -11,8 +11,10 @@ import org.apache.commons.io.FileUtils;
 
 public class MavenCleaner {
 
-	private static final String PATH = System.getProperty("user.home") + System.getProperty("file.separator") + ".m2";
-	
+//	private static final Logger logger = LogManager.getLogger(MavenCleaner.class);
+
+	private static final String PATH = System.getProperty("user.home") + java.nio.file.FileSystems.getDefault().getSeparator() + ".m2";
+
 	public static void main(String[] args) throws IOException {
 		Set<Path> foldersToDelete = new HashSet<>();
 		Files.walk(Paths.get(PATH))
@@ -22,8 +24,10 @@ public class MavenCleaner {
 			try {
 				FileUtils.deleteDirectory(f.toFile());
 				System.out.println("Deleted " + f.toString());
+//				logger.info("Deleted " + f.toString());
 			} catch (IOException e) {
 				e.printStackTrace();
+//				logger.error("StackTrace: ", e);
 			}
 		});
 	}

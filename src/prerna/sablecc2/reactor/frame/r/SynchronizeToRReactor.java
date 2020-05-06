@@ -154,7 +154,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 		}
 		this.rJavaTranslator.executeEmptyR("library(data.table);");
 		this.rJavaTranslator.executeEmptyR(rDataTableName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
-		File f = new File(outputLocation);
+		File f = new File(Utility.normalizePath(outputLocation));
 		f.delete();
 		this.rJavaTranslator.executeEmptyR("setDT(" + rDataTableName + ")");
 
