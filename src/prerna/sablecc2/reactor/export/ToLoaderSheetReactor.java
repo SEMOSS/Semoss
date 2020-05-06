@@ -45,6 +45,7 @@ import prerna.util.Utility;
 public class ToLoaderSheetReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = ToLoaderSheetReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 	
 	public ToLoaderSheetReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
@@ -118,7 +119,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 				writeNodePropSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, physicalConceptName, properties);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			} finally {
 				if(iterator != null) {
 					iterator.cleanUp();
@@ -131,7 +132,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		List<String[]> rels = engine.getPhysicalRelationships();
 		if(engine.getEngineType() == ENGINE_TYPE.SESAME) {
 			for(String[] rel : rels) {
-				logger.info("Start rel sheet for " + Arrays.toString(rel));
+				logger.info("Start rel sheet for " + Utility.cleanLogString(Arrays.toString(rel)));
 				List<String> edgeProps = getEdgeProperties(engine, rel[0], rel[1], rel[2]);
 				String query = generateSparqlQuery(engine, rel[0], rel[1], rel[2], edgeProps);
 				IRawSelectWrapper iterator = null;
@@ -139,13 +140,13 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 					iterator = WrapperManager.getInstance().getRawWrapper(engine, query);
 					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, rel, edgeProps);
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				} finally {
 					if(iterator != null) {
 						iterator.cleanUp();
 					}
 				}
-				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
+				logger.info("Finished rel sheet for " + Utility.cleanLogString(Arrays.toString(rel)));
 			}
 		} else {
 			for(String[] rel : rels) {
@@ -166,13 +167,13 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 					iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, rel, new ArrayList<String>());
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				} finally {
 					if(iterator != null) {
 						iterator.cleanUp();
 					}
 				}
-				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
+				logger.info("Finished rel sheet for " + Utility.cleanLogString(Arrays.toString(rel)));
 			}
 		}
 		
@@ -363,7 +364,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 	
 	public static void writeLoader(Workbook wb) {
 		int numSheets = wb.getNumberOfSheets();
-		List<String> sheetNames = new Vector<String>(numSheets);
+		List<String> sheetNames = new Vector<>(numSheets);
 		for(int i = 0; i < numSheets; i++) {
 			sheetNames.add(wb.getSheetName(i));
 		}
@@ -427,7 +428,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				+ "{?rel ?propUri ?prop}"
 				+ "} order by ?propUri";
 		
-		List<String> props = new Vector<String>();
+		List<String> props = new Vector<>();
 		IRawSelectWrapper it = null;
 		try {
 			it = WrapperManager.getInstance().getRawWrapper(engine, startQ);

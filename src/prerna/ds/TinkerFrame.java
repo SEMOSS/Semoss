@@ -862,8 +862,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		            						node = node + data;
 		            					}
 			            			}
-			            			
-			                        logger.warn(node);
+
+			                        logger.warn(Utility.cleanLogString(node));
 			                      }
 		                      }
 
@@ -877,7 +877,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
                       } catch (IOException ioe) {
                              logger.error(STACKTRACE, ioe);
                       }
-                             
                 }
     }
 

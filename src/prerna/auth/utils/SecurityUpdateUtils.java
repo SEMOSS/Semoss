@@ -92,7 +92,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String[] typeAndCost = getAppTypeAndCost(prop);
 		boolean engineExists = containsEngineId(appId);
 		if(engineExists && !reloadInsights) {
-			logger.info("Security database already contains app with alias = " + appName);
+			logger.info("Security database already contains app with alias = " + Utility.cleanLogString(appName));
 			return;
 		} else if(!engineExists) {
 			addEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
@@ -103,7 +103,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 		}
 		
-		logger.info("Security database going to add app with alias = " + appName);
+		logger.info("Security database going to add app with alias = " + Utility.cleanLogString(appName));
 		
 		// load just the insights database
 		// first see if engine is already loaded
@@ -303,7 +303,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		logger.info("Finished adding engine = " + appId);
+		logger.info("Finished adding engine = " + Utility.cleanLogString(appId));
 	}
 	
 	/**

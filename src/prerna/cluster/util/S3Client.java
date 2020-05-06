@@ -201,9 +201,9 @@ public class S3Client extends CloudClient {
 				engine.closeDB();
 
 				// Push the app folder
-				logger.info("Pushing from source=" + appFolder + " to remote=" + appId);
+				logger.info("Pushing from source=" + appFolder + " to remote=" + Utility.cleanLogString(appId));
 				runRcloneProcess(rCloneConfig, "rclone", "sync", appFolder, rCloneConfig + ":" + BUCKET + "/" + appId);
-				logger.info("Done pushing from source=" + appFolder + " to remote=" + appId);
+				logger.info("Done pushing from source=" + appFolder + " to remote=" + Utility.cleanLogString(appId));
 
 				// Move the smss to an empty temp directory (otherwise will push all items in
 				// the db folder)
@@ -214,10 +214,10 @@ public class S3Client extends CloudClient {
 				Files.copy(new File(smssFile), copy);
 
 				// Push the smss
-				logger.info("Pushing from source=" + smssFile + " to remote=" + smssContainer);
+				logger.info("Pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 				runRcloneProcess(rCloneConfig, "rclone", "sync", temp.getPath(),
 						rCloneConfig + ":" + BUCKET + "/" + smssContainer);
-				logger.info("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
+				logger.info("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -284,10 +284,10 @@ public class S3Client extends CloudClient {
 				File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
 				appFolder.mkdir();
 				// Pull the contents of the app folder before the smss
-				logger.info("Pulling from remote=" + appId + " to target=" + appFolder.getPath());
+				logger.info("Pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 				runRcloneProcess(rCloneConfig, "rclone", "sync", rCloneConfig + ":" + BUCKET + "/" + appId,
 						appFolder.getPath());
-				logger.info("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
+				logger.info("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 
 				// Now pull the smss
 				logger.info("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
@@ -326,15 +326,16 @@ public class S3Client extends CloudClient {
 	@Override
 	public void deleteApp(String appId) throws IOException, InterruptedException {
 		String rcloneConfig = null;
+		String cleanedAppId = Utility.cleanLogString(appId);
 		try {
 			rcloneConfig = createRcloneConfig(appId);
-			logger.info("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+			logger.info("Deleting container=" + cleanedAppId + ", " + cleanedAppId + SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + BUCKET + "/" + appId);
 			runRcloneProcess(rcloneConfig, "rclone", "delete",
 					rcloneConfig + ":" + BUCKET + "/" + appId + SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + BUCKET + "/" + appId);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + BUCKET + "/" + appId + SMSS_POSTFIX);
-			logger.info("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+			logger.info("Done deleting container=" + cleanedAppId + ", " + cleanedAppId + SMSS_POSTFIX);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
 		}
@@ -359,12 +360,13 @@ public class S3Client extends CloudClient {
 	@Override
 	public void deleteContainer(String containerId) throws IOException, InterruptedException {
 		String rcloneConfig = null;
+		String cleanedContainerId = Utility.cleanLogString(containerId);
 		try {
 			rcloneConfig = createRcloneConfig();
-			logger.info("Deleting container=" + containerId);
+			logger.info("Deleting container = " + cleanedContainerId);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + BUCKET + "/" + containerId);
 			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + BUCKET + "/" + containerId);
-			logger.info("Done deleting container=" + containerId);
+			logger.info("Done deleting container = " + cleanedContainerId);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
 		}
@@ -375,7 +377,7 @@ public class S3Client extends CloudClient {
 	////////////////////////////////////////////////////////////////////////////////////////// ////////////////////////////////////
 
 	private String createRcloneConfig(String appId) {
-		logger.info("Generating config for app" + appId);
+		logger.info("Generating config for app" + Utility.cleanLogString(appId));
 		String rcloneConfig = null;
 		try {
 			rcloneConfig = createRcloneConfig();
