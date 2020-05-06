@@ -17,6 +17,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 public class RefreshPanelTaskReactor extends AbstractReactor {
 
@@ -53,7 +54,7 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 						TaskOptions taskOptions = lTaskOption.get(layerId);
 						
 						if(qs != null && taskOptions != null) {
-							logger.info("Found task for panel = " + panelId);
+							logger.info("Found task for panel = " + Utility.cleanLogString(panelId));
 							BasicIteratorTask task = new BasicIteratorTask(qs);
 							task.setLogger(logger);
 							task.setTaskOptions(taskOptions);

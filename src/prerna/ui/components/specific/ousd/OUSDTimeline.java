@@ -13,6 +13,8 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.util.Utility;
+
 public class OUSDTimeline {
 
 	// NAMING
@@ -189,7 +191,7 @@ public class OUSDTimeline {
 
 	public void addSystemTransition(Integer fy, String decomSys, String endureSys){
 		LOGGER.info("Adding transition to timeline::::::::");
-		LOGGER.info(decomSys + "  getting replaced by " + endureSys + "  in the year " + fy);
+		LOGGER.info(Utility.cleanLogString(decomSys) + "  getting replaced by " + Utility.cleanLogString(endureSys) + "  in the year " + fy);
 		int idx = getFyIndex(fy);
 		Map<String, List<String>> fyMap = timeData.get(idx);
 		List<String> endureSysList = new ArrayList<String>();

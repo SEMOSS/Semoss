@@ -297,7 +297,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 		addToDataHash(new Object[]{pred, semossPropertyBaseURI + "Calculated", "Yes"});
 		//logger.info("*****Prop URI: " + pred + ", predURI: " + semossPropertyBaseURI + "Calculated" + ", value: " + "yes");
 		addToAllRelationships(pred);					
-		logger.info("System: " + sys + ", BP: " + Utility.cleanLogString(bp) + ", Pred: " + pred);
+		logger.info("System: " + Utility.cleanLogString(sys) + ", BP: " + Utility.cleanLogString(bp) + ", Pred: " + pred);
 	}
 
 	
