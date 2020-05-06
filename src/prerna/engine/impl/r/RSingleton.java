@@ -19,6 +19,8 @@ public class RSingleton {
 	public static final String R_PORTS = "R_PORTS";
 	static Hashtable <Integer, RConnection> portToCon = new Hashtable<Integer, RConnection>(); // RServe is not allowing me to inspect the port so I have to do this.. sorry
 	
+	private static final String DIR_SEPERATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	private RSingleton() {
 		
 	}
@@ -57,12 +59,12 @@ public class RSingleton {
 				rHome = DIHelper.getInstance().getProperty(R_HOME);
 			}
 			
-			rHome = rHome.replace("\\", System.getProperty("file.separator"));
+			rHome = rHome.replace("\\", DIR_SEPERATOR);
 
-			rHome = rHome + System.getProperty("file.separator") + "bin" + System.getProperty("file.separator") + "R";
+			rHome = rHome + DIR_SEPERATOR + "bin" + DIR_SEPERATOR + "R";
 
 			if(SystemUtils.IS_OS_WINDOWS)
-				rHome = rHome.replace(System.getProperty("file.separator"), "\\\\");
+				rHome = rHome.replace(DIR_SEPERATOR, "\\\\");
 
 			System.out.println("RHome is ... " + rHome);
 			
@@ -97,12 +99,12 @@ public class RSingleton {
 		try {
 			String rHome = System.getenv("R_HOME");
 			
-			rHome = rHome.replace("\\", System.getProperty("file.separator"));
+			rHome = rHome.replace("\\", DIR_SEPERATOR);
 
-			rHome = rHome + System.getProperty("file.separator") + "bin" + System.getProperty("file.separator") + "R";
+			rHome = rHome + DIR_SEPERATOR + "bin" + DIR_SEPERATOR + "R";
 
 			if(SystemUtils.IS_OS_WINDOWS)
-				rHome = rHome.replace(System.getProperty("file.separator"), "\\\\");
+				rHome = rHome.replace(DIR_SEPERATOR, "\\\\");
 
 			System.out.println("RHome is ... " + rHome);
 

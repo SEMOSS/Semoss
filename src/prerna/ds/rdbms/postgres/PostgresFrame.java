@@ -117,8 +117,8 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 
 			logger.info("host: " + Utility.cleanLogString(prop.getProperty(POSTGRES_HOST)));
 			logger.info("port: " + Utility.cleanLogString(prop.getProperty(POSTGRES_PORT)));
-			logger.info("username: " + Utility.cleanLogString(prop.getProperty(POSTGRES_USERNAME)));
-			logger.info("password: " + Utility.cleanLogString(prop.getProperty(POSTGRES_PASSWORD)));
+			//logger.info("username: " + Utility.cleanLogString(prop.getProperty(POSTGRES_USERNAME)));
+			//logger.info("password: " + Utility.cleanLogString(prop.getProperty(POSTGRES_PASSWORD)));
 		} catch (IOException ex) {
 			logger.error("Error with loading properties in config file" + ex.getMessage());
 		}
