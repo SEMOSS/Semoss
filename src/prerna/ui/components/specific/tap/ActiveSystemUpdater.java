@@ -73,6 +73,7 @@ public class ActiveSystemUpdater {
 	static String activeSystemURI = "http://semoss.org/ontologies/Concept/ActiveSystem";
 	private boolean foundQuery = false;
 	
+	/*
 	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
@@ -139,7 +140,7 @@ public class ActiveSystemUpdater {
 			}
 		}
 	}
-	
+	*/
 	
 	/**
 	 * Functions as the main method for the class
