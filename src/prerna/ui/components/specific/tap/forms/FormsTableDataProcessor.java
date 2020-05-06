@@ -78,7 +78,7 @@ public class FormsTableDataProcessor extends FormsDataProcessor {
 			removeRowsForSystem(lSheet, key, SYSTEM_NAME_COL_NUM);
 			LOGGER.info("********* Done! Removing rows for .... : " + Utility.cleanLogString(key));
 			
-			LOGGER.info("********* Adding rows for .... : " + key);
+			LOGGER.info("********* Adding rows for .... : " + Utility.cleanLogString(key));
 			addRowsForSystem(lSheet, key, map.get(key));
 			LOGGER.info("********* Done! Adding rows for .... : " + Utility.cleanLogString(key));
 		}

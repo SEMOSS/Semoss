@@ -396,7 +396,7 @@ public class JsonAPIEngine extends AbstractEngine {
 			
 		retHash.put(COUNT, totalRows);
 
-		logger.info("Output..  " + data);
+		logger.info("Output..  " + Utility.cleanLogString(data.toString()));
 		
 		return retHash;
 	}

@@ -210,7 +210,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 		if(prop.containsKey("SEPARATOR"))
 			retHash.put("SEPARATOR", prop.get("SEPARATOR"));
 
-		logger.info("Output..  " + data);
+		logger.info("Output..  " + Utility.cleanLogString(data.toString()));
 
 		return retHash;
 	}
