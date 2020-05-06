@@ -67,13 +67,13 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 	}	
 	
 	public void createData() {
-		capabilityNames = new ArrayList<String>();
-		systemNames = new ArrayList<String>();
+		capabilityNames = new ArrayList<>();
+		systemNames = new ArrayList<>();
 		addPanel();
 		SimilarityFunctions sdf = new SimilarityFunctions();	
 		SysBPCapInsertProcessor processor = new SysBPCapInsertProcessor(0.0, 0.0, "AND");
 		String comparisonType = this.query;
-		logger.info("Creating " + comparisonType + " to System Heat Map.");
+		logger.info("Creating " + Utility.cleanLogString(comparisonType) + " to System Heat Map.");
 		
 		if (comparisonType.equals("Capability"))
 		{

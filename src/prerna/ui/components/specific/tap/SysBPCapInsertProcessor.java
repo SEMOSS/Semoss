@@ -47,21 +47,21 @@ import prerna.util.Utility;
  */
 public class SysBPCapInsertProcessor extends AggregationHelper {
 	
-	private static final Logger LOGGER = LogManager.getLogger(SysBPCapInsertProcessor.class.getName());
+	private static final Logger logger = LogManager.getLogger(SysBPCapInsertProcessor.class);
 	private IEngine coreDB;
-	
+
 	public final String DATAC = "Data";
 	public final String BLU = "BLU";
-	
+
 	private double dataObjectThresholdValue = 0.0;
 	private double bluThresholdValue = 0.0;
 	private String logicType = "AND";
-	HashMap<String, HashMap<String, HashMap<String, Double>>> storageHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
-	
+	HashMap<String, HashMap<String, HashMap<String, Double>>> storageHash = new HashMap<>();
+
 	private final String tapBaseURI = "http://health.mil/ontologies/Relation/";
-	
+
 	public String errorMessage = "";
-		
+
 	private final String BUSINESS_PROCESSES_DATA_QUERY = "SELECT DISTINCT ?BusinessProcess ?Data WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;} } BINDINGS ?CRM {('C')}";
 	private final String BUSINESS_PROCESSES_BLU_QUERY = "SELECT DISTINCT ?BusinessProcess ?BLU WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} }";
 	private final String CAPABILITY_DATA_QUERY = "SELECT DISTINCT ?Capability ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;} } BINDINGS ?CRM {('C')('M')}";
@@ -70,7 +70,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	private final String SYSTEM_BLU_QUERY = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?provide ?BLU.} }";
 	private final String DELETE_NEW_RELATIONS_QUERY = "SELECT ?System ?relation ?o ?allInferredRelationships WHERE { {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> 'Yes'} MINUS {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> 'Yes' } {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?BP} {?relation ?allInferredRelationships ?o}}";
 	private final String DELETE_NEW_PROPERTIES_QUERY = "SELECT ?relation ?pred ?Calculated WHERE {BIND(<http://semoss.org/ontologies/Relation/Contains/Calculated> AS ?pred) {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> ?Reported}  {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> ?Calculated} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?o}}";
-	
+
 	public String getErrorMessage() {
 		return this.errorMessage;
 	}
@@ -116,9 +116,9 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	
 	public boolean runCoreInsert()	{
 		boolean success = true;		
-		LOGGER.info("Data Object Threshold Value = " + dataObjectThresholdValue*100 + "%");
-		LOGGER.info("Business Logic Unit Threshold Value = " + bluThresholdValue*100 + "%");
-		LOGGER.info("Core DB is: " + coreDB.getEngineId());			
+		logger.info("Data Object Threshold Value = " + dataObjectThresholdValue*100 + "%");
+		logger.info("Business Logic Unit Threshold Value = " + bluThresholdValue*100 + "%");
+		logger.info("Core DB is: " + coreDB.getEngineId());			
 //1.  QUERY AND COLLECT THE DATA (Raw URIs)	
 		HashMap<String, Set<String>> bpDataHash = getQueryResultHash(coreDB, BUSINESS_PROCESSES_DATA_QUERY);
 		HashMap<String, Set<String>> bpBLUHash = getQueryResultHash(coreDB, BUSINESS_PROCESSES_BLU_QUERY);
@@ -178,19 +178,19 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	}
 	
 	public HashMap<String, Set<String>> getQueryResultHash(IEngine db, String query) {
-		HashMap<String, Set<String>> queryDataHash = new HashMap<String, Set<String>>();
+		HashMap<String, Set<String>> queryDataHash = new HashMap<>();
 		ISelectWrapper queryDataWrapper = Utility.processQuery(db, query);
 		queryDataHash = hashTableResultProcessor(queryDataWrapper);
 		return queryDataHash;
 	}
 	
 	public HashMap<String, Set<String>> hashTableResultProcessor(ISelectWrapper sjsw) {
-		HashMap<String, Set<String>> aggregatedData = new HashMap<String, Set<String>>();
+		HashMap<String, Set<String>> aggregatedData = new HashMap<>();
 		String[] vars = sjsw.getVariables();
 		while (sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();			
 			String sub = sjss.getRawVar(vars[0]).toString();
-			Set<String> pred = new HashSet<String>();
+			Set<String> pred = new HashSet<>();
 			pred.add(sjss.getRawVar(vars[1]).toString());
 			if (!aggregatedData.containsKey(sub))
 				{aggregatedData.put(sub, pred);}
@@ -201,28 +201,28 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	
 	private void processRelations(HashMap<String, Set<String>> bpDataHash, HashMap<String, Set<String>> bpBLUHash, HashMap<String, Set<String>> systemDataHash, HashMap<String, Set<String>> systemBLUHash, boolean insert) {	
 	//for storage
-		HashMap<String, HashMap<String, Double>> dataSubHash = new HashMap<String, HashMap<String, Double>>();
-		HashMap<String, HashMap<String, Double>> bluSubHash = new HashMap<String, HashMap<String, Double>>();
+		HashMap<String, HashMap<String, Double>> dataSubHash = new HashMap<>();
+		HashMap<String, HashMap<String, Double>> bluSubHash = new HashMap<>();
 	//populate the System, BP sets with the appropriate data from the query result Hashtables. (Raw URIs)		
-		Set<String> overallBPSet = new HashSet<String>();
+		Set<String> overallBPSet = new HashSet<>();
 		overallBPSet.addAll(bpDataHash.keySet());
 		overallBPSet.addAll(bpBLUHash.keySet());		
-		Set<String> overallSystemSet = new HashSet<String>();
+		Set<String> overallSystemSet = new HashSet<>();
 		overallSystemSet.addAll(systemDataHash.keySet());
 		overallSystemSet.addAll(systemBLUHash.keySet());                                                                                                                                                                                                                                                                                                                                                                                                                            
 		
 		for (String bp : overallBPSet) {			
 		//Process Query Results (BP Specific)
-			Set<String> bpSpecificDataSet = new HashSet<String>();			
-			if (!(bpDataHash.get(bp) == null)) {
+			Set<String> bpSpecificDataSet = new HashSet<>();			
+			if (bpDataHash.get(bp) != null) {
 				bpSpecificDataSet.addAll(bpDataHash.get(bp));}
 			
-			Set<String> bpSpecificBLUSet = new HashSet<String>();			
-			if (!(bpBLUHash.get(bp) == null)) {
+			Set<String> bpSpecificBLUSet = new HashSet<>();			
+			if (bpBLUHash.get(bp) != null) {
 				bpSpecificBLUSet.addAll(bpBLUHash.get(bp));}	
 			
-			HashMap<String, Double> dataScoreHash = new HashMap<String, Double>();
-			HashMap<String, Double> bluScoreHash = new HashMap<String, Double>();
+			HashMap<String, Double> dataScoreHash = new HashMap<>();
+			HashMap<String, Double> bluScoreHash = new HashMap<>();
 				
 			for (String sys : overallSystemSet) {
 				int systemSpecificDataCount = 0, systemSpecificBLUCount = 0;				
@@ -231,13 +231,13 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 				Set<String> systemSpecificBLUSet = systemBLUHash.get(sys);
 			
 			//check to see if system created data objects ('d') is needed by the Business Process 'bp'
-				if(!(systemSpecificDataSet == null)) {
+				if(systemSpecificDataSet != null) {
 					for (String dataObj : bpSpecificDataSet) {					
 						if (systemSpecificDataSet.contains(dataObj)) {systemSpecificDataCount++;}
 					}
 				}
 			//check to see if system provided BLUs ('b') is needed by the Business Process 'bp'	
-				if (!(systemSpecificBLUSet == null)) {
+				if (systemSpecificBLUSet != null) {
 					for (String blu : bpSpecificBLUSet) {					
 						if (systemSpecificBLUSet.contains(blu)) {systemSpecificBLUCount++;}
 					} 
@@ -297,7 +297,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 		addToDataHash(new Object[]{pred, semossPropertyBaseURI + "Calculated", "Yes"});
 		//logger.info("*****Prop URI: " + pred + ", predURI: " + semossPropertyBaseURI + "Calculated" + ", value: " + "yes");
 		addToAllRelationships(pred);					
-		LOGGER.info("System: " + sys + ", BP: " + bp + ", Pred: " + pred);
+		logger.info("System: " + sys + ", BP: " + Utility.cleanLogString(bp) + ", Pred: " + pred);
 	}
 
 	

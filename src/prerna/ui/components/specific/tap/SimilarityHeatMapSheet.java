@@ -48,26 +48,29 @@ import prerna.ui.main.listener.specific.tap.SimilarityBarChartBrowserFunction;
 import prerna.ui.main.listener.specific.tap.SimilarityRefreshBrowserFunction;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 
 /**
  */
 public class SimilarityHeatMapSheet extends BrowserPlaySheet{
-	protected static final Logger logger = LogManager.getLogger(SimilarityHeatMapSheet.class.getName());
-	public ArrayList<String> comparisonObjectList = new ArrayList<String>();
+
+	protected static final Logger logger = LogManager.getLogger(SimilarityHeatMapSheet.class);
+
+	public ArrayList<String> comparisonObjectList = new ArrayList<>();
 	final String crmKey = "!CRM!";
 	protected String comparisonObjectTypeX = "";
 	protected String comparisonObjectTypeY = "";
 	public Hashtable allHash = new Hashtable();
-	public Hashtable<String, Hashtable<String, Hashtable<String, Object>>> paramDataHash = new Hashtable<String, Hashtable<String, Hashtable<String, Object>>>();
+	public Hashtable<String, Hashtable<String, Hashtable<String, Object>>> paramDataHash = new Hashtable<>();
 	public Hashtable keyHash = new Hashtable();
 	final String valueString = "Score";
 	final String keyString = "key";
 	int maxDataSize = 20000;
-	ArrayList<String> orderedVars = new ArrayList<String>();
-	
+	ArrayList<String> orderedVars = new ArrayList<>();
+
 	SimilarityRefreshBrowserFunction refreshFunction;
-	
+
 	/**
 	 * Constructor for SimilarityHeatMapSheet.
 	 */
@@ -94,8 +97,8 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		    try {
 				TimeUnit.MILLISECONDS.sleep(50);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				Thread.currentThread().interrupt();
+				logger.error("StackTrace: ", e);
 			}
 		}
 
@@ -174,7 +177,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		ArrayList args = new ArrayList();
 		Enumeration enumKey = paramDataHash.keys();
 		
-		ArrayList<Integer> sizes = new ArrayList<Integer>();
+		ArrayList<Integer> sizes = new ArrayList<>();
 		for(String key : paramDataHash.keySet()){
 			int size = paramDataHash.get(key).size();
 			int index = 0;
@@ -185,7 +188,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 			sizes.add(index, size);
 			orderedVars.add(index, key);
 		}
-		logger.info("Ordered var = " + orderedVars.toString());
+		logger.info("Ordered var = " + Utility.cleanLogString(orderedVars.toString()));
 		logger.info("Counts = " + sizes.toString());
 		int count = 0;
 		while (enumKey.hasMoreElements())
@@ -208,17 +211,17 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		
 		//send available dimensions:
 		String availCatString = "dimensionData('" + gson.toJson(args) + "', 'categories');";
-		System.out.println(availCatString);
+		logger.info(availCatString);
 		browser.executeJavaScript(availCatString);
 		
 		Enumeration enumKey = allHash.keys();
 		while (enumKey.hasMoreElements())
 		{
 			String key = (String) enumKey.nextElement();
-			Object value = (Object) allHash.get(key);
+			Object value = allHash.get(key);
 			
 			browser.executeJavaScript("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
-			//System.out.println("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
+			//logger.info("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
 		}
 		browser.executeJavaScript("start();");
 		updateProgressBar("100%...Visualization Complete", 100);
@@ -229,10 +232,10 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	public List getSimBarChartData(String cellKey, List<String> selectedVars, Map<String, Double> specifiedWeights){
 		logger.info("cellKey = " + cellKey);
 		
-		List<String> selectedVarsList = new ArrayList<String>();
+		List<String> selectedVarsList = new ArrayList<>();
 		logger.info("Selected Vars are : ");
 		for(String obj : selectedVars) {
-			logger.info(obj);
+			logger.info(Utility.cleanLogString(obj));
 			selectedVarsList.add(obj);
 		}
 
@@ -240,7 +243,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		{
 			logger.info("Specified Weights are : ");
 			for(String obj : specifiedWeights.keySet()) 
-				logger.info(obj + " " + specifiedWeights.get(obj));
+				logger.info(Utility.cleanLogString(obj) + " " + specifiedWeights.get(obj));
 		}
 		
 		List calculatedArray = retrieveValues(selectedVarsList, specifiedWeights, cellKey);
@@ -248,7 +251,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	}
 	
 	public List retrieveValues(List<String> selectedVars, Map<String, Double>minimumWeights, String key){
-		List<Hashtable> retHash = new ArrayList<Hashtable>();
+		List<Hashtable> retHash = new ArrayList<>();
 
 		//for each checked var, get scores for key above minVal for that var
 		for(int varIdx = 0; varIdx < selectedVars.size(); varIdx++){
@@ -274,10 +277,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	
 	
 	public boolean refreshSimHeat(String[] selectedVars, Hashtable<String, Double> specifiedWeights){
-//		logger.info("args: ");
-//		for(Object arg : arg0)
-//			System.out.println(arg);
-		ArrayList<String> selectedVarsList = new ArrayList<String>();
+		ArrayList<String> selectedVarsList = new ArrayList<>();
 		logger.info("Selected Vars are : ");
 		for(String obj : selectedVars) {
 			logger.info(obj);
@@ -287,15 +287,15 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		{
 			logger.info("Specified Weights are : ");
 			for(String obj : specifiedWeights.keySet()) 
-				logger.info(obj + " " + specifiedWeights.get(obj));
+				logger.info(Utility.cleanLogString(obj) + " " + specifiedWeights.get(obj));
 		}
 		
 		List<Map<String, Map<String, Double>>> calculatedHash = calculateHash(selectedVarsList, specifiedWeights);
 		sendData(calculatedHash);
 		
-		System.out.println("Java is done -- calling function");
+		logger.info("Java is done -- calling function");
 		browser.executeJavaScript("refreshDataFunction();");
-		System.out.println("Java is REALLY done");
+		logger.info("Java is REALLY done");
 		
 		return true;
 	}
@@ -304,9 +304,9 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		Gson gson = new Gson();
 		for(Map<String, Map<String, Double>> hash : calculatedArray)
 		{
-			System.out.println("Sending hash with " + hash.size());
+			logger.info("Sending hash with " + hash.size());
 			browser.executeJavaScript("dataBuilder('" + gson.toJson(hash) + "');");
-			System.out.println("Done sending");
+			logger.info("Done sending");
 		}
 		
 //		while(!calculatedHash.isEmpty()){
@@ -317,14 +317,14 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 //				tempHash.put(key, calculatedHash.remove(key));
 //				count ++;
 //			}
-//			System.out.println("Building data.........");
+//			logger.info("Building data.........");
 //			browser.executeScript("dataBuilder('" + gson.toJson(tempHash) + "');");
-//			System.out.println("Done building");
+//			logger.info("Done building");
 //		}
 	}
 	
 	public List<Map<String, Map<String, Double>>> calculateHash(List<String> selectedVars, Map<String, Double >minimumWeights){
-		List<Map<String, Map<String, Double>>> retArray = new ArrayList<Map<String, Map<String, Double>>> ();
+		List<Map<String, Map<String, Double>>> retArray = new ArrayList<> ();
 		
 		int totalVars = selectedVars.size();
 		
@@ -341,7 +341,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 			minVarLoc++;
 		}
 		if(minVar.isEmpty()){
-			System.out.println("no variables selected");
+			logger.info("no variables selected");
 			return new ArrayList();
 		}
 		// get the master keyset
@@ -433,7 +433,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	
 	public List<Map<String, Map<String, Double>>> storeCellInArray(String key, Map cellHash, List<Map<String, Map<String, Double>>> arrayStore){
 		Map hash = null;
-		if(arrayStore.size()>0){
+		if(!arrayStore.isEmpty()){
 			hash = arrayStore.get(0);
 			if(hash.size()>this.maxDataSize){
 				hash = new Hashtable();
@@ -450,7 +450,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
-		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		Hashtable<String, String> alignHash = new Hashtable<>();
 		alignHash.put("x", comparisonObjectTypeX);
 		alignHash.put("y", comparisonObjectTypeY);
 		alignHash.put("heat", valueString);
