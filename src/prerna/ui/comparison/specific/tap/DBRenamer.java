@@ -59,6 +59,8 @@ import prerna.util.Utility;
 
 public class DBRenamer {
 	private static final Logger logger = LogManager.getLogger(DBRenamer.class);
+	private static final String DIR_SEPERATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	private static final int WIDTH = 600;
 	private static final int HEIGHT = 250;
 
@@ -178,8 +180,8 @@ public class DBRenamer {
 				File[] listOfFiles = folder.listFiles();
 				for (int i = 0; i < listOfFiles.length; i++) {
 					if (listOfFiles[i].isFile() && listOfFiles[i].getName().contains(dbName)) {
-						File f = new File(Utility.normalizePath(folderDirectory + "\\" + listOfFiles[i].getName()));
-						f.renameTo(new File(Utility.normalizePath(folderDirectory + "\\old" + listOfFiles[i].getName())));
+						File f = new File(Utility.normalizePath(folderDirectory + DIR_SEPERATOR + listOfFiles[i].getName()));
+						f.renameTo(new File(Utility.normalizePath(folderDirectory + DIR_SEPERATOR + "old" + listOfFiles[i].getName())));
 					}
 				}
 				folder.renameTo(new File(Utility.normalizePath(folderDirectory.substring(0, folderDirectory.indexOf("db\\") + 3)
