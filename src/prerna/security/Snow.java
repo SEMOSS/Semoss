@@ -94,7 +94,7 @@ public class Snow {
 			try {
 			    stream_message = new FileInputStream (Utility.normalizePath(optarg));
 			} catch (FileNotFoundException e) {
-				logger.error("No such file: " + optarg);
+				logger.error("No such file: " + Utility.cleanLogString(optarg));
 			    return (false);
 			}
 			break;
@@ -109,7 +109,7 @@ public class Snow {
 			try {
 			    line_length = Integer.parseInt (optarg);
 				} catch (NumberFormatException e) {
-					logger.error("Illegal line length: " + optarg);
+					logger.error("Illegal line length: " + Utility.cleanLogString(optarg));
 					return (false);
 				}
 			break;
@@ -141,7 +141,7 @@ public class Snow {
 				passwd_string = optarg;
 				break;
 			default:
-				logger.error("Illegal option: " + argv[optind]);
+				logger.error("Illegal option: " + Utility.cleanLogString(argv[optind]));
 				return (false);
 			}
 		}
@@ -155,7 +155,7 @@ public class Snow {
 		    stream_in = new BufferedReader (new
 						FileReader (Utility.normalizePath(argv[optind])));
 		} catch (FileNotFoundException e) {
-				logger.error("No such file: " + argv[optind]);
+				logger.error("No such file: " + Utility.cleanLogString(argv[optind]));
 				return (false);
 			}
 		} else
@@ -167,7 +167,7 @@ public class Snow {
 				stream_out = new FileOutputStream(Utility.normalizePath(argv[optind + 1]));
 
 			} catch (IOException e) {
-				logger.error("Could not open file for writing: " + argv[optind + 1]);
+				logger.error("Could not open file for writing: " + Utility.cleanLogString(argv[optind + 1]));
 				return (false);
 			}
 		} else
