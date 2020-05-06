@@ -132,7 +132,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String engineId = null;
 		try{
 			Properties prop = new Properties();
-			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
+			fileIn = new FileInputStream(Utility.normalizePath(folderToWatch) + "/"  +  Utility.normalizePath(newFile));
 			prop.load(fileIn);
 			
 			// TODO: TO FIX ERRORS WITH PRETTY PRINT METHOD

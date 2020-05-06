@@ -1909,7 +1909,7 @@ public class UploadUtilities {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(metamodel);
 		// create file
-		File f = new File(metaModelFilePath);
+		File f = new File(Utility.normalizePath(metaModelFilePath));
 		try {
 			// write json to file
 			FileUtils.writeStringToFile(f, json);

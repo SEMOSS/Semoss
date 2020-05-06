@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -38,8 +39,10 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class RatioReactor extends AbstractFrameReactor {
 
-	private static final String CLASS_NAME = RatioReactor.class.getName();
+	private static final Logger logger = LogManager.getLogger(RatioReactor.class);
 
+	private static final String CLASS_NAME = RatioReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 	private static final String WEIGHTS_KEY = "weight";
 
 	//keys for resulting frame
@@ -104,10 +107,9 @@ public class RatioReactor extends AbstractFrameReactor {
 		BufferedWriter bufferedWriter = null;
 
 		String insightCacheDir = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-		final String FILE_SEPARATOR = System.getProperty("file.separator");
 		final String LINE_SEPARATOR = "\n";
 		String csvCache = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		String path = insightCacheDir + FILE_SEPARATOR + csvCache + FILE_SEPARATOR + Utility.getRandomString(10) + ".csv";
+		String path = Utility.normalizePath(insightCacheDir) + DIR_SEPARATOR + Utility.normalizePath(csvCache) + DIR_SEPARATOR + Utility.getRandomString(10) + ".csv";
 		StringBuilder sb = new StringBuilder();
 		boolean fileError = false;
 		// write headers to csv file
@@ -131,14 +133,14 @@ public class RatioReactor extends AbstractFrameReactor {
 						bufferedWriter.close();
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 				try {
 					if(writer != null) {
 						writer.close();
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
@@ -181,7 +183,7 @@ public class RatioReactor extends AbstractFrameReactor {
 						List<String> targetAttributes = getAttributeValuesForInstance(frame, instanceColumn, targetInstance, attribute);
 
 						// get the union size
-						Set<String> union = new HashSet<String>(sourceAttributes);
+						Set<String> union = new HashSet<>(sourceAttributes);
 						union.addAll(targetAttributes);
 						int unionSize = union.size();
 						double score = 0.0;
@@ -287,7 +289,7 @@ public class RatioReactor extends AbstractFrameReactor {
 			}
 			bufferedWriter.close();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 		finally {
 			try {
@@ -295,14 +297,14 @@ public class RatioReactor extends AbstractFrameReactor {
 					bufferedWriter.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 			try {
 				if(writer != null) {
 					writer.close();
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		logger.setLevel(Level.INFO);
@@ -312,7 +314,7 @@ public class RatioReactor extends AbstractFrameReactor {
 		csvQS.setDelimiter(',');
 		csvQS.setFilePath(path);
 		// add headers to qs
-		Map<String, String> csvHeaders = new HashMap<String, String>();
+		Map<String, String> csvHeaders = new HashMap<>();
 		for (int i = 0; i < this.ratioFrameHeaders.length; i++) {
 			QueryColumnSelector csvColSelector = new QueryColumnSelector();
 			csvColSelector.setTable(origTableName);
@@ -365,7 +367,7 @@ public class RatioReactor extends AbstractFrameReactor {
 		}
 		qs.addSelector(colSelector);
 		
-		Set<Object> instancValues = new HashSet<Object>();
+		Set<Object> instancValues = new HashSet<>();
 		// execute query to get all the unique values
 		IRawSelectWrapper it = null;
 		try {
@@ -375,21 +377,21 @@ public class RatioReactor extends AbstractFrameReactor {
 				instancValues.add(it.next().getRawValues()[0]);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
 			}
 		}
 		
-		List<Object> instanceValuesList = new Vector<Object>();
+		List<Object> instanceValuesList = new Vector<>();
 		instanceValuesList.addAll(instancValues);		
 
 		return instanceValuesList;
 	}
 
 	private List<String> getAttributeValuesForInstance(ITableDataFrame frame, String instanceColumn, Object sourceInstance, String attributeCol) {
-		List<String> uniqueAttributes = new ArrayList<String>();
+		List<String> uniqueAttributes = new ArrayList<>();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryColumnSelector colSelector = new QueryColumnSelector();
 		if (attributeCol.contains("__")) {
@@ -413,7 +415,7 @@ public class RatioReactor extends AbstractFrameReactor {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -466,7 +468,7 @@ public class RatioReactor extends AbstractFrameReactor {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
 		if (columnGrs != null && !columnGrs.isEmpty()) {
-			List<String> attributes = new Vector<String>();
+			List<String> attributes = new Vector<>();
 			for(int i = 0; i < columnGrs.size(); i++) {
 				String attribute = columnGrs.get(i).toString();
 				//                      if(!attribute.equals(instanceColumn)) {
@@ -489,13 +491,13 @@ public class RatioReactor extends AbstractFrameReactor {
 		HashMap<String, Double> weightMap = null;
 		if (columnGrs != null && !columnGrs.isEmpty()) {
 			for (int i = 0; i < columnGrs.size(); i++) {
-				System.out.println(columnGrs.get(i));
+				logger.info(columnGrs.get(i));
 			}
 		}
 		//calculate weights
 		if(weightMap == null) {
-			weightMap = new HashMap<String, Double>();
-			double attributeCount = this.ratioFrameHeaders.length - 3;
+			weightMap = new HashMap<>();
+			double attributeCount = (double) this.ratioFrameHeaders.length - 3;
 			double weight = 1 / attributeCount;
 			for(int weightMapIndex = 3; weightMapIndex < this.ratioFrameHeaders.length; weightMapIndex++) {
 				//attribute column in ratioFrameHeaders has Score_ need to clean this up
