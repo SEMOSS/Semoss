@@ -13,6 +13,7 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsConnectionHelper {
@@ -100,7 +101,7 @@ public class RdbmsConnectionHelper {
 			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.H2_DB) {
-			File f = new File(host);
+			File f = new File(Utility.normalizePath(host));
 			if(f.exists()) {
 				host = host.replace(".mv.db", "");
 				// there is no port for files

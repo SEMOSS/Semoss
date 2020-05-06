@@ -15,6 +15,7 @@ import prerna.engine.impl.r.RserveUtil;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RJavaTranslatorFactory {
 
@@ -244,8 +245,14 @@ public class RJavaTranslatorFactory {
 					String cleanedRLibs = r_libs.replace("\\", "/");
 					// we need R_HOME\bin\x64 or R_HOME\bin\x86
 					// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
-					long rHomeInPath = pathSplit.stream().filter(p -> ( p.matches(Pattern.quote(cleanedRHome) + "/bin/.*") && (new File(p).isDirectory()) ) ).count();
-					long rLibInPath = pathSplit.stream().filter(p -> ( p.matches(Pattern.quote(cleanedRLibs) + "/rJava/jri/.*") && (new File(p).isDirectory()) ) ).count();
+
+					long rHomeInPath = pathSplit.stream().filter(p -> 
+						( p.matches(Pattern.quote(cleanedRHome) + "/bin/.*") && 
+						(new File(Utility.normalizePath(p)).isDirectory()) ) ).count();
+
+					long rLibInPath = pathSplit.stream().filter(p -> 
+						( p.matches(Pattern.quote(cleanedRLibs) + "/rJava/jri/.*") &&
+						(new File(Utility.normalizePath(p)).isDirectory()) ) ).count();
 
 					if(rHomeInPath >= 1 && rLibInPath >= 1) {
 						attemptConnection = true;
@@ -255,11 +262,11 @@ public class RJavaTranslatorFactory {
 				}
 			} else {
 				List<String> rOrPortables = pathSplit.stream().filter(p -> 
-					( p.matches(".*/R/.*") && (new File(p).isDirectory()) ) 
-						|| ( p.matches(".*/R-Portables/.*") && (new File(p).isDirectory()) ) 
+					( p.matches(".*/R/.*") && (new File(Utility.normalizePath(p)).isDirectory()) ) 
+						|| ( p.matches(".*/R-Portables/.*") && (new File(Utility.normalizePath(p)).isDirectory()) ) 
 					).collect(Collectors.toList());
 				
-				long rLibInPath = rOrPortables.stream().filter(p -> ( p.matches(".*/rJava/jri/.*") && (new File(p).isDirectory()) ) ).count();
+				long rLibInPath = rOrPortables.stream().filter(p -> ( p.matches(".*/rJava/jri/.*") && (new File(Utility.normalizePath(p)).isDirectory()) ) ).count();
 				
 				if(rLibInPath >= 1) {
 					attemptConnection = false;

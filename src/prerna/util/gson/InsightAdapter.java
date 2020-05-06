@@ -16,6 +16,8 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
@@ -53,8 +55,11 @@ import prerna.util.insight.InsightUtility;
 
 public class InsightAdapter extends TypeAdapter<Insight> {
 
+	private static final Logger logger = LogManager.getLogger(InsightAdapter.class);
+
 	private static final String CLASS_NAME = InsightAdapter.class.getName();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final String STACKTRACE = "StackTrace: ";
 	
 	// this var is only used so we have a way
 	// to pass specific variables into a new insight we are creating from a cache
@@ -71,7 +76,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	 */
 	public InsightAdapter(ZipFile zip) {
 		this.zip = zip;
-		this.varsToExclude = new HashSet<String>();
+		this.varsToExclude = new HashSet<>();
 	}
 	
 	/**
@@ -80,7 +85,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	 */
 	public InsightAdapter(ZipOutputStream zos) {
 		this.zos = zos;
-		this.varsToExclude = new HashSet<String>();
+		this.varsToExclude = new HashSet<>();
 	}
 	
 	@Override
@@ -95,8 +100,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folderDir = InsightCacheUtility.getInsightCacheFolderPath(engineId, engineName, rdbmsId);
-		if(!(new File(folderDir).exists())) {
-			new File(folderDir).mkdirs();
+		if(!(new File(Utility.normalizePath(folderDir)).exists())) {
+			new File(Utility.normalizePath(folderDir)).mkdirs();
 		}
 		
 		// start insight object
@@ -143,14 +148,14 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			out.endObject();
 			
 			// add to zip
-			File f1 = new File(saveFrame.getFrameCacheLocation());
-			File f2 = new File(saveFrame.getFrameMetaCacheLocation());
+			File f1 = new File(Utility.normalizePath(saveFrame.getFrameCacheLocation()));
+			File f2 = new File(Utility.normalizePath(saveFrame.getFrameMetaCacheLocation()));
 
 			try {
 				InsightCacheUtility.addToZipFile(f1, zos);
 				InsightCacheUtility.addToZipFile(f2, zos);
 			} catch(Exception e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		out.endArray();
@@ -203,7 +208,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				
 		// write the json for the viz
 		// this doesn't actually add anything to the insight object
-		File vizOutputFile = new File(folderDir + DIR_SEPARATOR + InsightCacheUtility.VIEW_JSON);
+		File vizOutputFile = new File(Utility.normalizePath(folderDir) + DIR_SEPARATOR + InsightCacheUtility.VIEW_JSON);
 		OptimizeRecipeTranslation opTrans = getOptimizedRecipe(recipe);
 		Insight rerunInsight = new Insight();
 		rerunInsight.setVarStore(value.getVarStore());
@@ -265,7 +270,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		try {
 			InsightCacheUtility.addToZipFile(vizOutputFile, zos);
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 	
@@ -289,7 +294,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				// reset translation.encodedToOriginal for each expression
 				translation.encodedToOriginal = new HashMap<String, String>();
 			} catch (ParserException | LexerException | IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 		return translation;
@@ -331,22 +336,26 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		while(in.hasNext()) {
 			in.beginObject();
 			
-			List<String> varStoreKeys = new Vector<String>();
+			List<String> varStoreKeys = new Vector<>();
 			CachePropFileFrameObject cf = new CachePropFileFrameObject();
 			while(in.hasNext()) {
 				String k = in.nextName();
 				if(k.equals("file")) {
 					String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
-					if(!(new File(path).exists())) {
-						InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(path), path);
+					String normalizedPath = Utility.normalizePath(path);
+
+					if(!(new File(normalizedPath).exists())) {
+						InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(normalizedPath), normalizedPath);
 					}
 					cf.setFrameCacheLocation(path);
 				} else if(k.equals("meta")) {
 					String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
-					if(!(new File(path).exists())) {
-						InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(path), path);
+					String normalizedPath = Utility.normalizePath(path);
+
+					if(!(new File(normalizedPath).exists())) {
+						InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(normalizedPath), normalizedPath);
 					}
-					cf.setFrameMetaCacheLocation(path);
+					cf.setFrameMetaCacheLocation(normalizedPath);
 				} else if(k.equals("type")) {
 					cf.setFrameType(in.nextString());
 				} else if(k.equals("name")) {
@@ -358,10 +367,12 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 						in.nextNull();
 					} else {
 						String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
-						if(!(new File(path).exists())) {
-							InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(path), path);
+						String normalizedPath = Utility.normalizePath(path);
+
+						if(!(new File(normalizedPath).exists())) {
+							InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(normalizedPath), normalizedPath);
 						}
-						cf.setFrameStateCacheLocation(path);
+						cf.setFrameStateCacheLocation(normalizedPath);
 					}
 				} else if(k.equals("keys")) {
 					in.beginArray();
@@ -392,11 +403,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 					store.put(varStoreK, fNoun);
 				}
 			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
+			} catch (IllegalAccessException iae) {
+				logger.error(STACKTRACE, iae);
+			} catch (ClassNotFoundException cnfe) {
+				logger.error(STACKTRACE, cnfe);
 			}
 			
 			in.endObject();
@@ -444,7 +455,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		
 		// this will be the recipe
 		in.nextName();
-		List<String> recipe = new Vector<String>();
+		List<String> recipe = new Vector<>();
 		in.beginArray();
 		while(in.hasNext()) {
 			recipe.add(in.nextString());

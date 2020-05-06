@@ -25,6 +25,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import net.minidev.json.JSONArray;
+import prerna.util.Utility;
 
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.jayway.jsonpath.Configuration;
@@ -90,7 +91,7 @@ public class FlatXML {
 			this.prop = new Properties();
 			prop.load(new FileInputStream(propFile));
 			if(prop.containsKey("input_type") && ((String)prop.get("input_type")).equalsIgnoreCase("file"))
-				document = Configuration.defaultConfiguration().jsonProvider().parse(new FileInputStream(prop.getProperty("input_url")), "utf-8");
+				document = Configuration.defaultConfiguration().jsonProvider().parse(new FileInputStream(Utility.normalizePath(prop.getProperty("input_url"))), "utf-8");
 
 			execQuery(prop.getProperty("path_patterns"));
 				

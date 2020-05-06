@@ -85,7 +85,10 @@ import prerna.util.Utility;
  */
 public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 
-	private static final Logger logger = LogManager.getLogger(RDFFileSesameEngine.class.getName());
+	private static final Logger logger = LogManager.getLogger(RDFFileSesameEngine.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	RepositoryConnection rc = null;
 	ValueFactory vf = null;
 	String rdfFileType = "RDF/XML";
@@ -126,7 +129,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			vf = rc.getValueFactory();
 
 			if(fileName != null) {
-				File file = new File( fileName);
+				File file = new File(Utility.normalizePath(fileName));
 				if(rdfFileType.equalsIgnoreCase("RDF/XML")) rc.add(file, baseURI, RDFFormat.RDFXML);
 				else if(rdfFileType.equalsIgnoreCase("TURTLE")) rc.add(file, baseURI, RDFFormat.TURTLE);
 				else if(rdfFileType.equalsIgnoreCase("BINARY")) rc.add(file, baseURI, RDFFormat.BINARY);
@@ -138,16 +141,16 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			this.connected = true;
 		} catch(RuntimeException ignored) {
 			this.connected = false;
-			ignored.printStackTrace();
+			logger.error(STACKTRACE, ignored);
 		} catch (RDFParseException e) {
 			this.connected = false;
-			e.printStackTrace();
-		} catch (RepositoryException e) {
+			logger.error(STACKTRACE, e);
+		} catch (RepositoryException re) {
 			this.connected = false;
-			e.printStackTrace();
-		} catch (IOException e) {
+			logger.error(STACKTRACE, re);
+		} catch (IOException ioe) {
 			this.connected = false;
-			e.printStackTrace();
+			logger.error(STACKTRACE, ioe);
 		}
 	}
 
@@ -185,13 +188,13 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			ignored.printStackTrace();
 		} catch (RDFParseException e) {
 			this.connected = false;
-			e.printStackTrace();
-		} catch (RepositoryException e) {
+			logger.error(STACKTRACE, e);
+		} catch (RepositoryException re) {
 			this.connected = false;
-			e.printStackTrace();
-		} catch (IOException e) {
+			logger.error(STACKTRACE, re);
+		} catch (IOException ioe) {
 			this.connected = false;
-			e.printStackTrace();
+			logger.error(STACKTRACE, ioe);
 		}
 	}
 
@@ -206,7 +209,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			rc.close();
 			connected = false;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
@@ -236,11 +239,11 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				return bool;
 			}
 		} catch (RepositoryException e) {
-			e.printStackTrace();
-		} catch (MalformedQueryException e) {
-			e.printStackTrace();
-		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (MalformedQueryException mqe) {
+			logger.error(STACKTRACE, mqe);
+		} catch (QueryEvaluationException qee) {
+			logger.error(STACKTRACE, qee);
 		}
 		return null;
 	}
@@ -267,7 +270,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			logger.debug("\nSPARQL: " + sparqlQuery);
 			tq.setIncludeInferred(true /* includeInferred */);
 			TupleQueryResult sparqlResults = tq.evaluate();
-			Vector<Object> retVec = new Vector<Object>();
+			Vector<Object> retVec = new Vector<>();
 			while(sparqlResults.hasNext()) {
 				Value val = sparqlResults.next().getValue(Constants.ENTITY);
 				Object next = null;
@@ -286,11 +289,11 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			}
 			return retVec;
 		} catch (RepositoryException e) {
-			e.printStackTrace();
-		} catch (MalformedQueryException e) {
-			e.printStackTrace();
-		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (MalformedQueryException mqe) {
+			logger.error(STACKTRACE, mqe);
+		} catch (QueryEvaluationException qee) {
+			logger.error(STACKTRACE, qee);
 		}
 		return null;
 	}
@@ -309,8 +312,8 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		if(query==null){
 			query = DIHelper.getInstance().getProperty(Constants.TYPE_QUERY);
 		}
-		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
-		List<Object> retList = new ArrayList<Object>();
+		Map<String, List<Object>> paramHash = new Hashtable<>();
+		List<Object> retList = new ArrayList<>();
 		retList.add(type);
 		paramHash.put("entity", retList);
 		query = Utility.fillParam(query, paramHash);
@@ -393,10 +396,9 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			}
 			rc.commit();
 		} catch (SailException e) {
-			e.printStackTrace();
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (RepositoryException re) {
+			logger.error(STACKTRACE, re);
 		}
 	}
 
@@ -469,10 +471,9 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				sc.removeStatements(newSub, newPred, uriObj);
 			}
 			sc.commit();
-		} catch (SailException e) 
-		{
-			e.printStackTrace();
-		} 
+		} catch (SailException e) {
+			logger.error(STACKTRACE, e);
+		}
 	}
 
 	/**
@@ -497,17 +498,13 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			//rc.commit();
 			sc.commit();
 		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (MalformedQueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SailException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UpdateExecutionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (MalformedQueryException mqe) {
+			logger.error(STACKTRACE, mqe);
+		} catch (SailException se) {
+			logger.error(STACKTRACE, se);
+		} catch (UpdateExecutionException uee) {
+			logger.error(STACKTRACE, uee);
 		}
 	}
 
@@ -518,7 +515,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	 * @throws RepositoryException 
 	 */
 	public void exportDB() throws Exception {
-		System.err.println("Exporting database");
+		logger.info("Exporting database");
 		FileWriter writer = null;
 		try{
 			writer = new FileWriter(fileName);
@@ -528,7 +525,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				try{
 					writer.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
@@ -541,7 +538,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	 * @throws RepositoryException 
 	 */
 	public void exportDB(Writer writer) throws Exception {
-		System.err.println("Exporting database");
+		logger.info("Exporting database");
 		try{
 			rc.export(new RDFXMLWriter(writer));
 		} finally {
@@ -549,7 +546,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				try{
 					writer.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}
@@ -607,18 +604,18 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		try {
 			sc.commit();
 		} catch (SailException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 		}
 	}
 
 	public void writeData(RDFXMLWriter writer) throws RepositoryException, RDFHandlerException {
 		try {
 			rc.export(writer);
-		} catch (RepositoryException e) {
-			e.printStackTrace();
+		} catch (RepositoryException re) {
+			logger.error(STACKTRACE, re);
 			throw new RepositoryException("Could not export base relationships from OWL database");
 		} catch (RDFHandlerException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new RDFHandlerException("Could not export base relationships from OWL database");
 		}
 	}
@@ -630,17 +627,17 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			RDFXMLWriter writer = new RDFXMLWriter(fw);
 			writeData(writer);
 		} catch (RepositoryException e) {
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (RDFHandlerException rhe) {
+			logger.error(STACKTRACE, rhe);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
 		} finally {
 			if(fw != null) {
 				try {
 					fw.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(STACKTRACE, e);
 				}
 			}
 		}

@@ -47,6 +47,7 @@ import javax.swing.plaf.basic.BasicProgressBarUI;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 
 /**
@@ -55,6 +56,7 @@ import prerna.util.DIHelper;
 public class SplashScreen extends JWindow {
 
 	private static JProgressBar progressBar = new JProgressBar();
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	/**
 	 * Constructor for SplashScreen.
@@ -67,7 +69,7 @@ public class SplashScreen extends JWindow {
 		JLabel picLabel = new JLabel();
 		try {
 			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String picFileURL = workingDir +System.getProperty("file.separator")+"pictures"+System.getProperty("file.separator")+"semosslogo.jpg";
+			String picFileURL = Utility.normalizePath(workingDir) + DIR_SEPARATOR +"pictures"+ DIR_SEPARATOR +"semosslogo.jpg";
 			image = ImageIO.read(new File(picFileURL));
 			picLabel = new JLabel(new ImageIcon(image));
 			picLabel.setSize(661, 335);

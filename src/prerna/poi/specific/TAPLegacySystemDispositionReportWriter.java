@@ -69,28 +69,29 @@ import prerna.util.Utility;
 
 public class TAPLegacySystemDispositionReportWriter {
 
-	private static final Logger LOGGER = LogManager.getLogger(TAPLegacySystemDispositionReportWriter.class.getName());
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final Logger logger = LogManager.getLogger(TAPLegacySystemDispositionReportWriter.class);
 
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final String STACKTRACE = "StackTrace: ";
 
 	private String sysName;
 	private String sysURI;
-	private Map<String,String> reportTypeHash = new HashMap<String,String>();
+	private Map<String,String> reportTypeHash = new HashMap<>();
 
 	//query for basic sys information
 	private String basicSysInfoQuery = "SELECT DISTINCT (COALESCE(?description,'') AS ?Description) (GROUP_CONCAT(?Owner ; SEPARATOR = ', ') AS ?SysOwner) (COALESCE(?Ato,'') AS ?ATO) WHERE { SELECT DISTINCT ?sys (COALESCE(?des,'') AS ?description) (SUBSTR(STR(?owner),50) AS ?Owner) (COALESCE(SUBSTR(STR(?ato),0,10),'') AS ?Ato) WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?sys <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/Description> ?des} } OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ato} } } } GROUP BY ?description ?Ato BINDINGS ?sys {(@BINDING_STRING@)}";
 
 	//queries for modernization activities
 	private String sysSWCostQuery = "SELECT DISTINCT ?System (COUNT(?SoftwareVersion) AS ?numProducts) (SUM(COALESCE(?swTotalCost, 0)) AS ?total) WHERE { SELECT DISTINCT ?System ?SoftwareVersion (COALESCE(?unitcost*?Quantity,0) AS ?swTotalCost) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?SoftwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?SoftwareModule <http://semoss.org/ontologies/Relation/Contains/Quantity> ?Quantity} {?SoftwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion>} {?System <http://semoss.org/ontologies/Relation/Consists> ?SoftwareModule} {?SoftwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?SoftwareVersion} {?SoftwareVersion <http://semoss.org/ontologies/Relation/Contains/Price> ?unitcost} } } GROUP BY ?System";
-	private HashMap<String, HashMap<String, Double>> sysSWHash = new HashMap<String, HashMap<String, Double>>();
+	private HashMap<String, HashMap<String, Double>> sysSWHash = new HashMap<>();
 	private String sysHWCostQuery = "SELECT DISTINCT ?System (COUNT(?HardwareVersion) AS ?numProducts) (SUM(COALESCE(?hwTotalCost, 0)) AS ?total) WHERE { SELECT DISTINCT ?System ?HardwareVersion (COALESCE(?unitcost*?Quantity,0) AS ?hwTotalCost) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?HardwareModule <http://semoss.org/ontologies/Relation/Contains/Quantity> ?Quantity} {?HardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?HardwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareVersion>} {?System <http://semoss.org/ontologies/Relation/Has> ?HardwareModule} {?HardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?HardwareVersion } {?HardwareVersion <http://semoss.org/ontologies/Relation/Contains/Price> ?unitcost} } } GROUP BY ?System";
-	private HashMap<String, HashMap<String, Double>> sysHWHash = new HashMap<String, HashMap<String, Double>>();
+	private HashMap<String, HashMap<String, Double>> sysHWHash = new HashMap<>();
 	private String sysInterfaceModCostQuery = "SELECT DISTINCT ?system ?cost WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?system <http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost> ?cost} }";
-	private HashMap<String, Double> sysInterfaceModHash = new HashMap<String, Double>();
+	private HashMap<String, Double> sysInterfaceModHash = new HashMap<>();
 
 	//queries for modernization timeline
 	private String systemBudgetQuery = "SELECT DISTINCT ?system ?year ?cost WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systembudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem>} {?system <http://semoss.org/ontologies/Relation/Has> ?systembudget} {?year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag> } {?systembudget <http://semoss.org/ontologies/Relation/OccursIn> ?year} {?systembudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?cost} }";
-	private HashMap<String, HashMap<String, Object>> sysBudgetHash = new HashMap<String, HashMap<String, Object>>(); //cannot use Double because when no info received it is stored as "No_cost_info_received."
+	private HashMap<String, HashMap<String, Object>> sysBudgetHash = new HashMap<>(); //cannot use Double because when no info received it is stored as "No_cost_info_received."
 
 	private final String bindingsKey = "@BINDING_STRING@";
 	private final String numProductKey = "numProducts";
@@ -164,7 +165,7 @@ public class TAPLegacySystemDispositionReportWriter {
 		try {
 			wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
 			throw new IOException("Could not find template for report.");
 		}
 
@@ -182,7 +183,7 @@ public class TAPLegacySystemDispositionReportWriter {
 	}
 
 	private void writeSystemDeployment() {
-		ArrayList<String> listWithSysName = new ArrayList<String>();
+		ArrayList<String> listWithSysName = new ArrayList<>();
 		listWithSysName.add(sysName);
 		
 		OCONUSMapExporter imageExporter = new OCONUSMapExporter();
@@ -190,7 +191,7 @@ public class TAPLegacySystemDispositionReportWriter {
 		
 		FileInputStream inputStream = null;
 		try {
-			inputStream = new FileInputStream(imageLoc); //FileInputStream obtains input bytes from the image file
+			inputStream = new FileInputStream(Utility.normalizePath(imageLoc)); //FileInputStream obtains input bytes from the image file
 			byte[] bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
 			int pictureIdx = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
 			inputStream.close();
@@ -206,15 +207,15 @@ public class TAPLegacySystemDispositionReportWriter {
 			Picture pict = drawing.createPicture(anchor, pictureIdx); //Creates a picture
 			pict.resize(0.618);
 		} catch (FileNotFoundException e){
-			LOGGER.info("CONUS Map image not found for this system");
-		} catch (IOException e) {
-			LOGGER.info("CONUS Map image not found for this system");
+			logger.info("CONUS Map image not found for this system");
+		} catch (IOException ioe) {
+			logger.info("CONUS Map image not found for this system");
 		} finally {
 			try {
 				if(inputStream!=null)
 					inputStream.close();
 			} catch(IOException e) {
-				e.printStackTrace();
+				logger.error(STACKTRACE, e);
 			}
 		}
 	}
@@ -379,7 +380,7 @@ public class TAPLegacySystemDispositionReportWriter {
 				String sysName = sjss.getVar(varNames[0]).toString();
 				Double numProducts = (Double) sjss.getVar(varNames[1]);
 				Double cost = (Double) sjss.getVar(varNames[2]);
-				HashMap<String, Double> innerHash = new HashMap<String, Double>();
+				HashMap<String, Double> innerHash = new HashMap<>();
 				innerHash.put(numProductKey, numProducts);
 				innerHash.put(updateCostKey, cost);
 				sysSWHash.put(sysName, innerHash);
@@ -393,7 +394,7 @@ public class TAPLegacySystemDispositionReportWriter {
 				String sysName = sjss.getVar(varNames[0]).toString();
 				Double numProducts = (Double) sjss.getVar(varNames[1]);
 				Double cost = (Double) sjss.getVar(varNames[2]);
-				HashMap<String, Double> innerHash = new HashMap<String, Double>();
+				HashMap<String, Double> innerHash = new HashMap<>();
 				innerHash.put(numProductKey, numProducts);
 				innerHash.put(updateCostKey, cost);
 				sysHWHash.put(sysName, innerHash);

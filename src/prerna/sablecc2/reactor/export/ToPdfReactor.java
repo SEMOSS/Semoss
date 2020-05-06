@@ -29,6 +29,7 @@ import prerna.util.Utility;
 public class ToPdfReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = ToPdfReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
 
 	public ToPdfReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
@@ -99,7 +100,7 @@ public class ToPdfReactor extends AbstractReactor {
 			FileUtils.writeStringToFile(tempXhtml, doc.html());
 			tempPaths.add(tempXhtmlPath);
 		} catch (IOException e1) {
-			e1.printStackTrace();
+			logger.error(STACKTRACE, e1);
 		}
 
 		// Convert from xhtml to pdf
@@ -114,17 +115,17 @@ public class ToPdfReactor extends AbstractReactor {
 			pdfBuilder.run();
 			logger.info("Done converting html to PDF...");
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(STACKTRACE, e);
+		} catch (IOException ioe) {
+			logger.error(STACKTRACE, ioe);
+		} catch (Exception ex) {
+			logger.error(STACKTRACE, ex);
 		}
 
 		// delete temp files
 		for (String path : tempPaths) {
 			try {
-				File f = new File(path);
+				File f = new File(Utility.normalizePath(path));
 				if (f.exists()) {
 					FileUtils.forceDelete(f);
 				}
