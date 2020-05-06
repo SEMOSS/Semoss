@@ -17,6 +17,7 @@ public class ProposalGenerator {
 
 	private static final String STACKTRACE = "StackTrace: ";
 
+	/*
 	public static void main(String[] args) {
 		
 		int atomicsToCreate = 1000;
@@ -79,6 +80,7 @@ public class ProposalGenerator {
 		}
 		logger.info("Done");
 	}
+	*/
 	
 	public static Map<String, String> generateAliases(int n) {
 		Random random = new Random();
