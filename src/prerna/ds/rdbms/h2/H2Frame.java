@@ -327,8 +327,8 @@ public class H2Frame extends AbstractRdbmsFrame {
 				query = "GRANT " + tableName + "READONLY TO " + userName;
 				stmt.executeUpdate(query);
 
-				System.out.println("username " + userName);
-				System.out.println("Pass word " + password);
+				//System.out.println("username " + userName);
+				//System.out.println("Pass word " + password);
 
 				tablePermissions.put(tableName, retString);
 			} catch (SQLException e) {
