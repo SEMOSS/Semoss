@@ -527,12 +527,14 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 	 * @throws JepException
 	 */
 	private void initSharedInterpreter(JepConfig aJepConfig) throws JepException {
-		if(first) {
-			synchronized (this) {
-				if(first) {
-					SharedInterpreter.setConfig(aJepConfig);
-					first = false;
-				}
+		if (!first) {
+			return;
+		}
+
+		synchronized (this) {
+			if(first) {
+				SharedInterpreter.setConfig(aJepConfig);
+				first = false;
 			}
 		}
 	}
