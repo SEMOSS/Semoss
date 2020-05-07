@@ -22,6 +22,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.nustaq.serialization.FSTObjectOutput;
+import org.owasp.esapi.ESAPI;
 
 import jep.Jep;
 import jep.JepConfig;
@@ -100,10 +101,10 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 	
 	public void watchDir(String dir)
 	{
-		logger.info("Adding new watch for .. " + dir);
+		logger.info("Adding new watch for .. " + cleanLogString(dir));
 		if(!foldersBeingWatched.contains(dir))
 		{
-			logger.info("Creating File Thread " + dir);
+			logger.info("Creating File Thread " + cleanLogString(dir));
 
 			FileThread ft = new FileThread();
 			ft.folderToWatch = dir;
@@ -587,6 +588,14 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			logger.error(STACKTRACE, ioe);
 		}
 		
+	}
+	// ensure no CRLF injection into logs for forging records
+	public String cleanLogString(String message) {
+		if(message == null) {
+			return message;
+		}
+		message = message.replace('\n', '_').replace('\r', '_').replace('\t', '_');
+		return message;
 	}
 
 
