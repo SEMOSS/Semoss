@@ -2,6 +2,9 @@ package prerna.engine.impl.r;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Hashtable;
 import java.util.concurrent.TimeUnit;
 
@@ -61,6 +64,11 @@ public class RSingleton {
 			
 			rHome = rHome.replace("\\", DIR_SEPERATOR);
 
+			Path rHomePath = Paths.get(rHome);
+			if (!Files.isDirectory(rHomePath)) {
+				throw new IllegalArgumentException("rHome does not exist or is not a directory");
+			}
+
 			rHome = rHome + DIR_SEPERATOR + "bin" + DIR_SEPERATOR + "R";
 
 			if(SystemUtils.IS_OS_WINDOWS)
@@ -70,7 +78,7 @@ public class RSingleton {
 			
 			ProcessBuilder pb = new ProcessBuilder("" + rHome + "", "-e", "library(Rserve);Rserve(FALSE," + port + ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)", "--vanilla");
 			Process process = pb.start();
-			
+
 			System.out.println("Waiting 1 second to allow Rserve to finish starting up...");
 			try {
 				process.waitFor(1, TimeUnit.SECONDS);
@@ -101,6 +109,11 @@ public class RSingleton {
 			
 			rHome = rHome.replace("\\", DIR_SEPERATOR);
 
+			Path rHomePath = Paths.get(rHome);
+			if (!Files.isDirectory(rHomePath)) {
+				throw new IllegalArgumentException("rHome does not exist or is not a directory");
+			}
+			
 			rHome = rHome + DIR_SEPERATOR + "bin" + DIR_SEPERATOR + "R";
 
 			if(SystemUtils.IS_OS_WINDOWS)
