@@ -12,7 +12,7 @@ public class AppAvailabilityStore {
 	private static AppAvailabilityStore store = null;
 	
 	// keep track of apps that have been disabled
-	private Set<String> disabledApps = new HashSet<String>();
+	private Set<String> disabledApps = new HashSet<>();
 	
 	private AppAvailabilityStore() {
 		
@@ -23,14 +23,17 @@ public class AppAvailabilityStore {
 			return null;
 		}
 		
-		if(store == null) {
-			synchronized(AppAvailabilityStore.class) {
-				if(store == null) {
-					store = new AppAvailabilityStore();
-				}
-			}
+		if(store != null) {
+			return store;
 		}
-		return store;
+
+		synchronized(AppAvailabilityStore.class) {
+			if(store == null) {
+				store = new AppAvailabilityStore();
+			}
+
+			return store;
+		}
 	}
 	
 	/**
@@ -56,11 +59,7 @@ public class AppAvailabilityStore {
 	 * @return
 	 */
 	public boolean isAppDisabledByOwner(String appId) {
-		if(this.disabledApps.contains(appId)) {
-			return true;
-		}
-		
-		return false;
+		return this.disabledApps.contains(appId);
 	}
 	
 	public boolean enableApp(User user, String appId) {
