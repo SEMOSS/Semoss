@@ -180,54 +180,68 @@ public class User extends AbstractValueObject implements Serializable {
 	}
 	
 	public String getWorkspaceEngineId(AuthProvider token) {
-		if(this.workspaceEngineMap.get(token) == null) {
-			String engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
-			if (engineId == null) {
-				try {
-					synchronized(workspaceSyncObject) {
-						engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
-						if(engineId == null) {
-							engineId = WorkspaceAssetUtils.createUserWorkspaceApp(this, token);
-						}
+		if (this.workspaceEngineMap.get(token) != null) {
+			return this.workspaceEngineMap.get(token);
+		}
+
+		String engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
+		
+		if (engineId != null) {
+			this.workspaceEngineMap.put(token, engineId);
+		} else {
+			try {
+				synchronized(workspaceSyncObject) {
+					engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
+					if(engineId == null) {
+						engineId = WorkspaceAssetUtils.createUserWorkspaceApp(this, token);
 					}
-				} catch (Exception e) {
-					logger.error(STACKTRACE, e);
 				}
+			} catch (Exception e) {
+				logger.error(STACKTRACE, e);
 			}
+
 			this.workspaceEngineMap.put(token, engineId);
 		}
+
 		return this.workspaceEngineMap.get(token);
 	}
 	
 	public String getAssetEngineId(AuthProvider token) {
-		if(this.assetEngineMap.get(token) == null) {
-			String engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
-			if (engineId == null) {
-				try {
-					synchronized(assetSyncObject) {
-						engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
-						if(engineId == null) {
-							engineId = WorkspaceAssetUtils.createUserAssetApp(this, token);
-						}
+		if(this.assetEngineMap.get(token) != null) {
+			return this.assetEngineMap.get(token);
+		}
+		String engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
+
+		if (engineId != null) {
+			this.assetEngineMap.put(token, engineId);
+		} else {
+			try {
+				synchronized(assetSyncObject) {
+					engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
+					if(engineId == null) {
+						engineId = WorkspaceAssetUtils.createUserAssetApp(this, token);
 					}
-				} catch (Exception e) {
-					logger.error(STACKTRACE, e);
 				}
+			} catch (Exception e) {
+				logger.error(STACKTRACE, e);
 			}
-			//TODO actually sync the pull, not sure pull it
-			if (ClusterUtil.IS_CLUSTER) {
-				try {
-					CloudClient.getClient().pullApp(engineId);
-				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
-				} catch (InterruptedException ie) {
-					// Restore interrupted state...
-					Thread.currentThread().interrupt();
-					logger.error(STACKTRACE, ie);
-				}
-			}
+
 			this.assetEngineMap.put(token, engineId);
 		}
+
+		//TODO actually sync the pull, not sure pull it
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pullApp(engineId);
+			} catch (IOException e) {
+				logger.error(STACKTRACE, e);
+			} catch (InterruptedException ie) {
+				// Restore interrupted state...
+				Thread.currentThread().interrupt();
+				logger.error(STACKTRACE, ie);
+			}
+		}
+
 		return this.assetEngineMap.get(token);
 	}
 
