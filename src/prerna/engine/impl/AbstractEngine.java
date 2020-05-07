@@ -1379,7 +1379,7 @@ public abstract class AbstractEngine implements IEngine {
 	public String decryptPass(String propFile, boolean insight) {
 		String retString = null;
 		try {
-			File propF = new File(propFile);
+			File propF = new File(Utility.normalizePath(propFile));
 			Properties prop = new Properties();
 			prop.load(new FileInputStream(propF));
 			String dir = propF.getParent() + DIR_SEPARATOR + SmssUtilities.getUniqueName(prop);
@@ -1387,7 +1387,7 @@ public abstract class AbstractEngine implements IEngine {
 			if(insight) {
 				passwordFileName = dir + DIR_SEPARATOR + ".insight";
 			}
-			
+
 			String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";		
 			File inputFile = new File(passwordFileName);
 			if(inputFile.exists()) {
@@ -1408,7 +1408,7 @@ public abstract class AbstractEngine implements IEngine {
 	public Properties encryptPropFile(String propFile) {
 		try {
 			Properties prop = new Properties();
-			File propF = new File(propFile);
+			File propF = new File(Utility.normalizePath(propFile));
 			prop.load(new FileInputStream(propF));
 
 			String passToEncrypt = null;
@@ -1439,7 +1439,7 @@ public abstract class AbstractEngine implements IEngine {
 					(insightPassToEncrypt != null && insightPassToEncrypt.equalsIgnoreCase("encrypted password"))) {
 				// add the insight_password
 				prop.store(new FileOutputStream(new File(propFile)), "Encrypted the password");
-				propF = new File(propFile);
+				propF = new File(Utility.normalizePath(propFile));
 				
 				// find the password to be used
 				// use the property file as a input

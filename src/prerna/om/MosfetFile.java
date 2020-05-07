@@ -9,6 +9,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
 
+import prerna.util.Utility;
+
 public class MosfetFile {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -66,12 +68,13 @@ public class MosfetFile {
 	 * @throws IOException 
 	 */
 	public void write(String folderLocation, boolean force) throws IOException {
-		File directory = new File(folderLocation);
+		String normalizedFolderLocation = Utility.normalizePath(folderLocation);
+		File directory = new File(normalizedFolderLocation);
 		if(!directory.exists()) {
 			directory.mkdirs();
 		}
 		
-		File mosfet = new File(folderLocation + DIR_SEPARATOR + RECIPE_FILE);
+		File mosfet = new File(normalizedFolderLocation + DIR_SEPARATOR + RECIPE_FILE);
 		if(!force && mosfet.exists()) {
 			throw new IOException("The mosfet file already exists");
 		} else if(force && mosfet.exists()) {
