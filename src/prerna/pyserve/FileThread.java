@@ -36,7 +36,7 @@ public class FileThread implements Runnable {
 	
 	@Override
 	public void run() {
-		logger.info("Starting watch on.. " + folderToWatch);
+		logger.info("Starting watch on.. " + Utility.cleanLogString(folderToWatch));
 		try {
 			
 			// create the ready file
@@ -92,7 +92,7 @@ public class FileThread implements Runnable {
 			logger.error(STACKTRACE, e);
 		}
 
-		logger.info("Folder " + folderToWatch + " Thread Ended");
+		logger.info("Folder " + Utility.cleanLogString(folderToWatch) + " Thread Ended");
 	}
 	
 
