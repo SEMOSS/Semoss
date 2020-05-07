@@ -68,20 +68,8 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Please select a valid column name");
 		}
 
-		// make sure only attribute columns are included
-		boolean ruleColumnIncluded = false;
-		for (String a : attrs) {
-			String rType = this.rJavaTranslator.getString("unique(sapply(" + frameName + "$" + a + ",class))");
-			if (!rType.equalsIgnoreCase("character") && !rType.equalsIgnoreCase("factor")) {
-				throw new IllegalArgumentException("Please only select string columns as attributes");
-			}
-			if (a.equals(column)) {
-				ruleColumnIncluded = true;
-			}
-		}
-
-		// also make sure that the rule column is in the attrs
-		if (!ruleColumnIncluded) {
+		// ensure the rule column is in the attrs
+		if (!attrs.contains(column)) {
 			attrs.add(column);
 		}
 
