@@ -30,7 +30,7 @@ import freemarker.template.Version;
 
 public class NGINXAppListener extends NGINXDomainListener implements IZKListener {
 
-	/*
+	
 	//static String semossHome = "/opt/semosshome/";
 	static String semossHome = "c:/users/pkapaleeswaran/workspacej3/docker/";
 	
@@ -172,6 +172,7 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 	
 	public void reloadNginx()
 	{
+		/*
 		// need to get the id - use the pidof
 		// https://stackoverflow.com/questions/16965089/getting-pid-of-process-in-shell-script
 		try {
@@ -192,6 +193,7 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		*/
 	}
 
 	public static String getNodeData(String path, ZooKeeper zk)
@@ -216,6 +218,6 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 	}
 	
 
-*/
+
 
 }
