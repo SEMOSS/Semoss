@@ -131,7 +131,7 @@ public class GitConsumer {
 			
 			// need to rename the folder
 			File currAppFolder = versionDir.getParentFile();
-			currAppFolder.renameTo(new File(currAppFolder.getParent() + "/" + SmssUtilities.getUniqueName(yourName4App, actualAppId)));
+			currAppFolder.renameTo(new File(Utility.normalizePath(currAppFolder.getParent() + "/" + SmssUtilities.getUniqueName(yourName4App, actualAppId))));
 		}
 		
 		if(actualAppId == null) {
@@ -161,21 +161,21 @@ public class GitConsumer {
 		// need to account for version here
 		String appFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(yourName4App, appId);
 		String versionFolder = appFolder + "/version";
-		File dir = new File(versionFolder);
+		File dir = new File(Utility.normalizePath(versionFolder));
 
 		// seems like git pull doesn't complete until this point
 		// so it is screwing up
 		
 		
 		// now move the dbs
-		List <String> otherStuff = new Vector<String>();
+		List <String> otherStuff = new Vector<>();
 		otherStuff.add("*.db");
 		otherStuff.add("*.OWL");
 		FileFilter fileFilter = new WildcardFileFilter(otherStuff);
 		
 		
 		File[] files = dir.listFiles(fileFilter);
-		File dbFile = new File(appFolder);
+		File dbFile = new File(Utility.normalizePath(appFolder));
 		for (int i = 0; i < files.length; i++) {
 			try {
 				// need to make modification on the engine
@@ -187,9 +187,9 @@ public class GitConsumer {
 			}
 		}
 
-		File gitDataDir = new File(versionFolder + "/data");
+		File gitDataDir = new File(Utility.normalizePath(versionFolder) + "/data");
 		if(gitDataDir.exists()) {
-			File appDataDir = new File(appFolder + "/data");
+			File appDataDir = new File(Utility.normalizePath(appFolder) + "/data");
 			if(!appDataDir.exists()) {
 				appDataDir.mkdir();
 			}
@@ -278,7 +278,7 @@ public class GitConsumer {
 		String oldName = "db/" + fileName.replace(".smss", "");
 		String newName = "db/" + SmssUtilities.getUniqueName(yourName4App, appId);
 		String newFileName = mainDirectory + "/" + SmssUtilities.getUniqueName(yourName4App, appId) + ".smss";
-		File newFile = new File(newFileName);
+		File newFile = new File(Utility.normalizePath(newFileName));
 		if(!newFile.exists()) {
 			try {
 				newFile.createNewFile();
@@ -365,11 +365,11 @@ public class GitConsumer {
 	private static void loadMosfetFiles(IEngine app, String versionFolder, Logger logger) {
 		IEngine insightsDb = app.getInsightDatabase();
 
-		List<String> addFilesPath = new Vector<String>();
-		List<String> modFilesPath = new Vector<String>();
+		List<String> addFilesPath = new Vector<>();
+		List<String> modFilesPath = new Vector<>();
 
 		// mosfet filter
-		List<String> mosfetFilterList = new Vector<String>();
+		List<String> mosfetFilterList = new Vector<>();
 		mosfetFilterList.add("*.mosfet");
 		FileFilter mosfetFilter = new WildcardFileFilter(mosfetFilterList);
 		

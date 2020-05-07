@@ -479,9 +479,10 @@ public class RdbmsQueryBuilder {
 		// if the fileName db exists delete it
 		// I also need to think about multi-user ?
 		// may be not, not until they move to the new version ok
-		String dbName = fileName;
-		dbName = fileName.replace(".csv", "");
-		dbName = fileName.replace(".tsv", "");
+		String normalizedFileName = Utility.normalizePath(fileName);
+		String dbName = normalizedFileName;
+		dbName = normalizedFileName.replace(".csv", "");
+		dbName = normalizedFileName.replace(".tsv", "");
 		
 		try {
 			File file = new File(dbName + ".mv.db");
