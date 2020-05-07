@@ -272,7 +272,7 @@ public class PyTranslator
 		              line = raf.readLine();
 		              //numLines = numLines + 1;
 		              if(line != null)
-		            	  logger.info(line);
+		            	  logger.info(Utility.cleanLogString(line));
 		            }while( line != null );
 		            // if there were more than 3 lines that assimilated in 200 milliseconds increase sleep time ?
 		            if(count %3 == 0)

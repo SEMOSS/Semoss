@@ -822,7 +822,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			{
 				Object key = mapKeys.next();
 				Object value = map.get(key);
-				logger.info(key + "<<>>" + value);				
+				logger.info(Utility.cleanLogString(key.toString()) + "<<>>" + value);				
 				//logger.info(((Vertex)key).value(TINKER_ID) + "<<>>" + value);
 			}			
 		}
