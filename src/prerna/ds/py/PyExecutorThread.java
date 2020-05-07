@@ -155,7 +155,7 @@ public class PyExecutorThread extends Thread {
 				//pyBase = "c:/users/pkapaleeswaran/workspacej3/semossweb/py";
 				pyBase = pyBase.replace('\\', '/');
 				aJepConfig.addIncludePaths(pyBase);
-				//aJepConfig.setRedirectOutputStreams(true);
+				aJepConfig.setRedirectOutputStreams(true);
 				
 				// add the libraries
 				String sitepackages = DIHelper.getInstance().getProperty("PYTHON_PACKAGES");
@@ -165,6 +165,9 @@ public class PyExecutorThread extends Thread {
 				
 				initSharedInterpreter(aJepConfig);
 				jep = new SharedInterpreter();
+				
+				jep.eval("from jep import redirect_streams");
+				jep.eval("redirect_streams.setup()");
 
 				jep.eval("import numpy as np");
 				jep.eval("import pandas as pd");
