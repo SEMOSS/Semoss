@@ -175,6 +175,7 @@ public class NGINXDomainListener implements IZKListener {
 	
 	public void reloadNginx()
 	{
+		/*
 		// need to get the id - use the pidof
 		// https://stackoverflow.com/questions/16965089/getting-pid-of-process-in-shell-script
 		try {
@@ -195,6 +196,7 @@ public class NGINXDomainListener implements IZKListener {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		*/
 	}
 
 	public static String getNodeData(String path, ZooKeeper zk)
