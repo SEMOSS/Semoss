@@ -1,4 +1,4 @@
-get_association_rules<-function(in_df,attrs,premise=NULL,outcome=NULL,support=0.01,confidence=0.8,lift=1){
+get_association_rules<-function(in_df,attrs,premise=NULL,outcome=NULL,support=0.01,confidence=0.8,lift=1,nbr_int=5,mult=3){
 # Identify association rules
 # Args
 # in_df - table/dataframe to be used for rules search
@@ -14,6 +14,17 @@ get_association_rules<-function(in_df,attrs,premise=NULL,outcome=NULL,support=0.
 		cols<-which(colnames(in_df) %in% attrs)
 		cmd<-paste0('df<-in_df[,',paste0('c(',paste(cols,collapse=','),')'),']')
 		eval(parse(text=cmd))
+		# discretize
+		# integer columns with few unique values become factors
+		types<-unlist(lapply(df,class))
+		cols<-names(types[types=="integer"])
+		for(col in cols){
+			cnt<-length(unique(df[[col]]))
+			if(cnt <= nbr_int*mult){
+				df[[col]]<-as.factor(df[[col]])
+			}
+		}
+		df<-discretizeDF(df,default=list(method="interval",breaks=nbr_int))
 		for(i in 1:length(attrs)){
 			if(class(df[[attrs[i]]]) != "factor"){
 				df[[attrs[i]]]<-as.factor(df[[attrs[i]]])
