@@ -3,6 +3,9 @@ package prerna.engine.impl.r;
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -24,11 +27,11 @@ import prerna.util.Utility;
 public class RserveUtil {
 
 	protected static final Logger logger = LogManager.getLogger(RserveUtil.class);
-	
+
 	private static final String R_FOLDER = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
 	private static final String R_DATA_EXT = ".RData";
 	private static final String FS = java.nio.file.FileSystems.getDefault().getSeparator();
-	
+
 	// R binary location
 	private static String rBin;
 	static {
@@ -36,6 +39,10 @@ public class RserveUtil {
 		if (rHome == null || rHome.isEmpty()) {
 			rBin = "R"; // Just hope its in the path
 		} else {
+			Path rHomePath = Paths.get(rHome);
+			if (!Files.isDirectory(rHomePath)) {
+				throw new IllegalArgumentException("rHome does not exist or is not a directory");
+			}
 			rBin = rHome + FS + "bin" + FS + "R";
 			if (SystemUtils.IS_OS_WINDOWS) rBin = rBin.replace(FS, "\\\\");
 		}
@@ -146,7 +153,13 @@ public class RserveUtil {
 						.map(r -> r[4]) // Grab the pid
 						.collect(Collectors.toList());
 				for (String pid : pids) {
-					
+					try {
+						Integer.parseInt(pid.trim());
+					} catch (NumberFormatException e) {
+						logger.error("pid is not a valid pid");
+						logger.error("StackTrace: ", e);
+						throw e;
+					}
 					// Go through and kill these processes
 					ProcessBuilder pbTaskkill = new ProcessBuilder("taskkill", "/PID", pid, "/F").inheritIO();
 					Process processTaskkill = pbTaskkill.start();
@@ -165,6 +178,13 @@ public class RserveUtil {
 				// Parse lsof output to get the PIDs of processes (in this case each line is just the pid)
 				List<String> lines = FileUtils.readLines(tempFile, "UTF-8");
 				for (String pid : lines) {
+					try {
+						Integer.parseInt(pid.trim());
+					} catch (NumberFormatException e) {
+						logger.error("pid is not a valid pid");
+						logger.error("StackTrace: ", e);
+						throw e;
+					}
 					ProcessBuilder pbKill = new ProcessBuilder("kill", "-9", pid).inheritIO();
 					Process processKill = pbKill.start();
 					processKill.waitFor(7L, TimeUnit.SECONDS);
