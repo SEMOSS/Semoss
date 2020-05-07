@@ -255,7 +255,8 @@ public class MosfetSyncHelper {
 				+ DIR_SEPARATOR + rdbmsId;
 		
 		mosfet.write(mosfetPath, false);
-		return new File(mosfetPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
+
+		return new File(Utility.normalizePath(mosfetPath) + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
 	}
 	
 	/**
