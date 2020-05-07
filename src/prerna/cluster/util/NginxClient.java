@@ -420,6 +420,7 @@ public class NginxClient implements Watcher{
 	{
 		// need to get the id - use the pidof
 		// https://stackoverflow.com/questions/16965089/getting-pid-of-process-in-shell-script
+		/*
 		try {
 			// and then execute a kill -HUP
 			ProcessBuilder pb = new ProcessBuilder("pidof 'nginx: master process nginx' > " + semossHome + "nginxid");
@@ -438,6 +439,7 @@ public class NginxClient implements Watcher{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		*/
 	}
 
 }
