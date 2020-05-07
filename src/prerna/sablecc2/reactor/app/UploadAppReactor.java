@@ -143,9 +143,9 @@ public class UploadAppReactor extends AbstractInsightReactor {
 		// zip file has the smss and db folder on the same level
 		// need to move these files around
 		String oldDbFolderPath = tempDbFolder + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId);
-		File oldDbFolder = new File(oldDbFolderPath);
-		File newDbFolder = new File(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId));
-		File finalSmss = new File(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + Constants.SEMOSS_EXTENSION);
+		File oldDbFolder = new File(Utility.normalizePath(oldDbFolderPath));
+		File newDbFolder = new File(Utility.normalizePath(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)));
+		File finalSmss = new File(Utility.normalizePath(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + Constants.SEMOSS_EXTENSION));
 		String engines = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
 		try {
 			// need to ignore file watcher
@@ -165,8 +165,8 @@ public class UploadAppReactor extends AbstractInsightReactor {
 
 			// move smss file
 			logger.info(step + ") Moving smss file");
-			smssFile = new File(tempDbFolder + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
-			+ Constants.SEMOSS_EXTENSION);
+			smssFile = new File(Utility.normalizePath(tempDbFolder + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
+			+ Constants.SEMOSS_EXTENSION));
 			FileUtils.copyFile(smssFile, finalSmss);
 			logger.info(step + ") Done");
 			step++;
