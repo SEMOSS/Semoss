@@ -14,7 +14,7 @@ import prerna.util.Utility;
 
 public class RIterator implements Iterator<IHeadersDataRow>{
 
-	private static final Logger LOGGER = LogManager.getLogger(RIterator.class.getName());
+	private static final Logger logger = LogManager.getLogger(RIterator.class);
 	
 	private boolean init = false;
 	
@@ -51,64 +51,66 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	}
 	
 	private void init() {
-		if(!init) {
-			synchronized (this) {
-				if(!init) {
-					long start = System.currentTimeMillis();
-	
-					this.tempVarName = "temp" + Utility.getRandomString(6);
-					String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
-					this.builder.evalR(tempVarQuery);
-					this.totalNumRows = builder.getNumRows(this.tempVarName);
-					this.numRows = this.totalNumRows;
-					
-					// need to account for limit and offset
-					if(this.qs != null && this.numRows > 0) {
-						long limit = qs.getLimit();
-						long offset = qs.getOffset();
-						if(offset > numRows) {
-							// well, no point in doing anything else
+		if (init) {
+			return;
+		}
+
+		synchronized (this) {
+			if(!init) {
+				long start = System.currentTimeMillis();
+
+				this.tempVarName = "temp" + Utility.getRandomString(6);
+				String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
+				this.builder.evalR(tempVarQuery);
+				this.totalNumRows = builder.getNumRows(this.tempVarName);
+				this.numRows = this.totalNumRows;
+				
+				// need to account for limit and offset
+				if(this.qs != null && this.numRows > 0) {
+					long limit = qs.getLimit();
+					long offset = qs.getOffset();
+					if(offset > numRows) {
+						// well, no point in doing anything else
+						this.numRows = 0;
+					} else if(limit > 0 || offset > 0) {
+						// java is 0 based so the FE sends 0 when they want the first record
+						// but R is 1 based, so we need to add 1 to the offset value
+						String updatedTempVarQuery = null;
+						try {
+							updatedTempVarQuery = RSyntaxHelper.determineLimitOffsetSyntax(this.tempVarName, this.numRows, limit, offset);
+							this.builder.evalR(updatedTempVarQuery);
+							// and then update the number of rows
+							this.numRows = builder.getNumRows(this.tempVarName);
+						} catch(IllegalArgumentException e) {
+							// we have no data
+							// will still run with a limit of 1 so that 
+							// we can grab the metadata
+							updatedTempVarQuery = RSyntaxHelper.determineLimitOffsetSyntax(this.tempVarName, this.numRows, 1, 0);
+							this.builder.evalR(updatedTempVarQuery);
+							// and then update the number of rows
 							this.numRows = 0;
-						} else if(limit > 0 || offset > 0) {
-							// java is 0 based so the FE sends 0 when they want the first record
-							// but R is 1 based, so we need to add 1 to the offset value
-							String updatedTempVarQuery = null;
-							try {
-								updatedTempVarQuery = RSyntaxHelper.determineLimitOffsetSyntax(this.tempVarName, this.numRows, limit, offset);
-								this.builder.evalR(updatedTempVarQuery);
-								// and then update the number of rows
-								this.numRows = builder.getNumRows(this.tempVarName);
-							} catch(IllegalArgumentException e) {
-								// we have no data
-								// will still run with a limit of 1 so that 
-								// we can grab the metadata
-								updatedTempVarQuery = RSyntaxHelper.determineLimitOffsetSyntax(this.tempVarName, this.numRows, 1, 0);
-								this.builder.evalR(updatedTempVarQuery);
-								// and then update the number of rows
-								this.numRows = 0;
-							}
 						}
 					}
-					
-					long end = System.currentTimeMillis();
-					LOGGER.info("TIME TO EXECUTE MAIN R SCRIPT = " + (end-start) + "ms");
-					
-					//obtain headers from the qs
-					if(this.qs != null) {
-						List<Map<String, Object>> headerInfo = qs.getHeaderInfo();
-						int numCols = headerInfo.size();
-						this.headers = new String[numCols];
-						for (int i = 0; i <numCols; i++) {
-							headers[i] = headerInfo.get(i).get("alias").toString();
-						}
-					} else {
-						this.headers = builder.getColumnNames(tempVarName);
-					}
-					this.colTypes = builder.getColumnTypes(tempVarName);
-					
-					// init is true
-					init = true;
 				}
+				
+				long end = System.currentTimeMillis();
+				logger.info("TIME TO EXECUTE MAIN R SCRIPT = " + (end-start) + "ms");
+				
+				//obtain headers from the qs
+				if(this.qs != null) {
+					List<Map<String, Object>> headerInfo = qs.getHeaderInfo();
+					int numCols = headerInfo.size();
+					this.headers = new String[numCols];
+					for (int i = 0; i <numCols; i++) {
+						headers[i] = headerInfo.get(i).get("alias").toString();
+					}
+				} else {
+					this.headers = builder.getColumnNames(tempVarName);
+				}
+				this.colTypes = builder.getColumnTypes(tempVarName);
+				
+				// init is true
+				init = true;
 			}
 		}
 	}
@@ -150,7 +152,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 			String query = this.tempVarName + "[" + this.rowIndex + ":" + end + "]";
 			this.data = this.builder.getBulkDataRow(query, headers);
 			long endT = System.currentTimeMillis();
-			LOGGER.debug("TIME TO GET SUBSET OF R VALUES = " + (endT-startT) + "ms");
+			logger.debug("TIME TO GET SUBSET OF R VALUES = " + (endT-startT) + "ms");
 			
 			this.dataPos = 0;
 		}
