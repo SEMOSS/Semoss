@@ -259,7 +259,7 @@ public class InsightCacheUtility {
 	public static void deleteCache(String engineId, String engineName, String rdbmsId) {
 		ClusterUtil.reactorPullApp(engineId);
 		String folderDir = getInsightCacheFolderPath(engineId, engineName, rdbmsId);
-		File folder = new File(folderDir); 
+		File folder = new File(Utility.normalizePath(folderDir)); 
 		if(!folder.exists()) {
 			return;
 		}
