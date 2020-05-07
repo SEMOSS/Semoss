@@ -1389,7 +1389,7 @@ public abstract class AbstractEngine implements IEngine {
 			}
 
 			String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";		
-			File inputFile = new File(passwordFileName);
+			File inputFile = new File(Utility.normalizePath(passwordFileName));
 			if(inputFile.exists()) {
 				// if nothing is there return null
 				SnowApi snow = new SnowApi();			
@@ -1450,7 +1450,7 @@ public abstract class AbstractEngine implements IEngine {
 				if(passToEncrypt != null) {
 					String passwordFileName = dir + DIR_SEPARATOR + ".pass";
 					
-					File passFile = new File(passwordFileName);
+					File passFile = new File(Utility.normalizePath(passwordFileName));
 					if(passFile.exists()) {
 						passFile.delete();
 					}
@@ -1463,7 +1463,7 @@ public abstract class AbstractEngine implements IEngine {
 				if(insightPassToEncrypt != null) {
 					String passwordFileName = dir + DIR_SEPARATOR + ".insight";
 					
-					File passFile = new File(passwordFileName);
+					File passFile = new File(Utility.normalizePath(passwordFileName));
 					if(passFile.exists()) {
 						passFile.delete();
 					}
