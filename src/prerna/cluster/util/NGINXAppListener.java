@@ -30,6 +30,7 @@ import freemarker.template.Version;
 
 public class NGINXAppListener extends NGINXDomainListener implements IZKListener {
 
+	/*
 	//static String semossHome = "/opt/semosshome/";
 	static String semossHome = "c:/users/pkapaleeswaran/workspacej3/docker/";
 	
@@ -215,6 +216,6 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 	}
 	
 
-
+*/
 
 }
