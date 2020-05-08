@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -45,7 +43,8 @@ public class ToExcelReactor extends TaskBuilderReactor {
 	protected Logger logger;
 	
 	public ToExcelReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), 
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
 	
 	@Override
@@ -55,7 +54,8 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		this.task = getTask();
 		NounMetadata retNoun = null;
 		// get a random file name
-		String exportName = getExportFileName("xlsx");
+		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
@@ -247,19 +247,4 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			}
 		}
 	}
-
-	
-	/**
-	 * Getting a file name
-	 * @param extension
-	 * @return
-	 */
-	protected String getExportFileName(String extension) {
-		// get a random file name
-		Date date = new Date();
-		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
-		String exportName = "SEMOSS_Export_" + modifiedDate + "." + extension;
-		return exportName;
-	}
-	
 }

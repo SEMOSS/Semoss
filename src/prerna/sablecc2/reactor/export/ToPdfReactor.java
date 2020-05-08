@@ -32,8 +32,8 @@ public class ToPdfReactor extends AbstractReactor {
 	private static final String STACKTRACE = "StackTrace: ";
 
 	public ToPdfReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.URL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.URL.getKey() };
 	}
 
 	@Override
@@ -82,7 +82,8 @@ public class ToPdfReactor extends AbstractReactor {
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
 		if (fileLocation == null) {
-			String exportName = AbstractExportTxtReactor.getExportFileName("pdf");
+			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pdf");
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			// store it in the insight so the FE can download it
 			// only from the given insight

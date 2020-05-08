@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.poi.sl.usermodel.PictureData.PictureType;
+import org.apache.poi.util.Units;
 import org.apache.poi.xddf.usermodel.PresetColor;
 import org.apache.poi.xddf.usermodel.XDDFColor;
 import org.apache.poi.xddf.usermodel.XDDFLineProperties;
@@ -42,8 +44,6 @@ import org.apache.poi.xslf.usermodel.XSLFChart;
 import org.apache.poi.xslf.usermodel.XSLFPictureData;
 import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
-import org.apache.poi.sl.usermodel.PictureData.PictureType;
-import org.apache.poi.util.Units;
 
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -63,7 +63,7 @@ import prerna.util.DIHelper;
 public class ExportToPPT extends AbstractReactor {
 	
 	public ExportToPPT() {
-		
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
 	}
 
 	@Override
@@ -71,7 +71,8 @@ public class ExportToPPT extends AbstractReactor {
 		organizeKeys();
 		NounMetadata retNoun = null;
 		// get a random file name
-		String exportName = AbstractExportTxtReactor.getExportFileName("pptx");
+		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pptx");
 		// grab file path to write the file
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
