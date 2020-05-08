@@ -82,8 +82,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 	private Map<String, Map<String, Object>> chartPanelLayout = new HashMap<>();
 
 	public ExportToExcelReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.LIMIT.getKey(),
-				ReactorKeysEnum.PASSWORD.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), 
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PASSWORD.getKey() };
 	}
 
 	@Override
@@ -92,7 +92,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 		this.logger = getLogger(CLASS_NAME);
 		NounMetadata retNoun = null;
 		// get a random file name
-		String exportName = AbstractExportTxtReactor.getExportFileName("xlsx");
+		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 		// grab file path to write the file
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set

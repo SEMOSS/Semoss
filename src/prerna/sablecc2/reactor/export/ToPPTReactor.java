@@ -41,7 +41,7 @@ public class ToPPTReactor extends AbstractReactor {
 
 	public ToPPTReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.BASE_URL.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.FILE_PATH.getKey(), };
+				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), };
 	}
 
 	@Override
@@ -76,7 +76,8 @@ public class ToPPTReactor extends AbstractReactor {
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
 		if (fileLocation == null) {
-			String exportName = AbstractExportTxtReactor.getExportFileName("pptx");
+			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pptx");
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			// store it in the insight so the FE can download it
 			// only from the given insight
