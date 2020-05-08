@@ -2832,7 +2832,7 @@ public class Utility {
 			if (asType != null)
 				adjustTypes.append(frameName).append("['").append(columns[headIndex]).append("']").append(" = ")
 						.append(frameName).append("['").append(columns[headIndex]).append("']").append(".astype('")
-						.append(asType).append("', errors='ignore');");
+						.append(asType).append("', errors='ignore')\n");
 		}
 
 		return adjustTypes.toString();
@@ -3596,6 +3596,22 @@ public class Utility {
 				for (int fileIndex = 0; fileIndex < files.size(); fileIndex++)
 					compiler[fileIndex + 5] = files.get(fileIndex);
 
+				/*
+				// https://stackoverflow.com/questions/43768021/how-to-store-the-result-of-compilation-using-javac-to-a-text-file
+				// when we use process builder
+				
+				compiler[files.size() + 5] = "2>";
+				compiler[files.size() + 6] = folder + "/classes/compileerrors.out";
+				*/
+				try {
+					java.io.PrintWriter pw = new java.io.PrintWriter(new File(folder + "/classes/compileerror.out"));
+					
+					status = javac.compile(compiler, pw);
+					pw.close();
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				status = javac.compile(compiler);
 			}
 
