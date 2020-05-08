@@ -12,9 +12,9 @@ import prerna.sablecc2.reactor.frame.r.RReactor;
 import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 
-public class ReactorSecurityManager extends SecurityManager {
+public final class ReactorSecurityManager extends SecurityManager {
 
-	private static List<String> classNamesToIgnore = new Vector<String>();
+	private static List<String> classNamesToIgnore = new Vector<>();
 	static {
 		classNamesToIgnore.add(JavaReactor.class.getName());
 		classNamesToIgnore.add(AbstractBaseRClass.class.getName());
@@ -22,11 +22,11 @@ public class ReactorSecurityManager extends SecurityManager {
 		classNamesToIgnore.add(PyReactor.class.getName());
 		classNamesToIgnore.add(PyExecutorThread.class.getName());
 	}
-	
+
 	public ReactorSecurityManager() {
-		
+		// empty constructor
 	}
-	
+
 	public void addClass(String className) {
 		classNamesToIgnore.add(className);
 	}
@@ -34,7 +34,8 @@ public class ReactorSecurityManager extends SecurityManager {
 	public void removeClass(String className) {
 		classNamesToIgnore.remove(className);
 	}
-	
+
+	@Override
 	public void checkPermission( Permission permission ) {
 		if( permission.getName().contains("exitVM") ) {
 			throw new SecurityException("Exit not permitted");
@@ -42,6 +43,7 @@ public class ReactorSecurityManager extends SecurityManager {
 	}
 	
 	// remove exit
+	@Override
 	public void checkExit(int status) {
 		if(blockThread()) {
 			throw new SecurityException("Exit not permitted");
@@ -49,6 +51,7 @@ public class ReactorSecurityManager extends SecurityManager {
 	}
 
 	// remove exec
+	@Override
 	public void checkExec(String cmd) {
 		if(blockThread()) {
 			throw new SecurityException("Exec not permitted " + cmd);

@@ -13,7 +13,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Utility;
 
-public class RReactor extends AbstractReactor {
+public final class RReactor extends AbstractReactor {
 	
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	private static final String CLASS_NAME = RReactor.class.getName();
@@ -32,7 +32,7 @@ public class RReactor extends AbstractReactor {
 		logger.info("Execution r script: " + code);
 		String output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getAppMap());
 		
-		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
+		List<NounMetadata> outputs = new Vector<>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
 		
 		// set back the original security manager
