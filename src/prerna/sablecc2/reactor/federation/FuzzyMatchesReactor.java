@@ -115,7 +115,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 				IRawSelectWrapper iterator = null;
 				try {
 					iterator = frame.query(qs);
-					ITask it2 = new BasicIteratorTask(iterator);
+					ITask it2 = new BasicIteratorTask(qs, iterator);
 					String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 					newFile = Utility.writeResultToFile(newFileLoc, it2, null, "\t");
 				} catch (Exception e) {

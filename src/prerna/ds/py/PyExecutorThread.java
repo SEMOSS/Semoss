@@ -13,7 +13,7 @@ import prerna.sablecc.ReactorSecurityManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class PyExecutorThread extends Thread {
+public final class PyExecutorThread extends Thread {
 
 	private static final String CLASS_NAME = PyExecutorThread.class.getName();
 	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
