@@ -12,7 +12,7 @@ public class ToTsvReactor extends AbstractExportTxtReactor {
 	private static final String CLASS_NAME = ToTsvReactor.class.getName();
 	
 	public ToTsvReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
 	}
 	
 	@Override
@@ -24,7 +24,8 @@ public class ToTsvReactor extends AbstractExportTxtReactor {
 		this.setDelimiter("\t");
 		NounMetadata retNoun = null;
 		// get a random file name
-		String exportName = getExportFileName("tsv");
+		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "tsv");
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
