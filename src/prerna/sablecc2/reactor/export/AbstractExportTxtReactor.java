@@ -43,9 +43,9 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 		Date date = new Date();
 		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
 		if(customName != null && !customName.trim().isEmpty()) {
-			return Utility.normalizePath(customName.trim() + "_" + modifiedDate + "." + extension);
+			return Utility.normalizePath(customName.trim() + "_" + modifiedDate) + "." + extension;
 		}
-		return Utility.normalizePath("SEMOSS_Export_" + modifiedDate + "." + extension);
+		return Utility.normalizePath("SEMOSS_Export_" + modifiedDate) + "." + extension;
 	}
 
 	@Override
