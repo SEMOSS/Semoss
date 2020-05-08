@@ -14,7 +14,8 @@ public class ToTxtReactor extends AbstractExportTxtReactor {
 	private static final String CLASS_NAME = ToTxtReactor.class.getName();
 	
 	public ToTxtReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.DELIMITER.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.DELIMITER.getKey(), 
+				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
 	}
 	
 	@Override
@@ -26,7 +27,8 @@ public class ToTxtReactor extends AbstractExportTxtReactor {
 		this.setDelimiter(getDelimiter());
 		NounMetadata retNoun = null;
 		// get a random file name
-		String exportName = getExportFileName("txt");
+		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "txt");
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
