@@ -131,7 +131,8 @@ public final class ZipUtils {
 	}
 
 	private static void unZipEngine(String destinationFolder, String zipFile) {
-		File directory = new File(destinationFolder);
+		String normalizedDestinationFolder = Utility.normalizePath(destinationFolder);
+		File directory = new File(normalizedDestinationFolder);
 
 		// if the output directory doesn't exist, create it
 		if (!directory.exists()) {
@@ -151,16 +152,16 @@ public final class ZipUtils {
 				logger.info(Utility.cleanLogString(entryName));
 				File file = null;
 				if (entryName.endsWith(".smss")) {
-					tempAbsolutePath = destinationFolder + FILE_SEPARATOR + Utility.normalizePath(entryName.replace(".smss", ".temp"));
+					tempAbsolutePath = normalizedDestinationFolder + FILE_SEPARATOR + Utility.normalizePath(entryName.replace(".smss", ".temp"));
 					file = new File(tempAbsolutePath);
 				} else {
-					file = new File(destinationFolder + FILE_SEPARATOR + Utility.normalizePath(entryName));
+					file = new File(normalizedDestinationFolder + FILE_SEPARATOR + Utility.normalizePath(entryName));
 				}
 				logger.info("Unzip file " + Utility.cleanLogString(entryName) + " to " + file.getAbsolutePath());
 				// create the directory for the next entry
 				if (entryName.contains(FILE_SEPARATOR)) {
 					String[] dirStructure = entryName.split(FILE_SEPARATOR);
-					String absolutePath = destinationFolder + FILE_SEPARATOR + Utility.normalizePath(dirStructure[0]);
+					String absolutePath = normalizedDestinationFolder + FILE_SEPARATOR + Utility.normalizePath(dirStructure[0]);
 					for (int i = 0; i < dirStructure.length; i++) {
 						File newDir = new File(absolutePath);
 						if (!newDir.exists()) {
