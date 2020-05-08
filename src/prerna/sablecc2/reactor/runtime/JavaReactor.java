@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import javassist.CannotCompileException;
@@ -19,9 +20,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
-public class JavaReactor extends AbstractReactor {
+public final class JavaReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = JavaReactor.class.getName();
+	private static final String STACKTRACE = "StackTrace: ";
+
 	// get the default manager
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	
@@ -65,7 +68,7 @@ public class JavaReactor extends AbstractReactor {
 						packageStr = packageStr + ".";
 					}
 				}
-				System.out.println("Importing.. [" + packageStr + "]");
+				logger.info("Importing.. [" + packageStr + "]");
 				pool.importPackage(packageStr);
 			}		
 
@@ -112,7 +115,7 @@ public class JavaReactor extends AbstractReactor {
 			pool.removeClassPath(ccp);
 			List<NounMetadata> outputs = jR.getNounMetaOutput();
 			if(outputs == null || outputs.isEmpty()) {
-				outputs = new ArrayList<NounMetadata>();
+				outputs = new ArrayList<>();
 				if(jR.System.out.output != null) {
 					outputs.add(new NounMetadata(jR.System.out.output.toString(), PixelDataType.CONST_STRING));
 				} else if(jR.System.err.output != null) {
@@ -120,15 +123,14 @@ public class JavaReactor extends AbstractReactor {
 				}
 			}
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
-		} catch (RuntimeException e) {
-			e.printStackTrace();
-			// we will throw runtime exceptions
-			throw e;
-		} catch (CannotCompileException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Code had syntax errors which could not be compiled for execution: " + e.getMessage());
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (RuntimeException re) {
+			logger.error(STACKTRACE, re);
+			throw re;
+		} catch (CannotCompileException cce) {
+			logger.error(STACKTRACE, cce);
+			throw new IllegalArgumentException("Code had syntax errors which could not be compiled for execution: " + cce.getMessage());
+		} catch (Exception ex) {
+			logger.error(STACKTRACE, ex);
 		} finally {
 			tempManager.removeClass(uniqueName);
 			// set back the original security manager
