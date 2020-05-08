@@ -1283,7 +1283,7 @@ public abstract class AbstractEngine implements IEngine {
 
 		dbFolder = propFile.replaceAll(".smss", "");
 		
-		cl.setFolder(dbFolder + "/version/classes");
+		cl.setFolder(dbFolder + "/version/assets/classes");
 		
 		IReactor retReac = null;
 		//String key = db + "." + insightId ;
@@ -1298,7 +1298,7 @@ public abstract class AbstractEngine implements IEngine {
 			cl.uncommitEngine(engineId);
 			// if it 
 			
-			String classesFolder = dbFolder + "/version/classes";
+			String classesFolder = dbFolder + "/version/assets/classes";
 			
 			File classesDir = new File(classesFolder);
 			if(classesDir.exists() && classesDir.isDirectory())
@@ -1311,7 +1311,7 @@ public abstract class AbstractEngine implements IEngine {
 					e.printStackTrace();
 				}
 			}
-			int status = Utility.compileJava(dbFolder +"/version", getCP());
+			int status = Utility.compileJava(dbFolder +"/version/assets", getCP());
 			//if(status == 0) // error or not I going to mark it. If we want to recompile. tell the system to recompile
 			{
 				ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
@@ -1332,7 +1332,7 @@ public abstract class AbstractEngine implements IEngine {
 		{
 			//compileJava(insightDirector.getParentFile().getAbsolutePath());
 			// delete the classes directory first
-			dbSpecificHash = Utility.loadReactors(dbFolder + "/version", key, cl);
+			dbSpecificHash = Utility.loadReactors(dbFolder + "/version/assets", key, cl);
 			cl.commitEngine(engineId);
 		}
 		try
