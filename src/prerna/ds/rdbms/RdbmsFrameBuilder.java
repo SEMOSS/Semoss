@@ -277,12 +277,12 @@ public class RdbmsFrameBuilder {
 
 	public PreparedStatement hashColumn(String tableName, String[] columns){
 		PreparedStatement ps = null;
-//		String sql = this.queryUtil.hashColumn(tableName, columns);
-//		try{
-//			ps = this.conn.prepareStatement(sql);
-//		}catch(SQLException e){
-//			logger.error(STACKTRACE, e);
-//		}
+		String sql = this.queryUtil.hashColumn(tableName, columns);
+		try{
+			ps = this.conn.prepareStatement(sql);
+		}catch(SQLException e){
+			logger.error(STACKTRACE, e);
+		}
 		return ps;
 	}
 	

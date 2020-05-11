@@ -30,6 +30,8 @@ package prerna.util.sql;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
@@ -134,6 +136,13 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	public String allIndexForTableQuery(String tableName, String schema) {
 		// do not need to use the schema
 		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='" + tableName.toUpperCase() + "';";
+	}
+
+	public String hashColumn(String tableName, String[] columns){
+		StringBuilder builder = new StringBuilder();
+		builder.append("UPDATE " + tableName + " SET ");
+		builder.append(String.join(",",Stream.of(columns).map(c -> c + " = HASH('SHA256', STRINGTOUTF8(" + c + "), 1000)").collect(Collectors.toList())));
+		return builder.toString();
 	}
 	
 }
