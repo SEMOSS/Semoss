@@ -32,6 +32,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactor;
 
 public class AuditDatabase {
+	
 	private static final Logger logger = LogManager.getLogger(AuditDatabase.class);
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -112,9 +113,9 @@ public class AuditDatabase {
 		builder.setUserName("sa");
 		builder.setPassword("");
 
-		System.out.println("Audit connection url is " + builder.getConnectionUrl());
-		System.out.println("Audit connection url is " + builder.getConnectionUrl());
-		System.out.println("Audit connection url is " + builder.getConnectionUrl());
+		logger.info("Audit connection url is " + builder.getConnectionUrl());
+		logger.info("Audit connection url is " + builder.getConnectionUrl());
+		logger.info("Audit connection url is " + builder.getConnectionUrl());
 
 		try {
 			this.conn = builder.build();
@@ -128,11 +129,21 @@ public class AuditDatabase {
 				"ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER" };
 		String[] types = new String[] { "IDENTITY", "VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)",
 				"VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)" };
-		execQ(this.queryUtil.createTableIfNotExists(AUDIT_TABLE, headers, types));
+
+		String auditTableQ = this.queryUtil.createTableIfNotExists(AUDIT_TABLE, headers, types);
 
 		headers = new String[] { "ID", "TYPE", "QUERY" };
 		types = new String[] { "VARCHAR(50)", "VARCHAR(50)", "CLOB" };
-		execQ(this.queryUtil.createTableIfNotExists(QUERY_TABLE, headers, types));
+		String queryTableQ = this.queryUtil.createTableIfNotExists(QUERY_TABLE, headers, types);
+
+		try(PreparedStatement auditTableStatement = conn.prepareStatement(auditTableQ);
+			PreparedStatement queryTableStatement = conn.prepareStatement(queryTableQ);
+		) {
+			auditTableStatement.execute();
+			queryTableStatement.execute();
+		} catch(SQLException e){
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -175,7 +186,7 @@ public class AuditDatabase {
 		insert[3] = primaryKeyColumn;
 		insert[4] = primaryKeyValue;
 
-		for (int i = 0; i < selectors.size(); i++) {
+		for(int i = 0; i < selectors.size(); i++) {
 			QueryColumnSelector s = (QueryColumnSelector) selectors.get(i);
 			String alteredColumn = s.getColumn();
 			String newValue = values.get(i) + "";
@@ -191,11 +202,16 @@ public class AuditDatabase {
 			auditInserts.append(";");
 		}
 
-		// execute the inserts
-		execQ(auditInserts.toString());
-
-		// store the query
-		execQ(getAuditQueryLog(new Object[] { id, "INSERT", RdbmsQueryBuilder.escapeForSQLStatement(query) }));
+		String insertQ = auditInserts.toString();
+		String auditQ = getAuditQueryLog(new Object[] { id, "INSERT", RdbmsQueryBuilder.escapeForSQLStatement(query) });
+		try (PreparedStatement insertStatement = conn.prepareStatement(insertQ);
+			PreparedStatement auditStatement = conn.prepareStatement(auditQ);
+		) {
+			insertStatement.execute();
+			auditStatement.execute();
+		} catch(SQLException e){
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -269,11 +285,17 @@ public class AuditDatabase {
 			auditUpdates.append(";");
 		}
 
-		// execute the inserts
-		execQ(auditUpdates.toString());
-
-		// store the query
-		execQ(getAuditQueryLog(new Object[] { id, "UPDATE", RdbmsQueryBuilder.escapeForSQLStatement(query) }));
+		String insertQ = auditUpdates.toString();
+		String updateQ = getAuditQueryLog(new Object[] { id, "UPDATE", RdbmsQueryBuilder.escapeForSQLStatement(query) });
+		try(
+				PreparedStatement insertStatement = conn.prepareStatement(insertQ);
+				PreparedStatement updateStatement = conn.prepareStatement(updateQ);
+		){
+			insertStatement.execute();
+			updateStatement.execute();
+		}catch(SQLException e){
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -333,12 +355,16 @@ public class AuditDatabase {
 			auditDeletes.append(getAuditInsert(insert));
 			auditDeletes.append(";");
 		}
-
-		// get a combination of all the insert
-		execQ(auditDeletes.toString());
-
-		// store the query
-		execQ(getAuditQueryLog(new Object[] { id, "DELETE", RdbmsQueryBuilder.escapeForSQLStatement(query) }));
+		String deleteQ = RdbmsQueryBuilder.escapeForSQLStatement(query);
+		try(
+				PreparedStatement statement = conn.prepareStatement(auditDeletes.toString());
+		        PreparedStatement deleteStatement = conn.prepareStatement(deleteQ);
+		){
+			statement.execute();
+			deleteStatement.execute();
+		}catch(SQLException e){
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -348,7 +374,12 @@ public class AuditDatabase {
 	 * @param query
 	 */
 	public void storeQuery(String userId, String query) {
-		execQ(getAuditQueryLog(new Object[] { userId, "CUSTOM", RdbmsQueryBuilder.escapeForSQLStatement(query) }));
+		String q = getAuditQueryLog(new Object[] { userId, "CUSTOM", RdbmsQueryBuilder.escapeForSQLStatement(query) });
+		try(PreparedStatement statement = conn.prepareStatement(q)){
+			statement.execute();
+		} catch(SQLException e){
+			e.printStackTrace();
+		}
 	}
 
 	private String getAuditInsert(Object[] data) {
