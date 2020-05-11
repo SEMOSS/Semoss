@@ -829,7 +829,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		java.sql.PreparedStatement ps = null;
 		try {
 			// create the prepared statement using the sql query defined
-			ps = this.engineConn.prepareStatement(sql);
+			ps = makeConnection().prepareStatement(sql);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
