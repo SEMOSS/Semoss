@@ -383,7 +383,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 		} else {
 			try(Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(query)){
-				statement.execute(query);
+				statement.execute();
 			} catch(SQLException e){
 				e.printStackTrace();
 			}
