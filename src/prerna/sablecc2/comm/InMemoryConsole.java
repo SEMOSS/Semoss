@@ -6,6 +6,8 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.util.Utility;
+
 public class InMemoryConsole extends Logger {
 	
 	// the default is mute
@@ -64,7 +66,7 @@ public class InMemoryConsole extends Logger {
 	@Override
 	public void info(Object message)
 	{
-		super.info(this.jobID + " >> " + message);
+		super.info(this.jobID + " >> " + Utility.cleanLogString(message.toString()));
 		if(level == LOG_LEVEL.INFO || level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
 			JobManager.getManager().addStdOut(jobID, message + "");
 		}
@@ -81,7 +83,7 @@ public class InMemoryConsole extends Logger {
 	@Override
 	public void warn(Object message)
 	{
-		super.warn(this.jobID + " >> " + message);
+		super.warn(this.jobID + " >> " + Utility.cleanLogString(message.toString()));
 		if(level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL)
 		{
 			JobManager.getManager().addStdErr(jobID, message + "");
