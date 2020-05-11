@@ -194,7 +194,7 @@ public class DBRenamer {
 				Charset charset = StandardCharsets.UTF_8;
 				try {
 					String content = new String(Files.readAllBytes(path), charset);
-					content = content.replaceAll(smssName.substring(0, smssName.indexOf(".")),
+					content = content.replace(smssName.substring(0, smssName.indexOf(".")),
 							"old" + smssName.substring(0, smssName.indexOf(".")));
 					Files.write(path, content.getBytes(charset));
 				} catch (IOException exception) {
