@@ -375,15 +375,18 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	// need to clean up the exception it will never be thrown
 	public void insertData(String query) throws SQLException {
-		try(Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(query)){
-			if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
+		if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
+			try(Connection conn = getConnection(); Statement statement = conn.createStatement()){
+				statement.executeUpdate(query);
+			} catch(SQLException e){
+				e.printStackTrace();
+			}
+		} else {
+			try(Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(query)){
 				statement.execute(query);
+			} catch(SQLException e){
+				e.printStackTrace();
 			}
-			else{
-				statement.executeUpdate();
-			}
-		}catch(SQLException e){
-			e.printStackTrace();
 		}
 	}
 
