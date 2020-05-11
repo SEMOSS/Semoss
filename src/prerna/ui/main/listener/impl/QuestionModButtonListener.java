@@ -1,3 +1,4 @@
+
 /*******************************************************************************
  * Copyright 2015 Defense Health Agency (DHA)
  *
@@ -25,6 +26,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
+/*
 package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
@@ -498,5 +500,6 @@ public class QuestionModButtonListener implements IChakraListener {
 
 		return params;
 	}
-
 }
+*/
+
