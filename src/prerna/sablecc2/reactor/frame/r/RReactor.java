@@ -5,6 +5,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc.ReactorSecurityManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -30,8 +31,12 @@ public final class RReactor extends AbstractReactor {
 		
 		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
 		logger.info("Execution r script: " + code);
-		String output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getAppMap());
-		
+		String output = null;
+		if(AbstractSecurityUtils.securityEnabled()) {
+		output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getAppMap());
+		} else {
+		output = rJavaTranslator.runRAndReturnOutput(code);
+		}
 		List<NounMetadata> outputs = new Vector<>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
 		

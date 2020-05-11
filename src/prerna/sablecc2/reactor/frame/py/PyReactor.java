@@ -5,6 +5,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
@@ -39,8 +40,11 @@ public class PyReactor extends AbstractReactor {
 			System.out.println("OUTPUT" + output);
 		}
 		else*/
+		if(AbstractSecurityUtils.securityEnabled()) {
 			output = pyTranslator.runPyAndReturnOutput(insight.getUser().getAppMap(), code) + "";
-		
+		} else {
+			output = pyTranslator.runPyAndReturnOutput(code) + "";
+		}
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
