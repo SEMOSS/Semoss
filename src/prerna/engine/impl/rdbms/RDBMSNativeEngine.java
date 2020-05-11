@@ -30,6 +30,7 @@ package prerna.engine.impl.rdbms;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -72,7 +73,7 @@ import prerna.util.sql.SqlQueryUtilFactor;
 
 public class RDBMSNativeEngine extends AbstractEngine {
 
-	private static final Logger LOGGER = LogManager.getLogger(RDBMSNativeEngine.class);
+	private static final Logger logger = LogManager.getLogger(RDBMSNativeEngine.class);
 	
 	public static final String STATEMENT_OBJECT = "STATEMENT_OBJECT";
 	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
@@ -120,10 +121,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					this.engineConnected = true;
 					this.autoCommit = this.engineConn.getAutoCommit();
 				} catch (Exception e){
-					LOGGER.error("error RDBMS opening database", e);
+					logger.error("error RDBMS opening database", e);
 				}
 			} else {
-				LOGGER.info("using engine connection");
+				logger.info("using engine connection");
 			}
 		} else {
 			// will mostly be sent the connection string and I will connect here
@@ -374,19 +375,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	// need to clean up the exception it will never be thrown
 	public void insertData(String query) throws SQLException {
-		Connection conn = null;
-		Statement stmt = null;
-		try {
-			conn = getConnection();
-			stmt = conn.createStatement();
-			LOGGER.debug("Executing RDBMS query: " + query);
-			if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){ // this is create statement"
-				stmt.execute(query);
-			} else {
-				stmt.executeUpdate(query);
+		try(Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(query)){
+			if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
+				statement.execute(query);
 			}
-		} finally {
-			closeConnections(conn, null, stmt);
+			else{
+				statement.executeUpdate();
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
 		}
 	}
 
@@ -519,24 +516,23 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	 */
 	public Statement execUpdateAndRetrieveStatement(String query, boolean autoCloseStatement) {
 		Connection conn = null;
-		Statement stmt = null;
-
+		PreparedStatement statement = null;
 		try {
 			conn = getConnection();
-			stmt = conn.createStatement();
-			stmt.executeUpdate(query);
+			statement = conn.prepareStatement(query);
+			statement.executeUpdate();
 		} catch (SQLException e) {
-			stmt = null;
+			statement = null;
 			e.printStackTrace();
 		} finally {
 			if(autoCloseStatement) {
-				closeConnections(conn,null,stmt);
+				closeConnections(conn,null,statement);
 			} else {
 				closeConnections(conn,null,null);
 			}
 		}
 
-		return stmt;
+		return statement;
 	}
 
 	@Override
@@ -604,7 +600,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		LOGGER.info("Found " + retVector.size() + " elements in result set");
+		logger.info("Found " + retVector.size() + " elements in result set");
 		return retVector;
 	}
 
@@ -625,7 +621,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			rs = stmt.executeQuery(query);
 			// return to pool
 		} catch (Exception e) {
-			LOGGER.error("Error occured in getResults method of RDBMSNativeEngine", e);
+			logger.error("Error occured in getResults method of RDBMSNativeEngine", e);
 		}
 		return rs;
 	}
@@ -645,7 +641,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				stmt.execute("SHUTDOWN");
 				// return to pool
 			} catch (Exception e) {
-				LOGGER.error("Unable to shutdown.", e);
+				logger.error("Unable to shutdown.", e);
 			} finally {
 				if(stmt != null) {
 					try {
@@ -660,15 +656,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	
 	@Override
 	public void removeData(String query) throws SQLException {
-		Connection conn = null;
-		Statement stmt = null;
-		try {
-			conn = getConnection();
-			stmt = conn.createStatement();
-			stmt.execute(query);
-			// return to pool
-		} finally {
-			closeConnections(conn, null, stmt);
+		try(Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(query)){
+			statement.execute();
+		} catch(SQLException e){
+			e.printStackTrace();
 		}
 	}
 
@@ -758,7 +749,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 
 	public void deleteDB() {
-		LOGGER.debug("Deleting RDBMS Engine: " + this.engineName);
+		logger.debug("Deleting RDBMS Engine: " + this.engineName);
 
 		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
 		//WHY ARE WE DELETING THE SOURCE DATABSE????

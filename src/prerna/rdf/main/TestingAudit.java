@@ -349,20 +349,10 @@ public class TestingAudit {
 	 * @param q
 	 */
 	private void execQ(String q) {
-		Statement stmt = null;
-		try {
-			stmt = this.conn.createStatement();
-			stmt.execute(q);
-		} catch (SQLException e) {
+		try(PreparedStatement statement = this.conn.prepareStatement(q)){
+			statement.execute();
+		} catch(SQLException e){
 			e.printStackTrace();
-		} finally {
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
 		}
 	}
 	
