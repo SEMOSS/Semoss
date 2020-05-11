@@ -27,8 +27,25 @@
  *******************************************************************************/
 package prerna.nameserver;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.MetadataUtility;
@@ -41,13 +58,6 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
 import prerna.util.Utility;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.sql.*;
-import java.util.Date;
-import java.util.*;
 
 public class AddToMasterDB {
 
@@ -70,8 +80,8 @@ public class AddToMasterDB {
 		e.	Being able to link based on multiple keys i.e. I should be able to query the database through 2 keys instead of one
 		f.	Same as e. but also being able to do it across tables on create
 		g.	Need a way to tag instance level data so it can be compared and new recommendations can be made i.e. being able to send the data. Need some way of doing a PKI so the actual data is never sent
-	 * 
-	 * 
+	 *
+	 *
 	 */
 
     public boolean registerEngineLocal(Properties prop) {
@@ -700,62 +710,61 @@ public class AddToMasterDB {
         }
     }
 
-    /**
-     * Adds row to metadata table ex localConceptID, key, value
-     *
-     * @param engineId
-     * @param concept
-     * @param key
-     * @param value
-     * @return
-     */
-    public boolean addMetadata(String engineId, String concept, String key, String value) {
-        boolean valid = false;
-        String tableName = Constants.CONCEPT_METADATA_TABLE;
-        String[] colNames = new String[]{Constants.PHYSICAL_NAME_ID, Constants.KEY, Constants.VALUE};
-        String[] types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
+	/**
+	 * Adds row to metadata table ex localConceptID, key, value
+	 *
+	 * @param engineId
+	 * @param concept
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	public boolean addMetadata(String engineId, String concept, String key, String value) {
+		boolean valid = false;
+		String tableName = Constants.CONCEPT_METADATA_TABLE;
+		String[] colNames = new String[]{Constants.PHYSICAL_NAME_ID, Constants.KEY, Constants.VALUE};
+//		String[] types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
 
-        String localConceptID = MasterDatabaseUtility.getPhysicalConceptId(engineId, concept);
-        try {
-            IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-            getConnection(localMaster);
-            // check if key exists
-            String duplicateCheck = MasterDatabaseUtility.getMetadataValue(engineId, concept, key);
-            if (duplicateCheck == null) {
-//				String insertString = RdbmsQueryBuilder.makeInsert(tableName, colNames, types,
-//						new Object[] { localConceptID, key, value });
+		String localConceptID = MasterDatabaseUtility.getPhysicalConceptId(engineId, concept);
+		try {
+			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+			getConnection(localMaster);
+			// check if key exists
+			String duplicateCheck = MasterDatabaseUtility.getMetadataValue(engineId, concept, key);
+			if (duplicateCheck == null) {
+//				String insertString = RdbmsQueryBuilder.makeInsert(tableName, colNames, types, new Object[] { localConceptID, key, value });
 //				int validInsert = conn.createStatement().executeUpdate(insertString + ";");
 //				if (validInsert > 0) {
 //					valid = true;
 //				}
-                PreparedStatement insertStatement = conn.prepareStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
-                insertStatement.setString(1, localConceptID);
-                insertStatement.setString(2, key);
-                insertStatement.setString(3, value);
-                valid = insertStatement.execute();
-            } // update
-            else {
+				PreparedStatement insertStatement = conn.prepareStatement(RdbmsQueryBuilder.createInsertPreparedStatementString(tableName, colNames));
+				insertStatement.setString(1, localConceptID);
+				insertStatement.setString(2, key);
+				insertStatement.setString(3, value);
+				valid = insertStatement.execute();
+			} // update
+			else {
 //				String update = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = \'"
 //						+ value + "\' WHERE " + Constants.PHYSICAL_NAME_ID + " = \'" + localConceptID + "\' and "
 //						+ Constants.KEY + " = \'" + key + "\'";
-                String updateSql = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = ? "
-                        + " WHERE " + Constants.PHYSICAL_NAME_ID + " = ? " + " AND " + Constants.KEY
-                        + " = ? ";
-                PreparedStatement statement = conn.prepareStatement(updateSql);
-                statement.setString(1, value);
-                statement.setString(2, localConceptID);
-                statement.setString(3, Constants.KEY);
-                //int validInsert = conn.createStatement().executeUpdate(update + ";");
-                int validInsert = statement.executeUpdate();
-                if (validInsert > 0) {
-                    valid = true;
-                }
-            }
-        } catch (SQLException e) {
-            logger.error(STACKTRACE, e);
-        }
-        return valid;
-    }
+				String updateSql = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = ? "
+						+ " WHERE " + Constants.PHYSICAL_NAME_ID + " = ? " + " AND " + Constants.KEY
+						+ " = ? ";
+				PreparedStatement statement = conn.prepareStatement(updateSql);
+				statement.setString(1, value);
+				statement.setString(2, localConceptID);
+				statement.setString(3, Constants.KEY);
+				//int validInsert = conn.createStatement().executeUpdate(update + ";");
+				int validInsert = statement.executeUpdate();
+				if (validInsert > 0) {
+					valid = true;
+				}
+			}
+		} catch (SQLException e) {
+			logger.error(STACKTRACE, e);
+		}
+		return valid;
+	}
 
     public boolean setAppName(String appId, String newAppName) {
         boolean update = false;
