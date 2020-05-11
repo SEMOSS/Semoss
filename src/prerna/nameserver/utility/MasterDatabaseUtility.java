@@ -3,10 +3,7 @@ package prerna.nameserver.utility;
 
 import java.io.IOException;
 import java.lang.reflect.Modifier;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -2570,11 +2567,17 @@ public class MasterDatabaseUtility {
 		Hashtable<String, MetamodelVertex> nodeHash = new Hashtable<>();
 
 		try {
-			String nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property from "
-					+ "engineconcept ec, concept c, engine e " + "where ec.engine=e.id " + "and e.enginename='"
-					+ engineName + "' " + "and c.localconceptid=ec.localconceptid order by ec.property";
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(nodeQuery);
+//			String nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property from "
+//					+ "engineconcept ec, concept c, engine e " + "where ec.engine=e.id " + "and e.enginename='"
+//					+ engineName + "' " + "and c.localconceptid=ec.localconceptid order by ec.property";
+			String nodeQuery = "SELECT c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property FROM "
+					+ "engineconcept ec, concept c, engine e " + "WHERE ec.engine=e.id " + "AND e.enginename=? "
+					+ "AND c.localconceptid=ec.localconceptid ORDER BY ec.property";
+			PreparedStatement statement = conn.prepareStatement(nodeQuery);
+			statement.setString(1, engineName );
+			//stmt = conn.createStatement();
+			//rs = stmt.executeQuery(nodeQuery);
+			rs = statement.executeQuery();
 			while (rs.next()) {
 				String conceptualName = rs.getString(1);
 				String physicalName = rs.getString(2);
@@ -2619,13 +2622,18 @@ public class MasterDatabaseUtility {
 			// get the edges next
 			// SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION
 			// er, engine e where e.id = er.engine and e.enginename = 'Mv1'
-			String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e where e.id = er.engine and "
-					+ "e.enginename = '" + engineName + "'";
+//			String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e where e.id = er.engine and "
+//					+ "e.enginename = '" + engineName + "'";
+			String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e WHERE e.id=er.engine AND "
+					+ "e.enginename = ?";
 
+			PreparedStatement statement = conn.prepareStatement(edgeQuery);
+			statement.setString(1, engineName);
 			if (stmt == null) {
 				stmt = conn.createStatement();
 			}
-			rs = stmt.executeQuery(edgeQuery);
+			//rs = stmt.executeQuery(edgeQuery);
+			rs = statement.executeQuery();
 
 			Hashtable<String, Hashtable> edgeHash = new Hashtable<>();
 			while (rs.next()) {

@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -357,7 +358,8 @@ public class H2Frame extends AbstractRdbmsFrame {
 	
 	public ResultSet execQuery(String query) {
 		try {
-			Statement stmt = this.conn.createStatement();
+			//Statement stmt = this.conn.createStatement();
+			PreparedStatement stmt = this.conn.prepareStatement(query);
 			return stmt.executeQuery(query);
 		} catch (SQLException e) {
 			e.printStackTrace();

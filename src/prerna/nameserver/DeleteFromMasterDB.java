@@ -28,7 +28,11 @@
 package prerna.nameserver;
 
 import java.sql.Connection;
-import java.sql.Statement;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
@@ -36,83 +40,95 @@ import prerna.util.Utility;
 
 public class DeleteFromMasterDB {
 
+	private static final Logger logger = LogManager.getLogger(DeleteFromMasterDB.class);
+
 	// delete from engineconcept where engine in (select id from engine where enginename='Mv1')
 	// delete from enginerelation where engine in (select id from engine where enginename='Mv1')
 	// delete from engine where enginename='Mv1'
 
-	public boolean deleteEngineRDBMS(String engineName)
-	{
-		System.err.println("Removing engine from Local Master " + engineName);
+	public boolean deleteEngineRDBMS(String engineName) {
+		logger.info("Removing engine from Local Master " + engineName);
 		try {
 			RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			Connection conn = engine.makeConnection();
-			Statement stmt = null;
-			
-			String metaDelete = "delete from conceptmetadata where physicalnameid in (select physicalnameid from engineconcept where engine ='" + engineName +"')";
-			String relationDelete = "delete from enginerelation where engine ='" + engineName +"'";
-			String conceptDelete = "delete from engineconcept where engine ='" + engineName +"'";
-			String engineDelete = "delete from engine where id ='" + engineName +"'";
-			String kvDelete = "delete from kvstore where k like '%" + engineName + "%PHYSICAL'";
+			String metaDeleteSql = "DELETE FROM conceptmetadata WHERE physicalnameid in (SELECT physicalnameid FROM engineconcept WHERE engine = ?";
+			String relationDeleteSql = "DELETE FROM enginerelation WHERE engine = ?";
+			String conceptDeleteSql = "DELETE FROM engineconcept WHERE engine = ?";
+			String engineDeleteSql = "DELETE FROM engine WHERE id = ?";
+			String kvDeleteSql = "DELETE FROM kvstore WHERE k like '%" + "?" + "%PHYSICAL'";
+			for(String sql: new String[]{metaDeleteSql, relationDeleteSql, conceptDeleteSql, engineDeleteSql, kvDeleteSql}){
+				try(PreparedStatement statement = conn.prepareStatement(sql)){
+					statement.setString(1, engineName);
+					statement.execute();
+				}catch(SQLException e){
 
-			// delete metadata
-			try {
-				stmt = conn.createStatement();
-				stmt.execute(metaDelete.toString());
-			} catch(Exception e) {
-				// ignore
-			} finally {
-				if(stmt != null) {
-					stmt.close();
 				}
 			}
-			
-			// delete relation
-			try {
-				stmt = conn.createStatement();
-				stmt.execute(relationDelete);
-			} catch(Exception e) {
-				// ignore
-			} finally {
-				if(stmt != null) {
-					stmt.close();
-				}
-			}
-			
-			// delete concept
-			try {
-				stmt = conn.createStatement();
-				stmt.execute(conceptDelete);
-			} catch(Exception e) {
-				// ignore
-			} finally {
-				if(stmt != null) {
-					stmt.close();
-				}
-			}
-			
-			// delete engine
-			try {
-				stmt = conn.createStatement();
-				stmt.execute(engineDelete);
-			} catch(Exception e) {
-				// ignore
-			} finally {
-				if(stmt != null) {
-					stmt.close();
-				}
-			}
-			
-			// delete kv
-			try {
-				stmt = conn.createStatement();
-				stmt.execute(kvDelete);
-			} catch(Exception e) {
-				// ignore
-			} finally {
-				if(stmt != null) {
-					stmt.close();
-				}
-			}
+
+//			String metaDelete = "delete from conceptmetadata where physicalnameid in (select physicalnameid from engineconcept where engine ='" + engineName +"')";
+//			String relationDelete = "delete from enginerelation where engine ='" + engineName +"'";
+//			String conceptDelete = "delete from engineconcept where engine ='" + engineName +"'";
+//			String engineDelete = "delete from engine where id ='" + engineName +"'";
+//			String kvDelete = "delete from kvstore where k like '%" + engineName + "%PHYSICAL'";
+//			// delete metadata
+//			try {
+//				stmt = conn.createStatement();
+//				stmt.execute(metaDelete.toString());
+//			} catch(Exception e) {
+//				// ignore
+//			} finally {
+//				if(stmt != null) {
+//					stmt.close();
+//				}
+//			}
+//
+//			// delete relation
+//			try {
+//				stmt = conn.createStatement();
+//				stmt.execute(relationDelete);
+//			} catch(Exception e) {
+//				// ignore
+//			} finally {
+//				if(stmt != null) {
+//					stmt.close();
+//				}
+//			}
+//
+//			// delete concept
+//			try {
+//				stmt = conn.createStatement();
+//				stmt.execute(conceptDelete);
+//			} catch(Exception e) {
+//				// ignore
+//			} finally {
+//				if(stmt != null) {
+//					stmt.close();
+//				}
+//			}
+//
+//			// delete engine
+//			try {
+//				stmt = conn.createStatement();
+//				stmt.execute(engineDelete);
+//			} catch(Exception e) {
+//				// ignore
+//			} finally {
+//				if(stmt != null) {
+//					stmt.close();
+//				}
+//			}
+//
+//			// delete kv
+//			try {
+//				stmt = conn.createStatement();
+//				stmt.execute(kvDelete);
+//			} catch(Exception e) {
+//				// ignore
+//			} finally {
+//				if(stmt != null) {
+//					stmt.close();
+//				}
+//			}
 			
 			//TODO:
 			// PK -> I am putting this here as a fix for this so
@@ -126,7 +142,6 @@ public class DeleteFromMasterDB {
 		return true;
 	}
 	
-//	
 //	public boolean deleteEngine(String engineName)
 //	{
 //		boolean success = false;

@@ -3,8 +3,8 @@ package prerna.engine.impl.rdbms;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -414,21 +414,11 @@ public class AuditDatabase {
 	 * 
 	 * @param q
 	 */
-	private void execQ(String q) {
-		Statement stmt = null;
-		try {
-			stmt = this.conn.createStatement();
-			stmt.execute(q);
-		} catch (SQLException e) {
+	private void execQ(String q){
+		try(PreparedStatement statement = this.conn.prepareStatement(q)){
+			statement.execute();
+		} catch(SQLException e){
 			logger.error(STACKTRACE, e);
-		} finally {
-			if (stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
-				}
-			}
 		}
 	}
 
