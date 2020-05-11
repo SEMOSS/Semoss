@@ -274,6 +274,17 @@ public class RdbmsFrameBuilder {
 
 		return ps;
 	}
+
+	public PreparedStatement hashColumn(String tableName, String[] columns){
+		PreparedStatement ps = null;
+//		String sql = this.queryUtil.hashColumn(tableName, columns);
+//		try{
+//			ps = this.conn.prepareStatement(sql);
+//		}catch(SQLException e){
+//			logger.error(STACKTRACE, e);
+//		}
+		return ps;
+	}
 	
 	private PreparedStatement createPreparedStatement(String sql) {
 		PreparedStatement ps = null;
@@ -472,14 +483,10 @@ public class RdbmsFrameBuilder {
 	public void runQuery(String query) throws Exception {
 		long start = System.currentTimeMillis();
 		logger.debug("Running frame query : " + query);
-		Statement stmt = null;
-		try {
-			stmt = this.conn.createStatement();
-			stmt.execute(query);
-		} finally {
-			if(stmt != null) {
-				stmt.close();
-			}
+		try(PreparedStatement statement = this.conn.prepareStatement(query)){
+			statement.execute();
+		} catch(SQLException e){
+			e.printStackTrace();
 		}
 		long end = System.currentTimeMillis();
 		logger.debug("Time to execute = " + (end-start) + "ms");

@@ -1,9 +1,6 @@
 package prerna.util;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -494,6 +491,18 @@ public class GraphUtility {
 	 * @return
 	 */
 	public static List<String> getProperties(Connection conn, String label) {
+//		String query = "MATCH (n:?) WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
+//		List<String> properties = new ArrayList<>();
+//		try(PreparedStatement statement = conn.prepareStatement(query)){
+//			statement.setString(1, label);
+//			ResultSet resultSet = statement.executeQuery();
+//			while(resultSet.next()){
+//				properties.add(resultSet.getString(1));
+//			}
+//		}catch (SQLException e){
+//			e.printStackTrace();
+//		}
+//		return properties;
 		String query = "MATCH (n:" + label + ") WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
 		List<String> properties = new ArrayList<String>();
 		Statement statement = null;
@@ -522,7 +531,8 @@ public class GraphUtility {
 	 * @return
 	 */
 	public static List<String> getProperties(Connection conn, String typeId, String typeName) {
-		String query = "Match (n) WHERE n." + typeId + "='" + typeName + "' WITH KEYS (n) AS keys UNWIND keys AS key return distinct key";
+		typeName = typeName.replaceAll("`", "");
+		String query = "Match (n) WHERE n." + typeId + "=`" + typeName + "` WITH KEYS (n) AS keys UNWIND keys AS key return distinct key";
 		List<String> properties = new ArrayList<String>();
 		Statement statement = null;
 		ResultSet resultSet = null;
