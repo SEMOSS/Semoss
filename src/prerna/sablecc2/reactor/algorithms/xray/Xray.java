@@ -5,9 +5,9 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -493,10 +493,8 @@ public class Xray {
 					sb.append(";");
 					String query = sb.toString();
 					// execute query
-					Statement stmt = null;
-					try {
-						stmt = con.createStatement();
-						ResultSet rs = stmt.executeQuery(query);
+					try(PreparedStatement statement = con.prepareStatement(query)){
+						ResultSet rs = statement.executeQuery();
 						String fileName = dataFolder + "\\" + newDBName + ";" + table + ";" + column + ".txt";
 						fileName = fileName.replace("\\", "/");
 						// get instances
@@ -516,7 +514,6 @@ public class Xray {
 						// encode and write to file
 						this.logger.info("Querying " + column + " from " + Utility.cleanLogString(table) + " in " + newDBName + " for X-ray comparison...");
 						encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
-						stmt.close();
 					} catch (SQLException e) {
 						logger.error(STACKTRACE, e);
 					}
