@@ -319,7 +319,7 @@ public abstract class JobConfig {
 			if (bypassMatcher.matches()) {
 				bypass = true;
 				String message = bypassMatcher.group(1);
-				LOGGER.info("Bypassing the key " + jsonKey + " - \"" + message + ".\"");
+				//LOGGER.info("Bypassing the key " + jsonKey + " - \"" + message + ".\"");
 			}
 		}
 		return bypass;
