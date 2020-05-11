@@ -528,7 +528,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String createTableIfNotExists(String tableName, String[] colNames, String[] types) {
 		if(!allowsIfExistsTableSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists table syntax");
+			throw new UnsupportedOperationException("Does not support if exists table syntax");
 		}
 		
 		// should escape keywords
@@ -555,7 +555,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String createTableIfNotExistsWithDefaults(String tableName, String [] colNames, String [] types, Object[] defaultValues) {
 		if(!allowsIfExistsTableSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists table syntax");
+			throw new UnsupportedOperationException("Does not support if exists table syntax");
 		}
 
 		// should escape keywords
@@ -612,7 +612,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String dropTableIfExists(String tableName) {
 		if(!allowsIfExistsTableSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists table syntax");
+			throw new UnsupportedOperationException("Does not support if exists table syntax");
 		}
 		
 		// should escape keywords
@@ -645,7 +645,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String alterTableAddColumn(String tableName, String newColumn, String newColType) {
 		if(!allowAddColumn()) {
-			throw new IllegalArgumentException("Does not support add column syntax");
+			throw new UnsupportedOperationException("Does not support add column syntax");
 		}
 		
 		// should escape keywords
@@ -661,7 +661,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String alterTableAddColumnWithDefault(String tableName, String newColumn, String newColType, Object defualtValue) {
 		if(!allowAddColumn()) {
-			throw new IllegalArgumentException("Does not support add column syntax");
+			throw new UnsupportedOperationException("Does not support add column syntax");
 		}
 		
 		// should escape keywords
@@ -677,10 +677,10 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String alterTableAddColumnIfNotExists(String tableName, String newColumn, String newColType) {
 		if(!allowAddColumn()) {
-			throw new IllegalArgumentException("Does not support add column syntax");
+			throw new UnsupportedOperationException("Does not support add column syntax");
 		}
 		if(!allowIfExistsModifyColumnSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists column syntax");
+			throw new UnsupportedOperationException("Does not support if exists column syntax");
 		}
 
 		// should escape keywords
@@ -696,10 +696,10 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String alterTableAddColumnIfNotExistsWithDefault(String tableName, String newColumn, String newColType, Object defualtValue) {
 		if(!allowAddColumn()) {
-			throw new IllegalArgumentException("Does not support add column syntax");
+			throw new UnsupportedOperationException("Does not support add column syntax");
 		}
 		if(!allowIfExistsModifyColumnSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists column syntax");
+			throw new UnsupportedOperationException("Does not support if exists column syntax");
 		}
 		
 		// should escape keywords
@@ -719,7 +719,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String alterTableAddColumns(String tableName, String[] newColumns, String[] newColTypes) {
 		if(!allowMultiAddColumn()) {
-			throw new IllegalArgumentException("Does not support multi add column syntax");
+			throw new UnsupportedOperationException("Does not support multi add column syntax");
 		}
 		
 		// should escape keywords
@@ -748,7 +748,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String alterTableAddColumnsWithDefaults(String tableName, String[] newColumns, String[] newColTypes, Object[] defaultValues) {
 		if(!allowMultiAddColumn()) {
-			throw new IllegalArgumentException("Does not support multi add column syntax");
+			throw new UnsupportedOperationException("Does not support multi add column syntax");
 		}
 		
 		
@@ -788,7 +788,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String alterTableDropColumn(String tableName, String columnName) {
 		if(!allowDropColumn()) {
-			throw new IllegalArgumentException("Does not support drop column syntax");
+			throw new UnsupportedOperationException("Does not support drop column syntax");
 		}
 		
 		// should escape keywords
@@ -804,10 +804,10 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String alterTableDropColumnIfExists(String tableName, String columnName) {
 		if(!allowDropColumn()) {
-			throw new IllegalArgumentException("Does not support drop column syntax");
+			throw new UnsupportedOperationException("Does not support drop column syntax");
 		}
 		if(!allowIfExistsModifyColumnSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists column syntax");
+			throw new UnsupportedOperationException("Does not support if exists column syntax");
 		}
 		
 		// should escape keywords
@@ -823,7 +823,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String modColumnType(String tableName, String columnName, String dataType) {
 		if(!allowRedefineColumn()) {
-			throw new IllegalArgumentException("Does not support redefinition of column syntax");
+			throw new UnsupportedOperationException("Does not support redefinition of column syntax");
 		}
 		
 		// should escape keywords
@@ -839,7 +839,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String modColumnTypeWithDefault(String tableName, String columnName, String dataType, Object defualtValue) {
 		if(!allowRedefineColumn()) {
-			throw new IllegalArgumentException("Does not support redefinition of column syntax");
+			throw new UnsupportedOperationException("Does not support redefinition of column syntax");
 		}
 		
 		// should escape keywords
@@ -855,10 +855,10 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String modColumnTypeIfExists(String tableName, String columnName, String dataType) {
 		if(!allowRedefineColumn()) {
-			throw new IllegalArgumentException("Does not support redefinition of column syntax");
+			throw new UnsupportedOperationException("Does not support redefinition of column syntax");
 		}
 		if(!allowIfExistsModifyColumnSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists column syntax");
+			throw new UnsupportedOperationException("Does not support if exists column syntax");
 		}
 		
 		// should escape keywords
@@ -874,10 +874,10 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String modColumnTypeIfExistsWithDefault(String tableName, String columnName, String dataType, Object defualtValue) {
 		if(!allowRedefineColumn()) {
-			throw new IllegalArgumentException("Does not support redefinition of column syntax");
+			throw new UnsupportedOperationException("Does not support redefinition of column syntax");
 		}
 		if(!allowIfExistsModifyColumnSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists column syntax");
+			throw new UnsupportedOperationException("Does not support if exists column syntax");
 		}
 		
 		// should escape keywords
@@ -938,7 +938,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String createIndexIfNotExists(String indexName, String tableName, String columnName) {
 		if(!allowIfExistsIndexSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists index syntax");
+			throw new UnsupportedOperationException("Does not support if exists index syntax");
 		}
 		
 		// should escape keywords
@@ -954,7 +954,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String createIndexIfNotExists(String indexName, String tableName, Collection<String> columns) {
 		if(!allowIfExistsIndexSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists index syntax");
+			throw new UnsupportedOperationException("Does not support if exists index syntax");
 		}
 		// should escape keywords
 		if(isSelectorKeyword(tableName)) {
@@ -995,7 +995,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String dropIndexIfExists(String indexName, String tableName) {
 		if(!allowIfExistsIndexSyntax()) {
-			throw new IllegalArgumentException("Does not support if exists index syntax");
+			throw new UnsupportedOperationException("Does not support if exists index syntax");
 		}
 		return "DROP INDEX IF EXISTS " + indexName + ";";
 	}
@@ -1003,10 +1003,10 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String insertIntoTable(String tableName, String[] columnNames, String[] types, Object[] values) {
 		if(columnNames.length !=  types.length) {
-			throw new IllegalArgumentException("Headers and types must have the same length");
+			throw new UnsupportedOperationException("Headers and types must have the same length");
 		}
 		if(columnNames.length != values.length) {
-			throw new IllegalArgumentException("Headers and values must have the same length");
+			throw new UnsupportedOperationException("Headers and values must have the same length");
 		}
 
 		if(isSelectorKeyword(tableName)) {
@@ -1103,37 +1103,37 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String tableExistsQuery(String tableName, String schema) {
 		// there is no commonality that i have found for this
-		throw new IllegalArgumentException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
+		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 	
 	@Override
 	public String getAllColumnDetails(String tableName, String schema) {
 		// there is no commonality that i have found for this
-		throw new IllegalArgumentException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
+		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 
 	@Override
 	public String columnDetailsQuery(String tableName, String columnName, String schema) {
 		// there is no commonality that i have found for this
-		throw new IllegalArgumentException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
+		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 
 	@Override
 	public String getIndexList(String schema) {
 		// there is no commonality that i have found for this
-		throw new IllegalArgumentException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
+		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 
 	@Override
 	public String getIndexDetails(String indexName, String tableName, String schema) {
 		// there is no commonality that i have found for this
-		throw new IllegalArgumentException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
+		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 	
 	@Override
 	public String allIndexForTableQuery(String tableName, String schema) {
 		// there is no commonality that i have found for this
-		throw new IllegalArgumentException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
+		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
 
 }
