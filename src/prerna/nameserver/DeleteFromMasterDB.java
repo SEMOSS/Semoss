@@ -47,7 +47,7 @@ public class DeleteFromMasterDB {
 	// delete from engine where enginename='Mv1'
 
 	public boolean deleteEngineRDBMS(String engineName) {
-		logger.info("Removing engine from Local Master " + engineName);
+		logger.info("Removing engine from Local Master " + Utility.cleanLogString(engineName));
 		try {
 			RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			Connection conn = engine.makeConnection();
