@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.TransformerFactory;
@@ -119,7 +120,7 @@ public class Me {
 	
 	public void writePath(String semossHome, String rHome, String rDll, String jriDll, String rLib)
 	{
-		String fileName = Utility.normalizePath(semossHome) + "/setPath.bat";
+		String fileName = semossHome + "/setPath.bat";
 		BufferedWriter bw = null;
 		try{
 			bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
@@ -154,7 +155,7 @@ public class Me {
 	public void writeTomcatEnv(String semossHome, String rHome, String jriHome)
 	{
 		//-Djava.library.path=C:\Users\pkapaleeswaran\Documents\R\win-library\3.1\rJava\jri\x64;"C:\Program Files\R\R-3.2.4revised\bin\x64"
-		String fileName = Utility.normalizePath(semossHome) + "/../tomcat/bin/" + "setenv.bat";
+		String fileName = semossHome + "/../tomcat/bin/" + "setenv.bat";
 		BufferedWriter bw = null;
 		try {
 			//BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new PrintStream(System.out)));
@@ -189,7 +190,7 @@ public class Me {
 	public void writeConfigureFile(String homePath, String port) {
 		BufferedWriter writer = null;
 		try {
-			writer = new BufferedWriter(new FileWriter(Utility.normalizePath(homePath) + "/configured.txt"));
+			writer = new BufferedWriter(new FileWriter(homePath + "/configured.txt"));
 			writer.write("Port = " + port);
 			writer.write("SEMOSS Web = " + "http://localhost:" + port + "/SemossWeb/");
 			writer.flush();
@@ -214,10 +215,13 @@ public class Me {
 		// changing for my current box
 //		appFile = "C:/Users/pkapaleeswaran/Desktop/From C Drive Root/apache-tomcat-8.0.15/conf/server2.xml";
 		System.out.println("Configuring Tomcat.. " + appFile);
-		
-		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+		DocumentBuilder db = factory.newDocumentBuilder();
 		Document d = db.parse(appFile);
 		NodeList nl = d.getElementsByTagName("Connector");
+
 		for(int nodeIndex = 0;nodeIndex < nl.getLength();nodeIndex++)
 		{
 			Node n = nl.item(nodeIndex);
@@ -226,10 +230,13 @@ public class Me {
 			Node portNode = nnm.getNamedItem("port");
 			portNode.setNodeValue(port);
 		}
-		
+
 		// write it back
-		String altFile = Utility.normalizePath(appFile) + "temp";
+		String altFile = appFile + "temp";
 		TransformerFactory tf = TransformerFactory.newInstance();
+		tf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+		tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+		tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
 		DOMSource source = new DOMSource(d);
 		StreamResult sr = new StreamResult(new File(altFile));
 
@@ -542,8 +549,8 @@ public class Me {
 	public void replaceFiles(String fileToReplace, String fileToReplaceWith) throws Exception
 	{
 		// delete file to replace and replace with file to be replaced
-		File toRep = new File(Utility.normalizePath(fileToReplace));
-		File tobeRep = new File(Utility.normalizePath(fileToReplaceWith));
+		File toRep = new File(fileToReplace);
+		File tobeRep = new File(fileToReplaceWith);
 		Files.move(tobeRep.toPath(), toRep.toPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 	
@@ -630,9 +637,10 @@ public class Me {
 		thingsToWatch.put("file-upload", homePath + "/upload");
 		thingsToWatch.put("temp-file-upload", homePath + "/upload");
 		thingsToWatch.put("RDF-MAP", homePath + "/RDF_Map.prop");
-		
 
-		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+		DocumentBuilder db = factory.newDocumentBuilder();
 		String appFile = homePath + "/../tomcat/webapps/Monolith/WEB-INF/web.xml";
 		System.out.println("Configuring web.xml " + appFile);
 		Document d = db.parse(appFile);
@@ -662,22 +670,23 @@ public class Me {
 		
 		
 		// write it back
-		String altFile = Utility.normalizePath(appFile) + "temp";
+		String altFile = appFile + "temp";
 		//FileWriter fw = new FileWriter();
 		TransformerFactory tf = TransformerFactory.newInstance();
+		tf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+		tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+		tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
 		DOMSource source = new DOMSource(d);
 		StreamResult sr = new StreamResult(new File(altFile));
-		
-		
-		
+
 		tf.newTransformer().transform(source, sr);
-		
+
 		replaceFiles(appFile, altFile);
 	}
 	
 	private void genOpenBrowser(String homePath, String port) throws Exception
 	{
-		String browserBat = Utility.normalizePath(homePath) + "/config/openBrowser.bat";
+		String browserBat = homePath + "/config/openBrowser.bat";
 
 		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(browserBat)))) {
 			writer.write("ECHO Opening browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS...");
