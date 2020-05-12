@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -228,6 +229,11 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 
 	//TODO: this only handles base case of columns and math on a single column
 	public List<Map<String, Object>> getHeaderInfo() {
+		// these are the only types
+		// where we have metadata for additional types
+		boolean frameQuery = qsType == QUERY_STRUCT_TYPE.FRAME;
+		boolean engineQuery = qsType == QUERY_STRUCT_TYPE.ENGINE;
+		
 		List<Map<String, Object>> headerInfo = new ArrayList<Map<String, Object>>();
 		for(IQuerySelector selector : this.selectors) {
 			Map<String, Object> selectorMap = new HashMap<String, Object>();
@@ -238,6 +244,12 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 			selectorMap.put("header", selector.getQueryStructName());
 			if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 				selectorMap.put("derived", false);
+				
+				// right now, just adding in additional data type
+				// we pull the type from the iterator which is 
+				// the only place where we call this
+				addDataType((QueryColumnSelector) selector, frameQuery, engineQuery, selectorMap);
+				
 			} else {
 				selectorMap.put("derived", true);
 				List<String> groupBy = new ArrayList<String>();
@@ -258,6 +270,13 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 				// TODO: STOP ASSUMING THIS IS 1 SELECTOR
 				selectorMap.put("calculatedBy", innerSelector.get(0).getQueryStructName());
 
+				// right now, just adding in additional data type
+				// we pull the type from the iterator which is 
+				// the only place where we call this
+				if(innerSelector.get(0).getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+					addDataType((QueryColumnSelector) innerSelector.get(0), frameQuery, engineQuery, selectorMap);
+				}
+				
 				List<String> groupBy = new ArrayList<String>();
 				for(QueryColumnSelector groupBySelector : this.groupBy) {
 					String groupQs = groupBySelector.getQueryStructName();
@@ -269,6 +288,34 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 			headerInfo.add(selectorMap);
 		}
 		return headerInfo;
+	}
+	
+	private void addDataType(QueryColumnSelector selector, boolean frameQuery, boolean engineQuery, Map<String, Object> selectorMap) {
+		// add the additional data type if present
+		String additionalDataType = null;
+		if(frameQuery && this.frame != null) {
+			String name = selector.getQueryStructName();
+			additionalDataType = this.frame.getMetaData().getHeaderAdtlTypeAsString(name);
+			if(additionalDataType == null) {
+				name = this.frame.getMetaData().getUniqueNameFromAlias(name);
+				if(name != null) {
+					additionalDataType = this.frame.getMetaData().getHeaderAdtlTypeAsString(name);
+				}
+			}
+		} else if(engineQuery && getEngine() != null) {
+			String name = selector.getQueryStructName();
+			String parent = null;
+			if(name.contains("__")) {
+				String[] split = name.split("__");
+				parent = split[0];
+				name = split[1];
+			}
+			additionalDataType = MasterDatabaseUtility.getAdditionalDataType(additionalDataType, name, parent);
+		}
+		
+		if(additionalDataType != null) {
+			selectorMap.put("additionalDataType", additionalDataType);
+		}
 	}
 	
 	public List<Map<String, Object>> getSortInfo() {
