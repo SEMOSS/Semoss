@@ -31,7 +31,7 @@ public abstract class AbstractOwler {
 	public static final String BASE_PROPERTY_URI = SEMOSS_URI_PREFIX + DEFAULT_PROP_CLASS;
 	public static final String CONCEPTUAL_RELATION_URI = BASE_RELATION_URI + "/" + CONCEPTUAL_RELATION_NAME;
 	public static final String PIXEL_RELATION_URI = BASE_RELATION_URI + "/" + PIXEL_RELATION_NAME;
-	public static final String ADDITIONAL_DATATYPE_RELATION_URI = BASE_PROPERTY_URI + "/" + ADDITIONAL_DATATYPE_NAME;
+	public static final String ADDITIONAL_DATATYPE_RELATION_URI = BASE_RELATION_URI + "/" + ADDITIONAL_DATATYPE_NAME;
 	
 	@Deprecated
 	public static final String LEGACY_PRIM_KEY_URI = BASE_RELATION_URI + "/" + "LEGACY_PRIM_KEY";

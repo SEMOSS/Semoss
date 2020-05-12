@@ -146,7 +146,9 @@ public class BasicIteratorTask extends AbstractTask {
 						.collect(Collectors.toList()).toArray(new String[sTypes.length]);
 				// this needs to be adjusted for the max columns
 				for(int i = 0; i < headerInfo.size(); i++) {
+					// TODO: will eventually stop sending type and doing the above processing
 					headerInfo.get(i).put("type", Utility.getCleanDataType(types[i]));
+					headerInfo.get(i).put("dataType", sTypes[i].toString());
 				}
 			}
 		} else if(this.grabFromWrapper && (this.headerInfo == null || this.headerInfo.isEmpty()) ) {
@@ -172,7 +174,9 @@ public class BasicIteratorTask extends AbstractTask {
 					headerMap.put("alias", headers[i]);
 					headerMap.put("derived", false);
 					headerMap.put("header", headers[i]);
+					// TODO: will eventually stop sending type and doing the above processing
 					headerMap.put("type", Utility.getCleanDataType(types[i]));
+					headerMap.put("dataType", sTypes[i].toString());
 					this.headerInfo.add(headerMap);
 				}
 			}

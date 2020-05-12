@@ -22,6 +22,7 @@ import prerna.engine.api.IExplorable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.AbstractOwler;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -306,7 +307,7 @@ public class MetaHelper implements IExplorable {
 	
 	@Override
 	public String getAdtlDataTypes(String uri){
-		String query = "SELECT DISTINCT ?ADTLTYPE WHERE { {<" + uri + "> <http://semoss.org/ontologies/Relation/Contains/AdtlDataType> ?ADTLTYPE} }";
+		String query = "SELECT DISTINCT ?ADTLTYPE WHERE { {<" + uri + "> <" + Owler.ADDITIONAL_DATATYPE_RELATION_URI + "> ?ADTLTYPE} }";
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -333,7 +334,7 @@ public class MetaHelper implements IExplorable {
 		for(String uri : uris) {
 			bindBuilder.append("(<").append(uri).append(">)");	
 		}
-		String query = "SELECT DISTINCT ?NODE ?ADTLTYPE WHERE { {?NODE <http://semoss.org/ontologies/Relation/Contains/AdtlDataType> ?ADTLTYPE} } ";
+		String query = "SELECT DISTINCT ?NODE ?ADTLTYPE WHERE { {?NODE <" + Owler.ADDITIONAL_DATATYPE_RELATION_URI + "> ?ADTLTYPE} } ";
 		String bindings = bindBuilder.toString();
 		if(!bindings.isEmpty()) {
 			query += "BINDINGS ?NODE {" + bindings + "}";
