@@ -1100,9 +1100,9 @@ public class OwlTemporalEngineMeta {
 			query = "select distinct ?header ?adtlDataType where {"
 					+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
 					+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
-					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
-					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+//					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
+//					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+//					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
 					+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}"
 					+ "}";
 		}
