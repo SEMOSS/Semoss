@@ -57,6 +57,7 @@ import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.TCPPyTranslator;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
@@ -682,6 +683,7 @@ public class Insight {
 	}
 	
 	public void setPy(PyExecutorThread jepThread) {
+		
 		this.jepThread = jepThread;
 		// need to do the check here
 		if(this.pyt == null)
@@ -695,13 +697,34 @@ public class Insight {
 	public void setPyTranslator(PyTranslator pyt)
 	{
 		//if(this.pyt == null)
-			this.pyt = pyt;
+		this.pyt = pyt;
 		if (pyt != null) {
 			pyt.setInsight(this);
 		}
 	}
 	
 	public PyTranslator getPyTranslator() {
+		// this is really where I need to pull from user
+		// I need to recreate since i make the translator specific to 
+		System.out.println("Trying to see if this prints ");
+		if(this.pyt == null)
+		{
+			this.pyt = user.getPyTranslator();
+			// need to recreate the translator
+			if(this.pyt instanceof TCPPyTranslator)
+			{
+				NettyClient nc1 = ((TCPPyTranslator)pyt).nc;
+				this.pyt = new TCPPyTranslator();
+				((TCPPyTranslator)pyt).nc = nc1;
+			}
+			else if(this.pyt instanceof PyTranslator)
+			{
+				this.jepThread = pyt.getPy();
+				this.pyt = new PyTranslator();
+				this.pyt.setPy(this.jepThread);
+				this.jepThread = pyt.getPy();
+			}
+		}
 		return this.pyt;
 	}
 	
@@ -1312,4 +1335,27 @@ public class Insight {
 			this.pyt.setInsight(this);
 		}
 	}
+
+	// gets the frame name to be more useful
+	public String predictFrameName()
+	{
+		
+		StringBuilder frameName = new StringBuilder("");
+		for(int engineIndex = 0;engineIndex < queriedAppIds.size();engineIndex++)
+		{
+			String thisEngine = queriedAppIds.get(engineIndex);
+			IEngine engine = Utility.getEngine(thisEngine);
+			String name = engine.getEngineName();
+			if(frameName.length() != 0 && engineIndex != queriedAppIds.size())
+				frameName.append("_");
+			else if(engineIndex == queriedAppIds.size())
+				frameName.append("_and_"); 
+				
+			frameName.append(name);
+		}
+		
+		
+		return frameName.toString();
+	}
+
 }

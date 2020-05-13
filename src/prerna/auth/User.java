@@ -1,5 +1,6 @@
 package prerna.auth;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -15,6 +16,13 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
+import prerna.ds.py.FilePyTranslator;
+import prerna.ds.py.PyExecutorThread;
+import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
+import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.IStorageEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.AbstractValueObject;
@@ -36,7 +44,12 @@ public class User extends AbstractValueObject implements Serializable {
 	// need to have an access token store
 	private IRUserConnection rcon; 
 	private RRemoteRserve rconRemote;
+
+	// python related stuff
 	private NettyClient pyServe;
+	private PyTranslator pyt = null;
+	private String port = "undefined";
+	public String pyTupleSpace = null;
 	
 	// keeping this for a later time when personal experimental stuff
 	private ClassLoader customLoader = new SemossClassloader(this.getClass().getClassLoader());
@@ -58,7 +71,9 @@ public class User extends AbstractValueObject implements Serializable {
 	Map <String, String> engineIdMap = new HashMap<>();
 	
 	Map <String, StringBuffer> appMap = new HashMap<>();
-	
+
+	Map <String, IStorageEngine> externalMounts = new HashMap<String, IStorageEngine>();
+
 	// gets the tuplespace
 	String tupleSpace = null;
 	
@@ -66,7 +81,9 @@ public class User extends AbstractValueObject implements Serializable {
 	private String anonymousId;
 	
 	CopyObject cp = null;
-	
+
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	/**
 	 * Set the access token for a given provider
 	 * @param value
@@ -401,23 +418,44 @@ public class User extends AbstractValueObject implements Serializable {
 		
 		
 	}
-	
+
 	public boolean addVarMap(String varName, String appName)
 	{
+		return addVarMap(varName, appName, false);
+	}
+
+	public boolean addVarMap(String varName, String appName, boolean override)
+	{
 		// convert the app name to alpha
+		String [] pathTokens = appName.split("/");
+		String subFolder = "";
+		if(pathTokens.length > 1)
+		{
+			subFolder = appName.replace(pathTokens[0],"");
+			appName = pathTokens[0];
+		}
+		
 		String semossAppName = Utility.makeAlphaNumeric(appName);
 
-		String engineId = engineIdMap.get(semossAppName);
-		if(engineId == null)
+		String engineId = semossAppName;
+		if(!override)
+		{
+			engineId = engineIdMap.get(semossAppName);
+			appName = appName + "__" + engineId;
+		}
+		else
+			engineId = "";
+		if(engineId == null) // there is a possibility that this is a mount path at this point
 			return false;
 		ClusterUtil.reactorPullApp(engineId);
-		String varValue = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + appName + "__" + engineId + "/version/assets";
+		String varValue = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + appName + "/version/assets" + subFolder;
 
 		varValue = varValue.replace("\\", "/");
 
 		StringBuffer oldValue = appMap.get(varName);
 		
 		appMap.put(varName, new StringBuffer(varValue));
+		
 		
 		if(oldValue != null)
 			removeVarString(varName, oldValue);
@@ -490,10 +528,126 @@ public class User extends AbstractValueObject implements Serializable {
 			
 	}
 	
-	public Map getAppMap()
+	public Map<String, StringBuffer> getAppMap()
 	{
 		return this.appMap;
 	}
 	
+	public void addExternalMount(String name, IStorageEngine mountHelper)
+	{
+		// name is what is recorded
+		externalMounts.put(name, mountHelper);
+		// get the user asset folder
+		AuthProvider provider = getPrimaryLogin();
+		String appId = getAssetEngineId(provider);
+		String appName = "Asset";
+		String userAssetFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version"
+				+ DIR_SEPARATOR + "assets";
+
+		// if this folder does not exist create it
+		File file = new File(userAssetFolder);
+		if (!file.exists()) {
+			file.mkdir();
+		}
+		
+		// add this mount point to the asset folder
+		File mountFile = new File(userAssetFolder + DIR_SEPARATOR + name);
+		if(!mountFile.exists())
+			mountFile.mkdir();
+
+		addVarMap(name, appName + "__" + appId + "/" + name, true);
+		
+		// at some point I need to also set a watcher to ferret things back and forth
+	}
+	
+	public Map<String, IStorageEngine> getExternalMounts()
+	{
+		return this.externalMounts;
+	}
+
+	public PyTranslator getPyTranslator()
+	{
+		return getPyTranslator(true);
+	}
+
+	public PyTranslator getPyTranslator(boolean create)
+	{
+		if(this.pyt == null && create)
+		{
+			// all of the logic should go here now ?
+			synchronized(this)
+			{
+				if (AbstractSecurityUtils.securityEnabled() && PyUtils.pyEnabled()) 
+				{
+		
+					boolean useFilePy = DIHelper.getInstance().getProperty("USE_PY_FILE") != null
+							&& DIHelper.getInstance().getProperty("USE_PY_FILE").equalsIgnoreCase("true");
+					boolean useTCP = DIHelper.getInstance().getProperty("USE_TCP_PY") != null
+							&& DIHelper.getInstance().getProperty("USE_TCP_PY").equalsIgnoreCase("true");
+					useTCP = useFilePy; // forcing it to be same as TCP
+		
+					if (!useFilePy) {
+						PyExecutorThread jepThread = null;
+						if (jepThread == null) {
+							jepThread = PyUtils.getInstance().getJep();
+							pyt = new PyTranslator();
+							pyt.setPy(jepThread);
+							int logSleeper = 1;
+							while(!jepThread.isReady())
+							{
+								try {
+									// wait for it to start
+									Thread.sleep(logSleeper*1000);
+									logSleeper++;
+								} catch (InterruptedException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+							}
+							logger.info("Jep Start is Complete");
+						}
+					}
+					// check to see if the py translator needs to be set ?
+					// check to see if the py translator needs to be set ?
+					else if (useFilePy) {
+						if (useTCP) {
+							port = DIHelper.getInstance().getProperty("FORCE_PORT"); // this means someone has
+																							// started it for debug
+							if (port == null) {
+								port = Utility.findOpenPort();
+								pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+								pyTupleSpace = PyUtils.getInstance().startPyServe(this, pyTupleSpace, port);
+								NettyClient nc = new NettyClient();
+								nc.connect("127.0.0.1", Integer.parseInt(port), false);
+								//nc.run();
+								Thread t = new Thread(nc);
+								t.start();
+								int logSleeper = 1;
+								while(!nc.isReady() && logSleeper < 6)
+								{
+									try {
+										// wait for it to start
+										Thread.sleep(logSleeper*1000);
+										logSleeper++;
+									} catch (InterruptedException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
+								}
+								this.setPyServe(nc);
+								pyt = new TCPPyTranslator();
+								((TCPPyTranslator) pyt).nc = nc;
+							}
+						} else {
+							PyUtils.getInstance().getTempTupleSpace(this, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
+							pyt = new FilePyTranslator();
+						}
+					}
+				}
+			}
+		}
+		return this.pyt;
+	}
 	
 }
