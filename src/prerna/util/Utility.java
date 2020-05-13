@@ -1108,7 +1108,7 @@ public class Utility {
 			HttpPost get = new HttpPost(api);
 			if (params != null) // add the parameters
 			{
-				List<NameValuePair> nvps = new ArrayList<NameValuePair>();
+				List<NameValuePair> nvps = new ArrayList<>();
 				for (Enumeration<String> keys = params.keys(); keys.hasMoreElements();) {
 					String key = keys.nextElement();
 					String value = params.get(key);
@@ -3081,6 +3081,22 @@ public class Utility {
 		}
 
 		return cleanedParams;
+	}
+
+	// ensure no CRLF injection into responses for malicious attacks
+	public static String cleanHttpResponse(String message) {
+		if(message == null) {
+			return message;
+		}
+		message = message
+				.replace('\n', '_')
+				.replace("%0d", "_")
+				.replace('\r', '_')
+				.replace("%0a", "_")
+				.replace('\t', '_')
+				.replace("%09", "_");
+		message = ESAPI.encoder().encodeForHTML(message);
+		return message;
 	}
 
 	public static String normalizePath(String stringToNormalize) {
