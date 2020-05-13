@@ -55,23 +55,25 @@ public class RserveUtil {
 	//////////////////////////////////////////////////////////////////////
 	// Rserve properties
 	//////////////////////////////////////////////////////////////////////
-	// TODO >>>timb: R - pull these from RDF map instead of the env vars
-	private static final String IS_USER_RSERVE_KEY = "IS_USER_RSERVE";
+	
+	public static final String IS_USER_RSERVE_KEY = "IS_USER_RSERVE";
 	public static final boolean IS_USER_RSERVE = Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_USER_RSERVE_KEY));
 			
-	private static final String R_USER_CONNECTION_TYPE_KEY = "R_USER_CONNECTION_TYPE";
+	public static final String R_USER_CONNECTION_TYPE_KEY = "R_USER_CONNECTION_TYPE";
 	public static final String R_USER_CONNECTION_TYPE = DIHelper.getInstance().getProperty(R_USER_CONNECTION_TYPE_KEY) != null
 			? DIHelper.getInstance().getProperty(R_USER_CONNECTION_TYPE_KEY)
 			: "undefined";
 			
-	private static final String RSERVE_CONNECTION_POOL_SIZE_KEY = "RSERVE_CONNECTION_POOL_SIZE";
+	public static final String RSERVE_CONNECTION_POOL_SIZE_KEY = "RSERVE_CONNECTION_POOL_SIZE";
 	public static final int RSERVE_CONNECTION_POOL_SIZE = DIHelper.getInstance().getProperty(RSERVE_CONNECTION_POOL_SIZE_KEY) != null
 			? Integer.parseInt(DIHelper.getInstance().getProperty(RSERVE_CONNECTION_POOL_SIZE_KEY))
 			: 12;
 			
-	private static final String R_USER_RECOVERY_DEFAULT_KEY = "R_USER_RECOVERY_DEFAULT";
+	public static final String R_USER_RECOVERY_DEFAULT_KEY = "R_USER_RECOVERY_DEFAULT";
 	public static final boolean R_USER_RECOVERY_DEFAULT = Boolean.parseBoolean(DIHelper.getInstance().getProperty(R_USER_RECOVERY_DEFAULT_KEY));
 	
+	public static final String R_KILL_ON_STARTUP_KEY = "R_KILL_ON_STARTUP";
+	public static final boolean R_KILL_ON_STARTUP = Boolean.parseBoolean(DIHelper.getInstance().getProperty(R_KILL_ON_STARTUP_KEY));
 	
 	//////////////////////////////////////////////////////////////////////
 	// Connections
@@ -236,4 +238,32 @@ public class RserveUtil {
 		}
 	}
 		
+	//////////////////////////////////////////////////////////////////////
+	// End All R
+	//////////////////////////////////////////////////////////////////////
+	/**
+	 * Stops all r processes.
+	 * @throws Exception
+	 */
+	public static void endR() throws Exception {
+		// Need to allow this process to execute the below commands
+		SecurityManager priorManager = System.getSecurityManager();
+		System.setSecurityManager(null);
+		
+		// End
+		try {
+			ProcessBuilder pb;
+			if (SystemUtils.IS_OS_WINDOWS) {
+				pb = new ProcessBuilder("taskkill", "/f", "/IM", "Rserve.exe");
+			} else {
+				pb = new ProcessBuilder("pkill", "Rserve");
+			}
+			Process process = pb.start();
+			process.waitFor(7L, TimeUnit.SECONDS);
+		} finally {
+			
+			// Restore the prior security manager
+			System.setSecurityManager(priorManager);
+		}
+	}
 }
