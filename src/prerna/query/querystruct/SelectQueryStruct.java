@@ -315,6 +315,8 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		
 		if(additionalDataType != null) {
 			selectorMap.put("additionalDataType", additionalDataType);
+		} else {
+			selectorMap.put("additionalDataType", "");
 		}
 	}
 	
