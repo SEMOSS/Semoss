@@ -28,6 +28,7 @@ public class NettyClient implements Runnable{
     int PORT = -1;
     boolean ssl = false;
     Map responseMap = new HashMap();
+    boolean ready = false;
     
     public void connect(String HOST, int PORT, boolean SSL)
     {
@@ -71,6 +72,7 @@ public class NettyClient implements Runnable{
 		            nc.f = b.connect(HOST, PORT).sync();          
 		            System.out.println("CLIENT Connection complete !!!!!!!");
 		            connected = true;
+		            ready = true;
 		            // Wait until the connection is closed.
 		            nc.f.channel().closeFuture().sync();
 		        } finally {
@@ -96,6 +98,11 @@ public class NettyClient implements Runnable{
             System.out.println("CLIENT Connection Failed !!!!!!!");
 
     }	
+    
+    public boolean isReady()
+    {
+    	return this.ready;
+    }
     
     public Object executeCommand(String command)
     {
