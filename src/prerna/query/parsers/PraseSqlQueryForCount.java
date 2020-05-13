@@ -2,6 +2,9 @@ package prerna.query.parsers;
 
 import java.util.List;
 
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
+
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.Fetch;
@@ -13,9 +16,14 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.Top;
 
 public class PraseSqlQueryForCount {
+	private static final String ORDER_BY_REGEX = "(?i)order\\s*by";
+	private static final String REPLACE_STRING = "";
+	private static final String CASE_INSENSITIVE_REGEX = "(?i)";
 
 	public String processQuery(String query) throws Exception {
 		String newQuery = query;
+		Pattern orderByPattern = null;
+		Matcher orderByMatcher = null;
 
 		// parse the sql
 		Statement stmt = CCJSqlParserUtil.parse(query);
@@ -26,15 +34,25 @@ public class PraseSqlQueryForCount {
 		{
 			List<OrderByElement> orders = sb.getOrderByElements();
 			if(orders != null && !orders.isEmpty()) {
-				newQuery = newQuery.replaceAll("(?i)order\\s*by", "");
+				orderByPattern = Pattern.compile(ORDER_BY_REGEX);
+
+				// get a matcher object
+				orderByMatcher = orderByPattern.matcher(newQuery);
+				newQuery = orderByMatcher.replaceAll(REPLACE_STRING);
+
 				int counter = 0;
 				int size = orders.size();
 				for(OrderByElement order : orders) {
-					String orderExpression = toRegex(order.toString());
+					String orderExpression = toRegex(order.toString());					
+
 					if(size > 1 && (counter + 1) < size) {
 						orderExpression += "\\s*,*";
 					}
-					newQuery = newQuery.replaceAll("(?i)" + orderExpression, "");
+
+					orderByPattern = Pattern.compile(CASE_INSENSITIVE_REGEX + orderExpression);
+					orderByMatcher = orderByPattern.matcher(newQuery);
+					newQuery = orderByMatcher.replaceAll(REPLACE_STRING);
+
 					counter++;
 				}
 			}
@@ -45,7 +63,7 @@ public class PraseSqlQueryForCount {
 			Top top = sb.getTop();
 			if(top != null) {
 				String topExpression = toRegex(top.toString());
-				newQuery = newQuery.replaceAll("(?i)" + topExpression, "");
+				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + topExpression, "");
 			}
 		}
 		
@@ -54,7 +72,7 @@ public class PraseSqlQueryForCount {
 			Limit limit = sb.getLimit();
 			if(limit != null) {
 				String limitExpression = toRegex(limit.toString());
-				newQuery = newQuery.replaceAll("(?i)" + limitExpression, "");
+				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + limitExpression, "");
 			}
 		}
 		
@@ -63,7 +81,7 @@ public class PraseSqlQueryForCount {
 			Offset offset = sb.getOffset();
 			if(offset != null) {
 				String offsetExpression = toRegex(offset.toString());
-				newQuery = newQuery.replaceAll("(?i)" + offsetExpression, "");
+				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + offsetExpression, "");
 			}
 		}
 		
@@ -72,7 +90,7 @@ public class PraseSqlQueryForCount {
 			Fetch fetch = sb.getFetch();
 			if(fetch != null) {
 				String fetchExpression = toRegex(fetch.toString());
-				newQuery = newQuery.replaceAll("(?i)" + fetchExpression, "");
+				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + fetchExpression, "");
 			}
 		}
 		

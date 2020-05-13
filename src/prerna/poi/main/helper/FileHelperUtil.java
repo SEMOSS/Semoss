@@ -4,8 +4,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 
 import prerna.algorithm.api.SemossDataType;
 
@@ -23,8 +24,8 @@ public class FileHelperUtil {
 	 */
 	public static Map[] generateDataTypeMapsFromPrediction(String[] headers, Object[][] predictions) {
 		Map[] retArray = new Map[2];
-		Map<String, String> dataTypeMap = new LinkedHashMap<String, String>();
-		Map<String, String> additionalDataTypeMap = new LinkedHashMap<String, String>();
+		Map<String, String> dataTypeMap = new LinkedHashMap<>();
+		Map<String, String> additionalDataTypeMap = new LinkedHashMap<>();
 		retArray[0] = dataTypeMap;
 		retArray[1] = additionalDataTypeMap;
 		
@@ -99,28 +100,34 @@ public class FileHelperUtil {
 		// once we have a match, we will recalculate
 		String[] formatPaterns = formats.keySet().toArray(new String[numFormats]);
 		char[] charsToFind = new char[]{'M', 'd', 'H', 'h', 'm', 's'};
-		
+
 		for(int i = 0; i < numFormats; i++) {
 			String thisFormat = formatPaterns[i];
 			// get the regex form of this
 			String regexThisFormat = thisFormat;
+			Pattern doubleCharRegex = null;
+			Matcher matcher = null;
+
 			for(char c : charsToFind) {
 				if(!regexThisFormat.contains(c + "")) {
 					continue;
 				}
 				// trim the format first
 				// so MM or dd becomes just M or d
-				regexThisFormat = regexThisFormat.replaceAll(c + "{1,2}", c + "");
+				doubleCharRegex = Pattern.compile(c + "{1,2}");
+				matcher = doubleCharRegex.matcher(regexThisFormat);
+				regexThisFormat = matcher.replaceAll(c + "");
+
 				int indexToFind = regexThisFormat.lastIndexOf(c);
 				int len = regexThisFormat.length();
 				regexThisFormat = regexThisFormat.substring(0, indexToFind+1) + "{1,2}" + regexThisFormat.substring(indexToFind+1, len);
 			}
-			
-			Pattern p = Pattern.compile(regexThisFormat);
+
+			Pattern pattern = Pattern.compile(regexThisFormat);
 			for(int j = i+1; j < numFormats; j++) {
 				String otherFormat = formatPaterns[j];
+				matcher = pattern.matcher(otherFormat);
 
-				Matcher matcher = p.matcher(otherFormat);
 				if(matcher.find()) {
 					// they are equivalent
 					String largerFormat = thisFormat.length() > otherFormat.length() ? thisFormat : otherFormat;
