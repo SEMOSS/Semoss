@@ -75,51 +75,51 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 		StringBuilder sb = new StringBuilder();
 
 		// retrieve inputs
-		String dep_var = getClassificationColumn();		
+		String depVar = getClassificationColumn();		
 		List<String> attributes = getInputList(1);
-		attributes.remove(dep_var);
-		String ind_vars = "c(";
+		attributes.remove(depVar);
+		String indVars = "c(";
 		for (int i = 0; i < attributes.size(); i++) {
 			if (i == attributes.size() - 1) {
-				ind_vars += "\"" + attributes.get(i) + "\"";
+				indVars += "\"" + attributes.get(i) + "\"";
 			} else {
-				ind_vars += "\"" + attributes.get(i) + "\", ";
+				indVars += "\"" + attributes.get(i) + "\", ";
 			}
 		}
-		ind_vars += ")";
-		List<String> advanced_settings = getInputList(4);
+		indVars += ")";
+		List<String> advancedSettings = getInputList(4);
 		String mode = this.keyValue.get(this.keysToGet[5]);
-		String file_name = this.keyValue.get(this.keysToGet[6]);
-		String null_handler_type = getNullHandleType();
+		String fileName = this.keyValue.get(this.keysToGet[6]);
+		String nullHandlerType = getNullHandleType();
 		
 		// initialize vars
 		String targetDt = null;
 		String assetFolder = null;
-		String sample_size = null;
-		String sample_blocks = null;
-		String tree_depth = null;
+		String sampleSize = null;
+		String sampleBlocks = null;
+		String treeDepth = null;
 		// initialize task
 		ITask taskData1 = null;
 		ITask taskData2 = null;
-		List<String> tree_settings = null;
+		List<String> treeSettings = null;
 		NounMetadata noun = new NounMetadata(taskData1, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		
 		// get asset path
 		// assets path
 		String space = this.keyValue.get(this.keysToGet[2]);
-		assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled()) + "/" + file_name ;
+		assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled()) + "/" + fileName ;
 		
 		if (!mode.equals("updateTree")) {
-			sample_size = advanced_settings.get(0);
-			sample_blocks = advanced_settings.get(1);
-			tree_depth = advanced_settings.get(2);
+			sampleSize = advancedSettings.get(0);
+			sampleBlocks = advancedSettings.get(1);
+			treeDepth = advancedSettings.get(2);
 			
 			// check if there are filters on the frame. if so then need to run algorithm on subsetted data
 			if(!frame.getFrameFilters().isEmpty()) {
 				// create a new qs to retrieve filtered frame
 				SelectQueryStruct qs = new SelectQueryStruct();
 				List<String> selectedCols = new ArrayList<String>(attributes);
-				selectedCols.add(dep_var);
+				selectedCols.add(depVar);
 				for(String s : selectedCols) {
 					qs.addSelector(new QueryColumnSelector(s));
 				}
@@ -148,13 +148,13 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 			
 			logger.info("All inputs loaded.");
 		} else {
-			tree_settings = getInputList(7);
+			treeSettings = getInputList(7);
 		}
 		
 		if (mode.equals("build")) { // check if the model needs to be built
 			logger.info("Building random forest model...");
 			// set call to R function
-			sb.append(RF_VARIABLE + " <- rfmodel_mgr( ind_vars=" + ind_vars + ", dep_var=\"" + dep_var + "\", trainFrame=" + targetDt + ", model_fn=\"" + assetFolder + "\", mis_data=\"" + null_handler_type + "\", sample_size=" + sample_size + ", sample_blocks=" + sample_blocks + ", depth=" + tree_depth + ");");
+			sb.append(RF_VARIABLE + " <- rfmodel_mgr( ind_vars=" + indVars + ", dep_var=\"" + depVar + "\", trainFrame=" + targetDt + ", model_fn=\"" + assetFolder + "\", mis_data=\"" + nullHandlerType + "\", sample_size=" + sampleSize + ", sample_blocks=" + sampleBlocks + ", depth=" + treeDepth + ");");
 			sb.append(COLS + " <- colnames(" + RF_VARIABLE + "[[2]]);");
 			sb.append(TREE + " <- get_tree(\"" + assetFolder + "\", 1, 1);");
 			// execute R
@@ -167,7 +167,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR(cleanUpScript.toString());
 
 			// construct map of model summary data to return to front end
-			Map<String, Object> retMap = new HashMap<String, Object>();
+			Map<String, Object> retMap = new HashMap<>();
 			double[] predError = this.rJavaTranslator.getDoubleArray(RF_VARIABLE + "[[1]]");
 			predError[0] = round(predError[0]*100, 2);
 			retMap.put("predictionError", predError);
@@ -182,16 +182,16 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 				String[] confMatxHeaders = this.rJavaTranslator.getStringArray(COLS);
 				retMap.put("headers", confMatxHeaders);
 			}
-			double[] tree_options = new double[2];
-			tree_options[0] = this.rJavaTranslator.getDouble(RF_VARIABLE + "[[4]]");
-			tree_options[1] = this.rJavaTranslator.getDouble(RF_VARIABLE + "[[5]]");
-			retMap.put("tree_options", tree_options);
-			retMap.put("filename", file_name);
+			double[] treeOptions = new double[2];
+			treeOptions[0] = this.rJavaTranslator.getDouble(RF_VARIABLE + "[[4]]");
+			treeOptions[1] = this.rJavaTranslator.getDouble(RF_VARIABLE + "[[5]]");
+			retMap.put("tree_options", treeOptions);
+			retMap.put("filename", fileName);
 			String[] headerOrdering = {"Variables", "Importance"};
 			List<Object[]> retBarPlotOutput = this.rJavaTranslator.getBulkDataRow(RF_VARIABLE + "[[3]]", headerOrdering);
 			
 			String[] dendrogramHeaders = this.rJavaTranslator.getStringArray("colnames(" + 	TREE + ");");
-			List<Object[]> retDendrogramOutput = new Vector<Object[]>(500);
+			List<Object[]> retDendrogramOutput = new Vector<>(500);
 			for (int i = 1; i < dendrogramHeaders.length+1; i++) {
 				String[] values = this.rJavaTranslator.getStringArray(TREE + "[" + i + ",];");
 				retDendrogramOutput.add(values);
@@ -211,7 +211,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Random Forest model was built and saved to APP assets"));
 			NounMetadata noun2 = new NounMetadata(taskData2, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 			NounMetadata noun3 = new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
-			List<NounMetadata> tasks = new Vector<NounMetadata>();
+			List<NounMetadata> tasks = new Vector<>();
 			tasks.add(noun);
 			tasks.add(noun2);
 			tasks.add(noun3);
@@ -219,7 +219,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 		} else if (mode.equals("predict")) { // check if values need to be predicted from an existing model
 			logger.info("Predicting from random forest model...");
 			// set call to R function
-			sb.append(RF_VARIABLE + " <- predict_rfmodel( newFrame=" + targetDt + ", model_fn=\"" + assetFolder + "\", mis_data=\"" + null_handler_type + "\");");
+			sb.append(RF_VARIABLE + " <- predict_rfmodel( newFrame=" + targetDt + ", model_fn=\"" + assetFolder + "\", mis_data=\"" + nullHandlerType + "\");");
 			// execute R
 			this.rJavaTranslator.runR(sb.toString());
 			
@@ -258,12 +258,17 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 		} else if (mode.equals("updateTree")) { // check if tree needs to be updated
 			logger.info("Updating tree...");
 			String dendrogramChartPanelId = getPanelId();
-			sb.append(TREE + " <- get_tree(model_fn=\"" + assetFolder + "\", model_nbr=" + tree_settings.get(1) + ", tree_nbr="+ tree_settings.get(2) +");");
-			// execute R
-			this.rJavaTranslator.runR(sb.toString());
+			
+			if (treeSettings == null || treeSettings.isEmpty()) {
+				throw new IllegalArgumentException("Unable to generate tree to view"); 
+			} else {
+				sb.append(TREE + " <- get_tree(model_fn=\"" + assetFolder + "\", model_nbr=" + treeSettings.get(1) + ", tree_nbr="+ treeSettings.get(2) +");");
+				// execute R
+				this.rJavaTranslator.runR(sb.toString());
+			}
 			
 			String[] dendrogramHeaders = this.rJavaTranslator.getStringArray("colnames(" + 	TREE + ");");
-			List<Object[]> retDendrogramOutput = new Vector<Object[]>(500);
+			List<Object[]> retDendrogramOutput = new Vector<>(500);
 			for (int i = 1; i < dendrogramHeaders.length+1; i++) {
 				String[] values = this.rJavaTranslator.getStringArray(TREE + "[" + i + ",];");
 				retDendrogramOutput.add(values);
@@ -289,10 +294,8 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 		// an action specifying how to handle missing data (options:
 		// "impute","drop","as_is")
 		GenRowStruct alphaGrs = this.store.getNoun(NULL_HANDLING);
-		if (alphaGrs != null) {
-			if (alphaGrs.size() > 0) {
-				return alphaGrs.get(0).toString().toLowerCase();
-			}
+		if (alphaGrs != null && alphaGrs.size() > 0) {
+			return alphaGrs.get(0).toString().toLowerCase();
 		}
 		// default to .05
 		return "as_is";
@@ -309,10 +312,8 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 	private String getPanelId() {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
-		if(columnGrs != null) {
-			if(columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
+		if(columnGrs != null && columnGrs.size() > 0) {
+			return columnGrs.get(0).toString();
 		}
 		return null;
 	}
@@ -320,10 +321,8 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 	private String getClassificationColumn() {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(CLASSIFICATION_COLUMN);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
+		if(columnGrs != null && columnGrs.size() > 0) {
+			return columnGrs.get(0).toString();
 		}
 
 		// else, we assume it is the first column
@@ -335,7 +334,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 	}
 
 	private List<String> getInputList(int index) {
-		List<String> retList = new ArrayList<String>();
+		List<String> retList = new ArrayList<>();
 		GenRowStruct columnGrs = this.store.getNoun(keysToGet[index]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
@@ -351,21 +350,21 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 		// create the weird object the FE needs to paint a bar chart
 				ConstantDataTask task = new ConstantDataTask();
 				task.setId("TEMP_ID");
-				Map<String, Object> returnData = new Hashtable<String, Object>();
+				Map<String, Object> returnData = new Hashtable<>();
 				returnData.put("values", dataValues);
 				returnData.put("headers", headers);
 				task.setOutputData(returnData);
 				
 				//create maps to set the task options
 				//main map that will be passed into the setTaskOptions method
-				Map<String, Object> mapOptions = new HashMap<String, Object>();
+				Map<String, Object> mapOptions = new HashMap<>();
 				
 				//this map (keyMap) comprises the mapping of both layout and alignment
-				Map<String, Object> keyMap = new HashMap<String, Object>(); 
+				Map<String, Object> keyMap = new HashMap<>(); 
 				keyMap.put("layout", "Dendrogram");
 				
 				//within keyMap, we need a map to store the maps that comprise alignment
-				Map<String, Object> alignmentMap = new HashMap<String, Object>();
+				Map<String, Object> alignmentMap = new HashMap<>();
 				alignmentMap.put("dimension",  headers);
 				alignmentMap.put("facet", "[]");
 				
@@ -378,9 +377,9 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 				//set task options
 				task.setTaskOptions(new TaskOptions(mapOptions));
 
-				List<Map<String, Object>> vizHeaders = new Vector<Map<String, Object>>();
+				List<Map<String, Object>> vizHeaders = new Vector<>();
 				for (int i = 0; i < headers.length; i++) {
-					Map<String, Object> labelMap = new Hashtable<String, Object>();
+					Map<String, Object> labelMap = new Hashtable<>();
 					labelMap.put("alias", headers[i]);
 					labelMap.put("derived", false);
 					labelMap.put("header", headers[i]);
@@ -389,7 +388,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 				}
 				task.setHeaderInfo(vizHeaders);
 
-				Map<String, Object> formatMap = new Hashtable<String, Object>();
+				Map<String, Object> formatMap = new Hashtable<>();
 				formatMap.put("type", "TABLE");
 				task.setFormatMap(formatMap);
 				
