@@ -3095,7 +3095,8 @@ public class Utility {
 				.replace("%0a", "_")
 				.replace('\t', '_')
 				.replace("%09", "_");
-		message = ESAPI.encoder().encodeForHTML(message);
+				
+		//message = ESAPI.encoder().encodeForHTML(message);
 		return message;
 	}
 
