@@ -30,7 +30,7 @@ public class RClearAllUserRservesReactor extends AbstractReactor {
 				}
 			}
 			try {
-				IRUserConnection.endR();
+				RserveUtil.endR();
 			} catch (Exception e) {
 				success = false;
 			}

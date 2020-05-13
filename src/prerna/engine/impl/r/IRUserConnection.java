@@ -34,7 +34,7 @@ public interface IRUserConnection {
 			return new RUserConnectionDedicated();
 		} else if (TYPE.equals(SINGLE)){
 			return new RUserConnectionSingle();
-		}else {
+		} else {
 			throw new IllegalArgumentException("Unknown R user connection type: " + TYPE);
 		}
 	}
@@ -69,32 +69,5 @@ public interface IRUserConnection {
 	public boolean isRecoveryEnabled();
 	
 	void setRecoveryEnabled(boolean enableRecovery);
-
-	/**
-	 * Stops all r processes.
-	 * @throws Exception
-	 */
-	public static void endR() throws Exception {
-		
-		// Need to allow this process to execute the below commands
-		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
-		
-		// End
-		try {
-			ProcessBuilder pb;
-			if (SystemUtils.IS_OS_WINDOWS) {
-				pb = new ProcessBuilder("taskkill", "/f", "/IM", "Rserve.exe");
-			} else {
-				pb = new ProcessBuilder("pkill", "Rserve");
-			}
-			Process process = pb.start();
-			process.waitFor(7L, TimeUnit.SECONDS);
-		} finally {
-			
-			// Restore the prior security manager
-			System.setSecurityManager(priorManager);
-		}
-	}
 	
 }

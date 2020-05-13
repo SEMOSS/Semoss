@@ -336,7 +336,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	 */
 	public void endR() {
 		try {
-			IRUserConnection.endR();
+			RserveUtil.endR();
 		} catch (Exception e) {
 			logger.warn("Unable to end R.", e);
 		}
