@@ -545,7 +545,7 @@ public class Constants {
 	public static final String T_ON = "T_ON";
 	
 	// where google chrome is located for image capture
-	public static final String GOOGLE_CHROME_HOME = "GOOGLE_CHROME_HOME";
+	public static final String GOOGLE_CHROME_BINARY = "GOOGLE_CHROME_BINARY";
 	//Graph engines
 	public static final String TYPE_MAP = "TYPE_MAP";
 	public static final String NAME_MAP = "NAME_MAP";
