@@ -485,17 +485,45 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	@Override    
 	public void runR(String script) {
+		// Clean the script
+		script = script.trim();
+		
 		// Get temp folder and file locations
 		// also define a ROOT variable
-		String removeRootVar = "";
-		String addRootVariable = "";
-		String rootPath = null;
+		String removePathVariables = "";
+		String insightRootAssignment = "";
+		String appRootAssignment = "";
+		String userRootAssignment = "";
+
+		String insightRootPath = null;
+		String appRootPath = null;
+		String userRootPath = null;
+		
 		String rTemp = null;
 		if(this.insight != null) {
-			rootPath = this.insight.getInsightFolder().replace('\\', '/');
-			rTemp = rootPath + "/R/Temp/";
-			addRootVariable = "ROOT <- '" + rootPath + "';";
-			removeRootVar = "ROOT";
+			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
+			insightRootAssignment = "ROOT <- '" + insightRootPath + "';";
+			removePathVariables = "ROOT";
+			
+			if(this.insight.isSavedInsight()) {
+				appRootPath = this.insight.getAppFolder();
+				appRootPath = appRootPath.replace('\\', '/');
+				appRootAssignment = "APP_ROOT <- '" + appRootPath + "';";
+				removePathVariables += ", APP_ROOT";
+			}
+			try {
+				// you only have this if you are logged in
+				if(this.insight.getUser() != null && !this.insight.getUser().isAnonymous()) {
+					userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+					userRootPath = userRootPath.replace('\\', '/');
+					userRootAssignment = "USER_ROOT <- '" + userRootPath + "';";
+					removePathVariables += ", USER_ROOT";
+				}
+			} catch(Exception ignore) {
+				// ignore
+			}
+			
+			rTemp = insightRootPath + "/R/Temp/";
 		} else {
 			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
 		}
@@ -504,26 +532,23 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		if(!rTempF.exists()) {
 			rTempF.mkdirs();
 		}
-
+		
 		String scriptPath = rTemp + Utility.getRandomString(12) + ".R";
-		File scriptFile = new File(scriptPath);
-		try {
-			script = encapsulateForEnv(addRootVariable + script);
-			FileUtils.writeStringToFile(scriptFile, script);
-		} catch (IOException e1) {
-			System.out.println("Error in writing R script for execution!");
-			e1.printStackTrace();
-		}
-		// check packages should be here
-		// if you try to do stuff this will throw an error
-		//checkPackages(script);
+		File scriptFile = new File(scriptPath);	
+		
+		// attempt to put it into environment
+		script = encapsulateForEnv(insightRootAssignment + appRootAssignment 
+				+ userRootAssignment + script);
 
 		try {
+			FileUtils.writeStringToFile(scriptFile, script);
 			this.executeEmptyRDirect("source(\"" + scriptPath + "\", local=TRUE)");
+		} catch (IOException e) {
+			e.printStackTrace();
 		} finally {
 			try {
-				if(!removeRootVar.isEmpty()) {
-					this.executeEmptyR("rm(" + removeRootVar + ");");
+				if(!removePathVariables.isEmpty()) {
+					this.executeEmptyR("rm(" + removePathVariables + ");");
 					this.executeEmptyR("gc();"); // Garbage collection
 				}
 			} catch (Exception e) {
@@ -537,9 +562,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	@Override
 	public String runRAndReturnOutput(String script) {
-		
 		return runRAndReturnOutput(script, null);
-		
 	}
 
 	@Override
