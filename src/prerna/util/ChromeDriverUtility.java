@@ -13,8 +13,10 @@ import org.openqa.selenium.chrome.ChromeOptions;
 public class ChromeDriverUtility {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	
 	private static String contextPath = null;
-
+	private static String sessionCookie = null;
+	
 	/**
 	 * Capture the image of from a url
 	 * @param feUrl the base semoss url
@@ -37,6 +39,7 @@ public class ChromeDriverUtility {
 			sysProp += "chromedriver-linux";
 		}
 		System.setProperty("webdriver.chrome.driver", sysProp);
+		boolean secure = url.contains("https");
 		
 	    ChromeOptions chromeOptions = new ChromeOptions();
 		chromeOptions.addArguments("--headless");
@@ -62,8 +65,10 @@ public class ChromeDriverUtility {
 		} else {
 			driver.get(url);
 		}
-		if(sessionId != null) {
-			Cookie name = new Cookie(DIHelper.getInstance().getLocalProp(Constants.SESSION_ID_KEY).toString(), sessionId, "/");
+		if(sessionId != null && ChromeDriverUtility.sessionCookie != null) {
+			// name, value, domain, path, expiration, secure, http only
+//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
+			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
 			driver.manage().addCookie(name);
 		}
 		driver.navigate().to(url);
@@ -76,7 +81,7 @@ public class ChromeDriverUtility {
 		}
 		// take image
 		File scrFile = (File)((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
-		try {
+		try { 
 			FileUtils.copyFile(scrFile, new File(imagePath));
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -93,5 +98,9 @@ public class ChromeDriverUtility {
 			contextPath = contextPath.substring(0, contextPath.length()-1);
 		}
 		ChromeDriverUtility.contextPath = contextPath;
+	}
+	
+	public static void setSessionCookie(String sessionCookie) {
+		ChromeDriverUtility.sessionCookie = sessionCookie;
 	}
 }
