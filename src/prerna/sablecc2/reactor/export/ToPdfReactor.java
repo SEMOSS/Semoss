@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
@@ -59,6 +58,10 @@ public class ToPdfReactor extends AbstractReactor {
 
 			// Run headless chrome with semossTagUrl
 			String imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
+			while(new File(imagePath).exists()) {
+				imageNum++;
+				imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
+			}
 			logger.info("Generating image for PDF...");
 			ChromeDriverUtility.captureImage(feUrl, url, imagePath, sessionId);
 			tempPaths.add(imagePath);
@@ -69,7 +72,7 @@ public class ToPdfReactor extends AbstractReactor {
 			// Replace url attribute with src attribute
 			element.removeAttr("url");
 			element.attr("src", "image" + imageNum + ".png");
-			imageNum += 1;
+			imageNum++;
 		}
 
 		// Convert from html to xhtml
@@ -105,14 +108,15 @@ public class ToPdfReactor extends AbstractReactor {
 		}
 
 		// Convert from xhtml to pdf
+		FileOutputStream fos = null;
 		try {
 			logger.info("Converting html to PDF...");
-			OutputStream os = new FileOutputStream(fileLocation);
+			fos = new FileOutputStream(fileLocation);
 			PdfRendererBuilder pdfBuilder = new PdfRendererBuilder();
 			pdfBuilder.useFastMode();
 			pdfBuilder.useDefaultPageSize(11.0f, 8.5f, PageSizeUnits.INCHES);
 			pdfBuilder.withFile(tempXhtml);
-			pdfBuilder.toStream(os);
+			pdfBuilder.toStream(fos);
 			pdfBuilder.run();
 			logger.info("Done converting html to PDF...");
 		} catch (FileNotFoundException e) {
@@ -121,6 +125,14 @@ public class ToPdfReactor extends AbstractReactor {
 			logger.error(STACKTRACE, ioe);
 		} catch (Exception ex) {
 			logger.error(STACKTRACE, ex);
+		} finally {
+			if(fos != null) {
+				try {
+					fos.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 		// delete temp files
@@ -131,6 +143,7 @@ public class ToPdfReactor extends AbstractReactor {
 					FileUtils.forceDelete(f);
 				}
 			} catch (IOException e) {
+				logger.error(STACKTRACE, e);
 			}
 		}
 
