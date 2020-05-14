@@ -171,7 +171,15 @@ public final class PyExecutorThread extends Thread {
 				// workaround for issue with matplotlib.pyplot.plot() not working with python
 				// 3.7.3; sys.argv is assumed to have length > 0
 				// see https://github.com/ninia/jep/issues/187 for details
-				jep.eval("sys.argv.append('')"); 
+				// do it only if the version is there and it is 3.6
+				long major = (Long)jep.getValue("sys.version_info[0]");
+				long minor = (Long)jep.getValue("sys.version_info[1]");
+				//System.err.println("VERSION OF PYTHON IS " + major + "." + minor);
+				if(major >= 3 && minor >= 7)
+				{
+					//System.err.println("VERSION OF PYTHON IS " + major + "." + minor);
+					jep.eval("sys.argv.append('')"); 
+				}
 				jep.eval("from fuzzywuzzy import fuzz");
 				jep.eval("import pandas as pd");
 				jep.eval("import string");
