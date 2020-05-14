@@ -42,9 +42,14 @@ public class ChromeDriverUtility {
 		boolean secure = url.contains("https");
 		
 	    ChromeOptions chromeOptions = new ChromeOptions();
+	    String customGoogleBinaryLocation = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_BINARY);
+	    if(customGoogleBinaryLocation != null && !customGoogleBinaryLocation.isEmpty()) {
+	    	chromeOptions.setBinary(customGoogleBinaryLocation);
+	    }
 		chromeOptions.addArguments("--headless");
 		chromeOptions.addArguments("--disable-gpu");
 		chromeOptions.addArguments("--window-size=1920,1080");
+		chromeOptions.addArguments("--remote-debugging-port=9222");
 		if(linux) {
 			chromeOptions.addArguments("-disable-dev-shm-usage");
 			chromeOptions.addArguments("--no-sandbox");
