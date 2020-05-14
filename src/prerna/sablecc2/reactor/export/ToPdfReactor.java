@@ -42,8 +42,8 @@ public class ToPdfReactor extends AbstractReactor {
 		organizeKeys();
 		// location for pdf resources
 		String insightFolder = this.insight.getInsightFolder();
-		String htmlToParse = this.keyValue.get(this.keysToGet[0]);
-		String feUrl = this.keyValue.get(this.keysToGet[2]);
+		String htmlToParse = this.keyValue.get(ReactorKeysEnum.HTML.getKey());
+		String feUrl = this.keyValue.get(ReactorKeysEnum.URL.getKey());
 		htmlToParse = Utility.decodeURIComponent(htmlToParse);
 		String sessionId = ThreadStore.getSessionId();
 
