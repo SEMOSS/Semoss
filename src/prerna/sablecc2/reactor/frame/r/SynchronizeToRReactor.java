@@ -142,7 +142,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 		}
 
 		// we'll write to TSV and load into data.table to avoid rJava setup
-		final String sep = java.lang.System.getProperty("file.separator");
+		final String sep = java.nio.file.FileSystems.getDefault().getSeparator();
 		String random = Utility.getRandomString(10);
 		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + sep + "R"
 				+ sep + "Temp" + sep + "output" + random + ".tsv";
