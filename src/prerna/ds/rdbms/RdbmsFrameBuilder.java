@@ -286,18 +286,6 @@ public class RdbmsFrameBuilder {
 		return ps;
 	}
 	
-	private PreparedStatement createPreparedStatement(String sql) {
-		PreparedStatement ps = null;
-		try {
-			// create the prepared statement using the sql query defined
-			ps = this.conn.prepareStatement(sql);
-		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
-		}
-
-		return ps;
-	}
-	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -483,10 +471,18 @@ public class RdbmsFrameBuilder {
 	public void runQuery(String query) throws Exception {
 		long start = System.currentTimeMillis();
 		logger.debug("Running frame query : " + query);
-		try(PreparedStatement statement = this.conn.prepareStatement(query)){
-			statement.execute();
-		} catch(SQLException e){
-			e.printStackTrace();
+		if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
+			try(Statement statement = this.conn.createStatement()){
+				statement.executeUpdate(query);
+			} catch(SQLException e){
+				e.printStackTrace();
+			}
+		} else {
+			try(PreparedStatement statement = this.conn.prepareStatement(query)){
+				statement.execute();
+			} catch(SQLException e){
+				e.printStackTrace();
+			}
 		}
 		long end = System.currentTimeMillis();
 		logger.debug("Time to execute = " + (end-start) + "ms");
