@@ -417,7 +417,7 @@ public class RSyntaxHelper {
 	
 	public static String alterColumnTypeToBoolean(String tableName, List<String> colName) {
 		StringBuilder builder = new StringBuilder();
-		builder.append(tableName + "[,(c('" + StringUtils.join(colName,"','") + "')) := lapply(.SD, as.boolean), .SDcols = c('" + StringUtils.join(colName,"','") + "')]");
+		builder.append(tableName + "[,(c('" + StringUtils.join(colName,"','") + "')) := lapply(.SD, as.l), .SDcols = c('" + StringUtils.join(colName,"','") + "')]");
 		return builder.toString();
 	}
 	
