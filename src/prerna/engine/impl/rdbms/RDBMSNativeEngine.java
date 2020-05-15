@@ -375,18 +375,23 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	// need to clean up the exception it will never be thrown
 	public void insertData(String query) throws SQLException {
+		Connection conn = getConnection(); 
 		if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
-			try(Connection conn = getConnection(); Statement statement = conn.createStatement()){
+			try(Statement statement = conn.createStatement()){
 				statement.executeUpdate(query);
 			} catch(SQLException e){
 				e.printStackTrace();
 			}
 		} else {
-			try(Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(query)){
+			try(PreparedStatement statement = conn.prepareStatement(query)){
 				statement.execute();
 			} catch(SQLException e){
 				e.printStackTrace();
 			}
+		}
+		// if datasource, give back the conn to the pool
+		if(this.datasourceConnected) {
+			conn.close();
 		}
 	}
 
@@ -659,10 +664,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	
 	@Override
 	public void removeData(String query) throws SQLException {
-		try(Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(query)){
+		Connection conn = getConnection();
+		try(PreparedStatement statement = conn.prepareStatement(query)){
 			statement.execute();
 		} catch(SQLException e){
 			e.printStackTrace();
+		}
+		// if datasource, give back the conn to the pool
+		if(this.datasourceConnected) {
+			conn.close();
 		}
 	}
 
