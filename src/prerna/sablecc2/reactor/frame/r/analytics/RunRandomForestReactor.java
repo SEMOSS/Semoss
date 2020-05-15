@@ -159,12 +159,6 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 			sb.append(TREE + " <- get_tree(\"" + assetFolder + "\", 1, 1);");
 			// execute R
 			this.rJavaTranslator.runR(sb.toString());
-			
-			// clean up r temp variables
-			StringBuilder cleanUpScript = new StringBuilder();
-			cleanUpScript.append("rm(" + dtNameIF + ",getRF,getRFResults);");
-			cleanUpScript.append("gc();");
-			this.rJavaTranslator.runR(cleanUpScript.toString());
 
 			// construct map of model summary data to return to front end
 			Map<String, Object> retMap = new HashMap<>();
@@ -223,12 +217,6 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 			// execute R
 			this.rJavaTranslator.runR(sb.toString());
 			
-			// clean up r temp variables
-			StringBuilder cleanUpScript = new StringBuilder();
-			cleanUpScript.append("rm(" + dtNameIF + ",getRF,getRFResults);");
-			cleanUpScript.append("gc();");
-			this.rJavaTranslator.runR(cleanUpScript.toString());
-			
 			// create and return grid task if predict was successful
 			double[] runResult = this.rJavaTranslator.getDoubleArray(RF_VARIABLE + "[[1]]");
 			if (runResult[0] == 0) {
@@ -280,6 +268,13 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 			noun = new NounMetadata(taskData2, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Dendrogram updated"));
 		}
+		
+		// clean up r temp variables
+		StringBuilder cleanUpScript = new StringBuilder();
+		cleanUpScript.append("rm(" + dtNameIF + ",getRF,getRFResults);");
+		cleanUpScript.append("gc();");
+		this.rJavaTranslator.runR(cleanUpScript.toString());
+
 		return noun;
 	}
 
