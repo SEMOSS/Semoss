@@ -33,9 +33,9 @@ public final class RReactor extends AbstractReactor {
 		logger.info("Execution r script: " + code);
 		String output = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-		output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getAppMap());
+			output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getAppMap());
 		} else {
-		output = rJavaTranslator.runRAndReturnOutput(code);
+			output = rJavaTranslator.runRAndReturnOutput(code);
 		}
 		List<NounMetadata> outputs = new Vector<>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
