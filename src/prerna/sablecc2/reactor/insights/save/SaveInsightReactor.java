@@ -163,7 +163,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 	    stepCounter++;
 	    // delete the cache folder for the new insight
-	 	InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), newRdbmsId);
+	 	InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), newRdbmsId, false);
 
 		// write pipeline
 		if(pipeline != null && !pipeline.isEmpty()) {

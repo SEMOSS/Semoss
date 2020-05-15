@@ -256,8 +256,10 @@ public class InsightCacheUtility {
 	 * @param engineName
 	 * @param rdbmsId
 	 */
-	public static void deleteCache(String engineId, String engineName, String rdbmsId) {
-		ClusterUtil.reactorPullApp(engineId);
+	public static void deleteCache(String engineId, String engineName, String rdbmsId, boolean pullCloud) {
+		if(pullCloud) {
+			ClusterUtil.reactorPullApp(engineId);
+		}
 		String folderDir = getInsightCacheFolderPath(engineId, engineName, rdbmsId);
 		File folder = new File(Utility.normalizePath(folderDir)); 
 		if(!folder.exists()) {
@@ -268,7 +270,9 @@ public class InsightCacheUtility {
 		for(File f : cacheFiles) {
 			ICache.deleteFile(f);
 		}
-		ClusterUtil.reactorPushApp(engineId);
+		if(pullCloud) {
+			ClusterUtil.reactorPushApp(engineId);
+		}
 	}
 	
 	public static void unzipFile(ZipFile zip, String name, String path) throws FileNotFoundException {
