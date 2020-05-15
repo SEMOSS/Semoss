@@ -360,7 +360,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		try {
 			//Statement stmt = this.conn.createStatement();
 			PreparedStatement stmt = this.conn.prepareStatement(query);
-			return stmt.executeQuery(query);
+			return stmt.executeQuery();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
