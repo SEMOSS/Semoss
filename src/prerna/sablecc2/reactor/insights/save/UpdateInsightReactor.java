@@ -110,7 +110,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		}
 		
 		// delete the cache
-		InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), existingId);
+		InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), existingId, true);
 		// update recipe text file
 		logger.info("3) Update Mosfet file for collaboration");
 		updateRecipeFile(engine.getEngineId(), engine.getEngineName(), 
