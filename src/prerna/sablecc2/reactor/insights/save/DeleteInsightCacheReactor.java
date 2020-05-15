@@ -38,7 +38,7 @@ public class DeleteInsightCacheReactor extends AbstractReactor {
 		String appName = MasterDatabaseUtility.getEngineAliasForId(appId);
 		
 		try {
-			InsightCacheUtility.deleteCache(appId, appName, rdbmsId);
+			InsightCacheUtility.deleteCache(appId, appName, rdbmsId, true);
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch(Exception e) {
 			return new NounMetadata(false, PixelDataType.BOOLEAN);
