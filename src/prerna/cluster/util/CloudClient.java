@@ -81,7 +81,6 @@ public abstract class CloudClient {
 		List<String> commandList = new ArrayList<>();
 		commandList.addAll(Arrays.asList(command));
 		commandList.add("--config");
-		System.out.println("remove");
 		commandList.add(configPath);
 		String[] newCommand = commandList.toArray(new String[] {});
 		return runAnyProcess(newCommand);	
