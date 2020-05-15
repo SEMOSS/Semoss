@@ -142,10 +142,9 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 		}
 
 		// we'll write to TSV and load into data.table to avoid rJava setup
-		final String sep = java.nio.file.FileSystems.getDefault().getSeparator();
 		String random = Utility.getRandomString(10);
-		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + sep + "R"
-				+ sep + "Temp" + sep + "output" + random + ".tsv";
+		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + DIR_SEPARATOR + "R"
+				+ DIR_SEPARATOR + "Temp" + DIR_SEPARATOR + "output" + random + ".tsv";
 		try {
 			gridFrame.getBuilder().runQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM "
 					+ gridFrame.getName() + "', 'charset=UTF-8 fieldDelimiter= fieldSeparator=' || CHAR(9));");
