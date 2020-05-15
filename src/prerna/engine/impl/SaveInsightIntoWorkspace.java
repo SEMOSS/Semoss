@@ -133,7 +133,7 @@ class InsightCacher implements Runnable {
 					insightAdmin.updateInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false);
 					SecurityInsightUtils.updateInsight(this.workspaceAppId, this.workspaceSavedInsightId, inName, true, "default");
 					// delete the cache if it is there
-					InsightCacheUtility.deleteCache(this.workspaceAppId, this.workspaceAppName, this.workspaceSavedInsightId);
+					InsightCacheUtility.deleteCache(this.workspaceAppId, this.workspaceAppName, this.workspaceSavedInsightId, true);
 
 				} else {
 					// create new
