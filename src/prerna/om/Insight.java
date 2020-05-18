@@ -725,6 +725,7 @@ public class Insight {
 				this.jepThread = pyt.getPy();
 			}
 		}
+		this.pyt.setInsight(this);
 		return this.pyt;
 	}
 	
