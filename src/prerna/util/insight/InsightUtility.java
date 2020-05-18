@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
+import prerna.om.InsightPanel;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.InMemStore;
@@ -30,7 +31,8 @@ import prerna.util.gson.FrameCacheHelper;
 public class InsightUtility {
 
 	protected static final Logger LOGGER = LogManager.getLogger(InsightUtility.class.getName());
-
+	private static final String PANEL_VIEW_VISUALIZATION = "visualization";
+	
 	private InsightUtility() {
 		
 	}
@@ -75,6 +77,20 @@ public class InsightUtility {
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Set the insight panel to be a visualization
+	 * @param insight
+	 * @param panelId
+	 */
+	public static void setPanelForVisualization(Insight insight, String panelId) {
+		InsightPanel insightPanel = insight.getInsightPanel(panelId);
+		if(insightPanel != null) {
+			if(!PANEL_VIEW_VISUALIZATION.equals(insightPanel.getPanelView())) {
+				insightPanel.setPanelView(PANEL_VIEW_VISUALIZATION);
+			}
+		}
 	}
 	
 	/**
