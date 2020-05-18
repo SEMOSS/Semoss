@@ -625,4 +625,7 @@ public class Constants {
 	// embed url
 	public static final String EMBED_URL_LOGO = "EMBED_URL_LOGO";
 	
+	// do not encode the log
+	public static final String LOG_ENCODING = "LOG_ENCODING";
+	
 }
