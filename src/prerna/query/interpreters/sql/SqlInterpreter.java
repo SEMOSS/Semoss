@@ -1453,6 +1453,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		return new String[]{conceptPhysical, propertyPhysical};
 	}
 	
+	public List<String> getFilterStatements() {
+		return this.filterStatements;
+	}
 	
 	////////////////////////////////////////// end other utility methods ///////////////////////////////////////////
 	
