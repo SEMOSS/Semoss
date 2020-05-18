@@ -105,7 +105,7 @@ import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
-import org.owasp.esapi.ESAPI;
+import org.owasp.encoder.Encode;
 
 import com.google.gson.GsonBuilder;
 import com.ibm.icu.math.BigDecimal;
@@ -3048,7 +3048,10 @@ public class Utility {
 			return message;
 		}
 		message = message.replace('\n', '_').replace('\r', '_').replace('\t', '_');
-		message = ESAPI.encoder().encodeForHTML(message);
+		if(DIHelper.getInstance().coreProp != null && Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.LOG_ENCODING) + "")) {
+			message = Encode.forHtml(message);
+		}
+
 		return message;
 	}
 
@@ -3095,8 +3098,8 @@ public class Utility {
 				.replace("%0a", "_")
 				.replace('\t', '_')
 				.replace("%09", "_");
-				
-		//message = ESAPI.encoder().encodeForHTML(message);
+
+		message = Encode.forHtml(message);
 		return message;
 	}
 
