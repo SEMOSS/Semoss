@@ -34,6 +34,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -397,19 +398,6 @@ public abstract class AbstractEngine implements IEngine {
 		
 		// yay! even more updates
 		if(this.insightRdbms != null) {
-			// TODO: this is new code to convert
-			// TODO: this is new code to convert
-			// TODO: this is new code to convert
-			// TODO: this is new code to convert
-//			String updatedInsights = prop.getProperty(Constants.PIXEL_UPDATE);
-//			if(updatedInsights == null) {
-//				updateToPixelInsights();
-//				Utility.updateSMSSFile(propFile, Constants.PIXEL_UPDATE, "true");
-//			} else if(!Boolean.parseBoolean(updatedInsights)){
-//				updateToPixelInsights();
-//				Utility.changePropMapFileValue(propFile, Constants.PIXEL_UPDATE, "true");
-//			}
-			
 			// update explore an instance query!!!
 			updateExploreInstanceQuery(this.insightRdbms);
 		}
@@ -1377,11 +1365,11 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	public String decryptPass(String propFile, boolean insight) {
+		propFile = Utility.normalizePath(propFile);
 		String retString = null;
 		try {
-			File propF = new File(Utility.normalizePath(propFile));
-			Properties prop = new Properties();
-			prop.load(new FileInputStream(propF));
+			File propF = new File(propFile);
+			Properties prop = Utility.loadProperties(propFile);
 			String dir = propF.getParent() + DIR_SEPARATOR + SmssUtilities.getUniqueName(prop);
 			String passwordFileName = dir + DIR_SEPARATOR + ".pass";
 			if(insight) {
@@ -1406,10 +1394,11 @@ public abstract class AbstractEngine implements IEngine {
 
 
 	public Properties encryptPropFile(String propFile) {
+		propFile = Utility.normalizePath(propFile);
+		OutputStream os = null;
 		try {
-			Properties prop = new Properties();
-			File propF = new File(Utility.normalizePath(propFile));
-			prop.load(new FileInputStream(propF));
+			File propF = new File(propFile);
+			Properties prop = Utility.loadProperties(propFile);
 
 			String passToEncrypt = null;
 			String insightPassToEncrypt = null;
@@ -1438,8 +1427,8 @@ public abstract class AbstractEngine implements IEngine {
 			if(passToEncrypt != null && !passToEncrypt.equalsIgnoreCase("encrypted password") || 
 					(insightPassToEncrypt != null && insightPassToEncrypt.equalsIgnoreCase("encrypted password"))) {
 				// add the insight_password
-				prop.store(new FileOutputStream(new File(propFile)), "Encrypted the password");
-				propF = new File(Utility.normalizePath(propFile));
+				os = new FileOutputStream(propF);
+				prop.store(os, "Encrypted the password");
 				
 				// find the password to be used
 				// use the property file as a input
@@ -1456,7 +1445,7 @@ public abstract class AbstractEngine implements IEngine {
 					}
 					
 					SnowApi snow = new SnowApi();		
-					//System.out.println("Using cretion time.. " + creationTime);
+					//System.out.println("Using creation time.. " + creationTime);
 					snow.encryptMessage(passToEncrypt, creationTime, propFile, passwordFileName);
 				}
 				
@@ -1468,7 +1457,7 @@ public abstract class AbstractEngine implements IEngine {
 						passFile.delete();
 					}
 					SnowApi snow = new SnowApi();		
-					//System.out.println("Using cretion time.. " + creationTime);
+					//System.out.println("Using creation time.. " + creationTime);
 					snow.encryptMessage(insightPassToEncrypt, creationTime, propFile, passwordFileName);
 				}
 			}
@@ -1478,7 +1467,16 @@ public abstract class AbstractEngine implements IEngine {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			if(os != null) {
+				try {
+					os.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
+		
 		return null;
 	}
 		
