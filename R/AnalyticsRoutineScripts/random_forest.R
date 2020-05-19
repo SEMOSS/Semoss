@@ -69,7 +69,7 @@ rfmodel_mgr<-function(ind_vars,dep_var,trainFrame,model_fn="rf",mis_data="as_is"
 		TREE_NUMBER<-1
 		
 		# fill in missing data per user action
-		trainFrame<-mis_data_action(trainFrame,c(ind_vars,dep_var),mis_data)
+		trainFrame<-mis_data_action_rf(trainFrame,c(ind_vars,dep_var),mis_data)[[1]]
 		n<-nrow(trainFrame)
 		if(n>0){
 			models<-list()
@@ -214,7 +214,7 @@ predict_rfmodel<-function(newFrame,model_fn="rf",mis_data="as_is"){
 	if(nrow(in_frame)>0){
 		if(mis_data %in% ACTIONS){
 			# fill in missing data per user action
-			r<-mis_data_action(newFrame,colnames(newFrame),mis_data)
+			r<-mis_data_action_rf(newFrame,colnames(newFrame),mis_data)
 			newFrame<-r[[1]]
 			valid_rows<-r[[2]]
 			
@@ -342,7 +342,7 @@ build_tree<-function(dep_var,model,nbr){
 }
 
 
-mis_data_action<-function(in_df,attrs,mis_data){
+mis_data_action_rf<-function(in_df,attrs,mis_data){
 # Performs missing data action
 # Args
 # in_df - a dataframe to perform missing data action on
