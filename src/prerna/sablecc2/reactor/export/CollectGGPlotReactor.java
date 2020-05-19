@@ -116,7 +116,12 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		// run the job
 		rJavaTranslator.runRAndReturnOutput(loadDT+adjustTypes);
 
-		StringBuilder ggplotter = new StringBuilder("{library(\"ggplot2\");"); // library(\"RCurl\");");
+		// run the ggplot with this frame as the data
+		// we will refer to it as the plotterframe
+		StringBuilder ggplotter = new StringBuilder("plotterframe <- " + fileName + ";");
+
+		
+		ggplotter = new StringBuilder("{library(\"ggplot2\");"); // library(\"RCurl\");");
 		if(animate)
 			ggplotter.append("library(\"gganimate\");");
 
@@ -141,6 +146,8 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 
 		ggplotter.append("}");
 
+		
+		
 		// run the ggplotter command
 		rJavaTranslator.runRAndReturnOutput(ggplotter.toString());
 
@@ -285,7 +292,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 			return super.getDescriptionForKey(key);
 		}
 	}
-	
+		
 
 	// encoding
 	// uses RCurl

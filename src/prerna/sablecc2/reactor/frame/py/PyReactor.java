@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -14,6 +15,7 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -84,6 +86,16 @@ public class PyReactor extends AbstractReactor {
 		// need something here to adjust the types
 		// need to move this to utilities 
 		// will move it once we have figured it out
+		ITableDataFrame frame = insight.getCurFrame();
+		
+		String frameName = frame.getName();
+		String assigner = "";
+		if(command.contains(frameName))
+		{
+			command = command.replace(frameName, "plotterframe");
+			assigner = "plotterframe = " + frameName;
+		}
+
 		
 		String importSeaborn = "import seaborn as sns";
 		String runPlot = "daplot = " + command;
@@ -94,7 +106,7 @@ public class PyReactor extends AbstractReactor {
 		String removeSeaborn = "del(sns)";
 		String removeSaveFile = "del(saveFile)";
 		
-		seabornFile = (String)pyt.runPyAndReturnOutput(importSeaborn, saveFileName, runPlot, savePlot, removeSeaborn, printFile, removeSaveFile);
+		seabornFile = (String)pyt.runPyAndReturnOutput(assigner, importSeaborn, saveFileName, runPlot, savePlot, removeSeaborn, printFile, removeSaveFile);
 
 		// get the insight folder
 		String IF = insight.getInsightFolder();
@@ -115,6 +127,8 @@ public class PyReactor extends AbstractReactor {
 		}
 
 		new File(seabornFile).delete();
+		String [] headers = frame.getColumnHeaders();
+
 		
 		// Need to figure out if I am trying to delete the image and URI encode it at some point.. 
 		ConstantDataTask cdt = new ConstantDataTask();
@@ -125,15 +139,27 @@ public class PyReactor extends AbstractReactor {
 		// need to do all the sets
 		cdt.setFormat("TABLE");
 		
+		// compose a headers info List of Map with 2 keys name, alias
+		List <Map<String, Object>> headerInfo = new ArrayList<Map<String, Object>>();
+		for(int headIndex = 0;headIndex < headers.length;headIndex++)
+		{
+			String thisHeader = headers[headIndex];
+			Map thisMap = new HashMap();
+			thisMap.put("header", thisHeader);
+			thisMap.put("alias", thisHeader);
+			headerInfo.add(thisMap);
+		}
+		cdt.setHeaderInfo(headerInfo);
+
 		Map <String, Object> optionMap = new HashMap<String, Object>();
 		optionMap.put("layout", "Seaborn");
 		
 		// alignment={ggplot=[], selectors=[MovieBudget, RevenueDomestic]}}
-		Map<String,Object> alignmentMap = new HashMap<String, Object>();
-		alignmentMap.put("Seaborn", new String[] {});
-		alignmentMap.put("selector",new String[] {"a", "b"});
+		//   {0={layout=GGPlot, alignment={ggplot=[], selectors=[MovieBudget, RevenueDomestic]}}}
+		Map<String, Object> alignmentMap = new Hashtable<String, Object>();
+		alignmentMap.put("seaborn", new String[] {});
+		alignmentMap.put("selectors", headers);
 		optionMap.put("alignment", alignmentMap);
-		
 		// leaving out the alignment
 		//optionMap.put(key, value)
 		Map <String, Object> panelMap = new HashMap<String, Object>();
@@ -143,9 +169,6 @@ public class PyReactor extends AbstractReactor {
 		TaskOptions options = new TaskOptions(panelMap);
 		
 		cdt.setTaskOptions(options);
-		//cdt.setHeaderInfo(task.getHeaderInfo());
-		//cdt.setSortInfo(task.getSortInfo());
-		//cdt.setId(task.getId());
 		Map<String, Object> formatMap = new Hashtable<String, Object>();
 		formatMap.put("type", "TABLE");
 		cdt.setFormatMap(formatMap);
@@ -156,8 +179,8 @@ public class PyReactor extends AbstractReactor {
 		
 		String bin = sw.toString();
 		
-		outputMap.put("headers", new String[] {});
-		outputMap.put("rawHeaders", new String[] {});
+		outputMap.put("headers", headers);
+		outputMap.put("rawHeaders", headers);
 		outputMap.put("values", new String[]{bin});
 		outputMap.put("splot", command);	
 		outputMap.put("format", format);

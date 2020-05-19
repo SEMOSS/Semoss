@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -14,6 +15,7 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc.ReactorSecurityManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -74,7 +76,18 @@ public final class RReactor extends AbstractReactor {
 		if(!tempDir.exists())
 			tempDir.mkdir();
 
+		ITableDataFrame frame = insight.getCurFrame();
+		String [] headers = frame.getColumnHeaders();
+		
 		StringBuilder ggplotter = new StringBuilder("{library(\"ggplot2\");"); // library(\"RCurl\");");
+
+		
+		String frameName = frame.getName();
+		if(ggplotCommand.contains(frameName))
+		{
+			ggplotCommand = ggplotCommand.replace(frameName, "plotterframe");
+			ggplotter.append("plotterframe = " + frameName + ";");
+		}
 		//ggplotter.append("library(\"gganimate\");");
 
 		// now it is just running the ggplotter
@@ -127,7 +140,19 @@ public final class RReactor extends AbstractReactor {
 		// TaskOptions options = new TaskOptions(optionMap);
 		// need to do all the sets
 		cdt.setFormat("TABLE");
-		//cdt.setHeaderInfo(task.getHeaderInfo());
+		
+		// compose a headers info List of Map with 2 keys name, alias
+		List <Map<String, Object>> headerInfo = new ArrayList<Map<String, Object>>();
+		for(int headIndex = 0;headIndex < headers.length;headIndex++)
+		{
+			String thisHeader = headers[headIndex];
+			Map thisMap = new HashMap();
+			thisMap.put("header", thisHeader);
+			thisMap.put("alias", thisHeader);
+			headerInfo.add(thisMap);
+		}
+		
+		cdt.setHeaderInfo(headerInfo);
 		//cdt.setSortInfo(task.getSortInfo());
 		//cdt.setId(task.getId());
 		Map<String, Object> formatMap = new Hashtable<String, Object>();
@@ -135,10 +160,14 @@ public final class RReactor extends AbstractReactor {
 		cdt.setFormatMap(formatMap);
 		
 		//   {0={layout=GGPlot, alignment={ggplot=[], selectors=[MovieBudget, RevenueDomestic]}}}
+		Map<String, Object> alignmentMap = new Hashtable<String, Object>();
+		alignmentMap.put("ggplot", new String[] {});
+		alignmentMap.put("selectors", headers);
+
 
 		Map <String, Object> optionMap = new HashMap<String, Object>();
 		optionMap.put("layout", "GGPlot");
-
+		optionMap.put("alignment", alignmentMap);
 		// leaving out the alignment
 		//optionMap.put(key, value)
 		Map <String, Object> panelMap = new HashMap<String, Object>();
@@ -147,9 +176,6 @@ public final class RReactor extends AbstractReactor {
 		TaskOptions options = new TaskOptions(panelMap);
 		
 		cdt.setTaskOptions(options);
-		//cdt.setHeaderInfo();
-		//cdt.setSortInfo(task.getSortInfo());
-		//cdt.setId(task.getId());
 
 		Map<String, Object> outputMap = new HashMap<String, Object>();
 
@@ -178,8 +204,11 @@ public final class RReactor extends AbstractReactor {
 		// remove the variable
 		rJavaTranslator.runRAndReturnOutput(ggremove);
 
-		outputMap.put("headers", new String[] {});
-		outputMap.put("rawHeaders", new String[] {});
+		
+
+		
+		outputMap.put("headers", headers);
+		outputMap.put("rawHeaders", headers);
 		outputMap.put("values", new String[]{sw.toString()});
 		outputMap.put("ggplot", ggplotCommand);	
 		outputMap.put("format", format);
