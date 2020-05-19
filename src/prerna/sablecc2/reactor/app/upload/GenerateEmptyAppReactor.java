@@ -13,6 +13,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -149,6 +150,9 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 				SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
 			}
 		}
+		
+		// need to push this onto the cloud
+		ClusterUtil.reactorPushApp(appId);
 		
 		return new NounMetadata(appId, PixelDataType.CONST_STRING);
 	}
