@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.log4j.Logger;
@@ -23,6 +24,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -61,13 +63,20 @@ public class ExportAppReactor extends AbstractReactor {
 		logger.info("Exporting Database Now... ");
 		logger.info("Stopping the engine ... ");
 		// remove the app
-		IEngine engine = Utility.getEngine(appId);
-		engine.closeDB();
-		String engineName = engine.getEngineName();
-		String OUTPUT_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/export/ZIPs";
-		String engineDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(engineName, appId);
-		String zipFilePath = OUTPUT_PATH + "/" + engineName + ".zip";
+		
+		String zipFilePath = null;
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
 		try {
+			IEngine engine = Utility.getEngine(appId);
+			DIHelper.getInstance().removeLocalProperty(appId);
+			engine.closeDB();
+			
+			String engineName = engine.getEngineName();
+			String OUTPUT_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/export/ZIPs";
+			String engineDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(engineName, appId);
+			zipFilePath = OUTPUT_PATH + "/" + engineName + ".zip";
+			
 			// zip database
 			ZipOutputStream zos = null;
 			try {
@@ -94,12 +103,12 @@ public class ExportAppReactor extends AbstractReactor {
 				}
 			}
 
-			DIHelper.getInstance().removeLocalProperty(appId);
 			logger.info("Synchronize Database Complete");
 		} finally {
 			// open it back up
 			logger.info("Opening the engine again ... ");
 			Utility.getEngine(appId);
+			lock.unlock();
 		}
 
 		// store it in the insight so the FE can download it
