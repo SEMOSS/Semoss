@@ -77,8 +77,6 @@ import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.Vector;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
@@ -155,8 +153,6 @@ public class Utility {
 
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
 	private static final String STACKTRACE = "StackTrace: ";
-
-	private static ConcurrentMap<String, ReentrantLock> engineLocks = new ConcurrentHashMap<>();
 
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
@@ -2513,17 +2509,13 @@ public class Utility {
 		// Don't acquire the lock here, because that would slow things down
 		if (DIHelper.getInstance().getLocalProp(engineId) != null) {
 			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineId);
-
-			// TODO >>>timb: why is this here?
-			engineLocks.remove(engineId);
-
-			// Else, need to load the engine
 		} else {
-
+			// Else, need to load the engine
+			
 			// Acquire the lock on the engine,
 			// don't want several calls to try and load the engine at the same
 			// time
-			ReentrantLock lock = getEngineLock(engineId);
+			ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 			lock.lock();
 
 			// Need to do a double check here,
@@ -2552,27 +2544,8 @@ public class Utility {
 
 				// Start up the engine using the details in the smss
 				if (smssFile != null) {
-
-					// Actual process to load
-					// TODO >>>timb: clean this up while we are at it
-					FileInputStream fis = null;
-					try {
-						Properties daProp = new Properties();
-						fis = new FileInputStream(smssFile);
-						daProp.load(fis);
-						engine = Utility.loadEngine(smssFile, daProp);
-						logger.debug("Loaded the engine.. !!!!! " + engineId);
-					} catch (IOException ioe) {
-						logger.error(STACKTRACE, ioe);
-					} finally {
-						if (fis != null) {
-							try {
-								fis.close();
-							} catch (IOException ioe) {
-								logger.error(STACKTRACE, ioe);
-							}
-						}
-					}
+					// actual load engine process
+					engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
 				} else {
 					logger.debug("There is no SMSS File for the engine " + engineId + "...");
 				}
@@ -2606,18 +2579,12 @@ public class Utility {
 					}
 				}
 			} finally {
-
 				// Make sure to unlock now
 				lock.unlock();
 			}
 		}
 
 		return engine;
-	}
-
-	private static ReentrantLock getEngineLock(String engineName) {
-		engineLocks.putIfAbsent(engineName, new ReentrantLock());
-		return engineLocks.get(engineName);
 	}
 
 	public static HashMap<String, Object> getPKQLInputVar(String param, String reactor) {
