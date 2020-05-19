@@ -839,6 +839,14 @@ public class Insight {
 		return null;
 	}
 	
+	public ITableDataFrame getCurFrame()
+	{
+		Object frame = getDataMaker();
+		if(frame != null)
+			return (ITableDataFrame)frame;
+		return null;
+	}
+	
 	public void setDataMaker(IDataMaker datamaker) {
 		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
 	}
