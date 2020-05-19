@@ -13,6 +13,7 @@ import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IRawSelectWrapper;
@@ -79,31 +80,42 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		for(int i = 0; i < headers.length; i++) {
 			typeMap.put(headers[i],sTypes[i]);
 		}
-		
-		// I need to see how to get this to temp
+		String assignPlotter = "";
 		String fileName = Utility.getRandomString(6);
-		String dir = insight.getUserFolder() + "/Temp";
-		dir = dir.replaceAll("\\\\", "/");
-		File tempDir = new File(dir);
-		if(!tempDir.exists())
-			tempDir.mkdir();
-		String outputFile = dir + "/" + fileName + ".csv";
-		Utility.writeResultToFile(outputFile, this.task, ",");
-
-		// need something here to adjust the types
-		// need to move this to utilities 
-		// will move it once we have figured it out
-		// at some point the encoding etc. needs to be fixed
-		String loadDT = fileName + " = pd.read_csv(\"" + outputFile + "\");";
-		// adjust the types
-		String adjustTypes = Utility.adjustTypePy(fileName, headers, typeMap);
-		// run the job
-		//pyt.runEmptyPy(loadDT, adjustTypes);
-		// now comes the building part
-		// I need to ask kunal if he mauls the path so I cannot load seaborn anymore
-		
+		String loadDT = "";
+		String adjustTypes = "";
+		// I need to see how to get this to temp
+		if(headers != null) // if they are using this natively, go with it
+		{
+			String dir = insight.getUserFolder() + "/Temp";
+			dir = dir.replaceAll("\\\\", "/");
+			File tempDir = new File(dir);
+			if(!tempDir.exists())
+				tempDir.mkdir();
+			String outputFile = dir + "/" + fileName + ".csv";
+			Utility.writeResultToFile(outputFile, this.task, ",");
+			// need something here to adjust the types
+			// need to move this to utilities 
+			// will move it once we have figured it out
+			// at some point the encoding etc. needs to be fixed
+			loadDT = fileName + " = pd.read_csv(\"" + outputFile + "\");";
+			// adjust the types
+			adjustTypes = Utility.adjustTypePy(fileName, headers, typeMap);
+			// run the job
+			//pyt.runEmptyPy(loadDT, adjustTypes);
+			// now comes the building part
+			// I need to ask kunal if he mauls the path so I cannot load seaborn anymore
+			assignPlotter = "plotterframe = " + fileName;
+		}
+		else
+		{
+			// give it the full frame name
+			ITableDataFrame frame = (ITableDataFrame)insight.getVarStore().get("$CUR_FRAME_KEY").getValue();
+			headers = frame.getColumnHeaders();
+			assignPlotter = "plotterframe = " + frame.getName();
+		}
 		String importSeaborn = "import seaborn as sns";
-		String assignPlotter = "plotterFrame = " + fileName;
+		assignPlotter = "plotterFrame = " + fileName;
 		String runPlot = "daplot = sns.relplot(" + splot + ")";
 		String seabornFile = Utility.getRandomString(6);
 		String printFile = "print(saveFile)";
@@ -134,7 +146,6 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		}
 
 		// remove the csv and the generated jpeg
-		new File(outputFile).delete();
 		new File(seabornFile).delete();
 		
 		// Need to figure out if I am trying to delete the image and URI encode it at some point.. 
