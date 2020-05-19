@@ -2,10 +2,10 @@ package prerna.cluster.util;
 
 import java.io.File;
 import java.io.IOException;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
 
@@ -16,6 +16,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineSyncUtility;
 import prerna.util.SMSSWebWatcher;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -188,7 +189,10 @@ public class S3Client extends CloudClient {
 		String smssFile = dbFolder + FILE_SEPARATOR + smss;
 
 		String rCloneConfig = null;
-
+		
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			String smssContainer = appId + SMSS_POSTFIX;
@@ -200,6 +204,7 @@ public class S3Client extends CloudClient {
 			// Close the database, so that we can push without file locks (also ensures that
 			// the db doesn't change mid push)
 			try {
+				DIHelper.getInstance().removeLocalProperty(appId);
 				engine.closeDB();
 
 				// Push the app folder
@@ -229,15 +234,15 @@ public class S3Client extends CloudClient {
 				}
 
 				// Re-open the database
-				if (engineType != ENGINE_TYPE.APP) {
-					DIHelper.getInstance().removeLocalProperty(appId);
-					Utility.getEngine(appId, false, true);
-				}
+				Utility.getEngine(appId, false, true);
 			}
 		} finally {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
 			}
+			
+			// always unlock regardless of errors
+			lock.unlock();
 		}
 	}
 
@@ -257,6 +262,10 @@ public class S3Client extends CloudClient {
 		}
 		String smssContainer = appId + SMSS_POSTFIX;
 		String rCloneConfig = null;
+		
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf",
@@ -279,6 +288,7 @@ public class S3Client extends CloudClient {
 			// locks
 			try {
 				if (!newApp && engine != null) {
+					DIHelper.getInstance().removeLocalProperty(appId);
 					engine.closeDB();
 				}
 
@@ -306,7 +316,6 @@ public class S3Client extends CloudClient {
 
 				// Re-open the database (if an existing app)
 				if (!newApp) {
-					DIHelper.getInstance().removeLocalProperty(appId);
 					Utility.getEngine(appId, false, true);
 				}
 			}
@@ -314,6 +323,9 @@ public class S3Client extends CloudClient {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
 			}
+			
+			// always unlock regardless of errors
+			lock.unlock();
 		}
 	}
 
@@ -468,7 +480,10 @@ public class S3Client extends CloudClient {
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 		try {
 			rCloneConfig = createRcloneConfig(appId);
+
+			DIHelper.getInstance().removeLocalProperty(appId);
 			engine.closeDB();
+			
 			logger.info("Pulling database for" + appFolder + " from remote=" + appId);
 			if (e == RdbmsTypeEnum.SQLITE) {
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
@@ -484,7 +499,6 @@ public class S3Client extends CloudClient {
 			}
 
 			// open the engine again
-			DIHelper.getInstance().removeLocalProperty(appId);
 			Utility.getEngine(appId, false, true);
 		} finally {
 			if (rCloneConfig != null) {

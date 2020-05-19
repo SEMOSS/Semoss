@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -31,6 +32,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineSyncUtility;
 import prerna.util.SMSSWebWatcher;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -335,7 +337,10 @@ public class AZClient extends CloudClient {
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
+			
+			DIHelper.getInstance().removeLocalProperty(appId);
 			engine.closeDB();
+			
 			logger.debug("Pulling database for" + appFolder + " from remote=" + appId);
 			if(e == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
@@ -349,7 +354,6 @@ public class AZClient extends CloudClient {
 			}
 			
 			//open the engine again
-			DIHelper.getInstance().removeLocalProperty(appId);
 			Utility.getEngine(appId, false, true);
 		} finally {
 			if (appRcloneConfig != null) {
@@ -452,6 +456,10 @@ public class AZClient extends CloudClient {
 		// Start with the sas token
 		String appRcloneConfig = null;
 		String smssRCloneConfig = null;
+		
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			String smssContainer = appId + SMSS_POSTFIX;
@@ -463,6 +471,7 @@ public class AZClient extends CloudClient {
 
 			// Close the database, so that we can push without file locks (also ensures that the db doesn't change mid push)
 			try {
+				DIHelper.getInstance().removeLocalProperty(appId);
 				engine.closeDB();
 
 				// Push the app folder
@@ -490,12 +499,7 @@ public class AZClient extends CloudClient {
 				}
 
 				// Re-open the database
-
-				if (engineType != ENGINE_TYPE.APP){
-					DIHelper.getInstance().removeLocalProperty(appId);
-					Utility.getEngine(appId, false, true);
-				}
-	
+				Utility.getEngine(appId, false, true);
 			}
 		} finally {
 			if (appRcloneConfig != null) {
@@ -504,10 +508,10 @@ public class AZClient extends CloudClient {
 			if (smssRCloneConfig != null) {
 				deleteRcloneConfig(smssRCloneConfig);
 			}
+			// always unlock regardless of errors
+			lock.unlock();
 		}
 	}
-
-
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////// Pull ////////////////////////////////////////////
@@ -530,6 +534,10 @@ public class AZClient extends CloudClient {
 		// Start with the sas token
 		String appRcloneConfig = null;
 		String smssRcloneConfig = null;
+		
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			smssRcloneConfig = createRcloneConfig(smssContainer);
@@ -553,6 +561,7 @@ public class AZClient extends CloudClient {
 			// Close the database (if an existing app), so that we can pull without file locks
 			try {
 				if (!newApp) {
+					DIHelper.getInstance().removeLocalProperty(appId);
 					engine.closeDB();
 				}
 
@@ -580,7 +589,6 @@ public class AZClient extends CloudClient {
 
 				// Re-open the database (if an existing app)
 				if (!newApp) {
-					DIHelper.getInstance().removeLocalProperty(appId);
 					Utility.getEngine(appId, false, true);
 				}
 			}
@@ -591,6 +599,8 @@ public class AZClient extends CloudClient {
 			if (smssRcloneConfig != null) {
 				deleteRcloneConfig(smssRcloneConfig);
 			}
+			// always unlock regardless of errors
+			lock.unlock();
 		}
 	}
 
