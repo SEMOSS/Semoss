@@ -18,16 +18,18 @@ public class AddPanelIfAbsentReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		// first input is the name of the panel
 		String panelId = this.curRow.get(0).toString();
-		InsightPanel newPanel = this.insight.getInsightPanels().get(panelId);
-		if(newPanel == null) {
+		InsightPanel panel = this.insight.getInsightPanels().get(panelId);
+		if(panel == null) {
 			String sheetId = this.keyValue.get(this.keysToGet[1]);
 			if(sheetId == null) {
 				sheetId = Insight.DEFAULT_SHEET_ID;
 			}
-			newPanel = new InsightPanel(panelId, sheetId);
-			this.insight.addNewInsightPanel(newPanel);
+			panel = new InsightPanel(panelId, sheetId);
+			this.insight.addNewInsightPanel(panel);
+			NounMetadata noun = new NounMetadata(panel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN);
+			return noun;
 		}
-		NounMetadata noun = new NounMetadata(newPanel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN);
+		NounMetadata noun = new NounMetadata(panel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN_IF_ABSENT);
 		return noun;
 	}
 }
