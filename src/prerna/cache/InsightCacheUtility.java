@@ -257,6 +257,10 @@ public class InsightCacheUtility {
 	 * @param rdbmsId
 	 */
 	public static void deleteCache(String engineId, String engineName, String rdbmsId, boolean pullCloud) {
+		// this is false on save insight
+		// because i do not want to pull when i save
+		// but i do want to delete the cache in case i am saving 
+		// from an existing insight as the .cache folder gets moved
 		if(pullCloud) {
 			ClusterUtil.reactorPullApp(engineId);
 		}
