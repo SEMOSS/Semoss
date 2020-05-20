@@ -84,6 +84,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			recipeToSave = getParamRecipe(recipeToSave, params, insightName);
 		}
 		
+		// pull the app
+		ClusterUtil.reactorPullApp(appId, true);
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
 			// we may have the alias
@@ -109,8 +111,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			logger.info("2) Done...");
 		}
 		
-		// delete the cache
-		InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), existingId, true);
 		// update recipe text file
 		logger.info("3) Update Mosfet file for collaboration");
 		updateRecipeFile(engine.getEngineId(), engine.getEngineName(), 
@@ -132,7 +132,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		// update the workspace cache for the saved insight
 		this.insight.setEngineId(engine.getEngineId());
 		this.insight.setInsightName(insightName);
-		
+
+		// delete the cache
+		// NOTE ::: We already pulled above, so we will not pull again to delete the cache
+		InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), existingId, false);
+		// push back to the cluster
 		ClusterUtil.reactorPushApp(appId);
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
