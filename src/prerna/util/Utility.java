@@ -1108,7 +1108,7 @@ public class Utility {
 				for (Enumeration<String> keys = params.keys(); keys.hasMoreElements();) {
 					String key = keys.nextElement();
 					String value = params.get(key);
-					uri.addParameter(key, value);
+					uri.addParameter(key, cleanHttpResponse(value));
 					nvps.add(new BasicNameValuePair(key, value));
 				}
 				get.setEntity(new UrlEncodedFormEntity(nvps));
