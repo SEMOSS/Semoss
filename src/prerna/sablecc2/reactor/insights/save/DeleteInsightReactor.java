@@ -77,7 +77,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		IEngine engine = Utility.getEngine(appId);
 		String appName = engine.getEngineName();
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
-		ClusterUtil.reactorPullApp(appId);
+		ClusterUtil.reactorPullApp(appId, true);
 
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		int size = grs.size();

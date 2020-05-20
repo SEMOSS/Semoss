@@ -248,13 +248,13 @@ public class S3Client extends CloudClient {
 
 	@Override
 	public void pullApp(String appId) throws IOException, InterruptedException {
-		pullApp(appId, true);
+		pullApp(appId, false);
 	}
 
 	@Override
-	protected void pullApp(String appId, boolean newApp) throws IOException, InterruptedException {
+	protected void pullApp(String appId, boolean appAlreadyLoaded) throws IOException, InterruptedException {
 		IEngine engine = null;
-		if (!newApp) {
+		if (appAlreadyLoaded) {
 			engine = Utility.getEngine(appId, false, true);
 			if (engine == null) {
 				throw new IllegalArgumentException("App not found...");
@@ -287,7 +287,7 @@ public class S3Client extends CloudClient {
 			// Close the database (if an existing app), so that we can pull without file
 			// locks
 			try {
-				if (!newApp && engine != null) {
+				if (appAlreadyLoaded) {
 					DIHelper.getInstance().removeLocalProperty(appId);
 					engine.closeDB();
 				}
@@ -309,13 +309,12 @@ public class S3Client extends CloudClient {
 				logger.info("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 				// Catalog the db if it is new
-				if (newApp) {
+				if (!appAlreadyLoaded) {
 					SMSSWebWatcher.catalogDB(smss, dbFolder);
 				}
 			} finally {
-
 				// Re-open the database (if an existing app)
-				if (!newApp) {
+				if (appAlreadyLoaded) {
 					Utility.getEngine(appId, false, true);
 				}
 			}
