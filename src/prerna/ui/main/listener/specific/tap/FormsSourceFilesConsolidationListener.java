@@ -29,7 +29,7 @@ public class FormsSourceFilesConsolidationListener extends AbstractListener {
 		JTextField formsSourceFolderTextField = (JTextField) DIHelper.getInstance().getLocalProp(ConstantsTAP.FORMS_SOURCE_FILE_DIRECTORY);
 		String selectedFormsFolder = formsSourceFolderTextField.getText();
 		
-		File sourceFolder = new File(selectedFormsFolder);
+		File sourceFolder = new File(Utility.normalizePath(selectedFormsFolder));
 		if(!sourceFolder.isDirectory()) {
 			Utility.showError("Source folder entered is not valid!");
 			return;
