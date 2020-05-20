@@ -45,7 +45,8 @@ public class RSyntaxHelper {
 //		javaRDatTimeTranslationMap.put("K", value); 	//Hour in am/pm (0-11)
 		javaRDatTimeTranslationMap.put("h", "%I"); 		//Hour in am/pm (1-12)
 		javaRDatTimeTranslationMap.put("m", "%M"); 		//Minute in hour
-		javaRDatTimeTranslationMap.put("s", "%S"); 		//Second in minute
+//		javaRDatTimeTranslationMap.put("s", "%S"); 		//Second in minute
+		javaRDatTimeTranslationMap.put("s", "%OS"); 	//Handles milliseconds as well
 		javaRDatTimeTranslationMap.put("S", "%OS"); 	//Millisecond
 //		javaRDatTimeTranslationMap.put("z", "%Z"); 		//tz (Pacific Standard Time; PST; GMT-08:00) ???? - TODO needs to be handled via the tz param
 		javaRDatTimeTranslationMap.put("Z", "%z"); 		//tz (-0800)
@@ -507,7 +508,7 @@ public class RSyntaxHelper {
 
 	public static String alterColumnTypeToDateTime(String tableName, String format,String colName) {
 		if(format == null) {
-			format = "%Y-%m-%d %H:%M:%S|NULL";
+			format = "%Y-%m-%d %H:%M:%OS|NULL";
 		}
 		String[] parsedFormat = format.split("\\|");
 		StringBuilder builder = new StringBuilder();
@@ -519,7 +520,7 @@ public class RSyntaxHelper {
 	
 	public static String alterColumnTypeToDateTime(String tableName, String format, List<String> cols) {
 		if(format == null) {
-			format = "%Y-%m-%d %H:%M:%S|NULL";
+			format = "%Y-%m-%d %H:%M:%OS|NULL";
 		}
 		//parse out the milliseconds options
 		String[] parsedFormat = format.split("\\|");
