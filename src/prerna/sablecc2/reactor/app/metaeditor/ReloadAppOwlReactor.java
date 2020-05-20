@@ -35,7 +35,10 @@ public class ReloadAppOwlReactor extends AbstractMetaEditorReactor {
 		// replace
 		engine.setBaseDataEngine(updatedOwlEngine);
 		// close the old engine
-		oldOwlEngine.closeDB();
+		// assuming it was loaded properly
+		if(oldOwlEngine != null) {
+			oldOwlEngine.closeDB();
+		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully reloaded app owl", 
