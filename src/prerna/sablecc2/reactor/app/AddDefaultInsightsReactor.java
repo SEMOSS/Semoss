@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -146,6 +147,9 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				
 			}
 		}
+		
+		// push to the cloud
+		ClusterUtil.reactorPushApp(appId);
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		if(addedInsight) {

@@ -551,21 +551,21 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public void closeDB() {
 		super.closeDB();
-		this.shutdown();
 		try {
 			if(this.useConnectionPooling){
 				this.engineConnected = false;
 				ConnectionUtils.closeConnection(this.engineConn);
+				closeDataSource();
 			} else {
 				if(this.engineConn != null && !this.engineConn.isClosed()) {
 					if(!this.engineConn.getAutoCommit()) {
 						this.engineConn.commit();
 					}
+					this.shutdown();
 					this.engineConn.close();
 					this.engineConnected = false;
 				}
 			}
-			closeDataSource();
 
 		} catch (SQLException e) {
 			e.printStackTrace();
