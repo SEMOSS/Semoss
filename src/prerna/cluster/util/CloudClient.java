@@ -50,7 +50,7 @@ public abstract class CloudClient {
 	
 	public  abstract void pullDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException;
 
-	protected abstract void pullApp(String appId, boolean newApp) throws IOException, InterruptedException; 
+	protected abstract void pullApp(String appId, boolean appAlreadyLoaded) throws IOException, InterruptedException; 
 	
 	public  abstract void pullImageFolder() throws IOException, InterruptedException;
 
