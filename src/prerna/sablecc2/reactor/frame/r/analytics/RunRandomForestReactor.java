@@ -65,55 +65,53 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 		// check for packages
 		String[] packages = new String[] { "data.table", "ranger", "plyr", "missRanger" };
 		this.rJavaTranslator.checkPackages(packages);
-		
-		// get frame
-		RDataTable frame = (RDataTable) getFrame();
-		String dtName = frame.getName();
-		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
-		boolean implicitFilter = false;
-		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
-		StringBuilder sb = new StringBuilder();
 
-		// retrieve inputs
-		String depVar = getClassificationColumn();		
-		List<String> attributes = getInputList(1);
-		attributes.remove(depVar);
-		String indVars = "c(";
-		for (int i = 0; i < attributes.size(); i++) {
-			if (i == attributes.size() - 1) {
-				indVars += "\"" + attributes.get(i) + "\"";
-			} else {
-				indVars += "\"" + attributes.get(i) + "\", ";
-			}
-		}
-		indVars += ")";
-		List<String> advancedSettings = getInputList(4);
+		// retrieve mode of the reactor call
 		String mode = this.keyValue.get(this.keysToGet[5]);
+		
+		// get file to save model to or predict from or get tree from
 		String fileName = this.keyValue.get(this.keysToGet[6]);
-		String nullHandlerType = getNullHandleType();
+		// get asset path
+		String space = this.keyValue.get(this.keysToGet[2]);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled()) + "/" + fileName;
 		
 		// initialize vars
 		String targetDt = null;
-		String assetFolder = null;
-		String sampleSize = null;
-		String sampleBlocks = null;
-		String treeDepth = null;
+		String nullHandlerType = null;
+		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
+		StringBuilder sb = new StringBuilder();
 		// initialize task
-		ITask taskData1 = null;
-		ITask taskData2 = null;
+		List<NounMetadata> tasks = null;
+		ITask barAndGridTask = null;
+		ITask dendrogramTask = null;
 		List<String> treeSettings = null;
-		NounMetadata noun = new NounMetadata(taskData1, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		NounMetadata noun = new NounMetadata(barAndGridTask, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		
-		// get asset path
-		// assets path
-		String space = this.keyValue.get(this.keysToGet[2]);
-		assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled()) + "/" + fileName ;
-		
-		if (!mode.equals("updateTree")) {
-			sampleSize = advancedSettings.get(0);
-			sampleBlocks = advancedSettings.get(1);
-			treeDepth = advancedSettings.get(2);
+		if (mode.equals("build")) { // check if the model needs to be built
+			// get build inputs
+			String depVar = getClassificationColumn();		
+			List<String> attributes = getInputList(1);
+			attributes.remove(depVar);
+			String indVars = "c(";
+			for (int i = 0; i < attributes.size(); i++) {
+				if (i == attributes.size() - 1) {
+					indVars += "\"" + attributes.get(i) + "\"";
+				} else {
+					indVars += "\"" + attributes.get(i) + "\", ";
+				}
+			}
+			indVars += ")";
+			List<String> advancedSettings = getInputList(4);
+			nullHandlerType = getNullHandleType();
+			String sampleSize = advancedSettings.get(0);
+			String sampleBlocks = advancedSettings.get(1);
+			String treeDepth = advancedSettings.get(2);
 			
+			// get frame
+			RDataTable frame = (RDataTable) getFrame();
+			String dtName = frame.getName();
+			OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
+			boolean implicitFilter = false;
 			// check if there are filters on the frame. if so then need to run algorithm on subsetted data
 			if(!frame.getFrameFilters().isEmpty()) {
 				// create a new qs to retrieve filtered frame
@@ -132,29 +130,31 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 				String query = interp.composeQuery();
 				this.rJavaTranslator.runR(dtNameIF + "<- {" + query + "}");
 				implicitFilter = true;
-				
 				//cleanup the temp r variable in the query var
 				this.rJavaTranslator.runR("rm(" + query.split(" <-")[0] + ");gc();");
 			}
 			targetDt = implicitFilter ? dtNameIF : dtName;
-			
-			// random forest r script
+
+			// source r scripts
 			String scriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\random_forest.R";
 			scriptFilePath = scriptFilePath.replace("\\", "/");
 			sb.append("source(\"" + scriptFilePath + "\"); ");
 			String imputeFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\ImputeData.R";
 			imputeFilePath= imputeFilePath.replace("\\", "/");
 			sb.append("source(\"" + imputeFilePath + "\"); ");
-			
 			logger.info("All inputs loaded.");
-		} else {
-			treeSettings = getInputList(7);
-		}
-		
-		if (mode.equals("build")) { // check if the model needs to be built
+			
+			// build model
 			logger.info("Building random forest model...");
 			// set call to R function
-			sb.append(RF_VARIABLE + " <- rfmodel_mgr( ind_vars=" + indVars + ", dep_var=\"" + depVar + "\", trainFrame=" + targetDt + ", model_fn=\"" + assetFolder + "\", mis_data=\"" + nullHandlerType + "\", sample_size=" + sampleSize + ", sample_blocks=" + sampleBlocks + ", depth=" + treeDepth + ");");
+			sb.append(RF_VARIABLE + " <- rfmodel_mgr( ind_vars=" + indVars + 
+													", dep_var=\"" + depVar + 
+													"\", trainFrame=" + targetDt + 
+													", model_fn=\"" + assetFolder + 
+													"\", mis_data=\"" + nullHandlerType + 
+													"\", sample_size=" + sampleSize + 
+													", sample_blocks=" + sampleBlocks + 
+													", depth=" + treeDepth + ");");
 			sb.append(COLS + " <- colnames(" + RF_VARIABLE + "[[2]]);");
 			sb.append(TREE + " <- get_tree(\"" + assetFolder + "\", 1, 1);");
 			// execute R
@@ -163,54 +163,76 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 			// construct map of model summary data to return to front end
 			Map<String, Object> retMap = new HashMap<>();
 			double[] predError = this.rJavaTranslator.getDoubleArray(RF_VARIABLE + "[[1]]");
-			predError[0] = round(predError[0]*100, 2);
-			retMap.put("predictionError", predError);
-			double[][] confMatx = this.rJavaTranslator.getDoubleMatrix(RF_VARIABLE + "[[2]]");
-			List<Object[]> mtx = new ArrayList<>();
-			if (confMatx == null) {
-				String[] mtxOrdering = {"Attributes", "Prediction_Error"};
-				mtx = this.rJavaTranslator.getBulkDataRow(RF_VARIABLE + "[[2]]", mtxOrdering);
-				retMap.put("matrix", mtx);
-			} else {
-				retMap.put("matrix", confMatx);
-				String[] confMatxHeaders = this.rJavaTranslator.getStringArray(COLS);
-				retMap.put("headers", confMatxHeaders);
-			}
-			double[] treeOptions = new double[2];
-			treeOptions[0] = this.rJavaTranslator.getDouble(RF_VARIABLE + "[[4]]");
-			treeOptions[1] = this.rJavaTranslator.getDouble(RF_VARIABLE + "[[5]]");
-			retMap.put("tree_options", treeOptions);
-			retMap.put("filename", fileName);
-			String[] headerOrdering = {"Variables", "Importance"};
-			List<Object[]> retBarPlotOutput = this.rJavaTranslator.getBulkDataRow(RF_VARIABLE + "[[3]]", headerOrdering);
-			
-			String[] dendrogramHeaders = this.rJavaTranslator.getStringArray("colnames(" + 	TREE + ");");
-			List<Object[]> retDendrogramOutput = new Vector<>(500);
-			for (int i = 1; i < dendrogramHeaders.length+1; i++) {
-				String[] values = this.rJavaTranslator.getStringArray(TREE + "[" + i + ",];");
-				retDendrogramOutput.add(values);
-			}
-	
-			// create and return a task
-			String barChartPanelId = getPanelId();
-			String dendrogramChartPanelId = String.valueOf(Integer.parseInt(barChartPanelId)+1);
-			taskData1 = ConstantTaskCreationHelper.getBarChartInfo(barChartPanelId, "Variables", "Importance Values", retBarPlotOutput);
-			this.insight.getTaskStore().addTask(taskData1);
-			
-			taskData2 = getDendrogramInfo(dendrogramChartPanelId, dendrogramHeaders, retDendrogramOutput);
-			this.insight.getTaskStore().addTask(taskData2);
+			if (predError != null) {
+				predError[0] = round(predError[0]*100, 2);
+				retMap.put("predictionError", predError);
+				double[][] confMatx = this.rJavaTranslator.getDoubleMatrix(RF_VARIABLE + "[[2]]");
+				List<Object[]> mtx = new ArrayList<>();
+				if (confMatx == null) {
+					String[] mtxOrdering = {"Attributes", "Prediction_Error"};
+					mtx = this.rJavaTranslator.getBulkDataRow(RF_VARIABLE + "[[2]]", mtxOrdering);
+					retMap.put("matrix", mtx);
+				} else {
+					retMap.put("matrix", confMatx);
+					String[] confMatxHeaders = this.rJavaTranslator.getStringArray(COLS);
+					retMap.put("headers", confMatxHeaders);
+				}
+				double[] treeOptions = new double[2];
+				treeOptions[0] = this.rJavaTranslator.getDouble(RF_VARIABLE + "[[4]]");
+				treeOptions[1] = this.rJavaTranslator.getDouble(RF_VARIABLE + "[[5]]");
+				retMap.put("tree_options", treeOptions);
+				retMap.put("filename", fileName);
+				String[] headerOrdering = {"Variables", "Importance"};
+				List<Object[]> retBarPlotOutput = this.rJavaTranslator.getBulkDataRow(RF_VARIABLE + "[[3]]", headerOrdering);
+				
+				String[] dendrogramHeaders = this.rJavaTranslator.getStringArray("colnames(" + 	TREE + ");");
+				List<Object[]> retDendrogramOutput = new Vector<>(500);
+				for (int i = 1; i < dendrogramHeaders.length+1; i++) {
+					String[] values = this.rJavaTranslator.getStringArray(TREE + "[" + i + ",];");
+					retDendrogramOutput.add(values);
+				}
+		
+				// create and return a task
+				String barChartPanelId = getPanelId();
+				String dendrogramChartPanelId = String.valueOf(Integer.parseInt(barChartPanelId)+1);
+				barAndGridTask = ConstantTaskCreationHelper.getBarChartInfo(barChartPanelId, "Variables", "Importance Values", retBarPlotOutput);
+				this.insight.getTaskStore().addTask(barAndGridTask);
+				
+				dendrogramTask = getDendrogramInfo(dendrogramChartPanelId, dendrogramHeaders, retDendrogramOutput);
+				this.insight.getTaskStore().addTask(dendrogramTask);
 
-			// construct noun to create visualization and return model summary data
-			noun = new NounMetadata(taskData1, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Random Forest model was built and saved to APP assets"));
-			NounMetadata noun2 = new NounMetadata(taskData2, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-			NounMetadata noun3 = new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
-			List<NounMetadata> tasks = new Vector<>();
-			tasks.add(noun);
-			tasks.add(noun2);
-			tasks.add(noun3);
-			return new NounMetadata(tasks, PixelDataType.VECTOR, PixelOperationType.VECTOR);
+				// construct noun to create visualization and return model summary data
+				noun = new NounMetadata(barAndGridTask, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+				noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Random Forest model was built and saved to APP assets"));
+				NounMetadata noun2 = new NounMetadata(dendrogramTask, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+				NounMetadata noun3 = new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
+				tasks = new Vector<>();
+				tasks.add(noun);
+				tasks.add(noun2);
+				tasks.add(noun3);
+			} else {
+				logger.info("Model build unsuccessful.");
+				SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("Model build was unsuccessful"));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 		} else if (mode.equals("predict")) { // check if values need to be predicted from an existing model
+			// get predict inputs
+			nullHandlerType = getNullHandleType();
+			
+			// get frame
+			RDataTable frame = (RDataTable) getFrame();
+			targetDt = frame.getName();
+			
+			// source r scripts
+			String scriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\random_forest.R";
+			scriptFilePath = scriptFilePath.replace("\\", "/");
+			sb.append("source(\"" + scriptFilePath + "\"); ");
+			String imputeFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\ImputeData.R";
+			imputeFilePath= imputeFilePath.replace("\\", "/");
+			sb.append("source(\"" + imputeFilePath + "\"); ");
+			logger.info("All inputs loaded.");
+			
 			logger.info("Predicting from random forest model...");
 			// set call to R function
 			sb.append(RF_VARIABLE + " <- predict_rfmodel( newFrame=" + targetDt + ", model_fn=\"" + assetFolder + "\", mis_data=\"" + nullHandlerType + "\");");
@@ -224,13 +246,13 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 				String panelId = getPanelId();
 				String[] headerOrdering = getColumns(RF_VARIABLE + "[[3]]");
 				List<Object[]> retOutput = this.rJavaTranslator.getBulkDataRow(RF_VARIABLE + "[[3]]", headerOrdering);
-				taskData1 = ConstantTaskCreationHelper.getGridData(panelId, headerOrdering, retOutput);
-				this.insight.getTaskStore().addTask(taskData1);
+				barAndGridTask = ConstantTaskCreationHelper.getGridData(panelId, headerOrdering, retOutput);
+				this.insight.getTaskStore().addTask(barAndGridTask);
 				// construct noun to update grid
-				noun = new NounMetadata(taskData1, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+				noun = new NounMetadata(barAndGridTask, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 				noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Prediction from Random Forest model successful"));
 			} else {
-				logger.info("Missing columns, run unsuccessful.");
+				logger.info("Prediction unsuccessful.");
 				String[] columnsRequired = this.rJavaTranslator.getStringArray(RF_VARIABLE + "[[2]]");
 				String[] columnsProvided = getColumns(RF_VARIABLE + "[[3]]");
 				List<String> columnsNeeded = new ArrayList<>();
@@ -244,6 +266,12 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 				throw exception;
 			}
 		} else if (mode.equals("updateTree")) { // check if tree needs to be updated
+			// get update tree inputs
+			treeSettings = getInputList(7);
+			
+			logger.info("All inputs loaded.");
+			
+			// update tree
 			logger.info("Updating tree...");
 			String dendrogramChartPanelId = getPanelId();
 			
@@ -254,18 +282,16 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 				// execute R
 				this.rJavaTranslator.runR(sb.toString());
 			}
-			
 			String[] dendrogramHeaders = this.rJavaTranslator.getStringArray("colnames(" + 	TREE + ");");
 			List<Object[]> retDendrogramOutput = new Vector<>(500);
 			for (int i = 1; i < dendrogramHeaders.length+1; i++) {
 				String[] values = this.rJavaTranslator.getStringArray(TREE + "[" + i + ",];");
 				retDendrogramOutput.add(values);
 			}
+			dendrogramTask = getDendrogramInfo(dendrogramChartPanelId, dendrogramHeaders, retDendrogramOutput);
+			this.insight.getTaskStore().addTask(dendrogramTask);
 			
-			taskData2 = getDendrogramInfo(dendrogramChartPanelId, dendrogramHeaders, retDendrogramOutput);
-			this.insight.getTaskStore().addTask(taskData2);
-			
-			noun = new NounMetadata(taskData2, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+			noun = new NounMetadata(dendrogramTask, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Dendrogram updated"));
 		}
 		
@@ -275,7 +301,11 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 
-		return noun;
+		if (mode.equals("build")) {
+			return new NounMetadata(tasks, PixelDataType.VECTOR, PixelOperationType.VECTOR);
+		} else {
+			return noun;
+		}
 	}
 
 
