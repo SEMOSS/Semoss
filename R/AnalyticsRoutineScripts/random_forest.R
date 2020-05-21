@@ -48,6 +48,18 @@ drop_missing<-function(ind_vars,dep_var,tbl){
 	return(out)
 }
 
+date_to_char<-function(df){
+	types<-sapply(df,class)
+	cols<-names(which(types=="Date"))
+	if(length(names)>0){
+		for(col in cols){
+			cmd<-paste0("df$",col,"<-as.character(df$",col,")")
+			eval(parse(text=cmd))
+		}
+	}
+	return(df)
+}
+
 rfmodel_mgr<-function(ind_vars,dep_var,trainFrame,model_fn="rf",mis_data="as_is",sample_size=1000,sample_blocks=100,threshold=10000,depth=3){
 # Perform classification and regression for large datasets using random forest
 # Args
@@ -63,13 +75,14 @@ rfmodel_mgr<-function(ind_vars,dep_var,trainFrame,model_fn="rf",mis_data="as_is"
 # random forest model and its parameters saved as rds files
 	library(plyr)
 	ACTIONS<-c("impute","drop","as_is")
+	trainFrame<-date_to_char(trainFrame)
 	if(mis_data %in% ACTIONS){
 		# remove missing values
 		MODEL_NUMBER<-1
 		TREE_NUMBER<-1
 		
 		# fill in missing data per user action
-		trainFrame<-mis_data_action_rf(trainFrame,c(ind_vars,dep_var),mis_data)[[1]]
+		trainFrame<-mis_data_action(trainFrame,c(ind_vars,dep_var),mis_data)[[1]]
 		n<-nrow(trainFrame)
 		if(n>0){
 			models<-list()
@@ -211,10 +224,11 @@ predict_rfmodel<-function(newFrame,model_fn="rf",mis_data="as_is"){
 	
 	# store the initial frame
 	in_frame<-newFrame
+	newFrame<-date_to_char(newFrame)
 	if(nrow(in_frame)>0){
 		if(mis_data %in% ACTIONS){
 			# fill in missing data per user action
-			r<-mis_data_action_rf(newFrame,colnames(newFrame),mis_data)
+			r<-mis_data_action(newFrame,colnames(newFrame),mis_data)
 			newFrame<-r[[1]]
 			valid_rows<-r[[2]]
 			
@@ -342,7 +356,7 @@ build_tree<-function(dep_var,model,nbr){
 }
 
 
-mis_data_action_rf<-function(in_df,attrs,mis_data){
+mis_data_action<-function(in_df,attrs,mis_data){
 # Performs missing data action
 # Args
 # in_df - a dataframe to perform missing data action on
@@ -365,6 +379,7 @@ mis_data_action_rf<-function(in_df,attrs,mis_data){
 		df<-impute_data(df,attrs)
 		# replace part of the dataframe with imputed data
 		df<-replace_columns(in_df,df,row_id)
+		valid_rows<-seq(nrow(df))
 	}else if(tolower(mis_data)==ACTIONS[2]){
 		df[df=="null" | df=="NULL"]<-NA
 		df<-df[complete.cases(df),]
@@ -387,8 +402,6 @@ mis_data_action_rf<-function(in_df,attrs,mis_data){
 	gc()
 	return(out)
 }
-
-
 
 
 
