@@ -737,9 +737,9 @@ public abstract class AbstractSecurityUtils {
 			hasData = true;
 			b.append(" IN (");
 			Iterator<String> iterator = filterValues.iterator();
-			b.append("'").append(iterator.next()).append("'");
+			b.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(iterator.next())).append("'");
 			while(iterator.hasNext()) {
-				b.append(", '").append(iterator.next()).append("'");
+				b.append(", '").append(RdbmsQueryBuilder.escapeForSQLStatement(iterator.next())).append("'");
 			}
 		}
 		if(hasData) {
