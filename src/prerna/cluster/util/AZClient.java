@@ -30,6 +30,11 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.EngineInsightsHelper;
+import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.sablecc2.reactor.app.metaeditor.SaveOwlPositions;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
@@ -214,7 +219,7 @@ public class AZClient extends CloudClient {
 		// get the current time + 24 hours or some
 
 		Calendar calendar = Calendar.getInstance();
-		calendar.add(Calendar.MINUTE, +3);
+		calendar.add(Calendar.MINUTE, +5);
 		Date date = calendar.getTime();
 
 		sasConstraints.setSharedAccessExpiryTime(date);
@@ -237,8 +242,8 @@ public class AZClient extends CloudClient {
 	/*
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		
-	
+
+
 		try {
 
 			List<String> appWithImages= new ArrayList();
@@ -253,7 +258,7 @@ public class AZClient extends CloudClient {
 				}
 			}
 			for(String s: appWithImages){
-				
+
 				logger.debug(s);
 				List<String> copied = runAnyProcess("rclone", "copy" , "kunalp:"+s+"version/image.png", "kunalp:aaa-imagecontainer/");
 				List<String> moved = runAnyProcess("rclone", "moveto" , "kunalp:aaa-imagecontainer/image.png", "kunalp:aaa-imagecontainer/"+s.substring(0, s.length()-1)+".png");
@@ -262,7 +267,7 @@ public class AZClient extends CloudClient {
 				//List<String> copied = runAnyProcess("rclone", "copy" , "kunalp:"+s+"version/image.png", "/Users/semoss/Documents/workspace/Semoss/images/download/"+s.substring(0, s.length()-1)+".png");
 
 			}
-			
+
 //			List<String> containers = runAnyProcess("rclone", "lsf", "kunalp:");
 //
 //			for(String appid : results1){
@@ -281,11 +286,11 @@ public class AZClient extends CloudClient {
 //					}
 //				}
 //			}
-			
+
 		} catch(Exception e){
 			logger.error(STACKTRACE, e);
 		}
-		
+
 		//DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
 		//		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
 		//		logger.debug(AZClient.getInstance().getSAS("timb"));
@@ -297,11 +302,101 @@ public class AZClient extends CloudClient {
 		//			logger.debug(container);
 		//		}
 	}
-	*/
+	 */
+
+	@Override
+	public void pullOwl(String appId) throws IOException, InterruptedException{
+		IEngine engine = Utility.getEngine(appId, false, true);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
+		String appRcloneConfig = null;
+		File owlFile = null;
+		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		String aliasAppId = alias + "__" + appId;
+		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
+		try {
+			appRcloneConfig = createRcloneConfig(appId);
+			//close the owl
+			engine.getBaseDataEngine().closeDB();
+			owlFile = new File(engine.getProperty(Constants.OWL));
+								
+			logger.debug("Pulling owl and postions.json for" + appFolder + " from remote=" + appId);
+			
 	
+			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
+			//sync will delete files that are in the destination if they aren't being synced
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+appId+"/"+ owlFile.getName(), appFolder);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+appId+"/"+ SaveOwlPositions.FILE_NAME, appFolder);
+
+		}  finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+			//open the owl
+			if(owlFile.exists()) {
+				engine.setOWL(owlFile.getAbsolutePath());
+			} else {
+				throw new IllegalArgumentException("Pull failed. OWL for engine " + appId + " was not found");
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+		}
+	}
 	
 	@Override
-	public void syncInsightsDB(String appId) throws IOException, InterruptedException{
+	public void pushOwl(String appId) throws IOException, InterruptedException{
+		IEngine engine = Utility.getEngine(appId, false, true);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
+		String appRcloneConfig = null;
+		File owlFile = null;
+		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		String aliasAppId = alias + "__" + appId;
+		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
+		try {
+			appRcloneConfig = createRcloneConfig(appId);
+			//close the owl
+			engine.getBaseDataEngine().closeDB();
+			owlFile = new File(engine.getProperty(Constants.OWL));
+								
+			logger.debug("Pulling owl and postions.json for" + appFolder + " from remote=" + appId);
+			
+	
+			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
+			//sync will delete files that are in the destination if they aren't being synced
+			
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + owlFile.getName(), appRcloneConfig + ":");			 
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + SaveOwlPositions.FILE_NAME , appRcloneConfig + ":");			 
+
+
+		}  finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+			//open the owl
+			if(owlFile.exists()) {
+				engine.setOWL(owlFile.getAbsolutePath());
+			} else {
+				throw new IllegalArgumentException("Push failed. OWL for engine " + appId + " was not found");
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+		}
+	}
+	
+
+	@Override
+	public void pullInsightsDB(String appId) throws IOException, InterruptedException{
 		IEngine engine = Utility.getEngine(appId, false, true);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
@@ -310,21 +405,82 @@ public class AZClient extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
-			engine.closeDB();
-			logger.debug("Pulling insights database for" + appFolder + " from remote=" + appId);
-			String insightDB = getInsightDB(appFolder);
-			runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/"+ insightDB, appFolder);
-			 
-			//List<String> results = runRcloneProcess(appRcloneConfig, "rclone", "pull", appFolder+FILE_SEPARATOR + "insights_database.mv.db", appRcloneConfig + ":"+appId);
+			engine.getInsightDatabase().closeDB();
+			logger.info("Pulling insights database for" + alias + " from remote=" + appId);
+			String insightDB = getInsightDB(engine, appFolder);
+			
+			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
+			//sync will delete files that are in the destination if they aren't being synced
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig  + ":" + appId + "/" + insightDB, appFolder);
+
 		}  finally {
 			if (appRcloneConfig != null) {
 				deleteRcloneConfig(appRcloneConfig);
 			}
+			//open the insight db
+			String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(engine.getProp()).getAbsolutePath();
+			if(insightDbLoc != null) {
+				engine.setInsightDatabase( EngineInsightsHelper.loadInsightsEngine(engine.getProp(), LogManager.getLogger(AbstractEngine.class)));
+			} else {
+				throw new IllegalArgumentException("Insight database was not able to be found");
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+
 		}
 	}
-	
+
+	@Override
+	public void pushInsightDB(String appId) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(appId, false, true);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
+		String appRcloneConfig = null;
+		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		String aliasAppId = alias + "__" + appId;
+		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
+		try {
+			appRcloneConfig = createRcloneConfig(appId);
+			engine.getInsightDatabase().closeDB();
+			logger.info("Pulling insights database for " + alias + " from remote=" + appId);
+			String insightDB = getInsightDB(engine, appFolder);
+
+			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
+			//sync will delete files that are in the destination if they aren't being synced
+
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/"+ insightDB, appRcloneConfig + ":" + appId);			 
+		}
+		finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+			//open the insight db
+			String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(engine.getProp()).getAbsolutePath();
+			if(insightDbLoc != null) {
+				engine.setInsightDatabase( EngineInsightsHelper.loadInsightsEngine(engine.getProp(), LogManager.getLogger(AbstractEngine.class)));
+			} else {
+				throw new IllegalArgumentException("Insight database was not able to be found");
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+
+		}
+	}
+
+
+
+
 	@Override
 	public void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException {
 		IEngine engine = Utility.getEngine(appId, false, true);
@@ -335,30 +491,36 @@ public class AZClient extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
-			
+
 			DIHelper.getInstance().removeLocalProperty(appId);
 			engine.closeDB();
-			
-			logger.debug("Pulling database for" + appFolder + " from remote=" + appId);
+
+			logger.info("Pulling database for" + alias + " from remote=" + appId);
 			if(e == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				for(String sqliteFile : sqliteFileNames){
-				runRcloneProcess(appRcloneConfig, "rclone", "sync", appFolder + "/" + sqliteFile, appRcloneConfig + ":"+ appId);
+					runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder + "/" + sqliteFile, appRcloneConfig + ":"+ appId);
 				}
 			} else if(e == RdbmsTypeEnum.H2_DB){
-				runRcloneProcess(appRcloneConfig, "rclone", "sync", appFolder + "/database.mv.db", appRcloneConfig + ":"+appId);
+				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder + "/database.mv.db", appRcloneConfig + ":"+appId);
 			} else{
 				throw new IllegalArgumentException("Incorrect database type. Must be either sqlite or H2");
 			}
-			
+
 			//open the engine again
 			Utility.getEngine(appId, false, true);
 		} finally {
 			if (appRcloneConfig != null) {
 				deleteRcloneConfig(appRcloneConfig);
 			}
+			// always unlock regardless of errors
+			lock.unlock();
 		}		
 	}
 
@@ -372,17 +534,21 @@ public class AZClient extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			engine.closeDB();
-			logger.debug("Pulling database for" + appFolder + " from remote=" + appId);
+			logger.info("Pulling database for" + alias + " from remote=" + appId);
 			if(e == RdbmsTypeEnum.SQLITE){
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
 				for(String sqliteFile : sqliteFileNames){			
-					runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/"+sqliteFile, appFolder);
+					runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/"+sqliteFile, appFolder);
 				}
 			} else if(e == RdbmsTypeEnum.H2_DB){
-				runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/database.mv.db", appFolder);
+				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/database.mv.db", appFolder);
 			} else{
 				throw new IllegalArgumentException("Incorrect database type. Must be either sqlite or H2");
 			}
@@ -390,11 +556,80 @@ public class AZClient extends CloudClient {
 			if (appRcloneConfig != null) {
 				deleteRcloneConfig(appRcloneConfig);
 			}
+			// always unlock regardless of errors
+			lock.unlock();
 		}		
 	}
+
+
+	@Override
+	public void pullFolder(String appId, String absolutePath, String remoteRelativePath)
+			throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(appId, false, true);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
+		String appRcloneConfig = null;
+		//String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		//String aliasAppId = alias + "__" + appId;
+		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		
+		// adding a lock for now, but there may be times we don't need one and other times we do
+		// reaching h2 db from version folder vs static assets in asset app
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
+		try {
+			appRcloneConfig = createRcloneConfig(appId);
+			logger.info("Pushing folder for " + remoteRelativePath + " from remote=" + appId);
+
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+  "/" + remoteRelativePath, absolutePath);
+		} finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+		}
+	}
+	
 	
 
+	@Override
+	public void pushFolder(String appId, String absolutePath, String remoteRelativePath)
+			throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(appId, false, true);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
+		String appRcloneConfig = null;
+		//String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		//String aliasAppId = alias + "__" + appId;
+		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		
+		File absoluteFolder = new File(absolutePath);
+		if(absoluteFolder.isDirectory()) {
+			//this is adding a hidden file into every sub folder to make sure there is no empty directory
+			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
+		}
+		// adding a lock for now, but there may be times we don't need one and other times we do
+		// reaching h2 db from version folder vs static assets in asset app
+		// synchronize on the app id
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
+		try {
+			appRcloneConfig = createRcloneConfig(appId);
+			logger.info("Pushing folder for " + remoteRelativePath + " from remote=" + appId);
 
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":"+appId+  "/" + remoteRelativePath);
+		} finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+			// always unlock regardless of errors
+			lock.unlock();
+		}
+	}
 	
 
 	// This is the sync the whole app. It shouldn't be used yet. Only the insights DB should be sync actively 
@@ -443,9 +678,9 @@ public class AZClient extends CloudClient {
 		// We need to push the folder alias__appId and the file alias__appId.smss
 		String alias = null;
 		if (engineType == ENGINE_TYPE.APP){
-			 alias = engine.getEngineName();
+			alias = engine.getEngineName();
 		} else{
-		     alias = SecurityQueryUtils.getEngineAliasForId(appId);
+			alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		}
 
 		String aliasAppId = alias + "__" + appId;
@@ -456,7 +691,7 @@ public class AZClient extends CloudClient {
 		// Start with the sas token
 		String appRcloneConfig = null;
 		String smssRCloneConfig = null;
-		
+
 		// synchronize on the app id
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
@@ -476,7 +711,7 @@ public class AZClient extends CloudClient {
 
 				// Push the app folder
 				logger.debug("Pushing from source=" + appFolder + " to remote=" + appId);
-				runRcloneProcess(appRcloneConfig, "rclone", "sync", appFolder, appRcloneConfig + ":");
+				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appFolder, appRcloneConfig + ":");
 				logger.debug("Done pushing from source=" + appFolder + " to remote=" + appId);
 
 				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
@@ -488,7 +723,7 @@ public class AZClient extends CloudClient {
 
 				// Push the smss
 				logger.debug("Pushing from source=" + smssFile + " to remote=" + smssContainer);
-				runRcloneProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":");
+				runRcloneTransferProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":");
 				logger.debug("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
 			} finally {
 				if (copy != null) {
@@ -534,7 +769,7 @@ public class AZClient extends CloudClient {
 		// Start with the sas token
 		String appRcloneConfig = null;
 		String smssRcloneConfig = null;
-		
+
 		// synchronize on the app id
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
@@ -571,14 +806,14 @@ public class AZClient extends CloudClient {
 
 				// Pull the contents of the app folder before the smss
 				logger.debug("Pulling from remote=" + appId + " to target=" + appFolder.getPath());
-				runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":", appFolder.getPath());
+				runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":", appFolder.getPath());
 				logger.debug("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
 
 				// Now pull the smss
 				logger.debug("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
-				runRcloneProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":", dbFolder);
+				runRcloneTransferProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":", dbFolder);
 				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 				// Catalog the db if it is new
@@ -612,14 +847,14 @@ public class AZClient extends CloudClient {
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "apps";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":", imagesFolderPath);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":", imagesFolderPath);
 		}finally {
 			if (appRcloneConfig != null) {
 				deleteRcloneConfig(appRcloneConfig);
 			}
 		}
 	}
-	
+
 	@Override
 	public void pushImageFolder() throws IOException, InterruptedException {
 		String appRcloneConfig = null;
@@ -629,95 +864,95 @@ public class AZClient extends CloudClient {
 			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "apps";
 			File imageFolder = new File(imagesFolderPath);
 			imageFolder.mkdir();
-			runRcloneProcess(appRcloneConfig, "rclone", "sync",imagesFolderPath,  appRcloneConfig + ":");
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync",imagesFolderPath,  appRcloneConfig + ":");
 		}finally {
 			if (appRcloneConfig != null) {
 				deleteRcloneConfig(appRcloneConfig);
 			}
 		}
 	}
-	
-	
-	
-	
 
-		//////////////////////////////////////////////////////////////////////////////////////////
-		//////////////////////////////////////// Update///////////////////////////////////////////
 
-		// TODO >>>timb: pixel to update app so that neel can add refresh button or something
-		// TODO >>>timb: still need to test this method
-		public void updateApp(String appId) throws IOException, InterruptedException {
-			if (Utility.getEngine(appId, true, true) == null) {
-				throw new IllegalArgumentException("App needs to be defined in order to update...");
+
+
+
+	//////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////// Update///////////////////////////////////////////
+
+	// TODO >>>timb: pixel to update app so that neel can add refresh button or something
+	// TODO >>>timb: still need to test this method
+	public void updateApp(String appId) throws IOException, InterruptedException {
+		if (Utility.getEngine(appId, true, true) == null) {
+			throw new IllegalArgumentException("App needs to be defined in order to update...");
+		}
+		pullApp(appId, false);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////// Delete //////////////////////////////////////////
+
+	// TODO >>>timb: test out delete functionality
+	public void deleteApp(String appId) throws IOException, InterruptedException {
+		String rcloneConfig = Utility.getRandomString(10);
+		try {
+			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+			logger.debug("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId);
+			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId + SMSS_POSTFIX);
+			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId);
+			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId + SMSS_POSTFIX);
+			logger.debug("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+		} finally {
+			deleteRcloneConfig(rcloneConfig);
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////// Cleanup//////////////////////////////////////////	
+	public List<String> listAllBlobContainers() throws IOException, InterruptedException {
+		String rcloneConfig = Utility.getRandomString(10);
+		List<String> allContainers = new ArrayList<>();
+		try {
+			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+			List<String> results = runRcloneProcess(rcloneConfig, "rclone", "lsf", rcloneConfig + ":");
+			for (String result : results) {
+				allContainers.add(result);
 			}
-			pullApp(appId, false);
+		} finally {
+			deleteRcloneConfig(rcloneConfig);
 		}
+		return allContainers;
+	}
 
-		//////////////////////////////////////////////////////////////////////////////////////////
-		//////////////////////////////////////// Delete //////////////////////////////////////////
-
-		// TODO >>>timb: test out delete functionality
-		public void deleteApp(String appId) throws IOException, InterruptedException {
-			String rcloneConfig = Utility.getRandomString(10);
-			try {
-				runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-				logger.debug("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
-				runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId);
-				runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId + SMSS_POSTFIX);
-				runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId);
-				runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId + SMSS_POSTFIX);
-				logger.debug("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
-			} finally {
-				deleteRcloneConfig(rcloneConfig);
-			}
+	public void deleteContainer(String containerId) throws IOException, InterruptedException {
+		String rcloneConfig = Utility.getRandomString(10);
+		try {
+			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+			logger.debug("Deleting container=" + containerId);
+			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + containerId);
+			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + containerId);
+			logger.debug("Done deleting container=" + containerId);
+		} finally {
+			deleteRcloneConfig(rcloneConfig);
 		}
-
-		//////////////////////////////////////////////////////////////////////////////////////////
-		//////////////////////////////////////// Cleanup//////////////////////////////////////////	
-		public List<String> listAllBlobContainers() throws IOException, InterruptedException {
-			String rcloneConfig = Utility.getRandomString(10);
-			List<String> allContainers = new ArrayList<>();
-			try {
-				runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-				List<String> results = runRcloneProcess(rcloneConfig, "rclone", "lsf", rcloneConfig + ":");
-				for (String result : results) {
-					allContainers.add(result);
-				}
-			} finally {
-				deleteRcloneConfig(rcloneConfig);
-			}
-			return allContainers;
-		}
-
-		public void deleteContainer(String containerId) throws IOException, InterruptedException {
-			String rcloneConfig = Utility.getRandomString(10);
-			try {
-				runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-				logger.debug("Deleting container=" + containerId);
-				runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + containerId);
-				runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + containerId);
-				logger.debug("Done deleting container=" + containerId);
-			} finally {
-				deleteRcloneConfig(rcloneConfig);
-			}
-		}
+	}
 
 
-		//////////////////////////////////////////////////////////////////////////////////////////
-		///////////////////////////////// Static Util Methods ////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////// Static Util Methods ////////////////////////////////////
 
-		private static String createRcloneConfig(String container) throws IOException, InterruptedException {
-			logger.debug("Generating SAS for container=" + container);
-			String sasUrl = client.getSAS(container);
-			String rcloneConfig = Utility.getRandomString(10);
-			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
-			return rcloneConfig;
-		}
+	private static String createRcloneConfig(String container) throws IOException, InterruptedException {
+		logger.debug("Generating SAS for container=" + container);
+		String sasUrl = client.getSAS(container);
+		String rcloneConfig = Utility.getRandomString(10);
+		runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
+		return rcloneConfig;
+	}
 
 
 
 
-		/*
+	/*
 
 	private static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rcloneConfig);
@@ -782,20 +1017,23 @@ public class AZClient extends CloudClient {
 			return lines;
 		}
 	}
-		 */
-		
+	 */
+
 	public static void main(String[] args) {
 		String[] sarr = new String[] {"sakdf.smss","/opt/semosshome/db/kunal__3241231242", "/opt/semosshome/db/kunal__3241231242.smss", "/opt/semosshome/db/kunal__3241231242//../sakdf"};
 		String s = "/opt/semosshome/db/kunal__3241231242";
 		for(int i = 0; i<sarr.length; i++) {
-		//System.out.println(sarr[i] + " -> " + Utility.normalizePath(sarr[i]));
+			//System.out.println(sarr[i] + " -> " + Utility.normalizePath(sarr[i]));
 		}
 		System.out.println(Utility.normalizePath("/opt/semosshome/db/../../../../root/myvirus.virus"));
 		//System.out.println("/opt/semosshome/db" + FILE_SEPARATOR + Utility.normalizePath("../root/myvirus.virus"));
 
 
 
-		
-	}
 
 	}
+
+
+
+
+}
