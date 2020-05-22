@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.insights;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -20,6 +22,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -33,6 +36,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -186,6 +191,10 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			if(cacheable && !isParam && !isDashoard) {
 				try {
 					InsightCacheUtility.cacheInsight(newInsight, getCachedRecipeVariableExclusion(runner));
+					Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), appId));
+					String cacheFolder = InsightCacheUtility.getInsightCacheFolderPath(newInsight);
+					Path relative = appFolder.relativize( Paths.get(cacheFolder));
+					ClusterUtil.reactorPushFolder(appId,cacheFolder, relative.toString());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
