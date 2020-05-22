@@ -71,6 +71,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param appId
 	 */
 	public static void addApp(String appId, boolean global) {
+		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
 		if(ignoreEngine(appId)) {
 			// dont add local master or security db to security db
 			return;
@@ -369,6 +370,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param appId
 	 */
 	public static void deleteInsightsForRecreation(String appId) {
+		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
 		String deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
@@ -382,6 +384,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param appId
 	 */
 	public static void deleteApp(String appId) {
+		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
 		if(ignoreEngine(appId)) {
 			// dont add local master or security db to security db
 			return;

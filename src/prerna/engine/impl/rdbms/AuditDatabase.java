@@ -203,7 +203,7 @@ public class AuditDatabase {
 		}
 
 		String insertQ = auditInserts.toString();
-		String auditQ = getAuditQueryLog(new Object[] { id, "INSERT", RdbmsQueryBuilder.escapeForSQLStatement(query) });
+		String auditQ = getAuditQueryLog(new Object[] { id, "INSERT", query });
 		try (PreparedStatement insertStatement = conn.prepareStatement(insertQ);
 			PreparedStatement auditStatement = conn.prepareStatement(auditQ);
 		) {
@@ -286,7 +286,7 @@ public class AuditDatabase {
 		}
 
 		String insertQ = auditUpdates.toString();
-		String updateQ = getAuditQueryLog(new Object[] { id, "UPDATE", RdbmsQueryBuilder.escapeForSQLStatement(query) });
+		String updateQ = getAuditQueryLog(new Object[] { id, "UPDATE", query });
 		try(
 				PreparedStatement insertStatement = conn.prepareStatement(insertQ);
 				PreparedStatement updateStatement = conn.prepareStatement(updateQ);
@@ -355,7 +355,7 @@ public class AuditDatabase {
 			auditDeletes.append(getAuditInsert(insert));
 			auditDeletes.append(";");
 		}
-		String deleteQ = RdbmsQueryBuilder.escapeForSQLStatement(query);
+		String deleteQ = query;
 		try(
 				PreparedStatement statement = conn.prepareStatement(auditDeletes.toString());
 		        PreparedStatement deleteStatement = conn.prepareStatement(deleteQ);
@@ -374,7 +374,7 @@ public class AuditDatabase {
 	 * @param query
 	 */
 	public void storeQuery(String userId, String query) {
-		String q = getAuditQueryLog(new Object[] { userId, "CUSTOM", RdbmsQueryBuilder.escapeForSQLStatement(query) });
+		String q = getAuditQueryLog(new Object[] { userId, "CUSTOM", query });
 		try(PreparedStatement statement = conn.prepareStatement(q)){
 			statement.execute();
 		} catch(SQLException e){
