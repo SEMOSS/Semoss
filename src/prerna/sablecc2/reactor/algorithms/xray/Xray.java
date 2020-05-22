@@ -23,6 +23,7 @@ import org.apache.log4j.Logger;
 
 import au.com.bytecode.opencsv.CSVReader;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
@@ -487,9 +488,9 @@ public class Xray {
 					// build sql query - write only unique values
 					StringBuilder sb = new StringBuilder();
 					sb.append("SELECT DISTINCT ");
-					sb.append(column);
+					sb.append(RdbmsQueryBuilder.escapeForSQLStatement(column));
 					sb.append(" FROM ");
-					sb.append(table);
+					sb.append(RdbmsQueryBuilder.escapeForSQLStatement(table));
 					sb.append(";");
 					String query = sb.toString();
 					// execute query
