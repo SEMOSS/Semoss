@@ -198,6 +198,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public boolean deleteAdminTheme(String themeId) {
+		RdbmsQueryBuilder.escapeForSQLStatement(themeId);
 		String deleteQuery = "DELETE FROM ADMIN_THEME WHERE id='" + themeId + "'";
 		try {
 			themeDb.removeData(deleteQuery);
