@@ -126,10 +126,10 @@ public class ClusterUtil {
 		}
 	}
 	
-	public static void reactorSyncInsightsDB(String appId) {
+	public static void reactorPullInsightsDB(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-			 CloudClient.getClient().syncInsightsDB(appId);
+			 CloudClient.getClient().pullInsightsDB(appId);
 			} catch (IOException | InterruptedException e1) {
 				NounMetadata noun = new NounMetadata("Failed to check if app has been modified", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
@@ -140,6 +140,52 @@ public class ClusterUtil {
 		}
 		return;
 	}
+	
+	public static void reactorPushInsightDB(String appId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+			 CloudClient.getClient().pushInsightDB(appId);
+			} catch (IOException | InterruptedException e1) {
+				NounMetadata noun = new NounMetadata("Failed to check if app has been modified", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		return;
+	}
+	
+	public static void reactorPullOwl(String appId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+			 CloudClient.getClient().pullOwl(appId);
+			} catch (IOException | InterruptedException e1) {
+				NounMetadata noun = new NounMetadata("Failed to pull owl for engine: " + appId, PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		return;
+	}
+	
+	public static void reactorPushOwl(String appId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+			 CloudClient.getClient().pushOwl(appId);
+			} catch (IOException | InterruptedException e1) {
+				NounMetadata noun = new NounMetadata("Failed to push owl for engine: " + appId, PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		return;
+	}
+	
 
 
 	public static void reactorUpdateApp(String appId) {
@@ -168,6 +214,36 @@ public class ClusterUtil {
 				throw err;
 			}
 		}
+	}
+	
+	public static void reactorPushFolder(String appId, String absolutePath, String remoteRelativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pushFolder(appId, absolutePath, remoteRelativePath);
+			}  catch (IOException | InterruptedException e) {
+				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}		
+	}
+	
+	//create a pull folder
+	
+	public static void reactorPullFolder(String appId, String absolutePath, String remoteRelativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pullFolder(appId, absolutePath, remoteRelativePath);
+			}  catch (IOException | InterruptedException e) {
+				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}		
 	}
 
 	public static File getImage(String appID) {
@@ -273,6 +349,12 @@ public class ClusterUtil {
 			}
 		}
 	}
+
+
+
+
+
+
 	
 
 	
