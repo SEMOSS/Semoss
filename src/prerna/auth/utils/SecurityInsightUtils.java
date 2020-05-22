@@ -509,6 +509,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// try to do an update
 		// if nothing is updated
 		// do an insert
+		insightId = RdbmsQueryBuilder.escapeForSQLStatement(insightId);
+		engineId = RdbmsQueryBuilder.escapeForSQLStatement(engineId);
 		String query = "UPDATE INSIGHTMETA SET METAVALUE='" 
 				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
 				+ "WHERE METAKEY='description' AND INSIGHTID='" + insightId + "' AND ENGINEID='" + engineId + "'";

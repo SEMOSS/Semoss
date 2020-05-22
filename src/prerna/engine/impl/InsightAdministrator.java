@@ -241,6 +241,7 @@ public class InsightAdministrator {
 		// try to do an update
 		// if nothing is updated
 		// do an insert
+		insightId = RdbmsQueryBuilder.escapeForSQLStatement(insightId);
 		String query = "UPDATE INSIGHTMETA SET METAVALUE='" 
 				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
 				+ "WHERE METAKEY='description' AND INSIGHTID='" + insightId + "'";
@@ -412,7 +413,7 @@ public class InsightAdministrator {
 	private String createString(String... ids){
 		String idsString = "(";
 		for(String id : ids){
-			idsString = idsString + "'" + id + "', ";
+			idsString = idsString + "'" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', ";
 		}
 		idsString = idsString.substring(0, idsString.length() - 2) + ")";
 		
@@ -423,10 +424,10 @@ public class InsightAdministrator {
 		StringBuilder b = new StringBuilder("(");
 		Iterator<String> iterator = ids.iterator();
 		if(iterator.hasNext()) {
-			b.append("'").append(iterator.next()).append("'");
+			b.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(iterator.next())).append("'");
 		}
 		while(iterator.hasNext()) {
-			b.append(", '").append(iterator.next()).append("'");
+			b.append(", '").append(RdbmsQueryBuilder.escapeForSQLStatement(iterator.next())).append("'");
 		}
 		b.append(")");
 		return b.toString();
