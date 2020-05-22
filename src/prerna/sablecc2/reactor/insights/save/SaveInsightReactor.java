@@ -24,6 +24,7 @@ import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -31,6 +32,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -92,7 +95,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 		
 		//Pull the insights db again incase someone just saved something 
-		ClusterUtil.reactorSyncInsightsDB(appId);
+		ClusterUtil.reactorPullInsightsDB(appId);
 
 		// get the new insight id
 		String newInsightId = UUID.randomUUID().toString();
@@ -216,7 +219,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		this.insight.setInsightFolder(null);
 		this.insight.setAppFolder(null);
 		
-		ClusterUtil.reactorPushApp(appId);
+		ClusterUtil.reactorPushInsightDB(appId);
+		Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), appId));
+		Path relative = appFolder.relativize( Paths.get(newInsightFolder.getAbsolutePath()));
+		ClusterUtil.reactorPushFolder(appId,newInsightFolder.getAbsolutePath(), relative.toString());
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);

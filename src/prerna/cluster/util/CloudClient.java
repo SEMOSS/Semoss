@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -21,6 +22,7 @@ public abstract class CloudClient {
 
 	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	static String rcloneConfigFolder = null;
+	protected static final String TRANSFER_LIMIT = "8";
 
 	public static CloudClient getClient(){
 
@@ -64,7 +66,18 @@ public abstract class CloudClient {
 
 	public abstract void deleteContainer(String containerId) throws IOException, InterruptedException; 
 
-	public abstract void syncInsightsDB(String appId) throws IOException, InterruptedException;
+	public abstract void pullInsightsDB(String appId) throws IOException, InterruptedException;
+	
+	public abstract void pushInsightDB(String appId)  throws IOException, InterruptedException;
+
+	public abstract void pushOwl(String appId)  throws IOException, InterruptedException;
+
+	public abstract void pullOwl(String appId)  throws IOException, InterruptedException;
+
+	public abstract void pushFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+
+	public abstract void pullFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+
 	
 	protected static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rcloneConfig);
@@ -79,6 +92,18 @@ public abstract class CloudClient {
 		String configPath = getConfigPath(rcloneConfig);
 		List<String> commandList = new ArrayList<>();
 		commandList.addAll(Arrays.asList(command));
+		commandList.add("--config");
+		commandList.add(configPath);
+		String[] newCommand = commandList.toArray(new String[] {});
+		return runAnyProcess(newCommand);	
+	}
+	
+	protected static List<String> runRcloneTransferProcess(String rcloneConfig, String... command) throws IOException, InterruptedException {
+		String configPath = getConfigPath(rcloneConfig);
+		List<String> commandList = new ArrayList<>();
+		commandList.addAll(Arrays.asList(command));
+		commandList.add("--transfers");
+		commandList.add(TRANSFER_LIMIT);
 		commandList.add("--config");
 		commandList.add(configPath);
 		String[] newCommand = commandList.toArray(new String[] {});
@@ -160,15 +185,24 @@ public abstract class CloudClient {
 		return sqlFiles;
 	}
 
-	protected String getInsightDB(String appFolder) {
+	protected String getInsightDB(IEngine engine, String appFolder) {
+		String insightDbType = engine.getProperty(Constants.RDBMS_INSIGHTS_TYPE);
+		String insightDbName = null;
+		if (insightDbType.toLowerCase().contains("h2")) {
+			insightDbName = "insights_database.mv.db";
+		} else {
+			insightDbName = "insights_database.sqlite";
+		}
         File dir = new File(appFolder);
         for (File file : dir.listFiles()) {
-            if (file.getName().contains("insights_database")) {
+            if (file.getName().equalsIgnoreCase(insightDbName)){
             	return file.getName();
             }
           }
-		throw new IllegalArgumentException("There is no insight database");
+		throw new IllegalArgumentException("There is no insight database for app: " + engine.getEngineName());
 	}
+
+
 	
 
 }
