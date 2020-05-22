@@ -475,7 +475,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	/**
 	 * Set if the database is public to all users on this instance
 	 * @param user
-	 * @param engineId
+	 * @param appId
 	 * @param isPublic
 	 * @return
 	 */
@@ -483,7 +483,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		if(!SecurityAppUtils.userIsOwner(user, appId)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
 		}
-		
+		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
 		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + appId + "';";
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
@@ -501,7 +501,8 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		if(!SecurityAppUtils.userIsOwner(user, appId)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to change the database name. Only the owner or an admin can perform this action.");
 		}
-		
+		newAppName = RdbmsQueryBuilder.escapeForSQLStatement(newAppName);
+		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
 		String query = "UPDATE ENGINE SET ENGINENAME = '" + newAppName + "' WHERE ENGINEID ='" + appId + "';";
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
@@ -526,6 +527,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		// try to do an update
 		// if nothing is updated
 		// do an insert
+		engineId = RdbmsQueryBuilder.escapeForSQLStatement(engineId);
 		String query = "UPDATE ENGINEMETA SET METAVALUE='" 
 				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
 				+ "WHERE METAKEY='description' AND ENGINEID='" + engineId + "'";
