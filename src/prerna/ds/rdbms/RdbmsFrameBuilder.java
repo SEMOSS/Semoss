@@ -476,12 +476,14 @@ public class RdbmsFrameBuilder {
 				statement.executeUpdate(query);
 			} catch(SQLException e){
 				e.printStackTrace();
+				throw e;
 			}
 		} else {
 			try(PreparedStatement statement = this.conn.prepareStatement(query)){
 				statement.execute();
 			} catch(SQLException e){
 				e.printStackTrace();
+				throw e;
 			}
 		}
 		long end = System.currentTimeMillis();
