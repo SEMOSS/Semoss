@@ -381,12 +381,14 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				statement.executeUpdate(query);
 			} catch(SQLException e){
 				e.printStackTrace();
+				throw e;
 			}
 		} else {
 			try(PreparedStatement statement = conn.prepareStatement(query)){
 				statement.execute();
 			} catch(SQLException e){
 				e.printStackTrace();
+				throw e;
 			}
 		}
 		// if datasource, give back the conn to the pool
@@ -669,6 +671,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			statement.execute();
 		} catch(SQLException e){
 			e.printStackTrace();
+			throw e;
 		}
 		// if datasource, give back the conn to the pool
 		if(this.datasourceConnected) {
