@@ -1,112 +1,106 @@
 {
-   "pixelExpression":"if ( ( FRAMEUNITTEST | HasDuplicates ( Drug ) ) , ( Frame ( frame = [ FRAMEUNITTEST ] ) | Select ( Drug , Count ( id ) ) .as ( [ Drug , Count_of_id ] ) | Group ( Drug ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"Count_of_id\" ] , \"heat\" : [ ] , \"tooltip\" : [ ] , \"facet\" : [ ] } } } ) | Collect ( 2000 ) ) , ( Frame ( frame = [ FRAMEUNITTEST ] ) | Select ( Drug , Count ( id ) ) .as ( [ Drug , Count_of_id ] ) | Group ( Drug ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"Count_of_id\" ] , \"heat\" : [ ] , \"tooltip\" : [ ] , \"facet\" : [ ] } } } ) | Collect ( 2000 ) ) ) ;",
-   "isMeta":false,
-   "output":{
-      "data":{
-         "values":[
-            [
-               "Humalog",
-               224
+    "isMeta": false,
+    "operationType": [
+        "TASK_DATA"
+    ],
+    "output": {
+        "data": {
+            "headers": [
+                "Drug",
+                "Count_of_id"
             ],
-            [
-               "Invokana",
-               180
+            "rawHeaders": [
+                "Drug",
+                "Count_of_id"
             ],
-            [
-               "Lantus",
-               181
-            ],
-            [
-               "Onglyza",
-               180
-            ],
-            [
-               "Symlin",
-               216
-            ],
-            [
-               "Tradjenta",
-               142
-            ],
-            [
-               "bydureon",
-               202
-            ],
-            [
-               "humulin",
-               184
+            "values": [
+                [
+                    "Humalog",
+                    224
+                ],
+                [
+                    "Invokana",
+                    180
+                ],
+                [
+                    "Lantus",
+                    181
+                ],
+                [
+                    "Onglyza",
+                    180
+                ],
+                [
+                    "Symlin",
+                    216
+                ],
+                [
+                    "Tradjenta",
+                    142
+                ],
+                [
+                    "bydureon",
+                    202
+                ],
+                [
+                    "humulin",
+                    184
+                ]
             ]
-         ],
-         "headers":[
-            "Drug",
-            "Count_of_id"
-         ],
-         "rawHeaders":[
-            "Drug",
-            "Count_of_id"
-         ]
-      },
-      "headerInfo":[
-         {
-            "alias":"Drug",
-            "header":"Drug",
-            "type":"STRING",
-            "derived":false
-         },
-         {
-            "alias":"Count_of_id",
-            "header":"Count_of_id",
-            "calculatedBy":"id",
-            "groupBy":[
-               "Drug"
-            ],
-            "math":"Count",
-            "type":"STRING",
-            "derived":true
-         }
-      ],
-      "sortInfo":[
-
-      ],
-      "numRows":8,
-      "sources":[
-         {
-            "name":"FRAMEUNITTEST",
-            "type":"FRAME"
-         }
-      ],
-      "numCollected":2000,
-      "taskOptions":{
-         "1":{
-            "layout":"Pie",
-            "alignment":{
-               "heat":[
-
-               ],
-               "tooltip":[
-
-               ],
-               "label":[
-                  "Drug"
-               ],
-               "value":[
-                  "Count_of_id"
-               ],
-               "facet":[
-
-               ]
+        },
+        "filterInfo": [],
+        "format": {
+            "type": "TABLE"
+        },
+        "headerInfo": [
+            {
+                "additionalDataType": "",
+                "alias": "Drug",
+                "dataType": "STRING",
+                "derived": false,
+                "header": "Drug",
+                "type": "STRING"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "Count_of_id",
+                "calculatedBy": "id",
+                "dataType": "STRING",
+                "derived": true,
+                "groupBy": [
+                    "Drug"
+                ],
+                "header": "Count_of_id",
+                "math": "Count",
+                "type": "STRING"
             }
-         }
-      },
-      "format":{
-         "type":"TABLE"
-      },
-      "filterInfo":[
-
-      ],
-      "taskId":"task49"
-   },
-   "operationType":[
-      "TASK_DATA"
-   ]
+        ],
+        "numCollected": 2000,
+        "numRows": 8,
+        "sortInfo": [],
+        "sources": [
+            {
+                "name": "FRAMEUNITTEST",
+                "type": "FRAME"
+            }
+        ],
+        "taskId": "task21",
+        "taskOptions": {
+            "1": {
+                "alignment": {
+                    "facet": [],
+                    "heat": [],
+                    "label": [
+                        "Drug"
+                    ],
+                    "tooltip": [],
+                    "value": [
+                        "Count_of_id"
+                    ]
+                },
+                "layout": "Pie"
+            }
+        }
+    },
+    "pixelExpression": "if ( ( FRAMEUNITTEST | HasDuplicates ( Drug ) ) , ( Frame ( frame = [ FRAMEUNITTEST ] ) | Select ( Drug , Count ( id ) ) .as ( [ Drug , Count_of_id ] ) | Group ( Drug ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"Count_of_id\" ] , \"heat\" : [ ] , \"tooltip\" : [ ] , \"facet\" : [ ] } } } ) | Collect ( 2000 ) ) , ( Frame ( frame = [ FRAMEUNITTEST ] ) | Select ( Drug , Count ( id ) ) .as ( [ Drug , Count_of_id ] ) | Group ( Drug ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"Count_of_id\" ] , \"heat\" : [ ] , \"tooltip\" : [ ] , \"facet\" : [ ] } } } ) | Collect ( 2000 ) ) ) ;"
 }

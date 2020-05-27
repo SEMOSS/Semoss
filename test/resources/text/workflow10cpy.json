@@ -1,1008 +1,1275 @@
-{"pixelExpression":"ifError ( ( Frame ( frame = [ FRAMEUNITTEST ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;","isMeta":false,"output":{"data":{"values":[[
-  "Artisan",
-  2.0E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Artisan",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Artisan",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Artisan",
-  0.0,
-  "MovieBudget_Drama"
-],[
-  "Artisan",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Artisan",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Buena_Vista",
-  5.545454545454545E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Buena_Vista",
-  2.5E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Buena_Vista",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Buena_Vista",
-  4.0625E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Buena_Vista",
-  1.382222222222222E8,
-  "MovieBudget_Family_Animation"
-],[
-  "Buena_Vista",
-  4.872727272727273E7,
-  "MovieBudget_Drama"
-],[
-  "CBS",
-  2.8E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "CBS",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "CBS",
-  1.6E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "CBS",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "CBS",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "CBS",
-  1.45E7,
-  "MovieBudget_Drama"
-],[
-  "Destination",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Destination",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Destination",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Destination",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Destination",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Destination",
-  3.5E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Dimension_Films",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Dimension_Films",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Dimension_Films",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Dimension_Films",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Dimension_Films",
-  2.4E7,
-  "MovieBudget_Drama"
-],[
-  "Dimension_Films",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Dreamworks",
-  7.5E7,
-  "MovieBudget_Family_Animation"
-],[
-  "Dreamworks",
-  7.0E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Dreamworks",
-  1.25E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Dreamworks",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Dreamworks",
-  5.875E7,
-  "MovieBudget_Drama"
-],[
-  "Dreamworks",
-  1.6E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Fine_Line",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Fine_Line",
-  0.0,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Fine_Line",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Fine_Line",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Fine_Line",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Fine_Line",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "First",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "First",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "First",
-  0.0,
-  "MovieBudget_Comedy_Musical"
-],[
-  "First",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "First",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "First",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Focus",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Focus",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Focus",
-  1.5166666666666666E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Focus",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Focus",
-  1.95E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Focus",
-  1.37E7,
-  "MovieBudget_Drama"
-],[
-  "Focus_Features",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Focus_Features",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Focus_Features",
-  2.0E7,
-  "MovieBudget_Drama"
-],[
-  "Focus_Features",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Focus_Features",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Focus_Features",
-  4000000.0,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Fox",
-  6.288888888888889E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Fox",
-  3.6125E7,
-  "MovieBudget_Family_Animation"
-],[
-  "Fox",
-  1.8458333333333332E7,
-  "MovieBudget_Drama"
-],[
-  "Fox",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Fox",
-  1.831578947368421E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Fox",
-  5750000.0,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Fox_Searchlight",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Fox_Searchlight",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Fox_Searchlight",
-  2500000.0,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Fox_Searchlight",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Fox_Searchlight",
-  6325000.0,
-  "MovieBudget_Drama"
-],[
-  "Fox_Searchlight",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Freestyle",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Freestyle",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Freestyle",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Freestyle",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Freestyle",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Freestyle",
-  1.4E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Gramercy",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Gramercy",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Gramercy",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Gramercy",
-  1.85E7,
-  "MovieBudget_Drama"
-],[
-  "Gramercy",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Gramercy",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "IDP",
-  0.0,
-  "MovieBudget_Drama"
-],[
-  "IDP",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "IDP",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "IDP",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "IDP",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "IDP",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Lionsgate",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Lionsgate",
-  1.3333333333333334E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Lionsgate",
-  7.925E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Lionsgate",
-  1.3737714285714285E7,
-  "MovieBudget_Drama"
-],[
-  "Lionsgate",
-  1.0083333333333334E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Lionsgate",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "MGM",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "MGM",
-  1.95E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "MGM",
-  7.55E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "MGM",
-  5.0E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "MGM",
-  1.8E7,
-  "MovieBudget_Drama"
-],[
-  "MGM",
-  7.0E7,
-  "MovieBudget_Family_Animation"
-],[
-  "MGM-UA",
-  3.5E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "MGM-UA",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "MGM-UA",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "MGM-UA",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "MGM-UA",
-  1.5E7,
-  "MovieBudget_Drama"
-],[
-  "MGM-UA",
-  1.8E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Millenium_Entertainment",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Millenium_Entertainment",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Millenium_Entertainment",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Millenium_Entertainment",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Millenium_Entertainment",
-  6000000.0,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Millenium_Entertainment",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Miramax",
-  0.0,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Miramax",
-  1.2616666666666666E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Miramax",
-  1.5285714285714285E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Miramax",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Miramax",
-  3.5E7,
-  "MovieBudget_Family_Animation"
-],[
-  "Miramax",
-  3.0833333333333332E7,
-  "MovieBudget_Drama"
-],[
-  "Music_Box_Films",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Music_Box_Films",
-  0.0,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Music_Box_Films",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Music_Box_Films",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Music_Box_Films",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Music_Box_Films",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "New_Line",
-  2.0E7,
-  "MovieBudget_Drama"
-],[
-  "New_Line",
-  9.266666666666667E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "New_Line",
-  0.0,
-  "MovieBudget_Family_Animation"
-],[
-  "New_Line",
-  4.05E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "New_Line",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "New_Line",
-  4.46E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "October",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "October",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "October",
-  4500000.0,
-  "MovieBudget_Drama"
-],[
-  "October",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "October",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "October",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Open_Road_Films",
-  1.7E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Open_Road_Films",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Open_Road_Films",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Open_Road_Films",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Open_Road_Films",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Open_Road_Films",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Orion_Pictures",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Orion_Pictures",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Orion_Pictures",
-  0.0,
-  "MovieBudget_Action_Adventure"
-],[
-  "Orion_Pictures",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Orion_Pictures",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Orion_Pictures",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Overture_Films",
-  4000000.0,
-  "MovieBudget_Drama"
-],[
-  "Overture_Films",
-  2.0E7,
-  "MovieBudget_Documentary"
-],[
-  "Overture_Films",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Overture_Films",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Overture_Films",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Overture_Films",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Paramount",
-  9.3E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Paramount",
-  5.244444444444445E7,
-  "MovieBudget_Drama"
-],[
-  "Paramount",
-  1.05E8,
-  "MovieBudget_Family_Animation"
-],[
-  "Paramount",
-  4.7416666666666664E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Paramount",
-  1.48E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Paramount",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Polygram",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Polygram",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Polygram",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Polygram",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Polygram",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Polygram",
-  0.0,
-  "MovieBudget_Family_Animation"
-],[
-  "Relativity",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Relativity",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Relativity",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Relativity",
-  6000000.0,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Relativity",
-  2.55E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Relativity",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Roadside_Attractions",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Roadside_Attractions",
-  5250000.0,
-  "MovieBudget_Drama"
-],[
-  "Roadside_Attractions",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Roadside_Attractions",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Roadside_Attractions",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Roadside_Attractions",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Rogue_Pictures",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Rogue_Pictures",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Rogue_Pictures",
-  1000000.0,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Rogue_Pictures",
-  0.0,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Rogue_Pictures",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Rogue_Pictures",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Sony",
-  3.772727272727273E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Sony",
-  5.6411764705882356E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Sony",
-  4.125E7,
-  "MovieBudget_Family_Animation"
-],[
-  "Sony",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Sony",
-  9.65E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Sony",
-  2.777E7,
-  "MovieBudget_Drama"
-],[
-  "Summit",
-  3.8E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Summit",
-  1.5E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Summit",
-  9500000.0,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Summit",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Summit",
-  6.5E7,
-  "MovieBudget_Family_Animation"
-],[
-  "Summit",
-  4.2E7,
-  "MovieBudget_Drama"
-],[
-  "Summit_Entertainment",
-  3.0E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Summit_Entertainment",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Summit_Entertainment",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Summit_Entertainment",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Summit_Entertainment",
-  8000000.0,
-  "MovieBudget_Drama"
-],[
-  "Summit_Entertainment",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Trimark",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Trimark",
-  3000000.0,
-  "MovieBudget_Action_Adventure"
-],[
-  "Trimark",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Trimark",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Trimark",
-  null,
-  "MovieBudget_Drama"
-],[
-  "Trimark",
-  0.0,
-  "MovieBudget_Family_Animation"
-],[
-  "USA",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "USA",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "USA",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "USA",
-  1.98E7,
-  "MovieBudget_Drama"
-],[
-  "USA",
-  0.0,
-  "MovieBudget_Comedy_Musical"
-],[
-  "USA",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Universal",
-  4.15E7,
-  "MovieBudget_Family_Animation"
-],[
-  "Universal",
-  9.41111111111111E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Universal",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Universal",
-  5.3071428571428575E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Universal",
-  3.5428571428571425E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Universal",
-  3.955555555555555E7,
-  "MovieBudget_Drama"
-],[
-  "WB",
-  4.5178571428571425E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "WB",
-  4.855E7,
-  "MovieBudget_Drama"
-],[
-  "WB",
-  4.7791666666666664E7,
-  "MovieBudget_Thriller_Horror"
-],[
-  "WB",
-  8.705555555555555E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "WB",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "WB",
-  8.75E7,
-  "MovieBudget_Family_Animation"
-],[
-  "Warner_Independent",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Warner_Independent",
-  7000000.0,
-  "MovieBudget_Drama"
-],[
-  "Warner_Independent",
-  null,
-  "MovieBudget_Action_Adventure"
-],[
-  "Warner_Independent",
-  null,
-  "MovieBudget_Thriller_Horror"
-],[
-  "Warner_Independent",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Warner_Independent",
-  null,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Weinstein_Company",
-  1.357142857142857E7,
-  "MovieBudget_Drama"
-],[
-  "Weinstein_Company",
-  null,
-  "MovieBudget_Documentary"
-],[
-  "Weinstein_Company",
-  2.25E7,
-  "MovieBudget_Comedy_Musical"
-],[
-  "Weinstein_Company",
-  8.5E7,
-  "MovieBudget_Action_Adventure"
-],[
-  "Weinstein_Company",
-  null,
-  "MovieBudget_Family_Animation"
-],[
-  "Weinstein_Company",
-  0.0,
-  "MovieBudget_Thriller_Horror"
-]],"headers":[
-  "Studio",
-  "value_1",
-  "variable_1"
-],"rawHeaders":[
-  "Studio",
-  "value_1",
-  "variable_1"
-]},"headerInfo":[
-  {
-    "alias": "Studio",
-    "header": "Studio",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "value_1",
-    "header": "value_1",
-    "type": "NUMBER",
-    "derived": false
-  },
-  {
-    "alias": "variable_1",
-    "header": "variable_1",
-    "type": "STRING",
-    "derived": false
-  }
-],"sortInfo":[],"numRows":240,"sources":[
-  {
-    "name": "FRAMEUNITTEST",
-    "type": "FRAME"
-  }
-],"numCollected":2000,"taskOptions":{
-  "0": {
-    "layout": "Grid",
-    "alignment": {
-      "label": [
-        "Studio",
-        "value_1",
-        "variable_1"
-      ]
-    }
-  }
-},"format":{
-  "type": "TABLE"
-},"filterInfo":[],"taskId":"task11"},"operationType":[
-  "TASK_DATA"
-]}
+{
+    "isMeta": false,
+    "operationType": [
+        "TASK_DATA"
+    ],
+    "output": {
+        "data": {
+            "headers": [
+                "Studio",
+                "value_1",
+                "variable_1"
+            ],
+            "rawHeaders": [
+                "Studio",
+                "value_1",
+                "variable_1"
+            ],
+            "values": [
+                [
+                    "Artisan",
+                    20000000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Artisan",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Artisan",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Artisan",
+                    0.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Artisan",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Artisan",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Buena_Vista",
+                    55454545.45454545,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Buena_Vista",
+                    25000000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Buena_Vista",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Buena_Vista",
+                    40625000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Buena_Vista",
+                    138222222.2222222,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Buena_Vista",
+                    48727272.72727273,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "CBS",
+                    28000000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "CBS",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "CBS",
+                    16000000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "CBS",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "CBS",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "CBS",
+                    14500000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Destination",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Destination",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Destination",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Destination",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Destination",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Destination",
+                    35000000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Dimension_Films",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Dimension_Films",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Dimension_Films",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Dimension_Films",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Dimension_Films",
+                    24000000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Dimension_Films",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Dreamworks",
+                    75000000.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Dreamworks",
+                    70000000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Dreamworks",
+                    12500000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Dreamworks",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Dreamworks",
+                    58750000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Dreamworks",
+                    16000000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Fine_Line",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Fine_Line",
+                    0.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Fine_Line",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Fine_Line",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Fine_Line",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Fine_Line",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "First",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "First",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "First",
+                    0.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "First",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "First",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "First",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Focus",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Focus",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Focus",
+                    15166666.666666666,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Focus",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Focus",
+                    19500000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Focus",
+                    13700000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Focus_Features",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Focus_Features",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Focus_Features",
+                    20000000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Focus_Features",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Focus_Features",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Focus_Features",
+                    4000000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Fox",
+                    62888888.88888889,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Fox",
+                    36125000.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Fox",
+                    18458333.333333332,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Fox",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Fox",
+                    18315789.47368421,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Fox",
+                    5750000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Fox_Searchlight",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Fox_Searchlight",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Fox_Searchlight",
+                    2500000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Fox_Searchlight",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Fox_Searchlight",
+                    6325000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Fox_Searchlight",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Freestyle",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Freestyle",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Freestyle",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Freestyle",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Freestyle",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Freestyle",
+                    14000000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Gramercy",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Gramercy",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Gramercy",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Gramercy",
+                    18500000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Gramercy",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Gramercy",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "IDP",
+                    0.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "IDP",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "IDP",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "IDP",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "IDP",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "IDP",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Lionsgate",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Lionsgate",
+                    13333333.333333334,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Lionsgate",
+                    79250000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Lionsgate",
+                    13737714.285714285,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Lionsgate",
+                    10083333.333333334,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Lionsgate",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "MGM",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "MGM",
+                    19500000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "MGM",
+                    75500000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "MGM",
+                    50000000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "MGM",
+                    18000000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "MGM",
+                    70000000.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "MGM-UA",
+                    35000000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "MGM-UA",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "MGM-UA",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "MGM-UA",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "MGM-UA",
+                    15000000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "MGM-UA",
+                    18000000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    6000000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Miramax",
+                    0.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Miramax",
+                    12616666.666666666,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Miramax",
+                    15285714.285714285,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Miramax",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Miramax",
+                    35000000.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Miramax",
+                    30833333.333333332,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Music_Box_Films",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Music_Box_Films",
+                    0.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Music_Box_Films",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Music_Box_Films",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Music_Box_Films",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Music_Box_Films",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "New_Line",
+                    20000000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "New_Line",
+                    92666666.66666667,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "New_Line",
+                    0.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "New_Line",
+                    40500000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "New_Line",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "New_Line",
+                    44600000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "October",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "October",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "October",
+                    4500000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "October",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "October",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "October",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Open_Road_Films",
+                    17000000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Open_Road_Films",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Open_Road_Films",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Open_Road_Films",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Open_Road_Films",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Open_Road_Films",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Orion_Pictures",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Orion_Pictures",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Orion_Pictures",
+                    0.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Orion_Pictures",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Orion_Pictures",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Orion_Pictures",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Overture_Films",
+                    4000000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Overture_Films",
+                    20000000.0,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Overture_Films",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Overture_Films",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Overture_Films",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Overture_Films",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Paramount",
+                    93000000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Paramount",
+                    52444444.44444445,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Paramount",
+                    105000000.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Paramount",
+                    47416666.666666664,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Paramount",
+                    14800000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Paramount",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Polygram",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Polygram",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Polygram",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Polygram",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Polygram",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Polygram",
+                    0.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Relativity",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Relativity",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Relativity",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Relativity",
+                    6000000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Relativity",
+                    25500000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Relativity",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Roadside_Attractions",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Roadside_Attractions",
+                    5250000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Roadside_Attractions",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Roadside_Attractions",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Roadside_Attractions",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Roadside_Attractions",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Rogue_Pictures",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Rogue_Pictures",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Rogue_Pictures",
+                    1000000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Rogue_Pictures",
+                    0.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Rogue_Pictures",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Rogue_Pictures",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Sony",
+                    37727272.72727273,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Sony",
+                    56411764.705882356,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Sony",
+                    41250000.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Sony",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Sony",
+                    96500000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Sony",
+                    27770000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Summit",
+                    38000000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Summit",
+                    15000000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Summit",
+                    9500000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Summit",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Summit",
+                    65000000.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Summit",
+                    42000000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Summit_Entertainment",
+                    30000000.0,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Summit_Entertainment",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Summit_Entertainment",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Summit_Entertainment",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Summit_Entertainment",
+                    8000000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Summit_Entertainment",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Trimark",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Trimark",
+                    3000000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Trimark",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Trimark",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Trimark",
+                    null,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Trimark",
+                    0.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "USA",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "USA",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "USA",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "USA",
+                    19800000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "USA",
+                    0.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "USA",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Universal",
+                    41500000.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Universal",
+                    94111111.1111111,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Universal",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Universal",
+                    53071428.571428575,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Universal",
+                    35428571.428571425,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Universal",
+                    39555555.55555555,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "WB",
+                    45178571.428571425,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "WB",
+                    48550000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "WB",
+                    47791666.666666664,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "WB",
+                    87055555.55555555,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "WB",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "WB",
+                    87500000.0,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Warner_Independent",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Warner_Independent",
+                    7000000.0,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Warner_Independent",
+                    null,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Warner_Independent",
+                    null,
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Warner_Independent",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Warner_Independent",
+                    null,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Weinstein_Company",
+                    13571428.57142857,
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Weinstein_Company",
+                    null,
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Weinstein_Company",
+                    22500000.0,
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Weinstein_Company",
+                    85000000.0,
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Weinstein_Company",
+                    null,
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Weinstein_Company",
+                    0.0,
+                    "MovieBudget_Thriller_Horror"
+                ]
+            ]
+        },
+        "filterInfo": [],
+        "format": {
+            "type": "TABLE"
+        },
+        "headerInfo": [
+            {
+                "additionalDataType": "",
+                "alias": "Studio",
+                "dataType": "STRING",
+                "derived": false,
+                "header": "Studio",
+                "type": "STRING"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "value_1",
+                "dataType": "DOUBLE",
+                "derived": false,
+                "header": "value_1",
+                "type": "NUMBER"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "variable_1",
+                "dataType": "STRING",
+                "derived": false,
+                "header": "variable_1",
+                "type": "STRING"
+            }
+        ],
+        "numCollected": 2000,
+        "numRows": 240,
+        "sortInfo": [],
+        "sources": [
+            {
+                "name": "FRAMEUNITTEST",
+                "type": "FRAME"
+            }
+        ],
+        "taskId": "task11",
+        "taskOptions": {
+            "0": {
+                "alignment": {
+                    "label": [
+                        "Studio",
+                        "value_1",
+                        "variable_1"
+                    ]
+                },
+                "layout": "Grid"
+            }
+        }
+    },
+    "pixelExpression": "ifError ( ( Frame ( frame = [ FRAMEUNITTEST ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;"
+}
