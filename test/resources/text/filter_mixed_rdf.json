@@ -228,7 +228,7 @@
   },
   {
     "pixelExpression": "Database ( database = [ \"<<<appId>>>unit_test_movie_rdf<<</appId>>>\" ] ) | Select ( Director__Director , Title__Title , Title__MovieBudget , Title__Revenue_Domestic , Title__Revenue_International , Title__RottenTomatoes_Audience , Title__RottenTomatoes_Critics , Nominated__Nominated , Studio__Studio , Genre__Genre ) .as ( [ Director , Title , MovieBudget , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Nominated , Studio , Genre ] ) | Join ( ( Title , inner.join , Director ) , ( Title , inner.join , Genre ) , ( Title , inner.join , Studio ) , ( Title , inner.join , Nominated ) ) | Import ( ) ;",
-    "output": "Error occured executing query before loading into frame"
+    "output": "Error occured executing query to load into the frame"
   },
   {
     "pixelExpression": "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;",
