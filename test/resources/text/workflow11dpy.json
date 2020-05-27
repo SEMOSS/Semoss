@@ -1,61 +1,8 @@
-{"pixelExpression":"FRAMEUNITTEST | RunRandomForest ( classify = [ MovieBudget ] , attributes = [ \"Genre\" , \"Revenue_Domestic\" , \"Revenue_International\" ] , options = [ \"na.action=na.omit\" , \"importance=TRUE\" , \"ntree=1000\" ] ) | GetRFResults ( requestItem = [ VarImp ] , panel = [ 777 ] ) ;","isMeta":false,"output":{"data":{
-  "values": [
-    [
-      1.2676765991760285E15,
-      6.5510819188531328E17
+{
+    "isMeta": false,
+    "operationType": [
+        "ERROR"
     ],
-    [
-      7.237143545597415E14,
-      5.8859428207322227E17
-    ],
-    [
-      2.8427745598318194E14,
-      2.4496892231570928E17
-    ]
-  ],
-  "headers": [
-    "%IncMSE",
-    "IncNodePurity"
-  ]
-},"headerInfo":[
-  {
-    "alias": "%IncMSE",
-    "type": "STRING",
-    "derived": true,
-    "header": "%IncMSE"
-  },
-  {
-    "alias": "IncNodePurity",
-    "type": "STRING",
-    "derived": true,
-    "header": "IncNodePurity"
-  }
-],"sortInfo":[],"sources":[],"numCollected":500,"taskOptions":{
-  "777": {
-    "layout": "Scatter",
-    "alignment": {
-      "series": [
-        "AttributeNames"
-      ],
-      "x": [
-        "%IncMSE"
-      ],
-      "y": [
-        "IncNodePurity"
-      ],
-      "z": [
-        "%IncMSE"
-      ],
-      "label": [
-        "AttributeNames"
-      ],
-      "facet": []
-    }
-  }
-},"format":{
-  "type": "TABLE"
-},"filterInfo":null,"taskId":"task11"},"operationType":[
-  "TASK_DATA"
-],"additionalOutput":[{"output":"Random Forest ran successfully!","operationType":[
-  "SUCCESS"
-]}]}
+    "output": "\nMake sure you have all the following R libraries installed:\nranger\nmissRanger\n",
+    "pixelExpression": "FRAMEUNITTEST | RunRandomForest ( classify = [ MovieBudget ] , attributes = [ \"Genre\" , \"Revenue_Domestic\" , \"Revenue_International\" ] , options = [ \"na.action=na.omit\" , \"importance=TRUE\" , \"ntree=1000\" ] ) | GetRFResults ( requestItem = [ VarImp ] , panel = [ 777 ] ) ;"
+}

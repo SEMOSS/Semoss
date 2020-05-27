@@ -1,11 +1,15 @@
 {
-  "pixelExpression": "R ( \"<encode>1+1</encode>\" ) ;",
-  "output": [
-    {
-      "output": "[1] 2",
-      "operationType": [
-        "OPERATION"
-      ]
-    }
-  ]
+    "isMeta": false,
+    "operationType": [
+        "CODE_EXECUTION"
+    ],
+    "output": [
+        {
+            "operationType": [
+                "OPERATION"
+            ],
+            "output": "[1] 2"
+        }
+    ],
+    "pixelExpression": "R ( \"<encode>1+1</encode>\" ) ;"
 }

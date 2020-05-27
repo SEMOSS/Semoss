@@ -1,82 +1,80 @@
 {
-   "pixelExpression":"PredictMetamodel ( filePath = [ \"C:/workspace/Semoss_Dev/test/resources/data/unit_test_movie.csv\" ] , delimiter = [ \",\" ] , rowCount = [ false ] ) ;",
-   "output":{
-      "dataTypes":{
-         "Nominated":"STRING",
-         "Title":"STRING",
-         "Genre":"STRING",
-         "Studio":"STRING",
-         "Director":"STRING",
-         "Revenue_Domestic":"INT",
-         "MovieBudget":"INT",
-         "Revenue_International":"INT",
-         "RottenTomatoes_Critics":"DOUBLE",
-         "RottenTomatoes_Audience":"DOUBLE"
-      },
-      "startCount":2,
-      "fileName":"C:/workspace/Semoss_Dev/test/resources/data/unit_test_movie",
-      "headerModifications":{
-         "Revenue_International":"Original Header Value = Revenue-International",
-         "RottenTomatoes_Critics":"Original Header Value = RottenTomatoes-Critics",
-         "RottenTomatoes_Audience":"Original Header Value = RottenTomatoes-Audience",
-         "Revenue_Domestic":"Original Header Value = Revenue-Domestic"
-      },
-      "positions":{
-         "Director":{
-            "top":0.0,
-            "left":725.7636666297913
-         },
-         "Title":{
-            "top":546.3826550245285,
-            "left":666.2706341743469
-         },
-         "Genre":{
-            "top":247.67667603492737,
-            "left":0.0
-         },
-         "Studio":{
-            "top":245.77114355564117,
-            "left":972.6627595424652
-         },
-         "Nominated":{
-            "top":372.69159534573555,
-            "left":607.4666819572449
-         }
-      },
-      "nodeProp":{
-         "Title":[
-            "RottenTomatoes_Audience",
-            "RottenTomatoes_Critics",
-            "Revenue_Domestic",
-            "MovieBudget",
-            "Revenue_International"
-         ]
-      },
-      "fileLocation":"C:/workspace/Semoss_Dev/test/resources/data/unit_test_movie.csv",
-      "additionalDataTypes":{
-
-      },
-      "relation":[
-         {
-            "relName":"Title_Director",
-            "toTable":"Director",
-            "fromTable":"Title"
-         },
-         {
-            "relName":"Title_Genre",
-            "toTable":"Genre",
-            "fromTable":"Title"
-         },
-         {
-            "relName":"Title_Studio",
-            "toTable":"Studio",
-            "fromTable":"Title"
-         },
-         {
-            "relName":"Title_Nominated",
-            "toTable":"Nominated",
-            "fromTable":"Title"
-         }
-      ]
-   }
+    "output": {
+        "additionalDataTypes": {},
+        "dataTypes": {
+            "Director": "STRING",
+            "Genre": "STRING",
+            "MovieBudget": "INT",
+            "Nominated": "STRING",
+            "Revenue_Domestic": "INT",
+            "Revenue_International": "INT",
+            "RottenTomatoes_Audience": "DOUBLE",
+            "RottenTomatoes_Critics": "DOUBLE",
+            "Studio": "STRING",
+            "Title": "STRING"
+        },
+        "fileLocation": "C:/workspace/Semoss_Dev/test/resources/data/unit_test_movie.csv",
+        "fileName": "C:/workspace/Semoss_Dev/test/resources/data/unit_test_movie",
+        "headerModifications": {
+            "Revenue_Domestic": "Original Header Value = Revenue-Domestic",
+            "Revenue_International": "Original Header Value = Revenue-International",
+            "RottenTomatoes_Audience": "Original Header Value = RottenTomatoes-Audience",
+            "RottenTomatoes_Critics": "Original Header Value = RottenTomatoes-Critics"
+        },
+        "nodeProp": {
+            "Title": [
+                "RottenTomatoes_Audience",
+                "RottenTomatoes_Critics",
+                "Revenue_Domestic",
+                "MovieBudget",
+                "Revenue_International"
+            ]
+        },
+        "positions": {
+            "Director": {
+                "left": 725.7636666297913,
+                "top": 0.0
+            },
+            "Genre": {
+                "left": 0.0,
+                "top": 247.67667603492737
+            },
+            "Nominated": {
+                "left": 607.4666819572449,
+                "top": 372.69159534573555
+            },
+            "Studio": {
+                "left": 972.6627595424652,
+                "top": 245.77114355564117
+            },
+            "Title": {
+                "left": 666.2706341743469,
+                "top": 546.3826550245285
+            }
+        },
+        "relation": [
+            {
+                "fromTable": "Title",
+                "relName": "Title_Director",
+                "toTable": "Director"
+            },
+            {
+                "fromTable": "Title",
+                "relName": "Title_Genre",
+                "toTable": "Genre"
+            },
+            {
+                "fromTable": "Title",
+                "relName": "Title_Studio",
+                "toTable": "Studio"
+            },
+            {
+                "fromTable": "Title",
+                "relName": "Title_Nominated",
+                "toTable": "Nominated"
+            }
+        ],
+        "startCount": 2
+    },
+    "pixelExpression": "PredictMetamodel ( filePath = [ \"C:/workspace/Semoss_Dev/test/resources/data/unit_test_movie.csv\" ] , delimiter = [ \",\" ] , rowCount = [ false ] ) ;"
 }

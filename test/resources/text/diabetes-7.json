@@ -1,66 +1,113 @@
 {
-         "pixelExpression":"Frame ( frame = [ x ] ) | Select ( col1 , col2 , distance ) .as ( [ col1 , col2 , distance ] ) | Sort ( columns = [ \"distance\" ] , sort = [ \"asc\" ] ) | Filter ( distance <= 0 . 30000000000000004 ) | Collect ( 10 ) ;",
-         "isMeta":false,
-         "output":{
-            "data":{
-               "values":[
-                  [
-                     "medium",
-                     "med",
-                     "0.1167"
-                  ],
-                  [
-                     "small",
-                     "S",
-                     "0.24"
-                  ],
-                  [
-                     "large",
-                     "L",
-                     "0.24"
-                  ]
-               ],
-               "headers":[
-                  "col1",
-                  "col2",
-                  "distance"
-               ],
-               "rawHeaders":[
-                  "col1",
-                  "col2",
-                  "distance"
-               ]
+    "isMeta": false,
+    "operationType": [
+        "TASK_DATA"
+    ],
+    "output": {
+        "data": {
+            "headers": [
+                "col1",
+                "col2",
+                "distance"
+            ],
+            "rawHeaders": [
+                "col1",
+                "col2",
+                "distance"
+            ],
+            "values": [
+                [
+                    "medium",
+                    "med",
+                    "0.1167"
+                ],
+                [
+                    "small",
+                    "S",
+                    "0.24"
+                ],
+                [
+                    "large",
+                    "L",
+                    "0.24"
+                ]
+            ]
+        },
+        "filterInfo": [
+            {
+                "filterObj": {
+                    "comparator": "<=",
+                    "filterType": "SIMPLE",
+                    "left": {
+                        "type": "COLUMN",
+                        "value": "distance"
+                    },
+                    "right": {
+                        "type": "CONST_DECIMAL",
+                        "value": 0.30000000000000004
+                    }
+                },
+                "filterStr": "distance <= 0.30000000000000004"
+            }
+        ],
+        "format": {
+            "type": "TABLE"
+        },
+        "headerInfo": [
+            {
+                "additionalDataType": "",
+                "alias": "col1",
+                "dataType": "STRING",
+                "derived": false,
+                "header": "col1",
+                "type": "STRING"
             },
-            "headerInfo":[
-               {
-                  "alias":"col1",
-                  "header":"col1",
-                  "type":"STRING",
-                  "derived":false
-               },
-               {
-                  "alias":"col2",
-                  "header":"col2",
-                  "type":"STRING",
-                  "derived":false
-               },
-               {
-                  "alias":"distance",
-                  "header":"distance",
-                  "type":"STRING",
-                  "derived":false
-               }
-            ],
-            "sources":[
-               {
-                  "name":"aVXu87S5B",
-                  "type":"FRAME"
-               }
-            ],
-            "numCollected":10,
-            "taskId":"task43"
-         },
-         "operationType":[
-            "TASK_DATA"
-         ]
-      }
+            {
+                "additionalDataType": "",
+                "alias": "col2",
+                "dataType": "STRING",
+                "derived": false,
+                "header": "col2",
+                "type": "STRING"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "distance",
+                "dataType": "STRING",
+                "derived": false,
+                "header": "distance",
+                "type": "STRING"
+            }
+        ],
+        "numCollected": 10,
+        "numRows": 3,
+        "sortInfo": [
+            {
+                "alias": "distance",
+                "derived": false,
+                "dir": "ASC",
+                "header": "distance"
+            }
+        ],
+        "sources": [
+            {
+                "name": "a6oPac9pE",
+                "type": "FRAME"
+            }
+        ],
+        "taskId": "task15",
+        "taskOptions": {
+            "1": {
+                "alignment": {
+                    "label": [
+                        "col1",
+                        "col2",
+                        "distance"
+                    ]
+                },
+                "layout": "Grid"
+            }
+        }
+    },
+    "pixelExpression": "Frame ( frame = [ x ] ) | Select ( col1 , col2 , distance ) .as ( [ col1 , col2 , distance ] ) | Sort ( columns = [ \"distance\" ] , sort = [ \"asc\" ] ) | Filter ( distance <= 0 . 30000000000000004 ) | Collect ( 10 ) ;"
+}
