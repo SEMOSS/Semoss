@@ -154,9 +154,12 @@ build_junit:
     # So that the cache takes up less space
     - rm -rf .m2/repository/org/semoss
   artifacts:
+    when: always
     reports:
       junit:
         - target/surefire-reports/TEST-*.xml
+    paths:
+      - test/resources/text/actual
 
 # Pushes to maven central
 build_deploy:
