@@ -1,2904 +1,1275 @@
-{"pixelExpression":"ifError ( ( Frame ( frame = [ FRAMEUNITTEST ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;","isMeta":false,"output":{"data":{"values":[[
-  "20000000.0",
-  "55454545.45454545",
-  "62888888.88888889",
-  "nan",
-  "20000000.0",
-  "4500000.0",
-  "nan",
-  "nan",
-  "4000000.0",
-  "52444444.44444445",
-  "nan",
-  "nan",
-  "5250000.0",
-  "nan",
-  "nan",
-  "27770000.0",
-  "42000000.0",
-  "8000000.0",
-  "nan",
-  "19800000.0",
-  "39555555.55555555",
-  "48550000.0",
-  "7000000.0",
-  "13571428.57142857",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "20000000.0",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "79250000.0",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "50000000.0",
-  "nan",
-  "138222222.2222222",
-  "nan",
-  "nan",
-  "nan",
-  "75000000.0",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "36125000.0",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "70000000.0",
-  "nan",
-  "nan",
-  "35000000.0",
-  "nan",
-  "nan",
-  "0.0",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "105000000.0",
-  "0.0",
-  "nan",
-  "nan",
-  "12616666.666666666",
-  "nan",
-  "41250000.0",
-  "65000000.0",
-  "nan",
-  "0.0",
-  "nan",
-  "41500000.0",
-  "87500000.0",
-  "nan",
-  "nan",
-  "16000000.0",
-  "nan",
-  "nan",
-  "25000000.0",
-  "nan",
-  "nan",
-  "nan",
-  "12500000.0",
-  "0.0",
-  "nan",
-  "nan",
-  "nan",
-  "92666666.66666667",
-  "5750000.0",
-  "nan",
-  "14000000.0",
-  "nan",
-  "nan",
-  "10083333.333333334",
-  "19500000.0",
-  "18000000.0",
-  "nan",
-  "0.0",
-  "nan",
-  "0.0",
-  "40500000.0",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "14800000.0",
-  "nan",
-  "25500000.0",
-  "nan",
-  "17000000.0",
-  "1000000.0",
-  "37727272.72727273",
-  "38000000.0",
-  "30000000.0",
-  "nan",
-  "nan",
-  "35428571.428571425",
-  "47791666.666666664",
-  "nan",
-  "0.0",
-  "0.0",
-  "nan",
-  "93000000.0",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "96500000.0",
-  "15000000.0",
-  "nan",
-  "3000000.0",
-  "nan",
-  "94111111.1111111",
-  "87055555.55555555",
-  "nan",
-  "85000000.0",
-  "nan",
-  "nan",
-  "40625000.0",
-  "28000000.0",
-  "35000000.0",
-  "nan",
-  "16000000.0",
-  "nan",
-  "0.0",
-  "15166666.666666666",
-  "4000000.0",
-  "70000000.0",
-  "18315789.47368421",
-  "2500000.0",
-  "nan",
-  "nan",
-  "nan",
-  "13333333.333333334",
-  "75500000.0",
-  "35000000.0",
-  "6000000.0",
-  "15285714.285714285",
-  "nan",
-  "nan",
-  "44600000.0",
-  "nan",
-  "nan",
-  "nan",
-  "nan",
-  "47416666.666666664",
-  "nan",
-  "6000000.0",
-  "nan",
-  "nan",
-  "0.0",
-  "56411764.705882356",
-  "9500000.0",
-  "nan",
-  "nan",
-  "0.0",
-  "53071428.571428575",
-  "45178571.428571425",
-  "nan",
-  "22500000.0",
-  "19500000.0",
-  "0.0",
-  "48727272.72727273",
-  "14500000.0",
-  "nan",
-  "24000000.0",
-  "58750000.0",
-  "nan",
-  "nan",
-  "13700000.0",
-  "20000000.0",
-  "nan",
-  "18458333.333333332",
-  "6325000.0",
-  "nan",
-  "18500000.0",
-  "0.0",
-  "13737714.285714285",
-  "18000000.0",
-  "15000000.0",
-  "nan",
-  "30833333.333333332"
-],[
-  "Artisan",
-  "Buena_Vista",
-  "Fox",
-  "Music_Box_Films",
-  "New_Line",
-  "October",
-  "Open_Road_Films",
-  "Orion_Pictures",
-  "Overture_Films",
-  "Paramount",
-  "Polygram",
-  "Relativity",
-  "Roadside_Attractions",
-  "Fox_Searchlight",
-  "Rogue_Pictures",
-  "Sony",
-  "Summit",
-  "Summit_Entertainment",
-  "Trimark",
-  "USA",
-  "Universal",
-  "WB",
-  "Warner_Independent",
-  "Weinstein_Company",
-  "Freestyle",
-  "Artisan",
-  "Buena_Vista",
-  "CBS",
-  "Destination",
-  "Dimension_Films",
-  "Dreamworks",
-  "Fine_Line",
-  "First",
-  "Focus",
-  "Focus_Features",
-  "Gramercy",
-  "Fox",
-  "Fox_Searchlight",
-  "Freestyle",
-  "Gramercy",
-  "IDP",
-  "Lionsgate",
-  "MGM",
-  "MGM-UA",
-  "Millenium_Entertainment",
-  "Miramax",
-  "IDP",
-  "Music_Box_Films",
-  "New_Line",
-  "October",
-  "Open_Road_Films",
-  "Orion_Pictures",
-  "Overture_Films",
-  "Paramount",
-  "Polygram",
-  "Relativity",
-  "Roadside_Attractions",
-  "Lionsgate",
-  "Rogue_Pictures",
-  "Sony",
-  "Summit",
-  "Summit_Entertainment",
-  "Trimark",
-  "USA",
-  "Universal",
-  "WB",
-  "Warner_Independent",
-  "Weinstein_Company",
-  "MGM",
-  "Artisan",
-  "Buena_Vista",
-  "CBS",
-  "Destination",
-  "Dimension_Films",
-  "Dreamworks",
-  "Fine_Line",
-  "First",
-  "Focus",
-  "Focus_Features",
-  "MGM-UA",
-  "Fox",
-  "Fox_Searchlight",
-  "Freestyle",
-  "Gramercy",
-  "IDP",
-  "Lionsgate",
-  "MGM",
-  "MGM-UA",
-  "Millenium_Entertainment",
-  "Miramax",
-  "Millenium_Entertainment",
-  "Music_Box_Films",
-  "New_Line",
-  "October",
-  "Open_Road_Films",
-  "Orion_Pictures",
-  "Overture_Films",
-  "Paramount",
-  "Polygram",
-  "Relativity",
-  "Roadside_Attractions",
-  "Miramax",
-  "Rogue_Pictures",
-  "Sony",
-  "Summit",
-  "Summit_Entertainment",
-  "Trimark",
-  "USA",
-  "Universal",
-  "WB",
-  "Warner_Independent",
-  "Weinstein_Company",
-  "CBS",
-  "Music_Box_Films",
-  "Artisan",
-  "Buena_Vista",
-  "CBS",
-  "Destination",
-  "Dimension_Films",
-  "Dreamworks",
-  "Fine_Line",
-  "First",
-  "Focus",
-  "Focus_Features",
-  "New_Line",
-  "Fox",
-  "Fox_Searchlight",
-  "Freestyle",
-  "Gramercy",
-  "IDP",
-  "Lionsgate",
-  "MGM",
-  "MGM-UA",
-  "Millenium_Entertainment",
-  "Miramax",
-  "October",
-  "Music_Box_Films",
-  "New_Line",
-  "October",
-  "Open_Road_Films",
-  "Orion_Pictures",
-  "Overture_Films",
-  "Paramount",
-  "Polygram",
-  "Relativity",
-  "Roadside_Attractions",
-  "Open_Road_Films",
-  "Rogue_Pictures",
-  "Sony",
-  "Summit",
-  "Summit_Entertainment",
-  "Trimark",
-  "USA",
-  "Universal",
-  "WB",
-  "Warner_Independent",
-  "Weinstein_Company",
-  "Orion_Pictures",
-  "Overture_Films",
-  "Paramount",
-  "Polygram",
-  "Relativity",
-  "Roadside_Attractions",
-  "Destination",
-  "Rogue_Pictures",
-  "Sony",
-  "Summit",
-  "Summit_Entertainment",
-  "Trimark",
-  "USA",
-  "Universal",
-  "WB",
-  "Warner_Independent",
-  "Weinstein_Company",
-  "Dimension_Films",
-  "Artisan",
-  "Buena_Vista",
-  "CBS",
-  "Destination",
-  "Dimension_Films",
-  "Dreamworks",
-  "Fine_Line",
-  "First",
-  "Focus",
-  "Focus_Features",
-  "Dreamworks",
-  "Fox",
-  "Fox_Searchlight",
-  "Freestyle",
-  "Gramercy",
-  "IDP",
-  "Lionsgate",
-  "MGM",
-  "MGM-UA",
-  "Millenium_Entertainment",
-  "Miramax",
-  "Fine_Line",
-  "Music_Box_Films",
-  "New_Line",
-  "October",
-  "Open_Road_Films",
-  "Orion_Pictures",
-  "Overture_Films",
-  "Paramount",
-  "Polygram",
-  "Relativity",
-  "Roadside_Attractions",
-  "First",
-  "Rogue_Pictures",
-  "Sony",
-  "Summit",
-  "Summit_Entertainment",
-  "Trimark",
-  "USA",
-  "Universal",
-  "WB",
-  "Warner_Independent",
-  "Weinstein_Company",
-  "Focus",
-  "Artisan",
-  "Buena_Vista",
-  "CBS",
-  "Destination",
-  "Dimension_Films",
-  "Dreamworks",
-  "Fine_Line",
-  "First",
-  "Focus",
-  "Focus_Features",
-  "Focus_Features",
-  "Fox",
-  "Fox_Searchlight",
-  "Freestyle",
-  "Gramercy",
-  "IDP",
-  "Lionsgate",
-  "MGM",
-  "MGM-UA",
-  "Millenium_Entertainment",
-  "Miramax"
-],[
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Documentary",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Thriller_Horror",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama",
-  "MovieBudget_Drama"
-]],"headers":[
-  "A0",
-  "A1",
-  "A10",
-  "A100",
-  "A101",
-  "A102",
-  "A103",
-  "A104",
-  "A105",
-  "A106",
-  "A107",
-  "A108",
-  "A109",
-  "A11",
-  "A110",
-  "A111",
-  "A112",
-  "A113",
-  "A114",
-  "A115",
-  "A116",
-  "A117",
-  "A118",
-  "A119",
-  "A12",
-  "A120",
-  "A121",
-  "A122",
-  "A123",
-  "A124",
-  "A125",
-  "A126",
-  "A127",
-  "A128",
-  "A129",
-  "A13",
-  "A130",
-  "A131",
-  "A132",
-  "A133",
-  "A134",
-  "A135",
-  "A136",
-  "A137",
-  "A138",
-  "A139",
-  "A14",
-  "A140",
-  "A141",
-  "A142",
-  "A143",
-  "A144",
-  "A145",
-  "A146",
-  "A147",
-  "A148",
-  "A149",
-  "A15",
-  "A150",
-  "A151",
-  "A152",
-  "A153",
-  "A154",
-  "A155",
-  "A156",
-  "A157",
-  "A158",
-  "A159",
-  "A16",
-  "A160",
-  "A161",
-  "A162",
-  "A163",
-  "A164",
-  "A165",
-  "A166",
-  "A167",
-  "A168",
-  "A169",
-  "A17",
-  "A170",
-  "A171",
-  "A172",
-  "A173",
-  "A174",
-  "A175",
-  "A176",
-  "A177",
-  "A178",
-  "A179",
-  "A18",
-  "A180",
-  "A181",
-  "A182",
-  "A183",
-  "A184",
-  "A185",
-  "A186",
-  "A187",
-  "A188",
-  "A189",
-  "A19",
-  "A190",
-  "A191",
-  "A192",
-  "A193",
-  "A194",
-  "A195",
-  "A196",
-  "A197",
-  "A198",
-  "A199",
-  "A2",
-  "A20",
-  "A200",
-  "A201",
-  "A202",
-  "A203",
-  "A204",
-  "A205",
-  "A206",
-  "A207",
-  "A208",
-  "A209",
-  "A21",
-  "A210",
-  "A211",
-  "A212",
-  "A213",
-  "A214",
-  "A215",
-  "A216",
-  "A217",
-  "A218",
-  "A219",
-  "A22",
-  "A220",
-  "A221",
-  "A222",
-  "A223",
-  "A224",
-  "A225",
-  "A226",
-  "A227",
-  "A228",
-  "A229",
-  "A23",
-  "A230",
-  "A231",
-  "A232",
-  "A233",
-  "A234",
-  "A235",
-  "A236",
-  "A237",
-  "A238",
-  "A239",
-  "A24",
-  "A25",
-  "A26",
-  "A27",
-  "A28",
-  "A29",
-  "A3",
-  "A30",
-  "A31",
-  "A32",
-  "A33",
-  "A34",
-  "A35",
-  "A36",
-  "A37",
-  "A38",
-  "A39",
-  "A4",
-  "A40",
-  "A41",
-  "A42",
-  "A43",
-  "A44",
-  "A45",
-  "A46",
-  "A47",
-  "A48",
-  "A49",
-  "A5",
-  "A50",
-  "A51",
-  "A52",
-  "A53",
-  "A54",
-  "A55",
-  "A56",
-  "A57",
-  "A58",
-  "A59",
-  "A6",
-  "A60",
-  "A61",
-  "A62",
-  "A63",
-  "A64",
-  "A65",
-  "A66",
-  "A67",
-  "A68",
-  "A69",
-  "A7",
-  "A70",
-  "A71",
-  "A72",
-  "A73",
-  "A74",
-  "A75",
-  "A76",
-  "A77",
-  "A78",
-  "A79",
-  "A8",
-  "A80",
-  "A81",
-  "A82",
-  "A83",
-  "A84",
-  "A85",
-  "A86",
-  "A87",
-  "A88",
-  "A89",
-  "A9",
-  "A90",
-  "A91",
-  "A92",
-  "A93",
-  "A94",
-  "A95",
-  "A96",
-  "A97",
-  "A98",
-  "A99"
-],"rawHeaders":[
-  "A0",
-  "A1",
-  "A10",
-  "A100",
-  "A101",
-  "A102",
-  "A103",
-  "A104",
-  "A105",
-  "A106",
-  "A107",
-  "A108",
-  "A109",
-  "A11",
-  "A110",
-  "A111",
-  "A112",
-  "A113",
-  "A114",
-  "A115",
-  "A116",
-  "A117",
-  "A118",
-  "A119",
-  "A12",
-  "A120",
-  "A121",
-  "A122",
-  "A123",
-  "A124",
-  "A125",
-  "A126",
-  "A127",
-  "A128",
-  "A129",
-  "A13",
-  "A130",
-  "A131",
-  "A132",
-  "A133",
-  "A134",
-  "A135",
-  "A136",
-  "A137",
-  "A138",
-  "A139",
-  "A14",
-  "A140",
-  "A141",
-  "A142",
-  "A143",
-  "A144",
-  "A145",
-  "A146",
-  "A147",
-  "A148",
-  "A149",
-  "A15",
-  "A150",
-  "A151",
-  "A152",
-  "A153",
-  "A154",
-  "A155",
-  "A156",
-  "A157",
-  "A158",
-  "A159",
-  "A16",
-  "A160",
-  "A161",
-  "A162",
-  "A163",
-  "A164",
-  "A165",
-  "A166",
-  "A167",
-  "A168",
-  "A169",
-  "A17",
-  "A170",
-  "A171",
-  "A172",
-  "A173",
-  "A174",
-  "A175",
-  "A176",
-  "A177",
-  "A178",
-  "A179",
-  "A18",
-  "A180",
-  "A181",
-  "A182",
-  "A183",
-  "A184",
-  "A185",
-  "A186",
-  "A187",
-  "A188",
-  "A189",
-  "A19",
-  "A190",
-  "A191",
-  "A192",
-  "A193",
-  "A194",
-  "A195",
-  "A196",
-  "A197",
-  "A198",
-  "A199",
-  "A2",
-  "A20",
-  "A200",
-  "A201",
-  "A202",
-  "A203",
-  "A204",
-  "A205",
-  "A206",
-  "A207",
-  "A208",
-  "A209",
-  "A21",
-  "A210",
-  "A211",
-  "A212",
-  "A213",
-  "A214",
-  "A215",
-  "A216",
-  "A217",
-  "A218",
-  "A219",
-  "A22",
-  "A220",
-  "A221",
-  "A222",
-  "A223",
-  "A224",
-  "A225",
-  "A226",
-  "A227",
-  "A228",
-  "A229",
-  "A23",
-  "A230",
-  "A231",
-  "A232",
-  "A233",
-  "A234",
-  "A235",
-  "A236",
-  "A237",
-  "A238",
-  "A239",
-  "A24",
-  "A25",
-  "A26",
-  "A27",
-  "A28",
-  "A29",
-  "A3",
-  "A30",
-  "A31",
-  "A32",
-  "A33",
-  "A34",
-  "A35",
-  "A36",
-  "A37",
-  "A38",
-  "A39",
-  "A4",
-  "A40",
-  "A41",
-  "A42",
-  "A43",
-  "A44",
-  "A45",
-  "A46",
-  "A47",
-  "A48",
-  "A49",
-  "A5",
-  "A50",
-  "A51",
-  "A52",
-  "A53",
-  "A54",
-  "A55",
-  "A56",
-  "A57",
-  "A58",
-  "A59",
-  "A6",
-  "A60",
-  "A61",
-  "A62",
-  "A63",
-  "A64",
-  "A65",
-  "A66",
-  "A67",
-  "A68",
-  "A69",
-  "A7",
-  "A70",
-  "A71",
-  "A72",
-  "A73",
-  "A74",
-  "A75",
-  "A76",
-  "A77",
-  "A78",
-  "A79",
-  "A8",
-  "A80",
-  "A81",
-  "A82",
-  "A83",
-  "A84",
-  "A85",
-  "A86",
-  "A87",
-  "A88",
-  "A89",
-  "A9",
-  "A90",
-  "A91",
-  "A92",
-  "A93",
-  "A94",
-  "A95",
-  "A96",
-  "A97",
-  "A98",
-  "A99"
-]},"headerInfo":[
-  {
-    "alias": "A0",
-    "header": "A0",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A1",
-    "header": "A1",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A10",
-    "header": "A10",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A100",
-    "header": "A100",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A101",
-    "header": "A101",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A102",
-    "header": "A102",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A103",
-    "header": "A103",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A104",
-    "header": "A104",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A105",
-    "header": "A105",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A106",
-    "header": "A106",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A107",
-    "header": "A107",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A108",
-    "header": "A108",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A109",
-    "header": "A109",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A11",
-    "header": "A11",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A110",
-    "header": "A110",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A111",
-    "header": "A111",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A112",
-    "header": "A112",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A113",
-    "header": "A113",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A114",
-    "header": "A114",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A115",
-    "header": "A115",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A116",
-    "header": "A116",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A117",
-    "header": "A117",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A118",
-    "header": "A118",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A119",
-    "header": "A119",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A12",
-    "header": "A12",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A120",
-    "header": "A120",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A121",
-    "header": "A121",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A122",
-    "header": "A122",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A123",
-    "header": "A123",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A124",
-    "header": "A124",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A125",
-    "header": "A125",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A126",
-    "header": "A126",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A127",
-    "header": "A127",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A128",
-    "header": "A128",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A129",
-    "header": "A129",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A13",
-    "header": "A13",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A130",
-    "header": "A130",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A131",
-    "header": "A131",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A132",
-    "header": "A132",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A133",
-    "header": "A133",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A134",
-    "header": "A134",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A135",
-    "header": "A135",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A136",
-    "header": "A136",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A137",
-    "header": "A137",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A138",
-    "header": "A138",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A139",
-    "header": "A139",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A14",
-    "header": "A14",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A140",
-    "header": "A140",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A141",
-    "header": "A141",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A142",
-    "header": "A142",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A143",
-    "header": "A143",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A144",
-    "header": "A144",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A145",
-    "header": "A145",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A146",
-    "header": "A146",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A147",
-    "header": "A147",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A148",
-    "header": "A148",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A149",
-    "header": "A149",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A15",
-    "header": "A15",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A150",
-    "header": "A150",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A151",
-    "header": "A151",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A152",
-    "header": "A152",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A153",
-    "header": "A153",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A154",
-    "header": "A154",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A155",
-    "header": "A155",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A156",
-    "header": "A156",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A157",
-    "header": "A157",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A158",
-    "header": "A158",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A159",
-    "header": "A159",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A16",
-    "header": "A16",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A160",
-    "header": "A160",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A161",
-    "header": "A161",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A162",
-    "header": "A162",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A163",
-    "header": "A163",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A164",
-    "header": "A164",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A165",
-    "header": "A165",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A166",
-    "header": "A166",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A167",
-    "header": "A167",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A168",
-    "header": "A168",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A169",
-    "header": "A169",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A17",
-    "header": "A17",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A170",
-    "header": "A170",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A171",
-    "header": "A171",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A172",
-    "header": "A172",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A173",
-    "header": "A173",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A174",
-    "header": "A174",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A175",
-    "header": "A175",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A176",
-    "header": "A176",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A177",
-    "header": "A177",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A178",
-    "header": "A178",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A179",
-    "header": "A179",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A18",
-    "header": "A18",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A180",
-    "header": "A180",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A181",
-    "header": "A181",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A182",
-    "header": "A182",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A183",
-    "header": "A183",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A184",
-    "header": "A184",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A185",
-    "header": "A185",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A186",
-    "header": "A186",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A187",
-    "header": "A187",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A188",
-    "header": "A188",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A189",
-    "header": "A189",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A19",
-    "header": "A19",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A190",
-    "header": "A190",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A191",
-    "header": "A191",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A192",
-    "header": "A192",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A193",
-    "header": "A193",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A194",
-    "header": "A194",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A195",
-    "header": "A195",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A196",
-    "header": "A196",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A197",
-    "header": "A197",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A198",
-    "header": "A198",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A199",
-    "header": "A199",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A2",
-    "header": "A2",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A20",
-    "header": "A20",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A200",
-    "header": "A200",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A201",
-    "header": "A201",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A202",
-    "header": "A202",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A203",
-    "header": "A203",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A204",
-    "header": "A204",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A205",
-    "header": "A205",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A206",
-    "header": "A206",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A207",
-    "header": "A207",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A208",
-    "header": "A208",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A209",
-    "header": "A209",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A21",
-    "header": "A21",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A210",
-    "header": "A210",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A211",
-    "header": "A211",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A212",
-    "header": "A212",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A213",
-    "header": "A213",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A214",
-    "header": "A214",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A215",
-    "header": "A215",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A216",
-    "header": "A216",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A217",
-    "header": "A217",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A218",
-    "header": "A218",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A219",
-    "header": "A219",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A22",
-    "header": "A22",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A220",
-    "header": "A220",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A221",
-    "header": "A221",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A222",
-    "header": "A222",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A223",
-    "header": "A223",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A224",
-    "header": "A224",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A225",
-    "header": "A225",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A226",
-    "header": "A226",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A227",
-    "header": "A227",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A228",
-    "header": "A228",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A229",
-    "header": "A229",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A23",
-    "header": "A23",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A230",
-    "header": "A230",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A231",
-    "header": "A231",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A232",
-    "header": "A232",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A233",
-    "header": "A233",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A234",
-    "header": "A234",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A235",
-    "header": "A235",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A236",
-    "header": "A236",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A237",
-    "header": "A237",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A238",
-    "header": "A238",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A239",
-    "header": "A239",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A24",
-    "header": "A24",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A25",
-    "header": "A25",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A26",
-    "header": "A26",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A27",
-    "header": "A27",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A28",
-    "header": "A28",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A29",
-    "header": "A29",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A3",
-    "header": "A3",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A30",
-    "header": "A30",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A31",
-    "header": "A31",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A32",
-    "header": "A32",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A33",
-    "header": "A33",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A34",
-    "header": "A34",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A35",
-    "header": "A35",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A36",
-    "header": "A36",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A37",
-    "header": "A37",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A38",
-    "header": "A38",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A39",
-    "header": "A39",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A4",
-    "header": "A4",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A40",
-    "header": "A40",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A41",
-    "header": "A41",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A42",
-    "header": "A42",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A43",
-    "header": "A43",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A44",
-    "header": "A44",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A45",
-    "header": "A45",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A46",
-    "header": "A46",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A47",
-    "header": "A47",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A48",
-    "header": "A48",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A49",
-    "header": "A49",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A5",
-    "header": "A5",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A50",
-    "header": "A50",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A51",
-    "header": "A51",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A52",
-    "header": "A52",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A53",
-    "header": "A53",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A54",
-    "header": "A54",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A55",
-    "header": "A55",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A56",
-    "header": "A56",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A57",
-    "header": "A57",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A58",
-    "header": "A58",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A59",
-    "header": "A59",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A6",
-    "header": "A6",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A60",
-    "header": "A60",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A61",
-    "header": "A61",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A62",
-    "header": "A62",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A63",
-    "header": "A63",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A64",
-    "header": "A64",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A65",
-    "header": "A65",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A66",
-    "header": "A66",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A67",
-    "header": "A67",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A68",
-    "header": "A68",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A69",
-    "header": "A69",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A7",
-    "header": "A7",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A70",
-    "header": "A70",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A71",
-    "header": "A71",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A72",
-    "header": "A72",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A73",
-    "header": "A73",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A74",
-    "header": "A74",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A75",
-    "header": "A75",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A76",
-    "header": "A76",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A77",
-    "header": "A77",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A78",
-    "header": "A78",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A79",
-    "header": "A79",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A8",
-    "header": "A8",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A80",
-    "header": "A80",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A81",
-    "header": "A81",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A82",
-    "header": "A82",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A83",
-    "header": "A83",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A84",
-    "header": "A84",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A85",
-    "header": "A85",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A86",
-    "header": "A86",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A87",
-    "header": "A87",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A88",
-    "header": "A88",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A89",
-    "header": "A89",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A9",
-    "header": "A9",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A90",
-    "header": "A90",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A91",
-    "header": "A91",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A92",
-    "header": "A92",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A93",
-    "header": "A93",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A94",
-    "header": "A94",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A95",
-    "header": "A95",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A96",
-    "header": "A96",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A97",
-    "header": "A97",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A98",
-    "header": "A98",
-    "type": "STRING",
-    "derived": false
-  },
-  {
-    "alias": "A99",
-    "header": "A99",
-    "type": "STRING",
-    "derived": false
-  }
-],"sortInfo":[],"numRows":3,"sources":[
-  {
-    "name": "FRAMEUNITTEST",
-    "type": "FRAME"
-  }
-],"numCollected":2000,"taskOptions":{
-  "0": {
-    "layout": "Grid",
-    "alignment": {
-      "label": [
-        "A0",
-        "A1",
-        "A10",
-        "A100",
-        "A101",
-        "A102",
-        "A103",
-        "A104",
-        "A105",
-        "A106",
-        "A107",
-        "A108",
-        "A109",
-        "A11",
-        "A110",
-        "A111",
-        "A112",
-        "A113",
-        "A114",
-        "A115",
-        "A116",
-        "A117",
-        "A118",
-        "A119",
-        "A12",
-        "A120",
-        "A121",
-        "A122",
-        "A123",
-        "A124",
-        "A125",
-        "A126",
-        "A127",
-        "A128",
-        "A129",
-        "A13",
-        "A130",
-        "A131",
-        "A132",
-        "A133",
-        "A134",
-        "A135",
-        "A136",
-        "A137",
-        "A138",
-        "A139",
-        "A14",
-        "A140",
-        "A141",
-        "A142",
-        "A143",
-        "A144",
-        "A145",
-        "A146",
-        "A147",
-        "A148",
-        "A149",
-        "A15",
-        "A150",
-        "A151",
-        "A152",
-        "A153",
-        "A154",
-        "A155",
-        "A156",
-        "A157",
-        "A158",
-        "A159",
-        "A16",
-        "A160",
-        "A161",
-        "A162",
-        "A163",
-        "A164",
-        "A165",
-        "A166",
-        "A167",
-        "A168",
-        "A169",
-        "A17",
-        "A170",
-        "A171",
-        "A172",
-        "A173",
-        "A174",
-        "A175",
-        "A176",
-        "A177",
-        "A178",
-        "A179",
-        "A18",
-        "A180",
-        "A181",
-        "A182",
-        "A183",
-        "A184",
-        "A185",
-        "A186",
-        "A187",
-        "A188",
-        "A189",
-        "A19",
-        "A190",
-        "A191",
-        "A192",
-        "A193",
-        "A194",
-        "A195",
-        "A196",
-        "A197",
-        "A198",
-        "A199",
-        "A2",
-        "A20",
-        "A200",
-        "A201",
-        "A202",
-        "A203",
-        "A204",
-        "A205",
-        "A206",
-        "A207",
-        "A208",
-        "A209",
-        "A21",
-        "A210",
-        "A211",
-        "A212",
-        "A213",
-        "A214",
-        "A215",
-        "A216",
-        "A217",
-        "A218",
-        "A219",
-        "A22",
-        "A220",
-        "A221",
-        "A222",
-        "A223",
-        "A224",
-        "A225",
-        "A226",
-        "A227",
-        "A228",
-        "A229",
-        "A23",
-        "A230",
-        "A231",
-        "A232",
-        "A233",
-        "A234",
-        "A235",
-        "A236",
-        "A237",
-        "A238",
-        "A239",
-        "A24",
-        "A25",
-        "A26",
-        "A27",
-        "A28",
-        "A29",
-        "A3",
-        "A30",
-        "A31",
-        "A32",
-        "A33",
-        "A34",
-        "A35",
-        "A36",
-        "A37",
-        "A38",
-        "A39",
-        "A4",
-        "A40",
-        "A41",
-        "A42",
-        "A43",
-        "A44",
-        "A45",
-        "A46",
-        "A47",
-        "A48",
-        "A49",
-        "A5",
-        "A50",
-        "A51",
-        "A52",
-        "A53",
-        "A54",
-        "A55",
-        "A56",
-        "A57",
-        "A58",
-        "A59",
-        "A6",
-        "A60",
-        "A61",
-        "A62",
-        "A63",
-        "A64",
-        "A65",
-        "A66",
-        "A67",
-        "A68",
-        "A69",
-        "A7",
-        "A70",
-        "A71",
-        "A72",
-        "A73",
-        "A74",
-        "A75",
-        "A76",
-        "A77",
-        "A78",
-        "A79",
-        "A8",
-        "A80",
-        "A81",
-        "A82",
-        "A83",
-        "A84",
-        "A85",
-        "A86",
-        "A87",
-        "A88",
-        "A89",
-        "A9",
-        "A90",
-        "A91",
-        "A92",
-        "A93",
-        "A94",
-        "A95",
-        "A96",
-        "A97",
-        "A98",
-        "A99"
-      ]
-    }
-  }
-},"format":{
-  "type": "TABLE"
-},"filterInfo":[],"taskId":"task15"},"operationType":[
-  "TASK_DATA"
-]}
+{
+    "isMeta": false,
+    "operationType": [
+        "TASK_DATA"
+    ],
+    "output": {
+        "data": {
+            "headers": [
+                "Studio",
+                "value_1",
+                "variable_1"
+            ],
+            "rawHeaders": [
+                "Studio",
+                "value_1",
+                "variable_1"
+            ],
+            "values": [
+                [
+                    "Artisan",
+                    "20000000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Artisan",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Artisan",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Artisan",
+                    "0.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Artisan",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Artisan",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Buena_Vista",
+                    "55454545.45454545",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Buena_Vista",
+                    "25000000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Buena_Vista",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Buena_Vista",
+                    "40625000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Buena_Vista",
+                    "138222222.2222222",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Buena_Vista",
+                    "48727272.72727273",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "CBS",
+                    "28000000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "CBS",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "CBS",
+                    "16000000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "CBS",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "CBS",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "CBS",
+                    "14500000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Destination",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Destination",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Destination",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Destination",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Destination",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Destination",
+                    "35000000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Dimension_Films",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Dimension_Films",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Dimension_Films",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Dimension_Films",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Dimension_Films",
+                    "24000000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Dimension_Films",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Dreamworks",
+                    "75000000.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Dreamworks",
+                    "70000000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Dreamworks",
+                    "12500000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Dreamworks",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Dreamworks",
+                    "58750000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Dreamworks",
+                    "16000000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Fine_Line",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Fine_Line",
+                    "0.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Fine_Line",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Fine_Line",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Fine_Line",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Fine_Line",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "First",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "First",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "First",
+                    "0.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "First",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "First",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "First",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Focus",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Focus",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Focus",
+                    "15166666.666666666",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Focus",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Focus",
+                    "19500000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Focus",
+                    "13700000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Focus_Features",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Focus_Features",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Focus_Features",
+                    "20000000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Focus_Features",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Focus_Features",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Focus_Features",
+                    "4000000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Fox",
+                    "62888888.88888889",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Fox",
+                    "36125000.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Fox",
+                    "18458333.333333332",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Fox",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Fox",
+                    "18315789.47368421",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Fox",
+                    "5750000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Fox_Searchlight",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Fox_Searchlight",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Fox_Searchlight",
+                    "2500000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Fox_Searchlight",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Fox_Searchlight",
+                    "6325000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Fox_Searchlight",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Freestyle",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Freestyle",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Freestyle",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Freestyle",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Freestyle",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Freestyle",
+                    "14000000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Gramercy",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Gramercy",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Gramercy",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Gramercy",
+                    "18500000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Gramercy",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Gramercy",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "IDP",
+                    "0.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "IDP",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "IDP",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "IDP",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "IDP",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "IDP",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Lionsgate",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Lionsgate",
+                    "13333333.333333334",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Lionsgate",
+                    "79250000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Lionsgate",
+                    "13737714.285714285",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Lionsgate",
+                    "10083333.333333334",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Lionsgate",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "MGM",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "MGM",
+                    "19500000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "MGM",
+                    "75500000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "MGM",
+                    "50000000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "MGM",
+                    "18000000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "MGM",
+                    "70000000.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "MGM-UA",
+                    "35000000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "MGM-UA",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "MGM-UA",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "MGM-UA",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "MGM-UA",
+                    "15000000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "MGM-UA",
+                    "18000000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    "6000000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Millenium_Entertainment",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Miramax",
+                    "0.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Miramax",
+                    "12616666.666666666",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Miramax",
+                    "15285714.285714285",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Miramax",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Miramax",
+                    "35000000.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Miramax",
+                    "30833333.333333332",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Music_Box_Films",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Music_Box_Films",
+                    "0.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Music_Box_Films",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Music_Box_Films",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Music_Box_Films",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Music_Box_Films",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "New_Line",
+                    "20000000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "New_Line",
+                    "92666666.66666667",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "New_Line",
+                    "0.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "New_Line",
+                    "40500000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "New_Line",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "New_Line",
+                    "44600000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "October",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "October",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "October",
+                    "4500000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "October",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "October",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "October",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Open_Road_Films",
+                    "17000000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Open_Road_Films",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Open_Road_Films",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Open_Road_Films",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Open_Road_Films",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Open_Road_Films",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Orion_Pictures",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Orion_Pictures",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Orion_Pictures",
+                    "0.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Orion_Pictures",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Orion_Pictures",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Orion_Pictures",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Overture_Films",
+                    "4000000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Overture_Films",
+                    "20000000.0",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Overture_Films",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Overture_Films",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Overture_Films",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Overture_Films",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Paramount",
+                    "93000000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Paramount",
+                    "52444444.44444445",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Paramount",
+                    "105000000.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Paramount",
+                    "47416666.666666664",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Paramount",
+                    "14800000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Paramount",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Polygram",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Polygram",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Polygram",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Polygram",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Polygram",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Polygram",
+                    "0.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Relativity",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Relativity",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Relativity",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Relativity",
+                    "6000000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Relativity",
+                    "25500000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Relativity",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Roadside_Attractions",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Roadside_Attractions",
+                    "5250000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Roadside_Attractions",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Roadside_Attractions",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Roadside_Attractions",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Roadside_Attractions",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Rogue_Pictures",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Rogue_Pictures",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Rogue_Pictures",
+                    "1000000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Rogue_Pictures",
+                    "0.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Rogue_Pictures",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Rogue_Pictures",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Sony",
+                    "37727272.72727273",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Sony",
+                    "56411764.705882356",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Sony",
+                    "41250000.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Sony",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Sony",
+                    "96500000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Sony",
+                    "27770000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Summit",
+                    "38000000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Summit",
+                    "15000000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Summit",
+                    "9500000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Summit",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Summit",
+                    "65000000.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Summit",
+                    "42000000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Summit_Entertainment",
+                    "30000000.0",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Summit_Entertainment",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Summit_Entertainment",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Summit_Entertainment",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Summit_Entertainment",
+                    "8000000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Summit_Entertainment",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Trimark",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Trimark",
+                    "3000000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Trimark",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Trimark",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Trimark",
+                    "nan",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Trimark",
+                    "0.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "USA",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "USA",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "USA",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "USA",
+                    "19800000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "USA",
+                    "0.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "USA",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Universal",
+                    "41500000.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Universal",
+                    "94111111.1111111",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Universal",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Universal",
+                    "53071428.571428575",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Universal",
+                    "35428571.428571425",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Universal",
+                    "39555555.55555555",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "WB",
+                    "45178571.428571425",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "WB",
+                    "48550000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "WB",
+                    "47791666.666666664",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "WB",
+                    "87055555.55555555",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "WB",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "WB",
+                    "87500000.0",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Warner_Independent",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Warner_Independent",
+                    "7000000.0",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Warner_Independent",
+                    "nan",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Warner_Independent",
+                    "nan",
+                    "MovieBudget_Thriller_Horror"
+                ],
+                [
+                    "Warner_Independent",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Warner_Independent",
+                    "nan",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Weinstein_Company",
+                    "13571428.57142857",
+                    "MovieBudget_Drama"
+                ],
+                [
+                    "Weinstein_Company",
+                    "nan",
+                    "MovieBudget_Documentary"
+                ],
+                [
+                    "Weinstein_Company",
+                    "22500000.0",
+                    "MovieBudget_Comedy_Musical"
+                ],
+                [
+                    "Weinstein_Company",
+                    "85000000.0",
+                    "MovieBudget_Action_Adventure"
+                ],
+                [
+                    "Weinstein_Company",
+                    "nan",
+                    "MovieBudget_Family_Animation"
+                ],
+                [
+                    "Weinstein_Company",
+                    "0.0",
+                    "MovieBudget_Thriller_Horror"
+                ]
+            ]
+        },
+        "filterInfo": [],
+        "format": {
+            "type": "TABLE"
+        },
+        "headerInfo": [
+            {
+                "additionalDataType": "",
+                "alias": "Studio",
+                "dataType": "STRING",
+                "derived": false,
+                "header": "Studio",
+                "type": "STRING"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "value_1",
+                "dataType": "STRING",
+                "derived": false,
+                "header": "value_1",
+                "type": "STRING"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "variable_1",
+                "dataType": "STRING",
+                "derived": false,
+                "header": "variable_1",
+                "type": "STRING"
+            }
+        ],
+        "numCollected": 2000,
+        "numRows": 240,
+        "sortInfo": [],
+        "sources": [
+            {
+                "name": "FRAMEUNITTEST",
+                "type": "FRAME"
+            }
+        ],
+        "taskId": "task15",
+        "taskOptions": {
+            "0": {
+                "alignment": {
+                    "label": [
+                        "Studio",
+                        "value_1",
+                        "variable_1"
+                    ]
+                },
+                "layout": "Grid"
+            }
+        }
+    },
+    "pixelExpression": "ifError ( ( Frame ( frame = [ FRAMEUNITTEST ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;"
+}
