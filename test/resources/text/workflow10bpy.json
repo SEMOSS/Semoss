@@ -1,404 +1,479 @@
-{"pixelExpression":"ifError ( ( Frame ( frame = [ FRAMEUNITTEST ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;","isMeta":false,"output":{"data":{"values":[[
-  0.0,
-  null,
-  null,
-  null,
-  null,
-  null,
-  "Orion_Pictures"
-],[
-  3000000.0,
-  null,
-  null,
-  null,
-  0.0,
-  null,
-  "Trimark"
-],[
-  1.2616666666666666E7,
-  1.5285714285714285E7,
-  null,
-  3.0833333333333332E7,
-  3.5E7,
-  0.0,
-  "Miramax"
-],[
-  1.5E7,
-  9500000.0,
-  null,
-  4.2E7,
-  6.5E7,
-  3.8E7,
-  "Summit"
-],[
-  1.6E7,
-  2.8E7,
-  null,
-  1.45E7,
-  null,
-  null,
-  "CBS"
-],[
-  1.7E7,
-  null,
-  null,
-  null,
-  null,
-  null,
-  "Open_Road_Films"
-],[
-  1.95E7,
-  1.5166666666666666E7,
-  null,
-  1.37E7,
-  null,
-  null,
-  "Focus"
-],[
-  2.0E7,
-  null,
-  null,
-  0.0,
-  null,
-  null,
-  "Artisan"
-],[
-  5.0E7,
-  7.55E7,
-  null,
-  1.8E7,
-  7.0E7,
-  1.95E7,
-  "MGM"
-],[
-  5.545454545454545E7,
-  4.0625E7,
-  null,
-  4.872727272727273E7,
-  1.382222222222222E8,
-  2.5E7,
-  "Buena_Vista"
-],[
-  6.288888888888889E7,
-  1.831578947368421E7,
-  null,
-  1.8458333333333332E7,
-  3.6125E7,
-  5750000.0,
-  "Fox"
-],[
-  7.0E7,
-  1.6E7,
-  null,
-  5.875E7,
-  7.5E7,
-  1.25E7,
-  "Dreamworks"
-],[
-  7.925E7,
-  1.3333333333333334E7,
-  null,
-  1.3737714285714285E7,
-  null,
-  1.0083333333333334E7,
-  "Lionsgate"
-],[
-  8.5E7,
-  2.25E7,
-  null,
-  1.357142857142857E7,
-  null,
-  0.0,
-  "Weinstein_Company"
-],[
-  8.705555555555555E7,
-  4.5178571428571425E7,
-  null,
-  4.855E7,
-  8.75E7,
-  4.7791666666666664E7,
-  "WB"
-],[
-  9.266666666666667E7,
-  4.46E7,
-  null,
-  2.0E7,
-  0.0,
-  4.05E7,
-  "New_Line"
-],[
-  9.3E7,
-  4.7416666666666664E7,
-  null,
-  5.244444444444445E7,
-  1.05E8,
-  1.48E7,
-  "Paramount"
-],[
-  9.41111111111111E7,
-  5.3071428571428575E7,
-  null,
-  3.955555555555555E7,
-  4.15E7,
-  3.5428571428571425E7,
-  "Universal"
-],[
-  9.65E7,
-  5.6411764705882356E7,
-  null,
-  2.777E7,
-  4.125E7,
-  3.772727272727273E7,
-  "Sony"
-],[
-  null,
-  3.5E7,
-  null,
-  null,
-  null,
-  null,
-  "Destination"
-],[
-  null,
-  null,
-  null,
-  2.4E7,
-  null,
-  null,
-  "Dimension_Films"
-],[
-  null,
-  null,
-  null,
-  null,
-  null,
-  0.0,
-  "Fine_Line"
-],[
-  null,
-  0.0,
-  null,
-  null,
-  null,
-  null,
-  "First"
-],[
-  null,
-  4000000.0,
-  null,
-  2.0E7,
-  null,
-  null,
-  "Focus_Features"
-],[
-  null,
-  2500000.0,
-  null,
-  6325000.0,
-  null,
-  null,
-  "Fox_Searchlight"
-],[
-  null,
-  null,
-  null,
-  null,
-  null,
-  1.4E7,
-  "Freestyle"
-],[
-  null,
-  null,
-  null,
-  1.85E7,
-  null,
-  null,
-  "Gramercy"
-],[
-  null,
-  null,
-  null,
-  0.0,
-  null,
-  null,
-  "IDP"
-],[
-  null,
-  3.5E7,
-  null,
-  1.5E7,
-  null,
-  1.8E7,
-  "MGM-UA"
-],[
-  null,
-  6000000.0,
-  null,
-  null,
-  null,
-  null,
-  "Millenium_Entertainment"
-],[
-  null,
-  null,
-  null,
-  null,
-  null,
-  0.0,
-  "Music_Box_Films"
-],[
-  null,
-  null,
-  null,
-  4500000.0,
-  null,
-  null,
-  "October"
-],[
-  null,
-  null,
-  2.0E7,
-  4000000.0,
-  null,
-  null,
-  "Overture_Films"
-],[
-  null,
-  null,
-  null,
-  null,
-  0.0,
-  null,
-  "Polygram"
-],[
-  null,
-  6000000.0,
-  null,
-  null,
-  null,
-  2.55E7,
-  "Relativity"
-],[
-  null,
-  null,
-  null,
-  5250000.0,
-  null,
-  null,
-  "Roadside_Attractions"
-],[
-  null,
-  0.0,
-  null,
-  null,
-  null,
-  1000000.0,
-  "Rogue_Pictures"
-],[
-  null,
-  null,
-  null,
-  8000000.0,
-  null,
-  3.0E7,
-  "Summit_Entertainment"
-],[
-  null,
-  0.0,
-  null,
-  1.98E7,
-  null,
-  null,
-  "USA"
-],[
-  null,
-  null,
-  null,
-  7000000.0,
-  null,
-  null,
-  "Warner_Independent"
-]],"headers":[
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Documentary",
-  "MovieBudget_Drama",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Thriller_Horror",
-  "Studio"
-],"rawHeaders":[
-  "MovieBudget_Action_Adventure",
-  "MovieBudget_Comedy_Musical",
-  "MovieBudget_Documentary",
-  "MovieBudget_Drama",
-  "MovieBudget_Family_Animation",
-  "MovieBudget_Thriller_Horror",
-  "Studio"
-]},"headerInfo":[
-  {
-    "alias": "MovieBudget_Action_Adventure",
-    "header": "MovieBudget_Action_Adventure",
-    "type": "NUMBER",
-    "derived": false
-  },
-  {
-    "alias": "MovieBudget_Comedy_Musical",
-    "header": "MovieBudget_Comedy_Musical",
-    "type": "NUMBER",
-    "derived": false
-  },
-  {
-    "alias": "MovieBudget_Documentary",
-    "header": "MovieBudget_Documentary",
-    "type": "NUMBER",
-    "derived": false
-  },
-  {
-    "alias": "MovieBudget_Drama",
-    "header": "MovieBudget_Drama",
-    "type": "NUMBER",
-    "derived": false
-  },
-  {
-    "alias": "MovieBudget_Family_Animation",
-    "header": "MovieBudget_Family_Animation",
-    "type": "NUMBER",
-    "derived": false
-  },
-  {
-    "alias": "MovieBudget_Thriller_Horror",
-    "header": "MovieBudget_Thriller_Horror",
-    "type": "NUMBER",
-    "derived": false
-  },
-  {
-    "alias": "Studio",
-    "header": "Studio",
-    "type": "STRING",
-    "derived": false
-  }
-],"sortInfo":[],"numRows":40,"sources":[
-  {
-    "name": "FRAMEUNITTEST",
-    "type": "FRAME"
-  }
-],"numCollected":2000,"taskOptions":{
-  "0": {
-    "layout": "Grid",
-    "alignment": {
-      "label": [
-        "MovieBudget_Action_Adventure",
-        "MovieBudget_Comedy_Musical",
-        "MovieBudget_Documentary",
-        "MovieBudget_Drama",
-        "MovieBudget_Family_Animation",
-        "MovieBudget_Thriller_Horror",
-        "Studio"
-      ]
-    }
-  }
-},"format":{
-  "type": "TABLE"
-},"filterInfo":[],"taskId":"task7"},"operationType":[
-  "TASK_DATA"
-]}
+{
+    "isMeta": false,
+    "operationType": [
+        "TASK_DATA"
+    ],
+    "output": {
+        "data": {
+            "headers": [
+                "MovieBudget_Action_Adventure",
+                "MovieBudget_Comedy_Musical",
+                "MovieBudget_Documentary",
+                "MovieBudget_Drama",
+                "MovieBudget_Family_Animation",
+                "MovieBudget_Thriller_Horror",
+                "Studio"
+            ],
+            "rawHeaders": [
+                "MovieBudget_Action_Adventure",
+                "MovieBudget_Comedy_Musical",
+                "MovieBudget_Documentary",
+                "MovieBudget_Drama",
+                "MovieBudget_Family_Animation",
+                "MovieBudget_Thriller_Horror",
+                "Studio"
+            ],
+            "values": [
+                [
+                    0.0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "Orion_Pictures"
+                ],
+                [
+                    3000000.0,
+                    null,
+                    null,
+                    null,
+                    0.0,
+                    null,
+                    "Trimark"
+                ],
+                [
+                    12616666.666666666,
+                    15285714.285714285,
+                    null,
+                    30833333.333333332,
+                    35000000.0,
+                    0.0,
+                    "Miramax"
+                ],
+                [
+                    15000000.0,
+                    9500000.0,
+                    null,
+                    42000000.0,
+                    65000000.0,
+                    38000000.0,
+                    "Summit"
+                ],
+                [
+                    16000000.0,
+                    28000000.0,
+                    null,
+                    14500000.0,
+                    null,
+                    null,
+                    "CBS"
+                ],
+                [
+                    17000000.0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "Open_Road_Films"
+                ],
+                [
+                    19500000.0,
+                    15166666.666666666,
+                    null,
+                    13700000.0,
+                    null,
+                    null,
+                    "Focus"
+                ],
+                [
+                    20000000.0,
+                    null,
+                    null,
+                    0.0,
+                    null,
+                    null,
+                    "Artisan"
+                ],
+                [
+                    50000000.0,
+                    75500000.0,
+                    null,
+                    18000000.0,
+                    70000000.0,
+                    19500000.0,
+                    "MGM"
+                ],
+                [
+                    55454545.45454545,
+                    40625000.0,
+                    null,
+                    48727272.72727273,
+                    138222222.2222222,
+                    25000000.0,
+                    "Buena_Vista"
+                ],
+                [
+                    62888888.88888889,
+                    18315789.47368421,
+                    null,
+                    18458333.333333332,
+                    36125000.0,
+                    5750000.0,
+                    "Fox"
+                ],
+                [
+                    70000000.0,
+                    16000000.0,
+                    null,
+                    58750000.0,
+                    75000000.0,
+                    12500000.0,
+                    "Dreamworks"
+                ],
+                [
+                    79250000.0,
+                    13333333.333333334,
+                    null,
+                    13737714.285714285,
+                    null,
+                    10083333.333333334,
+                    "Lionsgate"
+                ],
+                [
+                    85000000.0,
+                    22500000.0,
+                    null,
+                    13571428.57142857,
+                    null,
+                    0.0,
+                    "Weinstein_Company"
+                ],
+                [
+                    87055555.55555555,
+                    45178571.428571425,
+                    null,
+                    48550000.0,
+                    87500000.0,
+                    47791666.666666664,
+                    "WB"
+                ],
+                [
+                    92666666.66666667,
+                    44600000.0,
+                    null,
+                    20000000.0,
+                    0.0,
+                    40500000.0,
+                    "New_Line"
+                ],
+                [
+                    93000000.0,
+                    47416666.666666664,
+                    null,
+                    52444444.44444445,
+                    105000000.0,
+                    14800000.0,
+                    "Paramount"
+                ],
+                [
+                    94111111.1111111,
+                    53071428.571428575,
+                    null,
+                    39555555.55555555,
+                    41500000.0,
+                    35428571.428571425,
+                    "Universal"
+                ],
+                [
+                    96500000.0,
+                    56411764.705882356,
+                    null,
+                    27770000.0,
+                    41250000.0,
+                    37727272.72727273,
+                    "Sony"
+                ],
+                [
+                    null,
+                    35000000.0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "Destination"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    24000000.0,
+                    null,
+                    null,
+                    "Dimension_Films"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    0.0,
+                    "Fine_Line"
+                ],
+                [
+                    null,
+                    0.0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "First"
+                ],
+                [
+                    null,
+                    4000000.0,
+                    null,
+                    20000000.0,
+                    null,
+                    null,
+                    "Focus_Features"
+                ],
+                [
+                    null,
+                    2500000.0,
+                    null,
+                    6325000.0,
+                    null,
+                    null,
+                    "Fox_Searchlight"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    14000000.0,
+                    "Freestyle"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    18500000.0,
+                    null,
+                    null,
+                    "Gramercy"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    0.0,
+                    null,
+                    null,
+                    "IDP"
+                ],
+                [
+                    null,
+                    35000000.0,
+                    null,
+                    15000000.0,
+                    null,
+                    18000000.0,
+                    "MGM-UA"
+                ],
+                [
+                    null,
+                    6000000.0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "Millenium_Entertainment"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    0.0,
+                    "Music_Box_Films"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    4500000.0,
+                    null,
+                    null,
+                    "October"
+                ],
+                [
+                    null,
+                    null,
+                    20000000.0,
+                    4000000.0,
+                    null,
+                    null,
+                    "Overture_Films"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    null,
+                    0.0,
+                    null,
+                    "Polygram"
+                ],
+                [
+                    null,
+                    6000000.0,
+                    null,
+                    null,
+                    null,
+                    25500000.0,
+                    "Relativity"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    5250000.0,
+                    null,
+                    null,
+                    "Roadside_Attractions"
+                ],
+                [
+                    null,
+                    0.0,
+                    null,
+                    null,
+                    null,
+                    1000000.0,
+                    "Rogue_Pictures"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    8000000.0,
+                    null,
+                    30000000.0,
+                    "Summit_Entertainment"
+                ],
+                [
+                    null,
+                    0.0,
+                    null,
+                    19800000.0,
+                    null,
+                    null,
+                    "USA"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    7000000.0,
+                    null,
+                    null,
+                    "Warner_Independent"
+                ]
+            ]
+        },
+        "filterInfo": [],
+        "format": {
+            "type": "TABLE"
+        },
+        "headerInfo": [
+            {
+                "additionalDataType": "",
+                "alias": "MovieBudget_Action_Adventure",
+                "dataType": "DOUBLE",
+                "derived": false,
+                "header": "MovieBudget_Action_Adventure",
+                "type": "NUMBER"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "MovieBudget_Comedy_Musical",
+                "dataType": "DOUBLE",
+                "derived": false,
+                "header": "MovieBudget_Comedy_Musical",
+                "type": "NUMBER"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "MovieBudget_Documentary",
+                "dataType": "DOUBLE",
+                "derived": false,
+                "header": "MovieBudget_Documentary",
+                "type": "NUMBER"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "MovieBudget_Drama",
+                "dataType": "DOUBLE",
+                "derived": false,
+                "header": "MovieBudget_Drama",
+                "type": "NUMBER"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "MovieBudget_Family_Animation",
+                "dataType": "DOUBLE",
+                "derived": false,
+                "header": "MovieBudget_Family_Animation",
+                "type": "NUMBER"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "MovieBudget_Thriller_Horror",
+                "dataType": "DOUBLE",
+                "derived": false,
+                "header": "MovieBudget_Thriller_Horror",
+                "type": "NUMBER"
+            },
+            {
+                "additionalDataType": "",
+                "alias": "Studio",
+                "dataType": "STRING",
+                "derived": false,
+                "header": "Studio",
+                "type": "STRING"
+            }
+        ],
+        "numCollected": 2000,
+        "numRows": 40,
+        "sortInfo": [],
+        "sources": [
+            {
+                "name": "FRAMEUNITTEST",
+                "type": "FRAME"
+            }
+        ],
+        "taskId": "task7",
+        "taskOptions": {
+            "0": {
+                "alignment": {
+                    "label": [
+                        "MovieBudget_Action_Adventure",
+                        "MovieBudget_Comedy_Musical",
+                        "MovieBudget_Documentary",
+                        "MovieBudget_Drama",
+                        "MovieBudget_Family_Animation",
+                        "MovieBudget_Thriller_Horror",
+                        "Studio"
+                    ]
+                },
+                "layout": "Grid"
+            }
+        }
+    },
+    "pixelExpression": "ifError ( ( Frame ( frame = [ FRAMEUNITTEST ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;"
+}

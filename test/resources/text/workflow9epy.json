@@ -1,187 +1,188 @@
 {
-  "pixelExpression": "FrameHeaders ( ) ;",
-  "isMeta": false,
-  "output": {
-    "headerInfo": {
-      "joins": [],
-      "headers": [{
-          "qsName": {
-            "FRAME_QUERY": [
-              "FRAMEUNITTEST__Genre"
-            ]
-          },
-          "isDerived": true,
-          "displayName": "Genre",
-          "isPrim": "false",
-          "dataType": "STRING",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__Genre",
-          "alias": "Genre",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
+    "isMeta": false,
+    "operationType": [
+        "FRAME_HEADERS"
+    ],
+    "output": {
+        "headerInfo": {
+            "headers": [
+                {
+                    "adtlType": "unknown",
+                    "alias": "Genre",
+                    "dataType": "STRING",
+                    "displayName": "Genre",
+                    "header": "FRAMEUNITTEST__Genre",
+                    "isDerived": true,
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": {
+                        "FRAME_QUERY": [
+                            "FRAMEUNITTEST__Genre"
+                        ]
+                    }
+                },
+                {
+                    "adtlType": "unknown",
+                    "alias": "Genre_Cluster",
+                    "dataType": "NUMBER",
+                    "displayName": "Genre_Cluster",
+                    "header": "FRAMEUNITTEST__Genre_Cluster",
+                    "isDerived": "false",
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": "unknown"
+                },
+                {
+                    "adtlType": "unknown",
+                    "alias": "MovieBudget",
+                    "dataType": "NUMBER",
+                    "displayName": "MovieBudget",
+                    "header": "FRAMEUNITTEST__MovieBudget",
+                    "isDerived": true,
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": {
+                        "FRAME_QUERY": [
+                            "FRAMEUNITTEST__MovieBudget"
+                        ]
+                    }
+                },
+                {
+                    "adtlType": "unknown",
+                    "alias": "Nominated",
+                    "dataType": "STRING",
+                    "displayName": "Nominated",
+                    "header": "FRAMEUNITTEST__Nominated",
+                    "isDerived": true,
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": {
+                        "FRAME_QUERY": [
+                            "FRAMEUNITTEST__Nominated"
+                        ]
+                    }
+                },
+                {
+                    "adtlType": "unknown",
+                    "alias": "Revenue_Domestic",
+                    "dataType": "NUMBER",
+                    "displayName": "Revenue_Domestic",
+                    "header": "FRAMEUNITTEST__Revenue_Domestic",
+                    "isDerived": true,
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": {
+                        "FRAME_QUERY": [
+                            "FRAMEUNITTEST__Revenue_Domestic"
+                        ]
+                    }
+                },
+                {
+                    "adtlType": "unknown",
+                    "alias": "Revenue_Domestic_1",
+                    "dataType": "STRING",
+                    "displayName": "Revenue_Domestic_1",
+                    "header": "FRAMEUNITTEST__Revenue_Domestic_1",
+                    "isDerived": true,
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": {
+                        "FRAME_QUERY": [
+                            "FRAMEUNITTEST__Revenue_Domestic_1"
+                        ]
+                    }
+                },
+                {
+                    "adtlType": "unknown",
+                    "alias": "Revenue_International",
+                    "dataType": "NUMBER",
+                    "displayName": "Revenue_International",
+                    "header": "FRAMEUNITTEST__Revenue_International",
+                    "isDerived": true,
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": {
+                        "FRAME_QUERY": [
+                            "FRAMEUNITTEST__Revenue_International"
+                        ]
+                    }
+                },
+                {
+                    "adtlType": "unknown",
+                    "alias": "RottenTomatoes_Audience",
+                    "dataType": "NUMBER",
+                    "displayName": "RottenTomatoes_Audience",
+                    "header": "FRAMEUNITTEST__RottenTomatoes_Audience",
+                    "isDerived": true,
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": {
+                        "FRAME_QUERY": [
+                            "FRAMEUNITTEST__RottenTomatoes_Audience"
+                        ]
+                    }
+                },
+                {
+                    "adtlType": "unknown",
+                    "alias": "RottenTomatoes_Critics",
+                    "dataType": "NUMBER",
+                    "displayName": "RottenTomatoes_Critics",
+                    "header": "FRAMEUNITTEST__RottenTomatoes_Critics",
+                    "isDerived": true,
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": {
+                        "FRAME_QUERY": [
+                            "FRAMEUNITTEST__RottenTomatoes_Critics"
+                        ]
+                    }
+                },
+                {
+                    "adtlType": "unknown",
+                    "alias": "Studio",
+                    "dataType": "STRING",
+                    "displayName": "Studio",
+                    "header": "FRAMEUNITTEST__Studio",
+                    "isDerived": true,
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": {
+                        "FRAME_QUERY": [
+                            "FRAMEUNITTEST__Studio"
+                        ]
+                    }
+                },
+                {
+                    "adtlType": "unknown",
+                    "alias": "Title",
+                    "dataType": "STRING",
+                    "displayName": "Title",
+                    "header": "FRAMEUNITTEST__Title",
+                    "isDerived": true,
+                    "isFiltered": false,
+                    "isPrim": "false",
+                    "parentNode": "FRAMEUNITTEST",
+                    "qsName": {
+                        "FRAME_QUERY": [
+                            "FRAMEUNITTEST__Title"
+                        ]
+                    }
+                }
+            ],
+            "joins": []
         },
-        {
-          "qsName": "unknown",
-          "isDerived": "false",
-          "displayName": "Genre_Cluster",
-          "isPrim": "false",
-          "dataType": "NUMBER",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__Genre_Cluster",
-          "alias": "Genre_Cluster",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
-        },
-        {
-          "qsName": {
-            "FRAME_QUERY": [
-              "FRAMEUNITTEST__MovieBudget"
-            ]
-          },
-          "isDerived": true,
-          "displayName": "MovieBudget",
-          "isPrim": "false",
-          "dataType": "NUMBER",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__MovieBudget",
-          "alias": "MovieBudget",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
-        },
-        {
-          "qsName": {
-            "FRAME_QUERY": [
-              "FRAMEUNITTEST__Nominated"
-            ]
-          },
-          "isDerived": true,
-          "displayName": "Nominated",
-          "isPrim": "false",
-          "dataType": "STRING",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__Nominated",
-          "alias": "Nominated",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
-        },
-        {
-          "qsName": {
-            "FRAME_QUERY": [
-              "FRAMEUNITTEST__Revenue_Domestic"
-            ]
-          },
-          "isDerived": true,
-          "displayName": "Revenue_Domestic",
-          "isPrim": "false",
-          "dataType": "NUMBER",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__Revenue_Domestic",
-          "alias": "Revenue_Domestic",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
-        },
-        {
-          "qsName": {
-            "FRAME_QUERY": [
-              "FRAMEUNITTEST__Revenue_Domestic_1"
-            ]
-          },
-          "isDerived": true,
-          "displayName": "Revenue_Domestic_1",
-          "isPrim": "false",
-          "dataType": "STRING",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__Revenue_Domestic_1",
-          "alias": "Revenue_Domestic_1",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
-        },
-        {
-          "qsName": {
-            "FRAME_QUERY": [
-              "FRAMEUNITTEST__Revenue_International"
-            ]
-          },
-          "isDerived": true,
-          "displayName": "Revenue_International",
-          "isPrim": "false",
-          "dataType": "NUMBER",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__Revenue_International",
-          "alias": "Revenue_International",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
-        },
-        {
-          "qsName": {
-            "FRAME_QUERY": [
-              "FRAMEUNITTEST__RottenTomatoes_Audience"
-            ]
-          },
-          "isDerived": true,
-          "displayName": "RottenTomatoes_Audience",
-          "isPrim": "false",
-          "dataType": "NUMBER",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__RottenTomatoes_Audience",
-          "alias": "RottenTomatoes_Audience",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
-        },
-        {
-          "qsName": {
-            "FRAME_QUERY": [
-              "FRAMEUNITTEST__RottenTomatoes_Critics"
-            ]
-          },
-          "isDerived": true,
-          "displayName": "RottenTomatoes_Critics",
-          "isPrim": "false",
-          "dataType": "NUMBER",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__RottenTomatoes_Critics",
-          "alias": "RottenTomatoes_Critics",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
-        },
-        {
-          "qsName": {
-            "FRAME_QUERY": [
-              "FRAMEUNITTEST__Studio"
-            ]
-          },
-          "isDerived": true,
-          "displayName": "Studio",
-          "isPrim": "false",
-          "dataType": "STRING",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__Studio",
-          "alias": "Studio",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
-        },
-        {
-          "qsName": {
-            "FRAME_QUERY": [
-              "FRAMEUNITTEST__Title"
-            ]
-          },
-          "isDerived": true,
-          "displayName": "Title",
-          "isPrim": "false",
-          "dataType": "STRING",
-          "adtlType": "unknown",
-          "header": "FRAMEUNITTEST__Title",
-          "alias": "Title",
-          "isFiltered": false,
-          "parentNode": "FRAMEUNITTEST"
-        }
-      ]
+        "name": "FRAMEUNITTEST",
+        "type": "R"
     },
-    "name": "FRAMEUNITTEST",
-    "type": "R"
-  },
-  "operationType": [
-    "FRAME_HEADERS"
-  ]
+    "pixelExpression": "FrameHeaders ( ) ;"
 }

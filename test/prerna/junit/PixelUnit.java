@@ -10,8 +10,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -52,6 +54,7 @@ import org.junit.BeforeClass;
 import org.quartz.SchedulerException;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -99,6 +102,9 @@ public class PixelUnit {
 	protected static final String TEST_TEXT_DIRECTORY = Paths.get(TEST_RESOURCES_DIRECTORY, "text").toAbsolutePath()
 			.toString();
 
+	protected static final String ACTUAL_JSON_DIRECOTRY = Paths.get(TEST_TEXT_DIRECTORY, "actual").toAbsolutePath()
+			.toString();
+
 	protected static final Gson GSON = GsonUtility.getDefaultGson();
 	protected static final Gson GSON_PRETTY = GsonUtility.getDefaultGson(true);
 
@@ -115,7 +121,7 @@ public class PixelUnit {
 
 	private static final Path BASE_RDF_MAP = Paths.get(BASE_DIRECTORY, "RDF_Map.prop");
 	private static final Path TEST_RDF_MAP = Paths.get(TEST_RESOURCES_DIRECTORY, "RDF_Map.prop");
-	
+
 	private static final Path TEST_LOCAL_DB_MAP = Paths.get(TEST_RESOURCES_DIRECTORY, "Local_DBs.prop");
 
 	private static final String LS = System.getProperty("line.separator");
@@ -123,6 +129,9 @@ public class PixelUnit {
 	protected static Map<String, String> aliasToAppId = new HashMap<>();
 
 	private static boolean testDatabasesAreClean = true; // This must be static, as one instance of PixelUnit can dirty
+
+	private static boolean firstTestRun = true;
+
 	// databases for all others
 	private List<String> cleanTestDatabases = new ArrayList<>();
 
@@ -143,6 +152,7 @@ public class PixelUnit {
 			loadDIHelper();
 			loadDatabases();
 			loadTestDatabases();
+			cleanActualDirectory();
 		} catch (Exception e) {
 
 			// Tests assume that this setup is correct in order to run
@@ -151,6 +161,8 @@ public class PixelUnit {
 		}
 		checkAssumptions();
 	}
+
+
 
 	// Destroy methods should not throw exceptions, so that subsequent cleanup
 	// methods have the opportunity to run
@@ -255,7 +267,7 @@ public class PixelUnit {
 		// Themes
 		SMSSWebWatcher.loadNewDB(Constants.THEMING_DB + ".smss", BASE_DB_DIRECTORY);
 		AbstractThemeUtils.loadThemingDatabase();
-		
+
 		// Add local databases (as defined in Local_DBs.prop) to Properties so that users can run tests on their local db's
 		Properties propMap = DIHelper.getInstance().getCoreProp();
 		Properties localDBPropMap = Utility.loadProperties(TEST_LOCAL_DB_MAP.toString());
@@ -434,6 +446,18 @@ public class PixelUnit {
 		}
 
 	}
+	
+	private static void cleanActualDirectory() {
+		File actualDir = new File(ACTUAL_JSON_DIRECOTRY);
+		actualDir.mkdirs();
+		try {
+			FileUtils.cleanDirectory(new File(ACTUAL_JSON_DIRECOTRY));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		
+	}
 
 	private static Path getXMLFileForAlias(String alias) {
 		return Paths.get(TEST_RESOURCES_DIRECTORY, alias + ".xml");
@@ -495,7 +519,8 @@ public class PixelUnit {
 	// Assumptions
 	//////////////////////////////
 	public void checkTestAssumptions() {
-
+		
+		if(firstTestRun){
 		// Assume that the databases are clean for tests to work properly
 		assumeThat(testDatabasesAreClean, is(equalTo(true)));
 
@@ -536,6 +561,8 @@ public class PixelUnit {
 				LOGGER.error("Error: ", e);
 				assumeNoException(e);
 			}
+		}
+		firstTestRun=false;
 		}
 	}
 
@@ -693,6 +720,7 @@ public class PixelUnit {
 				if (assume) {
 					throw new AssumptionViolatedException(testReport.toString());
 				} else {
+					//createUpdatedJson(pixel, compareAll, expectedJson);
 					throw new AssertionError(testReport.toString());
 				}
 			}
@@ -749,369 +777,395 @@ public class PixelUnit {
 		}
 	}
 
-	private static String composeComparisonReport(PixelComparison comparison, int index) {
-		StringBuilder testReport = new StringBuilder();
-		testReport.append(LS);
 
-		addMajorTitle(testReport, "Pixel expression: ");
-		testReport.append(comparison.getPixelExpression()).append(LS);
 
-		addTitle(testReport, "Index: ");
-		testReport.append(index).append(LS);
+		private static String composeComparisonReport(PixelComparison comparison, int index) {
+			StringBuilder testReport = new StringBuilder();
+			testReport.append(LS);
 
-		addTitle(testReport, "Differences: ");
-		// Need to rearrange the way the differences are reported
-		Map<String, Object> typeLocationValueMap = comparison.getDifferences(); // Original
-		Map<String, Map<String, String>> locationTypeValueMap = new HashMap<>(); // Rearranged
-		for (Entry<String, Object> typeLocationValueEntry : typeLocationValueMap.entrySet()) {
+			addMajorTitle(testReport, "Pixel expression: ");
+			testReport.append(comparison.getPixelExpression()).append(LS);
 
-			// Handle the case where the value is not a map
-			if (!(typeLocationValueEntry.getValue() instanceof Map)) {
-				String location = typeLocationValueEntry.getValue().toString();
-				if (location.startsWith("{\""))
-					location = location.substring(2, location.length());
-				if (location.endsWith("\"}"))
-					location = location.substring(0, location.length() - 2);
+			addTitle(testReport, "Index: ");
+			testReport.append(index).append(LS);
+
+			addTitle(testReport, "Differences: ");
+			// Need to rearrange the way the differences are reported
+			Map<String, Object> typeLocationValueMap = comparison.getDifferences(); // Original
+			Map<String, Map<String, String>> locationTypeValueMap = new HashMap<>(); // Rearranged
+			for (Entry<String, Object> typeLocationValueEntry : typeLocationValueMap.entrySet()) {
+
+				// Handle the case where the value is not a map
+				if (!(typeLocationValueEntry.getValue() instanceof Map)) {
+					String location = typeLocationValueEntry.getValue().toString();
+					if (location.startsWith("{\""))
+						location = location.substring(2, location.length());
+					if (location.endsWith("\"}"))
+						location = location.substring(0, location.length() - 2);
+					testReport.append(location).append(": ").append(LS);
+
+					String type = typeLocationValueEntry.getKey();
+					testReport.append(type).append(LS);
+
+					continue;
+				}
+
+				// If a map, report all the differences in the map
+				@SuppressWarnings("unchecked")
+				Map<String, Object> locationValueMap = (Map<String, Object>) typeLocationValueEntry.getValue();
+				for (Entry<String, Object> locationValueEntry : locationValueMap.entrySet()) {
+
+					String type = typeLocationValueEntry.getKey();
+					String location = locationValueEntry.getKey();
+					String value = locationValueEntry.getValue().toString();
+
+					Map<String, String> typeValueMap = locationTypeValueMap.getOrDefault(location, new HashMap<>());
+					typeValueMap.put(type, value);
+					locationTypeValueMap.put(location, typeValueMap);
+				}
+			}
+
+			// Then report the results
+			for (Entry<String, Map<String, String>> locationTypeValueEntry : locationTypeValueMap.entrySet()) {
+
+				String location = locationTypeValueEntry.getKey();
 				testReport.append(location).append(": ").append(LS);
 
-				String type = typeLocationValueEntry.getKey();
-				testReport.append(type).append(LS);
+				Map<String, String> typeValueMap = locationTypeValueEntry.getValue();
 
-				continue;
+				// Underline to highlight the difference
+				String underline = null;
+				if (typeValueMap.keySet().size() == 2) {
+					String[] values = typeValueMap.values().toArray(new String[] {});
+					String v0 = values[0];
+					String v1 = values[1];
+					int n = getIndexOfFirstDifference(v0, v1);
+					underline = new String(new char[n]).replace('\0', ' ') + "^";
+				}
+
+				for (Entry<String, String> typeValueEntry : typeValueMap.entrySet()) {
+
+					String type = typeValueEntry.getKey();
+					String value = typeValueEntry.getValue();
+
+					testReport.append(type).append("=").append(LS);
+					testReport.append(value).append(LS);
+					if (underline != null)
+						testReport.append(underline).append(LS); // Only underline if available
+				}
+				testReport.append(LS);
 			}
 
-			// If a map, report all the differences in the map
-			@SuppressWarnings("unchecked")
-			Map<String, Object> locationValueMap = (Map<String, Object>) typeLocationValueEntry.getValue();
-			for (Entry<String, Object> locationValueEntry : locationValueMap.entrySet()) {
+			addTitle(testReport, "Expected output: ");
+			testReport.append(comparison.getExpectedPixelOutput()).append(LS);
+			addTitle(testReport, "Actual output: ");
+			testReport.append(comparison.getActualPixelOutput()).append(LS);
 
-				String type = typeLocationValueEntry.getKey();
-				String location = locationValueEntry.getKey();
-				String value = locationValueEntry.getValue().toString();
-
-				Map<String, String> typeValueMap = locationTypeValueMap.getOrDefault(location, new HashMap<>());
-				typeValueMap.put(type, value);
-				locationTypeValueMap.put(location, typeValueMap);
-			}
+			return testReport.toString();
 		}
 
-		// Then report the results
-		for (Entry<String, Map<String, String>> locationTypeValueEntry : locationTypeValueMap.entrySet()) {
-
-			String location = locationTypeValueEntry.getKey();
-			testReport.append(location).append(": ").append(LS);
-
-			Map<String, String> typeValueMap = locationTypeValueEntry.getValue();
-
-			// Underline to highlight the difference
-			String underline = null;
-			if (typeValueMap.keySet().size() == 2) {
-				String[] values = typeValueMap.values().toArray(new String[] {});
-				String v0 = values[0];
-				String v1 = values[1];
-				int n = getIndexOfFirstDifference(v0, v1);
-				underline = new String(new char[n]).replace('\0', ' ') + "^";
+		private static int getIndexOfFirstDifference(String a, String b) {
+			int min = Math.min(a.length(), b.length());
+			for (int i = 0; i < min; i++) {
+				if (a.charAt(i) != b.charAt(i)) {
+					return i;
+				}
 			}
-
-			for (Entry<String, String> typeValueEntry : typeValueMap.entrySet()) {
-
-				String type = typeValueEntry.getKey();
-				String value = typeValueEntry.getValue();
-
-				testReport.append(type).append("=").append(LS);
-				testReport.append(value).append(LS);
-				if (underline != null)
-					testReport.append(underline).append(LS); // Only underline if available
-			}
-			testReport.append(LS);
+			return -1;
 		}
 
-		addTitle(testReport, "Expected output: ");
-		testReport.append(comparison.getExpectedPixelOutput()).append(LS);
-		addTitle(testReport, "Actual output: ");
-		testReport.append(comparison.getActualPixelOutput()).append(LS);
-
-		return testReport.toString();
-	}
-
-	private static int getIndexOfFirstDifference(String a, String b) {
-		int min = Math.min(a.length(), b.length());
-		for (int i = 0; i < min; i++) {
-			if (a.charAt(i) != b.charAt(i)) {
-				return i;
-			}
+		private static void addTitle(StringBuilder builder, String title) {
+			builder.append(LS);
+			builder.append("---------------------------------------").append(LS);
+			builder.append(title).append(LS);
+			builder.append("---------------------------------------").append(LS);
 		}
-		return -1;
-	}
 
-	private static void addTitle(StringBuilder builder, String title) {
-		builder.append(LS);
-		builder.append("---------------------------------------").append(LS);
-		builder.append(title).append(LS);
-		builder.append("---------------------------------------").append(LS);
-	}
+		private static void addMajorTitle(StringBuilder builder, String title) {
+			builder.append(LS);
+			builder.append("-------------------------------------------------------------------------------").append(LS);
+			builder.append(title).append(LS);
+			builder.append("-------------------------------------------------------------------------------").append(LS);
+		}
 
-	private static void addMajorTitle(StringBuilder builder, String title) {
-		builder.append(LS);
-		builder.append("-------------------------------------------------------------------------------").append(LS);
-		builder.append(title).append(LS);
-		builder.append("-------------------------------------------------------------------------------").append(LS);
-	}
+		// Compare result methods (overloaded)
+		protected List<PixelComparison> compareResult(String pixel, String expectedJson) throws IOException {
+			return compareResult(pixel, expectedJson, false, new ArrayList<String>(), false);
+		}
 
-	// Compare result methods (overloaded)
-	protected List<PixelComparison> compareResult(String pixel, String expectedJson) throws IOException {
-		return compareResult(pixel, expectedJson, false, new ArrayList<String>(), false);
-	}
+		protected List<PixelComparison> compareResult(String pixel, String expectedJson, boolean compareAll,
+				List<String> excludePaths, boolean ignoreOrder) throws IOException {
 
-	protected List<PixelComparison> compareResult(String pixel, String expectedJson, boolean compareAll,
-			List<String> excludePaths, boolean ignoreOrder) throws IOException {
+			// Run the pixel and get the results
+			PixelRunner returnData = runPixel(pixel);
+			List<PixelJson> actualPixelJsons = collectPixelJsons(returnData);
+			int actualRecipeLength = actualPixelJsons.size();
+			String testName = getNameFromExpectedJson(expectedJson);
+			// Cleanup the expected json, including formatting it
+			expectedJson = formatString(expectedJson);
 
-		// Run the pixel and get the results
-		PixelRunner returnData = runPixel(pixel);
-		List<PixelJson> actualPixelJsons = collectPixelJsons(returnData);
-		int actualRecipeLength = actualPixelJsons.size();
+			// The rest of the comparison is based on whether to compare all pixel returns
+			// or not
+			List<PixelComparison> differences = new ArrayList<>();
+			if (compareAll) {
 
-		// Cleanup the expected json, including formatting it
-		expectedJson = formatString(expectedJson);
+				// Assume the expectedJson is in the form of an array
+				JsonArray expectedJsonArray = new JsonParser().parse(expectedJson).getAsJsonArray();
+				List<PixelJson> expectedPixelJsons = collectPixelJsons(expectedJsonArray);
 
-		// The rest of the comparison is based on whether to compare all pixel returns
-		// or not
-		List<PixelComparison> differences = new ArrayList<>();
-		if (compareAll) {
+				// The expected and actual arrays must be the same length to perform a valid
+				// comparison
+				if (actualPixelJsons.size() != expectedPixelJsons.size())
+					throw new IllegalArgumentException(
+							"Unable to compare the results; the actual and expected json arrays differ in length.");
 
-			// Assume the expectedJson is in the form of an array
-			JsonArray expectedJsonArray = new JsonParser().parse(expectedJson).getAsJsonArray();
-			List<PixelJson> expectedPixelJsons = collectPixelJsons(expectedJsonArray);
+				// Loop through and compare all
+				JsonArray actualJsonArray  = new JsonArray();
+				boolean differenceExist = false;
+				for (int i = 0; i < actualRecipeLength; i++) {
 
-			// The expected and actual arrays must be the same length to perform a valid
-			// comparison
-			if (actualPixelJsons.size() != expectedPixelJsons.size())
-				throw new IllegalArgumentException(
-						"Unable to compare the results; the actual and expected json arrays differ in length.");
+					// Expected
+					PixelJson expectedPixelJson = expectedPixelJsons.get(i);
 
-			// Loop through and compare all
-			for (int i = 0; i < actualRecipeLength; i++) {
+					// Actual
+					PixelJson actualPixelJson = actualPixelJsons.get(i);
+					actualJsonArray.add(actualPixelJson.getJson());
+					// Difference
+					PixelComparison pixelDifference = new PixelComparison(expectedPixelJson, actualPixelJson, excludePaths,
+							ignoreOrder, this);
+					if (pixelDifference.isDifferent()) {
+						differences.add(pixelDifference);
+						differenceExist = true;
+					}
+					if(differenceExist) {
+						try (Writer writer = new FileWriter(ACTUAL_JSON_DIRECOTRY + File.separatorChar + testName)) {
+							GSON_PRETTY.toJson(actualJsonArray, writer);
+						}
+					}
+				}
+			} else {
+
+				// Assume that the expectedJson is in the form of an object
+				JsonObject expectedJsonObject = new JsonParser().parse(expectedJson).getAsJsonObject();
 
 				// Expected
-				PixelJson expectedPixelJson = expectedPixelJsons.get(i);
+				PixelJson expectedPixelJson = new PixelJson(expectedJsonObject);
 
 				// Actual
-				PixelJson actualPixelJson = actualPixelJsons.get(i);
+				PixelJson actualPixelJson = actualPixelJsons.get(actualRecipeLength - 1);
 
-				// Difference
+				// This is simple, just compare the one expected pixel json with the last actual
+				// pixel json
 				PixelComparison pixelDifference = new PixelComparison(expectedPixelJson, actualPixelJson, excludePaths,
 						ignoreOrder, this);
 				if (pixelDifference.isDifferent()) {
 					differences.add(pixelDifference);
+				JsonObject x = actualPixelJson.getJson();
+					try (Writer writer = new FileWriter(ACTUAL_JSON_DIRECOTRY + File.separatorChar + testName)) {
+						GSON_PRETTY.toJson(x, writer);
+					}
 				}
 			}
-		} else {
 
-			// Assume that the expectedJson is in the form of an object
-			JsonObject expectedJsonObject = new JsonParser().parse(expectedJson).getAsJsonObject();
-
-			// Expected
-			PixelJson expectedPixelJson = new PixelJson(expectedJsonObject);
-
-			// Actual
-			PixelJson actualPixelJson = actualPixelJsons.get(actualRecipeLength - 1);
-
-			// This is simple, just compare the one expected pixel json with the last actual
-			// pixel json
-			PixelComparison pixelDifference = new PixelComparison(expectedPixelJson, actualPixelJson, excludePaths,
-					ignoreOrder, this);
-			if (pixelDifference.isDifferent()) {
-				differences.add(pixelDifference);
-			}
+			// Return
+			return differences;
 		}
 
-		// Return
-		return differences;
-	}
-
-	protected static List<PixelJson> collectPixelJsons(PixelRunner returnData) throws IOException {
-		return collectPixelJsons(getPixelReturns(returnData));
-	}
-
-	protected static List<PixelJson> collectPixelJsons(JsonArray pixelReturns) throws IOException {
-		List<PixelJson> pixelJsons = new ArrayList<>();
-		for (int i = 0; i < pixelReturns.size(); i++) {
-			JsonObject pixelReturn = pixelReturns.get(i).getAsJsonObject();
-			pixelJsons.add(new PixelJson(pixelReturn));
+		protected static List<PixelJson> collectPixelJsons(PixelRunner returnData) throws IOException {
+			return collectPixelJsons(getPixelReturns(returnData));
 		}
-		return pixelJsons;
-	}
 
-	protected static JsonArray getPixelReturns(PixelRunner data) throws IOException {
-		StreamingOutput so = PixelStreamUtility.collectPixelData(data);
-		try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-			so.write(output);
-			String jsonString = new String(output.toByteArray(), TEXT_ENCODING);
-			JsonObject jsonObject = new JsonParser().parse(jsonString).getAsJsonObject();
-			JsonArray pixelReturns = jsonObject.get("pixelReturn").getAsJsonArray();
-			JsonArray cleanedPixelReturns = new JsonArray();
+		protected static List<PixelJson> collectPixelJsons(JsonArray pixelReturns) throws IOException {
+			List<PixelJson> pixelJsons = new ArrayList<>();
 			for (int i = 0; i < pixelReturns.size(); i++) {
 				JsonObject pixelReturn = pixelReturns.get(i).getAsJsonObject();
-				JsonObject cleanedPixelReturn = new JsonObject();
-				cleanedPixelReturn.add("pixelExpression", pixelReturn.get("pixelExpression"));
-				cleanedPixelReturn.add("output", pixelReturn.get("output"));
-				cleanedPixelReturns.add(cleanedPixelReturn);
+				pixelJsons.add(new PixelJson(pixelReturn));
 			}
-			return cleanedPixelReturns;
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	public Map<String, Object> deepDiff(String expectedJson, String actualJson, List<String> excludePaths,
-			boolean ignoreOrder) throws IOException {
-
-		// Only allow ASCII characters
-		expectedJson = expectedJson.replaceAll("[^\\p{ASCII}]", "?");
-		actualJson = actualJson.replaceAll("[^\\p{ASCII}]", "?");
-
-		// Write temp files
-		String random = Utility.getRandomString(10);
-		File expectedJsonFile = Paths.get(TEST_RESOURCES_DIRECTORY, "expected__" + random + ".json").toFile();
-		File actualJsonFile = Paths.get(TEST_RESOURCES_DIRECTORY, "actual__" + random + ".json").toFile();
-		try {
-			FileUtils.writeStringToFile(expectedJsonFile, expectedJson, TEXT_ENCODING);
-			FileUtils.writeStringToFile(actualJsonFile, actualJson, TEXT_ENCODING);
-
-			// The Python script to compare the deep difference
-			String ignoreOrderString = ignoreOrder ? "True" : "False";
-			String ddiffCommand = (excludePaths.size() > 0)
-					? "DeepDiff(a, b, ignore_order=" + ignoreOrderString + ", exclude_paths={\""
-					+ String.join("\", \"", excludePaths) + "\"})"
-					: "DeepDiff(a, b, ignore_order=" + ignoreOrderString + ")";
-
-			String[] script = new String[] { "import json", "from deepdiff import DeepDiff",
-					"with open('" + expectedJsonFile.getAbsolutePath().replace('\\', '/') + "', encoding='"
-							+ TEXT_ENCODING.toLowerCase() + "') as f:\n" + "    a = json.load(f)",
-							"with open('" + actualJsonFile.getAbsolutePath().replace('\\', '/') + "', encoding='"
-									+ TEXT_ENCODING.toLowerCase() + "') as f:\n" + "    b = json.load(f)",
-									ddiffCommand };
-
-			Hashtable<String, Object> results = runPy(script);
-			Object result = results.get(ddiffCommand);
-
-			// Make sure there is no difference, ignoring order
-			LOGGER.debug("EXPECTED: " + expectedJson);
-			LOGGER.debug("ACTUAL:   " + actualJson);
-			LOGGER.info("DIFF:     " + result);
-
-			return (Map<String, Object>) result;
-		} finally {
-			expectedJsonFile.delete();
-			actualJsonFile.delete();
-		}
-	}
-
-	protected PixelRunner runPixel(String pixel) throws IOException {
-		pixel = formatString(pixel);
-		long start = System.currentTimeMillis();
-		PixelRunner returnData = insight.runPixel(pixel);		
-		long end = System.currentTimeMillis();
-		LOGGER.info("Execution time : " + (end - start) + " ms");
-		return returnData;
-	}
-
-	protected static String formatString(String string) throws IOException {
-		Pattern textPattern = Pattern.compile(TEXT_REGEX);
-		Matcher textMatcher = textPattern.matcher(string);
-		if (textMatcher.matches()) {
-			String file = textMatcher.group(1);
-			string = FileUtils.readFileToString(Paths.get(TEST_TEXT_DIRECTORY, file).toFile(), TEXT_ENCODING);
+			return pixelJsons;
 		}
 
-		string = string.replaceAll(TEST_DIR_REGEX,
-				Paths.get(TEST_RESOURCES_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
-		string = string.replaceAll(BASE_DIR_REGEX,
-				Paths.get(BASE_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
-
-		Pattern appIdPattern = Pattern.compile(APP_ID_REGEX);
-		Matcher appIdMatcher = appIdPattern.matcher(string);
-		while (appIdMatcher.find()) {
-			String alias = appIdMatcher.group(1);
-			String appId = aliasToAppId.containsKey(alias) ? aliasToAppId.get(alias) : "null";
-			string = appIdMatcher.replaceFirst(appId);
-			appIdMatcher = appIdPattern.matcher(string);
+		protected static JsonArray getPixelReturns(PixelRunner data) throws IOException {
+			StreamingOutput so = PixelStreamUtility.collectPixelData(data);
+			try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+				so.write(output);
+				String jsonString = new String(output.toByteArray(), TEXT_ENCODING);
+				JsonObject jsonObject = new JsonParser().parse(jsonString).getAsJsonObject();
+				JsonArray pixelReturns = jsonObject.get("pixelReturn").getAsJsonArray();
+				JsonArray cleanedPixelReturns = new JsonArray();
+				for (int i = 0; i < pixelReturns.size(); i++) {
+					JsonObject pixelReturn = pixelReturns.get(i).getAsJsonObject();
+					JsonObject cleanedPixelReturn = new JsonObject();
+					cleanedPixelReturn.add("pixelExpression", pixelReturn.get("pixelExpression"));
+					cleanedPixelReturn.add("output", pixelReturn.get("output"));
+					cleanedPixelReturns.add(cleanedPixelReturn);
+				}
+				return cleanedPixelReturns;
+			}
 		}
 
-		return string;
+		@SuppressWarnings("unchecked")
+		public Map<String, Object> deepDiff(String expectedJson, String actualJson, List<String> excludePaths,
+				boolean ignoreOrder) throws IOException {
+
+			// Only allow ASCII characters
+			expectedJson = expectedJson.replaceAll("[^\\p{ASCII}]", "?");
+			actualJson = actualJson.replaceAll("[^\\p{ASCII}]", "?");
+
+			// Write temp files
+			String random = Utility.getRandomString(10);
+			File expectedJsonFile = Paths.get(TEST_RESOURCES_DIRECTORY, "expected__" + random + ".json").toFile();
+			File actualJsonFile = Paths.get(TEST_RESOURCES_DIRECTORY, "actual__" + random + ".json").toFile();
+			try {
+				FileUtils.writeStringToFile(expectedJsonFile, expectedJson, TEXT_ENCODING);
+				FileUtils.writeStringToFile(actualJsonFile, actualJson, TEXT_ENCODING);
+
+				// The Python script to compare the deep difference
+				String ignoreOrderString = ignoreOrder ? "True" : "False";
+				String ddiffCommand = (excludePaths.size() > 0)
+						? "DeepDiff(a, b, ignore_order=" + ignoreOrderString + ", exclude_paths={\""
+						+ String.join("\", \"", excludePaths) + "\"})"
+						: "DeepDiff(a, b, ignore_order=" + ignoreOrderString + ")";
+
+				String[] script = new String[] { "import json", "from deepdiff import DeepDiff",
+						"with open('" + expectedJsonFile.getAbsolutePath().replace('\\', '/') + "', encoding='"
+								+ TEXT_ENCODING.toLowerCase() + "') as f:\n" + "    a = json.load(f)",
+								"with open('" + actualJsonFile.getAbsolutePath().replace('\\', '/') + "', encoding='"
+										+ TEXT_ENCODING.toLowerCase() + "') as f:\n" + "    b = json.load(f)",
+										ddiffCommand };
+
+				Hashtable<String, Object> results = runPy(script);
+				Object result = results.get(ddiffCommand);
+
+				// Make sure there is no difference, ignoring order
+				LOGGER.debug("EXPECTED: " + expectedJson);
+				LOGGER.debug("ACTUAL:   " + actualJson);
+				LOGGER.info("DIFF:     " + result);
+
+				return (Map<String, Object>) result;
+			} finally {
+				expectedJsonFile.delete();
+				actualJsonFile.delete();
+			}
+		}
+
+		protected PixelRunner runPixel(String pixel) throws IOException {
+			pixel = formatString(pixel);
+			long start = System.currentTimeMillis();
+			PixelRunner returnData = insight.runPixel(pixel);		
+			long end = System.currentTimeMillis();
+			LOGGER.info("Execution time : " + (end - start) + " ms");
+			return returnData;
+		}
+
+		protected static String formatString(String string) throws IOException {
+			Pattern textPattern = Pattern.compile(TEXT_REGEX);
+			Matcher textMatcher = textPattern.matcher(string);
+			if (textMatcher.matches()) {
+				String file = textMatcher.group(1);
+				string = FileUtils.readFileToString(Paths.get(TEST_TEXT_DIRECTORY, file).toFile(), TEXT_ENCODING);
+			}
+
+			string = string.replaceAll(TEST_DIR_REGEX,
+					Paths.get(TEST_RESOURCES_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
+			string = string.replaceAll(BASE_DIR_REGEX,
+					Paths.get(BASE_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
+
+			Pattern appIdPattern = Pattern.compile(APP_ID_REGEX);
+			Matcher appIdMatcher = appIdPattern.matcher(string);
+			while (appIdMatcher.find()) {
+				String alias = appIdMatcher.group(1);
+				String appId = aliasToAppId.containsKey(alias) ? aliasToAppId.get(alias) : "null";
+				string = appIdMatcher.replaceFirst(appId);
+				appIdMatcher = appIdPattern.matcher(string);
+			}
+
+			return string;
+		}
+
+		//////////////////////////////
+		// Python
+		//////////////////////////////
+
+		// Method for running a single Python command
+		protected Object runPy(String script) {
+			return runPy(new String[] { script }).get(script);
+		}
+
+		// Method for running multiple python commands
+		protected Hashtable<String, Object> runPy(String... script) {
+			// Try running deepdiff using a new jep thread...
+			//	Insight insightDeepDiff = new Insight();
+			//    User user = new User();
+			//  user.setAnonymous(true);
+			//  String uId = "UNK_" + UUID.randomUUID().toString();
+			//  user.setAnonymousId(uId);
+			//   insightDeepDiff.setUser(user);
+			//      String tempTupleSpace = PyUtils.getInstance().getTempTupleSpace(user, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
+			//      insight.setTupleSpace(tempTupleSpace);
+			jep = PyUtils.getInstance().getJep();
+			//   insightDeepDiff.setPy(jep);
+			// InsightStore.getInstance().put(insight);
+			// Wait for Python to load
+			LOGGER.info("Waiting for python to initialize...");
+			long start = System.currentTimeMillis();
+			boolean timeout = false;
+			while (!jep.isReady() && !timeout) {
+				timeout = (System.currentTimeMillis() - start) > 3000000;
+			}
+
+			// Set the commands
+			jep.command = script;
+
+			// Tell the thread to execute its commands
+			Hashtable<String, Object> response = null;
+			Object jepMonitor = jep.getMonitor();
+			synchronized (jepMonitor) {
+				jepMonitor.notifyAll();
+				try {
+
+					// Wait for the commands to finish execution, but abort after 30s
+					jepMonitor.wait(30000);
+					response = jep.response;
+				} catch (InterruptedException e) {
+					LOGGER.error("The following Python script was interrupted: " + String.join("\n", script), e);
+				}
+			}
+			return response;
+		}
+		
+		public static String getNameFromExpectedJson(String expectedJson){
+			String jsonFileName = null;
+			if (expectedJson != null && !expectedJson.isEmpty()) {
+				String modifiedJsonPath = expectedJson.replaceAll("<<<text>>>", "");
+				jsonFileName = modifiedJsonPath.replaceAll("<<</text>>>", "");
+			} else {
+				jsonFileName = Utility.getRandomString(8) + ".json";
+			}
+			return jsonFileName;
+			
+		}
+
+		// Method for running multiple python commands
+		//	protected Hashtable<String, Object> runPy(String... script) {
+		//
+		//		// Set the commands
+		//		jep.command = script;
+		//
+		//		// Tell the thread to execute its commands
+		//		Hashtable<String, Object> response = null;
+		//		Object jepMonitor = jep.getMonitor();
+		//		synchronized (jepMonitor) {
+		//			jepMonitor.notifyAll();
+		//			try {
+		//
+		//				// Wait for the commands to finish execution, but abort after 30s
+		//				jepMonitor.wait(30000);
+		//				response = jep.response;
+		//			} catch (InterruptedException e) {
+		//				LOGGER.error("The following Python script was interrupted: " + String.join("\n", script), e);
+		//			}
+		//		}
+		//		return response;
+		//	}
+
 	}
-
-	//////////////////////////////
-	// Python
-	//////////////////////////////
-
-	// Method for running a single Python command
-	protected Object runPy(String script) {
-		return runPy(new String[] { script }).get(script);
-	}
-
-	// Method for running multiple python commands
-	protected Hashtable<String, Object> runPy(String... script) {
-        // Try running deepdiff using a new jep thread...
-	//	Insight insightDeepDiff = new Insight();
-    //    User user = new User();
-      //  user.setAnonymous(true);
-      //  String uId = "UNK_" + UUID.randomUUID().toString();
-      //  user.setAnonymousId(uId);
-     //   insightDeepDiff.setUser(user);
-//      String tempTupleSpace = PyUtils.getInstance().getTempTupleSpace(user, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
-//      insight.setTupleSpace(tempTupleSpace);
-        jep = PyUtils.getInstance().getJep();
-     //   insightDeepDiff.setPy(jep);
-       // InsightStore.getInstance().put(insight);
-        // Wait for Python to load
-        LOGGER.info("Waiting for python to initialize...");
-        long start = System.currentTimeMillis();
-        boolean timeout = false;
-        while (!jep.isReady() && !timeout) {
-              timeout = (System.currentTimeMillis() - start) > 3000000;
-        }
-
-        // Set the commands
-        jep.command = script;
-
-        // Tell the thread to execute its commands
-        Hashtable<String, Object> response = null;
-        Object jepMonitor = jep.getMonitor();
-        synchronized (jepMonitor) {
-              jepMonitor.notifyAll();
-              try {
-
-                   // Wait for the commands to finish execution, but abort after 30s
-                   jepMonitor.wait(30000);
-                   response = jep.response;
-              } catch (InterruptedException e) {
-                   LOGGER.error("The following Python script was interrupted: " + String.join("\n", script), e);
-              }
-        }
-        return response;
-   }
-	
-	// Method for running multiple python commands
-//	protected Hashtable<String, Object> runPy(String... script) {
-//
-//		// Set the commands
-//		jep.command = script;
-//
-//		// Tell the thread to execute its commands
-//		Hashtable<String, Object> response = null;
-//		Object jepMonitor = jep.getMonitor();
-//		synchronized (jepMonitor) {
-//			jepMonitor.notifyAll();
-//			try {
-//
-//				// Wait for the commands to finish execution, but abort after 30s
-//				jepMonitor.wait(30000);
-//				response = jep.response;
-//			} catch (InterruptedException e) {
-//				LOGGER.error("The following Python script was interrupted: " + String.join("\n", script), e);
-//			}
-//		}
-//		return response;
-//	}
-
-}
