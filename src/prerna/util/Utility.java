@@ -2922,13 +2922,17 @@ public class Utility {
 				builder = new StringBuilder();
 				i = 0;
 				for (; i < size; i++) {
-					if (typesArr[i] == SemossDataType.STRING) {
-						builder.append("\"").append(dataRow[i]).append("\"");
-					} else {
-						builder.append(dataRow[i]);
-					}
-					if ((i + 1) != size) {
+					if(dataRow[i] == null) {
 						builder.append(seperator);
+					} else {
+						if (typesArr[i] == SemossDataType.STRING) {
+							builder.append("\"").append(dataRow[i]).append("\"");
+						} else {
+							builder.append(dataRow[i]);
+						}
+						if ((i + 1) != size) {
+							builder.append(seperator);
+						}
 					}
 				}
 				// write row to file
@@ -2943,13 +2947,17 @@ public class Utility {
 				builder = new StringBuilder();
 				i = 0;
 				for (; i < size; i++) {
-					if (typesArr[i] == SemossDataType.STRING) {
-						builder.append("\"").append(dataRow[i]).append("\"");
-					} else {
-						builder.append(dataRow[i]);
-					}
-					if ((i + 1) != size) {
+					if(dataRow[i] == null) {
 						builder.append(seperator);
+					} else {
+						if (typesArr[i] == SemossDataType.STRING) {
+							builder.append("\"").append(dataRow[i]).append("\"");
+						} else {
+							builder.append(dataRow[i]);
+						}
+						if ((i + 1) != size) {
+							builder.append(seperator);
+						}
 					}
 				}
 				// write row to file
