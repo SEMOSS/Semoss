@@ -208,6 +208,6 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 		// write(toJSON(dt, dataframe=c("values"), pretty=TRUE), "c:/workspace/testing.json")
 		return this.builder.getRJavaTranslator().getString(
 				"jsonlite:::toJSON( " + this.tempVarName  + "[," + RSyntaxHelper.createStringRColVec(headers) + "], "
-						+ "dataframe=c('values'), factor=c('string'), na=c('null') )");
+						+ "dataframe=c('values'), factor=c('string'), na=c(NULL) )");
 	}
 }
