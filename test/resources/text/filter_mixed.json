@@ -5566,60 +5566,80 @@
       },
       "headerInfo": [
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Director",
           "header": "Director",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Genre",
           "header": "Genre",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "MovieBudget",
           "header": "MovieBudget",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Nominated",
           "header": "Nominated",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "Revenue_Domestic",
           "header": "Revenue_Domestic",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "Revenue_International",
           "header": "Revenue_International",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "DOUBLE",
+          "additionalDataType": "",
           "alias": "RottenTomatoes_Audience",
           "header": "RottenTomatoes_Audience",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "DOUBLE",
+          "additionalDataType": "",
           "alias": "RottenTomatoes_Critics",
           "header": "RottenTomatoes_Critics",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Studio",
           "header": "Studio",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Title",
           "header": "Title",
           "type": "STRING",
@@ -6316,60 +6336,80 @@
       },
       "headerInfo": [
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Director",
           "header": "Director",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Genre",
           "header": "Genre",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "MovieBudget",
           "header": "MovieBudget",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Nominated",
           "header": "Nominated",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "Revenue_Domestic",
           "header": "Revenue_Domestic",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "Revenue_International",
           "header": "Revenue_International",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "DOUBLE",
+          "additionalDataType": "",
           "alias": "RottenTomatoes_Audience",
           "header": "RottenTomatoes_Audience",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "DOUBLE",
+          "additionalDataType": "",
           "alias": "RottenTomatoes_Critics",
           "header": "RottenTomatoes_Critics",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Studio",
           "header": "Studio",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Title",
           "header": "Title",
           "type": "STRING",
@@ -6742,60 +6782,80 @@
       },
       "headerInfo": [
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Director",
           "header": "Director",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Genre",
           "header": "Genre",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "MovieBudget",
           "header": "MovieBudget",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Nominated",
           "header": "Nominated",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "Revenue_Domestic",
           "header": "Revenue_Domestic",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "Revenue_International",
           "header": "Revenue_International",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "DOUBLE",
+          "additionalDataType": "",
           "alias": "RottenTomatoes_Audience",
           "header": "RottenTomatoes_Audience",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "DOUBLE",
+          "additionalDataType": "",
           "alias": "RottenTomatoes_Critics",
           "header": "RottenTomatoes_Critics",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Studio",
           "header": "Studio",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Title",
           "header": "Title",
           "type": "STRING",
@@ -6952,60 +7012,80 @@
       },
       "headerInfo": [
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Director",
           "header": "Director",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Genre",
           "header": "Genre",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "MovieBudget",
           "header": "MovieBudget",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Nominated",
           "header": "Nominated",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "Revenue_Domestic",
           "header": "Revenue_Domestic",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "Revenue_International",
           "header": "Revenue_International",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "DOUBLE",
+          "additionalDataType": "",
           "alias": "RottenTomatoes_Audience",
           "header": "RottenTomatoes_Audience",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "DOUBLE",
+          "additionalDataType": "",
           "alias": "RottenTomatoes_Critics",
           "header": "RottenTomatoes_Critics",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Studio",
           "header": "Studio",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Title",
           "header": "Title",
           "type": "STRING",
@@ -7378,60 +7458,80 @@
       },
       "headerInfo": [
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Director",
           "header": "Director",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Genre",
           "header": "Genre",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "MovieBudget",
           "header": "MovieBudget",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Nominated",
           "header": "Nominated",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "Revenue_Domestic",
           "header": "Revenue_Domestic",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "INT",
+          "additionalDataType": "",
           "alias": "Revenue_International",
           "header": "Revenue_International",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "DOUBLE",
+          "additionalDataType": "",
           "alias": "RottenTomatoes_Audience",
           "header": "RottenTomatoes_Audience",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "DOUBLE",
+          "additionalDataType": "",
           "alias": "RottenTomatoes_Critics",
           "header": "RottenTomatoes_Critics",
           "type": "NUMBER",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Studio",
           "header": "Studio",
           "type": "STRING",
           "derived": false
         },
         {
+          "dataType": "STRING",
+          "additionalDataType": "",
           "alias": "Title",
           "header": "Title",
           "type": "STRING",
