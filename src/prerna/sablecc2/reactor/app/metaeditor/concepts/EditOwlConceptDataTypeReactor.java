@@ -66,6 +66,7 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 			// remove if additional data type is present
 			String currentAdditionalDataType = engine.getAdtlDataTypes(conceptPhysicalURI);
 			if (currentAdditionalDataType != null) {
+				currentAdditionalDataType = "ADTLTYPE:" + currentAdditionalDataType.replace("/", "{{REPLACEMENT_TOKEN}}").replace("'", "((SINGLE_QUOTE))").replace(" ", "((SPACE))");
 				owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, currentAdditionalDataType, true});
 			}
 			owlEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{conceptPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject, true});
