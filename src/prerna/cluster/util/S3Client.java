@@ -165,7 +165,7 @@ public class S3Client extends CloudClient {
 			engine.getBaseDataEngine().closeDB();
 			owlFile = new File(engine.getProperty(Constants.OWL));
 								
-			logger.debug("Pulling owl and postions.json for" + appFolder + " from remote=" + appId);
+			logger.info("Pulling owl and postions.json for " + appFolder + " from remote=" + appId);
 			
 	
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
@@ -211,7 +211,7 @@ public class S3Client extends CloudClient {
 			engine.getBaseDataEngine().closeDB();
 			owlFile = new File(engine.getProperty(Constants.OWL));
 								
-			logger.debug("Pulling owl and postions.json for" + appFolder + " from remote=" + appId);
+			logger.info("Pushing owl and postions.json for " + appFolder + " from remote=" + appId);
 			
 	
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
@@ -255,7 +255,7 @@ public class S3Client extends CloudClient {
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			engine.getInsightDatabase().closeDB();
-			logger.info("Pulling insights database for" + appFolder + " from remote=" + appId);
+			logger.info("Pulling insights database for " + appFolder + " from remote=" + appId);
 			String insightDB = getInsightDB(engine, appFolder);
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":" + BUCKET + "/" + appId + "/" + insightDB, appFolder);
 		} finally {
@@ -291,7 +291,7 @@ public class S3Client extends CloudClient {
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			engine.getInsightDatabase().closeDB();
-			logger.debug("Pulling insights database for" + appFolder + " from remote=" + appId);
+			logger.info("Pushing insights database for " + appFolder + " from remote=" + appId);
 			String insightDB = getInsightDB(engine, appFolder);
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
@@ -331,7 +331,7 @@ public class S3Client extends CloudClient {
 		lock.lock();
 		try {
 			rCloneConfig = createRcloneConfig(appId);
-			logger.info("Pushing folder for " + remoteRelativePath + " from remote=" + appId);
+			logger.info("Pulling folder for " + remoteRelativePath + " from remote=" + appId);
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig + ":" + BUCKET + "/" + appId + "/"  + remoteRelativePath, absolutePath);
 		} finally {
@@ -421,9 +421,9 @@ public class S3Client extends CloudClient {
 				engine.closeDB();
 
 				// Push the app folder
-				logger.info("Pushing from source=" + appFolder + " to remote=" + Utility.cleanLogString(appId));
+				logger.info("Pushing app from source=" + appFolder + " to remote=" + Utility.cleanLogString(appId));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", appFolder, rCloneConfig + ":" + BUCKET + "/" + appId);
-				logger.info("Done pushing from source=" + appFolder + " to remote=" + Utility.cleanLogString(appId));
+				logger.debug("Done pushing from source=" + appFolder + " to remote=" + Utility.cleanLogString(appId));
 
 				// Move the smss to an empty temp directory (otherwise will push all items in
 				// the db folder)
@@ -434,10 +434,10 @@ public class S3Client extends CloudClient {
 				Files.copy(new File(smssFile), copy);
 
 				// Push the smss
-				logger.info("Pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				logger.info("Pushing smss from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", temp.getPath(),
 						rCloneConfig + ":" + BUCKET + "/" + smssContainer);
-				logger.info("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
+				logger.debug("Done pushing from source=" + smssFile + " to remote=" + Utility.cleanLogString(smssContainer));
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -509,17 +509,17 @@ public class S3Client extends CloudClient {
 				File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
 				appFolder.mkdir();
 				// Pull the contents of the app folder before the smss
-				logger.info("Pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+				logger.info("Pulling app from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 				runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig + ":" + BUCKET + "/" + appId,
 						appFolder.getPath());
-				logger.info("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
+				logger.debug("Done pulling from remote=" + Utility.cleanLogString(appId) + " to target=" + Utility.cleanLogString(appFolder.getPath()));
 
 				// Now pull the smss
-				logger.info("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
+				logger.info("Pulling smss from remote=" + smssContainer + " to target=" + dbFolder);
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 				runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":" + BUCKET + "/" + smssContainer,
 						dbFolder);
-				logger.info("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
+				logger.debug("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 
 				// Catalog the db if it is new
 				if (!appAlreadyLoaded) {
