@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.export;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -143,7 +144,10 @@ public class CollectPivotRReactor extends TaskBuilderReactor {
 		cdt.setHeaderInfo(task.getHeaderInfo());
 		cdt.setSortInfo(task.getSortInfo());
 		cdt.setId(task.getId());
-
+		Map<String, Object> formatMap = new Hashtable<String, Object>();
+		formatMap.put("type", "TABLE");
+		cdt.setFormatMap(formatMap);
+		
 		// set the output so it can give it
 		Map<String, Object> outputMap = new HashMap<String, Object>();
 		outputMap.put("headers", new String[] {});
