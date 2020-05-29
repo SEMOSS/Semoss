@@ -131,6 +131,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 		// create each sheet
 		for (String sheetId : sheetMap.keySet()) {
 			InsightSheet sheet = sheetMap.get(sheetId);
+			if(sheet == null) {
+				continue;
+			}
 			String sheetName = sheet.getSheetLabel();
 			sheetAlias.put(sheetId, sheetName);
 			HashMap<String, Object> sheetChartMap = new HashMap<>();
