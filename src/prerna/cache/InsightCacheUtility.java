@@ -11,6 +11,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -261,10 +263,14 @@ public class InsightCacheUtility {
 		// because i do not want to pull when i save
 		// but i do want to delete the cache in case i am saving 
 		// from an existing insight as the .cache folder gets moved
-		if(pullCloud) {
-			ClusterUtil.reactorPullApp(engineId);
-		}
+
 		String folderDir = getInsightCacheFolderPath(engineId, engineName, rdbmsId);
+		Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId));
+		Path relative = appFolder.relativize( Paths.get(folderDir));
+		if(pullCloud) {
+		ClusterUtil.reactorPullFolder(engineId,folderDir, relative.toString());
+		}
+
 		File folder = new File(Utility.normalizePath(folderDir)); 
 		if(!folder.exists()) {
 			return;
@@ -275,7 +281,7 @@ public class InsightCacheUtility {
 			ICache.deleteFile(f);
 		}
 		if(pullCloud) {
-			ClusterUtil.reactorPushApp(engineId);
+			ClusterUtil.reactorPushFolder(engineId,folderDir, relative.toString());
 		}
 	}
 	
