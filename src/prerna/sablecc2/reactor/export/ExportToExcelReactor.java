@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -135,6 +136,14 @@ public class ExportToExcelReactor extends AbstractReactor {
 				continue;
 			}
 			String sheetName = sheet.getSheetLabel();
+			if(sheetName == null) {
+				// since we are 0 based, add 1
+				try {
+					sheetName = "Sheet" + (Integer.parseInt(sheetId)+1);
+				} catch(Exception ignore) {
+					sheetName = "Sheet " + sheetId;
+				}
+			}
 			sheetAlias.put(sheetId, sheetName);
 			HashMap<String, Object> sheetChartMap = new HashMap<>();
 			sheetChartMap.put("colIndex", 0);
@@ -192,9 +201,6 @@ public class ExportToExcelReactor extends AbstractReactor {
 		// rename sheets
 		for (String sheetId : sheetAlias.keySet()) {
 			String sheetName = sheetAlias.get(sheetId);
-			if (sheetName == null) {
-				sheetName = "Sheet " + sheetId;
-			}
 			workbook.setSheetName(workbook.getSheetIndex(sheetId), sheetName);
 		}
 
@@ -229,7 +235,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 				int pictureIndex = workbook.addPicture(picture, Workbook.PICTURE_TYPE_PNG);
 
 				// Insert logo into each sheet
-				for (String sheetId : sheetAlias.keySet()) {
+				Iterator<String> sheetIdIterator = sheetAlias.keySet().iterator();
+				while(sheetIdIterator.hasNext()) {
+					String sheetId = sheetIdIterator.next();
 					// Get location for logo on current sheet
 					Map<String, Object> sheetChartMap = this.chartPanelLayout.get(sheetId);
 					int colIndex = (int) sheetChartMap.get("colIndex");
@@ -238,6 +246,15 @@ public class ExportToExcelReactor extends AbstractReactor {
 					// concrete classes
 					CreationHelper helper = workbook.getCreationHelper();
 					int sheetIndex = workbook.getSheetIndex(sheetId);
+					// if we have a sheet that is empty
+					// it doesn't get created
+					// so that will return -1
+					// will also remove so we dont try to rename this
+					// in the next step
+					if(sheetIndex == -1) {
+						sheetIdIterator.remove();
+						continue;
+					}
 					XSSFSheet sheet = workbook.getSheetAt(sheetIndex);
 					Drawing drawing = sheet.createDrawingPatriarch();
 					// Create an anchor that is attached to the worksheet
