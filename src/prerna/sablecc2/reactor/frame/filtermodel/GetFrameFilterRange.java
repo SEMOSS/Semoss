@@ -43,7 +43,8 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 		InsightPanel panel = null;
 		GenRowStruct panelGrs = this.store.getNoun(keysToGet[1]);
 		if (panelGrs != null && !panelGrs.isEmpty()) {
-			panel = (InsightPanel) panelGrs.get(0);
+			String panelId = panelGrs.get(0) + "";
+			panel = this.insight.getInsightPanel(panelId);
 		}
 		
 		boolean dynamic = false;
