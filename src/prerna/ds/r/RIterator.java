@@ -107,7 +107,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 				} else {
 					this.headers = builder.getColumnNames(tempVarName);
 				}
-				this.colTypes = builder.getColumnTypes(tempVarName);
+				this.colTypes = builder.getColumnTypes(tempVarName + "[," + RSyntaxHelper.createStringRColVec(headers) + "]");
 				
 				// init is true
 				init = true;
