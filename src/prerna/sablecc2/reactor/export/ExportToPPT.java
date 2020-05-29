@@ -110,6 +110,9 @@ public class ExportToPPT extends AbstractReactor {
 				// for each panel get the task and task options
 				SelectQueryStruct qs = panel.getLastQs();
 				TaskOptions taskOptions = panel.getTaskOptions();
+				if(qs == null || taskOptions == null) {
+					continue;
+				}
 				IQuerySelector firstSelector = qs.getSelectors().get(0);
 				if (firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
 					qs.addOrderBy(firstSelector.getQueryStructName(), "ASC");
