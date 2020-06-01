@@ -64,11 +64,14 @@ public class PyReactor extends AbstractReactor {
 	public NounMetadata handleSeaborn(String command)
 	{
 		//organizeKeys();
+		
+		String panelId = "new_seaborn_panel";
 
 		PyTranslator pyt = this.insight.getPyTranslator();
 		pyt.setLogger(this.getLogger(this.getClass().getName()));
 		
 		String format = "png";
+		boolean newWindow = true;
 		
 		//if(keyValue.containsKey(keysToGet[1]))
 		//	format = keyValue.get(keysToGet[1]);
@@ -113,6 +116,7 @@ public class PyReactor extends AbstractReactor {
 		seabornFile = seabornFile.replace("$IF", IF);
 		
 		StringWriter sw = new StringWriter();
+		String bin = null;
 		try
 		{
 			// read the file and populate it
@@ -163,7 +167,15 @@ public class PyReactor extends AbstractReactor {
 		// leaving out the alignment
 		//optionMap.put(key, value)
 		Map <String, Object> panelMap = new HashMap<String, Object>();
-		panelMap.put(insight.getLastPanelId(), optionMap);
+
+		int panelNum = 0;
+		if(insight.getVarStore().containsKey(panelId))
+			panelNum = (Integer)insight.getVarStore().get(panelId).getValue();
+		panelNum++;
+		insight.getVarStore().put(panelId, new NounMetadata(panelNum, PixelDataType.CONST_INT));
+
+		panelMap.put(panelId+panelNum, optionMap);
+		//panelMap.put(insight.getLastPanelId(), optionMap);
 		//panelMap.put("2", optionMap);
 		
 		TaskOptions options = new TaskOptions(panelMap);
@@ -177,7 +189,7 @@ public class PyReactor extends AbstractReactor {
 		command = command.replace("sns.relplot(", "");
 		command = command.substring(0, command.length() - 1);
 		
-		String bin = sw.toString();
+		bin = sw.toString();
 		
 		outputMap.put("headers", headers);
 		outputMap.put("rawHeaders", headers);
@@ -189,24 +201,30 @@ public class PyReactor extends AbstractReactor {
 		cdt.setOutputData(outputMap);
 
 		// delete the pivot later
-		if(bin.length() != 0) {
+		if(bin.length() > 0) {
 			Vector<NounMetadata> retList = new Vector<>();
 			// can make panel id random moving forward
-			InsightPanel newPanel = new InsightPanel("999", Insight.DEFAULT_SHEET_ID);
-			this.insight.addNewInsightPanel(newPanel);
-			NounMetadata noun = new NounMetadata(newPanel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN);
-			//retList.add(noun);
-
-			retList.add( new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE));
+			InsightPanel daPanel = insight.getInsightPanel(panelId);
+			//newWindow = daPanel != null;
+			if(newWindow)
+			{
+				InsightPanel newPanel = new InsightPanel(panelId + panelNum, Insight.DEFAULT_SHEET_ID);
+				this.insight.addNewInsightPanel(newPanel);
+				NounMetadata noun = new NounMetadata(newPanel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN);
+				retList.add(noun);
+				retList.add( new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE));
 			
-			//return new NounMetadata(retList, PixelDataType.VECTOR, PixelOperationType.VECTOR);
-			return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
-		} else
+				return new NounMetadata(retList, PixelDataType.VECTOR, PixelOperationType.VECTOR);
+			}
+			//return //new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
+		} 
+		else
 		{
 			List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 			outputs.add(new NounMetadata(seabornFile, PixelDataType.CONST_STRING));
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}
+		return null;
 	}
 	
 
