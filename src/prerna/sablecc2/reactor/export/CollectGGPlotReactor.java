@@ -13,8 +13,11 @@ import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 
-import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IRawSelectWrapper;
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.om.Insight;
+import prerna.query.interpreters.RInterpreter;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -24,7 +27,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.sablecc2.reactor.frame.convert.ConvertReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.sablecc2.reactor.imports.IImporter;
+import prerna.sablecc2.reactor.imports.ImportFactory;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
 
@@ -44,7 +51,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		organizeKeys();
 
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
-		rJavaTranslator.startR(); 
+		//rJavaTranslator.startR(); 
 		
 		String ggplotCommand = keyValue.get(keysToGet[0]) +"";
 		
@@ -80,54 +87,84 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		this.task = getTask();
 		
 		// I neeed to get the basic iterator and then get types from there
+		
+		// need to do a check to see if the frame is in R if not convert to R
+		ITableDataFrame thisFrame = insight.getCurFrame();
+		String type = FrameFactory.getFrameType(thisFrame);
+		
+		// need to also check if it is already there
+		// obviously the issue of synchronization comes but for now
+		
+		if(!type.equalsIgnoreCase("R") && !insight.getVarStore().containsKey("R_SYNCHRONIZED"))
+		{
+			// move this to R
+			ConvertReactor cr = new ConvertReactor();
+			GenRowStruct grs = new GenRowStruct();
+			grs.add(new NounMetadata(thisFrame, PixelDataType.FRAME));
+			this.getNounStore().addNoun(ReactorKeysEnum.FRAME.getKey(), grs);
+			grs = new GenRowStruct();
+			grs.add(new NounMetadata("R", PixelDataType.CONST_STRING));
+			this.getNounStore().addNoun(ReactorKeysEnum.FRAME_TYPE.getKey(), grs);
+			grs = new GenRowStruct();
+			grs.add(new NounMetadata(thisFrame.getName(), PixelDataType.CONST_STRING));
+			this.getNounStore().addNoun(ReactorKeysEnum.ALIAS.getKey(), grs);
+			cr.setNounStore(getNounStore());
+			cr.setInsight(this.insight);
+			cr.execute();
+			
+			insight.getVarStore().put("R_SYNCHRONIZED", new NounMetadata(true, PixelDataType.BOOLEAN));
+			
+			// need replace to the frame back
+			insight.getVarStore().put(Insight.CUR_FRAME_KEY, new NounMetadata(thisFrame, PixelDataType.FRAME));
 
-		task.getMetaMap();
-		SemossDataType[] sTypes = null;
-		String[] headers = null;
-		try {
-			IRawSelectWrapper taskItearator = (((BasicIteratorTask)(task)).getIterator());
-			sTypes = taskItearator.getTypes();
-			headers = taskItearator.getHeaders();
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new SemossPixelException(e.getMessage());
+			/*
+			ITableDataFrame newFrame = null;
+			try {
+				newFrame = FrameFactory.getFrame(this.insight, "R", frame.get);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
+			}
+			// insert the data for the new frame
+			IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
+			try {
+				importer.insertData();
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
+			*/
+
 		}
-		Map<String, SemossDataType> typeMap = new HashMap<String, SemossDataType>();
-		for(int i = 0; i < headers.length; i++) {
-			typeMap.put(headers[i],sTypes[i]);
-		}
+		
+		// I can avoid all this to make a selector
+		// use the task to make the selector
+		SelectQueryStruct qs = ((BasicIteratorTask)task).getQueryStruct();
+		qs.getRelations().clear();
 
-		// I need to see how to get this to temp
-		String fileName = Utility.getRandomString(6);
-		String dir = insight.getUserFolder() + "/Temp";
-		dir = dir.replaceAll("\\\\", "/");
-		File tempDir = new File(dir);
-		if(!tempDir.exists())
-			tempDir.mkdir();
-		String outputFile = dir + "/" + fileName + ".csv";
-		Utility.writeResultToFile(outputFile, this.task, typeMap, ",");
+		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, thisFrame.getMetaData());
+		RInterpreter interp = new RInterpreter();
+		interp.setQueryStruct(qs);
+		interp.setDataTableName(thisFrame.getName());
+		interp.setColDataTypes(thisFrame.getMetaData().getHeaderToTypeMap());
+		interp.setAdditionalTypes(thisFrame.getMetaData().getHeaderToAdtlTypeMap());
+		interp.setLogger(getLogger(this.getClass().getName()));
 
-		// need something here to adjust the types
-		// need to move this to utilities 
-		// will move it once we have figured it out
-		String loadDT = fileName + " <- fread(\"" + outputFile + "\");";
-		// adjust the types
-		String adjustTypes = Utility.adjustTypeR(fileName, headers, typeMap);
-		// run the job
-		rJavaTranslator.runRAndReturnOutput(loadDT+adjustTypes);
-
-		// run the ggplot with this frame as the data
-		// we will refer to it as the plotterframe
-		StringBuilder ggplotter = new StringBuilder("plotterframe <- " + fileName + ";");
+		String subDataTable = interp.composeQuery();
 
 		
-		ggplotter = new StringBuilder("{library(\"ggplot2\");"); // library(\"RCurl\");");
+		// run the ggplot with this frame as the data
+		// we will refer to it as the plotterframe
+		//StringBuilder ggplotter = new StringBuilder("plotterframe <- " + fileName + ";");
+		StringBuilder ggplotter = new StringBuilder("plotterframe <- " + subDataTable + ";");
+
+		
+		ggplotter = ggplotter.append("{library(\"ggplot2\");"); // library(\"RCurl\");");
 		if(animate)
 			ggplotter.append("library(\"gganimate\");");
 
 		// run the ggplot with this frame as the data
 		// we will refer to it as the plotterframe
-		ggplotter.append("plotterframe <- " + fileName + ";");
+		//ggplotter.append("plotterframe <- " + fileName + ";");
 
 		// now it is just running the ggplotter
 		String plotString = Utility.getRandomString(6);
@@ -168,7 +205,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		rJavaTranslator.runRAndReturnOutput(ggsaveFile);
 
 		// remove the csv
-		new File(outputFile).delete();
+		//new File(outputFile).delete();
 
 		// Need to figure out if I am trying to delete the image and URI encode it at some point.. 
 
@@ -299,6 +336,46 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 	// txt <- base64Encode(readBin(tf1, "raw", file.info(tf1)[1, "size"]), "txt")
 	// tf1 - is just the file location
 	// https://stackoverflow.com/questions/33409363/convert-r-image-to-base-64/36707831?noredirect=1#comment61003382_36707831
+	
+	/*
+	task.getMetaMap();
+	SemossDataType[] sTypes = null;
+	String[] headers = null;
+	try {
+		IRawSelectWrapper taskItearator = (((BasicIteratorTask)(task)).getIterator());
+		sTypes = taskItearator.getTypes();
+		headers = taskItearator.getHeaders();
+	} catch (Exception e) {
+		e.printStackTrace();
+		throw new SemossPixelException(e.getMessage());
+	}
+	Map<String, SemossDataType> typeMap = new HashMap<String, SemossDataType>();
+	for(int i = 0; i < headers.length; i++) {
+		typeMap.put(headers[i],sTypes[i]);
+	}
+
+	// I need to see how to get this to temp
+	String fileName = Utility.getRandomString(6);
+	String dir = insight.getUserFolder() + "/Temp";
+	dir = dir.replaceAll("\\\\", "/");
+	File tempDir = new File(dir);
+	if(!tempDir.exists())
+		tempDir.mkdir();
+	String outputFile = dir + "/" + fileName + ".csv";
+	Utility.writeResultToFile(outputFile, this.task, typeMap, ",");
+
+	
+	
+	// need something here to adjust the types
+	// need to move this to utilities 
+	// will move it once we have figured it out
+	String loadDT = fileName + " <- fread(\"" + outputFile + "\");";
+	// adjust the types
+	String adjustTypes = Utility.adjustTypeR(fileName, headers, typeMap);
+	// run the job
+	rJavaTranslator.runRAndReturnOutput(loadDT+adjustTypes);
+	*/
+
 	
 	
 }
