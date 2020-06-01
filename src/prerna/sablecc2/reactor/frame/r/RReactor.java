@@ -17,10 +17,16 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.om.Insight;
+import prerna.om.InsightPanel;
+import prerna.query.interpreters.RInterpreter;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc.ReactorSecurityManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -69,6 +75,8 @@ public final class RReactor extends AbstractReactor {
 	public NounMetadata handleGGPlot(String ggplotCommand)
 	{
 		// I need to see how to get this to temp
+		boolean newWindow = true;
+		String panelId = "new_ggplot_panel";
 		String fileName = Utility.getRandomString(6);
 		String dir = insight.getUserFolder() + "/Temp";
 		dir = dir.replaceAll("\\\\", "/");
@@ -86,8 +94,8 @@ public final class RReactor extends AbstractReactor {
 		if(ggplotCommand.contains(frameName))
 		{
 			ggplotCommand = ggplotCommand.replace(frameName, "plotterframe");
-			ggplotter.append("plotterframe = " + frameName + ";");
 		}
+		ggplotter.append("plotterframe <- " + frameName + ";");
 		//ggplotter.append("library(\"gganimate\");");
 
 		// now it is just running the ggplotter
@@ -121,12 +129,6 @@ public final class RReactor extends AbstractReactor {
 		// get file name
 		String retFile = rJavaTranslator.runRAndReturnOutput(ggsaveFile);
 
-		// also try to encode it
-		/*String encode = "base64Encode(readBin(" + ggsaveFile + " , \"raw\", file.info(" + ggsaveFile + ")[1, \"size\"]), \"txt\")";
-
-		String dataURI = rJavaTranslator.runRAndReturnOutput(encode);
-		System.out.println(dataURI);
-		*/
 		String ggremove = "rm(" + ggsaveFile + ", txt);detach(\"package:ggplot2\", unload=FALSE);"; //detach(\"package:RCurl\", unload=FALSE)";
 		if(animate)
 			ggremove = ggremove + "detach(\"package:gganimate\", unload=FALSE);";
@@ -171,7 +173,17 @@ public final class RReactor extends AbstractReactor {
 		// leaving out the alignment
 		//optionMap.put(key, value)
 		Map <String, Object> panelMap = new HashMap<String, Object>();
-		panelMap.put(this.insight.getLastPanelId(), optionMap);
+		
+		int panelNum = 0;
+		if(insight.getVarStore().containsKey(panelId))
+			panelNum = (Integer)insight.getVarStore().get(panelId).getValue();
+		panelNum++;
+		insight.getVarStore().put(panelId, new NounMetadata(panelNum, PixelDataType.CONST_INT));
+		
+		if(newWindow)
+			panelMap.put(panelId+panelNum, optionMap);
+		else
+			panelMap.put(this.insight.getLastPanelId(), optionMap);
 		
 		TaskOptions options = new TaskOptions(panelMap);
 		
@@ -204,12 +216,12 @@ public final class RReactor extends AbstractReactor {
 		// remove the variable
 		rJavaTranslator.runRAndReturnOutput(ggremove);
 
-		
+		String bin = sw.toString();
 
 		
 		outputMap.put("headers", headers);
 		outputMap.put("rawHeaders", headers);
-		outputMap.put("values", new String[]{sw.toString()});
+		outputMap.put("values", new String[]{bin});
 		outputMap.put("ggplot", ggplotCommand);	
 		outputMap.put("format", format);
 
@@ -218,8 +230,29 @@ public final class RReactor extends AbstractReactor {
 		new File(retFile).delete();
 
 		// delete the pivot later
-		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
-
+		if(bin.length() > 0) 
+		{
+			Vector<NounMetadata> retList = new Vector<>();
+			InsightPanel daPanel = insight.getInsightPanel(panelId);
+			//newWindow = daPanel != null;
+			if(newWindow)
+			{
+				// need to fix the scehario where the panel id can be replaced
+				// can make panel id random moving forward
+				daPanel = new InsightPanel(panelId+panelNum, Insight.DEFAULT_SHEET_ID);
+				this.insight.addNewInsightPanel(daPanel);
+			
+				NounMetadata noun = new NounMetadata(daPanel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN);
+				retList.add(noun);
+				retList.add( new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE));
+				
+				return new NounMetadata(retList, PixelDataType.VECTOR, PixelOperationType.VECTOR);
+					
+			}
+			//return //new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
+		} 	
+		//return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
+		return null;
 	}
 	
 	
