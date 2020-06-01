@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -14,18 +15,21 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PyTranslator;
-import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.Insight;
+import prerna.query.interpreters.PandasInterpreter;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.sablecc2.reactor.frame.convert.ConvertReactor;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
 
@@ -54,6 +58,10 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		
 		if(keyValue.containsKey(keysToGet[1]))
 			format = keyValue.get(keysToGet[1]);
+		String assignPlotter = "";
+		String fileName = Utility.getRandomString(6);
+		String loadDT = "";
+		String adjustTypes = "";
 		
 		// I neeed to get the basic iterator and then get types from there
 		// this is typically what we do on seaborn
@@ -64,64 +72,94 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		// del daplot
 		// del plotterframe
 		// return output
+
+		// need to do a check to see if the frame is in R if not convert to R
+		ITableDataFrame thisFrame = insight.getCurFrame();
+		String type = FrameFactory.getFrameType(thisFrame);
 		
-		task.getMetaMap();
-		SemossDataType[] sTypes = null;
-		String[] headers = null;
+		// need to also check if it is already there
+		// obviously the issue of synchronization comes but for now
+
+		
+		if(!type.equalsIgnoreCase("py") && !insight.getVarStore().containsKey("PY_SYNCHRONIZED"))
+		{
+			// move this to R
+			ConvertReactor cr = new ConvertReactor();
+			GenRowStruct grs = new GenRowStruct();
+			grs.add(new NounMetadata(thisFrame, PixelDataType.FRAME));
+			this.getNounStore().addNoun(ReactorKeysEnum.FRAME.getKey(), grs);
+			grs = new GenRowStruct();
+			grs.add(new NounMetadata("PY", PixelDataType.CONST_STRING));
+			this.getNounStore().addNoun(ReactorKeysEnum.FRAME_TYPE.getKey(), grs);
+			grs = new GenRowStruct();
+			grs.add(new NounMetadata(thisFrame.getName(), PixelDataType.CONST_STRING));
+			this.getNounStore().addNoun(ReactorKeysEnum.ALIAS.getKey(), grs);
+			cr.setNounStore(getNounStore());
+			cr.setInsight(this.insight);
+			cr.execute();
+			
+			insight.getVarStore().put("PY_SYNCHRONIZED", new NounMetadata(true, PixelDataType.BOOLEAN));
+			
+			// need replace to the frame back
+			insight.getVarStore().put(Insight.CUR_FRAME_KEY, new NounMetadata(thisFrame, PixelDataType.FRAME));
+			
+			/*
+			ITableDataFrame newFrame = null;
+			try {
+				newFrame = FrameFactory.getFrame(this.insight, "R", frame.get);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
+			}
+			// insert the data for the new frame
+			IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
+			try {
+				importer.insertData();
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
+			*/
+
+		}
+
+		// I can avoid all this to make a selector
+		SelectQueryStruct qs = ((BasicIteratorTask)task).getQueryStruct();
+		qs.getRelations().clear();
+		
+		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, thisFrame.getMetaData());
+		PandasInterpreter interp = new PandasInterpreter();
+		interp.setDataTableName(thisFrame.getName(), thisFrame.getName() + "w" + ".cache['data']");
+		interp.setDataTypeMap(thisFrame.getMetaData().getHeaderToTypeMap());
+		interp.setQueryStruct(qs);
+		interp.setKeyCache(new ArrayList());
+
+		StringBuffer columns = new StringBuffer("columns=[");
+		// compose the columns string
 		try {
-			IRawSelectWrapper taskItearator = (((BasicIteratorTask)(task)).getIterator());
-			sTypes = taskItearator.getTypes();
-			headers = taskItearator.getHeaders();
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new SemossPixelException(e.getMessage());
-		}
-		Map<String, SemossDataType> typeMap = new HashMap<String, SemossDataType>();
-		for(int i = 0; i < headers.length; i++) {
-			typeMap.put(headers[i],sTypes[i]);
-		}
-		String assignPlotter = "";
-		String fileName = Utility.getRandomString(6);
-		String loadDT = "";
-		String adjustTypes = "";
-		// I need to see how to get this to temp
-		if(headers != null) // if they are using this natively, go with it
-		{
-			String dir = insight.getUserFolder() + "/Temp";
-			dir = dir.replaceAll("\\\\", "/");
-			File tempDir = new File(dir);
-			if(!tempDir.exists())
-				tempDir.mkdir();
-			String outputFile = dir + "/" + fileName + ".csv";
-			Utility.writeResultToFile(outputFile, this.task, ",");
-			// need something here to adjust the types
-			// need to move this to utilities 
-			// will move it once we have figured it out
-			// at some point the encoding etc. needs to be fixed
-			loadDT = fileName + " = pd.read_csv(\"" + outputFile + "\");";
-			// adjust the types
-			adjustTypes = Utility.adjustTypePy(fileName, headers, typeMap);
-			// run the job
-			//pyt.runEmptyPy(loadDT, adjustTypes);
-			// now comes the building part
-			// I need to ask kunal if he mauls the path so I cannot load seaborn anymore
-			assignPlotter = "plotterframe = " + fileName;
-		}
-		else
-		{
-			// give it the full frame name
-			ITableDataFrame frame = (ITableDataFrame)insight.getVarStore().get("$CUR_FRAME_KEY").getValue();
-			headers = frame.getColumnHeaders();
-			assignPlotter = "plotterframe = " + frame.getName();
-		}
+			prerna.engine.api.IRawSelectWrapper taskItearator = (((BasicIteratorTask)(task)).getIterator());
+			String [] headers = taskItearator.getHeaders();
+			for(int headerIndex = 0;headerIndex < headers.length;headerIndex++)
+			{
+				if(headerIndex != 0)
+					columns.append(",");
+				columns.append("'").append(headers[headerIndex]).append("'");
+			}
+			columns.append("]");
+		}catch(Exception ex)
+		{}
+		// pd.DataFrame.from_dict(mv.loc[(mv['Genre'].isin(['Family-Animation'])) ].iloc[0:][['MovieBudget', 'Genre', 'Nominated', 'RevenueDomestic']].to_dict('split'), orient='index')
+		// get the composed string and turn it into a data frame
+		String subDataTable = "pd.DataFrame(" + interp.composeQuery() + "['data'], " + columns + ")";
+
+		assignPlotter = "plotterframe = " + subDataTable; //thisFrame.getName();
 		String importSeaborn = "import seaborn as sns";
-		assignPlotter = "plotterFrame = " + fileName;
+		//assignPlotter = "plotterFrame = " + fileName;
 		String runPlot = "daplot = sns.relplot(" + splot + ")";
 		String seabornFile = Utility.getRandomString(6);
 		String printFile = "print(saveFile)";
 		String saveFileName = "saveFile = ROOT + '/" + seabornFile + "." + format + "'";
 		String savePlot = "daplot.savefig(saveFile)";
-		String removeFrame = "del(" + fileName + ")";
+		String removeFrame = ""; //"del(" + fileName + ")";
 		String removeSeaborn = "del(sns)";
 		String removeSaveFile = "del(saveFile)";
 		
@@ -246,4 +284,52 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 	// txt <- base64Encode(readBin(tf1, "raw", file.info(tf1)[1, "size"]), "txt")
 	// tf1 - is just the file location
 	// https://stackoverflow.com/questions/33409363/convert-r-image-to-base-64/36707831?noredirect=1#comment61003382_36707831
+	
+	/*
+	task.getMetaMap();
+	SemossDataType[] sTypes = null;
+	String[] headers = null;
+	try {
+		IRawSelectWrapper taskItearator = (((BasicIteratorTask)(task)).getIterator());
+		sTypes = taskItearator.getTypes();
+		headers = taskItearator.getHeaders();
+	} catch (Exception e) {
+		e.printStackTrace();
+		throw new SemossPixelException(e.getMessage());
+	}
+	Map<String, SemossDataType> typeMap = new HashMap<String, SemossDataType>();
+	for(int i = 0; i < headers.length; i++) {
+		typeMap.put(headers[i],sTypes[i]);
+	}
+	// I need to see how to get this to temp
+	if(headers != null) // if they are using this natively, go with it
+	{
+		String dir = insight.getUserFolder() + "/Temp";
+		dir = dir.replaceAll("\\\\", "/");
+		File tempDir = new File(dir);
+		if(!tempDir.exists())
+			tempDir.mkdir();
+		String outputFile = dir + "/" + fileName + ".csv";
+		Utility.writeResultToFile(outputFile, this.task, ",");
+		// need something here to adjust the types
+		// need to move this to utilities 
+		// will move it once we have figured it out
+		// at some point the encoding etc. needs to be fixed
+		loadDT = fileName + " = pd.read_csv(\"" + outputFile + "\");";
+		// adjust the types
+		adjustTypes = Utility.adjustTypePy(fileName, headers, typeMap);
+		// run the job
+		//pyt.runEmptyPy(loadDT, adjustTypes);
+		// now comes the building part
+		// I need to ask kunal if he mauls the path so I cannot load seaborn anymore
+		assignPlotter = "plotterframe = " + fileName;
+	}
+	else
+	{
+		// give it the full frame name
+		ITableDataFrame frame = (ITableDataFrame)insight.getVarStore().get("$CUR_FRAME_KEY").getValue();
+		headers = frame.getColumnHeaders();
+		assignPlotter = "plotterframe = " + frame.getName();
+	}*/
+
 }
