@@ -89,7 +89,7 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		updateRecipeFile(logger, engine.getEngineId(), engine.getEngineName(), existingId, insightName);
 		logger.info("3) Done");
 
-		ClusterUtil.reactorPushApp(appId);
+		ClusterUtil.reactorPushInsightDB(appId);
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
