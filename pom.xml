@@ -2325,12 +2325,6 @@
 			<artifactId>kafka-clients</artifactId>
 			<version>0.10.1.0</version>
 		</dependency-->
-		<!-- sql database connectors -->
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<version>1.4.195</version>
-		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
