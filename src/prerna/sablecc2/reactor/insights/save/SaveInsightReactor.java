@@ -94,9 +94,18 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			recipeToSave = decodeRecipe(recipeToSave);
 		}
 		
+		IEngine engine = Utility.getEngine(appId);
+		if(engine == null) {
+			// we may have the alias
+			engine = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(appId));
+			if(engine == null) {
+				throw new IllegalArgumentException("Cannot find app = " + appId);
+			}
+		}
+		
 		//Pull the insights db again incase someone just saved something 
 		ClusterUtil.reactorPullInsightsDB(appId);
-
+		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
 		// get the new insight id
 		String newInsightId = UUID.randomUUID().toString();
 		// get an updated recipe if there are files used
@@ -114,14 +123,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			}
 		}
 
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
-			// we may have the alias
-			engine = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(appId));
-			if(engine == null) {
-				throw new IllegalArgumentException("Cannot find app = " + appId);
-			}
-		}
+
 		
 		int stepCounter = 1;
 		// add the recipe to the insights database
@@ -220,10 +222,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		this.insight.setAppFolder(null);
 		
 		ClusterUtil.reactorPushInsightDB(appId);
-		Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), appId));
-		Path relative = appFolder.relativize( Paths.get(newInsightFolder.getAbsolutePath()));
-		ClusterUtil.reactorPushFolder(appId,newInsightFolder.getAbsolutePath(), relative.toString());
-		
+		ClusterUtil.reactorPushFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("app_insight_id", newRdbmsId);
