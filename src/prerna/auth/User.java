@@ -379,6 +379,10 @@ public class User extends AbstractValueObject implements Serializable {
 	}
 	
 	public static String getSingleLogginName(User semossUser) {
+		if(semossUser == null) {
+			return "";
+		}
+		
 		if(semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
 			return "ANONYMOUS " + semossUser.anonymousId;
 		}

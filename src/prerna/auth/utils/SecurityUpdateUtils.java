@@ -630,10 +630,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param visibility
 	 * @throws SQLException 
+	 * @throws IllegalAccessException 
 	 */
-	public static void setDbVisibility(User user, String engineId, boolean visibility) throws SQLException {
+	public static void setDbVisibility(User user, String engineId, boolean visibility) throws SQLException, IllegalAccessException {
 		if(!SecurityAppUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to modify his visibility of this app.");
+			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this app.");
 		}
 		String userFilters = getUserFilters(user);
 		String query = "SELECT ENGINEID FROM ENGINEPERMISSION WHERE "

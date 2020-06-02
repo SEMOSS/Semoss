@@ -378,12 +378,13 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param newPermission
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static void editAppUserPermission(User user, String existingUserId, String engineId, String newPermission) {
+	public static void editAppUserPermission(User user, String existingUserId, String engineId, String newPermission) throws IllegalAccessException {
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserAppPermission(user, engineId);
 		if(!AccessPermission.isEditor(userPermissionLvl)) {
-			throw new IllegalArgumentException("Insufficient privileges to modify this app's permissions.");
+			throw new IllegalAccessException("Insufficient privileges to modify this app's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
@@ -400,12 +401,12 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
 			if(AccessPermission.OWNER.getId() == existingUserPermission) {
-				throw new IllegalArgumentException("The user doesn't have the high enough permissions to modify this users app permission.");
+				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users app permission.");
 			}
 			
 			// also, cannot give some owner permission if i am just an editor
 			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalArgumentException("Cannot give owner level access to this insight since you are not currently an owner.");
+				throw new IllegalAccessException("Cannot give owner level access to this insight since you are not currently an owner.");
 			}
 		}
 		
@@ -426,12 +427,13 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @param editedUserId
 	 * @param engineId
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static void removeAppUser(User user, String existingUserId, String engineId) {
+	public static void removeAppUser(User user, String existingUserId, String engineId) throws IllegalAccessException {
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserAppPermission(user, engineId);
 		if(!AccessPermission.isEditor(userPermissionLvl)) {
-			throw new IllegalArgumentException("Insufficient privileges to modify this app's permissions.");
+			throw new IllegalAccessException("Insufficient privileges to modify this app's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
@@ -446,7 +448,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
 			if(AccessPermission.OWNER.getId() == existingUserPermission) {
-				throw new IllegalArgumentException("The user doesn't have the high enough permissions to modify this users app permission.");
+				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users app permission.");
 			}
 		}
 		
@@ -478,10 +480,11 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @param appId
 	 * @param isPublic
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static boolean setAppGlobal(User user, String appId, boolean isPublic) {
+	public static boolean setAppGlobal(User user, String appId, boolean isPublic) throws IllegalAccessException {
 		if(!SecurityAppUtils.userIsOwner(user, appId)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
+			throw new IllegalAccessException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
 		}
 		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
 		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + appId + "';";
