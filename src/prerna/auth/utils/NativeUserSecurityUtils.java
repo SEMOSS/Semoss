@@ -7,6 +7,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -208,6 +209,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(USER_ID));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_USERNAME, "==", username));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_TYPE, "==", AuthProvider.NATIVE.toString()));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -309,6 +311,8 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(USER_PASSWORD));
 		qs.addSelector(new QueryColumnSelector(USER_SALT));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_USERNAME, "==", username));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_TYPE, "==", AuthProvider.NATIVE.toString()));
+
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
