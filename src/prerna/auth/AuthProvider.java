@@ -8,6 +8,7 @@ public enum AuthProvider {
 	MS, // this is azure graph
 	SF, // this is salesforce 
 	SURVEYMONKEY,
+	AMAZON,
 	NATIVE,
 
 	// this one is kinda special ...
