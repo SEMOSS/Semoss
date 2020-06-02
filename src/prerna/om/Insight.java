@@ -93,7 +93,7 @@ public class Insight {
 	public static final String DEFAULT_SHEET_ID = "0";
 	public static final String DEFAULT_SHEET_LABEL = "Sheet1";
 
-	private static final Logger LOGGER = LogManager.getLogger(Insight.class.getName());
+	private static final Logger logger = LogManager.getLogger(Insight.class.getName());
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	// need to account for multiple frames to be saved on the insight
@@ -275,9 +275,9 @@ public class Insight {
 			for(int i = 0; i < size; i++) {
 				String pixelString = pixelList.get(i);
 				if(this.user != null) {
-					LOGGER.info(User.getSingleLogginName(this.user) + " Running >>> " + Utility.cleanLogString(pixelString));
+					logger.info(User.getSingleLogginName(this.user) + " Running >>> " + Utility.cleanLogString(pixelString));
 				} else {
-					LOGGER.info("No User Running >>> " + Utility.cleanLogString(pixelString));
+					logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
 				}
 				try {
 					runner.runPixel(pixelString, this);
@@ -894,7 +894,7 @@ public class Insight {
 	public Map<String, Object> runPkql(String pkqlString) {
 		PKQLRunner runner = getPkqlRunner();
 		try {
-			LOGGER.info("Running >>> " + pkqlString);
+			logger.info("Running >>> " + pkqlString);
 			// we need to account for the fact that the data.output
 			// will create a completely new insight object
 			// so even though we add the reactors
@@ -922,7 +922,7 @@ public class Insight {
 		for(int i = 0; i < size; i++) {
 			String pkqlString = pqlList.get(i);
 			try {
-				LOGGER.info("Running >>> " + pkqlString);
+				logger.info("Running >>> " + pkqlString);
 				if(this.getDataMaker() != null) {
 					runner.runPKQL(pkqlString, this.getDataMaker());
 				} else {
@@ -1334,7 +1334,7 @@ public class Insight {
 				}
 			}
 */		}
-		LOGGER.info("Netty is connected");
+		logger.info("Netty is connected");
 	}
 	
 	public void setNettyClient(NettyClient nc) {
