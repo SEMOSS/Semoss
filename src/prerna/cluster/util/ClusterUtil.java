@@ -4,12 +4,16 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -216,6 +220,34 @@ public class ClusterUtil {
 		}
 	}
 	
+	public static void  reactorPushVersionFolder(IEngine engine, String relativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+
+		String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
+		Path appHomePath = Paths.get(appHome);
+		String abolsutePath = appHome + DIR_SEPARATOR + "version";
+		Path relative = appHomePath.relativize( Paths.get(abolsutePath));
+		ClusterUtil.reactorPushFolder(engine.getEngineId(),abolsutePath, relative.toString());
+		
+		}		
+	}
+	
+	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
+	public static void  reactorPushFolder(IEngine engine, String absolutePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+
+		String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
+		Path appHomePath = Paths.get(appHome);
+		Path relative = appHomePath.relativize( Paths.get(absolutePath));
+		ClusterUtil.reactorPushFolder(engine.getEngineId(),absolutePath, relative.toString());
+		
+		}		
+	}
+	
 	public static void reactorPushFolder(String appId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
@@ -230,8 +262,21 @@ public class ClusterUtil {
 		}		
 	}
 	
-	//create a pull folder
+	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
+	public static void  reactorPullFolder(IEngine engine, String absolutePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+
+		String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
+		Path appHomePath = Paths.get(appHome);
+		Path relative = appHomePath.relativize( Paths.get(absolutePath));
+		ClusterUtil.reactorPullFolder(engine.getEngineId(),absolutePath, relative.toString());
+		
+		}		
+	}
 	
+	//create a pull folder
 	public static void reactorPullFolder(String appId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
@@ -349,14 +394,17 @@ public class ClusterUtil {
 			}
 		}
 	}
-
-
-
-
-
-
 	
-
+	public static String getAppHome(IEngine engine) {
+		return  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
+	}
 	
-
+	public static String getAppHome(String engineId, String engineName) {
+		return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engineId, engineName);
+	}
+	
 }
