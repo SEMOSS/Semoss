@@ -345,10 +345,11 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param permission
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static void addAppUser(User user, String newUserId, String engineId, String permission) {
+	public static void addAppUser(User user, String newUserId, String engineId, String permission) throws IllegalAccessException {
 		if(!userCanEditEngine(user, engineId)) {
-			throw new IllegalArgumentException("Insufficient privileges to modify this app's permissions.");
+			throw new IllegalAccessException("Insufficient privileges to modify this app's permissions.");
 		}
 		
 		// make sure user doesn't already exist for this insight
