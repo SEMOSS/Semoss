@@ -37,8 +37,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
 	private static final Logger logger = Logger.getLogger(SecurityUpdateUtils.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
-
 	/**
 	 * Only used for static references
 	 */
@@ -123,7 +121,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// if we are doing a reload
@@ -191,11 +189,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						insightPermissionIds.remove(insightId);
 					}
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -207,12 +205,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			ps.executeBatch();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} // insert any remaining records
 		try {
 			ps.close();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		count = 0;
@@ -223,7 +221,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		ps = securityDb.bulkInsertPreparedStatement(
@@ -254,11 +252,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						ps.executeBatch();
 					}
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -270,12 +268,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			ps.executeBatch();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} // insert any remaining records
 		try {
 			ps.close();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// close the connection to the insights
@@ -299,7 +297,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					securityDb.removeData(deleteInsightPermissionQuery);
 					securityDb.commit();
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -375,7 +373,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -393,37 +391,37 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		deleteQuery = "DELETE FROM WORKSPACEENGINE WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		deleteQuery = "DELETE FROM ASSETENGINE WHERE ENGINEID='" + appId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 //		//TODO: add the other tables...
 	}
@@ -452,7 +450,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -467,7 +465,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -477,7 +475,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -490,13 +488,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(update1);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		String update2 = "UPDATE INSIGHT SET GLOBAL=TRUE WHERE ENGINEID='" + engineId + "'";
 		try {
 			securityDb.insertData(update2);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -532,7 +530,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				try {
 					securityDb.insertData(updateQuery);
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 				
 				// need to update any other permissions that were set for this user
@@ -540,7 +538,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				try {
 					securityDb.insertData(updateQuery);
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 				
 				// need to update all the places the user id is used
@@ -548,7 +546,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				try {
 					securityDb.insertData(updateQuery);
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 				
 				securityDb.commit();
@@ -581,14 +579,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							securityDb.insertData(query);
 							securityDb.commit();
 						} catch (SQLException e) {
-							logger.error(STACKTRACE, e);
+							logger.error(Constants.STACKTRACE, e);
 						}
 						return true;
 					}
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -611,7 +609,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				securityDb.insertData(query);
 				securityDb.commit();
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				return false;
 			}
 			return true;
@@ -663,7 +661,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				securityDb.insertData(inserts.toString());
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
