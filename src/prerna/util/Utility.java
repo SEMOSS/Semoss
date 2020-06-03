@@ -2922,17 +2922,24 @@ public class Utility {
 				builder = new StringBuilder();
 				i = 0;
 				for (; i < size; i++) {
-					if(dataRow[i] == null) {
-						builder.append(seperator);
-					} else {
-						if (typesArr[i] == SemossDataType.STRING) {
+					if (typesArr[i] == SemossDataType.STRING) {
+						// use empty quotes
+						if(dataRow[i] == null) {
+							builder.append("\"\"");
+						} else {
 							builder.append("\"").append(dataRow[i]).append("\"");
+						}
+					} else {
+						// print out null
+						if(dataRow[i] == null) {
+							builder.append("null");
 						} else {
 							builder.append(dataRow[i]);
 						}
-						if ((i + 1) != size) {
-							builder.append(seperator);
-						}
+					}
+					// add sep between columns
+					if ((i + 1) != size) {
+						builder.append(seperator);
 					}
 				}
 				// write row to file
@@ -2947,17 +2954,24 @@ public class Utility {
 				builder = new StringBuilder();
 				i = 0;
 				for (; i < size; i++) {
-					if(dataRow[i] == null) {
-						builder.append(seperator);
-					} else {
-						if (typesArr[i] == SemossDataType.STRING) {
+					if (typesArr[i] == SemossDataType.STRING) {
+						// use empty quotes
+						if(dataRow[i] == null) {
+							builder.append("\"\"");
+						} else {
 							builder.append("\"").append(dataRow[i]).append("\"");
+						}
+					} else {
+						// print out null
+						if(dataRow[i] == null) {
+							builder.append("null");
 						} else {
 							builder.append(dataRow[i]);
 						}
-						if ((i + 1) != size) {
-							builder.append(seperator);
-						}
+					}
+					// add sep between columns
+					if ((i + 1) != size) {
+						builder.append(seperator);
 					}
 				}
 				// write row to file
