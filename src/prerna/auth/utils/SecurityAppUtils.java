@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
+
 import prerna.auth.AccessPermission;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -20,10 +22,13 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityAppUtils extends AbstractSecurityUtils {
+
+	private static final Logger logger = Logger.getLogger(SecurityAppUtils.class);
 
 	/**
 	 * Get what permission the user has for a given app
@@ -53,7 +58,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -93,7 +98,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -122,7 +127,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -164,7 +169,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -207,7 +212,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -246,7 +251,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -285,7 +290,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				return permission;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -367,7 +372,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this APP");
 		}
 	}
@@ -417,7 +422,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured updating the user permissions for this insight");
 		}
 	}
@@ -459,7 +464,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured removing the user permissions for this app");
 		}
 		
@@ -470,7 +475,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured removing the user permissions for the insights of this app");
 		}
 	}
@@ -547,13 +552,13 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				securityDb.insertData(query);
 			}
 		} catch(SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -573,7 +578,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// now we do the new insert with the order of the tags
@@ -592,13 +597,13 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			
 			ps.executeBatch();
 		} catch(Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -666,7 +671,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
