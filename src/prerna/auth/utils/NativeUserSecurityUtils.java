@@ -16,12 +16,12 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 
 public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 
-	private static Logger logger = Logger.getLogger(NativeUserSecurityUtils.class.getName());
+	private static final Logger logger = Logger.getLogger(NativeUserSecurityUtils.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
 	private static final String USER_ID = "USER__ID";
 	private static final String USER_NAME = "USER__NAME";
 	private static final String USER_USERNAME = "USER__USERNAME";
@@ -111,13 +111,13 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 						securityDb.insertData(query);
 						securityDb.commit();
 					} catch (SQLException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 					return true;
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -131,7 +131,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(updateQuery);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -186,7 +186,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -217,7 +217,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -248,7 +248,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -279,7 +279,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 				return sjss.getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -329,7 +329,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 				user.put(names[7], values[7].toString());
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();

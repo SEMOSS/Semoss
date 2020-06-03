@@ -32,6 +32,10 @@ package prerna.util;
  */
 public class Constants {
 
+	// error messages
+	public static final String STACKTRACE = "StackTrace: ";
+	public static final String ERROR_MESSAGE = "errorMessage";
+
 	public static final String DIHELPER_PROP_FILE_LOCATION = "DIHELPER_PROP_FILE_LOCATION";
 	public static final String PLAYSHEETS_DEFINED = "PLAYSHEETS_DEFINED";
 	public static final String SUBJECT = "SUBJECT";

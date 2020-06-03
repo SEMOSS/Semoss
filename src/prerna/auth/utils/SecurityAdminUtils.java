@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
+
 import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -21,13 +23,15 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	private static SecurityAdminUtils instance = new SecurityAdminUtils();
-	
+	private static final Logger logger = Logger.getLogger(SecurityAdminUtils.class);
+
 	private SecurityAdminUtils() {
 		
 	}
@@ -60,7 +64,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -206,7 +210,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured setting this insight global");
 		}
 	}
@@ -294,7 +298,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this app");
 		}
 	}
@@ -321,7 +325,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this app");
 		}
 	}
@@ -345,7 +349,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this app");
 		}
 	}
@@ -472,7 +476,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
 		}
 	}
@@ -501,7 +505,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
 		}
 	}
@@ -527,7 +531,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
 		}
 	}
@@ -543,7 +547,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured setting this insight global");
 		}
 	}
