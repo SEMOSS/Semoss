@@ -92,9 +92,9 @@ public final class PyExecutorThread extends Thread {
 										}
 									}
 								} catch (Exception e1) {
-									logger.error(e1.getStackTrace());
+									logger.error("STACKTRACE:" , e);
 								}
-								logger.error(e.getStackTrace());
+								logger.error("STACKTRACE:" , e);
 							}
 						}
 						command = null;
@@ -106,7 +106,7 @@ public final class PyExecutorThread extends Thread {
 				}
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
-				logger.error(e.getStackTrace());
+				logger.error("STACKTRACE:" , e);
 			}
 		}
 		logger.debug("Thread ENDED");
@@ -198,7 +198,7 @@ public final class PyExecutorThread extends Thread {
 				jep.eval("import smssutil");
 			}
 		} catch (JepException e) {
-			logger.error(e.getStackTrace());
+			logger.error("STACKTRACE:" , e);
 		}
 		return jep;
 	}
