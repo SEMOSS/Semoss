@@ -11,6 +11,8 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import org.apache.log4j.Logger;
+
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
@@ -26,13 +28,12 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 
 public class SecurityQueryUtils extends AbstractSecurityUtils {
 	
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
+	private static final Logger logger = Logger.getLogger(SecurityQueryUtils.class);
 	
 	/**
 	 * Try to reconcile and get the engine id
@@ -183,7 +184,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				result.add(map);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -231,7 +232,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				result.add(map);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -687,7 +688,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -723,7 +724,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -781,7 +782,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				userMap.put(userId, userInfo);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -859,7 +860,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -918,7 +919,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -949,7 +950,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
