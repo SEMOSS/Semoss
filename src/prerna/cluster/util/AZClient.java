@@ -619,7 +619,7 @@ public class AZClient extends CloudClient {
 		lock.lock();
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
-			logger.info("Pushing folder for " + remoteRelativePath + " from remote=" + appId);
+			logger.info("Pushing folder for " + remoteRelativePath + " to remote=" + appId);
 
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":"+appId+  "/" + remoteRelativePath);
 		} finally {
