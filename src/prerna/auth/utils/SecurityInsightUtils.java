@@ -324,9 +324,17 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * Modify insight details
 	 */
 	
-	public static void setInsightGlobalWithinApp(User user, String appId, String insightId, boolean isPublic) {
+	/**
+	 * 
+	 * @param user
+	 * @param appId
+	 * @param insightId
+	 * @param isPublic
+	 * @throws IllegalAccessException
+	 */
+	public static void setInsightGlobalWithinApp(User user, String appId, String insightId, boolean isPublic) throws IllegalAccessException {
 		if(!userIsInsightOwner(user, appId, insightId)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
+			throw new IllegalAccessException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
 		}
 		
 		String query = "UPDATE INSIGHT SET GLOBAL=" + isPublic + " WHERE ENGINEID ='" + appId + "' AND INSIGHTID='" + insightId + "';";
@@ -357,7 +365,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getInsightUsers(User user, String appId, String insightId) throws IllegalAccessException {
 		if(!userCanViewInsight(user, appId, insightId)) {
-			throw new IllegalArgumentException("The user does not have access to view this insight");
+			throw new IllegalAccessException("The user does not have access to view this insight");
 		}
 		
 //		String query = "SELECT USER.ID AS \"id\", "
@@ -744,12 +752,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @param newPermission
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static void editInsightUserPermission(User user, String existingUserId, String engineId, String insightId, String newPermission) {
+	public static void editInsightUserPermission(User user, String existingUserId, String engineId, String insightId, String newPermission) throws IllegalAccessException {
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, engineId, insightId);
 		if(!AccessPermission.isEditor(userPermissionLvl)) {
-			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
+			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
@@ -766,12 +775,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
 			if(AccessPermission.OWNER.getId() == existingUserPermission) {
-				throw new IllegalArgumentException("The user doesn't have the high enough permissions to modify this users insight permission.");
+				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users insight permission.");
 			}
 			
 			// also, cannot give some owner permission if i am just an editor
 			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalArgumentException("Cannot give owner level access to this insight since you are not currently an owner.");
+				throw new IllegalAccessException("Cannot give owner level access to this insight since you are not currently an owner.");
 			}
 		}
 		
@@ -794,12 +803,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param insightId
 	 * @return
+	 * @throws IllegalAccessException 
 	 */
-	public static void removeInsightUser(User user, String existingUserId, String engineId, String insightId) {
+	public static void removeInsightUser(User user, String existingUserId, String engineId, String insightId) throws IllegalAccessException {
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, engineId, insightId);
 		if(!AccessPermission.isEditor(userPermissionLvl)) {
-			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
+			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
@@ -814,7 +824,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
 			if(AccessPermission.OWNER.getId() == existingUserPermission) {
-				throw new IllegalArgumentException("The user doesn't have the high enough permissions to modify this users insight permission.");
+				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users insight permission.");
 			}
 		}
 		
