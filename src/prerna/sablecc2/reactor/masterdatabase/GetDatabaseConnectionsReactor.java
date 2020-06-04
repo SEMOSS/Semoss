@@ -57,12 +57,7 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 		
 		List<String> inputColumnValues = getColumns();
 		List<String> localConceptIds = MasterDatabaseUtility.getLocalConceptIdsFromPixelName(inputColumnValues);
-		
-		//TODO: this is giving weirder options than expected ... come back to this
-		//TODO: this is giving weirder options than expected ... come back to this
-		//TODO: this is giving weirder options than expected ... come back to this
-		//TODO: this is giving weirder options than expected ... come back to this
-//		localConceptIds.addAll(MasterDatabaseUtility.getLocalConceptIdsFromSimilarLogicalNames(inputColumnValues));
+		localConceptIds.addAll(MasterDatabaseUtility.getConceptualIdsWithSimilarLogicalNames(localConceptIds));
 		
 		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(localConceptIds, appliedAppFilters);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
