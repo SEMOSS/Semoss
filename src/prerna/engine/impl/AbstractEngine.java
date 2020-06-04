@@ -205,10 +205,6 @@ public abstract class AbstractEngine implements IEngine {
 				this.engineId = prop.getProperty(Constants.ENGINE);
 				this.engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 	
-				// 
-				// load the rdbms insights db
-				loadInsightsRdbms();
-				
 				// load the rdf owl db
 				String owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
 				if(owlFile != null) {
@@ -241,6 +237,10 @@ public abstract class AbstractEngine implements IEngine {
 						setOWL(owlFile);
 					}
 				}
+				
+				// load the rdbms insights db
+				loadInsightsRdbms();
+				
 				// load properties object for db
 				File engineProps = SmssUtilities.getEngineProperties(this.prop);
 				if (engineProps != null) {
