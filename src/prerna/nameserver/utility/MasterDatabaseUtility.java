@@ -236,6 +236,11 @@ public class MasterDatabaseUtility {
 				executeSql(conn, queryUtil.createTable("BITLY", colNames, types));
 			}
 		}
+		
+		// this is just because of previous errors
+		// TODO: remove this after a few builds when its no longer needed
+		// added on 2020-06-04
+		executeSql(conn, "update concept set LOGICALNAME = lower (LOGICALNAME)");
 	}
 
 	@Deprecated
@@ -321,18 +326,8 @@ public class MasterDatabaseUtility {
 	}
 
 	private static void executeSql(Connection conn, String sql) throws SQLException {
-		Statement stmt = null;
-		try {
-			stmt = conn.createStatement();
+		try (Statement stmt = conn.createStatement()){
 			stmt.execute(sql);
-		} finally {
-			try {
-				if (stmt != null) {
-					stmt.close();
-				}
-			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
-			}
 		}
 	}
 
