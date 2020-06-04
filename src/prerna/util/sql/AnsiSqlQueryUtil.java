@@ -653,7 +653,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
 			// add default values
 			if(customConstraints[colIndex] != null) {
-				retString.append(" ")..append(customConstraints[colIndex]).append(" ");
+				retString.append(" ").append(customConstraints[colIndex]).append(" ");
 			}
 		}
 		retString.append(");");
