@@ -3,7 +3,11 @@ package prerna.nameserver.utility;
 
 import java.io.IOException;
 import java.lang.reflect.Modifier;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -386,12 +390,17 @@ public class MasterDatabaseUtility {
 	 * @param conceptualName
 	 * @return
 	 */
-	public static List<String> getLocalConceptIdsFromSimilarLogicalNames(List<String> logicalNames) {
+	public static List<String> getConceptualIdsWithSimilarLogicalNames(List<String> conceptualIds) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__LOGICALNAME", "?like", logicalNames));
+		
+		SelectQueryStruct subQs = new SelectQueryStruct();
+		subQs.addSelector(new QueryColumnSelector("CONCEPT__LOGICALNAME"));
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__LOCALCONCEPTID", "==", conceptualIds));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__LOGICALNAME", "==", subQs, PixelDataType.QUERY_STRUCT));
 
 		return QueryExecutionUtility.flushToListString(engine, qs);
 	}

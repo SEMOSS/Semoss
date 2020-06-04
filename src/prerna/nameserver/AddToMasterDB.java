@@ -213,8 +213,7 @@ public class AddToMasterDB {
             // so we will just grab the ID
             conceptGuid = this.conceptIdHash.get(conceptualName + "_CONCEPTUAL");
 
-            Collection<String> curLogicals = MasterDatabaseUtility
-                    .getAllLogicalNamesFromConceptualRDBMS(conceptualName);
+            Collection<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualName);
             // add new logicals
             if (!logicals.isEmpty()) {
                 colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
@@ -222,8 +221,7 @@ public class AddToMasterDB {
 
                 for (String logical : logicals) {
                     if (!curLogicals.contains(logical)) {
-                        insertValues = new String[]{conceptGuid, conceptualName, logical.toLowerCase(), "NewDomain",
-                                ""};
+                        insertValues = new String[]{conceptGuid, conceptualName, logical.toLowerCase(), "NewDomain", ""};
                         insertQuery("Concept", colNames, types, insertValues);
                     }
                 }
@@ -239,7 +237,7 @@ public class AddToMasterDB {
             types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
             // TODO: we need to also store multiple logical names at some point
             // right now, default is to add the conceptual name as a logical name
-            insertValues = new String[]{conceptGuid, conceptualName, conceptualName, "NewDomain", ""};
+            insertValues = new String[]{conceptGuid, conceptualName, conceptualName.toLowerCase(), "NewDomain", ""};
             insertQuery("Concept", colNames, types, insertValues);
 
             // also add all the logical names
@@ -368,8 +366,7 @@ public class AddToMasterDB {
             // so we will just grab the ID
             propertyGuid = this.conceptIdHash.get(propertyConceptualName);
 
-            Collection<String> curLogicals = MasterDatabaseUtility
-                    .getAllLogicalNamesFromConceptualRDBMS(propertyConceptualName);
+            Collection<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(propertyConceptualName);
             // add new logicals
             if (!logicals.isEmpty()) {
                 colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
@@ -377,8 +374,7 @@ public class AddToMasterDB {
 
                 for (String logical : logicals) {
                     if (!curLogicals.contains(logical)) {
-                        insertValues = new String[]{propertyGuid, propertyConceptualName, logical.toLowerCase(),
-                                "NewDomain", ""};
+                        insertValues = new String[]{propertyGuid, propertyConceptualName, logical.toLowerCase(), "NewDomain", ""};
                         insertQuery("Concept", colNames, types, insertValues);
                     }
                 }
@@ -394,14 +390,12 @@ public class AddToMasterDB {
             types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
             // TODO: we need to also store multiple logical names at some point
             // right now, default is to add the conceptual name as a logical name
-            insertValues = new String[]{propertyGuid, propertyConceptualName, propertyConceptualName, "NewDomain",
-                    ""};
+            insertValues = new String[]{propertyGuid, propertyConceptualName, propertyConceptualName.toLowerCase(), "NewDomain", ""};
             insertQuery("Concept", colNames, types, insertValues);
 
             // also add all the logical names
             for (String logical : logicals) {
-                insertValues = new String[]{propertyGuid, propertyConceptualName, logical.toLowerCase(), "NewDomain",
-                        ""};
+                insertValues = new String[]{propertyGuid, propertyConceptualName, logical.toLowerCase(), "NewDomain", ""};
                 insertQuery("Concept", colNames, types, insertValues);
             }
         }
@@ -790,7 +784,6 @@ public class AddToMasterDB {
     //////////////////////////////////////////////////////////////////////////////////////
 
     private static void executeSql(Connection conn, String sql) {
-
         try (PreparedStatement statement = conn.prepareStatement(sql)) {
             statement.execute();
         } catch (Exception e) {
