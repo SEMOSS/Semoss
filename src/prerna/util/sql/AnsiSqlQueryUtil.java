@@ -526,6 +526,36 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 	
 	@Override
+	public String createTableWithCustomConstraints(String tableName, String [] colNames, String [] types, Object[] customConstraints) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		String columName = colNames[0];
+		if(isSelectorKeyword(columName)) {
+			columName = getEscapeKeyword(columName);
+		}
+		
+		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
+		if(customConstraints[0] != null) {
+			retString.append(" ").append(customConstraints[0]).append(" ");
+		}
+		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			columName = colNames[colIndex];
+			if(isSelectorKeyword(columName)) {
+				columName = getEscapeKeyword(columName);
+			}
+			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
+			// add default values
+			if(customConstraints[colIndex] != null) {
+				retString.append(" ").append(customConstraints[colIndex]).append(" ");
+			}
+		}
+		retString.append(");");
+		return retString.toString();
+	}
+	
+	@Override
 	public String createTableIfNotExists(String tableName, String[] colNames, String[] types) {
 		if(!allowsIfExistsTableSyntax()) {
 			throw new UnsupportedOperationException("Does not support if exists table syntax");
@@ -590,6 +620,40 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 				} else {
 					retString.append(defaultValues[colIndex]);
 				}
+			}
+		}
+		retString.append(");");
+		return retString.toString();
+	}
+	
+	@Override
+	public String createTableIfNotExistsWithCustomConstraints(String tableName, String [] colNames, String [] types, Object[] customConstraints) {
+		if(!allowsIfExistsTableSyntax()) {
+			throw new UnsupportedOperationException("Does not support if exists table syntax");
+		}
+
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		String columName = colNames[0];
+		if(isSelectorKeyword(columName)) {
+			columName = getEscapeKeyword(columName);
+		}
+		
+		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
+		if(customConstraints[0] != null) {
+			retString.append(" ").append(customConstraints[0]).append(" ");
+		}
+		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			columName = colNames[colIndex];
+			if(isSelectorKeyword(columName)) {
+				columName = getEscapeKeyword(columName);
+			}
+			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
+			// add default values
+			if(customConstraints[colIndex] != null) {
+				retString.append(" ")..append(customConstraints[colIndex]).append(" ");
 			}
 		}
 		retString.append(");");

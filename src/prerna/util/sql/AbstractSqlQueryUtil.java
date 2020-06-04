@@ -486,8 +486,18 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValues
 	 * @return
 	 */
-	public abstract String createTableWithDefaults(String tableName, String[] colNames, String[] types,
-			Object[] defaultValues);
+	public abstract String createTableWithDefaults(String tableName, String[] colNames, String[] types, Object[] defaultValues);
+
+	/**
+	 * Create a new table with custom constraints
+	 * 
+	 * @param tableName
+	 * @param colNames
+	 * @param types
+	 * @param customConstraints
+	 * @return
+	 */
+	public abstract String createTableWithCustomConstraints(String tableName, String[] colNames, String[] types, Object[] customConstraints);
 
 	/**
 	 * Create a new table if it does not exist with passed in columns + types +
@@ -510,9 +520,19 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValues
 	 * @return
 	 */
-	public abstract String createTableIfNotExistsWithDefaults(String tableName, String[] colNames, String[] types,
-			Object[] defaultValues);
+	public abstract String createTableIfNotExistsWithDefaults(String tableName, String[] colNames, String[] types, Object[] defaultValues);
 
+	/**
+	 * Create a new table if it does not exist with custom constraints
+	 * 
+	 * @param tableName
+	 * @param colNames
+	 * @param types
+	 * @param customConstraints
+	 * @return
+	 */
+	public abstract String createTableIfNotExistsWithCustomConstraints(String tableName, String[] colNames, String[] types, Object[] customConstraints);
+	
 	/*
 	 * Drop table scripts
 	 */
