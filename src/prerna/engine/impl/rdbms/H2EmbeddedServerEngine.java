@@ -1,7 +1,10 @@
 package prerna.engine.impl.rdbms;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.tools.Server;
@@ -10,7 +13,7 @@ import prerna.util.Utility;
 
 public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 
-	private static final Logger LOGGER = LogManager.getLogger(H2EmbeddedServerEngine.class.getName());
+	private static final Logger logger = LogManager.getLogger(H2EmbeddedServerEngine.class.getName());
 
 	private Server server;
 	private String serverUrl;
@@ -34,6 +37,25 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 		}
 		if (server == null) {
 			try {
+				// make sure the database file exists if it does not
+				{
+					File dbFile = new File(connectionUrl + ".mv.db");
+					String dbFileName = FilenameUtils.getName(dbFile.getAbsolutePath());
+					if(dbFileName.contains(";")) {
+						dbFileName = dbFileName.substring(0, dbFileName.indexOf(";"));
+						String parentFolder = dbFile.getParent();
+						dbFile = new File(parentFolder + "/" + dbFileName + ".mv.db");
+					}
+					if(!dbFile.exists()) {
+						try {
+							dbFile.getParentFile().mkdirs();
+							dbFile.createNewFile();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+				
 				String port = Utility.findOpenPort();
 				// create a random user and password
 				// get the connection object and start up the frame
@@ -48,9 +70,9 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 			}
 		}
 		
-		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
-		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
-		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
+		logger.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
+		logger.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
+		logger.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
 	}
 	
 	
