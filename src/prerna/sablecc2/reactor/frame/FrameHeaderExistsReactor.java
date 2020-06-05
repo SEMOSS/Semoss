@@ -21,7 +21,7 @@ public class FrameHeaderExistsReactor extends AbstractFrameReactor {
 		// get the types of the headers requested
 		String header = getHeader();
 		
-		List<String> aliasNames = dm.getMetaData().getFrameColumnNames();
+		List<String> aliasNames = dm.getMetaData().getOrderedAliasOrUniqueNames();
 		List<String> qsNames = dm.getMetaData().getFrameSelectors();
 
 		// compare against both
