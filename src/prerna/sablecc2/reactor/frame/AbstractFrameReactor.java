@@ -97,7 +97,7 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 	}
 	
 	protected String[] getColNames(ITableDataFrame frame) {
-		List<String> colNames = frame.getMetaData().getFrameColumnNames();
+		List<String> colNames = frame.getMetaData().getOrderedAliasOrUniqueNames();
 		String[] colString = new String[colNames.size()];
 		for (int i = 0; i < colNames.size(); i++) {
 			String column = colNames.get(i);
