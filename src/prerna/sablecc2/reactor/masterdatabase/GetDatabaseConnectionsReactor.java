@@ -74,7 +74,7 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 			if(cGrs != null && !cGrs.isEmpty()) {
 				List<String> columns = new Vector<String>();
 				for(int i = 0; i < cGrs.size(); i++) {
-					String value = cGrs.get(0).toString();
+					String value = cGrs.get(i).toString();
 					if(value.contains("__")) {
 						columns.add(value.split("__")[1].replaceAll("\\s+", "_"));
 					} else {
