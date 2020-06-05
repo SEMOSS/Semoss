@@ -406,12 +406,15 @@ public class RDataTable extends AbstractTableDataFrame {
 		String script = "colnames(" + getName() + ") <- c(" + rColNames + ")";
 		this.builder.evalR(script);
 
+		// grab the existing metadata from the frame
+		Map<String, String> additionalDataTypes = this.metaData.getHeaderToAdtlTypeMap();
+		Map<String, List<String>> sources = this.metaData.getHeaderToSources();
 		// close existing meta
 		// make a new one
 		// load into it
 		this.metaData.close();
 		this.metaData = new OwlTemporalEngineMeta();
-		ImportUtility.parseTableColumnsAndTypesToFlatTable(this.metaData, colNames, colTypes, getName());
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(this.metaData, colNames, colTypes, getName(), additionalDataTypes, sources);
 		
 		// clear the cached info
 		this.clearCachedMetrics();

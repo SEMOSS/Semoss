@@ -456,9 +456,40 @@ public class ImportUtility {
 	 */
 	public static void parseTableColumnsAndTypesToFlatTable(OwlTemporalEngineMeta metaData, String[] columns, String[] types, String frameTableName) {
 		// define the frame table name as a primary key within the meta
+		parseTableColumnsAndTypesToFlatTable(metaData, columns, types, frameTableName, null, null);
+	}
+	
+	/**
+	 * When we are generating information programmatically without a standard data source
+	 * We can create a new meta using the column names, types, and the table name
+	 * 
+	 * Example use: Pivot/Unpivot in R which drastically modifies the table
+	 * 
+	 * @param metaData
+	 * @param columns
+	 * @param types
+	 * @param frameTableName
+	 */
+	public static void parseTableColumnsAndTypesToFlatTable(OwlTemporalEngineMeta metaData, String[] columns, String[] types, String frameTableName, 
+			Map<String, String> adtlDAtaTypes, Map<String, List<String>> sourcesMap) {
+		// define the frame table name as a primary key within the meta
 		metaData.addVertex(frameTableName);
 		metaData.setPrimKeyToVertex(frameTableName, true);
-		metaData.setQueryStructNameToVertex(frameTableName, "UNKNOWN_R", frameTableName);
+		
+		// there are other metadata fields that if we have, would be good to keep/maintain
+		if(adtlDAtaTypes != null && adtlDAtaTypes.containsKey(frameTableName)) {
+			metaData.setAddtlDataTypeToVertex(frameTableName, adtlDAtaTypes.get(frameTableName));
+		}
+		if(sourcesMap != null && sourcesMap.containsKey(frameTableName) && !sourcesMap.get(frameTableName).isEmpty()) {
+			List<String> sources = sourcesMap.get(frameTableName);
+			for(String s : sources) {
+				String[] split = s.split(":::", 2);
+				metaData.setQueryStructNameToVertex(frameTableName, split[0], split[1]);
+			}
+		} else {
+			metaData.setQueryStructNameToVertex(frameTableName, "UNKNOWN", frameTableName);
+		}
+		
 		int numCols = columns.length;
 		for(int i = 0; i < numCols; i++) {
 			String columnName = columns[i];
@@ -468,10 +499,69 @@ public class ImportUtility {
 			metaData.addProperty(frameTableName, uniqueHeader);
 			metaData.setAliasToProperty(uniqueHeader, columnName);
 			metaData.setDataTypeToProperty(uniqueHeader, type);
-			metaData.setQueryStructNameToProperty(uniqueHeader, "UNKNOWN_R", uniqueHeader);
+			
+			// there are other metadata fields that if we have, would be good to keep/maintain
+			if(adtlDAtaTypes != null && adtlDAtaTypes.containsKey(uniqueHeader)) {
+				metaData.setAddtlDataTypeToVertex(uniqueHeader, adtlDAtaTypes.get(frameTableName));
+			}
+			if(sourcesMap != null && sourcesMap.containsKey(uniqueHeader) && !sourcesMap.get(uniqueHeader).isEmpty()) {
+				List<String> sources = sourcesMap.get(uniqueHeader);
+				for(String s : sources) {
+					String[] split = s.split(":::", 2);
+					metaData.setQueryStructNameToProperty(uniqueHeader, split[0], split[1]);
+				}
+			} else {
+				metaData.setQueryStructNameToProperty(uniqueHeader, "UNKNOWN", frameTableName);
+			}
 		}
 	}
 	
+	/**
+	 * Merge additional data types into the metadata assuming the headers exist
+	 * @param metaData
+	 * @param adtlDataTypes
+	 */
+	public static void mergeFlatTableAdditionalDataTypes(OwlTemporalEngineMeta metaData, Map<String, String> adtlDataTypes) {
+		if(adtlDataTypes == null || adtlDataTypes.isEmpty()) {
+			return;
+		}
+		List<String> uNames = metaData.getUniqueNames();
+		for(String name : uNames) {
+			if(adtlDataTypes.containsKey(name)) {
+				String adtlDataType = adtlDataTypes.get(name);
+				if(name.contains("__")) {
+					metaData.setAddtlDataTypeToProperty(name, adtlDataType);
+				} else {
+					metaData.setAddtlDataTypeToVertex(name, adtlDataType);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Merge additional data types into the metadata assuming the headers exist
+	 * @param metaData
+	 * @param sourcesMap
+	 */
+	public static void mergeFlatTableSources(OwlTemporalEngineMeta metaData, Map<String, List<String>> sourcesMap) {
+		if(sourcesMap == null || sourcesMap.isEmpty()) {
+			return;
+		}
+		List<String> uNames = metaData.getUniqueNames();
+		for(String name : uNames) {
+			if(sourcesMap.containsKey(name)) {
+				List<String> sources = sourcesMap.get(name);
+				for(String s : sources) {
+					String[] split = s.split(":::", 2);
+					if(name.contains("__")) {
+						metaData.setQueryStructNameToProperty(name, split[0], split[1]);
+					} else {
+						metaData.setQueryStructNameToVertex(name, split[0], split[1]);
+					}
+				}
+			}
+		}
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
