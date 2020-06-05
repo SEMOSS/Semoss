@@ -20,6 +20,7 @@ import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
 import prerna.sablecc2.reactor.imports.ImportSizeRetrictions;
+import prerna.sablecc2.reactor.imports.ImportUtility;
 
 public class ConvertReactor extends AbstractFrameReactor {
 
@@ -84,6 +85,11 @@ public class ConvertReactor extends AbstractFrameReactor {
 			e.printStackTrace();
 			throw new SemossPixelException(e.getMessage());
 		}
+		
+		// merge existing metadata
+		ImportUtility.mergeFlatTableAdditionalDataTypes(newFrame.getMetaData(), frame.getMetaData().getHeaderToAdtlTypeMap());
+		ImportUtility.mergeFlatTableSources(newFrame.getMetaData(), frame.getMetaData().getHeaderToSources());
+
 		
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		// see if this is overriding any reference
