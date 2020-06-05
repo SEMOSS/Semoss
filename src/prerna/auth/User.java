@@ -21,6 +21,7 @@ import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.IRUserConnection;
@@ -451,14 +452,17 @@ public class User extends AbstractValueObject implements Serializable {
 			engineId = "";
 		if(engineId == null) // there is a possibility that this is a mount path at this point
 			return false;
-		ClusterUtil.reactorPullApp(engineId);
 		String varValue = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + appName + "/version/assets" + subFolder;
+
 
 		varValue = varValue.replace("\\", "/");
 
 		StringBuffer oldValue = appMap.get(varName);
 		
 		appMap.put(varName, new StringBuffer(varValue));
+		
+		IEngine engine = Utility.getEngine(engineId);
+		ClusterUtil.reactorPullFolder(engine, varValue);
 		
 		
 		if(oldValue != null)
