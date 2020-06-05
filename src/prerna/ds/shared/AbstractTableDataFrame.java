@@ -283,7 +283,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	@Override
 	public String[] getColumnHeaders() {
-		List<String> fHeaders = this.metaData.getFrameColumnNames();
+		List<String> fHeaders = this.metaData.getOrderedAliasOrUniqueNames();
 		return fHeaders.toArray(new String[fHeaders.size()]);
 	}
 	
