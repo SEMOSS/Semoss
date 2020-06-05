@@ -53,7 +53,6 @@ public class OwlTemporalEngineMeta {
 	private static final String QUERY_SELECTOR_TYPE_PRED = "http://semoss.org/ontologies/Relation/Contains/QuerySelectorType";
 	private static final String QUERY_SELECTOR_AS_STRING_PRED = "http://semoss.org/ontologies/Relation/Contains/QuerySelector";
 
-
 	// specific for tinker
 	private static final String PHYSICAL_PRED = "http://semoss.org/ontologies/Relation/Contains/Physical";
 
@@ -560,6 +559,36 @@ public class OwlTemporalEngineMeta {
 		return false;
 	}
 	
+	public List<String> getUniqueNames() {
+		String query = "select distinct ?header where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "}"
+				+ "UNION"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "}"
+				+ "}";
+		
+		List<String> uNames = new Vector<String>();
+		
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				uNames.add(it.next().getValues()[0].toString());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+		
+		return uNames;
+	}
+	
 	public String getUniqueNameFromAlias(String alias) {
 		String query = "select distinct ?header where {"
 				+ "{"
@@ -731,10 +760,10 @@ public class OwlTemporalEngineMeta {
 	}
 	
 	/**
-	 * This returns the alias for the names in the frame
+	 * This returns the list of unique names
 	 * @return
 	 */
-	public List<String> getFrameColumnNames() {
+	public List<String> getOrderedAliasOrUniqueNames() {
 		String query = "select distinct "
 				+ "(coalesce(?alias, ?header) as ?frameName) "
 				+ "(coalesce(?prim, 'false') as ?isPrim) "
@@ -1125,6 +1154,58 @@ public class OwlTemporalEngineMeta {
 		return null;
 	}
 	
+	/**
+	 * Get the headers to the app / qs information it came from
+	 * @return
+	 */
+	public Map<String, List<String>> getHeaderToSources() {
+		String query = "select distinct ?header ?qsInfo where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qsInfo}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qsInfo}"
+				+ "}"
+				+ "}";
+		
+		Map<String, List<String>> returnMap = new HashMap<String, List<String>>();
+		
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				
+				String header = row[0].toString();
+				String qsInfo = row[1].toString();
+				
+				if(returnMap.containsKey(header)) {
+					returnMap.get(header).add(qsInfo);
+				} else {
+					List<String> sources = new Vector<String>();
+					sources.add(qsInfo);
+					returnMap.put(header, sources);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+		
+		return returnMap;
+	}
+	
+	/**
+	 * 
+	 * @param uniqueName
+	 * @return
+	 */
 	public String getOrderingAsString(String uniqueName) {
 		String parent = null;
 		if(uniqueName.contains("__")) {
@@ -1133,11 +1214,15 @@ public class OwlTemporalEngineMeta {
 		return getOrderingAsString(uniqueName, parent);
 	}
 	
+	/**
+	 * 
+	 * @param uniqueName
+	 * @param parentUniqueName
+	 * @return
+	 */
 	public String getOrderingAsString(String uniqueName, String parentUniqueName) {
-		String query = null;
-		
 		// we have a property
-		query = "select distinct ?header ?orderedLevels where {"
+		String query = "select distinct ?header ?orderedLevels where {"
 				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
 				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
 				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
@@ -1165,10 +1250,19 @@ public class OwlTemporalEngineMeta {
 		return null;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public Map<String, Object> getTableHeaderObjects() {
 		return getTableHeaderObjects(new String[0]);
 	}
 
+	/**
+	 * 
+	 * @param dataTypes
+	 * @return
+	 */
 	public Map<String, Object> getTableHeaderObjects(String[] dataTypes) {
 		// build filter for specific data types
 		StringBuilder filter = new StringBuilder();
@@ -1359,6 +1453,10 @@ public class OwlTemporalEngineMeta {
 		return headersMap;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public Map<String, Object> getMetamodel() {
 		Map<String, Object> metamodel = new HashMap<String, Object>();
 		// get the nodes
@@ -1538,6 +1636,11 @@ public class OwlTemporalEngineMeta {
 		return metamodel;
 	}
 	
+	/**
+	 * 
+	 * @param useAlias
+	 * @return
+	 */
 	public SelectQueryStruct getFlatTableQs(boolean useAlias) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		
@@ -2334,7 +2437,7 @@ public class OwlTemporalEngineMeta {
 	public void close() {
 		this.myEng.closeDB();
 	}
-	
+
 //	public void load(String fileName){
 //		Model model = ModelFactory.createDefaultModel();
 //		FileReader in = null;
