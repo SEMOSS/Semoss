@@ -128,7 +128,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 		if(!filterGrs.isEmpty()) {
 			hasFilter = true;
 			// we have filters to consider
-			List<String> vertexNames = this.meta.getFrameColumnNames();
+			List<String> vertexNames = this.meta.getOrderedAliasOrUniqueNames();
 			// this is because we can have 2 meta that point
 			// to the same physical
 			Set<String> addedPhysical = new HashSet<String>();
