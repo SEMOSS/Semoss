@@ -67,7 +67,7 @@ public class CommitAssetReactor extends AbstractReactor {
 				AuthProvider provider = user.getPrimaryLogin();
 				String appId = user.getAssetEngineId(provider);
 				if(appId!=null && !(appId.isEmpty())) {
-					IEngine engine = Utility.getEngine(this.insight.getEngineId());
+					IEngine engine = Utility.getEngine(appId);
 					ClusterUtil.reactorPushFolder(engine, assetFolder);
 				}
 			}
@@ -78,9 +78,9 @@ public class CommitAssetReactor extends AbstractReactor {
 				ClusterUtil.reactorPushFolder(engine, assetFolder);
 			} else {
 				//this is an app asset. Space is the appID
-			//ClusterUtil.reactorPushApp(space);
-			IEngine engine = Utility.getEngine(space);
-			ClusterUtil.reactorPushFolder(engine, assetFolder);
+				//ClusterUtil.reactorPushApp(space);
+				IEngine engine = Utility.getEngine(space);
+				ClusterUtil.reactorPushFolder(engine, assetFolder);
 			}
 		}
 
