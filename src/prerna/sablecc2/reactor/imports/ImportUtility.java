@@ -502,7 +502,7 @@ public class ImportUtility {
 			
 			// there are other metadata fields that if we have, would be good to keep/maintain
 			if(adtlDAtaTypes != null && adtlDAtaTypes.containsKey(uniqueHeader)) {
-				metaData.setAddtlDataTypeToVertex(uniqueHeader, adtlDAtaTypes.get(frameTableName));
+				metaData.setAddtlDataTypeToVertex(uniqueHeader, adtlDAtaTypes.get(uniqueHeader));
 			}
 			if(sourcesMap != null && sourcesMap.containsKey(uniqueHeader) && !sourcesMap.get(uniqueHeader).isEmpty()) {
 				List<String> sources = sourcesMap.get(uniqueHeader);
