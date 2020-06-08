@@ -32,6 +32,10 @@ public class CreateFrameReactor extends AbstractReactor {
 			logger.info("Creating new frame of type = " + frameType + " with no alias");
 			alias = "";
 		} else {
+			// replace all "__" to a single "_"
+			while(alias.contains("__")) {
+				alias = alias.replace("__", "_");
+			}
 			logger.info("Creating new frame of type = " + frameType + " with alias = " + alias);
 		}
 		ITableDataFrame newFrame = null;
