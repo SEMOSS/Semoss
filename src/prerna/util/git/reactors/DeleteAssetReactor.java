@@ -6,13 +6,16 @@ import java.util.Vector;
 import org.h2.store.fs.FileUtils;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
@@ -65,8 +68,34 @@ public class DeleteAssetReactor extends AbstractReactor {
 		if (this.insight.isSavedInsight()) {
 			GitDestroyer.removeSpecificFiles(assetFolder, true, files);
 			GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
-			ClusterUtil.reactorPushApp(this.insight.getEngineId());
 		}
+		
+		//push to the cloud
+		if(ClusterUtil.IS_CLUSTER) {
+			
+			//is it a user asset  change
+			if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
+				AuthProvider provider = user.getPrimaryLogin();
+				String appId = user.getAssetEngineId(provider);
+				if(appId!=null && !(appId.isEmpty())) {
+					IEngine engine = Utility.getEngine(appId);
+					ClusterUtil.reactorPushFolder(engine, assetFolder);
+				}
+				//is it an insight asset change
+			} else if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+				IEngine engine = Utility.getEngine(this.insight.getEngineId());
+				ClusterUtil.reactorPushFolder(engine, assetFolder);
+				
+				//else its app asset change
+			} else {
+				//this is an app asset. Space is the appID
+				//ClusterUtil.reactorPushApp(space);
+				IEngine engine = Utility.getEngine(space);
+				ClusterUtil.reactorPushFolder(engine, assetFolder);
+			}	
+		}
+
+		//ClusterUtil.reactorPushFolder(Utility.getEngine(engineId), baseFolder);
 
 		return NounMetadata.getSuccessNounMessage("Success!");
 	}
