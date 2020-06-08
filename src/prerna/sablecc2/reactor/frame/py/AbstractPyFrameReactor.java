@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.py;
 
 import java.util.List;
+import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -14,6 +15,10 @@ import prerna.sablecc2.reactor.imports.ImportUtility;
 public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 
 	protected ITableDataFrame recreateMetadata(PandasFrame frame, boolean override) {
+		// grab the existing metadata from the frame
+		Map<String, String> additionalDataTypes = frame.getMetaData().getHeaderToAdtlTypeMap();
+		Map<String, List<String>> sources = frame.getMetaData().getHeaderToSources();
+		
 		String frameName = frame.getName();
 		PandasFrame newFrame = frame; 
 		// I am just going to try to recreate the frame here
@@ -38,7 +43,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		
 		// create the pandas frame
 		// and set up everything else
-		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrame.getMetaData(), colNames, colTypes, frameName);
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrame.getMetaData(), colNames, colTypes, frameName, additionalDataTypes, sources);
 		if (override) {
 			this.insight.setDataMaker(newFrame);
 		}
