@@ -1,5 +1,6 @@
 package prerna.ds.r;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -89,6 +90,7 @@ public class RSyntaxHelper {
 	 * @return					String containing the equivalent r column vector
 	 */
 	public static String createRColVec(List<Object> row, SemossDataType dataType) {
+        DecimalFormat decimalFormat = null;
 		StringBuilder str = new StringBuilder("c(");
 		int i = 0;
 		int size = row.size();
@@ -96,7 +98,10 @@ public class RSyntaxHelper {
 			if(SemossDataType.STRING == dataType || SemossDataType.FACTOR == dataType) {
 				str.append("\"").append(row.get(i)).append("\"");
 			} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
-				str.append(row.get(i).toString());
+				if(decimalFormat == null) {
+					decimalFormat = new DecimalFormat("0.0000000000");
+				}
+				str.append(decimalFormat.format(row.get(i)));
 			} else if(SemossDataType.DATE == dataType) {
 				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d')");
 			} else if(SemossDataType.TIMESTAMP == dataType) {
@@ -827,10 +832,12 @@ public class RSyntaxHelper {
 	}
 	
 	public static String formatFilterValue(Object value, SemossDataType dataType) {
+        DecimalFormat decimalFormat = null;
 		if(SemossDataType.STRING == dataType || SemossDataType.FACTOR == dataType) {
 			return "\"" + value + "\"";
 		} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
-			return value.toString();
+			decimalFormat = new DecimalFormat("0.0000000000");
+			return decimalFormat.format(value);
 		} else if(SemossDataType.DATE == dataType) {
 			return "as.Date(\"" + value.toString() + "\", format='%Y-%m-%d')";
 		} else if(SemossDataType.TIMESTAMP == dataType) {
