@@ -40,6 +40,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	private StringBuilder filterCriteria = new StringBuilder();
 	private StringBuilder havingFilterCriteria = new StringBuilder();
 
+	private List<IQuerySelector> havingColumns = new Vector<>();
+	
 	// keep track of group bys
 	private StringBuilder groupBys = new StringBuilder();
 	// keep track of order bys
@@ -49,15 +51,20 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	private StringBuilder mainQuery = new StringBuilder();
 	// need to keep track of selectors
 	// to make sure the order by's are accurate
-	private List<String> validHeaders = new Vector<String>();
+	private List<String> validHeaders = new Vector<>();
 	// keep track of date columns that are aggregated
-	private Map<String, SemossDataType> aggregatedDateVals = new HashMap<String, SemossDataType>();
+	private Map<String, SemossDataType> aggregatedDateVals = new HashMap<>();
 	
 	@Override
 	public String composeQuery() {
 		if(this.dataTableName == null) {
 			throw new IllegalArgumentException("Please define the table name to use for the r data table query syntax to use");
 		}
+		
+		StringBuilder query = new StringBuilder();
+		String tempVarName = "temp" + Utility.getRandomString(10);
+		query.append(tempVarName + " <- ");
+		
 		if(this.colDataTypes == null) {
 			this.colDataTypes = new Hashtable<String, SemossDataType>();
 		}
@@ -67,17 +74,14 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		boolean isDistinct = ((SelectQueryStruct) this.qs).isDistinct();
 		// note, that the join info in the QS has no meaning for a R frame as 
 		// we cannot connect across data tables
-		addFilters(qs.getCombinedFilters().getFilters(), this.dataTableName, this.filterCriteria, false);
+		addFilters(qs.getCombinedFilters().getFilters(), this.dataTableName, this.filterCriteria, false, false);
+		// add having filters 
+		addFilters(qs.getHavingFilters().getFilters(), tempVarName, this.havingFilterCriteria, true, true);
 		
 		// once the filters have been added, enable 
 		StringBuilder cachedFrame = new StringBuilder(this.dataTableName);
-		addSelector();
+		addSelector(qs.getSelectors());
 		addGroupBy();
-
-		StringBuilder query = new StringBuilder();
-		String tempVarName = "temp" + Utility.getRandomString(10);
-		query.append(tempVarName + " <- ");
-		
 		if(isDistinct) {
 			query.append("unique(");
 			mainQuery.append("unique(");
@@ -106,8 +110,6 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			mainQuery.append(")");
 		}
 		
-		// add having filters 
-		addFilters(qs.getHavingFilters().getFilters(), tempVarName, this.havingFilterCriteria, true);
 		//append having filters
 		String having = this.havingFilterCriteria.toString();
 		if(!having.isEmpty()) {
@@ -275,16 +277,15 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	
 	//////////////////////////////////// start adding selectors /////////////////////////////////////
 
-	private void addSelector() {
+	private void addSelector(List<IQuerySelector> selectors) {
 		StringBuilder selectorBuilder = new StringBuilder("{ ");
 		StringBuilder outputNames = new StringBuilder(" ; list(");
-		// need a way to remove the primary key selector
-		List<IQuerySelector> selectors = qs.getSelectors();
-		//selectors = removeFakeSelector(selectors);
+		List<String> qsValues = new Vector<>();
 		//iterate through to get properties of each selector
 		int numSelectors = selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
 			IQuerySelector selector = selectors.get(i);
+			qsValues.add(selector.getQueryStructName());
 			String alias = selector.getAlias();
 			if(i >= 1) {
 				selectorBuilder.append(" ; ");
@@ -299,6 +300,28 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			// so we know what order by's are valid
 			this.validHeaders.add(alias);
 		}
+		
+		if(!this.havingColumns.isEmpty()) {
+			int numHavings = this.havingColumns.size();
+			for(int i = 0; i < numHavings; i++) {
+				IQuerySelector selector = this.havingColumns.get(i);
+				// ignore this - already have it
+				if(qsValues.contains(selector.getQueryStructName())) {
+					continue;
+				}
+				qsValues.add(selector.getQueryStructName());
+				String alias = selector.getAlias();
+
+				// we must always have selectors
+				selectorBuilder.append(" ; ");
+				outputNames.append(" , ");
+				
+				String tempName = "V" + (numSelectors+i);
+				selectorBuilder.append(tempName).append("=").append(processSelector(selector, this.dataTableName, false, false));
+				outputNames.append(alias).append("=").append(tempName);
+			}
+		}
+		
 		// append selectors + outputs to perform correct calculations + add correct alias
 		this.selectorCriteria.append(selectorBuilder).append(outputNames).append(") }");
 	}
@@ -461,9 +484,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 
 	//////////////////////////////////// start adding filters /////////////////////////////////////
 	
-	public void addFilters(List<IQueryFilter> filters, String tableName, StringBuilder builder, boolean useAlias) {
+	public void addFilters(List<IQueryFilter> filters, String tableName, StringBuilder builder, boolean useAlias, boolean captureColumns) {
 		for(IQueryFilter filter : filters) {
-			StringBuilder filterSyntax = processFilter(filter, tableName, useAlias);
+			StringBuilder filterSyntax = processFilter(filter, tableName, useAlias, captureColumns);
 			if(filterSyntax != null) {
 				if (builder.length() > 0) {
 					builder.append(" & ");
@@ -473,19 +496,19 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 	
-	private StringBuilder processFilter(IQueryFilter filter, String tableName, boolean useAlias) {
+	private StringBuilder processFilter(IQueryFilter filter, String tableName, boolean useAlias, boolean captureColumns) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
 		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-			return processSimpleQueryFilter((SimpleQueryFilter) filter, tableName, useAlias);
+			return processSimpleQueryFilter((SimpleQueryFilter) filter, tableName, useAlias, captureColumns);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-			return processAndQueryFilter((AndQueryFilter) filter, tableName, useAlias);
+			return processAndQueryFilter((AndQueryFilter) filter, tableName, useAlias, captureColumns);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-			return processOrQueryFilter((OrQueryFilter) filter, tableName, useAlias);
+			return processOrQueryFilter((OrQueryFilter) filter, tableName, useAlias, captureColumns);
 		}
 		return null;
 	}
 	
-	private StringBuilder processOrQueryFilter(OrQueryFilter filter, String tableName, boolean useAlias) {
+	private StringBuilder processOrQueryFilter(OrQueryFilter filter, String tableName, boolean useAlias, boolean captureColumns) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
 		int numAnds = filterList.size();
@@ -495,13 +518,13 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			} else {
 				filterBuilder.append(" | ");
 			}
-			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias));
+			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias, captureColumns));
 		}
 		filterBuilder.append(")");
 		return filterBuilder;
 	}
 
-	private StringBuilder processAndQueryFilter(AndQueryFilter filter, String tableName, boolean useAlias) {
+	private StringBuilder processAndQueryFilter(AndQueryFilter filter, String tableName, boolean useAlias, boolean captureColumns) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
 		int numAnds = filterList.size();
@@ -511,25 +534,25 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			} else {
 				filterBuilder.append(" & ");
 			}
-			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias));
+			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias, captureColumns));
 		}
 		filterBuilder.append(")");
 		return filterBuilder;
 	}
 	
-	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String tableName, boolean useAlias) {
+	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String tableName, boolean useAlias, boolean captureColumns) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
 		String thisComparator = filter.getComparator();
 		
 		FILTER_TYPE fType = filter.getSimpleFilterType();
 		if(fType == FILTER_TYPE.COL_TO_COL) {
-			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator, tableName, useAlias);
+			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator, tableName, useAlias, captureColumns);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator, tableName, useAlias);
+			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator, tableName, useAlias, captureColumns);
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
-			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias);
+			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias, captureColumns);
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 		}
@@ -542,11 +565,17 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias) {
+	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean captureColumns) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
 
+		// store the columns used
+		if(captureColumns) {
+			this.havingColumns.add(leftSelector);
+			this.havingColumns.add(rightSelector);
+		}
+		
 		/*
 		 * Add the filter syntax here once we have the correct physical names
 		 */
@@ -583,11 +612,16 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		return filterBuilder;
 	}
 	
-	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias) {
+	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean captureColumns) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias);
 		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
+		
+		// store the columns used
+		if(captureColumns) {
+			this.havingColumns.add(leftSelector);
+		}
 		
 		// if it is null, then we know we have a column
 		// need to grab from metadata
