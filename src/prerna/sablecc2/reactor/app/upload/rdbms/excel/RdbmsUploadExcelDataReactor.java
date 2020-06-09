@@ -611,7 +611,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 									mult = -1;
 								}
 								strValue = strValue.replaceAll("[^0-9\\.E]", "");
-								intValue = mult * Integer.parseInt(strValue.trim());
+								intValue = mult * ((Number) Double.parseDouble(strValue.trim())).intValue();
 							} catch(NumberFormatException ex) {
 								//do nothing
 							}
