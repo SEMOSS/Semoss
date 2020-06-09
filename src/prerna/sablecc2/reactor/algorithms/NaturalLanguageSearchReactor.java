@@ -13,6 +13,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -31,6 +32,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -44,7 +46,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	protected static final String CLASS_NAME = NaturalLanguageSearchReactor.class.getName();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String BASIC_ONLY = "basicOnly";
-
 
 	private static LinkedHashMap<String, String> appIdToTypeStore = new LinkedHashMap<>(250);
 
@@ -63,6 +64,20 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		List<String> engineFilters = getEngineIds();
 		boolean hasFilters = !engineFilters.isEmpty();
 		String basicOnly = getBasicOnly();
+
+		//for demo only
+		// TODO: pull asset app
+		//set default paths
+		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
+		if (AbstractSecurityUtils.securityEnabled()) {
+			User user = this.insight.getUser();
+			String appId = user.getAssetEngineId(user.getPrimaryLogin());
+			String appName = "Asset";
+			if (appId != null && !(appId.isEmpty())) {
+				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
+				savePath = savePath.replace("\\", "/");
+			}
+		}
 		
 		// init r tables for use between methods
 		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
@@ -74,10 +89,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 
 		// Check to make sure that needed files exist before searching
-		File algo1 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "nli_db.R");
-		File algo2 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "db_pixel.R");
-		File algo3 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "english-ud-2.0-170801.udpipe");
-		if (!algo1.exists() || !algo2.exists() || !algo3.exists() ) {
+		File algo1 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_guide.R");
+		File algo2 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_assembly.R");
+		if (!algo1.exists() || !algo2.exists()) {
 			String message = "Necessary files missing to generate search results.";
 			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException exception = new SemossPixelException(noun);
@@ -93,12 +107,24 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		logger.info(stepCounter + ". Loading R scripts to perform natural language search");
 		String wd = "wd" + Utility.getRandomString(5);
 		sb.append(wd + "<- getwd();");
-		sb.append(("setwd(\"" + baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts\");").replace("\\", "/"));
-		sb.append("source(\"nli_db.R\");");
-		sb.append("source(\"db_pixel.R\");");
+		sb.append(("setwd(\"" + savePath + "\");").replace("\\", "/"));
+		sb.append(("source(\"" + algo1.getPath() + "\");").replace("\\", "/"));
+		sb.append(("source(\"" + algo2.getPath() + "\");").replace("\\", "/"));
 		this.rJavaTranslator.runR(sb.toString());
 		logger.info(stepCounter + ". Done");
 		stepCounter++;
+		
+		// cluster tables if needed
+		String nldrPath1 = savePath + DIR_SEPARATOR + "nldr_membership.rds";
+		String nldrPath2 = savePath + DIR_SEPARATOR + "nldr_db.rds";
+		String nldrPath3 = savePath + DIR_SEPARATOR + "nldr_joins.rds";	
+		File nldrMembership = new File(nldrPath1);
+		File nldrDb = new File(nldrPath2);
+		File nldrJoins = new File(nldrPath3);
+		long replaceTime = System.currentTimeMillis() - ((long)1 * 24 * 60 * 60 * 1000);
+		if(!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists() || nldrMembership.lastModified() < replaceTime ) {
+			createRdsFiles();
+		}
 
 		// Collect all the apps that we will iterate through
 		logger.info(stepCounter + ". Collecting apps to iterate through");
@@ -121,13 +147,20 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		} else {
 			if (AbstractSecurityUtils.securityEnabled()) {
 				engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			} else {
+				engineFilters = MasterDatabaseUtility.getAllEngineIds();
 			}
 		}
 		logger.info(stepCounter + ". Done");
 		stepCounter++;
+		
+		// remove spaces in query if first characters
+		while(query.charAt(0) == ' ') {
+			query = query.substring(1);
+		}
 
 		logger.info(stepCounter + ". Generating search results");
-		List<Object[]> retData = generateAndRunScript(query, !hasFilters, engineFilters, rSessionTable, rSessionJoinTable, basicOnly);
+		List<Object[]> retData = generateAndRunScript(query, engineFilters, rSessionTable, rSessionJoinTable);
 		logger.info(stepCounter + ". Done");
 
 		logger.info(stepCounter + ". Generating pixel return from results");
@@ -145,8 +178,189 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				+ "refine_parsing," + "replace_words," + "select_having," + "select_where," + "select_where_helper,"
 				+ "tag_dbitems," + "tagger," + "translate_token," + "trim," + "validate_pixel," + "validate_select,"
 				+ "verify_joins," + "where_helper" + "); gc();");
+		
+		
+		// TODO: push asset app
 
 		return new NounMetadata(returnPixels, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
+
+	private void createRdsFiles() {
+		StringBuilder sessionTableBuilder = new StringBuilder();
+
+		// use all the apps
+		List<String> engineFilters = null;
+		if (AbstractSecurityUtils.securityEnabled()) {
+			engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+		} else {
+			engineFilters = MasterDatabaseUtility.getAllEngineIds();
+		}
+		
+		// source the files
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String filePath = (baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR).replace("\\", "/");
+		sessionTableBuilder.append("source(\""+ filePath + "data_inquiry_guide.R\");");
+		sessionTableBuilder.append("source(\""+ filePath + "data_inquiry_assembly.R\");");
+
+		// first get the total number of cols and relationships
+		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engineFilters);
+		List<String[]> allRelations = MasterDatabaseUtility.getRelationships(engineFilters);
+		int totalNumRels = allRelations.size();
+		int totalColCount = allTableCols.size();
+
+		// start building script
+		String rAppIds = "c(";
+		String rTableNames = "c(";
+		String rColNames = "c(";
+		String rColTypes = "c(";
+		String rPrimKey = "c(";
+
+		// create R vector of appid, tables, and columns
+		for (int i = 0; i < totalColCount; i++) {
+			Object[] entry = allTableCols.get(i);
+			String appId = entry[0].toString();
+			String table = entry[1].toString();
+			if (entry[0] != null && entry[1] != null && entry[2] != null && entry[3] != null && entry[4] != null) {
+				String column = entry[2].toString();
+				String dataType = entry[3].toString();
+				String pk = entry[4].toString().toUpperCase();
+
+				if (i == 0) {
+					rAppIds += "'" + appId + "'";
+					rTableNames += "'" + appId + "._." + table + "'";
+					rColNames += "'" + column + "'";
+					rColTypes += "'" + dataType + "'";
+					rPrimKey += "'" + pk + "'";
+				} else {
+					rAppIds += ",'" + appId + "'";
+					rTableNames += ",'" + appId + "._." + table + "'";
+					rColNames += ",'" + column + "'";
+					rColTypes += ",'" + dataType + "'";
+					rPrimKey += ",'" + pk + "'";
+				}
+			}
+		}
+
+		// create R vector of table columns and table rows
+		String rAppIDsJoin = "c(";
+		String rTbl1 = "c(";
+		String rTbl2 = "c(";
+		String rJoinBy1 = "c(";
+		String rJoinBy2 = "c(";
+
+		int firstRel = 0;
+		for (int i = 0; i < totalNumRels; i++) {
+			String[] entry = allRelations.get(i);
+			String appId = entry[0];
+			String rel = entry[3];
+
+			String[] relSplit = rel.split("\\.");
+			if (relSplit.length == 4) {
+				// this is RDBMS
+				String sourceTable = relSplit[0];
+				String sourceColumn = relSplit[1];
+				String targetTable = relSplit[2];
+				String targetColumn = relSplit[3];
+
+				// check by firstRel, not index of for loop
+				// loop increments even if relSplit.length != 4
+				// whereas firstRel only increases if something is added to frame
+				if (firstRel == 0) {
+					rAppIDsJoin += "'" + appId + "'";
+					rTbl1 += "'" + appId + "._." + sourceTable + "'";
+					rTbl2 += "'" + appId + "._." + targetTable + "'";
+					rJoinBy1 += "'" + sourceColumn + "'";
+					rJoinBy2 += "'" + targetColumn + "'";
+				} else {
+					rAppIDsJoin += ",'" + appId + "'";
+					rTbl1 += ",'" + appId + "._." + sourceTable + "'";
+					rTbl2 += ",'" + appId + "._." + targetTable + "'";
+					rJoinBy1 += ",'" + sourceColumn + "'";
+					rJoinBy2 += ",'" + targetColumn + "'";
+				}
+
+				if (sourceColumn.endsWith("_FK")) {
+					// if column ends with a _FK, then add it to NaturalLangTable also
+					rAppIds += ",'" + appId + "'";
+					rTableNames += ",'" + appId + "._." + sourceTable + "'";
+					rColNames += ",'" + sourceColumn + "'";
+					rColTypes += ", 'STRING' ";
+					rPrimKey += ", 'FALSE' ";
+				}
+				// no longer adding the first row to this data frame, increment..
+				firstRel++;
+			} else {
+				// this is an RDF or Graph
+				String sourceTable = entry[1];
+				String sourceColumn = entry[1];
+				String targetTable = entry[2];
+				String targetColumn = entry[2];
+				if (firstRel == 0) {
+					rAppIDsJoin += "'" + appId + "'";
+					rTbl1 += "'" + appId + "._." + sourceTable + "'";
+					rTbl2 += "'" + appId + "._." + targetTable + "'";
+					rJoinBy1 += "'" + sourceColumn + "'";
+					rJoinBy2 += "'" + targetColumn + "'";
+				} else {
+					rAppIDsJoin += ",'" + appId + "'";
+					rTbl1 += ",'" + appId + "._." + sourceTable + "'";
+					rTbl2 += ",'" + appId + "._." + targetTable + "'";
+					rJoinBy1 += ",'" + sourceColumn + "'";
+					rJoinBy2 += ",'" + targetColumn + "'";
+				}
+				// no longer adding the first row to this data frame, increment..
+				firstRel++;
+			}
+		}
+
+		// close all the arrays created
+		rAppIds += ")";
+		rTableNames += ")";
+		rColNames += ")";
+		rColTypes += ")";
+		rPrimKey += ")";
+		rAppIDsJoin += ")";
+		rTbl1 += ")";
+		rTbl2 += ")";
+		rJoinBy1 += ")";
+		rJoinBy2 += ")";
+		
+		// address where there were no rels
+		if(totalNumRels == 0) {
+			rAppIDsJoin = "character(0)";
+			rTbl1 = "character(0)";
+			rTbl2 = "character(0)";
+			rJoinBy1 = "character(0)";
+			rJoinBy2 = "character(0)";
+		}
+
+		// create the session tables
+		String db = "nldrDb" + Utility.getRandomString(5);
+		String joins = "nldrJoins" + Utility.getRandomString(5);
+		sessionTableBuilder.append(db + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames
+				+ " , AppID = " + rAppIds + ", Datatype = " + rColTypes + ", Key = " + rPrimKey
+				+ ", stringsAsFactors = FALSE);");
+		sessionTableBuilder.append(
+				joins + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = " + rJoinBy1
+						+ " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDsJoin + ", stringsAsFactors = FALSE);");
+
+		
+		// run the cluster tables function
+		sessionTableBuilder.append("cluster_tables ("+db+","+joins+");");
+		sessionTableBuilder.append("saveRDS ("+db+",\"nldr_db.rds\");");
+		sessionTableBuilder.append("saveRDS ("+joins+",\"nldr_joins.rds\");");
+		
+		this.rJavaTranslator.runR(sessionTableBuilder.toString());
+		
+		// pause file for 1 second to allow time to save
+		double startTime = System.currentTimeMillis();
+		double endTime = System.currentTimeMillis();
+		while(endTime < startTime + 5000) {
+			endTime = System.currentTimeMillis();
+		}
+		
+		this.rJavaTranslator.executeEmptyR("rm( " + db + "," + joins + " ); gc();");
+
 	}
 
 	////////////////////////////////////////////////////////////
@@ -166,187 +380,40 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @param engineFilters
 	 * @return
 	 */
-	private List<Object[]> generateAndRunScript(String query, boolean allApps, List<String> engineFilters, String rSessionTable, String rSessionJoinTable, String basicOnly) {
+	private List<Object[]> generateAndRunScript(String query, List<String> engineFilters,String rSessionTable, String rSessionJoinTable) {
 		String tempResult = "result" + Utility.getRandomString(8);
-		String gc = tempResult;
 		StringBuilder rsb = new StringBuilder();
-
-		// Create session table to cache if session tables dont exist
-		boolean tablesExist = this.rJavaTranslator.getBoolean("exists(\"" + rSessionTable + "\")");
-		if (!tablesExist) {
-			// first get the total number of cols and relationships
-			List<Object[]> allTableCols = MasterDatabaseUtility
-					.getAllTablesAndColumns(SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser()));
-			List<String[]> allRelations = MasterDatabaseUtility
-					.getRelationships(SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser()));
-			int totalNumRels = allRelations.size();
-			int totalColCount = allTableCols.size();
-
-			// start building script
-			StringBuilder sessionTableBuilder = new StringBuilder();
-			String rAppIds = "c(";
-			String rTableNames = "c(";
-			String rColNames = "c(";
-			String rColTypes = "c(";
-			String rPrimKey = "c(";
-
-			// create R vector of appid, tables, and columns
-			for (int i = 0; i < totalColCount; i++) {
-				Object[] entry = allTableCols.get(i);
-				String appId = entry[0].toString();
-				String table = entry[1].toString();
-				if (entry[0] != null && entry[1] != null && entry[2] != null && entry[3] != null && entry[4] != null) {
-					String column = entry[2].toString();
-					String dataType = entry[3].toString();
-					String pk = entry[4].toString().toUpperCase();
-					
-					if (i == 0) {
-						rAppIds += "'" + appId + "'";
-						rTableNames += "'" + table + "'";
-						rColNames += "'" + column + "'";
-						rColTypes += "'" + dataType + "'";
-						rPrimKey += "'" + pk + "'";
-					} else {
-						rAppIds += ",'" + appId + "'";
-						rTableNames += ",'" + table + "'";
-						rColNames += ",'" + column + "'";
-						rColTypes += ",'" + dataType + "'";
-						rPrimKey += ",'" + pk + "'";
-					}
-				}
-			}
-
-			// create R vector of table columns and table rows
-			String rAppIDsJoin = "c(";
-			String rTbl1 = "c(";
-			String rTbl2 = "c(";
-			String rJoinBy1 = "c(";
-			String rJoinBy2 = "c(";
-
-			int firstRel = 0;
-			for (int i = 0; i < totalNumRels; i++) {
-				String[] entry = allRelations.get(i);
-				String appId = entry[0];
-				String rel = entry[3];
-
-				String[] relSplit = rel.split("\\.");
-				if (relSplit.length == 4) {
-					// this is RDBMS
-					String sourceTable = relSplit[0];
-					String sourceColumn = relSplit[1];
-					String targetTable = relSplit[2];
-					String targetColumn = relSplit[3];
-
-					// check by firstRel, not index of for loop
-					// loop increments even if relSplit.length != 4
-					// whereas firstRel only increases if something is added to frame
-					if (firstRel == 0) {
-						rAppIDsJoin += "'" + appId + "'";
-						rTbl1 += "'" + sourceTable + "'";
-						rTbl2 += "'" + targetTable + "'";
-						rJoinBy1 += "'" + sourceColumn + "'";
-						rJoinBy2 += "'" + targetColumn + "'";
-					} else {
-						rAppIDsJoin += ",'" + appId + "'";
-						rTbl1 += ",'" + sourceTable + "'";
-						rTbl2 += ",'" + targetTable + "'";
-						rJoinBy1 += ",'" + sourceColumn + "'";
-						rJoinBy2 += ",'" + targetColumn + "'";
-					}
-
-					if (sourceColumn.endsWith("_FK")) {
-						// if column ends with a _FK, then add it to NaturalLangTable also
-						rAppIds += ",'" + appId + "'";
-						rTableNames += ",'" + sourceTable + "'";
-						rColNames += ",'" + sourceColumn + "'";
-						rColTypes += ", 'STRING' ";
-						rPrimKey += ", 'FALSE' ";
-					}
-					// no longer adding the first row to this data frame, increment..
-					firstRel++;
-				} else {
-					// this is an RDF or Graph
-					String sourceTable = entry[1];
-					String sourceColumn = entry[1];
-					String targetTable = entry[2];
-					String targetColumn = entry[2];
-					if (firstRel == 0) {
-						rAppIDsJoin += "'" + appId + "'";
-						rTbl1 += "'" + sourceTable + "'";
-						rTbl2 += "'" + targetTable + "'";
-						rJoinBy1 += "'" + sourceColumn + "'";
-						rJoinBy2 += "'" + targetColumn + "'";
-					} else {
-						rAppIDsJoin += ",'" + appId + "'";
-						rTbl1 += ",'" + sourceTable + "'";
-						rTbl2 += ",'" + targetTable + "'";
-						rJoinBy1 += ",'" + sourceColumn + "'";
-						rJoinBy2 += ",'" + targetColumn + "'";
-					}
-					// no longer adding the first row to this data frame, increment..
-					firstRel++;
-				}
-			}
-
-			// close all the arrays created
-			rAppIds += ")";
-			rTableNames += ")";
-			rColNames += ")";
-			rColTypes += ")";
-			rPrimKey += ")";
-			rAppIDsJoin += ")";
-			rTbl1 += ")";
-			rTbl2 += ")";
-			rJoinBy1 += ")";
-			rJoinBy2 += ")";
-
-			// create the session tables
-			sessionTableBuilder.append(rSessionTable + " <- data.frame(Column = " + rColNames + " , Table = "
-					+ rTableNames + " , AppID = " + rAppIds + ", Datatype = " + rColTypes + ", Key = " + rPrimKey
-					+ ", stringsAsFactors = FALSE);");
-			sessionTableBuilder.append(rSessionJoinTable + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2
-					+ " , joinby1 = " + rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDsJoin
-					+ ", stringsAsFactors = FALSE);");
-			this.rJavaTranslator.runR(sessionTableBuilder.toString());
-		}
-			
-		if (allApps) {
-			// lets run the function on all apps (i.e. the session tables)
-			rsb.append(tempResult + " <- nl_search(\"" + query + "\"," + rSessionTable + "," + rSessionJoinTable + " , basic=" + basicOnly + " );");
-
-		} else {
-			// filter the session tables to only the ones needed and run function
-			String rTempTable = "NaturalLangTable" + Utility.getRandomString(8);
-			String rTempJoinTable = "JoinTable" + Utility.getRandomString(8);
-
-			// create the app list to filter to in R
-			String appFilters = "appFilters" + Utility.getRandomString(8);
-			rsb.append(appFilters + " <- c(");
-			String comma = "";
-			for (String appId : engineFilters) {
-				rsb.append(comma + " \"" + appId + "\" ");
-				comma = " , ";
-			}
-			rsb.append(");");
-
-			// filter the session tables
-			rsb.append(rTempTable + " <- " + rSessionTable + "[" + rSessionTable + "$AppID %in% " + appFilters + " ,];");
-			rsb.append(rTempJoinTable + " <- " + rSessionJoinTable + "[" + rSessionJoinTable + "$AppID %in% " + appFilters + " ,];");
-
-			// run the function
-			rsb.append(tempResult + " <- nl_search(\"" + query + "\"," + rTempTable + "," + rTempJoinTable + " , basic=" + basicOnly + " );");
-			gc += (" , " + rTempTable + " , " + rTempJoinTable + " , " + appFilters);
-		}
 		
+		// read in the rds files
+		rsb.append(rSessionTable + " <- readRDS(\"nldr_db.rds\");");
+		rsb.append(rSessionJoinTable + " <- readRDS(\"nldr_joins.rds\");");
+		
+		// filter the rds files to the engineFilters
+		String appFilters = "appFilters" + Utility.getRandomString(8);
+		rsb.append(appFilters + " <- c(");
+		String comma = "";
+		for (String appId : engineFilters) {
+			rsb.append(comma + " \"" + appId + "\" ");
+			comma = " , ";
+		}
+		rsb.append(");");
+		rsb.append(rSessionTable + " <- " + rSessionTable + "[" + rSessionTable + "$AppID %in% " + appFilters + " ,];");
+		rsb.append(rSessionJoinTable + " <- " + rSessionJoinTable + "[" + rSessionJoinTable + "$AppID %in% " + appFilters + " ,];");
+		
+		
+		// lets run the function on the filtered apps
+		rsb.append(tempResult + " <- build_query(" + rSessionTable + "," + rSessionJoinTable + " , " + "\"" + query + "\" );");
+		
+		// run it
 		this.rJavaTranslator.runR(rsb.toString());
-		
+
 		// get back the data
-		String[] headerOrdering = new String[] { "label", "appid", "appid2", "part", "item1", "item2", "item3", "item4",
-				"item5", "item6", "item7", "phase", "pick" };
+		String[] headerOrdering = new String[] { "query", "appid", "appid2", "part", "item1", "item2", "item3", "item4",
+				"item5", "item6", "item7" };
 		List<Object[]> list = this.rJavaTranslator.getBulkDataRow(tempResult, headerOrdering);
 
 		// garbage cleanup
-		this.rJavaTranslator.executeEmptyR("rm(" + gc + "); gc();");
+		this.rJavaTranslator.executeEmptyR("rm(" + tempResult + " , " + rSessionTable + " , " + rSessionJoinTable + "); gc();");
 
 		return list;
 	}
@@ -369,12 +436,13 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		SelectQueryStruct curQs = null;
 
 		// need to store the collection of "Combined" qs's and their joins that I am
-		// holding to make sure I don't duplicate and can also use this to push/pull to add additional rows 
+		// holding to make sure I don't duplicate and can also use this to push/pull to
+		// add additional rows
 		Map<String, SelectQueryStruct> combinedQs = new HashMap<>();
-		
+
 		// use the joinCombinedResult to merge in the pixel later
 		List<Object[]> joinCombinedResult = new Vector<>();
-		
+
 		// use the these vectors to handle grouping/having/dropping unneeded cols
 		List<Object[]> aggregateCols = new Vector<>();
 		List<Object[]> combinedHavingRows = new Vector<>();
@@ -429,7 +497,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				currAppId = rowAppId;
 				curQs = combinedQs.get(currAppId);
 			}
-			
+
 			if (curQs == null) {
 				throw new NullPointerException("curQs (Query Struct) should not be null here.");
 			}
@@ -443,13 +511,13 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				IQuerySelector selector = null;
 				// need to properly send/receive null values in case there is a
 				// property with the same name as the node
-				boolean isPK = checkForPK(selectConcept,selectProperty,rSessionTable,currAppId);
+				boolean isPK = checkForPK(selectConcept, selectProperty, rSessionTable, currAppId);
 				if (isPK) {
 					selector = new QueryColumnSelector(selectConcept);
 				} else {
 					selector = new QueryColumnSelector(selectConcept + "__" + selectProperty);
 				}
-				
+
 				// grab the pick cols and otherwise get columns to drop
 				// do not need to add agg columns at this point
 				if (!agg && combined && row[12].toString().equals("yes")) {
@@ -457,7 +525,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					groupedCols.add(selector.getAlias());
 				} else if (agg && combined && row[12].toString().equals("yes")) {
 					// convert avg to average to match selector alias
-					if(agg && row[6].toString().equals("Avg")) {
+					if (agg && row[6].toString().equals("Avg")) {
 						pickedCols.add("Average_" + row[5]);
 					} else {
 						pickedCols.add(row[6] + "_" + row[5]);
@@ -467,7 +535,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				}
 
 				if (agg) {
-					// if it is combined, then just import the data for now and save the agg for later
+					// if it is combined, then just import the data for now and save the agg for
+					// later
 					if (combined) {
 						curQs.addSelector(selector);
 						aggregateCols.add(row);
@@ -482,7 +551,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					curQs.addSelector(selector);
 				}
 			} else if (part.equalsIgnoreCase("from")) {
-				// if the two appids are filled in but are not equal, this is a join across query structures
+				// if the two appids are filled in but are not equal, this is a join across
+				// query structures
 				// therefore, do not add relation but add to a list to be used later
 				if (!row[1].equals(row[2]) && !row[1].toString().isEmpty() && !row[2].toString().isEmpty()) {
 					// store this row to help build merge pixel later
@@ -514,7 +584,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				IQuerySelector selector = null;
 				// need to properly send/receive null values in case there is a
 				// property with the same name as the node
-				boolean isPK = checkForPK(whereTable,whereCol,rSessionTable,currAppId);
+				boolean isPK = checkForPK(whereTable, whereCol, rSessionTable, currAppId);
 				if (isPK) {
 					selector = new QueryColumnSelector(whereTable);
 				} else {
@@ -612,7 +682,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// so we exec a query to determine if we should use the current selectedProperty
 				// or keep it as PRIM_KEY_PLACEHOLDER
 				IQuerySelector selector = null;
-				boolean isPK = checkForPK(havingTable,havingCol,rSessionTable,currAppId);
+				boolean isPK = checkForPK(havingTable, havingCol, rSessionTable, currAppId);
 				if (isPK) {
 					selector = new QueryColumnSelector(havingTable);
 				} else {
@@ -648,7 +718,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 					// my rhs is another column agg
 					IQuerySelector selectorR = null;
-					isPK = checkForPK(havingTable,havingCol,rSessionTable,currAppId);
+					isPK = checkForPK(havingTable, havingCol, rSessionTable, currAppId);
 					if (isPK) {
 						selector = new QueryColumnSelector(havingTable);
 					} else {
@@ -717,7 +787,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					// we do not know the correct primary key
 					// so we exec a query to determine if we should use the current selectedProperty
 					// or keep it as PRIM_KEY_PLACEHOLDER
-					boolean isPK = checkForPK(groupConcept,groupProperty,rSessionTable,currAppId);
+					boolean isPK = checkForPK(groupConcept, groupProperty, rSessionTable, currAppId);
 					if (isPK) {
 						curQs.addGroupBy(groupConcept, null);
 					} else {
@@ -726,11 +796,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				}
 			}
 		}
-		
+
 		// retMap is full of maps with key = label and value = pixel
 		List<Map<String, Object>> retMap = new Vector<>();
 		Map<String, Object> map = new HashMap<>();
-		
+
 		// track when the entry changes and setup other vars
 		String curEntry = null;
 		String frameName = "FRAME_" + Utility.getRandomString(5);
@@ -779,8 +849,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					// process the qs
 					SelectQueryStruct qs = entry.getValue();
 					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true);
-					finalPixel += addMergePixel(qs, prevAppIds , joinCombinedResult, frameName);
-					
+					finalPixel += addMergePixel(qs, prevAppIds, joinCombinedResult, frameName);
+
 					// return map
 					map.put("app_id", "Multiple Apps");
 					map.put("app_name", "Multiple Apps");
@@ -803,7 +873,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true);
 					finalPixel += addMergePixel(qs, prevAppIds, joinCombinedResult, frameName);
 					entryCount++;
-					
+
 					// store the previous app id for when we join across db's later
 					prevAppIds.add(qs.getEngineId());
 				}
@@ -821,7 +891,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				finalPixel = buildImportPixelFromQs(qs, appId, frameName, false);
 				finalPixel += "Panel ( 0 ) | SetPanelLabel(\"" + appName + ": " + queryInput + "\");";
 				finalPixel += "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-				finalPixel += (frameName + " | PredictViz(app=[\"" + appId + "\"],columns=" + getSelectorAliases(qs.getSelectors()) + ");");
+				finalPixel += (frameName + " | PredictViz(app=[\"" + appId + "\"],columns="
+						+ getSelectorAliases(qs.getSelectors()) + ");");
 				map.put("pixel", getStartPixel(frameName) + finalPixel);
 				map.put("layout", "NLP");
 				map.put("columns", getSelectorAliases(qs.getSelectors()));
@@ -831,7 +902,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 			}
 		}
-		
+
 		// return the map
 		return retMap;
 	}
@@ -840,7 +911,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	/**
-	 * Check the existing R table to determine if a column is a primary key in the particular table and app
+	 * Check the existing R table to determine if a column is a primary key in the
+	 * particular table and app
 	 * 
 	 * @param concept
 	 * @param property
@@ -848,7 +920,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @param appId
 	 * @return true or false
 	 */
-	
+
 	private boolean checkForPK(String concept, String property, String rSessionTable, String appId) {
 		StringBuilder rsb = new StringBuilder();
 		rsb.append("unique(" + rSessionTable + "[");
@@ -861,9 +933,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		return Boolean.parseBoolean(key);
 	}
-	
-	
-	
+
 	/**
 	 * Build the pixel based on the query struct and app id
 	 * 
@@ -1112,19 +1182,23 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// return the pixel
 		return psb.toString();
 	}
-	
-	
+
 	/**
 	 * get the pixel to merge the db's together
-	 * @param qs 
-	 * @param prevAppId -- to make sure its the correct join 
-	 * @param joinCombinedResults -- the rows to join across
-	 * @param frameName -- to perform the  join pixel
-	 * @param qs 
+	 * 
+	 * @param qs
+	 * @param prevAppId
+	 *            -- to make sure its the correct join
+	 * @param joinCombinedResults
+	 *            -- the rows to join across
+	 * @param frameName
+	 *            -- to perform the join pixel
+	 * @param qs
 	 * 
 	 * @return
 	 */
-	private String addMergePixel(SelectQueryStruct qs, LinkedHashSet<String> prevAppIds, List<Object[]> joinCombinedResult, String frameName) {
+	private String addMergePixel(SelectQueryStruct qs, LinkedHashSet<String> prevAppIds,
+			List<Object[]> joinCombinedResult, String frameName) {
 		// Merge ( joins = [ ( System , right.outer.join , EKTROPY_ITEMS_0722__System )
 		// ] ) ;
 		String appId = qs.getEngineId();
@@ -1133,25 +1207,25 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		for (Object[] joinRow : joinCombinedResult) {
 			// figure out which qs needs to merge, whether
 			// its first, second, what the column is, etc.
-			if(joinRow[1].equals(appId) && prevAppIds.contains(joinRow[2].toString())) {
+			if (joinRow[1].equals(appId) && prevAppIds.contains(joinRow[2].toString())) {
 				mergeCol = joinRow[5].toString();
 			} else if (prevAppIds.contains(joinRow[1].toString()) && joinRow[2].equals(appId)) {
 				mergeCol = joinRow[7].toString();
-			}  
+			}
 		}
 		mergeString += mergeCol + " , inner.join , " + mergeCol + " ) ]  , frame = [" + frameName + "] );";
 		return mergeString;
 	}
-	
-	
+
 	/**
 	 * get the pre-data import pixel
+	 * 
 	 * @param frameName
 	 * 
 	 * @return
 	 */
 	private String getStartPixel(String frameName) {
-		
+
 		String startPixel = "AddPanel ( panel = [ 0 ] , sheet = [ \"0\" ] ) ;";
 		startPixel += "Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ;";
 		startPixel += "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , "
@@ -1159,15 +1233,17 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				+ " \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , "
 				+ "\"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; Panel ( 0 ) | RetrievePanelEvents ( ) ;";
 		startPixel += "CreateFrame ( R ) .as ( [ '" + frameName + "' ] );";
-		
+
 		return startPixel;
 	}
-	
-	
+
 	/**
 	 * Drop the columns that were not "picked"
-	 * @param colsToDrop -- columns that were not picked by the query
-	 * @param groupedCols -- groupedCols to double check that they werent picked elsewhere
+	 * 
+	 * @param colsToDrop
+	 *            -- columns that were not picked by the query
+	 * @param groupedCols
+	 *            -- groupedCols to double check that they werent picked elsewhere
 	 * @return
 	 */
 	private String dropUnwantedCols(LinkedHashSet<String> colsToDrop, LinkedHashSet<String> groupedCols) {
@@ -1196,12 +1272,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		return psb.toString();
 	}
-	
-	
+
 	/**
 	 * Get the selectors' aliases as a list
-	 * @param aggregateCols -- rows that were aggregates in the R return
-	 * @param groupedCols -- the columns that we are grouping the aggregates on
+	 * 
+	 * @param aggregateCols
+	 *            -- rows that were aggregates in the R return
+	 * @param groupedCols
+	 *            -- the columns that we are grouping the aggregates on
 	 * @return
 	 */
 	private String addGroupingsAndHavings(List<Object[]> aggregateCols, LinkedHashSet<String> groupedCols,
@@ -1338,7 +1416,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// return
 		return psb.toString();
 	}
-	
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -1361,11 +1439,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		return engineFilters;
 	}
-	
-	
+
 	/**
 	 * Get the selectors' aliases as a list
-	 * @param qs selectors
+	 * 
+	 * @param qs
+	 *            selectors
 	 * @return
 	 */
 	private List<String> getSelectorAliases(List<IQuerySelector> selectors) {
@@ -1375,7 +1454,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 		return aliases;
 	}
-	
+
 	/**
 	 * Get input engine ids
 	 * 
