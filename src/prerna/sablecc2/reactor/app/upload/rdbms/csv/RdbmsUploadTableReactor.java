@@ -373,7 +373,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 							if (val.startsWith("(") || val.startsWith("-"))
 								mult = -1;
 							val = val.replaceAll("[^0-9\\.E]", "");
-							value = mult * Integer.parseInt(val.trim());
+							value = mult * ((Number) Double.parseDouble(val.trim())).intValue();
 						} catch (NumberFormatException ex) {
 							// do nothing
 						}
