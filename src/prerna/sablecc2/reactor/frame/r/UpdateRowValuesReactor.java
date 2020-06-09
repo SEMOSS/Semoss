@@ -78,7 +78,7 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 		StringBuilder rFilterBuilder = new StringBuilder();
 		RInterpreter ri = new RInterpreter();
 		ri.setColDataTypes(frameMetadata.getHeaderToTypeMap());
-		ri.addFilters(grf.getFilters(), table, rFilterBuilder, true);
+		ri.addFilters(grf.getFilters(), table, rFilterBuilder, true, true);
 
 		if (rFilterBuilder.length() <= 0) {
 			throw new IllegalArgumentException("Must define a filter criteria");
