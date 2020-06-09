@@ -44,7 +44,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 		StringBuilder rFilterBuilder = new StringBuilder();
 		RInterpreter ri = new RInterpreter();
 		ri.setColDataTypes(frameMetadata.getHeaderToTypeMap());
-		ri.addFilters(grf.getFilters(), table, rFilterBuilder, true);
+		ri.addFilters(grf.getFilters(), table, rFilterBuilder, true, true);
 
 		// execute the r script
 		// FRAME <- FRAME[!( FRAME$Director == "value"),]
