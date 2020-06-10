@@ -162,7 +162,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(this.getName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
-		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
+//		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
 		interp.setLogger(this.logger);
 		
 		boolean cache = true;
