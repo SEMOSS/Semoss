@@ -10,6 +10,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.util.Utility;
 
 public class RunDataQualityReactor extends AbstractPyFrameReactor {
@@ -28,8 +29,7 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 		PandasFrame frame = (PandasFrame) getFrame();
 		String frameWrapper = frame.getWrapperName();
 		String rule = getData(RULE_KEY);
-		String column = 
-				getData(COLUMNS_KEY);
+		String column = getData(COLUMNS_KEY);
 		List<Object> optionsList = getOptions(OPTIONS_KEY);
 		PandasFrame inputTable = getInputTable();
 
@@ -73,13 +73,18 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 			return new NounMetadata(inputTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		}
 		// make a new frame
-		PandasFrame newFrame = new PandasFrame(retPyFrameName);
-		newFrame.setJep(frame.getJep());
+		PandasFrame newFrame = null;
+		try {
+			newFrame = (PandasFrame) FrameFactory.getFrame(this.insight, "PY", retPyFrameName);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		
 		// set data for new frame object
 		frame.runScript(PandasSyntaxHelper.makeWrapper(newFrame.getWrapperName(), retPyFrameName));
 		newFrame = (PandasFrame) recreateMetadata(newFrame, false);
-		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
-				PixelOperationType.FRAME_HEADERS_CHANGE);
+		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		this.insight.getVarStore().put(retPyFrameName, noun);
 		return noun;
 	}
