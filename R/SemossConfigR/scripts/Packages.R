@@ -227,13 +227,19 @@ install.packages("tm", dependencies=TRUE)
 # Natural Language Search
 install.packages("udpipe", dependencies=TRUE)
 install.packages("tokenizers", dependencies=TRUE)
-install.packages("openNLP", dependencies=TRUE)
-install.packages("openNLPmodels.en", dependencies=TRUE)
-# If openNLPmodels.en does not work use this
-#install.packages("http://datacube.wu.ac.at/src/contrib/openNLPmodels.en_1.5-1.tar.gz", repos=NULL, type="source") 
+install.packages("SteinerNet", dependencies=TRUE)
+#install.packages("igraph", dependencies=TRUE)
 #install.packages("data.table", dependencies=TRUE)
 #install.packages("stringr", dependencies=TRUE)
 #install.packages("stringdist", dependencies=TRUE)
+
+# Implied insights
+install.packages("Boruta", dependencies=TRUE)
+install.packages("skimr", dependencies=TRUE)
+#install.packages("rlang", dependencies=TRUE)
+#install.packages("tidyselect", dependencies=TRUE)
+#install.packages("data.table", dependencies=TRUE)
+#install.packages("arules", dependencies=TRUE)
 
 # Sentiment Analysis
 install.packages("sentimentr", dependencies=TRUE)
