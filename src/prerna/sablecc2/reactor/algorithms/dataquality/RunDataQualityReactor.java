@@ -27,7 +27,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 	// This gets the basic format of the data. The information put in here will be in the format of the 
 	// information we want to read in. I.E. assigning a var [INT]
 	public RunDataQualityReactor() {
-		this.keysToGet = new String[]{
+		this.keysToGet = new String[] {
 				RULE_KEY, COLUMNS_KEY, OPTIONS_KEY, INPUT_TABLE_KEY
 		};
 	}
