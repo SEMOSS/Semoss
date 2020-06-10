@@ -1,12 +1,16 @@
 build_query<-function(db,joins,text,root_fn="nldr"){
+	KEYWORDS<-c("total","average","count","min","max",'where','group','by','having','order')
+	
 	library(igraph)
 	library(data.table)
 	library(SteinerNet)
-	 
+	
 	p<-data.table(query=integer(),appid=character(),appid2=character(),part=character(),item1=character(),item2=character(),
 	item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
 	words<-unlist(strsplit(text," "))
 	cols<-unique(db[tolower(db$Column) %in% tolower(words),"Column"])
+	# remove keywords from column names
+	cols<-cols[!(tolower(cols) %in% KEYWORDS)]
 	if(length(words)>0){
 		partition<-readRDS(paste0(root_fn,"_membership.rds"))
 		clusters<-unique(unname(partition))
@@ -143,7 +147,7 @@ process_group<-function(db,part,cols,p,k){
 		for(i in length(ind)){
 			cur<-part[ind[i]]
 			appid_tbl<-unlist(strsplit(db[tolower(db$Column)==tolower(cur),"Table"][1],"._.",fixed=TRUE))
-			p<-rbindlist(list(p,list(k,appid_tbl[1],'',appid_tbl[2],'group',cur,'','','','','')))
+			p<-rbindlist(list(p,list(k,appid_tbl[1],'','group',appid_tbl[2],cur,'','','','','')))
 		}
 	}
 	return(p)
