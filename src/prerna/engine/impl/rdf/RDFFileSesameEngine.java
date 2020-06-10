@@ -386,9 +386,9 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
-					String cleanValue = value;//.replaceAll("/", "-").replaceAll("\"", "'");			
-					sc.addStatement(newSub, newPred, vf.createLiteral(cleanValue));
-				} 
+					//String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
+					sc.addStatement(newSub, newPred, vf.createLiteral(value));
+				}
 			}
 			else {
 				URI newObj = vf.createURI(Utility.cleanString((object + "").trim(), false));
@@ -462,9 +462,9 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
-					String cleanValue = value;//.replaceAll("/", "-").replaceAll("\"", "'");			
-					sc.removeStatements(newSub, newPred, vf.createLiteral(cleanValue));
-				} 
+					//String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
+					sc.removeStatements(newSub, newPred, vf.createLiteral(value));
+				}
 			}
 			else
 			{
