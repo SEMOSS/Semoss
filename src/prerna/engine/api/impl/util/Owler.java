@@ -24,7 +24,6 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Utility;
 
 public class Owler extends AbstractOwler {
@@ -202,8 +201,7 @@ public class Owler extends AbstractOwler {
 
 			// 4) adding the property additional data type, if available
 			if (adtlDataType != null && !adtlDataType.isEmpty()) {
-				String adtlTypeObject = "ADTLTYPE:" + adtlDataType.replace("/", "{{REPLACEMENT_TOKEN}}")
-					.replace("'", "((SINGLE_QUOTE))").replace(" ", "((SPACE))");
+				String adtlTypeObject = "ADTLTYPE:" + encodeAdtlDataType(adtlDataType);
 				engine.addToBaseEngine(property, ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject);
 			}
 
@@ -683,7 +681,16 @@ public class Owler extends AbstractOwler {
 		return false;
 	}
 
+	
+	////////////////////////////////// STATIC UTILITY METHODS //////////////////////////////////
 
+	public static String encodeAdtlDataType(String adtlDataType) {
+		return adtlDataType.replace("/", "((REPLACEMENT_TOKEN))").replace("'", "((SINGLE_QUOTE))").replace(" ", "((SPACE))");
+	}
+	
+	public static String decodeAdtlDataType(String adtlDataType) {
+		return adtlDataType.replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "''").replace("((SPACE))", " ");
+	}
 
 	////////////////////////////////// TESTING //////////////////////////////////
 	////////////////////////////////// TESTING //////////////////////////////////

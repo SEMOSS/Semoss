@@ -314,7 +314,7 @@ public class MetaHelper implements IExplorable {
 			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
 			if(wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
-				String adtlType = row.getValues()[0].toString().replace("ADTLTYPE:", "").replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "''").replace("((SPACE))", " ");
+				String adtlType = Owler.decodeAdtlDataType(row.getValues()[0].toString()).replace("ADTLTYPE:", "");
 				return adtlType;
 			}
 		} catch (Exception e) {
@@ -350,7 +350,7 @@ public class MetaHelper implements IExplorable {
 				String node = row[0].toString();
 				String type = row[1].toString();
 				if (type != null && !type.equals("")) {
-					type = type.replace("ADTLTYPE:", "").replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "'").replace("((SPACE))", " ");
+					type = Owler.decodeAdtlDataType(type).replace("ADTLTYPE:", "");
 					retMap.put(node, type);
 				}
 				retMap.put(node, type);
