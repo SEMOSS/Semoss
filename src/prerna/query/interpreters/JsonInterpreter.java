@@ -74,11 +74,6 @@ public class JsonInterpreter implements IQueryInterpreter{
 		
 	}
 	
-	@Override
-	public void setAdditionalTypes(Map<String, String> additionalTypes) {
-		// TODO Auto-generated method stub
-	}
-	
 	 /* Loops through the selectors defined in the QS to add them to the selector string
 	 * and considers if the table should be added to the from string
 	 */
