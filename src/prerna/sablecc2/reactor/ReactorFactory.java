@@ -575,17 +575,13 @@ public class ReactorFactory {
 					if(frame) {
 						if(packageName.equalsIgnoreCase("rdbms")) {
 							h2FrameHash.put(reactorName, actualClass);
-						}
-						if(packageName.equalsIgnoreCase("r")) {
+						} else if(packageName.equalsIgnoreCase("r")) {
 							rFrameHash.put(reactorName, actualClass);
-						}
-						if(packageName.equalsIgnoreCase("py")) {
+						} else if(packageName.equalsIgnoreCase("py")) {
 							pandasFrameHash.put(reactorName, actualClass);
-						}
-						if(packageName.equalsIgnoreCase("tinker") || packageName.equalsIgnoreCase("graph")) {
+						} else if(packageName.equalsIgnoreCase("tinker") || packageName.equalsIgnoreCase("graph")) {
 							tinkerFrameHash.put(reactorName, actualClass);
-						}
-						else {// nullify the package name
+						} else {// nullify the package name
 							packageName = null;
 							// general reactor
 							// example - frame filters
