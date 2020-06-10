@@ -146,7 +146,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(thisFrame.getName());
 		interp.setColDataTypes(thisFrame.getMetaData().getHeaderToTypeMap());
-		interp.setAdditionalTypes(thisFrame.getMetaData().getHeaderToAdtlTypeMap());
+//		interp.setAdditionalTypes(thisFrame.getMetaData().getHeaderToAdtlTypeMap());
 		interp.setLogger(getLogger(this.getClass().getName()));
 
 		String subDataTable = interp.composeQuery();
