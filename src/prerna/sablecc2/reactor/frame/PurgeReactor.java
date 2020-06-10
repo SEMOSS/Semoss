@@ -47,7 +47,7 @@ public class PurgeReactor extends AbstractFrameReactor {
 			interp.setQueryStruct(qs);
 			interp.setDataTableName(dt.getName());
 			interp.setColDataTypes(dt.getMetaData().getHeaderToTypeMap());
-			interp.setAdditionalTypes(dt.getMetaData().getHeaderToAdtlTypeMap());
+//			interp.setAdditionalTypes(dt.getMetaData().getHeaderToAdtlTypeMap());
 			interp.setLogger(logger);
 			logger.info("Generating filter R Data Table query...");
 			String query = interp.composeQuery();
