@@ -92,9 +92,10 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			String appName = "Asset";
 			if (appId != null && !(appId.isEmpty())) {
 				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
-				savePath = savePath.replace("\\", "/");
 			}
 		}
+		savePath = savePath.replace("\\", "/");
+
 		
 		// set the working directly
 		String wd = "wd" + Utility.getRandomString(6);
@@ -355,7 +356,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(rsb.toString());
 
 		// get back the data
-		String[] list = this.rJavaTranslator.getStringArray(result);
+		String[] list = this.rJavaTranslator.getStringArray("unique(" + result + ");");
 
 		// return list
 		return list;
