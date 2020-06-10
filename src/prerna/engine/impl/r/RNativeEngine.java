@@ -228,7 +228,7 @@ public class RNativeEngine extends AbstractEngine {
 		RInterpreter retInterp = new RInterpreter();
 		retInterp.setDataTableName(this.dtName);
 		retInterp.setColDataTypes(this.columnTypes);
-		retInterp.setAdditionalTypes(this.additionalDataType);
+//		retInterp.setAdditionalTypes(this.additionalDataType);
 		return retInterp;
 	}
 	
