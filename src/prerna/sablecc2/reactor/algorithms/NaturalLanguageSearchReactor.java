@@ -75,9 +75,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			String appName = "Asset";
 			if (appId != null && !(appId.isEmpty())) {
 				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
-				savePath = savePath.replace("\\", "/");
 			}
 		}
+		savePath = savePath.replace("\\", "/");
 		
 		// init r tables for use between methods
 		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
