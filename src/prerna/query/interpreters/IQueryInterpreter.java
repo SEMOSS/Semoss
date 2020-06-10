@@ -21,5 +21,5 @@ public interface IQueryInterpreter {
 	
 	void setLogger(Logger logger);
 	
-	void setAdditionalTypes(Map<String, String> additionalTypes);
+//	void setAdditionalTypes(Map<String, String> additionalTypes);
 }
