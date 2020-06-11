@@ -65,7 +65,7 @@ public class DuplicateColumnReactor extends AbstractPyFrameReactor {
 		metaData.addProperty(frame.getName(), frame.getName() + "__" + newColName);
 		metaData.setAliasToProperty(frame.getName() + "__" + newColName, newColName);
 		metaData.setDataTypeToProperty(frame.getName() + "__" + newColName, dataType);
-		if(adtlDataType != null) {
+		if(adtlDataType != null && !adtlDataType.isEmpty()) {
 			metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
 		}
 		
