@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.frame.rdbms;
 
 import java.util.Arrays;
 
-import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.PixelDataType;
@@ -57,6 +56,7 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		String dataType = metaData.getHeaderTypeAsString(table + "__" + srcCol);
 		dataType = frame.getQueryUtil().cleanType(dataType);
+		String adtlDataType = metaData.getHeaderAdtlTypeAsString(frame.getName() + "__" + srcCol);
 
 		// use existing column data type to make new column
 		String addNewCol = "ALTER TABLE " + table + " ADD " + newColName + " " + dataType + ";";
@@ -78,7 +78,10 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		metaData.addProperty(table, table + "__" + newColName);
 		metaData.setAliasToProperty(table + "__" + newColName, newColName);
 		metaData.setDataTypeToProperty(table + "__" + newColName, dataType);
-
+		if(adtlDataType != null) {
+			metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
+		}
+		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
 		return retNoun;
