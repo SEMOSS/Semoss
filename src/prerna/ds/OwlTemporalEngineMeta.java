@@ -1757,7 +1757,7 @@ public class OwlTemporalEngineMeta {
 		setDataTypeToProperty(uniqueName, newDataType);
 	}
 	
-	public void modifyAdditionalDataTypeToProperty(String uniqueName, String parent, String newDataType) {
+	public void modifyAdditionalDataTypeToProperty(String uniqueName, String parent, String newAdditionalDataType) {
 		// need to get the current value
 		String curType = getHeaderAdtlType(uniqueName, parent);
 
@@ -1772,7 +1772,7 @@ public class OwlTemporalEngineMeta {
 		this.myEng.removeStatement(new Object[]{sub, pred, obj, false});
 
 		// add the new type
-		setAddtlDataTypeToProperty(uniqueName, newDataType);
+		setAddtlDataTypeToProperty(uniqueName, newAdditionalDataType);
 	}
 	
 	public void modifyPropertyName(String propertyName, String tableName, String newPropertyName) {
