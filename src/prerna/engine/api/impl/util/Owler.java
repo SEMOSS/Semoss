@@ -1,6 +1,9 @@
 package prerna.engine.api.impl.util;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -685,11 +688,23 @@ public class Owler extends AbstractOwler {
 	////////////////////////////////// STATIC UTILITY METHODS //////////////////////////////////
 
 	public static String encodeAdtlDataType(String adtlDataType) {
-		return adtlDataType.replace("/", "((REPLACEMENT_TOKEN))").replace("'", "((SINGLE_QUOTE))").replace(" ", "((SPACE))");
+		return adtlDataType;
+//		try {
+//			return URLEncoder.encode(adtlDataType, "UTF-8");
+//		} catch (UnsupportedEncodingException e) {
+//			e.printStackTrace();
+//		}
+//		return null;
 	}
 	
 	public static String decodeAdtlDataType(String adtlDataType) {
-		return adtlDataType.replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "''").replace("((SPACE))", " ");
+		return adtlDataType;
+//		try {
+//			return URLDecoder.decode(adtlDataType, "UTF-8");
+//		} catch (UnsupportedEncodingException e) {
+//			e.printStackTrace();
+//		}
+//		return null;
 	}
 
 	////////////////////////////////// TESTING //////////////////////////////////
