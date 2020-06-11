@@ -18,35 +18,42 @@ public class AddColumnReactor extends AbstractFrameReactor {
 	 */
 	
 	public AddColumnReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
 	}
+	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		String table = frame.getName();
 		// get column
-		String colName = this.keyValue.get(this.keysToGet[0]);
-		if (colName == null || colName.length() == 0) {
+		String newColName = this.keyValue.get(this.keysToGet[0]);
+		if (newColName == null || newColName.length() == 0) {
 			throw new IllegalArgumentException("Need to define the new column name");
 		}
+		newColName = getCleanNewColName(frame, newColName);
+
 		// get datatype
 		String dataType = this.keyValue.get(this.keysToGet[1]);
 		if (dataType == null || dataType.isEmpty()) {
 			dataType = "STRING";
 		}
-		colName = getCleanNewColName(frame, colName);
+		String adtlDataType = this.keyValue.get(this.keysToGet[2]);
+
 		// get new column type or set default to string
 		// make sql data type
 		dataType = frame.getQueryUtil().cleanType(dataType);
 		if (frame != null) {
 			try {
-				frame.getBuilder().runQuery(frame.getQueryUtil().alterTableAddColumn(table, colName, dataType));
+				frame.getBuilder().runQuery(frame.getQueryUtil().alterTableAddColumn(table, newColName, dataType));
 				// set metadata for new column
 				OwlTemporalEngineMeta metaData = frame.getMetaData();
-				metaData.addProperty(table, table + "__" + colName);
-				metaData.setAliasToProperty(table + "__" + colName, colName);
-				metaData.setDataTypeToProperty(table + "__" + colName, dataType);
+				metaData.addProperty(table, table + "__" + newColName);
+				metaData.setAliasToProperty(table + "__" + newColName, newColName);
+				metaData.setDataTypeToProperty(table + "__" + newColName, dataType);
+				if(adtlDataType != null && !adtlDataType.isEmpty()) {
+					metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
