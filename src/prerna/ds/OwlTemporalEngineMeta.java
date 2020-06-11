@@ -1107,15 +1107,15 @@ public class OwlTemporalEngineMeta {
 		return null;
 	}
 	
-	public String getHeaderAdtlTypeAsString(String uniqueName) {
+	public String getHeaderAdtlType(String uniqueName) {
 		String parent = null;
 		if(uniqueName.contains("__")) {
 			parent = uniqueName.split("__")[0];
 		}
-		return getHeaderAdtlTypeAsString(uniqueName, parent);
+		return getHeaderAdtlType(uniqueName, parent);
 	}
 	
-	public String getHeaderAdtlTypeAsString(String uniqueName, String parentUniqueName) {
+	public String getHeaderAdtlType(String uniqueName, String parentUniqueName) {
 		String query = null;
 		if(parentUniqueName == null || parentUniqueName.isEmpty()) {
 			// we have a concept

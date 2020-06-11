@@ -295,11 +295,11 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		String additionalDataType = null;
 		if(frameQuery && this.frame != null) {
 			String name = selector.getQueryStructName();
-			additionalDataType = this.frame.getMetaData().getHeaderAdtlTypeAsString(name);
+			additionalDataType = this.frame.getMetaData().getHeaderAdtlType(name);
 			if(additionalDataType == null) {
 				name = this.frame.getMetaData().getUniqueNameFromAlias(name);
 				if(name != null) {
-					additionalDataType = this.frame.getMetaData().getHeaderAdtlTypeAsString(name);
+					additionalDataType = this.frame.getMetaData().getHeaderAdtlType(name);
 				}
 			}
 		} else if(engineQuery && getEngine() != null) {
