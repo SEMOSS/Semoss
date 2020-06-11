@@ -183,7 +183,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
-				return wrapper.next().getValues()[0].toString();
+				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -214,7 +214,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
-				return wrapper.next().getValues()[0].toString();
+				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -245,7 +245,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
-				return wrapper.next().getValues()[0].toString();
+				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -276,7 +276,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
 				IHeadersDataRow sjss = wrapper.next();
-				return sjss.getValues()[0].toString();
+				return (String) sjss.getValues()[0];
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -319,14 +319,14 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 			String[] names = wrapper.getHeaders();
 			if (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
-				user.put(names[0], values[0].toString());
-				user.put(names[1], values[1].toString());
-				user.put(names[2], values[2].toString());
-				user.put(names[3], values[3].toString());
-				user.put(names[4], values[4].toString());
-				user.put(names[5], values[5].toString());
-				user.put(names[6], values[6].toString());
-				user.put(names[7], values[7].toString());
+				user.put(names[0], (String) values[0]);
+				user.put(names[1], (String) values[1]);
+				user.put(names[2], (String) values[2]);
+				user.put(names[3], (String) values[3]);
+				user.put(names[4], (String) values[4]);
+				user.put(names[5], values[5] + "");
+				user.put(names[6], (String) values[6]);
+				user.put(names[7], (String) values[7]);
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
