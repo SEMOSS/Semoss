@@ -54,7 +54,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 		cache.frame = (NativeFrame) frame;
 		cache.newFrame = newFrame;
 		cache.logger = logger;
-		if(inThread()) {
+		if(inThread() || this.insight.isSavedInsightMode()) {
 			cache.run();
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} else {
