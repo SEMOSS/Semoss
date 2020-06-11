@@ -56,7 +56,7 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		String dataType = metaData.getHeaderTypeAsString(table + "__" + srcCol);
 		dataType = frame.getQueryUtil().cleanType(dataType);
-		String adtlDataType = metaData.getHeaderAdtlTypeAsString(frame.getName() + "__" + srcCol);
+		String adtlDataType = metaData.getHeaderAdtlType(table + "__" + srcCol);
 
 		// use existing column data type to make new column
 		String addNewCol = "ALTER TABLE " + table + " ADD " + newColName + " " + dataType + ";";
