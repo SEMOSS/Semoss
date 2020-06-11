@@ -79,7 +79,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 						+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', " + "USERNAME='"
 						+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', " + "EMAIL='"
 						+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', " + "TYPE='"
-						+ newUser.getProvider() + "'," + "PASSWORD='" + hashedPassword + "'," + "SALT='" + salt + "' "
+						+ newUser.getProvider().toString() + "'," + "PASSWORD='" + hashedPassword + "'," + "SALT='" + salt + "' "
 						+ "WHERE ID='" + oldId + "';";
 				insertData(updateQuery);
 
@@ -106,7 +106,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '"
 							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '"
 							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '"
-							+ newUser.getProvider() + "', 'FALSE', '" + hashedPassword + "', '" + salt + "');";
+							+ newUser.getProvider().toString() + "', 'FALSE', '" + hashedPassword + "', '" + salt + "');";
 					try {
 						securityDb.insertData(query);
 						securityDb.commit();

@@ -811,11 +811,7 @@ public abstract class AbstractSecurityUtils {
 					if(values[idx] == null) {
 						rowData.put(headers[idx].toLowerCase(), "null");
 					} else {
-						if(headers[idx].toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
-							rowData.put(headers[idx].toLowerCase(), "Default");
-						} else {
-							rowData.put(headers[idx].toLowerCase(), values[idx]);
-						}
+						rowData.put(headers[idx].toLowerCase(), values[idx]);
 					}
 				}
 				ret.add(rowData);
@@ -850,11 +846,7 @@ public abstract class AbstractSecurityUtils {
 					if(values[idx] == null) {
 						rowData.put(headers[idx].toLowerCase(), "null");
 					} else {
-						if(headers[idx].toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
-							rowData.put(headers[idx].toLowerCase(), "Default");
-						} else {
-							rowData.put(headers[idx].toLowerCase(), values[idx]);
-						}
+						rowData.put(headers[idx].toLowerCase(), values[idx]);
 					}
 				}
 				ret.add(rowData);
