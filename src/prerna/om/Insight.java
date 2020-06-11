@@ -173,6 +173,8 @@ public class Insight {
 	private transient boolean deleteREnvOnDropInsight = true;
 	private transient boolean deletePythonTupleOnDropInsight = true;
 
+	private transient boolean isSavedInsightMode = false;
+	
 	private transient List<String> queriedAppIds = new Vector<String>();
 
 	// old - for pkql
@@ -800,6 +802,14 @@ public class Insight {
 		this.deletePythonTupleOnDropInsight = deletePythonTupleOnDropInsight;
 	}
 	
+	public void setRunSavedInsightMode(boolean isSavedInsightMode) {
+		this.isSavedInsightMode = isSavedInsightMode;
+	}
+
+	public boolean isSavedInsightMode() {
+		return this.isSavedInsightMode;
+	}
+	
 	/**
 	 * Store the app ids that are queried
 	 * @param appId
@@ -1020,16 +1030,14 @@ public class Insight {
 	}
 	
 	public PixelRunner reRunPixelInsight() {
-		// just clear the varStore
-		// TODO: need to do better clean up
-		// like actually removing the data makers so we do not 
-		// have too much in memory
+		// set the mode
+		setRunSavedInsightMode(true);
+
+		// clear the varStore
+		// but need to close the frames for memory / files
 		Iterator<String> keys = this.varStore.getKeys().iterator();
 		while(keys.hasNext()) {
 			String key = keys.next();
-//			if(key.equals(JobReactor.JOB_KEY) || key.equals(JobReactor.SESSION_KEY) || key.equals(JobReactor.INSIGHT_KEY)) {
-//				continue;
-//			}
 			NounMetadata noun = this.varStore.get(key);
 			if(noun.getValue() instanceof ITableDataFrame) {
 				((ITableDataFrame) noun.getValue()).close();
@@ -1047,7 +1055,12 @@ public class Insight {
 		// clear the panels
 		this.insightPanels.clear();
 		
-		return runPixel(newList);
+		// execution
+		PixelRunner results = runPixel(newList);
+		
+		// set the mode back
+		setRunSavedInsightMode(false);
+		return results;
 	}
 	
 	/**
@@ -1346,25 +1359,20 @@ public class Insight {
 	}
 
 	// gets the frame name to be more useful
-	public String predictFrameName()
-	{
-		
+	public String predictFrameName() {
 		StringBuilder frameName = new StringBuilder("");
-		for(int engineIndex = 0;engineIndex < queriedAppIds.size();engineIndex++)
-		{
+		for(int engineIndex = 0; engineIndex < queriedAppIds.size(); engineIndex++) {
 			String thisEngine = queriedAppIds.get(engineIndex);
 			IEngine engine = Utility.getEngine(thisEngine);
 			String name = engine.getEngineName();
-			if(frameName.length() != 0 && engineIndex != queriedAppIds.size())
+			if(frameName.length() != 0 && engineIndex != queriedAppIds.size()) {
 				frameName.append("_");
-			else if(engineIndex == queriedAppIds.size())
+			} else if(engineIndex == queriedAppIds.size()) {
 				frameName.append("_and_"); 
-				
+			}
 			frameName.append(name);
 		}
 		
-		
 		return frameName.toString();
 	}
-
 }

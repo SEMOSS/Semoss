@@ -139,7 +139,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			for(int i = 0; i < size; i++) {
 				Map<String, Object> hMap = headerInfo.get(i);
 				headers[i + 1] = (String) hMap.get("alias");
-				types[i] = SemossDataType.convertStringToDataType((String) hMap.get("type"));
+				types[i] = SemossDataType.convertStringToDataType((String) hMap.get("dataType"));
 				sqlTypes[i + 1] = typeConversionMap.get(types[i]);
 			}
 		} else {
@@ -150,7 +150,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			for(int i = 0; i < size; i++) {
 				Map<String, Object> hMap = headerInfo.get(i);
 				headers[i] = (String) hMap.get("alias");
-				types[i] = SemossDataType.convertStringToDataType((String) hMap.get("type"));
+				types[i] = SemossDataType.convertStringToDataType((String) hMap.get("dataType"));
 				sqlTypes[i] = typeConversionMap.get(types[i]);
 			}
 		}
