@@ -21,7 +21,7 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 	 */
 	
 	public AddColumnReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
 	}
 
 	@Override
@@ -32,16 +32,16 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		// get new column name from the gen row struct
 		String newColName = this.keyValue.get(this.keysToGet[0]);
+		if (newColName == null || newColName.isEmpty()) {
+			throw new IllegalArgumentException("Need to define the new column name");
+		}
 		
 		// get the column type and standardize
 		String colType = this.keyValue.get(this.keysToGet[1]);
 		if (colType == null) {
 			colType = SemossDataType.convertStringToDataType("STRING").toString();
 		}
-
-		if (newColName == null || newColName.isEmpty()) {
-			throw new IllegalArgumentException("Need to define the new column name");
-		}
+		String adtlDataType = this.keyValue.get(this.keysToGet[2]);
 
 		String table = frame.getName();
 		// clean colName
@@ -62,7 +62,9 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		metaData.addProperty(table, table + "__" + newColName);
 		metaData.setAliasToProperty(table + "__" + newColName, newColName);
-
+		if(adtlDataType != null && !adtlDataType.isEmpty()) {
+			metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
+		}
 		// temp table used to assign a data type to the new column
 		String tempTable = null;
 		if (Utility.isNumericType(colType)) {
