@@ -26,7 +26,7 @@ public class SetAdditionalDataTypeReactor extends AbstractFrameReactor {
 
 		//loop through columns passed and set additional data types
 		for (String column: columns) {
-			metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + column, format);
+			metaData.modifyAdditionalDataTypeToProperty(frame.getName() + "__" + column, frame.getName(), format);
 		}
 
 		return new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS, PixelOperationType.FRAME_HEADERS_CHANGE);
