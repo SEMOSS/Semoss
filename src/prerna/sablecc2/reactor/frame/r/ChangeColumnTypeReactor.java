@@ -21,7 +21,7 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 	
 	public ChangeColumnTypeReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), "format" };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), "format" };
 	}
 
 	@Override
@@ -46,6 +46,9 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.DATA_TYPE.getKey());
 		}
 		newType = SemossDataType.convertStringToDataType(newType).toString();
+		
+		String additionalDataType = this.keyValue.get(this.keysToGet[2]);
+
 		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
 		String dataType = metadata.getHeaderTypeAsString(table + "__" + column);
 		
@@ -85,7 +88,7 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 				// we have a different script to run if it is a str to date
 				// conversion
 				// define date format
-				String dateFormat = this.keyValue.get(this.keysToGet[2]);
+				String dateFormat = this.keyValue.get(this.keysToGet[3]);
 				if(dateFormat == null) {
 					dateFormat = "%Y-%m-%d";
 				}
@@ -108,6 +111,10 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			}
 			// update the metadata
 			metadata.modifyDataTypeToProperty(table + "__" + column, table, newType);
+		}
+		
+		if(additionalDataType != null && !additionalDataType.isEmpty()) {
+			metadata.modifyAdditionalDataTypeToProperty(table + "__" + column, table, newType);
 		}
 		
 		// NEW TRACKING

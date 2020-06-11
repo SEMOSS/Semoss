@@ -22,7 +22,7 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 	
 	public ChangeColumnTypeReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
 	}
 
 	@Override
@@ -57,15 +57,14 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.DATA_TYPE.getKey());
 		}
 		
+		String additionalDataType = this.keyValue.get(this.keysToGet[2]);
+		
 		newType = SemossDataType.convertStringToDataType(newType).toString();
 		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
 		String curType = metadata.getHeaderTypeAsString(table + "__" + column);
 		
 		//check if there is a new dataType
 		if (!curType.equals(newType)) {
-			// define the r script to execute
-			// script depends on the new data type
-			String script = null;
 			if (Utility.isStringType(newType)) {
 				// df$column <- as.character(df$column);
 				// create temp table without scientific format for numeric
@@ -90,6 +89,10 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 			}
 			// update the metadata
 			metadata.modifyDataTypeToProperty(table + "__" + column, table, newType);
+		}
+		
+		if(additionalDataType != null && !additionalDataType.isEmpty()) {
+			metadata.modifyAdditionalDataTypeToProperty(table + "__" + column, table, newType);
 		}
 		
 		// NEW TRACKING
