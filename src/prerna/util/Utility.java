@@ -962,8 +962,7 @@ public class Utility {
 	 * 
 	 * @return Cleaned string
 	 */
-	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceForRDF,
-			boolean property) {
+	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceForRDF, boolean property) {
 		String retString = original;
 
 		retString = retString.trim();
