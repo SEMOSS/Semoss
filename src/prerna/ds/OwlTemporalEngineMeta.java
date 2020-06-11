@@ -1757,6 +1757,24 @@ public class OwlTemporalEngineMeta {
 		setDataTypeToProperty(uniqueName, newDataType);
 	}
 	
+	public void modifyAdditionalDataTypeToProperty(String uniqueName, String parent, String newDataType) {
+		// need to get the current value
+		String curType = getHeaderAdtlType(uniqueName, parent);
+
+		String sub = "";
+		String pred = "";
+		String obj = "";
+		
+		// remove the existing type
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + uniqueName;
+		pred = ADDTL_DATATYPE_PRED;
+		obj = curType;
+		this.myEng.removeStatement(new Object[]{sub, pred, obj, false});
+
+		// add the new type
+		setAddtlDataTypeToProperty(uniqueName, newDataType);
+	}
+	
 	public void modifyPropertyName(String propertyName, String tableName, String newPropertyName) {
 		/*
 		 * This method is used in instances when we must modify the column name
