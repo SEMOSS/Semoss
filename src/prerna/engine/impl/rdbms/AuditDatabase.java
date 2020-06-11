@@ -14,7 +14,6 @@ import java.util.UUID;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.querystruct.AbstractQueryStruct;
