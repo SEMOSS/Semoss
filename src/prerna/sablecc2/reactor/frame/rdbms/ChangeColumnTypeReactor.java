@@ -21,9 +21,6 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 
-	// this constant used when we specify the format for the dates
-	private static final String FORMAT = "format";
-
 	public ChangeColumnTypeReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), "format"};
 	}
