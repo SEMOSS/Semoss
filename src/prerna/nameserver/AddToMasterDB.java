@@ -58,6 +58,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AddToMasterDB {
 
@@ -70,6 +71,7 @@ public class AddToMasterDB {
     private static final String VARCHAR_255 = "varchar(255)";
 
     private Connection conn = null;
+    private AbstractSqlQueryUtil queryUtil = null;
     private PersistentHash conceptIdHash = null;
 
 	/*
@@ -146,8 +148,7 @@ public class AddToMasterDB {
         this.conceptIdHash.put(engineName + "_ENGINE", engineUniqueId);
         String[] colNames = {"ID", "EngineName", "ModifiedDate", "Type"};
         String[] types = {"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
-        Object[] engineData = {engineUniqueId, engineName, new java.sql.Timestamp(modDate.getTime()), engineTypeString,
-                "true"};
+        Object[] engineData = {AbstractSqlQueryUtil.escapeForSQLStatement(engineUniqueId), AbstractSqlQueryUtil.escapeForSQLStatement(engineName), new java.sql.Timestamp(modDate.getTime()), AbstractSqlQueryUtil.escapeForSQLStatement(engineTypeString), "true"};
         insertQuery("Engine", colNames, types, engineData);
 
         // get the list of all the physical names
@@ -221,7 +222,7 @@ public class AddToMasterDB {
 
                 for (String logical : logicals) {
                     if (!curLogicals.contains(logical)) {
-                        insertValues = new String[]{conceptGuid, conceptualName, logical.toLowerCase(), "NewDomain", ""};
+                        insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
                         insertQuery("Concept", colNames, types, insertValues);
                     }
                 }
@@ -237,12 +238,12 @@ public class AddToMasterDB {
             types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
             // TODO: we need to also store multiple logical names at some point
             // right now, default is to add the conceptual name as a logical name
-            insertValues = new String[]{conceptGuid, conceptualName, conceptualName.toLowerCase(), "NewDomain", ""};
+            insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName.toLowerCase()), "NewDomain", ""};
             insertQuery("Concept", colNames, types, insertValues);
 
             // also add all the logical names
             for (String logical : logicals) {
-                insertValues = new String[]{conceptGuid, conceptualName, logical.toLowerCase(), "NewDomain", ""};
+                insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
                 insertQuery("Concept", colNames, types, insertValues);
             }
         }
@@ -276,8 +277,9 @@ public class AddToMasterDB {
                 VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, "boolean", "boolean", VARCHAR_255,
                 VARCHAR_255, VARCHAR_255};
 
-        Object[] conceptInstanceData = {engineId, null, semossName, null, null, null, conceptPhysicalInstance,
-                engineConceptGuid, conceptGuid, ignoreData, true, dataTypes[0], dataTypes[1], adtlDataType};
+        Object[] conceptInstanceData = {AbstractSqlQueryUtil.escapeForSQLStatement(engineId), null, AbstractSqlQueryUtil.escapeForSQLStatement(semossName), null, null, null, AbstractSqlQueryUtil.escapeForSQLStatement(conceptPhysicalInstance),
+        		AbstractSqlQueryUtil.escapeForSQLStatement(engineConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(conceptGuid), ignoreData, true, AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[0]), 
+        		AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[1]), AbstractSqlQueryUtil.escapeForSQLStatement(adtlDataType)};
 
         insertQuery("EngineConcept", colNames, types, conceptInstanceData);
 
@@ -295,7 +297,7 @@ public class AddToMasterDB {
                 colNames = new String[]{"PhysicalNameID", "Key", "Value"};
                 types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
                 for (String logical : logicals) {
-                    insertValues = new String[]{engineConceptGuid, "logical", logical.toLowerCase()};
+                    insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(engineConceptGuid), "logical", AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase())};
                     insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
                 }
             }
@@ -308,7 +310,7 @@ public class AddToMasterDB {
                 if (desc.length() > 20_000) {
                     desc = desc.substring(0, 19_996) + "...";
                 }
-                insertValues = new String[]{engineConceptGuid, "description", desc};
+                insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(engineConceptGuid), "description", AbstractSqlQueryUtil.escapeForSQLStatement(desc)};
                 insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
             }
         }
@@ -374,7 +376,7 @@ public class AddToMasterDB {
 
                 for (String logical : logicals) {
                     if (!curLogicals.contains(logical)) {
-                        insertValues = new String[]{propertyGuid, propertyConceptualName, logical.toLowerCase(), "NewDomain", ""};
+                        insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
                         insertQuery("Concept", colNames, types, insertValues);
                     }
                 }
@@ -390,12 +392,12 @@ public class AddToMasterDB {
             types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
             // TODO: we need to also store multiple logical names at some point
             // right now, default is to add the conceptual name as a logical name
-            insertValues = new String[]{propertyGuid, propertyConceptualName, propertyConceptualName.toLowerCase(), "NewDomain", ""};
+            insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName.toLowerCase()), "NewDomain", ""};
             insertQuery("Concept", colNames, types, insertValues);
 
             // also add all the logical names
             for (String logical : logicals) {
-                insertValues = new String[]{propertyGuid, propertyConceptualName, logical.toLowerCase(), "NewDomain", ""};
+                insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName), AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase()), "NewDomain", ""};
                 insertQuery("Concept", colNames, types, insertValues);
             }
         }
@@ -431,9 +433,10 @@ public class AddToMasterDB {
                 VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, "boolean", "boolean", VARCHAR_255,
                 VARCHAR_255, VARCHAR_255};
 
-        Object[] conceptInstanceData = {engineId, parentSemossName, propertySemossName, parentPhysicalName,
-                parentEngineConceptGuid, parentConceptGuid, propertyPhysicalInstance, enginePropertyGuid, propertyGuid,
-                false, false, dataTypes[0], dataTypes[1], adtlDataType};
+        Object[] conceptInstanceData = {AbstractSqlQueryUtil.escapeForSQLStatement(engineId), AbstractSqlQueryUtil.escapeForSQLStatement(parentSemossName), AbstractSqlQueryUtil.escapeForSQLStatement(propertySemossName), 
+        		AbstractSqlQueryUtil.escapeForSQLStatement(parentPhysicalName), AbstractSqlQueryUtil.escapeForSQLStatement(parentEngineConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(parentConceptGuid), 
+        		AbstractSqlQueryUtil.escapeForSQLStatement(propertyPhysicalInstance), AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), AbstractSqlQueryUtil.escapeForSQLStatement(propertyGuid),
+                false, false, AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[0]), AbstractSqlQueryUtil.escapeForSQLStatement(dataTypes[1]), AbstractSqlQueryUtil.escapeForSQLStatement(adtlDataType)};
 
         insertQuery("EngineConcept", colNames, types, conceptInstanceData);
 
@@ -441,7 +444,7 @@ public class AddToMasterDB {
             // add the conceptual as a logical name to the physical name id
             colNames = new String[]{"PhysicalNameID", "Key", "Value"};
             types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
-            insertValues = new String[]{enginePropertyGuid, "logical", propertyConceptualName.toLowerCase()};
+            insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), "logical", AbstractSqlQueryUtil.escapeForSQLStatement(propertyConceptualName.toLowerCase())};
             insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
 
             // add the logical to the physical name id
@@ -449,7 +452,7 @@ public class AddToMasterDB {
                 colNames = new String[]{"PhysicalNameID", "Key", "Value"};
                 types = new String[]{"varchar(800)", "varchar(800)", "varchar(20000)"};
                 for (String logical : logicals) {
-                    insertValues = new String[]{enginePropertyGuid, "logical", logical.toLowerCase()};
+                    insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), "logical", AbstractSqlQueryUtil.escapeForSQLStatement(logical.toLowerCase())};
                     insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
                 }
             }
@@ -462,7 +465,7 @@ public class AddToMasterDB {
                 if (desc.length() > 20_000) {
                     desc = desc.substring(0, 19_996) + "...";
                 }
-                insertValues = new String[]{enginePropertyGuid, "description", desc};
+                insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(enginePropertyGuid), "description", AbstractSqlQueryUtil.escapeForSQLStatement(desc)};
                 insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
             }
         }
@@ -562,7 +565,7 @@ public class AddToMasterDB {
 
             String startConceptualGuid = this.conceptIdHash.get(pixelStartNodeName + "_CONCEPTUAL");
             String endConceptualGuid = this.conceptIdHash.get(pixelEndNodeName + "_CONCEPTUAL");
-            insertValues = new String[]{relationGuid, startConceptualGuid, endConceptualGuid, ""};
+            insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(relationGuid), AbstractSqlQueryUtil.escapeForSQLStatement(startConceptualGuid), AbstractSqlQueryUtil.escapeForSQLStatement(endConceptualGuid), ""};
             insertQuery("Relation", colNames, types, insertValues);
         }
 
@@ -578,8 +581,9 @@ public class AddToMasterDB {
         String endConceptGuid = this.conceptIdHash.get(engineName + "_" + endNodePhysicalInstance + "_PHYSICAL");
         String engineId = this.conceptIdHash.get(engineName + "_ENGINE");
         String engineRelationGuid = UUID.randomUUID().toString();
-        insertValues = new String[]{engineId, relationGuid, engineRelationGuid, startConceptGuid, endConceptGuid,
-                pixelStartNodeName, pixelEndNodeName, Utility.getInstanceName(relationshipUri)};
+        insertValues = new String[]{AbstractSqlQueryUtil.escapeForSQLStatement(engineId), AbstractSqlQueryUtil.escapeForSQLStatement(relationGuid), AbstractSqlQueryUtil.escapeForSQLStatement(engineRelationGuid), 
+        		AbstractSqlQueryUtil.escapeForSQLStatement(startConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(endConceptGuid), AbstractSqlQueryUtil.escapeForSQLStatement(pixelStartNodeName), 
+        		AbstractSqlQueryUtil.escapeForSQLStatement(pixelEndNodeName), AbstractSqlQueryUtil.escapeForSQLStatement(Utility.getInstanceName(relationshipUri))};
         insertQuery("EngineRelation", colNames, types, insertValues);
     }
 
@@ -614,6 +618,7 @@ public class AddToMasterDB {
         try {
             conn = ((RDBMSNativeEngine) localMaster).makeConnection();
             conceptIdHash = ((RDBMSNativeEngine) localMaster).getConceptIdHash();
+            queryUtil = ((RDBMSNativeEngine) localMaster).getQueryUtil();
         } catch (Exception e) {
             logger.error(STACKTRACE, e);
         }
