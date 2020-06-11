@@ -61,7 +61,7 @@ public class DuplicateColumnReactor extends AbstractRFrameReactor {
 		// get src column data type
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		String dataType = metaData.getHeaderTypeAsString(table + "__" + srcCol);
-		String adtlDataType = metaData.getHeaderAdtlTypeAsString(frame.getName() + "__" + srcCol);
+		String adtlDataType = metaData.getHeaderAdtlType(frame.getName() + "__" + srcCol);
 
 		// update meta data
 		metaData.addProperty(table, table + "__" + newColName);
