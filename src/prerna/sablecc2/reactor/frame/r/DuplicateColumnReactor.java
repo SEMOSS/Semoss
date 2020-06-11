@@ -61,12 +61,16 @@ public class DuplicateColumnReactor extends AbstractRFrameReactor {
 		// get src column data type
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		String dataType = metaData.getHeaderTypeAsString(table + "__" + srcCol);
+		String adtlDataType = metaData.getHeaderAdtlTypeAsString(frame.getName() + "__" + srcCol);
 
 		// update meta data
 		metaData.addProperty(table, table + "__" + newColName);
 		metaData.setAliasToProperty(table + "__" + newColName, newColName);
 		metaData.setDataTypeToProperty(table + "__" + newColName, dataType);
-
+		if(adtlDataType != null) {
+			metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
+		}
+		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
