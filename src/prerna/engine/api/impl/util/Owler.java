@@ -205,7 +205,7 @@ public class Owler extends AbstractOwler {
 			// 4) adding the property additional data type, if available
 			if (adtlDataType != null && !adtlDataType.isEmpty()) {
 				String adtlTypeObject = "ADTLTYPE:" + encodeAdtlDataType(adtlDataType);
-				engine.addToBaseEngine(property, ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject);
+				engine.addToBaseEngine(property, ADDITIONAL_DATATYPE_RELATION_URI, adtlTypeObject, false);
 			}
 
 			// 5) now lets add the physical URI to the pixel name URI
@@ -543,8 +543,7 @@ public class Owler extends AbstractOwler {
 	 * @return
 	 * @return
 	 */
-	public NounMetadata removeProp(String tableName, String propertyCol, String dataType, String adtlDataType,
-			String conceptual) {
+	public NounMetadata removeProp(String tableName, String propertyCol, String dataType, String adtlDataType, String conceptual) {
 		// create the property URI
 		String property = null;
 		if (type == IEngine.ENGINE_TYPE.SESAME) {
