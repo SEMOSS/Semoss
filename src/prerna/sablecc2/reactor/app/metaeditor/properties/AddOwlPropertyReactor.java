@@ -22,7 +22,7 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 				ReactorKeysEnum.CONCEPT.getKey(),
 				ReactorKeysEnum.COLUMN.getKey(), 
 				ReactorKeysEnum.DATA_TYPE.getKey(), 
-				ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey(), 
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), 
 				CONCEPTUAL_NAME,
 				ReactorKeysEnum.DESCRIPTION.getKey(), 
 				ReactorKeysEnum.LOGICAL_NAME.getKey()
