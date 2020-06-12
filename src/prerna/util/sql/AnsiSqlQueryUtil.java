@@ -258,7 +258,24 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 						.append(" = ")
 						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
 			} else {
-				if( (leftColType == SemossDataType.INT || leftColType == SemossDataType.DOUBLE)  && rightColType == SemossDataType.STRING) {
+				if(leftColType == SemossDataType.DOUBLE && rightColType == SemossDataType.INT) {
+					// left is double
+					// right is int 
+					// need to cast the right hand side
+					joinString.append(" ")
+						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
+						.append(" = CAST(")
+						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol)
+						.append(" AS DOUBLE)");
+				} else if(leftColType == SemossDataType.INT && rightColType == SemossDataType.DOUBLE) {
+					// left is int
+					// right is double
+					// need to cast the left hand side
+					joinString.append(" ")
+						.append("CAST(").append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
+						.append(" AS DOUBLE) = ")
+						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
+				} else if( (leftColType == SemossDataType.INT || leftColType == SemossDataType.DOUBLE)  && rightColType == SemossDataType.STRING) {
 					// one is a number
 					// other is a string
 					// convert the string to a number
