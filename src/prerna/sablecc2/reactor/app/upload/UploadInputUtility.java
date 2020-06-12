@@ -167,7 +167,13 @@ public class UploadInputUtility {
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
-		return (Map<String, String>) grs.get(0);
+		Map<String, Object> values = (Map<String, Object>) grs.get(0);
+		Map<String, String> strValues = new HashMap<String, String>();
+		// stringify since the FE sends custom types as a map
+		for(String k : values.keySet()) {
+			strValues.put(k, values.get(k) + "");
+		}
+		return strValues;
 	}
 
 	public static Map<String, String> getNewCsvHeaders(NounStore store) {
