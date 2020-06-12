@@ -308,8 +308,8 @@ public class InMemorySesameEngine extends AbstractEngine {
 					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
-					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
-					sc.addStatement(newSub, newPred, vf.createLiteral(cleanValue));
+					//String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
+					sc.addStatement(newSub, newPred, vf.createLiteral(value));
 				} 
 			} else {
 				if(object instanceof Literal) {
@@ -359,8 +359,8 @@ public class InMemorySesameEngine extends AbstractEngine {
 					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
-					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
-					sc.removeStatements(newSub, newPred, vf.createLiteral(cleanValue));
+					//String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
+					sc.removeStatements(newSub, newPred, vf.createLiteral(value));
 				} 
 			} else {
 				if(object instanceof Literal) {
