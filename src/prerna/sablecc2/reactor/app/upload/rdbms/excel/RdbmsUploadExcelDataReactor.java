@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -768,7 +769,30 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
-		return (Map<String, Map<String, Map<String, String>>>) grs.get(0);
+		
+		Map<String, Map<String, Map<String, Object>>> values = (Map<String, Map<String, Map<String, Object>>>) grs.get(0);
+		Map<String, Map<String, Map<String, String>>> strValues = new HashMap<>();
+		// stringify since the FE sends custom types as a map
+		for(String k1 : values.keySet()) {
+			Map<String, Map<String, Object>> inner = values.get(k1);
+			Map<String, Map<String, String>> strInner = new HashMap<>();
+
+			for(String k2 : inner.keySet()) {
+				Map<String, Object> inner2 = inner.get(k2);
+				Map<String, String> strInner2 = new HashMap<>();
+				
+				for(String k3 : inner2.keySet()) {
+					strInner2.put(k3, inner2.get(k3) + "");
+				}
+			
+				// put in parent map
+				strInner.put(k2, strInner2);
+			}
+			
+			// put in parent map
+			strValues.put(k1, strInner);
+		}
+		return strValues;
 	}
 	
 	public Map<String, Map<String, Map<String, String>>> getMetaDescriptions() {
