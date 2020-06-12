@@ -20,7 +20,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 	public AddOwlConceptReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
 				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), 
-				ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey(), CONCEPTUAL_NAME, 
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), CONCEPTUAL_NAME, 
 				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()
 			};
 	}
