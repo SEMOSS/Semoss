@@ -13,13 +13,11 @@
 #         total number of cells and the rule it breaks
 
 missionControl <- function (dt, rule, resultsTable){
-  
-  dt[dt == ""] <- NA
-  
+    
   tempResultsTable <- data.table(Columns=character(),Errors=integer(),Valid=integer(),Total=integer(),Rules=character(), Description=character(), toColor = character())
   
   currRule = rule$rule
-  currCol = rule$col
+  dt[rule$col == ""] <- NA
   
   if (currRule == "Blanks/Nulls/NAs") {
     tempResultsTable <- isNull(dt, rule)
