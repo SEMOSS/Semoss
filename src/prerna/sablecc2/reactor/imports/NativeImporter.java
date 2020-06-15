@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.imports;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -166,7 +167,7 @@ public class NativeImporter extends AbstractImporter {
 	 * Yet I need to know what the join is
 	 * @param joins
 	 */
-	private void appendNecessaryRels(List<Join> joins) {
+	public void appendNecessaryRels(List<Join> joins) {
 		Set<String[]> relations = this.qs.getRelations();
 		List<IQuerySelector> selectors = this.qs.getSelectors();
 		

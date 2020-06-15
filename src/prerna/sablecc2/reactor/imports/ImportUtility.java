@@ -1460,6 +1460,11 @@ public class ImportUtility {
 				String existingColName = j.getLColumn();
 				String newColName = j.getRColumn();
 				
+				if(newColName.contains("__")) {
+					newColName = newColName.split("__")[1];
+				}
+				// so
+				
 				// if this is true, it means that the unique name of this selector is part of a join
 				// and we want to replace its name
 				if(qsName.equals(newColName) || alias.equals(newColName)) {
