@@ -13,6 +13,8 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Sheet;
 
+import com.google.gson.Gson;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -769,7 +771,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
-		
+		Gson gson = null;
 		Map<String, Map<String, Map<String, Object>>> values = (Map<String, Map<String, Map<String, Object>>>) grs.get(0);
 		Map<String, Map<String, Map<String, String>>> strValues = new HashMap<>();
 		// stringify since the FE sends custom types as a map
@@ -782,7 +784,15 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 				Map<String, String> strInner2 = new HashMap<>();
 				
 				for(String k3 : inner2.keySet()) {
-					strInner2.put(k3, inner2.get(k3) + "");
+					
+					if(inner2.get(k3) instanceof String) {
+						strInner2.put(k3, inner2.get(k3) + "");
+					} else {
+						if(gson == null) {
+							gson = new Gson();
+						}
+						strInner2.put(k3, gson.toJson(inner2.get(k3)));
+					}
 				}
 			
 				// put in parent map
