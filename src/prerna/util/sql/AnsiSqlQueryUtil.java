@@ -482,6 +482,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String createTable(String tableName, String[] colNames, String[] types) {
 		// should escape keywords
+		tableName = cleanTableName(tableName);
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
@@ -505,6 +506,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String createTableWithDefaults(String tableName, String [] colNames, String [] types, Object[] defaultValues) {
 		// should escape keywords
+		tableName = cleanTableName(tableName);
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
@@ -545,6 +547,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String createTableWithCustomConstraints(String tableName, String [] colNames, String [] types, Object[] customConstraints) {
 		// should escape keywords
+		tableName = cleanTableName(tableName);
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
@@ -579,6 +582,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		}
 		
 		// should escape keywords
+		tableName = cleanTableName(tableName);
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
@@ -606,6 +610,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		}
 
 		// should escape keywords
+		tableName = cleanTableName(tableName);
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
@@ -650,6 +655,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		}
 
 		// should escape keywords
+		tableName = cleanTableName(tableName);
 		if(isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
