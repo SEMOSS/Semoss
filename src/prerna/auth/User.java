@@ -440,7 +440,9 @@ public class User extends AbstractValueObject implements Serializable {
 			appName = pathTokens[0];
 		}
 		
-		String semossAppName = Utility.makeAlphaNumeric(appName);
+		String semossAppName = appName;
+
+		//String semossAppName = Utility.makeAlphaNumeric(appName);
 
 		String engineId = semossAppName;
 		if(!override)
