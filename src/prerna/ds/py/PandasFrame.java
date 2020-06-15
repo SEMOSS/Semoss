@@ -13,18 +13,21 @@ import java.util.UUID;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.EmptyIteratorException;
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -671,6 +674,44 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public PyTranslator getTranslator()
 	{
 		return pyt;
+	}
+	
+	/**
+	 * Recreate the metadata for this existing frame
+	 */
+	public void recreateMeta() {
+		logger.info("Getting the columns for :" + frameName);
+
+		String[] colNames = pyt.getStringArray(PandasSyntaxHelper.getColumns(frameName));;
+		pyt.runScript(PandasSyntaxHelper.cleanFrameHeaders(frameName, colNames));
+		logger.info("Getting the column types for :" + frameName);
+
+		String[] colTypes = pyt.getStringArray(PandasSyntaxHelper.getTypes(frameName));
+		//clean headers
+		HeadersException headerChecker = HeadersException.getInstance();
+		colNames = headerChecker.getCleanHeaders(colNames);
+	
+
+		// grab the existing metadata from the frame
+		Map<String, String> additionalDataTypes = this.metaData.getHeaderToAdtlTypeMap();
+		Map<String, List<String>> sources = this.metaData.getHeaderToSources();
+		// close existing meta
+		// make a new one
+		// load into it
+		this.metaData.close();
+		this.metaData = new OwlTemporalEngineMeta();
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(this.metaData, colNames, colTypes, getName(), additionalDataTypes, sources);
+		
+		// clear the cached info
+		this.clearCachedMetrics();
+		this.clearQueryCache();
+	}
+	
+	/**
+	 * Update the wrapper frame with the actual frame object
+	 */
+	public void replaceWrapperDataFromFrame() {
+		pyt.runScript(wrapperFrameName + ".cache['data'] = "  + frameName );
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////
