@@ -252,6 +252,19 @@ public abstract class AbstractSqlQueryUtil {
 		}
 		return null;
 	}
+	
+	/**
+	 * Clean the table name so it is valid for SQL
+	 * @param tableName
+	 * @return
+	 */
+	public static String cleanTableName(String tableName) {
+		tableName = Utility.makeAlphaNumeric(tableName);
+		if(Character.isDigit(tableName.charAt(0))) {
+			tableName = "_" + tableName;
+		}
+		return tableName;
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
