@@ -244,7 +244,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		IRawSelectWrapper it = null;
 		try {
 			it = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
-			empty = it.hasNext();
+			empty = !(it.hasNext());
 		} catch (Exception e) {
 			logger.error(STACKTRACE, e);
 		} finally {

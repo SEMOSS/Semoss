@@ -44,11 +44,15 @@ public class MergeFramesReactor extends AbstractReactor {
 	
 	private static final String sourceFrame = "source";
 	private static final String targetFrame = "target";
-	
+	private static final String sourceCols = "sourceCols";
+	private static final String targetCols = "targetCols";
+	private static final String joinType = "jType";
+
 	private static final String CLASS_NAME = MergeFramesReactor.class.getName();
 	
 	public MergeFramesReactor() {
-		this.keysToGet = new String[]{sourceFrame, targetFrame, ReactorKeysEnum.JOINS.getKey()};
+		this.keysToGet = new String[]{sourceFrame, targetFrame, sourceCols, targetCols, joinType}; 
+
 	}
 
 	@Override
@@ -139,8 +143,10 @@ public class MergeFramesReactor extends AbstractReactor {
 				
 				
 				
-				String mergeString = RSyntaxHelper.getMergeSyntax(targetFrame.getName(), sourceFrame.getName(), targetFrame.getName(), joinType, joinCols);
+				String mergeString = RSyntaxHelper.getMergeSyntax(targetFrame.getName(), targetFrame.getName(), sourceFrame.getName(),  joinType, joinCols);
 				((RDataTable) targetFrame).executeRScript(mergeString);
+				((RDataTable) targetFrame).recreateMeta();
+
 			}
 			
 			// 2) are they both Py
@@ -171,7 +177,10 @@ public class MergeFramesReactor extends AbstractReactor {
 				// b) need to perform the merge
 				// c) need to update the metadata
 				
-				((PandasFrame) targetFrame).merge(targetFrame.getName(), sourceFrame.getName(), targetFrame.getName(), joinType, joinCols);
+				((PandasFrame) targetFrame).merge(targetFrame.getName(), targetFrame.getName(), sourceFrame.getName(), joinType, joinCols);
+				((PandasFrame) targetFrame).recreateMeta();
+				((PandasFrame) targetFrame).replaceWrapperDataFromFrame();
+
 			}
 			
 			// 3) are they both native
@@ -188,6 +197,18 @@ public class MergeFramesReactor extends AbstractReactor {
 					if(sourceQs.getCustomFrom() == null && targetQs.getCustomFrom() == null) {
 						optimized = true;
 						targetQs.merge(sourceQs);
+						//targetQs.addRelation(fromConcept, toConcept, joinType);
+						
+						NativeImporter importer = (NativeImporter) ImportFactory.getImporter(targetNFrame, targetQs, null);
+						// we reassign the frame because it might have changed
+						// this only happens for native frame
+						try {
+							importer.appendNecessaryRels(joins);
+							importer.insertData();
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					}
 				}
 			}
@@ -201,12 +222,18 @@ public class MergeFramesReactor extends AbstractReactor {
 			ITableDataFrame mergeFrame = null;
 			if(targetFrame instanceof NativeFrame) {
 				try {
+					SelectQueryStruct nativeQs = ((NativeFrame)targetFrame).getQueryStruct();
+					//the qs's frame on the target frame is the sourceFrame. Later on during the import process for 
+					// taking this native frame to an R frame, we read the qs then get qs.getFrame to generate metadata
+					// from frame.getMeta. this will break since it has the sourceFrame's meta.
+					// unless we reset the qs's frame to the targetFrame, we won't hold the meta anywhere
+					((NativeFrame) targetFrame).getQueryStruct().setFrame(targetFrame);
 					mergeFrame = mergeNative(targetFrame, qs, joins);
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new SemossPixelException(e.getMessage());
 				}
-			} if(qs != null) {
+			} else if(qs != null) {
 				try {
 					mergeFrame = mergeFromQs(targetFrame, qs, joins);
 				} catch (Exception e) {
@@ -246,6 +273,7 @@ public class MergeFramesReactor extends AbstractReactor {
 		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 
 		IImporter importer = ImportFactory.getImporter(frame, qs);
+		importer.setInsight(this.insight);
 		// we reassign the frame because it might have changed
 		// this only happens for native frame
 		frame = importer.mergeData(joins);
@@ -279,6 +307,13 @@ public class MergeFramesReactor extends AbstractReactor {
 				String rColumnJoin = j.getRColumn();
 				String type = j.getJoinType();
 
+				if(leftColumnJoin.contains("__")) {
+					leftColumnJoin = leftColumnJoin.split("__")[1];
+				}
+				if(rColumnJoin.contains("__")) {
+					rColumnJoin = rColumnJoin.split("__")[1];
+				}
+				
 				if(type.equals("inner.join") || type.equals("left.outer.join")) {
 					// we need to make sure we apply the filter correctly!
 					// remember, RHS is the alias we provide the selector
@@ -400,7 +435,7 @@ public class MergeFramesReactor extends AbstractReactor {
 		for(Join j : joins) {
 			String origLCol = j.getLColumn();
 			String origRCol = j.getRColumn();
-			String newLCol = sourceMeta.getUniqueNameFromAlias(origLCol);
+			String newLCol = targetMeta.getUniqueNameFromAlias(origLCol);
 			String newRCol = sourceMeta.getUniqueNameFromAlias(origRCol);
 			if(newLCol == null && newRCol == null) {
 				// nothing to do
@@ -504,32 +539,105 @@ public class MergeFramesReactor extends AbstractReactor {
 		throw new IllegalArgumentException("Must define the target frame");
 	}
 	
+	protected List<String> getSourceColumns() {
+		List<String> columns = new Vector<String>();
+
+		GenRowStruct sourceColGrs = this.store.getNoun(this.keysToGet[2]);
+		if (sourceColGrs != null && !sourceColGrs.isEmpty()) {
+			for (int selectIndex = 0; selectIndex < sourceColGrs.size(); selectIndex++) {
+				String column = sourceColGrs.get(selectIndex) + "";
+				columns.add(column);
+			}
+			return columns;
+		}
+		throw new IllegalArgumentException("Must define the source columns");
+	}
+	
+	protected List<String> getTargetColumns() {
+		List<String> columns = new Vector<String>();
+
+		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[3]);
+		if (colGrs != null && !colGrs.isEmpty()) {
+			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
+				String column = colGrs.get(selectIndex) + "";
+				columns.add(column);
+			}
+			return columns;
+		}
+		throw new IllegalArgumentException("Must define the target columns");
+
+	}
+	
+	protected List<String> getJoinTypes() {
+		List<String> joins = new Vector<String>();
+
+		GenRowStruct joinGrs = this.store.getNoun(this.keysToGet[4]);
+		if (joinGrs != null && !joinGrs.isEmpty()) {
+			for (int selectIndex = 0; selectIndex < joinGrs.size(); selectIndex++) {
+				String join = joinGrs.get(selectIndex) + "";
+				joins.add(join);
+			}
+			return joins;
+		}
+		throw new IllegalArgumentException("Must define the join types");
+
+	}
+	
+//	protected List<Join> getJoins() {
+//		List<Join> joins = new Vector<Join>();
+//		// try specific key
+//		{
+//			GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+//			if(grs != null && !grs.isEmpty()) {
+//				joins = grs.getAllJoins();
+//				if(joins != null && !joins.isEmpty()) {
+//					return joins;
+//				}
+//			}
+//		}
+//		
+//		List<NounMetadata> joinsCur = this.curRow.getNounsOfType(PixelDataType.JOIN);
+//		if(joinsCur != null && !joinsCur.isEmpty()) {
+//			int size = joinsCur.size();
+//			for(int i = 0; i < size; i++) {
+//				joins.add( (Join) joinsCur.get(i).getValue());
+//			}
+//			
+//			return joins;
+//		}
+//		
+//		throw new IllegalArgumentException("Could not find the columns for the join");
+//	}
 	
 	
 	protected List<Join> getJoins() {
+		List<String> sourceCols =  getSourceColumns();
+		
+		List<String> targetCols =  getTargetColumns();
+		List<String> joinTypes =  getJoinTypes();
+		
+		if(sourceCols.size() != targetCols.size()) {
+			throw new IllegalArgumentException("Uneven number of source columns to target columns");
+		}
+		
+		if(joinTypes.size()!= 1 && joinTypes.size() != sourceCols.size()) {
+			throw new IllegalArgumentException("Uneven number of joins to columns");
+		}
+		//if only 1 join type is given, fill out the list
+		if(joinTypes.size() == 1 && sourceCols.size() > 1) {
+			while(joinTypes.size()!=sourceCols.size()) {
+				joinTypes.add(joinTypes.get(0));
+			}
+		}
+		
 		List<Join> joins = new Vector<Join>();
-		// try specific key
-		{
-			GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
-			if(grs != null && !grs.isEmpty()) {
-				joins = grs.getAllJoins();
-				if(joins != null && !joins.isEmpty()) {
-					return joins;
-				}
-			}
+
+		for(int i = 0; i<sourceCols.size(); i++) {
+			Join j = new Join(targetCols.get(i), joinTypes.get(i),sourceCols.get(i));
+			joins.add(j);
 		}
 		
-		List<NounMetadata> joinsCur = this.curRow.getNounsOfType(PixelDataType.JOIN);
-		if(joinsCur != null && !joinsCur.isEmpty()) {
-			int size = joinsCur.size();
-			for(int i = 0; i < size; i++) {
-				joins.add( (Join) joinsCur.get(i).getValue());
-			}
-			
-			return joins;
-		}
-		
-		throw new IllegalArgumentException("Could not find the columns for the join");
+		return joins;
 	}
 
 	public String getName()
