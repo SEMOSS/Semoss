@@ -12,6 +12,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class CreateFrameReactor extends AbstractReactor {
 
@@ -32,10 +33,8 @@ public class CreateFrameReactor extends AbstractReactor {
 			logger.info("Creating new frame of type = " + frameType + " with no alias");
 			alias = "";
 		} else {
-			// replace all "__" to a single "_"
-			while(alias.contains("__")) {
-				alias = alias.replace("__", "_");
-			}
+			// clean the alias - make alpha numeric underscore + not start with a digit
+			alias = AbstractSqlQueryUtil.cleanTableName(alias);
 			logger.info("Creating new frame of type = " + frameType + " with alias = " + alias);
 		}
 		ITableDataFrame newFrame = null;
