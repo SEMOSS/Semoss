@@ -10,6 +10,8 @@ import java.util.Properties;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
+import com.google.gson.Gson;
+
 import prerna.om.Insight;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -167,11 +169,19 @@ public class UploadInputUtility {
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
+		Gson gson = null;
 		Map<String, Object> values = (Map<String, Object>) grs.get(0);
 		Map<String, String> strValues = new HashMap<String, String>();
 		// stringify since the FE sends custom types as a map
 		for(String k : values.keySet()) {
-			strValues.put(k, values.get(k) + "");
+			if(values.get(k) instanceof String) {
+				strValues.put(k, values.get(k) + "");
+			} else {
+				if(gson == null) {
+					gson = new Gson();
+				}
+				strValues.put(k, gson.toJson(values.get(k)));
+			}
 		}
 		return strValues;
 	}
