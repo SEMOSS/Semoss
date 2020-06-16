@@ -8,7 +8,9 @@ import java.util.Vector;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -91,7 +93,9 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			String appId = user.getAssetEngineId(user.getPrimaryLogin());
 			String appName = "Asset";
 			if (appId != null && !(appId.isEmpty())) {
+				IEngine assetApp = Utility.getEngine(appId);
 				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPullFolder(assetApp, savePath);
 			}
 		}
 		savePath = savePath.replace("\\", "/");
@@ -114,6 +118,16 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		long replaceTime = System.currentTimeMillis() - ((long)1 * 24 * 60 * 60 * 1000);
 		if(!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists() || nldrMembership.lastModified() < replaceTime ) {
 			createRdsFiles();
+			if (AbstractSecurityUtils.securityEnabled()) {
+				User user = this.insight.getUser();
+				String appId = user.getAssetEngineId(user.getPrimaryLogin());
+				String appName = "Asset";
+				if (appId != null && !(appId.isEmpty())) {
+					IEngine assetApp = Utility.getEngine(appId);
+					savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
+					ClusterUtil.reactorPushFolder(assetApp, savePath);
+				}
+			}
 		}
 
 		// run script and get array in alphabetical order
