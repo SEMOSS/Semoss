@@ -16,6 +16,8 @@ import org.apache.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -74,7 +76,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			String appId = user.getAssetEngineId(user.getPrimaryLogin());
 			String appName = "Asset";
 			if (appId != null && !(appId.isEmpty())) {
+				IEngine assetApp = Utility.getEngine(appId);
 				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPullFolder(assetApp, savePath);
 			}
 		}
 		savePath = savePath.replace("\\", "/");
@@ -181,6 +185,16 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		
 		
 		// TODO: push asset app
+		if (AbstractSecurityUtils.securityEnabled()) {
+			User user = this.insight.getUser();
+			String appId = user.getAssetEngineId(user.getPrimaryLogin());
+			String appName = "Asset";
+			if (appId != null && !(appId.isEmpty())) {
+				IEngine assetApp = Utility.getEngine(appId);
+				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPushFolder(assetApp, savePath);
+			}
+		}
 
 		return new NounMetadata(returnPixels, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
