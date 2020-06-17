@@ -95,6 +95,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// Check to make sure that needed files exist before searching
 		File algo1 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_guide.R");
 		File algo2 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_assembly.R");
+		File algo3 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_validate.R");
 		if (!algo1.exists() || !algo2.exists()) {
 			String message = "Necessary files missing to generate search results.";
 			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -114,6 +115,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		sb.append(("setwd(\"" + savePath + "\");").replace("\\", "/"));
 		sb.append(("source(\"" + algo1.getPath() + "\");").replace("\\", "/"));
 		sb.append(("source(\"" + algo2.getPath() + "\");").replace("\\", "/"));
+		sb.append(("source(\"" + algo3.getPath() + "\");").replace("\\", "/"));
 		this.rJavaTranslator.runR(sb.toString());
 		logger.info(stepCounter + ". Done");
 		stepCounter++;
@@ -166,7 +168,22 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		logger.info(stepCounter + ". Generating search results");
 		List<Object[]> retData = generateAndRunScript(query, engineFilters, rSessionTable, rSessionJoinTable);
 		logger.info(stepCounter + ". Done");
-
+		
+		// check for error
+		int frameColCount = retData.get(0).length;
+		if(frameColCount == 1) {
+			// will not work, lets send all the error messages
+			String message = (String) retData.get(0)[0];
+			message = message.substring(0,1).toUpperCase() + message.substring(1);
+			NounMetadata errorNoun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			for(int i = 1; i < retData.size(); i ++) {
+				message = (String) retData.get(i)[0];
+				message = message.substring(0,1).toUpperCase() + message.substring(1);
+				errorNoun.addAdditionalReturn(new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
+			return errorNoun;
+		}
+		
 		logger.info(stepCounter + ". Generating pixel return from results");
 		List<Map<String, Object>> returnPixels = generatePixels(retData, query, rSessionTable);
 		logger.info(stepCounter + ". Done");
@@ -416,14 +433,13 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		
 		
 		// lets run the function on the filtered apps
-		rsb.append(tempResult + " <- build_query(" + rSessionTable + "," + rSessionJoinTable + " , " + "\"" + query + "\" );");
+		rsb.append(tempResult + " <- build_valid_query(" + rSessionTable + "," + rSessionJoinTable + " , " + "\"" + query + "\" );");
 		
 		// run it
 		this.rJavaTranslator.runR(rsb.toString());
 
 		// get back the data
-		String[] headerOrdering = new String[] { "query", "appid", "appid2", "part", "item1", "item2", "item3", "item4",
-				"item5", "item6", "item7" };
+		String[] headerOrdering = this.rJavaTranslator.getColumns(tempResult);
 		List<Object[]> list = this.rJavaTranslator.getBulkDataRow(tempResult, headerOrdering);
 
 		// garbage cleanup
