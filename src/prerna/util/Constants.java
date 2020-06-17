@@ -480,6 +480,9 @@ public class Constants {
 	
 	// Theming
 	public static final String THEMING_DB = "themes";
+
+	// Quartz Scheduler
+	public static final String SCHEDULER_DB = "scheduler";
 	
 	//RDBMS specific
 	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of inner joins
