@@ -4,6 +4,7 @@ import java.util.List;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.sablecc2.om.PixelDataType;
@@ -41,6 +42,9 @@ public class SetInsightTagsReactor extends AbstractInsightReactor {
 		admin.updateInsightTags(existingId, tags);
 		SecurityInsightUtils.updateInsightTags(appId, existingId, tags);
 		
+		//need to push insight db for this
+		ClusterUtil.reactorPushInsightDB(appId);
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new tags for insight"));
 		return noun;
