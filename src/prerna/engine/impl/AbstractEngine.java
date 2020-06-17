@@ -226,9 +226,10 @@ public abstract class AbstractEngine implements IEngine {
 							}
 							
 							owlFile = generateOwlFromFlatFile(dataFile, owlFile, owlFileName);
-						} else {
-							owlFile = null;
-						}
+						} 
+//						else {
+//							owlFile = null;
+//						}
 					}
 					// set the owl file
 					if(owlFile != null) {

@@ -49,6 +49,8 @@ public abstract class JobConfig {
 		String jobClassName = jobDefinition.get(JobConfigKeys.JOB_CLASS_NAME).getAsString();
 		ConfigurableJob configurableJob = ConfigurableJob.getConfigurableJobFromJobClassName(jobClassName);
 		switch (configurableJob) {
+		case RUN_PIXEL_JOB:
+			return new RunPixelJobConfig(jobDefinition);
 		case JOB_BATCH:
 			return new JobBatchConfig(jobDefinition);
 		case JOB_CHAIN:
@@ -79,8 +81,6 @@ public abstract class JobConfig {
 			return new EmptyJobConfig(jobDefinition); // Don't need to provide any keys
 		case INSIGHT_RERUN_JOB:
 			return new InsightsRerunCronJobConfig(jobDefinition);
-		case RUN_PIXEL_JOB:
-			return new RunPixelJobConfig(jobDefinition);
 		case GET_SMTP_SESSION_JOB:
 			return new GetSMTPSessionJobConfig(jobDefinition);
 		case SEND_EMAIL_JOB:

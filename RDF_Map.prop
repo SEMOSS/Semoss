@@ -1,7 +1,7 @@
 This section is for properties
 
 ENGINE_WATCHER	SMSSWatcher
-ENGINE_WEB_WATCHER	SMSSWebWatcher;JobSchedulerWatcher
+ENGINE_WEB_WATCHER	SMSSWebWatcher
 
 INSIGHT_CACHE_DIR C:\\workspace\\Semoss_Dev\\InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
@@ -10,10 +10,10 @@ SMSSWebWatcher	prerna.util.SMSSWebWatcher
 SMSSWebWatcher_DIR	C:\\workspace\\Semoss_Dev\\db
 SMSSWebWatcher_EXT	.smss
 
-JobSchedulerWatcher prerna.rpa.JobSchedulerWatcher
-JobSchedulerWatcher_DIR C:\\workspace\\Semoss_Dev\\rpa\\json
-JobSchedulerWatcher_EXT	.json
-rpa.config.directory C:\\workspace\\Semoss_Dev\\rpa
+#JobSchedulerWatcher prerna.rpa.JobSchedulerWatcher
+#JobSchedulerWatcher_DIR C:\\workspace\\Semoss_Dev\\rpa\\json
+#JobSchedulerWatcher_EXT	.json
+#rpa.config.directory C:\\workspace\\Semoss_Dev\\rpa
 
 BaseFolder	C:\\workspace\\Semoss_Dev
 LOG4J	C:\\workspace\\Semoss_Dev\\log4j.prop
