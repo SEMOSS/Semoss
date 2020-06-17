@@ -4,6 +4,7 @@ import java.util.List;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.sablecc2.om.PixelDataType;
@@ -41,6 +42,8 @@ public class SetInsightDescriptionReactor extends AbstractInsightReactor {
 		admin.updateInsightDescription(existingId, description);
 		SecurityInsightUtils.updateInsightDescription(appId, existingId, description);
 		
+		ClusterUtil.reactorPushInsightDB(appId);
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new description for insight"));
 		return noun;

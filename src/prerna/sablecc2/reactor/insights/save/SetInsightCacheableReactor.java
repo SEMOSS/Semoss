@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -63,6 +64,10 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		returnMap.put("app_name", engine.getEngineName());
 		returnMap.put("app_id", engine.getEngineId());
 		returnMap.put("cacheable", cache);
+		
+		//push insight db
+		ClusterUtil.reactorPushInsightDB(appId);
+
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
