@@ -1,38 +1,44 @@
 build_query<-function(db,joins,text,root_fn="nldr"){
 	KEYWORDS<-c("total","average","count","min","max",'where','group','by','having','order')
-	
 	library(igraph)
 	library(data.table)
 	library(SteinerNet)
-	
+
 	p<-data.table(query=integer(),appid=character(),appid2=character(),part=character(),item1=character(),item2=character(),
 	item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
 	words<-unlist(strsplit(text," "))
 	cols<-unique(db[tolower(db$Column) %in% tolower(words),"Column"])
 	# remove keywords from column names
 	cols<-cols[!(tolower(cols) %in% KEYWORDS)]
-	if(length(words)>0){
-		partition<-readRDS(paste0(root_fn,"_membership.rds"))
-		clusters<-unique(unname(partition))
-		if(length(clusters)>0){
-			k<-1
-			for(i in 1:length(clusters)){
-				# make sure that all columns present in the cluster
-				tbls<-names(partition[partition==clusters[i]])
-				tbls_cols<-unique(db[db$Table %in% tbls,"Column"])
-				if(all(cols %in% tbls_cols)){
-					cur_db<-db[db$Table %in% tbls,]
-					cur_joins<-joins[joins$tbl1 %in% tbls & joins$tbl2 %in% tbls,]
-					cluster_joins<-build_joins(cols,cur_joins,cur_db)
-					
-					# process statement parts and accumulate them
-					p<-process_stmnt(cur_db,cur_joins,cluster_joins,words,cols,p,k)
-					k<-k+1
-				}
+
+	# make sure the column names has the propper capitalization
+	if(length(cols)>0){
+		for(i in 1:length(cols)){
+			ind<-which(tolower(words) %in% tolower(cols[i]))
+			if(length(ind)>0){
+				words[ind]<-cols[i]
 			}
 		}
-	}else{
-		p[["Warning"]]<-"The request is empty"
+	}
+	# Retrieve cluster info
+	partition<-readRDS(paste0(root_fn,"_membership.rds"))
+	clusters<-unique(unname(partition))
+	if(length(clusters)>0){
+		k<-1
+		for(i in 1:length(clusters)){
+			# make sure that all columns present in the cluster
+			tbls<-names(partition[partition==clusters[i]])
+			tbls_cols<-unique(db[db$Table %in% tbls,"Column"])
+			if(all(cols %in% tbls_cols)){
+				cur_db<-db[db$Table %in% tbls,]
+				cur_joins<-joins[joins$tbl1 %in% tbls & joins$tbl2 %in% tbls,]
+				cluster_joins<-build_joins(cols,cur_joins,cur_db)
+				
+				# process statement parts and accumulate them
+				p<-process_stmnt(cur_db,cur_joins,cluster_joins,words,cols,p,k)
+				k<-k+1
+			}
+		}
 	}
 	gc()
 	return(p)
@@ -205,7 +211,12 @@ process_order<-function(db,part,cols,p,k){
 partition_request<-function(words){
 	PARTS<-c('select','where','group','having','order')	
 	
-	ind<-c(1,which(PARTS %in% tolower(words)))
+	if('select' %in% words){
+		ind<-which(PARTS %in% tolower(words))
+	}else{
+		ind<-c(1,which(PARTS %in% tolower(words)))
+	}
+	
 	stmnt_parts<-list()
 	strt<-0
 	if(length(ind)==0){
