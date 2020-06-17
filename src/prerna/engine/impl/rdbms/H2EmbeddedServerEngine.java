@@ -9,31 +9,31 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.tools.Server;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 
-	private static final Logger logger = LogManager.getLogger(H2EmbeddedServerEngine.class.getName());
+	private static final Logger logger = LogManager.getLogger(H2EmbeddedServerEngine.class);
+	private static final String DATABASE_RUNNING_ON = "DATABASE RUNNING ON";
 
 	private Server server;
 	private String serverUrl;
-	
+
 	@Override
 	protected void init(RdbmsConnectionBuilder builder, boolean force) {
 		String connectionUrl = builder.getConnectionUrl();
 		if(connectionUrl.startsWith("jdbc:h2:nio:")) {
 			connectionUrl = connectionUrl.substring("jdbc:h2:nio:".length());
 		}
-		if(force) {
-			if(server != null) {
-				try {
-					Server.shutdownTcpServer(this.server.getURL(), "", true, false);
-					server.shutdown();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-				server = null;
+		if(force && server != null) {
+			try {
+				Server.shutdownTcpServer(this.server.getURL(), "", true, false);
+				server.shutdown();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
 			}
+			server = null;
 		}
 		if (server == null) {
 			try {
@@ -66,25 +66,28 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 				// update the builder
 				builder.setConnectionUrl(serverUrl);
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
-		logger.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
-		logger.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
-		logger.info(getEngineId() + " DATABASE RUNNING ON " + Utility.cleanLogString(serverUrl));
+
+		logger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
+		logger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
+		logger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
+
 	}
-	
-	
-	
+
 	@Override
 	public void closeDB() {
 		super.closeDB();
 		try {
 			Server.shutdownTcpServer(this.server.getURL(), "", true, false);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		this.server.shutdown();
+	}
+
+	public String getServerUrl() {
+		return serverUrl;
 	}
 }
