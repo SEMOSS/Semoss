@@ -101,12 +101,13 @@ import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.Constants;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class LazyTranslation extends DepthFirstAdapter {
 
-	private static final Logger LOGGER = LogManager.getLogger(LazyTranslation.class.getName());
+	private static final Logger logger = LogManager.getLogger(LazyTranslation.class);
 	
 	protected PixelPlanner planner;
 	protected Insight insight;
@@ -183,7 +184,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         		this.currentFrame = null;
         	} catch(SemossPixelException ex) {
         		trackError(e.toString(), this.isMeta, ex);
-        		ex.printStackTrace();
+        		logger.error(Constants.STACKTRACE, ex);
         		// if we want to continue the thread of execution
         		// nothing special
         		// just add the error to the return
@@ -200,7 +201,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         		}
         	} catch(Exception ex) {
         		trackError(e.toString(), this.isMeta, ex);
-        		ex.printStackTrace();
+        		logger.error(Constants.STACKTRACE, ex);
         		planner.addVariable(this.resultKey, new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
         	}
@@ -401,7 +402,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void inAOperation(AOperation node) {
 		defaultIn(node);
-        LOGGER.debug("Starting an operation");
+        logger.debug("Starting an operation");
         
         String reactorId = node.getId().toString().trim();
         IReactor newReactor = getReactor(reactorId, node.toString().trim());
@@ -412,7 +413,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void outAOperation(AOperation node) {
 		defaultOut(node);
-        LOGGER.debug("Ending operation");
+		logger.debug("Ending operation");
     	// if we have an if reactor
     	// we will not deInit and just add this as a lambda within
     	// the if statement and only deinit when necessary
@@ -474,7 +475,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	} else {
     		opReactor = new prerna.sablecc2.reactor.AsReactor();
     	}
-    	LOGGER.debug("In the AS Component of frame op");
+    	logger.debug("In the AS Component of frame op");
     	opReactor.setPixel("as", node.getAsOp() + "");
     	initReactor(opReactor);
     }
@@ -482,7 +483,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void outAAsop(AAsop node)
     {
     	defaultOut(node);
-    	LOGGER.debug("OUT the AS Component of frame op");
+    	logger.debug("OUT the AS Component of frame op");
     	deInitReactor();
     }
     
@@ -756,7 +757,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 				try {
 					iterator = frame.query(qs);
 				} catch (Exception e) {
-					e.printStackTrace();
+	        		logger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(e.getMessage());
 				}
     			ITask task = new BasicIteratorTask(qs, iterator);

@@ -104,6 +104,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 import org.owasp.encoder.Encode;
+import org.owasp.esapi.ESAPI;
 
 import com.google.gson.GsonBuilder;
 import com.ibm.icu.math.BigDecimal;
@@ -2554,7 +2555,7 @@ public class Utility {
 				// TODO >>>cluster: tag
 				// Start with because the insights RDBMS has the id security_InsightsRDBMS
 				if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase")
-						|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes"))) {
+						|| engineId.startsWith("form_builder_engine") || engineId.startsWith("themes") || engineId.startsWith("scheduler"))) {
 					Map<String, String> envMap = System.getenv();
 					if (envMap.containsKey(ZKClient.ZK_SERVER)
 							|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
@@ -3036,8 +3037,9 @@ public class Utility {
 			return message;
 		}
 		message = message.replace('\n', '_').replace('\r', '_').replace('\t', '_');
+
 		if(DIHelper.getInstance().coreProp != null && Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.LOG_ENCODING) + "")) {
-			message = Encode.forHtml(message);
+			message = ESAPI.encoder().encodeForHTML(message);
 		}
 
 		return message;

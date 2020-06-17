@@ -46,6 +46,7 @@ import prerna.engine.impl.OwlPrettyPrintFixer;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.sablecc2.reactor.scheduler.SchedulerH2DatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 
 /**
@@ -60,6 +61,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		ignoreSmssList.add(Constants.LOCAL_MASTER_DB_NAME);
 		ignoreSmssList.add(Constants.SECURITY_DB);
 		ignoreSmssList.add(Constants.THEMING_DB);
+		ignoreSmssList.add(Constants.SCHEDULER_DB);
 	}
 	
 	private static final Logger logger = LogManager.getLogger(SMSSWebWatcher.class);
@@ -268,6 +270,24 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				logger.error(STACKTRACE, e);
 			}
 		}
+
+		// change to scheduler info
+		String schedulerDbName = Constants.SCHEDULER_DB + this.extension;
+		int schedulerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, schedulerDbName);
+		if(schedulerDbNameIndex > -1) {
+			loadExistingDB(fileNames[schedulerDbNameIndex]);
+			// initialize the scheduler database
+			try {
+				SchedulerH2DatabaseUtility.startServer();
+			} catch (SQLException sqe) {
+				// we couldn't initialize the db remove it from DIHelper
+				DIHelper.getInstance().removeLocalProperty(Constants.SCHEDULER_DB);
+				logger.error(STACKTRACE, sqe);
+			} catch (IOException e) {
+				DIHelper.getInstance().removeLocalProperty(Constants.SCHEDULER_DB);
+				logger.error(STACKTRACE, e);
+			}
+		}
 	}
 
 	/**
@@ -285,13 +305,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + this.extension;
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		String themeDBName = Constants.THEMING_DB + this.extension;
+		String schedulerDBName = Constants.SCHEDULER_DB + this.extension;
 
 		// loop through and load all the engines
 		// but we will ignore the local master and security database
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			try {
 				String fileName = fileNames[fileIdx];
-				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName)) {
+				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName) || fileName.equals(schedulerDBName)) {
 					// again, ignore local master + security
 					continue;
 				}

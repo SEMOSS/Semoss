@@ -1,96 +1,70 @@
 package prerna.sablecc2.reactor.scheduler;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
+import org.quartz.TriggerKey;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
-import prerna.rpa.RPAProps;
-import prerna.rpa.config.ConfigUtil;
-import prerna.rpa.config.JobConfigKeys;
-import prerna.rpa.config.ParseConfigException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 
 public class RescheduleExistingJobReactor extends AbstractReactor {
 
+	private static final Logger logger = LogManager.getLogger(RescheduleExistingJobReactor.class);
+
 	public RescheduleExistingJobReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(), 
 				ReactorKeysEnum.CRON_EXPRESSION.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		/**
-		 * RescheduleExistingJob(jobName = ["sample_job_name"],
-		 * jobGroup=["sample_job_group"], (optional) cronExpression = [""]);
+		 * RescheduleJobFromDB(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
 		 * 
-		 * This reactor will reschedule a job that is listed as inactive.
-		 * Optionally you can update the cron schedule when rescheduling.
-		 * 
+		 * This reactor will reschedule existing unscheduled jobs in Quartz.
 		 */
 
 		organizeKeys();
-
 		// Get inputs
 		String jobName = this.keyValue.get(this.keysToGet[0]);
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
-		// optional
 		String cronExpression = this.keyValue.get(this.keysToGet[2]);
+		SchedulerH2DatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
 
-		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jobGroup + "__" + jobName
-				+ ".json";
-		File file = new File(filePath);
-
-		// read current json contents
-		String jsonString;
+		// resume the job in quartz
+		// later grab cron expression and add functionality to resume specific trigger under job
 		try {
-			jsonString = ConfigUtil.readStringFromJSONFile(file.getName());
-		} catch (ParseConfigException e) {
-			throw new IllegalArgumentException("Job or Group doesnt exist!");
-		}
+			JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
+			String triggerName = jobName.concat("Trigger");
+			String triggerGroup = jobGroup.concat("TriggerGroup");
+			TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
+			Trigger trigger = TriggerBuilder.newTrigger().withIdentity(triggerName, triggerGroup)
+					.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
 
-		// update current json to active and update cron schedule
-		JsonParser parser = new JsonParser();
-		JsonObject jobDefinition = parser.parse(jsonString).getAsJsonObject();
+			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
-		// cant reschedule an active job
-		boolean status = jobDefinition.get(JobConfigKeys.ACTIVE).getAsBoolean();
-		if (status) {
-			throw new IllegalArgumentException("Job is already active! Must unschedule it first");
-		}
+			// start up scheduler
+			SchedulerH2DatabaseUtility.startScheduler(scheduler);
 
-		// continue to update json
-		jobDefinition.addProperty(JobConfigKeys.ACTIVE, true);
-		if (cronExpression != null) {
-			jobDefinition.addProperty(JobConfigKeys.JOB_CRON_EXPRESSION, cronExpression);
-		}
-
-		// Pretty-print version of the json
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		String jsonConfig = gson.toJson(jobDefinition);
-
-		// delete current json
-		if (file.exists()) {
-			file.delete();
-		}
-
-		// write new json to file, which will trigger the watcher to schedule it to Quartz
-		try {
-			FileUtils.writeStringToFile(file, jsonConfig, Charset.forName("UTF-8"));
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to save job config update to " + file.toString(), e);
+			// reschedule job
+			if (scheduler.checkExists(jobKey)) {
+				scheduler.rescheduleJob(triggerKey, trigger);
+			}
+		} catch (SchedulerException se) {
+			logger.error(Constants.STACKTRACE, se);
 		}
 
 		// Save metadata into a map and return
@@ -98,7 +72,6 @@ public class RescheduleExistingJobReactor extends AbstractReactor {
 		quartzJobMetadata.put("jobName", jobName);
 		quartzJobMetadata.put("jobGroup", jobGroup);
 		quartzJobMetadata.put("cronExpression", cronExpression);
-		quartzJobMetadata.put("status", "active");
 
 		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.RESCHEDULE_JOB);
 	}
