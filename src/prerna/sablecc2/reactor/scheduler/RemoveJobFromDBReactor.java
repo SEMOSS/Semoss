@@ -27,7 +27,6 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		/**
 		 * RemoveJobFromDB(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
-		 * 
 		 * This reactor will delete the job in Quartz and the database.
 		 */
 
@@ -59,7 +58,6 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 			SchedulerH2DatabaseUtility.removeFromJobRecipesTable(connection, jobName, jobGroup);
 			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
 		}
-//		SchedulerH2DatabaseUtility.closeConnection(connection);
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
 	}
