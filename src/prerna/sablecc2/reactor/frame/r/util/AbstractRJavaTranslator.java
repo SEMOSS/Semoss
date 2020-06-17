@@ -121,7 +121,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				+ "sys.on.exit<-getenv;sys.parent<-getenv;Sys.readlink<-getenv;Sys.setenv<-getenv;"
 				+ "Sys.setlocale<-getenv;Sys.sleep<-getenv;sys.source<-getenv;sys.status<-getenv;"
 				+ "Sys.time<-getenv;Sys.timezone<-getenv;Sys.umask<-getenv;Sys.unsetenv<-getenv;"
-				+ "Sys.which<-getenv;Sys<-getenv;sys<-getenv;";
+				+ "Sys.which<-getenv;Sys<-getenv;sys<-getenv;install<-getenv;install.packages<-getenv;";
 		this.runR(rScript);
 	}
 	
