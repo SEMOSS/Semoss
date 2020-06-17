@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.om.InsightPanel;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -71,11 +72,7 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 
 		// run the summary frame functions
 		String summaryFrame = getSummaryFrame(targetDt);
-		String[] summaryColNames = this.rJavaTranslator.getColumns(summaryFrame);
-		List<Object[]> summaryData = this.rJavaTranslator.getBulkDataRow(summaryFrame, summaryColNames);
-		Map<String, Object> summaryRetMap = new HashMap<>();
-		summaryRetMap.put("headers", summaryColNames);
-		summaryRetMap.put("values", summaryData);
+		List<Map<String,Object>> summaryRetMap = formatSummaryFrame(summaryFrame);
 		
 		// run the outlier frame functions
 		String outlierFrame = getOutlierFrame(targetDt);
@@ -98,6 +95,60 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 		return new NounMetadata(tasks, PixelDataType.VECTOR, PixelOperationType.VECTOR);
 	}
 
+	private List<Map<String, Object>> formatSummaryFrame(String summaryFrame) {
+		// get the possible types
+		String possibleTypesVar = "possibleTypesVar" + Utility.getRandomString(6);
+		this.rJavaTranslator.runR(possibleTypesVar + " <- names(" + summaryFrame + ");");
+		String[] possibleTypes = this.rJavaTranslator.getStringArray(possibleTypesVar);
+		this.rJavaTranslator.executeEmptyR("rm(" + possibleTypesVar + "); gc();");
+		
+		// get the cleaned types for UI
+		String[] typesCleaned =  getCleanTypes(possibleTypes);
+		List<Map<String,Object>> retList = new Vector<Map<String,Object>>();
+
+		// loop through possible types and add it to the return
+		for(int i = 0; i < possibleTypes.length; i ++) {
+			// get type info
+			String tableName = summaryFrame + "$" + possibleTypes[i];
+			String type = typesCleaned[i];
+			
+			// get the data and headers
+			String[] typeSummaryColNames = this.rJavaTranslator.getColumns(tableName);
+			List<Object[]> typeSummaryData = this.rJavaTranslator.getBulkDataRow(tableName, typeSummaryColNames);
+			
+			// add it to a map
+			Map<String, Object> typeRetMap = new HashMap<>();
+			typeRetMap.put("datatype", type);
+			typeRetMap.put("headers", typeSummaryColNames);
+			typeRetMap.put("values", typeSummaryData);
+			
+			// add that to our return list
+			retList.add(typeRetMap);
+		}
+		
+		return retList;
+		
+	}
+
+	private String[] getCleanTypes(String[] possibleTypes) {
+		int length = possibleTypes.length;
+		String[] cleanedTypes = new String[length];
+		
+		for(int i = 0; i < length; i ++) {
+			if(possibleTypes[i].equals("number")) {
+				cleanedTypes[i] = "NUMBER";
+			} else if(possibleTypes[i].equals("character")) {
+				cleanedTypes[i] = "STRING";
+			} else if(possibleTypes[i].equals("Date")) {
+				cleanedTypes[i] = "DATE";
+			} else {
+				cleanedTypes[i] = "OTHER";
+			}
+		}
+		
+		return cleanedTypes;
+	}
+
 	private String getSummaryFrame(String targetDt) {
 		// the name of the results table is what we will be passing to the FE
 		String results = "sumFrame" + Utility.getRandomString(10);
@@ -111,6 +162,7 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 		rsb.append("source(\"" + scriptFilePath + "\");");
 
 		// run function
+		rsb.append(RSyntaxHelper.asDataTable(targetDt, targetDt));
 		rsb.append(results + " <- get_df_scan(" + targetDt + ");");
 
 		// run the script
