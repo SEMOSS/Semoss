@@ -16,18 +16,21 @@ import prerna.rpa.quartz.jobs.db.jdbc.maria.GenerateHashedPrimkeyJob;
 import prerna.rpa.quartz.jobs.example.BakePieJob;
 import prerna.rpa.quartz.jobs.example.EatPieJob;
 import prerna.rpa.quartz.jobs.example.JudgePiesJob;
-import prerna.rpa.quartz.jobs.insight.InsightsRerunCronJob;
 import prerna.rpa.quartz.jobs.insight.ConditionalJob;
-import prerna.rpa.quartz.jobs.insight.OneColConditionJob;
-import prerna.rpa.quartz.jobs.insight.RunPixelJob;
 import prerna.rpa.quartz.jobs.insight.CreateInsightJob;
 import prerna.rpa.quartz.jobs.insight.GetFrameFromInsightJob;
+import prerna.rpa.quartz.jobs.insight.InsightsRerunCronJob;
+import prerna.rpa.quartz.jobs.insight.OneColConditionJob;
+import prerna.rpa.quartz.jobs.insight.RunPixelJobFromDB;
 import prerna.rpa.quartz.jobs.mail.GetSMTPSessionJob;
 import prerna.rpa.quartz.jobs.mail.SendEmailJob;
 import prerna.rpa.quartz.jobs.reporting.kickout.RunKickoutAlgorithmJob;
 import prerna.rpa.quartz.jobs.reporting.kickout.specific.anthem.ProcessWGSPReportsJob;
 
 public enum ConfigurableJob {
+	
+	RUN_PIXEL_JOB("RunPixelJob", RunPixelJobFromDB.class),
+
 	JOB_BATCH("JobBatch", JobBatch.class),
 	JOB_CHAIN("JobChain", JobChain.class),
 	IF_JOB("IfJob", IfJob.class),
@@ -43,7 +46,6 @@ public enum ConfigurableJob {
 	CREATE_INSIGHT_JOB("CreateInsightJob", CreateInsightJob.class),
 	GET_FRAME_FROM_INSIGHT_JOB("GetFrameFromInsightJob", GetFrameFromInsightJob.class),
 	INSIGHT_RERUN_JOB("InsightsRerunCronJob", InsightsRerunCronJob.class),
-	RUN_PIXEL_JOB("RunPixelJob", RunPixelJob.class),
 	GET_SMTP_SESSION_JOB("GetSMTPSessionJob", GetSMTPSessionJob.class),
 	SEND_EMAIL_JOB("SendEmailJob", SendEmailJob.class),
 	JEDIS_TO_JDBC_JOB("JedisToJDBCJob", JedisToJDBCJob.class),
