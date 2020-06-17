@@ -484,12 +484,12 @@ public class SchedulerH2DatabaseUtility {
 		return strOut.toString();
 	}
 
-	private static Blob stringToBlob(Connection connection, String recipe) {
+	private static Blob stringToBlob(Connection connection, String blobInput) {
 		Blob blob = null;
 
 		try {
 			blob = connection.createBlob();
-			blob.setBytes(1, recipe.getBytes());
+			blob.setBytes(1, blobInput.getBytes());
 		} catch (SQLException se) {
 			logger.error("Failed to convert string to blob...");
 			logger.error(Constants.STACKTRACE, se);
