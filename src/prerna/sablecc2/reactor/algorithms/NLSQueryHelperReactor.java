@@ -14,6 +14,7 @@ import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
@@ -133,6 +134,11 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		// run script and get array in alphabetical order
 		String[] retData = generateAndRunScript(query, engineFilters);
 		Arrays.sort(retData);
+		
+		// make sure to catch it if it is an error message
+		if(retData.length == 1 && retData[0].equals("Selected data could not be joined together")) {
+			return new NounMetadata(retData[0], PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ERROR);
+		}
 		
 		// run Garbage Cleanup
 		this.rJavaTranslator.runR("setwd(" + wd + ")");
