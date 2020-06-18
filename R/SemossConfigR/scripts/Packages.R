@@ -227,7 +227,7 @@ install.packages("tm", dependencies=TRUE)
 # Natural Language Search
 install.packages("udpipe", dependencies=TRUE)
 install.packages("tokenizers", dependencies=TRUE)
-install.packages("SteinerNet", dependencies=TRUE)
+install.packages("http://cran.r-project.org/src/contrib/Archive/SteinerNet/SteinerNet_3.0.1.tar.gz", repos=NULL, type="source")
 #install.packages("igraph", dependencies=TRUE)
 #install.packages("data.table", dependencies=TRUE)
 #install.packages("stringr", dependencies=TRUE)
