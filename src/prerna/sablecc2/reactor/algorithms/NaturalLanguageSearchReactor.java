@@ -190,15 +190,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// reset working directory and run garbage cleanup
 		this.rJavaTranslator.executeEmptyR("setwd(" + wd + ");");
-		this.rJavaTranslator.executeEmptyR("rm(" + wd + ",build_join_clause," + "build_pixel,"
-				+ "build_pixel_aggr_select," + "build_pixel_from," + "build_pixel_group," + "build_pixel_having,"
-				+ "build_pixel_single_select," + "build_pixel_where," + "connect_tables," + "db_match," + "filter_apps,"
-				+ "get_alias," + "get_conj," + "get_having," + "get_select," + "get_start," + "get_subtree,"
-				+ "get_where," + "join_clause_mgr," + "map_aggr," + "map_dbitems," + "min_joins," + "nliapp_mgr,"
-				+ "optimize_joins," + "parse_aggr," + "parse_question," + "parse_question_mgr," + "parse_request,"
-				+ "refine_parsing," + "replace_words," + "select_having," + "select_where," + "select_where_helper,"
-				+ "tag_dbitems," + "tagger," + "translate_token," + "trim," + "validate_pixel," + "validate_select,"
-				+ "verify_joins," + "where_helper" + "); gc();");
+		this.rJavaTranslator.executeEmptyR("rm(" + wd + "," + rSessionTable + "," + rSessionJoinTable + "); gc();");
 		
 		
 		// TODO: push asset app
@@ -443,7 +435,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		List<Object[]> list = this.rJavaTranslator.getBulkDataRow(tempResult, headerOrdering);
 
 		// garbage cleanup
-		this.rJavaTranslator.executeEmptyR("rm(" + tempResult + " , " + rSessionTable + " , " + rSessionJoinTable + "); gc();");
+		this.rJavaTranslator.executeEmptyR("rm(" + tempResult + "," + appFilters + "); gc();");
 
 		return list;
 	}
@@ -953,9 +945,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 	private boolean checkForPK(String concept, String property, String rSessionTable, String appId) {
 		StringBuilder rsb = new StringBuilder();
+		String alteredTable = appId + "._." + concept;
 		rsb.append("unique(" + rSessionTable + "[");
 		rsb.append(rSessionTable + "$AppID == \"" + appId + "\" & ");
-		rsb.append(rSessionTable + "$Table == \"" + concept + "\" & ");
+		rsb.append(rSessionTable + "$Table == \"" + alteredTable + "\" & ");
 		rsb.append(rSessionTable + "$Column == \"" + property + "\"");
 		rsb.append(",]$Key);");
 

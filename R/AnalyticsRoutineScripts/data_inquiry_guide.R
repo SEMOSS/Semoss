@@ -167,7 +167,7 @@ get_selected_columns<-function(db,words){
 # Boleean whether groupping is required
 # An array of aggregated columns in the request
 	ITEMS<-c("where","group","by","having","order","ascending","descending")
-	AGGR<-c("total","average","count","min","max")
+	AGGR<-c("sum","average","count","min","max")
 	ind<-which(words %in% ITEMS)
 	if(length(ind)>0){
 		if(min(ind)>1){
@@ -215,7 +215,7 @@ next_keyword_select<-function(db,cols,last_word,group_required,feasible_tables){
 # feasible_tables - a list of tables that can be joined together
 # Output
 # An array of possible next words
-	AGGR<-c("total","average","count","min","max")
+	AGGR<-c("sum","average","count","min","max")
 	if(last_word==""){
 		# feasible columns or aggr
 		next_word<-append(db$Column,AGGR)
@@ -306,7 +306,7 @@ next_keyword_having<-function(last_word,aggr_cols,having_cols){
 # having_cols - a list of columns in the having part 
 # Output
 # An array of possible next words
-	AGGR<-c("total","average","count","min","max")
+	AGGR<-c("sum","average","count","min","max")
 	OPS<-c("<","<=",">",">=","<>","=")
 	
 	remaining_cols<-aggr_cols[!(aggr_cols %in% having_cols)]
