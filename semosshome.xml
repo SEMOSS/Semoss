@@ -21,6 +21,8 @@
         <include>LocalMasterDatabase.smss</include>
         <include>security**/*</include>
         <include>security.smss</include>
+        <include>scheduler**/*</include>
+        <include>scheduler.smss</include>
 		<include>themes**/*</include>
 		<include>themes.smss</include>
         <include>foaf.xml</include>
@@ -89,6 +91,9 @@
     </file>
     <file>
       <source>social.properties</source>
+    </file>
+    <file>
+      <source>quartz.properties</source>
     </file>
 	<file>
       <source>ver.txt</source>
