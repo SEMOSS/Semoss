@@ -594,7 +594,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 		String sheetId = panel.getSheetId();
 		
 		Boolean toggleStack = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.toggleStack") + "");
-		
+		Boolean flipAxis = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.rotateAxis") + "");
+
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -617,7 +618,11 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(chartType, bottomAxis, leftAxis);
-		data.setBarDirection(BarDirection.COL);
+		if(flipAxis) {
+			data.setBarDirection(BarDirection.BAR);
+		} else {
+			data.setBarDirection(BarDirection.COL);
+		}
 		if(toggleStack) {
 			data.setBarGrouping(BarGrouping.STACKED);
 			// correcting the overlap so bars really are stacked and not side by side
