@@ -130,10 +130,10 @@ select_features<-function(df,dep_var){
 }
 
 get_df_scan<-function(df){
-	char_names<-c('variable','missing','min_chars','max_chars','empty','unique','whitespace')
-	num_names<-c('variable','missing','mean','sd','p0','p25','p50','p75','p100')
-	date_names<-c('variable','missing','min','max','median','unique')
-	factor_names<-c('variable','missing','unique','top_counts')
+	char_names<-c('Column','Missing','Min_Chars','Max_Chars','Empty','Unique','Whitespace')
+	num_names<-c('Column','Missing','Mean','SD','P0','P25','P50','P75','P100')
+	date_names<-c('Column','Missing','Min','Max','Median','Unique')
+	factor_names<-c('Column','Missing','Unique','Top_Counts')
 	library(data.table)
 	library(skimr)
 	library(plyr)
@@ -159,7 +159,7 @@ get_df_scan<-function(df){
 		for(i in 1:nrow(types_freq)){
 			type<-as.character(types_freq$x[i])
 			ind<-which(types %in% type)
-			s<-df[,paste0('c(',paste(ind,collapse=','),')')]
+			s<-paste0('c(',paste(ind,collapse=','),')')
 			cmd<-paste0('r<-as.data.frame(skim_without_charts(df[,',s,']))')
 			eval(parse(text=cmd))
 			r[,2]<-colnames(df)[ind]
@@ -170,9 +170,19 @@ get_df_scan<-function(df){
 				type<-'number'
 				r<-r[,c(2,3,5,6,7,8,9,10,11)]
 				colnames(r)<-num_names
+				r$Mean<-round(r$Mean,4)
+				r$SD<-round(r$SD,4)
+				r$P0<-round(r$P0,4)
+				r$P25<-round(r$P25,4)
+				r$P50<-round(r$P50,4)
+				r$P75<-round(r$P75,4)
+				r$P100<-round(r$P100,4)
 			}else if(type=='Date'){
 				r<-r[,c(2,3,5,6,7,8)]
 				colnames(r)<-date_names
+				r$Min<-as.character(r$Min)
+				r$Max<-as.character(r$Max)
+				r$Median<-as.character(r$Median)
 			}else if(type=='factor'){
 				r<-r[,c(2,3,6,7)]
 				colnames(r)<-factor_names
