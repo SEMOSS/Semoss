@@ -3,23 +3,15 @@ build_valid_query<-function(db,joins,text,root_fn="nldr"){
 	library(igraph)
 	library(data.table)
 	library(SteinerNet)
-	KEYWORDS<-c("total","average","count","min","max",'where','group','by','having','order')
-	AGGR<-c("total","average","count","min","max")
+	KEYWORDS<-c("sum","average","count","min","max",'where','group','by','having','order')
+	AGGR<-c("sum","average","count","min","max")
 	words<-unlist(strsplit(text," "))
 	words<-words[nchar(words)>0]
 	cols<-unique(db[tolower(db$Column) %in% tolower(words),"Column"])
 	# remove keywords from column names
 	cols<-cols[!(tolower(cols) %in% KEYWORDS)]
-	
-	# make sure the column names has the propper capitalization
-	if(length(cols)>0){
-		for(i in 1:length(cols)){
-			ind<-which(tolower(words) %in% tolower(cols[i]))
-			if(length(ind)>0){
-				words[ind]<-cols[i]
-			}
-		}
-	}
+	# Match cases for columns and use handle quotes
+	words<-assuage_words(words,cols)
 	
 	stmnt_parts<-partition_request(words)
 	validated_parts<-list()
@@ -79,6 +71,24 @@ build_valid_query<-function(db,joins,text,root_fn="nldr"){
 	return(out)
 }
 
+assuage_words<-function(words,cols){
+	# words in single quotes are not columns, mostly for values that matching the column names
+	ind<-which(substring(words,1,1)=="'" & substring(words,nchar(words))=="'")
+	if(length(ind)>0){
+		words[ind]<-substring(words[ind],2,nchar(words[ind])-1)
+	}
+	# make sure the column names has the propper capitalization
+	if(length(cols)>0){
+		for(i in 1:length(cols)){
+			ind<-which(tolower(words) %in% tolower(cols[i]))
+			if(length(ind)>0){
+				words[ind]<-cols[i]
+			}
+		}
+	}
+	return(words)
+}
+
 process_valid_statement<-function(db,joins,stmnt_parts,cols,root_fn="nldr"){
 
 	# initialize statement container
@@ -86,7 +96,12 @@ process_valid_statement<-function(db,joins,stmnt_parts,cols,root_fn="nldr"){
 	item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
 	# Retrieve cluster info
 	partition<-readRDS(paste0(root_fn,"_membership.rds"))
-	clusters<-unique(unname(partition))
+	# limit to potential candidates
+	cand_tbls<-db[db$Column %in% cols,"Table"]
+	# index potential clusters
+	ind<-which(names(partition) %in% cand_tbls)
+	# pontial clusters
+	clusters<-unique(unname(partition[ind]))
 	if(length(clusters)>0){
 		k<-1
 		for(i in 1:length(clusters)){
@@ -105,16 +120,16 @@ process_valid_statement<-function(db,joins,stmnt_parts,cols,root_fn="nldr"){
 					for(j in 1:length(part_names)){
 						part<-stmnt_parts[[part_names[j]]]
 						if(part_names[j]=='select'){
-							p<-process_select(db,part,cols,p,k)
+							p<-process_select(cur_db,part,cols,p,k)
 							p<-process_from(cluster_joins,p,k)
 						}else if(part_names[j]=='where'){
-							p<-process_where(db,part,cols,p,k)
+							p<-process_where(cur_db,part,cols,p,k)
 						}else if(part_names[j]=='group'){
-							p<-process_group(db,part,cols,p,k)
+							p<-process_group(cur_db,part,cols,p,k)
 						}else if(part_names[j]=='having'){
-							p<-process_having(db,part,cols,p,k)
+							p<-process_having(cur_db,part,cols,p,k)
 						}else if(part_names[j]=='order'){
-							p<-process_order(db,part,cols,p,k)
+							p<-process_order(cur_db,part,cols,p,k)
 						}
 					}
 				}
@@ -147,7 +162,7 @@ assemble_validated_stmnt<-function(validated_parts){
 }
 
 validate_select<-function(db,part,cols,valid){
-	AGGR<-c("total","average","count","min","max")
+	AGGR<-c("sum","average","count","min","max")
 	
 	p<-valid[[1]]
 	errs<-part[!(tolower(part) %in% tolower(cols)) & !(tolower(part) %in% AGGR)]
@@ -212,7 +227,7 @@ validate_where<-function(db,part,cols,valid){
 						if(length(cur_part)==3) {
 							break
 						}else{
-							cur_part<-part[3:length(part)]
+							cur_part<-part[4:length(part)]
 						}
 					}
 				}else{
@@ -231,13 +246,12 @@ validate_where<-function(db,part,cols,valid){
 }
 
 validate_group<-function(db,part,select_part,cols,valid){
-	AGGR<-c("total","average","count","min","max")
+	AGGR<-c("sum","average","count","min","max")
 	
 	p<-valid[[1]]
 	if(length(part)>0){
 		errs<-part[!(tolower(part) %in% tolower(cols))]
 		if(length(errs)>0){
-			q<-errs
 			part<-part[!(part %in% errs)]
 		}
 	}
@@ -257,7 +271,7 @@ validate_group<-function(db,part,select_part,cols,valid){
 				}
 			}
 			if(length(select_cols)>0){
-				if(!(tolower(select_cols) %in% tolower(part))){
+				if(!any(tolower(select_cols) %in% tolower(part))){
 					if(length(select_cols)==1){
 						prefix<-'column '
 					}else{
@@ -278,7 +292,7 @@ validate_group<-function(db,part,select_part,cols,valid){
 }
 
 validate_having<-function(db,part,cols,valid){
-	AGGR<-c("total","average","count","min","max")
+	AGGR<-c("sum","average","count","min","max")
 	OPS<-c("<","<=",">",">=","<>","=")
 	
 	p<-valid[[1]]
