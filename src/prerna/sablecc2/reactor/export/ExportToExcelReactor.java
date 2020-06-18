@@ -33,6 +33,7 @@ import org.apache.poi.xddf.usermodel.XDDFSolidFillProperties;
 import org.apache.poi.xddf.usermodel.chart.AxisCrosses;
 import org.apache.poi.xddf.usermodel.chart.AxisPosition;
 import org.apache.poi.xddf.usermodel.chart.BarDirection;
+import org.apache.poi.xddf.usermodel.chart.BarGrouping;
 import org.apache.poi.xddf.usermodel.chart.ChartTypes;
 import org.apache.poi.xddf.usermodel.chart.LegendPosition;
 import org.apache.poi.xddf.usermodel.chart.MarkerStyle;
@@ -181,7 +182,6 @@ public class ExportToExcelReactor extends AbstractReactor {
 		// now build charts
 		for (String panelId : panelMap.keySet()) {
 			InsightPanel panel = panelMap.get(panelId);
-			String sheetId = panel.getSheetId();
 			// for each panel get the task and task options
 			SelectQueryStruct qs = panel.getLastQs();
 			TaskOptions taskOptions = panel.getTaskOptions();
@@ -192,7 +192,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 			task.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
 			task.setTaskOptions(taskOptions);
 			// add chart
-			processTask(workbook, task, sheetId, panelId);
+			processTask(workbook, task, panel);
 		}
 
 		// Insert Semoss Logo after the last chart on each sheet
@@ -302,7 +302,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 	}
 
-	private void processTask(XSSFWorkbook workbook, ITask task, String sheetId, String panelId) {
+	private void processTask(XSSFWorkbook workbook, ITask task, InsightPanel panel) {
+		String panelId = panel.getPanelId();
+		String sheetId = panel.getSheetId();
 		TaskOptions tOptions = task.getTaskOptions();
 		Map<String, Object> options = tOptions.getOptions();
 		XSSFSheet sheet = workbook.getSheet(sheetId);
@@ -310,17 +312,17 @@ public class ExportToExcelReactor extends AbstractReactor {
 		// Insert chart if supported
 		String plotType = tOptions.getLayout(panelId);
 		if (plotType.equals("Line")) {
-			insertLineChart(sheet, options, sheetId, panelId);
+			insertLineChart(sheet, options, panel);
 		} else if (plotType.equals("Scatter")) {
-			insertScatterChart(sheet, options, sheetId, panelId);
+			insertScatterChart(sheet, options, panel);
 		} else if (plotType.equals("Area")) {
-			insertAreaChart(sheet, options, sheetId, panelId);
+			insertAreaChart(sheet, options, panel);
 		} else if (plotType.equals("Column")) {
-			insertBarChart(sheet, options, sheetId, panelId);
+			insertBarChart(sheet, options, panel);
 		} else if (plotType.equals("Pie")) {
-			insertPieChart(sheet, options, sheetId, panelId);
+			insertPieChart(sheet, options, panel);
 		} else if (plotType.equals("Radar")) {
-			insertRadarChart(sheet, options, sheetId, panelId);
+			insertRadarChart(sheet, options, panel);
 		}
 	}
 
@@ -489,7 +491,10 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 	}
 
-	private void insertLineChart(XSSFSheet sheet, Map<String, Object> options, String sheetId, String panelId) {
+	private void insertLineChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+		String panelId = panel.getPanelId();
+		String sheetId = panel.getSheetId();
+		
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -539,7 +544,10 @@ public class ExportToExcelReactor extends AbstractReactor {
 		chart.plot(data);
 	}
 
-	private void insertScatterChart(XSSFSheet sheet, Map<String, Object> options, String sheetId, String panelId) {
+	private void insertScatterChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+		String panelId = panel.getPanelId();
+		String sheetId = panel.getSheetId();
+		
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -581,7 +589,12 @@ public class ExportToExcelReactor extends AbstractReactor {
 		chart.plot(data);
 	}
 
-	private void insertBarChart(XSSFSheet sheet, Map<String, Object> options, String sheetId, String panelId) {
+	private void insertBarChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+		String panelId = panel.getPanelId();
+		String sheetId = panel.getSheetId();
+		
+		Boolean toggleStack = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.toggleStack") + "");
+		
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -605,7 +618,12 @@ public class ExportToExcelReactor extends AbstractReactor {
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(chartType, bottomAxis, leftAxis);
 		data.setBarDirection(BarDirection.COL);
-
+		if(toggleStack) {
+			data.setBarGrouping(BarGrouping.STACKED);
+			// correcting the overlap so bars really are stacked and not side by side
+			chart.getCTChart().getPlotArea().getBarChartArray(0).addNewOverlap().setVal((byte)100);
+		}
+		data.setGapWidth(10);
 		// Add in x vals
 		XDDFNumericalDataSource xs = createXAxis(sheet, xColumnMap);
 
@@ -620,7 +638,10 @@ public class ExportToExcelReactor extends AbstractReactor {
 		chart.plot(data);
 	}
 
-	private void insertAreaChart(XSSFSheet sheet, Map<String, Object> options, String sheetId, String panelId) {
+	private void insertAreaChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+		String panelId = panel.getPanelId();
+		String sheetId = panel.getSheetId();
+		
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -658,7 +679,10 @@ public class ExportToExcelReactor extends AbstractReactor {
 		chart.plot(data);
 	}
 
-	private void insertPieChart(XSSFSheet sheet, Map<String, Object> options, String sheetId, String panelId) {
+	private void insertPieChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+		String panelId = panel.getPanelId();
+		String sheetId = panel.getSheetId();
+		
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -694,7 +718,10 @@ public class ExportToExcelReactor extends AbstractReactor {
 		chart.plot(data);
 	}
 
-	private void insertRadarChart(XSSFSheet sheet, Map<String, Object> options, String sheetId, String panelId) {
+	private void insertRadarChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+		String panelId = panel.getPanelId();
+		String sheetId = panel.getSheetId();
+		
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
