@@ -1,5 +1,5 @@
 build_query<-function(db,joins,text,root_fn="nldr"){
-	KEYWORDS<-c("total","average","count","min","max",'where','group','by','having','order')
+	KEYWORDS<-c("sum","average","count","min","max",'where','group','by','having','order')
 	library(igraph)
 	library(data.table)
 	library(SteinerNet)
@@ -70,7 +70,7 @@ process_stmnt<-function(db,joins,cluster_joins,words,cols,p,k){
 }
 
 process_select<-function(db,part,cols,p,k){
-	AGGR<-c("total","average","count","min","max")
+	AGGR<-c("sum","average","count","min","max")
 
 	ind<-which(tolower(part) %in% tolower(cols))
 	if(length(ind)>0){
@@ -150,7 +150,7 @@ process_group<-function(db,part,cols,p,k){
 
 	ind<-which(tolower(part) %in% tolower(cols))
 	if(length(ind)>0){
-		for(i in length(ind)){
+		for(i in 1:length(ind)){
 			cur<-part[ind[i]]
 			appid_tbl<-unlist(strsplit(db[tolower(db$Column)==tolower(cur),"Table"][1],"._.",fixed=TRUE))
 			p<-rbindlist(list(p,list(k,appid_tbl[1],'','group',appid_tbl[2],cur,'','','','','')))
@@ -160,7 +160,7 @@ process_group<-function(db,part,cols,p,k){
 }
 
 process_having<-function(db,part,cols,p,k){
-	AGGR<-c("total","average","count","min","max")
+	AGGR<-c("sum","average","count","min","max")
 	OPS<-c("<","<=",">",">=","<>","=")
 	
 	ind<-which(tolower(part) %in% tolower(cols))
