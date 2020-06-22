@@ -84,6 +84,7 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -466,6 +467,7 @@ public class Insight {
 			// account for unsaved insights vs. saved insights
 			if(!isSavedInsight()) {
 				String sessionId = ThreadStore.getSessionId();
+				sessionId = InsightUtility.getFolderDirSessionId(sessionId);
 				this.insightFolder = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + DIR_SEPARATOR + sessionId + DIR_SEPARATOR + this.insightId;
 			} else {
 				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
