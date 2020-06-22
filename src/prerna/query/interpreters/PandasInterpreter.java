@@ -247,6 +247,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				.append(this.aggCriteria2)
 				// TODO: need to be more elegant than this
 				.append(scalar ? "" : orderBy)
+				.append(addLimitOffset(start, end))
 				//.append(orderBy2)
 				.append(normalizer);
 				//.append(this.renCriteria);
@@ -432,8 +433,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		{
 			if(!((SelectQueryStruct) this.qs).getGroupBy().isEmpty())
 			{
-				this.aggCriteria = aggCriteria.append("})").append(addLimitOffset(start, end)).append(".reset_index()");
-				this.aggCriteria2 = aggCriteria2.append(")").append(addLimitOffset(start, end)).append(".reset_index()");
+				this.aggCriteria = aggCriteria.append("})").append(".reset_index()");
+				this.aggCriteria2 = aggCriteria2.append(")").append(".reset_index()");
 				this.renCriteria = renCriteria.append("}).reset_index()");
 			}
 			if(headers.size() == 1) // it is just getting one single data
@@ -450,7 +451,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// if there is agroup by.. this whole thing should be ignored pretty much
 		if(this.selectorCriteria.toString().length() > 0 && ((SelectQueryStruct) this.qs).getGroupBy().isEmpty() && !partMap.containsKey(SelectQueryStruct.Query_Part.SELECT))
 		{
-			StringBuilder newSelectorCriteria = new StringBuilder(addLimitOffset(start, end) + "[[");
+			StringBuilder newSelectorCriteria = new StringBuilder("[[");
 			this.selectorCriteria = newSelectorCriteria.append(this.selectorCriteria).append("]]");
 		}
 		else if(!partMap.containsKey(SelectQueryStruct.Query_Part.SELECT))
