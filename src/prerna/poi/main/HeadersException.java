@@ -49,7 +49,7 @@ public class HeadersException {
 				prohibitedHeaders.add(word.toUpperCase());
 			}
 		} catch(Exception e) {
-			System.err.println("DIHelper is not loaded. THIS SHOUDL ONLY BE THE CASE DURING TESTING!");
+			System.err.println("DIHelper is not loaded. THIS SHOULD ONLY BE THE CASE DURING TESTING!");
 		}
 	}
 	
