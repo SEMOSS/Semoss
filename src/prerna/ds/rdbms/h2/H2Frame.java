@@ -43,6 +43,7 @@ import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactor;
 
@@ -79,6 +80,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		String folderToUsePath = null;
 		String fileNameToUse = null;
 		if(sessionId != null && insightId != null) {
+			sessionId = InsightUtility.getFolderDirSessionId(sessionId);
 			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
 					DIR_SEPARATOR + sessionId +  DIR_SEPARATOR + insightId;
 			fileNameToUse = "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".mv.db";
