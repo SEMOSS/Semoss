@@ -1286,7 +1286,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(leftSelectorExpression != null && leftSelectorExpression.contains("<>"))
 			leftSelectorExpression = " != ";
 		
-		if(leftDataType == SemossDataType.STRING)
+		if(leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.DATE || leftDataType == SemossDataType.TIMESTAMP)
 		{
 			// couple of things to check here
 			// is this a search string
@@ -1307,6 +1307,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			retBuilder.append(") ");
 			return retBuilder;
 		}
+		
 		// ok so we we are done with string here
 		// next is number
 		// this can be > <
