@@ -80,6 +80,18 @@ public class InsightUtility {
 	}
 	
 	/**
+	 * Get a subset of the session Id to use in file locations to do file structure length restrictions
+	 * @param sessionId
+	 * @return
+	 */
+	public static String getFolderDirSessionId(String sessionId) {
+		if(sessionId.length() > 32) {
+			return sessionId.substring(0, 32);
+		}
+		return sessionId;
+	}
+	
+	/**
 	 * Set the insight panel to be a visualization
 	 * @param insight
 	 * @param panelId

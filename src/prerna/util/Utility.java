@@ -2499,7 +2499,7 @@ public class Utility {
 			AppAvailabilityStore availableAppStore = AppAvailabilityStore.getInstance();
 			if (availableAppStore != null) {
 				if (availableAppStore.isAppDisabledByOwner(engineId)) {
-					throw new SemossPixelException("App is currently disabled by owner");
+					throw new SemossPixelException("The app you are trying to access is currently disabled.  Please reach out to the owner for more details");
 				}
 			}
 		}
