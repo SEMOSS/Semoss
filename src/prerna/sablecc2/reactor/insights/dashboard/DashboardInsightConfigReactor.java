@@ -20,6 +20,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
+@Deprecated
 public class DashboardInsightConfigReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = DashboardInsightConfigReactor.class.getName();
