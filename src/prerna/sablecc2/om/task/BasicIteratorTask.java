@@ -100,7 +100,7 @@ public class BasicIteratorTask extends AbstractTask {
 			return false;
 		} else if( this.qs != null && this.iterator == null) {
 			try {
-				generateIterator(this.qs, false);
+				generateIterator(this.qs, this.qs.isOverrideImplicit());
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SemossPixelException(e.getMessage());
@@ -131,7 +131,7 @@ public class BasicIteratorTask extends AbstractTask {
 		if(this.headerInfo != null && this.grabTypesFromWrapper) {
 			if(this.iterator == null) {
 				try {
-					generateIterator(this.qs, false);
+					generateIterator(this.qs, this.qs.isOverrideImplicit());
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new SemossPixelException(e.getMessage());
@@ -216,7 +216,7 @@ public class BasicIteratorTask extends AbstractTask {
 			this.qs.setLimit(this.startLimit);
 			this.qs.setOffSet(this.startOffset);
 			this.internalOffset = 0;
-			generateIterator(this.qs, true);
+			generateIterator(this.qs, this.qs.isOverrideImplicit());
 		}
 	}
 	
@@ -323,7 +323,7 @@ public class BasicIteratorTask extends AbstractTask {
 					}
 					addedOrder = true;
 				}
-				generateIterator(this.qs, false);
+				generateIterator(this.qs, this.qs.isOverrideImplicit());
 				// we got the iterator
 				// if we added an order, remove it
 				if(addedOrder) {
@@ -378,7 +378,7 @@ public class BasicIteratorTask extends AbstractTask {
 		// since we lazy execute the iterator
 		// make sure it exists
 		if(this.qs != null && this.iterator == null) {
-			generateIterator(this.qs, false);
+			generateIterator(this.qs, this.qs.isOverrideImplicit());
 		}
 		// creates a new cache to be used
 		ITableDataFrame frame = this.qs.getFrame();
@@ -415,7 +415,7 @@ public class BasicIteratorTask extends AbstractTask {
 	
 	public IRawSelectWrapper getIterator() throws Exception {
 		if(this.qs != null && this.iterator == null) {
-			generateIterator(this.qs, false);
+			generateIterator(this.qs, this.qs.isOverrideImplicit());
 		}
 		return this.iterator;
 	}
