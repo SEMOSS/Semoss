@@ -175,7 +175,7 @@ process_having<-function(db,part,cols,p,k){
 						value<-part[ind[i]+2]
 						if(!(value %in% cols)){
 							appid_tbl<-unlist(strsplit(db[tolower(db$Column)==tolower(cur),"Table"][1],"._.",fixed=TRUE))
-							p<-rbindlist(list(p,list(k,appid_tbl[1],'',appid_tbl[2],'having',cur,prev,op,value,'','')))
+							p<-rbindlist(list(p,list(k,appid_tbl[1],'','having',appid_tbl[2],cur,prev,op,value,'','')))
 						}
 					}
 				}
@@ -192,16 +192,19 @@ process_order<-function(db,part,cols,p,k){
 	if(length(ind)>0){
 		for(i in 1:length(ind)){
 			cur<-part[ind[i]]
+			appid_tbl<-unlist(strsplit(db[tolower(db$Column)==tolower(cur),"Table"][1],"._.",fixed=TRUE))
 			if(length(part)>=ind[i]+1){
 				item<-intersect(part[ind[i]+1],ITEMS)
-				appid_tbl<-unlist(strsplit(db[tolower(db$Column)==tolower(cur),"Table"][1],"._.",fixed=TRUE))
 				if(length(item)>0){
-					p<-rbindlist(list(p,list(k,appid_tbl[1],'',appid_tbl[2],'order',cur,item,'','','','')))
+					p<-rbindlist(list(p,list(k,appid_tbl[1],'','order',appid_tbl[2],cur,item,'','','','')))
 				}else{
 					item<-ITEMS[1]
-					p<-rbindlist(list(p,list(k,appid_tbl[1],'',appid_tbl[2],'order',cur,item,'','','','')))
+					p<-rbindlist(list(p,list(k,appid_tbl[1],'','order',appid_tbl[2],cur,item,'','','','')))
 				}
 				item<-ITEMS[1]
+			}else{
+				item<-ITEMS[1]
+				p<-rbindlist(list(p,list(k,appid_tbl[1],'','order',appid_tbl[2],cur,item,'','','','')))
 			}
 		}
 	}
