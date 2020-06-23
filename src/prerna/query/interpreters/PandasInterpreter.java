@@ -618,7 +618,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				headers.add(selector.getAlias());
 				orderHash.put(selector.getAlias(), builder);
 				actHeaders.add(newHeader);
-				types.add(colDataTypes.get(this.frameName + "__" + newHeader));
+				if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+					types.add(colDataTypes.get(this.frameName + "__" + newHeader));
+				}
 				
 				/*
 				if(index2Drop.length() == 0)
@@ -1241,12 +1243,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(thisComparator.equals(SEARCH_COMPARATOR)) {
 			overrideQuery = new StringBuilder(frameName).append("w.").append("column_like(").append(finalFilter).append(",").append(leftSelectorExpression).append(", '").append(objects.get(0)).append("')");
 			this.headers.add(leftSelectorExpression);
-			this.types.add(SemossDataType.STRING);
 			return new StringBuilder("");
 		}else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
 			overrideQuery = new StringBuilder(frameName).append("w.").append("column_not_like(").append(finalFilter).append(",").append(leftSelectorExpression).append(", '").append(objects.get(0)).append("')");
 			this.headers.add(leftSelectorExpression);
-			this.types.add(SemossDataType.STRING);
 			return new StringBuilder("");
 		}
 
