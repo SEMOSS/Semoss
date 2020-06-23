@@ -538,6 +538,24 @@ class PyFrame:
 			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'Y'))
 		return frame
 
+	def add_date_col(this, new_col_name, inplace=True):
+		frame = this.cache['data']
+		if not inplace:
+			this.makeCopy()
+		frame[new_col_name] = pd.Series([pd.to_datetime('today').date()] * len(frame))
+		frame[new_col_name] = pd.to_datetime(frame[new_col_name])
+		this.cache['data'] = frame
+		return frame
+
+	def add_datetime_col(this, new_col_name, inplace=True):
+		frame = this.cache['data']
+		if not inplace:
+			this.makeCopy()
+		frame[new_col_name] = pd.Series([pd.to_datetime('today')] * len(frame))
+		frame[new_col_name] = pd.to_datetime(frame[new_col_name])
+		this.cache['data'] = frame
+		return frame
+
 	# average across columns
 	def avg_cols(this, cols_to_avg, new_col):
 		frame = this.cache['data']
