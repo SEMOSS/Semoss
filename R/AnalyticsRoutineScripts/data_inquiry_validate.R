@@ -10,8 +10,10 @@ build_valid_query<-function(db,joins,text,root_fn="nldr"){
 	cols<-unique(db[tolower(db$Column) %in% tolower(words),"Column"])
 	# remove keywords from column names
 	cols<-cols[!(tolower(cols) %in% KEYWORDS)]
-	# Match cases for columns and use handle quotes
-	words<-assuage_words(words,cols)
+	# Match cases for columns and use handle quotes and choose the column with a single case
+	r<-assuage_words(words,cols)
+	words<-r[[1]]
+	cols<-r[[2]]
 	
 	stmnt_parts<-partition_request(words)
 	validated_parts<-list()
@@ -67,6 +69,7 @@ build_valid_query<-function(db,joins,text,root_fn="nldr"){
 	}else{
 		out<-data.frame(error='request does not contain required sections')
 	}
+	#write.csv(out,"query_object.csv")
 	gc()
 	return(out)
 }
@@ -78,15 +81,33 @@ assuage_words<-function(words,cols){
 		words[ind]<-substring(words[ind],2,nchar(words[ind])-1)
 	}
 	# make sure the column names has the propper capitalization
+	chosen_cols<-vector()
+	#processed_ind<-vector()
 	if(length(cols)>0){
-		for(i in 1:length(cols)){
-			ind<-which(tolower(words) %in% tolower(cols[i]))
-			if(length(ind)>0){
-				words[ind]<-cols[i]
+		# exact match
+		cols_ind<-which(cols %in% words)
+		if(length(cols_ind)>0){
+			for(i in 1:length(cols_ind)){
+				ind<-which(words %in% cols[cols_ind[i]])
+				words[ind]<-cols[cols_ind[i]]
+				chosen_cols<-append(chosen_cols,cols[cols_ind[i]])
+			}
+		}
+		cols<-cols[!(tolower(cols) %in% tolower(chosen_cols))]
+		
+		cols_ind<-which(tolower(cols) %in% tolower(words))
+		if(length(cols_ind)>0){
+			for(i in 1:length(cols_ind)){
+				ind<-which(tolower(words) %in% tolower(cols[cols_ind[i]]))
+				words[ind]<-cols[cols_ind[i]]
+				chosen_cols<-append(chosen_cols,cols[cols_ind[i]])
 			}
 		}
 	}
-	return(words)
+	out<-list()
+	out[[1]]<-words
+	out[[2]]<-chosen_cols
+	return(out)
 }
 
 process_valid_statement<-function(db,joins,stmnt_parts,cols,root_fn="nldr"){
@@ -194,6 +215,7 @@ validate_where<-function(db,part,cols,valid){
 	OPS<-c("<","<=",">",">=","<>","=")
 	
 	p<-valid[[1]]
+	real_part<-character()
 	if(length(part)>0){
 		cur_part<-part
 		while(length(cur_part)>0){
@@ -208,9 +230,11 @@ validate_where<-function(db,part,cols,valid){
 							if(tolower(cur_part[4])==tolower(cur_cols)){
 								# the fourth element is the same column than the first element
 								if(length(cur_part)==4) {
+									real_part<-append(real_part,cur_part)
 									break
 								}else{
-									cur_part<-part[4:length(part)]
+									real_part<-append(real_part,cur_part[,1:4])
+									cur_part<-part[5:length(part)]
 								}
 							}else{
 								# the fourth element is a different column as the first element 
@@ -225,9 +249,17 @@ validate_where<-function(db,part,cols,valid){
 					}else{
 						# the third element is value
 						if(length(cur_part)==3) {
+							real_part<-append(real_part,cur_part)
 							break
 						}else{
+							real_part<-append(real_part,cur_part[1:3])
 							cur_part<-part[4:length(part)]
+							ind<-which(cur_part %in% cols)
+							if(length(ind)>0){
+								cur_part<-cur_part[ind[1]:length(cur_part)]
+							}else{
+								break
+							}
 						}
 					}
 				}else{
@@ -241,7 +273,7 @@ validate_where<-function(db,part,cols,valid){
 		part<-character(0)
 	}
 	valid[[1]]<-p
-	valid[[2]]<-part
+	valid[[2]]<-real_part
 	return(valid)
 }
 
