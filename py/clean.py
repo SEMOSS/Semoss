@@ -121,7 +121,7 @@ class PyFrame:
 	def self_match(this, actual_col):
 		result = []
 		frame = this.cache['data']
-		actual_col_values = frame[actual_col].unique()
+		actual_col_values = frame[actual_col].value_counts().index.values
 		for index_loop_one, x in enumerate(actual_col_values):
 			if x is np.nan:
 				continue
