@@ -439,7 +439,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				this.aggCriteria2 = aggCriteria2.append(")").append(".reset_index()");
 				this.renCriteria = renCriteria.append("}).reset_index()");
 				if(headers.size() == 1) {
-					aggCriteria2 = aggCriteria.append("reset_index()");
+					aggCriteria2 = aggCriteria.append(".reset_index()");
 				}
 			} 
 			// it is just getting one single data
