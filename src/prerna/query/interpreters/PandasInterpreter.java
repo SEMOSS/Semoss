@@ -44,6 +44,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	private StringBuilder selectorCriteria;
 	private StringBuilder filterCriteria;
+	private StringBuilder havingCriteria;
 	private StringBuilder groupCriteria = new StringBuilder("");
 	private StringBuilder aggCriteria = new StringBuilder("");
 	private StringBuilder aggCriteria2 = new StringBuilder("");
@@ -124,18 +125,19 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// if the filter is empty.. then I can go directly to iloc
 		// normalize everything since we are not creating this everytime.. we might as well but we need it at different points
 		// eventually move this to static
-		if(DIHelper.getInstance().getCoreProp().containsKey("SWIFTER"))
+		if(DIHelper.getInstance().getCoreProp().containsKey("SWIFTER")) {
 			swifter = DIHelper.getInstance().getCoreProp().get("SWIFTER")+"";
-		else
+		} else {
 			swifter = "";
+		}
 		// force swifter
 		swifter = "";
 				
-		if(DIHelper.getInstance().getCoreProp().containsKey("EXP"))
+		if(DIHelper.getInstance().getCoreProp().containsKey("EXP")) {
 			exp = DIHelper.getInstance().getCoreProp().get("EXP")+"";
-		else
+		} else {
 			exp = "";
-
+		}
 		
 		headers = new ArrayList<>();
 		groupIndex = 0;
@@ -147,6 +149,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		aggCriteria = new StringBuilder("");
 		renCriteria = new StringBuilder("");
 		filterCriteria = new StringBuilder("");
+		havingCriteria = new StringBuilder("");
 		scalar = false;
 		functionMap = new HashMap<>();
 		aggHash = new HashMap<>();
@@ -156,7 +159,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		orderBy = new StringBuilder("");
 		normalizer = new StringBuilder(".to_dict('split')");//['data']"); // Ideally I should be able to put drop duplicates here
 		ascending = new StringBuilder("");
-		
 		
 		long limit = 500;
 		start = 0 ;
@@ -231,8 +233,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// see if replacements need to be done
 
 		
-		if(overrideQuery == null)
-		{
+		if(overrideQuery == null) {
 			query.append(cachedFrame)
 				//.append(".cache['data']")
 				//.append(".iloc[")
@@ -241,19 +242,26 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				//.append(this)
 				.append(this.filterCriteria)
 				.append(this.selectorCriteria)
-				.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()))
 				.append(this.groupCriteria) //<-- trying disabling this now
 				//.append(this.aggCriteria2)
 				.append(this.aggCriteria2)
+				// add the having clause
+				.append(this.havingCriteria);
+				// add distinct after we aggregate
+				if(!scalar && aggCriteria2.toString().isEmpty()) {
+					query.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()));
+				}
 				// TODO: need to be more elegant than this
-				.append(scalar ? "" : orderBy)
+				query.append(scalar ? "" : orderBy)
 				.append(addLimitOffset(start, end))
 				//.append(orderBy2)
 				.append(normalizer);
+				// TODO: NEED TO DISTINCT THE LIST RETURNED
+//				if(!scalar && !aggCriteria2.toString().isEmpty()) {
+//					query.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()));
+//				}
 				//.append(this.renCriteria);
-		}
-		if(overrideQuery != null)
-		{
+		} else {
 			query = overrideQuery;
 			if(actHeaders != null && actHeaders.size() > 0) {
 				headers = actHeaders;
@@ -269,8 +277,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return query.toString();
 	}
 	
-	private void buildListMap()
-	{
+	private void buildListMap() {
 		// step1 - iterate through order list
 		// for every order try to see if it is a groupby or is it a aggregate
 		// based on either one build that list
@@ -280,8 +287,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// this ONLY works when the groupby is ahead of calculated column.. although I will force it to the first one just now
 		
 		try {
-			if(!groupColList.isEmpty())
-			{
+			if(!groupColList.isEmpty()) {
 				String filter = "''";
 				if(filterCriteria.length() > 0)
 					filter =  "\"" + composeFilterString() +"\"";
@@ -291,17 +297,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				StringBuilder aggList = new StringBuilder("[");
 				StringBuilder fList = new StringBuilder("[");
 				String groupcol = (String)groupColList.get(0);
-				for(int selectIndex = 0;selectIndex < orderList.size();selectIndex++)
-				{
+				for(int selectIndex = 0;selectIndex < orderList.size();selectIndex++) {
 					String thisSelector = (String)orderList.get(selectIndex);
-					if(groupColList.contains(thisSelector))
-					{
+					if(groupColList.contains(thisSelector)) {
 						// process it as group
 						gList.append("'").append(thisSelector).append("'");
 						composeGroupCacheString(thisSelector, true);
-					}
-					else if(aggColMap.containsKey(thisSelector))
-					{
+					} else if(aggColMap.containsKey(thisSelector)) {
 						// process this as an aggregate
 						String aggCol = (String)aggColMap.get(thisSelector); 
 						String aggFunc = (String)aggColMap.get(thisSelector+"__f"); 
@@ -324,8 +326,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				StringBuilder orderString = new StringBuilder("[");
 				String cacheName = frameName + "w.cache";
 				
-				for(int orderIndex = 0;orderIndex < orderList.size();orderIndex++)
-				{
+				for(int orderIndex = 0;orderIndex < orderList.size();orderIndex++) {
 					String thisOrder = (String)orderList.get(orderIndex);
 					if(orderIndex != 0)
 						orderString.append(",");
@@ -333,11 +334,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					// pull the name of selector
 					String orderSelector = (String)orderListMap.get(thisOrder);
 					// if this was a group tag a list with it
-					if(!aggColMap.containsKey(thisOrder))
+					if(!aggColMap.containsKey(thisOrder)) {
 						orderString.append("list(").append(cacheName).append("[\"").append(orderSelector).append("\"]").append(")");
-					else
+					} else {
 						orderString.append(cacheName).append("[\"").append(orderSelector).append("\"]");
-
+					}
 				}
 				orderString.append("]");
 				
@@ -351,79 +352,81 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				this.overrideQuery = orderString;
 				qs.getPragmap().put("format", "parquet");
 			}
-			else
-			{
+			else {
 				// nothing to see please move on
 			}
 		} catch (Exception e) {
 			logger.error("StackTrace: ", e);
 		}
-		
 	}
 	
 	private void fillParts() {
 		SelectQueryStruct sqs = (SelectQueryStruct) qs;
 		Map partMap = sqs.getParts();
 
-		if (partMap.containsKey(SelectQueryStruct.Query_Part.QUERY))
+		if (partMap.containsKey(SelectQueryStruct.Query_Part.QUERY)) {
 			overrideQuery = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.QUERY) + "");
-
-		if (partMap.containsKey(SelectQueryStruct.Query_Part.FILTER))
-			filterCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.FILTER) + "");
-		else
-			addFilters();
-
-		// ideally this should not be but.. I need types
-		if (partMap.containsKey(SelectQueryStruct.Query_Part.SELECT))
-			selectorCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.SELECT) + "");
-		else
-			addSelectors();
-
-		// if(overrideQuery == null)
-		{
-			if (partMap.containsKey(SelectQueryStruct.Query_Part.SORT))
-				orderBy = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.SORT) + "");
-			else
-				processOrderBy();
-	
-			if (partMap.containsKey(SelectQueryStruct.Query_Part.AGGREGATE))
-				aggCriteria2 = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.AGGREGATE) + "");
-			else
-				genAggString();
-	
-			if (partMap.containsKey(SelectQueryStruct.Query_Part.GROUP))
-				groupCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.GROUP) + "");
-			else
-				processGroupSelectors();
 		}
+		if (partMap.containsKey(SelectQueryStruct.Query_Part.FILTER)) {
+			filterCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.FILTER) + "");
+		} else {
+			addFilters();
+		}
+		if (partMap.containsKey(SelectQueryStruct.Query_Part.HAVING)) {
+			havingCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.HAVING) + "");
+		} else {
+			addHavings();
+		}
+		// ideally this should not be but.. I need types
+		if (partMap.containsKey(SelectQueryStruct.Query_Part.SELECT)) {
+			selectorCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.SELECT) + "");
+		} else {
+			addSelectors();
+		}
+		
+		// if(overrideQuery == null) {
+			if (partMap.containsKey(SelectQueryStruct.Query_Part.SORT)) {
+				orderBy = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.SORT) + "");
+			} else {
+				processOrderBy();
+			}
+			
+			if (partMap.containsKey(SelectQueryStruct.Query_Part.AGGREGATE)) {
+				aggCriteria2 = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.AGGREGATE) + "");
+			} else {
+				genAggString();
+			}
+			
+			if (partMap.containsKey(SelectQueryStruct.Query_Part.GROUP)) {
+				groupCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.GROUP) + "");
+			} else {
+				processGroupSelectors();
+			}
+//		}
 	}
 	
 	
 	private String addDistinct(boolean distinct) {
 		if(distinct) {
 			// try to find if there is more than 1 column
-			if(orderHash.size() > 1)
-				return "";
-			else if(orderHash.size() == 1 && aggHash.size() == 0)
+//			if(orderHash.size() > 1)
+//				return "";
+//			else if(orderHash.size() == 1 && aggHash.size() == 0)
 				return ".drop_duplicates()";
 		}
 		return "";
 	}
 	
-	private void closeFilters()
-	{
-		if(filterCriteria.length() > 0 )
-		{
+	private void closeFilters() {
+		if(filterCriteria.length() > 0 ) {
 			filterCriteria = new StringBuilder(".loc[").append(filterCriteria).append("]");
-			
 			// update the selector only if if there is no agg
 			//if(selectorCriteria.length() == 0)
 			//	selectorCriteria.append(".drop_duplicates()");
-		
 		}
 	}
-	public void closeAll()
-	{
+	
+	public void closeAll() {
 		boolean aggregate = false;
 		SelectQueryStruct sqs = (SelectQueryStruct)qs;
 		Map partMap = sqs.getParts();
@@ -431,14 +434,16 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		//t.agg({'Title': 'count'}).rename({'Title': 'count(Title)'}).reset_index().to_dict('split')['data']
 		if(this.aggCriteria.toString().length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.AGGREGATE))
 		{
-			if(!((SelectQueryStruct) this.qs).getGroupBy().isEmpty())
-			{
+			if(!((SelectQueryStruct) this.qs).getGroupBy().isEmpty()) {
 				this.aggCriteria = aggCriteria.append("})").append(".reset_index()");
 				this.aggCriteria2 = aggCriteria2.append(")").append(".reset_index()");
 				this.renCriteria = renCriteria.append("}).reset_index()");
-			}
-			if(headers.size() == 1) // it is just getting one single data
-			{
+				if(headers.size() == 1) {
+					aggCriteria2 = aggCriteria.append("reset_index()");
+				}
+			} 
+			// it is just getting one single data
+			else if(headers.size() == 1) {
 				this.aggCriteria = aggCriteria.append("}).reset_index()");
 				this.aggCriteria2 = aggCriteria2.append(").reset_index()");
 				normalizer = new StringBuilder(".to_dict('split')['data'][0][1]");
@@ -449,16 +454,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		// if there is agroup by.. this whole thing should be ignored pretty much
-		if(this.selectorCriteria.toString().length() > 0 && ((SelectQueryStruct) this.qs).getGroupBy().isEmpty() && !partMap.containsKey(SelectQueryStruct.Query_Part.SELECT))
-		{
+		if(this.selectorCriteria.toString().length() > 0 && ((SelectQueryStruct) this.qs).getGroupBy().isEmpty() 
+				&& !partMap.containsKey(SelectQueryStruct.Query_Part.SELECT)) {
 			StringBuilder newSelectorCriteria = new StringBuilder("[[");
 			this.selectorCriteria = newSelectorCriteria.append(this.selectorCriteria).append("]]");
-		}
-		else if(!partMap.containsKey(SelectQueryStruct.Query_Part.SELECT))
+		} else if(!partMap.containsKey(SelectQueryStruct.Query_Part.SELECT)) {
 			this.selectorCriteria = new StringBuilder("");
+		}
 		
-		if(groupCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.GROUP))
+		if(groupCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.GROUP)) {
 			groupCriteria.append("], sort=False)");
+		}
 		/*
 		else if(aggregate) // this is the case for greater than less than etc. this means it I need to force a group by - the assumption is there is only one
 		{
@@ -466,25 +472,27 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			groupCriteria.append(".groupby('" + aggKeys.get(0) + "')");
 			this.aggCriteria2 = aggCriteria2.append(")").append(addLimitOffset(start, end)).append(".reset_index()");
 		}*/
-		if(filterCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.FILTER))
-		{
+		
+		if(filterCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.FILTER)) {
 			filterCriteria = new StringBuilder(".loc[").append(filterCriteria).append("]");
-			
 			// update the selector only if if there is no agg
 			//if(selectorCriteria.length() == 0)
 			//	selectorCriteria.append(".drop_duplicates()");
-		
 		}
-		if(orderBy.length() != 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SORT))
+		// add the having criteria 
+		if(havingCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.HAVING)) {
+			havingCriteria = new StringBuilder(".loc[").append(havingCriteria).append("]");
+		}
+		if(orderBy.length() != 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SORT)) {
 			// combine it
 			orderBy.append("],").append(ascending).append("])");
-		if(orderBy2.length() != 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SORT))
+		}
+		if(orderBy2.length() != 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SORT)) {
 			// combine it
 			orderBy2.append("],").append(ascending2).append("])");
-		
+		}
 		//if(aggregate) // swap the order
 		//	orderBy = orderBy;
-			
 	}
 	
 	private void processOrderBy() {
@@ -521,16 +529,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		//	orderBy = new StringBuilder("");
 	}
 	
-	private void addOrder(StringBuilder curOrder, String asc)
-	{
+	private void addOrder(StringBuilder curOrder, String asc) {
 		// I need to find out which are the pieces I need to drop
-		if(orderBy.length() == 0)
-		{
+		if(orderBy.length() == 0) {
 			orderBy = new StringBuilder(".sort_values([");
 			ascending = new StringBuilder("ascending=[");
-		}
-		else
-		{
+		} else {
 			orderBy.append(",");
 			ascending.append(",");
 		}
@@ -540,34 +544,26 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		// add the order by
 		orderBy.append("'").append(curOrder).append("'");
-		
 	}
 
-	private void addOrder2(StringBuilder curOrder, String asc)
-	{
+	private void addOrder2(StringBuilder curOrder, String asc) {
 		// I need to find out which are the pieces I need to drop
 		// get the ordinal value
 		//int colIndex = headers.indexOf(curOrder);
-		if(orderBy2.length() == 0)
-		{
+		if(orderBy2.length() == 0) {
 			orderBy2 = new StringBuilder(".sort_index(level=[");
 			ascending2 = new StringBuilder("ascending=[");
-		}
-		else
-		{
+		} else {
 			orderBy2.append(",");
 			ascending2.append(",");
 		}
 		
 		// add the ascending
 		ascending2.append(asc);
-		
 		// add the order by
 		orderBy2.append(curOrder);
-		
 	}
 
-	
 	private String addLimitOffset(long start, long end) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(".iloc[" + start + ":");
@@ -578,9 +574,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return sb.toString();
 	}
 	
-	public void addFilters()
-	{
+	public void addFilters() {
 		addFilters(qs.getCombinedFilters().getFilters(), this.wrapperFrameName, this.filterCriteria, false);
+	}
+	
+	public void addHavings() {
+		addFilters(qs.getHavingFilters().getFilters(), this.wrapperFrameName, this.havingCriteria, false);
 	}
 
 	// add all the selectors
@@ -589,11 +588,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		int size = selectors.size();
 		// get the cue from DIHelper
-		int maxColumns = 100;
-		if(DIHelper.getInstance().getCoreProp().containsKey("MAX_COL_ON_GRID"))
-			maxColumns = Integer.parseInt(DIHelper.getInstance().getCoreProp().getProperty("MAX_COL_ON_GRID"));
-		//if(size > maxColumns)
-		//	size = maxColumns;
+//		int maxColumns = 100;
+//		if(DIHelper.getInstance().getCoreProp().containsKey("MAX_COL_ON_GRID")) {
+//			maxColumns = Integer.parseInt(DIHelper.getInstance().getCoreProp().getProperty("MAX_COL_ON_GRID"));
+//		}
+//		if(size > maxColumns) {
+//			size = maxColumns;
+//		}
 		
 		for(int i = 0; i < size; i++) {
 			IQuerySelector selector = selectors.get(i);
@@ -629,7 +630,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					index2Drop.append(",").append(i);
 				*/
 			}
-			
 		}
 		
 		//index2Drop.append("]");
@@ -706,11 +706,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return selector.getColumn();
 	}
 	
-	private void processGroupSelectors()
-	{
+	private void processGroupSelectors() {
 		List <QueryColumnSelector> groupSelectors = ((SelectQueryStruct) this.qs).getGroupBy();
-		for(int sIndex = 0;sIndex < groupSelectors.size();sIndex++)
-		{
+		for(int sIndex = 0;sIndex < groupSelectors.size();sIndex++) {
 			QueryColumnSelector qcs = groupSelectors.get(sIndex);
 			processGroupSelector(qcs);
 
@@ -720,11 +718,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 	
-	private void processGroupSelector(QueryColumnSelector selector)
-	{
-		//if(!processedSelector.containsKey(selector.getAlias()))
-		{
-			//if(!aggHash.containsKey(selector.getTable()))
+	private void processGroupSelector(QueryColumnSelector selector) {
+//		if(!processedSelector.containsKey(selector.getAlias())) {
+//			if(!aggHash.containsKey(selector.getTable()))
 			{
 				if(groupCriteria.length() == 0)
 					groupCriteria.append(".groupby([");
@@ -734,8 +730,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				groupCriteria.append("'").append(selector.getColumn()).append("'");
 			}
 			
-			if(actHeaders.contains(selector.getColumn()))
-			{
+			if(actHeaders.contains(selector.getColumn())) {
 				int index = actHeaders.indexOf(selector.getColumn());
 				actHeaders.remove(selector.getColumn());
 				//headers.remove(selector.getTable());
@@ -744,50 +739,38 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			}
 			
 			//headers.add(groupIndex, selector.getTable());
-			
 			// we dont know how many groups would it be.. so updating
-
-			if(processedSelector.containsKey(selector.getColumn()))
-			{
+			if(processedSelector.containsKey(selector.getColumn())) {
 				processedSelector.put(selector.getColumn(), Boolean.TRUE);
 				headers.add(selector.getColumn());
 			}
-		}
+//		}
 	}
-	
 	
 	public Map<String, String> functionMap() {
 		return this.functionMap;
 	}
 	
-	
-	
-	private void genAggString()
-	{
+	private void genAggString()	{
 		aggCriteria = new StringBuilder("");
 
-		for(int cIndex = 0;cIndex < aggKeys.size();cIndex++)
-		{
+		for(int cIndex = 0;cIndex < aggKeys.size();cIndex++) {
 			String colKey = aggKeys.get(cIndex);
 			// I need to replace this with aggHash2
-			if(aggHash.containsKey(colKey))
-			{
+			if(aggHash.containsKey(colKey)) {
 				if(aggCriteria.length() != 0)
 					aggCriteria.append(",");
 				aggCriteria.append(aggHash.get(colKey)).append("]");
 			}
 			//aggCriteria.append(aggHash.get(colKey));
-			if(aggHash2.containsKey(colKey))
-			{
+			if(aggHash2.containsKey(colKey)) {
 				if(aggCriteria2.length() != 0)
 					aggCriteria2.append(",");
 				aggCriteria2.append(aggHash2.get(colKey));				
 			}
-			
-
 		}
-		if(aggCriteria.length() > 0)
-		{
+		
+		if(aggCriteria.length() > 0) {
 			aggCriteria = new StringBuilder(".agg({").append(aggCriteria);
 			aggCriteria2 = new StringBuilder(".agg(").append(aggCriteria2);
 		}
@@ -798,8 +781,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 	
-	private String processAggSelector(QueryFunctionSelector selector)
-	{
+	private String processAggSelector(QueryFunctionSelector selector) {
 		// if it is using a function.. usually it is an aggregation
 		String function = selector.getFunction();
 		String columnName = selector.getAllQueryColumns().get(0).getAlias();
@@ -819,19 +801,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// mango is the name of the alias.. no quotes
 		aggBuilder2.append(aggAlias).append("=('").append(columnName).append("' , '").append(pandasFunction).append("')");
 		
-		
-		
-		if(aggHash.containsKey(columnName))
-		{
+		if(aggHash.containsKey(columnName)) {
 			aggBuilder = aggHash.get(columnName);
 			aggBuilder.append(",");
-		}
-		else
+		} else {
 			aggBuilder.append("'").append(columnName).append("':[");
-		
-
+		}
 		aggBuilder.append("'" + pandasFunction +"'");
-		
 		
 		orderHash.put(selector.getAlias(), new StringBuilder("('").append(columnName).append("')"));
 		
@@ -846,20 +822,14 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			aggKeys.add(aggAlias);
 		
 		// if it is a group concat.. dont add this to actual headers here.. since it will get added during group by
-		if(function.equalsIgnoreCase(QueryFunctionHelper.UNIQUE_GROUP_CONCAT))
-		{
+		if(function.equalsIgnoreCase(QueryFunctionHelper.UNIQUE_GROUP_CONCAT)) {
 			actHeaders.add(columnName);
 			functionMap.put(pandasFunction+columnName, selector.getAlias());
-		}
-		else
-		{
+		} else {
 			actHeaders.add(selector.getAlias());
 			// else it will get added by the way of group by clause
-			
 			functionMap.put(pandasFunction+columnName, selector.getAlias());
 		}
-			
-		
 		
 		// I can avoid all of this by creating a dataframe and imputing.. but let us see how far we can inline this
 		// I am going to assume that this is the same type as header for most operations
@@ -867,23 +837,20 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		// it can also depend on the operation but.. 
 		// I have no idea what I am doing here
-		if(curType == SemossDataType.STRING || curType == SemossDataType.BOOLEAN)
+		if(curType == SemossDataType.STRING || curType == SemossDataType.BOOLEAN) {
 			types.add(SemossDataType.INT);
-		else
+		} else {
 			types.add(curType);
+		}
 		
 		// if the groupby is empty then this is just simple min and max
 		// need to revisit min and max
 		// quick fix for min and max
 		// I do need to honor the filter here
-		if(((SelectQueryStruct) this.qs).getGroupBy().isEmpty() && (pandasFunction.contains("min") || pandasFunction.contains("max")))
-		{
-			if(overrideQuery == null || overrideQuery.length() == 0)
-			{
+		if(((SelectQueryStruct) this.qs).getGroupBy().isEmpty() && (pandasFunction.contains("min") || pandasFunction.contains("max"))) {
+			if(overrideQuery == null || overrideQuery.length() == 0) {
 				overrideQuery = new StringBuilder("[");
-			}
-			else
-			{
+			} else {
 				overrideQuery.append(",");
 			}
 			overrideQuery.append(wrapperFrameName).append("['").append(columnName).append("'].").append(pandasFunction).append("()");
