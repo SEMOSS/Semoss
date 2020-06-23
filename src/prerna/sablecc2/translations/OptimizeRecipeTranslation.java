@@ -642,42 +642,40 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		PANEL_LAYER_MAP_LOOP : for(String panelId : layerMap.keySet()) {
 			Map<String, List<Integer>> thisLayerMap = layerMap.get(panelId);
 
-			// first, check to see if this is a clone
-			// if it is, then we need to see 2 things
-			// first, did the panel view change after this step
-			// if so, we do not need it
-			// second, we need to make sure we are cloning the correct step
-			// so that the view has the panel at its original view
-			// not at a later view
 			List<Integer> expressionsForPanel = panelMap.get(panelId);
 			int lastPanelExpressionIndex = expressionsForPanel.get(expressionsForPanel.size() - 1);
-			if(cloneIndexToClonePanelId.containsKey(lastPanelExpressionIndex)) {
-
-				// fist check - did we change the panel view at a later point
-				List<Object[]> panelViews = panelToPanelView.get(panelId);
-				// if we cloned and never changed, this might never be recorded
-				// so null check it
-				if(panelViews != null) {
-					for(Object[] pView : panelViews) {
-						int setPanelViewIndex = (int) pView[0];
-						String view = (String) pView[1];
-
-						// make sure it is at a relevant point in the expression
-						if(setPanelViewIndex > lastPanelExpressionIndex) {
-							if(!view.equals("visualization")) {
-								// okay, we need to ignore this
-								// most likely, the panel was cloned to open up 
-								// a new one
-								// and then something else has been set inside
-								// potentially a filter/infographic/text/other widget
-								// this is captured in the viz state
-								continue PANEL_LAYER_MAP_LOOP;
-							}
+			
+			// fist check - did we change the panel view at a later point
+			List<Object[]> panelViews = panelToPanelView.get(panelId);
+			// if we cloned and never changed, this might never be recorded
+			// so null check it
+			if(panelViews != null) {
+				for(Object[] pView : panelViews) {
+					int setPanelViewIndex = (int) pView[0];
+					String view = (String) pView[1];
+					// make sure it is at a relevant point in the expression
+					if(setPanelViewIndex > lastPanelExpressionIndex) {
+						if(!view.equals("visualization")) {
+							// okay, we need to ignore this
+							// most likely, the panel was cloned to open up 
+							// a new one
+							// and then something else has been set inside
+							// potentially a filter/infographic/text/other widget
+							// this is captured in the viz state
+							continue PANEL_LAYER_MAP_LOOP;
 						}
 					}
 				}
+			}
+			
+			
+			// check to see if this is a clone
+			// if it is, then we need make sure we are cloning the correct step
+			// so that the view has the panel at its original view
+			// not at a later view
+			if(cloneIndexToClonePanelId.containsKey(lastPanelExpressionIndex)) {
 
-				// now, if we did a clone from a panel
+				// if we did a clone from a panel
 				// and then changed the original panel view
 				// the clone should still maintain the original panel view
 				// not the new view
