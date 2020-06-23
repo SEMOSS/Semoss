@@ -26,7 +26,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	// query is the complete query overhall
 	public enum Query_Part {
-		SELECT, FILTER, SORT, GROUP, AGGREGATE, QUERY;
+		SELECT, FILTER, HAVING, SORT, GROUP, AGGREGATE, QUERY;
 	} 
 	
 	protected transient Map queryPartHash = new HashMap();
