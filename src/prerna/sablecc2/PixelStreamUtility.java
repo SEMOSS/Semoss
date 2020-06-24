@@ -613,15 +613,6 @@ public class PixelStreamUtility {
 				ps.print(",\"operationType\":");
 				ps.print(gson.toJson(noun.getOpType()));
 				ps.flush();
-				
-				// also update the panels to be in visualization mode
-				// in case they are not
-				if(task.getTaskOptions() != null) {
-					Set<String> panelIds = task.getTaskOptions().getPanelIds();
-					for(String panelId : panelIds) {
-						InsightUtility.setPanelForVisualization(in, panelId);
-					}
-				}
 			}
 			// if we do not have a task
 			// we just have data to send
