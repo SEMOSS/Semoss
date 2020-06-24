@@ -6,6 +6,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.util.insight.InsightUtility;
 
 public class AutoTaskOptionsReactor extends TaskBuilderReactor {
 
@@ -29,6 +30,9 @@ public class AutoTaskOptionsReactor extends TaskBuilderReactor {
 			TaskOptions tOptions = AudoTaskOptionsHelper.getAutoOptions(qs, panelId, layout, optMap);
 			if(tOptions != null) {
 				this.task.setTaskOptions(tOptions);
+				// if we use task options on a panel
+				// we automatically set the panel view to be visualization
+				InsightUtility.setPanelForVisualization(this.insight, panelId);
 			}
 		}
 	}
