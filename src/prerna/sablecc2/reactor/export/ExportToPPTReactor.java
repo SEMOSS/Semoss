@@ -60,9 +60,9 @@ import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 
-public class ExportToPPT extends AbstractReactor {
+public class ExportToPPTReactor extends AbstractReactor {
 	
-	public ExportToPPT() {
+	public ExportToPPTReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
 	}
 
