@@ -58,6 +58,7 @@ import prerna.sablecc2.reactor.insights.SetInsightGoldenLayoutReactor;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
@@ -220,7 +221,9 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			// for each panel in the set of panel ids
 			for (String panel : panelId) {
 				addPanelForCurrentIndex(panel);
-
+				// when we run a task - we automatically set the current panel to visualization
+				addPanelView(panel, InsightUtility.PANEL_VIEW_VISUALIZATION);
+				
 				Map<String, Object> thisPanelOptions = (Map<String, Object>) inputMap.get(panel);
 				if(thisPanelOptions == null) {
 					// try casting to integer

@@ -2,13 +2,15 @@ package prerna.sablecc2.reactor.task;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.util.insight.InsightUtility;
 
 public class TaskOptionsReactor extends TaskBuilderReactor {
-	
+
 	public TaskOptionsReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.OPTIONS.getKey()};
 	}
@@ -21,6 +23,13 @@ public class TaskOptionsReactor extends TaskBuilderReactor {
 			this.task.setTaskOptions(null);
 		} else {
 			this.task.setTaskOptions(new TaskOptions((Map<String, Object>) mapOptions.get(0)));
+
+			// if we use task options on a panel
+			// we automatically set the panel view to be visualization
+			Set<String> panelIds = this.task.getTaskOptions().getPanelIds();
+			for(String panelId : panelIds) {
+				InsightUtility.setPanelForVisualization(this.insight, panelId);
+			}
 		}
 	}
 }
