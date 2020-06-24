@@ -53,6 +53,15 @@ import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 import org.apache.poi.xssf.usermodel.XSSFDrawing;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTAreaChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTBarChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLblPos;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTLineChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTPlotArea;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.STDLblPos;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -77,6 +86,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = ExportToExcelReactor.class.getName();
 	private static final String STACKTRACE = "StackTrace: ";
+	private static final String GRID_ON_X = "tools.shared.editGrid.x";
+	private static final String GRID_ON_Y = "tools.shared.editGrid.y";
+	private static final String DISPLAY_VALUES = "tools.shared.displayValues";
 
 	protected String fileLocation = null;
 	protected Logger logger;
@@ -84,7 +96,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 	private Map<String, Map<String, Object>> chartPanelLayout = new HashMap<>();
 
 	public ExportToExcelReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), 
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PASSWORD.getKey() };
 	}
 
@@ -133,15 +145,15 @@ public class ExportToExcelReactor extends AbstractReactor {
 		// create each sheet
 		for (String sheetId : sheetMap.keySet()) {
 			InsightSheet sheet = sheetMap.get(sheetId);
-			if(sheet == null) {
+			if (sheet == null) {
 				continue;
 			}
 			String sheetName = sheet.getSheetLabel();
-			if(sheetName == null) {
+			if (sheetName == null) {
 				// since we are 0 based, add 1
 				try {
-					sheetName = "Sheet" + (Integer.parseInt(sheetId)+1);
-				} catch(Exception ignore) {
+					sheetName = "Sheet" + (Integer.parseInt(sheetId) + 1);
+				} catch (Exception ignore) {
 					sheetName = "Sheet " + sheetId;
 				}
 			}
@@ -160,7 +172,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 			// for each panel get the task and task options
 			SelectQueryStruct qs = panel.getLastQs();
 			TaskOptions taskOptions = panel.getTaskOptions();
-			if(qs == null || taskOptions == null) {
+			if (qs == null || taskOptions == null) {
 				continue;
 			}
 			qs.setLimit(numRowsToExport);
@@ -185,7 +197,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 			// for each panel get the task and task options
 			SelectQueryStruct qs = panel.getLastQs();
 			TaskOptions taskOptions = panel.getTaskOptions();
-			if(qs == null || taskOptions == null) {
+			if (qs == null || taskOptions == null) {
 				continue;
 			}
 			ITask task = new BasicIteratorTask(qs);
@@ -236,7 +248,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 
 				// Insert logo into each sheet
 				Iterator<String> sheetIdIterator = sheetAlias.keySet().iterator();
-				while(sheetIdIterator.hasNext()) {
+				while (sheetIdIterator.hasNext()) {
 					String sheetId = sheetIdIterator.next();
 					// Get location for logo on current sheet
 					Map<String, Object> sheetChartMap = this.chartPanelLayout.get(sheetId);
@@ -251,7 +263,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 					// so that will return -1
 					// will also remove so we dont try to rename this
 					// in the next step
-					if(sheetIndex == -1) {
+					if (sheetIndex == -1) {
 						sheetIdIterator.remove();
 						continue;
 					}
@@ -388,8 +400,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 				Cell cell = headerRow.createCell(curSheetCol);
 				cell.setCellValue(headers[i]);
 				cell.setCellStyle(headerCellStyle);
-				
-				if(headerInfo.get(i).containsKey("type")) {
+
+				if (headerInfo.get(i).containsKey("type")) {
 					typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
 				} else {
 					typesArr[i] = SemossDataType.STRING;
@@ -494,7 +506,12 @@ public class ExportToExcelReactor extends AbstractReactor {
 	private void insertLineChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
-		
+
+		// retrieve ornaments
+		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.editGrid.x") + "");
+		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.editGrid.y") + "");
+		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.displayValues") + "");
+
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -515,6 +532,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
+		addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
@@ -542,12 +560,22 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 
 		chart.plot(data);
+
+		// if true, display data labels on chart
+		if (displayValues.booleanValue()) {
+			displayValues(ChartTypes.LINE, chart);
+		}
 	}
 
 	private void insertScatterChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
-		
+
+		// retrieve ornaments
+		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
+		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
+		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -568,6 +596,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
+		addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
@@ -587,14 +616,24 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 
 		chart.plot(data);
+
+		// if true, display data labels on chart
+		if (displayValues.booleanValue()) {
+			displayValues(ChartTypes.SCATTER, chart);
+		}
 	}
 
 	private void insertBarChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
-		
+
+		// retrieve ornaments
 		Boolean toggleStack = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.toggleStack") + "");
 		Boolean flipAxis = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.rotateAxis") + "");
+		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
+		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
+		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizeBarLabel.position") + "";
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
@@ -616,19 +655,23 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
+		addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(chartType, bottomAxis, leftAxis);
-		if(flipAxis) {
+
+		if (flipAxis) {
 			data.setBarDirection(BarDirection.BAR);
 		} else {
 			data.setBarDirection(BarDirection.COL);
 		}
-		if(toggleStack) {
+
+		if (toggleStack) {
 			data.setBarGrouping(BarGrouping.STACKED);
 			// correcting the overlap so bars really are stacked and not side by side
-			chart.getCTChart().getPlotArea().getBarChartArray(0).addNewOverlap().setVal((byte)100);
+			chart.getCTChart().getPlotArea().getBarChartArray(0).addNewOverlap().setVal((byte) 100);
 		}
 		data.setGapWidth(10);
+
 		// Add in x vals
 		XDDFNumericalDataSource xs = createXAxis(sheet, xColumnMap);
 
@@ -637,16 +680,28 @@ public class ExportToExcelReactor extends AbstractReactor {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(sheet, yColumnMap);
 			XDDFBarChartData.Series chartSeries = (XDDFBarChartData.Series) data.addSeries(xs, ys);
+			XDDFNumericalDataSource<? extends Number> dataSource = chartSeries.getValuesData();
 			chartSeries.setTitle(yColumnName, null);
 		}
 
 		chart.plot(data);
+
+		// if true, display data labels on chart
+		if (displayValues.booleanValue()) {
+			CTDLbls dLbls = displayValues(ChartTypes.BAR, chart);
+			positionDisplayValues(ChartTypes.BAR, dLbls, displayValuesPosition);
+		}
 	}
 
 	private void insertAreaChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
-		
+
+		// retrieve ornaments
+		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
+		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
+		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -667,6 +722,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
+		addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFAreaChartData data = (XDDFAreaChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
@@ -682,12 +738,21 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 
 		chart.plot(data);
+
+		// if true, display data labels on chart
+		if (displayValues.booleanValue()) {
+			displayValues(ChartTypes.AREA, chart);
+		}
 	}
 
 	private void insertPieChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
-		
+
+		// retrieve ornaments
+		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.position") + "";
+
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -721,12 +786,22 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 
 		chart.plot(data);
+
+		// if true, display data labels on chart
+		if (displayValues.booleanValue()) {
+			CTDLbls dLbls = displayValues(ChartTypes.PIE, chart);
+			positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
+		}
 	}
 
 	private void insertRadarChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
-		
+
+		// retrieve ornaments
+		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
+		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
+
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -747,6 +822,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
+		addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFRadarChartData data = (XDDFRadarChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
@@ -762,6 +838,96 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 
 		chart.plot(data);
+	}
+
+	private void addGridLines(Boolean gridOnX, Boolean gridOnY, XSSFChart chart) {
+		CTPlotArea plotArea = null;
+		plotArea = chart.getCTChart().getPlotArea();
+
+		// if true add grid lines on x/y axis
+		if (gridOnX.booleanValue() && gridOnY.booleanValue()) {
+			plotArea.getCatAxArray()[0].addNewMajorGridlines();
+			plotArea.getValAxArray()[0].addNewMajorGridlines();
+		} else if (gridOnX.booleanValue()) {
+			plotArea.getCatAxArray()[0].addNewMajorGridlines();
+		} else if (gridOnY.booleanValue()) {
+			plotArea.getValAxArray()[0].addNewMajorGridlines();
+		}
+	}
+
+	private CTDLbls displayValues(ChartTypes chartType, XSSFChart chart) {
+		CTDLbls dLbls = null;
+		switch (chartType) {
+			case LINE:
+				CTLineChart ctLineChart = chart.getCTChart().getPlotArea().getLineChartArray(0);
+				ctLineChart.addNewDLbls();
+				dLbls = ctLineChart.getDLbls();
+				break;
+			case SCATTER:
+				CTScatterChart ctScatterChart = chart.getCTChart().getPlotArea().getScatterChartArray(0);
+				ctScatterChart.addNewDLbls();
+				dLbls = ctScatterChart.getDLbls();
+				break;
+			case BAR:
+				CTBarChart ctBarChart = chart.getCTChart().getPlotArea().getBarChartArray(0);
+				ctBarChart.addNewDLbls();
+				dLbls = ctBarChart.getDLbls();
+				break;
+			case AREA:
+				CTAreaChart ctAreaChart = chart.getCTChart().getPlotArea().getAreaChartArray(0);
+				ctAreaChart.addNewDLbls();
+				dLbls = ctAreaChart.getDLbls();
+				break;
+			case PIE:
+				CTPieChart ctPieChart = chart.getCTChart().getPlotArea().getPieChartArray(0);
+				ctPieChart.addNewDLbls();
+				dLbls = ctPieChart.getDLbls();
+				break;
+			default:
+				break;
+		}
+
+		if (dLbls != null) {
+			dLbls.addNewShowBubbleSize().setVal(false);
+			dLbls.addNewShowLegendKey().setVal(false);
+			dLbls.addNewShowCatName().setVal(false);
+			dLbls.addNewShowSerName().setVal(false);
+			dLbls.addNewShowPercent().setVal(false);
+			dLbls.addNewShowVal().setVal(true);
+		}
+
+		return dLbls;
+	}
+
+	private void positionDisplayValues(ChartTypes chartType, CTDLbls dLbls, String displayValuesPosition) {
+		// if available, set positioning of data labels
+		if (!displayValuesPosition.equals("{}")) {
+			CTDLblPos ctdLblPos = null;
+			ctdLblPos = CTDLblPos.Factory.newInstance();
+
+			if (chartType.equals(ChartTypes.BAR)) {
+				if (displayValuesPosition.equalsIgnoreCase("inside")
+						|| displayValuesPosition.equalsIgnoreCase("insideLeft")
+						|| displayValuesPosition.equalsIgnoreCase("insideRight")) {
+					ctdLblPos.setVal(STDLblPos.CTR);
+				} else if (displayValuesPosition.equalsIgnoreCase("insideBottom")
+						|| displayValuesPosition.equalsIgnoreCase("bottom")) {
+					ctdLblPos.setVal(STDLblPos.IN_BASE);
+				} else if (displayValuesPosition.equalsIgnoreCase("insideTop")) {
+					ctdLblPos.setVal(STDLblPos.IN_END);
+				} else if (displayValuesPosition.equalsIgnoreCase("top")) {
+					ctdLblPos.setVal(STDLblPos.OUT_END);
+				}
+			} else if (chartType.equals(ChartTypes.PIE)) {
+				if (displayValuesPosition.equalsIgnoreCase("inside")) {
+					ctdLblPos.setVal(STDLblPos.CTR);
+				} else if (displayValuesPosition.equalsIgnoreCase("outside")) {
+					ctdLblPos.setVal(STDLblPos.OUT_END);
+				}
+			}
+
+			dLbls.setDLblPos(ctdLblPos);
+		}
 	}
 
 	private XSSFChart createBaseChart(XSSFSheet sheet, Map<String, Object> sheetMap, LegendPosition legendPosition) {
