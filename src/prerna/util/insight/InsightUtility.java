@@ -31,7 +31,7 @@ import prerna.util.gson.FrameCacheHelper;
 public class InsightUtility {
 
 	protected static final Logger LOGGER = LogManager.getLogger(InsightUtility.class.getName());
-	private static final String PANEL_VIEW_VISUALIZATION = "visualization";
+	public static final String PANEL_VIEW_VISUALIZATION = "visualization";
 	
 	private InsightUtility() {
 		
