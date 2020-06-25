@@ -41,6 +41,7 @@ import org.apache.poi.xddf.usermodel.chart.XDDFAreaChartData;
 import org.apache.poi.xddf.usermodel.chart.XDDFBarChartData;
 import org.apache.poi.xddf.usermodel.chart.XDDFCategoryAxis;
 import org.apache.poi.xddf.usermodel.chart.XDDFChartLegend;
+import org.apache.poi.xddf.usermodel.chart.XDDFDataSource;
 import org.apache.poi.xddf.usermodel.chart.XDDFDataSourcesFactory;
 import org.apache.poi.xddf.usermodel.chart.XDDFLineChartData;
 import org.apache.poi.xddf.usermodel.chart.XDDFNumericalDataSource;
@@ -593,26 +594,27 @@ public class ExportToExcelReactor extends AbstractReactor {
 		Map<String, Object> xColumnMap = (Map<String, Object>) panelMap.get(xColumnName);
 
 		// Build chart
-		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
-		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
+		XSSFChart chart = createBaseChart(sheet, sheetMap, null);
+		XDDFValueAxis bottomAxis = chart.createValueAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(chartType, bottomAxis, leftAxis);
-
 		// Add in x vals
-		XDDFNumericalDataSource xs = createXAxis(sheet, xColumnMap);
+		XDDFDataSource xs = createXAxis(sheet, xColumnMap);
 
 		// Add in y vals
-		for (String yColumnName : yColumnNames) {
+		for (int i = 0; i < yColumnNames.size(); i++) {
+			String yColumnName = yColumnNames.get(i);
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(sheet, yColumnMap);
 			XDDFScatterChartData.Series chartSeries = (XDDFScatterChartData.Series) data.addSeries(xs, ys);
 			chartSeries.setTitle(yColumnName, null);
 			chartSeries.setSmooth(false);
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
-			chart.getCTChart().getPlotArea().getScatterChartArray(0).getSerArray(0).addNewSpPr().addNewLn()
-					.addNewNoFill();
+			CTScatterChart scatterSeries = chart.getCTChart().getPlotArea().getScatterChartArray(0);
+			scatterSeries.getSerArray(i).addNewSpPr().addNewLn().addNewNoFill();
+			scatterSeries.addNewVaryColors().setVal(false);
 		}
 
 		chart.plot(data);
@@ -845,12 +847,10 @@ public class ExportToExcelReactor extends AbstractReactor {
 		plotArea = chart.getCTChart().getPlotArea();
 
 		// if true add grid lines on x/y axis
-		if (gridOnX.booleanValue() && gridOnY.booleanValue()) {
+		if (gridOnX.booleanValue()) {
 			plotArea.getCatAxArray()[0].addNewMajorGridlines();
-			plotArea.getValAxArray()[0].addNewMajorGridlines();
-		} else if (gridOnX.booleanValue()) {
-			plotArea.getCatAxArray()[0].addNewMajorGridlines();
-		} else if (gridOnY.booleanValue()) {
+		}
+		if (gridOnY.booleanValue()) {
 			plotArea.getValAxArray()[0].addNewMajorGridlines();
 		}
 	}
@@ -940,9 +940,11 @@ public class ExportToExcelReactor extends AbstractReactor {
 		// Increment for positioning other objects correctly
 		sheetMap.put("chartIndex", chartIndex + 10);
 		XSSFChart chart = drawing.createChart(anchor);
-		XDDFChartLegend legend = chart.getOrAddLegend();
-		legend.setPosition(legendPosition);
-
+		if(legendPosition != null) {
+			XDDFChartLegend legend = chart.getOrAddLegend();
+			legend.setPosition(legendPosition);
+		}
+		
 		return chart;
 	}
 
