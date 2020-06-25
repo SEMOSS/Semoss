@@ -44,6 +44,7 @@ import org.apache.poi.xslf.usermodel.XSLFChart;
 import org.apache.poi.xslf.usermodel.XSLFPictureData;
 import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -241,10 +242,10 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XSLFSlide slide = slideshow.createSlide();
 		XSLFChart chart = slideshow.createChart(slide);
-		XDDFChartLegend legend = chart.getOrAddLegend();
-		legend.setPosition(LegendPosition.TOP_RIGHT);
+//		XDDFChartLegend legend = chart.getOrAddLegend();
+//		legend.setPosition(LegendPosition.TOP_RIGHT);
 
-		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
+		XDDFValueAxis bottomAxis = chart.createValueAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(ChartTypes.SCATTER, bottomAxis, leftAxis);
@@ -253,7 +254,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
 
 		// Add in y vals
-		for (String yColumnName : yColumnNames) {
+		for (int i = 0; i < yColumnNames.size(); i++) {
+			String yColumnName = yColumnNames.get(i);
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFScatterChartData.Series chartSeries = (XDDFScatterChartData.Series) data.addSeries(xs, ys);
@@ -261,14 +263,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 			// Standardize markers
 			chartSeries.setSmooth(false);
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
-			chart.getCTChart().getPlotArea().getScatterChartArray(0).getSerArray(0).addNewSpPr().addNewLn()
-					.addNewNoFill();
+			CTScatterChart scatterSeries = chart.getCTChart().getPlotArea().getScatterChartArray(0);
+			scatterSeries.getSerArray(i).addNewSpPr().addNewLn().addNewNoFill();
+			scatterSeries.addNewVaryColors().setVal(false);
 		}
 
 		chart.plot(data);
 		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
-
 	}
 
 	private void insertBarChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
