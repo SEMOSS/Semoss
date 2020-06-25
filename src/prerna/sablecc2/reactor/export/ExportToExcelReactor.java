@@ -533,7 +533,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
-		addGridLines(gridOnX, gridOnY, chart);
+		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
@@ -564,7 +564,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			displayValues(ChartTypes.LINE, chart);
+			ExportUtility.displayValues(ChartTypes.LINE, chart);
 		}
 	}
 
@@ -597,7 +597,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, null);
 		XDDFValueAxis bottomAxis = chart.createValueAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
-		addGridLines(gridOnX, gridOnY, chart);
+		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(chartType, bottomAxis, leftAxis);
 		// Add in x vals
@@ -621,7 +621,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			displayValues(ChartTypes.SCATTER, chart);
+			ExportUtility.displayValues(ChartTypes.SCATTER, chart);
 		}
 	}
 
@@ -657,7 +657,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
-		addGridLines(gridOnX, gridOnY, chart);
+		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
@@ -690,8 +690,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			CTDLbls dLbls = displayValues(ChartTypes.BAR, chart);
-			positionDisplayValues(ChartTypes.BAR, dLbls, displayValuesPosition);
+			CTDLbls dLbls = ExportUtility.displayValues(ChartTypes.BAR, chart);
+			ExportUtility.positionDisplayValues(ChartTypes.BAR, dLbls, displayValuesPosition);
 		}
 	}
 
@@ -724,7 +724,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
-		addGridLines(gridOnX, gridOnY, chart);
+		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFAreaChartData data = (XDDFAreaChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
@@ -743,7 +743,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			displayValues(ChartTypes.AREA, chart);
+			ExportUtility.displayValues(ChartTypes.AREA, chart);
 		}
 	}
 
@@ -791,8 +791,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			CTDLbls dLbls = displayValues(ChartTypes.PIE, chart);
-			positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
+			CTDLbls dLbls = ExportUtility.displayValues(ChartTypes.PIE, chart);
+			ExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
 		}
 	}
 
@@ -824,7 +824,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
-		addGridLines(gridOnX, gridOnY, chart);
+		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFRadarChartData data = (XDDFRadarChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
@@ -840,94 +840,6 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 
 		chart.plot(data);
-	}
-
-	private void addGridLines(Boolean gridOnX, Boolean gridOnY, XSSFChart chart) {
-		CTPlotArea plotArea = null;
-		plotArea = chart.getCTChart().getPlotArea();
-
-		// if true add grid lines on x/y axis
-		if (gridOnX.booleanValue()) {
-			plotArea.getCatAxArray()[0].addNewMajorGridlines();
-		}
-		if (gridOnY.booleanValue()) {
-			plotArea.getValAxArray()[0].addNewMajorGridlines();
-		}
-	}
-
-	private CTDLbls displayValues(ChartTypes chartType, XSSFChart chart) {
-		CTDLbls dLbls = null;
-		switch (chartType) {
-			case LINE:
-				CTLineChart ctLineChart = chart.getCTChart().getPlotArea().getLineChartArray(0);
-				ctLineChart.addNewDLbls();
-				dLbls = ctLineChart.getDLbls();
-				break;
-			case SCATTER:
-				CTScatterChart ctScatterChart = chart.getCTChart().getPlotArea().getScatterChartArray(0);
-				ctScatterChart.addNewDLbls();
-				dLbls = ctScatterChart.getDLbls();
-				break;
-			case BAR:
-				CTBarChart ctBarChart = chart.getCTChart().getPlotArea().getBarChartArray(0);
-				ctBarChart.addNewDLbls();
-				dLbls = ctBarChart.getDLbls();
-				break;
-			case AREA:
-				CTAreaChart ctAreaChart = chart.getCTChart().getPlotArea().getAreaChartArray(0);
-				ctAreaChart.addNewDLbls();
-				dLbls = ctAreaChart.getDLbls();
-				break;
-			case PIE:
-				CTPieChart ctPieChart = chart.getCTChart().getPlotArea().getPieChartArray(0);
-				ctPieChart.addNewDLbls();
-				dLbls = ctPieChart.getDLbls();
-				break;
-			default:
-				break;
-		}
-
-		if (dLbls != null) {
-			dLbls.addNewShowBubbleSize().setVal(false);
-			dLbls.addNewShowLegendKey().setVal(false);
-			dLbls.addNewShowCatName().setVal(false);
-			dLbls.addNewShowSerName().setVal(false);
-			dLbls.addNewShowPercent().setVal(false);
-			dLbls.addNewShowVal().setVal(true);
-		}
-
-		return dLbls;
-	}
-
-	private void positionDisplayValues(ChartTypes chartType, CTDLbls dLbls, String displayValuesPosition) {
-		// if available, set positioning of data labels
-		if (!displayValuesPosition.equals("{}")) {
-			CTDLblPos ctdLblPos = null;
-			ctdLblPos = CTDLblPos.Factory.newInstance();
-
-			if (chartType.equals(ChartTypes.BAR)) {
-				if (displayValuesPosition.equalsIgnoreCase("inside")
-						|| displayValuesPosition.equalsIgnoreCase("insideLeft")
-						|| displayValuesPosition.equalsIgnoreCase("insideRight")) {
-					ctdLblPos.setVal(STDLblPos.CTR);
-				} else if (displayValuesPosition.equalsIgnoreCase("insideBottom")
-						|| displayValuesPosition.equalsIgnoreCase("bottom")) {
-					ctdLblPos.setVal(STDLblPos.IN_BASE);
-				} else if (displayValuesPosition.equalsIgnoreCase("insideTop")) {
-					ctdLblPos.setVal(STDLblPos.IN_END);
-				} else if (displayValuesPosition.equalsIgnoreCase("top")) {
-					ctdLblPos.setVal(STDLblPos.OUT_END);
-				}
-			} else if (chartType.equals(ChartTypes.PIE)) {
-				if (displayValuesPosition.equalsIgnoreCase("inside")) {
-					ctdLblPos.setVal(STDLblPos.CTR);
-				} else if (displayValuesPosition.equalsIgnoreCase("outside")) {
-					ctdLblPos.setVal(STDLblPos.OUT_END);
-				}
-			}
-
-			dLbls.setDLblPos(ctdLblPos);
-		}
 	}
 
 	private XSSFChart createBaseChart(XSSFSheet sheet, Map<String, Object> sheetMap, LegendPosition legendPosition) {
