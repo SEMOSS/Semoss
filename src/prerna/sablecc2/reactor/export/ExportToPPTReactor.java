@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.awt.Panel;
 import java.awt.Rectangle;
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,6 +25,7 @@ import org.apache.poi.xddf.usermodel.XDDFSolidFillProperties;
 import org.apache.poi.xddf.usermodel.chart.AxisCrosses;
 import org.apache.poi.xddf.usermodel.chart.AxisPosition;
 import org.apache.poi.xddf.usermodel.chart.BarDirection;
+import org.apache.poi.xddf.usermodel.chart.BarGrouping;
 import org.apache.poi.xddf.usermodel.chart.ChartTypes;
 import org.apache.poi.xddf.usermodel.chart.LegendPosition;
 import org.apache.poi.xddf.usermodel.chart.MarkerStyle;
@@ -44,7 +46,17 @@ import org.apache.poi.xslf.usermodel.XSLFChart;
 import org.apache.poi.xslf.usermodel.XSLFPictureData;
 import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
+
+import org.apache.poi.xssf.usermodel.XSSFChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTAreaChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTBarChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLblPos;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTLineChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTPlotArea;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
+import org.openxmlformats.schemas.drawingml.x2006.chart.STDLblPos;
 
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -62,7 +74,11 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 
 public class ExportToPPTReactor extends AbstractReactor {
-	
+
+	private static final String GRID_ON_X = "tools.shared.editGrid.x";
+	private static final String GRID_ON_Y = "tools.shared.editGrid.y";
+	private static final String DISPLAY_VALUES = "tools.shared.displayValues";
+
 	public ExportToPPTReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
 	}
@@ -123,8 +139,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 				ITask task = new BasicIteratorTask(qs);
 				task.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
 				task.setTaskOptions(taskOptions);
-				String panelId = panel.getPanelId();
-				processTask(slideshow, task, panelId);
+				
+				processTask(slideshow, task, panel);
 			}
 		}
 		
@@ -158,30 +174,37 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}		
 	}
 
-	private void processTask(XMLSlideShow slideshow, ITask task, String panelId) {
+	private void processTask(XMLSlideShow slideshow, ITask task, InsightPanel panel) {
+		String panelId = panel.getPanelId();
 		TaskOptions tOptions = task.getTaskOptions();
 		Map<String, Object> options = tOptions.getOptions();
 		// Insert chart if supported
 		String plotType = (String) tOptions.getLayout(panelId);
 		if (plotType.equals("Line")) {
-			insertLineChart(slideshow, task, options);
+			insertLineChart(slideshow, task, options, panel);
 		} else if (plotType.equals("Scatter")) {
-			insertScatterChart(options, slideshow, task);
+			insertScatterChart(options, slideshow, task, panel);
 		} else if (plotType.equals("Area")) {
-			insertAreaChart(options, slideshow, task);
+			insertAreaChart(options, slideshow, task, panel);
 		} else if (plotType.equals("Column")) {
-			insertBarChart(options, slideshow, task);
+			insertBarChart(options, slideshow, task, panel);
 		} else if (plotType.equals("Pie")) {
-			insertPieChart(options, slideshow, task);
+			insertPieChart(options, slideshow, task, panel);
 		} else if (plotType.equals("Radar")) {
-			insertRadarChart(options, slideshow, task);
+			insertRadarChart(options, slideshow, task, panel);
 		}
 	}
 
-	private void insertLineChart(XMLSlideShow slideshow, ITask task, Map<String, Object> options) {
+	private void insertLineChart(XMLSlideShow slideshow, ITask task, Map<String, Object> options, InsightPanel panel) {
 		// Grab data for chart
 		PPTDataHandler dataHandler = new PPTDataHandler();
 		dataHandler.setData(task);
+
+		// retrieve ornaments
+		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.editGrid.x") + "");
+		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.editGrid.y") + "");
+		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.displayValues") + "");
+
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
 		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
@@ -197,6 +220,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
+		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
 
@@ -224,14 +248,25 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 
 		chart.plot(data);
+
+		// if true, display data labels on chart
+		if (displayValues.booleanValue()) {
+			ExportUtility.displayValues(ChartTypes.LINE, chart);
+		}
+
 		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
 	}
 
-	private void insertScatterChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
+	private void insertScatterChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
 		// Grab data for chart
 		PPTDataHandler dataHandler = new PPTDataHandler();
 		dataHandler.setData(task);
+
+		// retrieve ornaments
+		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
+		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
+		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -247,6 +282,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XDDFValueAxis bottomAxis = chart.createValueAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
+		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(ChartTypes.SCATTER, bottomAxis, leftAxis);
 
@@ -269,14 +305,28 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 
 		chart.plot(data);
+
+		// if true, display data labels on chart
+		if (displayValues.booleanValue()) {
+			ExportUtility.displayValues(ChartTypes.SCATTER, chart);
+		}
+
 		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
 	}
 
-	private void insertBarChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
+	private void insertBarChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
 		// Grab data for chart
 		PPTDataHandler dataHandler = new PPTDataHandler();
 		dataHandler.setData(task);
+
+		// retrieve ornaments
+		Boolean toggleStack = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.toggleStack") + "");
+		Boolean flipAxis = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.rotateAxis") + "");
+		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
+		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
+		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizeBarLabel.position") + "";
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -293,9 +343,21 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
+		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(ChartTypes.BAR, bottomAxis, leftAxis);
-		data.setBarDirection(BarDirection.COL);
+
+		if (flipAxis) {
+			data.setBarDirection(BarDirection.BAR);
+		} else {
+			data.setBarDirection(BarDirection.COL);
+		}
+
+		if (toggleStack) {
+			data.setBarGrouping(BarGrouping.STACKED);
+			// correcting the overlap so bars really are stacked and not side by side
+			chart.getCTChart().getPlotArea().getBarChartArray(0).addNewOverlap().setVal((byte) 100);
+		}
 
 		// Add in x vals
 		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
@@ -310,13 +372,25 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		chart.plot(data);
 		Rectangle bounds = createStandardPowerPointChartBounds();
+
+		// if true, display data labels on chart
+		if (displayValues.booleanValue()) {
+			CTDLbls dLbls = ExportUtility.displayValues(ChartTypes.BAR, chart);
+			ExportUtility.positionDisplayValues(ChartTypes.BAR, dLbls, displayValuesPosition);
+		}
+
 		slide.addChart(chart, bounds);
 	}
 
-	private void insertAreaChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
+	private void insertAreaChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
 		// Grab data for chart
 		PPTDataHandler dataHandler = new PPTDataHandler();
 		dataHandler.setData(task);
+
+		// retrieve ornaments
+		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
+		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
+		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -333,6 +407,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
+		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFAreaChartData data = (XDDFAreaChartData) chart.createData(ChartTypes.AREA, bottomAxis, leftAxis);
 
@@ -348,14 +423,24 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 
 		chart.plot(data);
+
+		// if true, display data labels on chart
+		if (displayValues.booleanValue()) {
+			ExportUtility.displayValues(ChartTypes.AREA, chart);
+		}
+
 		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
 	}
 
-	private void insertPieChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
+	private void insertPieChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
 		// Grab data for chart
 		PPTDataHandler dataHandler = new PPTDataHandler();
 		dataHandler.setData(task);
+
+		// retrieve ornaments
+		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.position") + "";
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -385,14 +470,25 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 
 		chart.plot(data);
+
+		// if true, display data labels on chart
+		if (displayValues.booleanValue()) {
+			CTDLbls dLbls = ExportUtility.displayValues(ChartTypes.PIE, chart);
+			ExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
+		}
+
 		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
 	}
 
-	private void insertRadarChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task) {
+	private void insertRadarChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
 		// Grab data for chart
 		PPTDataHandler dataHandler = new PPTDataHandler();
 		dataHandler.setData(task);
+
+		// retrieve ornaments
+		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
+		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -409,6 +505,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
+		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFRadarChartData data = (XDDFRadarChartData) chart.createData(ChartTypes.RADAR, bottomAxis, leftAxis);
 
@@ -427,7 +524,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
 	}
-	
+
 	private Rectangle createStandardPowerPointChartBounds() {
 		double leftOffsetInches = 0.05;
 		double rightOffsetInches = 0.05;

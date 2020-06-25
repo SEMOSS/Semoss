@@ -42,7 +42,6 @@ public final class RReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		ReactorSecurityManager tempManager = new ReactorSecurityManager();
 		tempManager.addClass(CLASS_NAME);
-		System.err.println(".");
 		System.setSecurityManager(tempManager);
 		
 		Logger logger = getLogger(CLASS_NAME);
