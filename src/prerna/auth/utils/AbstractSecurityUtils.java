@@ -592,7 +592,7 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	static boolean ignoreEngine(String appId) {
-		if(appId.equals(Constants.LOCAL_MASTER_DB_NAME) || appId.equals(Constants.SECURITY_DB)) {
+		if(appId.equals(Constants.LOCAL_MASTER_DB_NAME) || appId.equals(Constants.SECURITY_DB) || appId.equals(Constants.SCHEDULER_DB) ) {
 			// dont add local master or security db to security db
 			return true;
 		}
