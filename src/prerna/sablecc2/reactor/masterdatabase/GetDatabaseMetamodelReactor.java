@@ -6,6 +6,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -17,9 +18,6 @@ import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
-import prerna.cluster.util.CloudClient;
-import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -74,30 +72,32 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 		// this is for the OWL positions for the new layout
 		if(options.contains("positions")) {
-			IEngine engine = Utility.getEngine(engineId);
-
+			Utility.getEngine(engineId);
 			// if the file is present, pull it and load
 			String smssFile = DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
 			Properties prop = Utility.loadProperties(smssFile);
-			String owlFileLocation = SmssUtilities.getOwlFile(prop).getAbsolutePath();
-			File owlF = new File(owlFileLocation);
-			String baseFolder = owlF.getParent();
-			String positionJson = baseFolder + DIR_SEPARATOR + SaveOwlPositions.FILE_NAME;
-			File positionFile = new File(positionJson);
-
-			// try to make the file
-			if(!positionFile.exists()) {
-				GenerateMetamodelLayout.generateLayout(engineId);
-			}
-			
-			if(positionFile.exists()) {
-				// load the file
-				Path path = positionFile.toPath();
-				try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-					Map<String, Object> positionMap = GSON.fromJson(reader, Map.class);
-					metamodelObject.put("positions", positionMap);
-				} catch (IOException e) {
-					e.printStackTrace();
+			File owlF = SmssUtilities.getOwlFile(prop);
+			if(owlF == null) {
+				metamodelObject.put("positions", new HashMap<String, Object>());
+			} else {
+				String baseFolder = owlF.getParent();
+				String positionJson = baseFolder + DIR_SEPARATOR + SaveOwlPositions.FILE_NAME;
+				File positionFile = new File(positionJson);
+	
+				// try to make the file
+				if(!positionFile.exists()) {
+					GenerateMetamodelLayout.generateLayout(engineId);
+				}
+				
+				if(positionFile.exists()) {
+					// load the file
+					Path path = positionFile.toPath();
+					try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+						Map<String, Object> positionMap = GSON.fromJson(reader, Map.class);
+						metamodelObject.put("positions", positionMap);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
