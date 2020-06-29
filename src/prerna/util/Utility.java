@@ -1040,12 +1040,12 @@ public class Utility {
 			wb.write(newExcelFile);
 			newExcelFile.flush();
 		} catch (IOException ioe) {
-			showMessage("Could not create file " + fileLoc + ".\nPlease check directory structure/permissions.");
 			logger.error(STACKTRACE, ioe);
 		} finally {
 			try {
-				if (newExcelFile != null)
+				if (newExcelFile != null) {
 					newExcelFile.close();
+				}
 			} catch (IOException ioe) {
 				logger.error(STACKTRACE, ioe);
 			}
