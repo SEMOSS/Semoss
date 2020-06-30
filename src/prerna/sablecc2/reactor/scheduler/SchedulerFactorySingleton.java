@@ -74,6 +74,10 @@ public class SchedulerFactorySingleton {
 	}
 
 	public Scheduler getScheduler() {
+		if(scheduler != null) {
+			return scheduler;
+		}
+		
 		try {
 			scheduler = factory.getScheduler();
 		} catch (SchedulerException se) {

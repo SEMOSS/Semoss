@@ -425,6 +425,37 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract boolean allowArrayDatatype();
 
 	/**
+	 * Does the RDBMS type support boolean types
+	 * @return
+	 */
+	public abstract boolean allowBooleanDataType();
+	
+	/**
+	 * Get the date time data type used by the RDBMS
+	 * @return
+	 */
+	public abstract String getDateWithTimeDataType();
+	
+	/**
+	 * Does the RDBMS type support blob data type
+	 * @return
+	 */
+	public abstract boolean allowBlobDataType();
+	
+	/**
+	 * Get the RDBMS type equivalent for blobs
+	 * @return
+	 */
+	public abstract String getBlobReplacementDataType();
+	
+	/**
+	 * Does the RDBMS type support blob java object storage
+	 * i.e. - connection.createBlob();
+	 * @return
+	 */
+	public abstract boolean allowBlobJavaObject();
+	
+	/**
 	 * Does the engine allow you to add a column to an existing table
 	 * 
 	 * @return
@@ -473,6 +504,13 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract boolean allowIfExistsModifyColumnSyntax();
+	
+	/**
+	 * Does the engine allow " ADD CONSTRAINT IF NOT EXISTS " syntax
+	 * 
+	 * @return
+	 */
+	public abstract boolean allowIfExistsAddConstraint();
 
 	/////////////////////////////////////////////////////////////////////////
 
