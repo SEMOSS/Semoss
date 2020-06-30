@@ -439,6 +439,31 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 	
 	@Override
+	public boolean allowBooleanDataType() {
+		return true;
+	}
+	
+	@Override
+	public String getDateWithTimeDataType() {
+		return "TIMESTAMP";
+	}
+	
+	@Override
+	public boolean allowBlobDataType() {
+		return true;
+	}
+	
+	@Override
+	public String getBlobReplacementDataType() {
+		throw new UnsupportedOperationException("The blob replacement has not been identified for this RDBMS type");
+	}
+	
+	@Override
+	public boolean allowBlobJavaObject() {
+		return true;
+	}
+	
+	@Override
 	public boolean allowAddColumn() {
 		return true;
 	}
@@ -470,6 +495,11 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	
 	@Override
 	public boolean allowIfExistsModifyColumnSyntax() {
+		return true;
+	}
+	
+	@Override
+	public boolean allowIfExistsAddConstraint() {
 		return true;
 	}
 	
