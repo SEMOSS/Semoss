@@ -93,6 +93,7 @@ public final class SchedulerConstants {
 
 	public static final String INTEGER = "INTEGER";
 	public static final String BOOLEAN = "BOOLEAN";
+	public static final String BIT = "BIT";
 	public static final String BIGINT = "BIGINT";
 	public static final String SMALLINT = "SMALLINT";
 	public static final String IMAGE = "IMAGE";
