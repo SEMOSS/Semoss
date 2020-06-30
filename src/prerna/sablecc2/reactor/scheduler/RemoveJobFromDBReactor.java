@@ -29,12 +29,12 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		 * RemoveJobFromDB(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
 		 * This reactor will delete the job in Quartz and the database.
 		 */
-
 		organizeKeys();
 		// Get inputs
 		String jobName = this.keyValue.get(this.keysToGet[0]);
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
-
+		boolean deleteJob = false;
+		
 		// delete job from quartz
 		try {
 			JobKey job = JobKey.jobKey(jobName, jobGroup);
@@ -45,7 +45,7 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 			SchedulerH2DatabaseUtility.startScheduler(scheduler);
 
 			if (scheduler.checkExists(job)) {
-				scheduler.deleteJob(job);
+				deleteJob = scheduler.deleteJob(job);
 			}
 		} catch (SchedulerException se) {
 			logger.error(Constants.STACKTRACE, se);
@@ -56,9 +56,8 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		boolean recordExists = SchedulerH2DatabaseUtility.existsInJobRecipesTable(connection, jobName, jobGroup);
 		if (recordExists) {
 			SchedulerH2DatabaseUtility.removeFromJobRecipesTable(connection, jobName, jobGroup);
-			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
 		}
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+		return new NounMetadata(deleteJob, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
 	}
 }

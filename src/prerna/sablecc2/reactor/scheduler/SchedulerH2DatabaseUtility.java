@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.scheduler;
 
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BIGINT;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BIT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BLOB;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BLOB_DATA;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BOOLEAN;
@@ -125,7 +126,8 @@ public class SchedulerH2DatabaseUtility {
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	static RDBMSNativeEngine schedulerDb;
-
+	static AbstractSqlQueryUtil queryUtil;
+	
 	private SchedulerH2DatabaseUtility() {
 		throw new IllegalStateException("Utility class");
 	}
@@ -133,7 +135,8 @@ public class SchedulerH2DatabaseUtility {
 	public static void startServer() throws IOException, SQLException {
 		schedulerDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SCHEDULER_DB);
 		schedulerDb.getConnection();
-
+		queryUtil = schedulerDb.getQueryUtil();
+		
 		SchedulerOwlCreator owlCreator = new SchedulerOwlCreator(schedulerDb);
 		if (owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
@@ -183,6 +186,10 @@ public class SchedulerH2DatabaseUtility {
 
 		return connection;
 	}
+	
+	public static AbstractSqlQueryUtil getQueryUtil() {
+		return schedulerDb.getQueryUtil();
+	}
 
 	public static void closeConnection(Connection connection) {
 		try {
@@ -216,7 +223,7 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static boolean insertIntoJobRecipesTable(Connection connection, String userId, String jobName,
+	public static boolean insertIntoJobRecipesTable(Connection connection, AbstractSqlQueryUtil queryUtil, String userId, String jobName,
 			String jobGroup, String cronExpression, String recipe, String jobCategory, boolean triggerOnLoad, String parameters) {
 		try (PreparedStatement statement = connection
 				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES VALUES (?,?,?,?,?,?,?,?)")) {
@@ -224,11 +231,17 @@ public class SchedulerH2DatabaseUtility {
 			statement.setString(2, jobName);
 			statement.setString(3, jobGroup);
 			statement.setString(4, cronExpression);
-			statement.setBlob(5, stringToBlob(connection, recipe));
 			statement.setString(6, jobCategory);
 			statement.setBoolean(7, triggerOnLoad);
-			statement.setBlob(8, stringToBlob(connection, parameters));
 
+			if(queryUtil.allowBlobJavaObject()) {
+				statement.setBlob(5, stringToBlob(connection, recipe));
+				statement.setBlob(8, stringToBlob(connection, parameters));
+			} else {
+				statement.setString(5, recipe);
+				statement.setString(8, parameters);
+			}
+			
 			statement.executeUpdate();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -295,7 +308,7 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static Map<String, Map<String, String>> retrieveJobsForApp(Connection connection, String appId) {
+	public static Map<String, Map<String, String>> retrieveJobsForApp(Connection connection, AbstractSqlQueryUtil queryUtil, String appId) {
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
 				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES WHERE JOB_GROUP=?")) {
@@ -308,9 +321,17 @@ public class SchedulerH2DatabaseUtility {
 					String jobGroup = result.getString(JOB_GROUP);
 					String jobName = result.getString(JOB_NAME);
 					String cronExpression = result.getString(CRON_EXPRESSION);
-					String recipe = blobToString(result.getBlob(PIXEL_RECIPE));
-					String parameters = blobToString(result.getBlob(PARAMETERS));
 					JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
+					
+					String recipe = null;
+					String parameters = null;
+					if(queryUtil.allowBlobJavaObject()) {
+						recipe = blobToString(result.getBlob(PIXEL_RECIPE));
+						parameters = blobToString(result.getBlob(PARAMETERS));
+					} else {
+						recipe = result.getString(PIXEL_RECIPE);
+						parameters = result.getString(PARAMETERS);
+					}
 
 					jobDetailsMap.put(USER_ID, userId);
 					jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
@@ -329,7 +350,7 @@ public class SchedulerH2DatabaseUtility {
 		return jobMap;
 	}
 
-	public static Map<String, Map<String, String>> retrieveUsersJobsForApp(Connection connection, String appId, String userId) {
+	public static Map<String, Map<String, String>> retrieveUsersJobsForApp(Connection connection, AbstractSqlQueryUtil queryUtil, String appId, String userId) {
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
 				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES WHERE USER_ID=? AND JOB_GROUP=?")) {
@@ -343,10 +364,18 @@ public class SchedulerH2DatabaseUtility {
 					String jobName = result.getString(JOB_NAME);
 					String jobGroup = result.getString(JOB_GROUP);
 					String cronExpression = result.getString(CRON_EXPRESSION);
-					String recipe = blobToString(result.getBlob(PIXEL_RECIPE));
-					String parameters = blobToString(result.getBlob(PARAMETERS));
 					JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
 
+					String recipe = null;
+					String parameters = null;
+					if(queryUtil.allowBlobJavaObject()) {
+						recipe = blobToString(result.getBlob(PIXEL_RECIPE));
+						parameters = blobToString(result.getBlob(PARAMETERS));
+					} else {
+						recipe = result.getString(PIXEL_RECIPE);
+						parameters = result.getString(PARAMETERS);
+					}
+					
 					jobDetailsMap.put(JOB_GROUP, jobName);
 					jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
 					jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
@@ -363,7 +392,7 @@ public class SchedulerH2DatabaseUtility {
 		return jobMap;
 	}
 
-	public static Map<String, Map<String, String>> retrieveUsersJobs(Connection connection, String userId) {
+	public static Map<String, Map<String, String>> retrieveUsersJobs(Connection connection, AbstractSqlQueryUtil queryUtil, String userId) {
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
 				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES WHERE USER_ID=?")) {
@@ -376,10 +405,18 @@ public class SchedulerH2DatabaseUtility {
 					String jobName = result.getString(JOB_NAME);
 					String jobGroup = result.getString(JOB_GROUP);
 					String cronExpression = result.getString(CRON_EXPRESSION);
-					String recipe = blobToString(result.getBlob(PIXEL_RECIPE));
-					String parameters = blobToString(result.getBlob(PARAMETERS));
 					JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
 
+					String recipe = null;
+					String parameters = null;
+					if(queryUtil.allowBlobJavaObject()) {
+						recipe = blobToString(result.getBlob(PIXEL_RECIPE));
+						parameters = blobToString(result.getBlob(PARAMETERS));
+					} else {
+						recipe = result.getString(PIXEL_RECIPE);
+						parameters = result.getString(PARAMETERS);
+					}
+					
 					jobDetailsMap.put(JOB_GROUP, jobName);
 					jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
 					jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
@@ -396,7 +433,7 @@ public class SchedulerH2DatabaseUtility {
 		return jobMap;
 	}
 
-	public static Map<String, Map<String, String>> retrieveAllJobs(Connection connection) {
+	public static Map<String, Map<String, String>> retrieveAllJobs(Connection connection, AbstractSqlQueryUtil queryUtil) {
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
 				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES")) {
@@ -407,10 +444,17 @@ public class SchedulerH2DatabaseUtility {
 					String jobName = result.getString(JOB_NAME);
 					String jobGroup = result.getString(JOB_GROUP);
 					String cronExpression = result.getString(CRON_EXPRESSION);
-					String recipe = blobToString(result.getBlob(PIXEL_RECIPE));
-					String parameters = blobToString(result.getBlob(PARAMETERS));
 					JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
-
+					String recipe = null;
+					String parameters = null;
+					if(queryUtil.allowBlobJavaObject()) {
+						recipe = blobToString(result.getBlob(PIXEL_RECIPE));
+						parameters = blobToString(result.getBlob(PARAMETERS));
+					} else {
+						recipe = result.getString(PIXEL_RECIPE);
+						parameters = result.getString(PARAMETERS);
+					}
+					
 					jobDetailsMap.put(JOB_GROUP, jobName);
 					jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
 					jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
@@ -467,7 +511,6 @@ public class SchedulerH2DatabaseUtility {
 
 		try {
 			br = new BufferedReader(new InputStreamReader(blob.getBinaryStream()));
-
 			try {
 				while ((aux=br.readLine())!=null) {
 					strOut.append(aux);
@@ -480,7 +523,6 @@ public class SchedulerH2DatabaseUtility {
 			logger.error(Constants.STACKTRACE, se);
 		}
 		
-
 		return strOut.toString();
 	}
 
@@ -501,7 +543,9 @@ public class SchedulerH2DatabaseUtility {
 	public static void startScheduler(Scheduler scheduler) {
 		try {
 			logger.info("Scheduler starting up...");
-			scheduler.start();
+			if(!scheduler.isStarted()) {
+				scheduler.start();
+			}
 			logger.info("Scheduler started at " + new Date());
 		} catch (SchedulerException se) {
 			logger.error("Failed to start scheduler...");
@@ -540,6 +584,7 @@ public class SchedulerH2DatabaseUtility {
 	private static void createQuartzTables(Connection connection, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+		boolean allowBooleanDataType = queryUtil.allowBooleanDataType();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
 		String[] colNames = null;
@@ -550,7 +595,8 @@ public class SchedulerH2DatabaseUtility {
 			// QRTZ_CALENDARS
 			colNames = new String[] { SCHED_NAME, CALENDAR_NAME, CALENDAR };
 			types = new String[] { VARCHAR_120, VARCHAR_200, IMAGE };
-			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
+ 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL };
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(queryUtil.createTableIfNotExistsWithCustomConstraints(QRTZ_CALENDARS, colNames,
 						types, constraints));
@@ -566,6 +612,7 @@ public class SchedulerH2DatabaseUtility {
 			// QRTZ_CRON_TRIGGERS
 			colNames = new String[] { SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP, CRON_EXPRESSION, TIME_ZONE_ID };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_120, VARCHAR_80 };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null };
 	
 			if (allowIfExistsTable) {
@@ -585,6 +632,7 @@ public class SchedulerH2DatabaseUtility {
 					SCHED_TIME, PRIORITY, STATE, JOB_NAME, JOB_GROUP, IS_NONCONCURRENT, REQUESTS_RECOVERY };
 			types = new String[] { VARCHAR_120, VARCHAR_95, VARCHAR_200, VARCHAR_200, VARCHAR_200, BIGINT, BIGINT, INTEGER,
 					VARCHAR_16, VARCHAR_200, VARCHAR_200, BOOLEAN, BOOLEAN };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL,
 					NOT_NULL, null, null, null, null };
 	
@@ -603,6 +651,7 @@ public class SchedulerH2DatabaseUtility {
 			// QRTZ_PAUSED_TRIGGER_GRPS
 			colNames = new String[] { SCHED_NAME, TRIGGER_GROUP };
 			types = new String[] { VARCHAR_120, VARCHAR_200 };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL };
 	
 			if (allowIfExistsTable) {
@@ -620,6 +669,7 @@ public class SchedulerH2DatabaseUtility {
 			// QRTZ_SCHEDULER_STATE
 			colNames = new String[] { SCHED_NAME, INSTANCE_NAME, LAST_CHECKIN_TIME, CHECKIN_INTERVAL };
 			types = new String[] { VARCHAR_120, VARCHAR_200, BIGINT, BIGINT };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL };
 	
 			if (allowIfExistsTable) {
@@ -637,6 +687,7 @@ public class SchedulerH2DatabaseUtility {
 			// QRTZ_LOCKS
 			colNames = new String[] { SCHED_NAME, LOCK_NAME };
 			types = new String[] { VARCHAR_120, VARCHAR_40 };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL };
 	
 			if (allowIfExistsTable) {
@@ -656,6 +707,7 @@ public class SchedulerH2DatabaseUtility {
 					IS_NONCONCURRENT, IS_UPDATE_DATA, REQUESTS_RECOVERY, JOB_DATA };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_250, VARCHAR_250, BOOLEAN, BOOLEAN,
 					BOOLEAN, BOOLEAN, IMAGE };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL,
 					NOT_NULL, null };
 	
@@ -675,6 +727,7 @@ public class SchedulerH2DatabaseUtility {
 			colNames = new String[] { SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP, REPEAT_COUNT, REPEAT_INTERVAL,
 					TIMES_TRIGGERED };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, BIGINT, BIGINT, BIGINT };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL };
 	
 			if (allowIfExistsTable) {
@@ -694,6 +747,7 @@ public class SchedulerH2DatabaseUtility {
 					INT_PROP_1, INT_PROP_2, LONG_PROP_1, LONG_PROP_2, DEC_PROP_1, DEC_PROP_2, BOOL_PROP_1, BOOL_PROP_2 };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_512, VARCHAR_512, VARCHAR_512, INTEGER,
 					INTEGER, BIGINT, BIGINT, NUMERIC_13_4, NUMERIC_13_4, BOOLEAN, BOOLEAN };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null, null, null, null,
 					null, null };
 	
@@ -712,6 +766,7 @@ public class SchedulerH2DatabaseUtility {
 			// QRTZ_BLOB_TRIGGERS
 			colNames = new String[] { SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP, BLOB_DATA };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, IMAGE };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null };
 	
 			if (allowIfExistsTable) {
@@ -732,6 +787,7 @@ public class SchedulerH2DatabaseUtility {
 					CALENDAR_NAME, MISFIRE_INSTR, JOB_DATA };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_250, BIGINT,
 					BIGINT, INTEGER, VARCHAR_16, VARCHAR_8, BIGINT, BIGINT, VARCHAR_200, SMALLINT, IMAGE };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, NOT_NULL,
 					NOT_NULL, NOT_NULL, null, null, null, null };
 	
@@ -754,17 +810,21 @@ public class SchedulerH2DatabaseUtility {
 	private static void createSemossTables(Connection connection, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+		boolean allowBooleanDataType = queryUtil.allowBooleanDataType();
+		boolean allowBlobDataType = queryUtil.allowBlobDataType();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-
+		String dateTimeType = queryUtil.getDateWithTimeDataType();
+		
 		String[] colNames = null;
 		String[] types = null;
 		Object[] constraints = null;
 
 		try {
 			// SMSS_JOB_RECIPES
-			colNames = new String[] { USER_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, JOB_CATEGORY,
-					TRIGGER_ON_LOAD, PARAMETERS };
+			colNames = new String[] { USER_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB, VARCHAR_200, BOOLEAN, BLOB };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
+			if(!allowBlobDataType) { types = cleanUpDataType(types, BLOB, queryUtil.getBlobReplacementDataType()); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null };
 	
 			if (allowIfExistsTable) {
@@ -782,6 +842,8 @@ public class SchedulerH2DatabaseUtility {
 			// SMSS_AUDIT_TRAIL
 			colNames = new String[] { JOB_NAME, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS };
 			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN };
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
+			if(!dateTimeType.equals(TIMESTAMP)) { types = cleanUpDataType(types, TIMESTAMP, dateTimeType); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, null, null, null, null, null };
 	
 			if (allowIfExistsTable) {
@@ -799,48 +861,171 @@ public class SchedulerH2DatabaseUtility {
 			logger.error(Constants.STACKTRACE, se);
 		}
 	}
+	
+	/**
+	 * Clean up boolean for bit data type
+	 * @param arrays
+	 * @return
+	 */
+	private static String[] cleanUpBooleans(String[] arrays) {
+		for(int i = 0; i < arrays.length; i++) {
+			if(arrays[i].equals(BOOLEAN)) {
+				arrays[i] = BIT;
+			}
+		}
+		return arrays;
+	}
 
+	/**
+	 * Clean up blob data types
+	 * @param arrays
+	 * @return
+	 */
+	private static String[] cleanUpDataType(String[] arrays, String value, String replacement) {
+		for(int i = 0; i < arrays.length; i++) {
+			if(arrays[i].equals(value)) {
+				arrays[i] = replacement;
+			}
+		}
+		return arrays;
+	}
+	
 	private static void addAllPrimaryKeys() {
-		String query1 = "ALTER TABLE QRTZ_CALENDARS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_CALENDARS PRIMARY KEY ( SCHED_NAME, CALENDAR_NAME);";
-		String query2 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_CRON_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-		String query3 = "ALTER TABLE QRTZ_FIRED_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_FIRED_TRIGGERS PRIMARY KEY ( SCHED_NAME, ENTRY_ID );";
-		String query4 = "ALTER TABLE QRTZ_PAUSED_TRIGGER_GRPS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_PAUSED_TRIGGER_GRPS PRIMARY KEY ( SCHED_NAME, TRIGGER_GROUP );";
-		String query5 = "ALTER TABLE QRTZ_SCHEDULER_STATE ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_SCHEDULER_STATE PRIMARY KEY ( SCHED_NAME, INSTANCE_NAME );";
-		String query6 = "ALTER TABLE QRTZ_LOCKS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_LOCKS PRIMARY KEY ( SCHED_NAME, LOCK_NAME );";
-		String query7 = "ALTER TABLE QRTZ_JOB_DETAILS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_JOB_DETAILS PRIMARY KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
-		String query8 = "ALTER TABLE QRTZ_SIMPLE_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_SIMPLE_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-		String query9 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_SIMPROP_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-		String query10 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
+		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+		if(queryUtil.allowIfExistsAddConstraint()) {
+			String query1 = "ALTER TABLE QRTZ_CALENDARS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_CALENDARS PRIMARY KEY ( SCHED_NAME, CALENDAR_NAME);";
+			String query2 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_CRON_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
+			String query3 = "ALTER TABLE QRTZ_FIRED_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_FIRED_TRIGGERS PRIMARY KEY ( SCHED_NAME, ENTRY_ID );";
+			String query4 = "ALTER TABLE QRTZ_PAUSED_TRIGGER_GRPS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_PAUSED_TRIGGER_GRPS PRIMARY KEY ( SCHED_NAME, TRIGGER_GROUP );";
+			String query5 = "ALTER TABLE QRTZ_SCHEDULER_STATE ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_SCHEDULER_STATE PRIMARY KEY ( SCHED_NAME, INSTANCE_NAME );";
+			String query6 = "ALTER TABLE QRTZ_LOCKS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_LOCKS PRIMARY KEY ( SCHED_NAME, LOCK_NAME );";
+			String query7 = "ALTER TABLE QRTZ_JOB_DETAILS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_JOB_DETAILS PRIMARY KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
+			String query8 = "ALTER TABLE QRTZ_SIMPLE_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_SIMPLE_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
+			String query9 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_SIMPROP_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
+			String query10 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
 
-		try {
-			schedulerDb.insertData(query1);
-			schedulerDb.insertData(query2);
-			schedulerDb.insertData(query3);
-			schedulerDb.insertData(query4);
-			schedulerDb.insertData(query5);
-			schedulerDb.insertData(query6);
-			schedulerDb.insertData(query7);
-			schedulerDb.insertData(query8);
-			schedulerDb.insertData(query9);
-			schedulerDb.insertData(query10);
-		} catch (SQLException se) {
-			logger.error(Constants.STACKTRACE, se);
+			try {
+				schedulerDb.insertData(query1);
+				schedulerDb.insertData(query2);
+				schedulerDb.insertData(query3);
+				schedulerDb.insertData(query4);
+				schedulerDb.insertData(query5);
+				schedulerDb.insertData(query6);
+				schedulerDb.insertData(query7);
+				schedulerDb.insertData(query8);
+				schedulerDb.insertData(query9);
+				schedulerDb.insertData(query10);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+		} else {
+			String query1 = "ALTER TABLE QRTZ_CALENDARS ADD CONSTRAINT PK_QRTZ_CALENDARS PRIMARY KEY ( SCHED_NAME, CALENDAR_NAME);";
+			String query2 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT PK_QRTZ_CRON_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
+			String query3 = "ALTER TABLE QRTZ_FIRED_TRIGGERS ADD CONSTRAINT PK_QRTZ_FIRED_TRIGGERS PRIMARY KEY ( SCHED_NAME, ENTRY_ID );";
+			String query4 = "ALTER TABLE QRTZ_PAUSED_TRIGGER_GRPS ADD CONSTRAINT PK_QRTZ_PAUSED_TRIGGER_GRPS PRIMARY KEY ( SCHED_NAME, TRIGGER_GROUP );";
+			String query5 = "ALTER TABLE QRTZ_SCHEDULER_STATE ADD CONSTRAINT PK_QRTZ_SCHEDULER_STATE PRIMARY KEY ( SCHED_NAME, INSTANCE_NAME );";
+			String query6 = "ALTER TABLE QRTZ_LOCKS ADD CONSTRAINT PK_QRTZ_LOCKS PRIMARY KEY ( SCHED_NAME, LOCK_NAME );";
+			String query7 = "ALTER TABLE QRTZ_JOB_DETAILS ADD CONSTRAINT PK_QRTZ_JOB_DETAILS PRIMARY KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
+			String query8 = "ALTER TABLE QRTZ_SIMPLE_TRIGGERS ADD CONSTRAINT PK_QRTZ_SIMPLE_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
+			String query9 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT PK_QRTZ_SIMPROP_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
+			String query10 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT PK_QRTZ_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
+
+			try {
+				schedulerDb.insertData(query1);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query2);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query3);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query4);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query5);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query6);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query7);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query8);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query9);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query10);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
 		}
 	}
 
 	private static void addAllForeignKeys() {
-		String query1 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY (SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
-		String query2 = "ALTER TABLE QRTZ_SIMPLE_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_SIMPLE_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
-		String query3 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
-		String query4 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS FOREIGN KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP ) REFERENCES QRTZ_JOB_DETAILS ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
+		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+		if(queryUtil.allowIfExistsAddConstraint()) {
+			String query1 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY (SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
+			String query2 = "ALTER TABLE QRTZ_SIMPLE_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_SIMPLE_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
+			String query3 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
+			String query4 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS FOREIGN KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP ) REFERENCES QRTZ_JOB_DETAILS ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
+	
+			try {
+				schedulerDb.insertData(query1);
+				schedulerDb.insertData(query2);
+				schedulerDb.insertData(query3);
+				schedulerDb.insertData(query4);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+		} else {
+			String query1 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY (SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
+			String query2 = "ALTER TABLE QRTZ_SIMPLE_TRIGGERS ADD CONSTRAINT FK_QRTZ_SIMPLE_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
+			String query3 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
+			String query4 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS FOREIGN KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP ) REFERENCES QRTZ_JOB_DETAILS ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
 
-		try {
-			schedulerDb.insertData(query1);
-			schedulerDb.insertData(query2);
-			schedulerDb.insertData(query3);
-			schedulerDb.insertData(query4);
-		} catch (SQLException se) {
-			logger.error(Constants.STACKTRACE, se);
+			
+			try {
+				schedulerDb.insertData(query1);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query2);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query3);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
+			try {
+				schedulerDb.insertData(query4);
+			} catch (SQLException se) {
+				logger.error(Constants.STACKTRACE, se);
+			}
 		}
 	}
 }

@@ -42,6 +42,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ScheduleJobReactor extends AbstractReactor {
 
@@ -127,7 +128,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 			// insert into SMOSS_JOB_RECIPES table
 			Connection connection = SchedulerH2DatabaseUtility.connectToSchedulerH2();
-			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(connection, userId, jobName, jobGroup, cronExpression, recipe, "Default", triggerOnLoad, parameters);
+			AbstractSqlQueryUtil queryUtil = SchedulerH2DatabaseUtility.getQueryUtil();
+			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(connection,  queryUtil, userId, jobName, jobGroup, cronExpression, recipe, "Default", triggerOnLoad, parameters);
 
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
