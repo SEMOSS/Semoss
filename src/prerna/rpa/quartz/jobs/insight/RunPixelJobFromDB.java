@@ -1,6 +1,7 @@
 package prerna.rpa.quartz.jobs.insight;
 
 import java.sql.Connection;
+import java.util.UUID;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -15,6 +16,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.rpa.RPAProps;
 import prerna.rpa.config.JobConfigKeys;
 import prerna.rpa.quartz.CommonDataKeys;
@@ -71,6 +73,12 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			pixel = pixel + ";";
 		}
 
+		// make a random session id
+		ThreadStore.setInsightId(insightId);
+		ThreadStore.setSessionId("scheduledJob_" + UUID.randomUUID().toString());
+		ThreadStore.setJobId(insightId);
+		ThreadStore.setUser(user);
+		
 		logger.info("Running pixel: " + pixel);
 		long start = System.currentTimeMillis();
 		insight.runPixel(pixel);
