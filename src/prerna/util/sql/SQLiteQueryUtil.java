@@ -245,6 +245,11 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	public boolean allowArrayDatatype() {
 		return false;
 	}
+	
+	@Override
+	public boolean allowBlobJavaObject() {
+		return false;
+	}
 
 	@Override
 	public boolean allowRedefineColumn() {

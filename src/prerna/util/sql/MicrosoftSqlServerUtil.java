@@ -56,9 +56,34 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	public String getGroupConcatFunctionSyntax() {
 		return "STRING_AGG";
 	}
+	
+	@Override
+	public boolean allowBooleanDataType() {
+		return false;
+	}
 
 	@Override
+	public String getDateWithTimeDataType() {
+		return "DATETIME";
+	}
+	
+	@Override
+	public boolean allowBlobDataType() {
+		return false;
+	}
+	
+	@Override
+	public String getBlobReplacementDataType() {
+		return "VARBINARY(MAX)";
+	}
+	
+	@Override
 	public boolean allowsIfExistsTableSyntax() {
+		return false;
+	}
+	
+	@Override
+	public boolean allowIfExistsAddConstraint() {
 		return false;
 	}
 	
