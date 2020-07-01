@@ -2,6 +2,7 @@ package prerna.poi.main.helper.excel;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -17,6 +18,8 @@ import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import prerna.util.Utility;
 
 public class ExcelUtility {
 
@@ -53,6 +56,15 @@ public class ExcelUtility {
 	}
 
 	public static void writeToFile(SXSSFWorkbook workbook, String fileLocation) {
+		fileLocation = Utility.normalizePath(fileLocation);
+		// make sure the directory exists
+		{
+			File file = new File(fileLocation);
+			if(!file.getParentFile().exists() || !file.getParentFile().isDirectory()) {
+				file.getParentFile().mkdirs();
+			}
+		}
+		
 		FileOutputStream fileOut = null;
 		try {
 			fileOut = new FileOutputStream(fileLocation);
@@ -80,10 +92,19 @@ public class ExcelUtility {
 		}
 	}
 
-	public static void writeToFile(XSSFWorkbook workbook, String path) {
+	public static void writeToFile(XSSFWorkbook workbook, String fileLocation) {
+		fileLocation = Utility.normalizePath(fileLocation);
+		// make sure the directory exists
+		{
+			File file = new File(fileLocation);
+			if(!file.getParentFile().exists() || !file.getParentFile().isDirectory()) {
+				file.getParentFile().mkdirs();
+			}
+		}
+		
 		FileOutputStream out = null;
 		try {
-			out = new FileOutputStream(path);
+			out = new FileOutputStream(fileLocation);
 			workbook.write(out);
 			workbook.close();
 		} catch (FileNotFoundException e) {

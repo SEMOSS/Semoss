@@ -243,8 +243,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 */
 	public String getColumnType(String frameName, String column) {
 		String script = "sapply(" + frameName + "$" + column + ", class)";
-		script = encapsulateForEnv(script);
-
 		String colType = this.getString(script);
 		return colType;
 	}
