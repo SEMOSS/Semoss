@@ -1033,10 +1033,19 @@ public class Utility {
 	 * @param wb      XSSFWorkbook to write to
 	 * @param fileLoc String containing the path to save the workbook
 	 */
-	public static void writeWorkbook(Workbook wb, String fileLoc) {
+	public static void writeWorkbook(Workbook wb, String fileLocation) {
+		fileLocation = Utility.normalizePath(fileLocation);
+		// make sure the directory exists
+		{
+			File file = new File(fileLocation);
+			if(!file.getParentFile().exists() || !file.getParentFile().isDirectory()) {
+				file.getParentFile().mkdirs();
+			}
+		}
+		
 		FileOutputStream newExcelFile = null;
 		try {
-			newExcelFile = new FileOutputStream(Utility.normalizePath(fileLoc));
+			newExcelFile = new FileOutputStream(fileLocation);
 			wb.write(newExcelFile);
 			newExcelFile.flush();
 		} catch (IOException ioe) {
