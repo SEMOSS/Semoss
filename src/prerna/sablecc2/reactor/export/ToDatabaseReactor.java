@@ -48,6 +48,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		typeConversionMap.put(SemossDataType.DATE, "DATE");
 		typeConversionMap.put(SemossDataType.TIMESTAMP, "TIMESTAMP");
 		typeConversionMap.put(SemossDataType.STRING, "VARCHAR(800)");
+		typeConversionMap.put(SemossDataType.FACTOR, "VARCHAR(800)");
 	}
 	
 	private String engineId = null;
