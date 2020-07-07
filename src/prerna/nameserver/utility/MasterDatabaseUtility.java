@@ -1216,83 +1216,169 @@ public class MasterDatabaseUtility {
 	public static Map<String, Object[]> getConceptProperties(List<String> logicalNames, List<String> engineFilter) {
 		// query to get all the physical name ids that tie to the parent
 		// and then pull all of their properties
-		
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
-		}
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", subQs));
-
-			// fill in the sub query with the necessary column output + filters
-			subQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
-			// we have a sub query again
-			SelectQueryStruct subQs2 = new SelectQueryStruct();
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__LOCALCONCEPTID", "==", subQs2));
-
-			// fill in the second sub query with the necessary column output + filters
-			subQs2.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
-			subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", logicalNames));
-		}
-		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__ENGINE"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK"));
-		
 		Map<String, Object[]> returnHash = new TreeMap<>();
 		Map<String, Map<String, MetamodelVertex>> queryData = new TreeMap<>();
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-			while(wrapper.hasNext()) {
-				IHeadersDataRow data = wrapper.next();
-				// keeps the id to the concept name
-				Object[] row = data.getValues();
-
-				String engineId = (String) row[0];
-				String parentName = (String) row[1];
-				String parentPhysicalId = (String) row[2];
-				String columnName = (String) row[3];
-				String columnPhysicalId = (String) row[4];
-				
-				Map<String, MetamodelVertex> engineMap = null;
-				if(queryData.containsKey(engineId)) {
-					engineMap  = queryData.get(engineId);
-				} else {
-					engineMap = new TreeMap<>();
-					// add to query data map
-					queryData.put(engineId, engineMap);
-				}
-
-				// get or create the vertex
-				MetamodelVertex vert = null;
-				if(engineMap.containsKey(parentName)) {
-					vert = engineMap.get(parentName);
-				} else {
-					vert = new MetamodelVertex(parentName);
-					// add to the engine map
-					engineMap.put(parentName, vert);
-				}
-
-				// add the property conceptual name
-				vert.addProperty(columnName);
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		{
+			// for tabular databases
+			// we grab the parent
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
+			if(engineFilter != null && !engineFilter.isEmpty()) {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
 			}
-		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			{
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				// store first and fill in sub query after
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", true, PixelDataType.BOOLEAN));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", subQs));
+	
+				// fill in the sub query with the necessary column output + filters
+				// NOTE::: THIS IS THE MAIN DIFFERENCE FROM THE BELOW
+				// 			THIS REQUIRED THE PARENT TO BE THE PARENTPHYSICALNAMEID
+				//			SINCE THERE IS ALWAYS A PARENT ID IN LOCAL MASTER
+				subQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+				// we have a sub query again
+				SelectQueryStruct subQs2 = new SelectQueryStruct();
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__LOCALCONCEPTID", "==", subQs2));
+	
+				// fill in the second sub query with the necessary column output + filters
+				subQs2.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
+				subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", logicalNames));
+			}
+			qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__ENGINE"));
+			qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK"));
+			
+			
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+				while(wrapper.hasNext()) {
+					IHeadersDataRow data = wrapper.next();
+					// keeps the id to the concept name
+					Object[] row = data.getValues();
+	
+					String engineId = (String) row[0];
+					String parentName = (String) row[1];
+					String parentPhysicalId = (String) row[2];
+					String columnName = (String) row[3];
+					String columnPhysicalId = (String) row[4];
+					
+					Map<String, MetamodelVertex> engineMap = null;
+					if(queryData.containsKey(engineId)) {
+						engineMap  = queryData.get(engineId);
+					} else {
+						engineMap = new TreeMap<>();
+						// add to query data map
+						queryData.put(engineId, engineMap);
+					}
+	
+					// get or create the vertex
+					MetamodelVertex vert = null;
+					if(engineMap.containsKey(parentName)) {
+						vert = engineMap.get(parentName);
+					} else {
+						vert = new MetamodelVertex(parentName);
+						// add to the engine map
+						engineMap.put(parentName, vert);
+					}
+	
+					// add the property conceptual name
+					vert.addProperty(columnName);
+				}
+			} catch (Exception e) {
+				logger.error(STACKTRACE, e);
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
 		}
-
+		{
+			// for graph/RDF databases
+			// we grab the node itself where it is not ignored
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
+			if(engineFilter != null && !engineFilter.isEmpty()) {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+			}
+			{
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				// store first and fill in sub query after
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", subQs));
+	
+				// fill in the sub query with the necessary column output + filters
+				// NOTE::: THIS IS THE MAIN DIFFERENCE FROM THE ABOVE
+				// 			THIS REQUIRED THE PARENT TO BE THE PHYSICALNAMEID
+				// 			SINCE NODES/CONCEPTS DO NOT HAVE PARENTS IN LOCAL MASTER
+				subQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
+				// we have a sub query again
+				SelectQueryStruct subQs2 = new SelectQueryStruct();
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__LOCALCONCEPTID", "==", subQs2));
+	
+				// fill in the second sub query with the necessary column output + filters
+				subQs2.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
+				subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", logicalNames));
+			}
+			qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__ENGINE"));
+			qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK"));
+			
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+				while(wrapper.hasNext()) {
+					IHeadersDataRow data = wrapper.next();
+					// keeps the id to the concept name
+					Object[] row = data.getValues();
+	
+					String engineId = (String) row[0];
+					String parentName = (String) row[1];
+					String parentPhysicalId = (String) row[2];
+					String columnName = (String) row[3];
+					String columnPhysicalId = (String) row[4];
+					
+					Map<String, MetamodelVertex> engineMap = null;
+					if(queryData.containsKey(engineId)) {
+						engineMap  = queryData.get(engineId);
+					} else {
+						engineMap = new TreeMap<>();
+						// add to query data map
+						queryData.put(engineId, engineMap);
+					}
+	
+					// get or create the vertex
+					MetamodelVertex vert = null;
+					if(engineMap.containsKey(parentName)) {
+						vert = engineMap.get(parentName);
+					} else {
+						vert = new MetamodelVertex(parentName);
+						// add to the engine map
+						engineMap.put(parentName, vert);
+					}
+	
+					// add the property conceptual name
+					vert.addProperty(columnName);
+				}
+			} catch (Exception e) {
+				logger.error(STACKTRACE, e);
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
+			}
+		}
+		
 		for(String engineName : queryData.keySet()) {
 			returnHash.put(engineName, queryData.get(engineName).values().toArray());
 		}
