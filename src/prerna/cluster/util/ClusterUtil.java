@@ -1,15 +1,27 @@
 package prerna.cluster.util;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
@@ -28,6 +40,10 @@ public class ClusterUtil {
 	// TODO >>>timb: make sure that everything cluster related starts with this,
 	// also introduces tracibility
 	
+	private static final Logger logger = LogManager.getLogger(ClusterUtil.class);
+
+	private static final String STACKTRACE = "StackTrace: ";
+
 	private static final String IS_CLUSTER_KEY = "SEMOSS_IS_CLUSTER";
 	public static final boolean IS_CLUSTER = (DIHelper.getInstance().getProperty(IS_CLUSTER_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY).isEmpty())) 
 			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY)) : (
@@ -60,7 +76,7 @@ public class ClusterUtil {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public static String IMAGES_FOLDER_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR+"images";
-
+	private static final String SCHEDULER_EXECUTOR_KEY = "SCHEDULER_EXECUTOR";
 
 	/*
 	 * private static final String MULTIPLE_STORAGE_ACCOUNTS_KEY =
@@ -87,7 +103,62 @@ public class ClusterUtil {
 
 	}
 	
+	  public static JSONObject readJsonFromUrl(String url) throws IOException, JSONException {
+		    InputStream is = new URL(url).openStream();
+		    try {
+		      BufferedReader rd = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")));
+		      String jsonText = readAll(rd);
+		      JSONObject json = new JSONObject(jsonText);
+		      return json;
+		    } finally {
+		      is.close();
+		    }
+		  }
+	  
+	  private static String readAll(Reader rd) throws IOException {
+		    StringBuilder sb = new StringBuilder();
+		    int cp;
+		    while ((cp = rd.read()) != -1) {
+		      sb.append((char) cp);
+		    }
+		    return sb.toString();
+		  }
 	
+	public static boolean isSchedulerExecutor() {
+		if (ClusterUtil.IS_CLUSTER) {
+			//check rdf
+			if(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY) != null && !(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY).isEmpty())) {
+				return Boolean.parseBoolean(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY));
+			}
+
+			//then check env var
+		    String leader = System.getenv(SCHEDULER_EXECUTOR_KEY);
+		    if(leader != null && !leader.isEmpty()) {
+		    	return Boolean.parseBoolean(leader);
+		    }
+			//finally dynamic
+			String hostName = System.getenv("HOSTNAME");
+			if(hostName == null || hostName.isEmpty()) {
+				throw new IllegalArgumentException("Hostname is null or empty along with no reference to scheduler execution in RDF_Map or env vars");
+			}
+		    try {
+		    	// TODO make this dynamic url instead of hard coded
+				JSONObject json = readJsonFromUrl("http://localhost:4040/");
+			    String electedLeader = json.get("name").toString();
+				return hostName.equals(electedLeader);
+			} catch (JSONException e) {
+				logger.error(STACKTRACE, e);
+			} catch (IOException e) {
+				logger.error(STACKTRACE, e);
+			}
+		    return false;
+		} else {
+			//if its not clustered, return true to say its a executor
+			return true;
+		}
+	}
+
+
 	public static void reactorPullApp(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
