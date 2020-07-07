@@ -14,6 +14,7 @@ import org.quartz.UnableToInterruptJobException;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.cluster.util.ClusterUtil;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
@@ -35,6 +36,9 @@ public class RunPixelJobFromDB implements InterruptableJob {
 
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {
+		if(!ClusterUtil.isSchedulerExecutor()) {
+			return;
+		}
 		// Get inputs
 		JobDataMap dataMap = context.getMergedJobDataMap();
 		jobName = context.getJobDetail().getKey().getName();
