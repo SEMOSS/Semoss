@@ -126,6 +126,7 @@ public class ClusterUtil {
 	
 	public static boolean isSchedulerExecutor() {
 		if (ClusterUtil.IS_CLUSTER) {
+			logger.info("Checking if pod is leader");
 			//check rdf
 			if(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY) != null && !(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY).isEmpty())) {
 				return Boolean.parseBoolean(DIHelper.getInstance().getProperty(SCHEDULER_EXECUTOR_KEY));
@@ -137,7 +138,10 @@ public class ClusterUtil {
 		    	return Boolean.parseBoolean(leader);
 		    }
 			//finally dynamic
+		    
 			String hostName = System.getenv("HOSTNAME");
+			logger.info("pod host name is " + hostName);
+
 			if(hostName == null || hostName.isEmpty()) {
 				throw new IllegalArgumentException("Hostname is null or empty along with no reference to scheduler execution in RDF_Map or env vars");
 			}
@@ -145,6 +149,8 @@ public class ClusterUtil {
 		    	// TODO make this dynamic url instead of hard coded
 				JSONObject json = readJsonFromUrl("http://localhost:4040/");
 			    String electedLeader = json.get("name").toString();
+				logger.info("elected leader is " + electedLeader);
+
 				return hostName.equals(electedLeader);
 			} catch (JSONException e) {
 				logger.error(STACKTRACE, e);
