@@ -805,60 +805,60 @@ public class MasterDatabaseUtility {
 			}
 		}
 		
-		// let me pull all the relationships that are ignore
-		// this means i use the relationship to pull in any query
-		if(!relationshipEquivMap.isEmpty()) {
-			qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
-			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
-			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
-			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
-			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
-			if(engineFilter != null && !engineFilter.isEmpty()) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
-			}
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", new Vector<String>(relationshipEquivMap.keySet())));
-			qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
-			qs.addOrderBy("ENGINECONCEPT__ENGINE");
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-				while(wrapper.hasNext()) {
-					IHeadersDataRow row = wrapper.next();
-					Object[] data = row.getValues();
-					
-					String engineName = (String) data[0];
-					String engineId = (String) data[1];
-					String parentName = (String) data[2];
-					String name = (String) data[3];
-					String type = (String) data[4];
-					String parentId = (String) data[5];
-		
-					Object[] equivTableCol = relationshipEquivMap.get(parentId);
-					
-					// if we passed the above test, add the valid connection
-					Map<String, Object> mapRow = new HashMap<>();
-					mapRow.put("app_id", engineId);
-					mapRow.put("app_name", engineName);
-					mapRow.put("table", parentName);
-					mapRow.put("column", name);
-					mapRow.put("pk", false);
-					mapRow.put("dataType", type);
-					mapRow.put("type", "downstream");
-//					mapRow.put("relName", relName);
-					mapRow.put("equivTable", equivTableCol[0]);
-					mapRow.put("equivColumn", equivTableCol[1]);
-					mapRow.put("equivPk", equivTableCol[2]);
-					returnData.add(mapRow);
-				}
-			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
-			} finally {
-				if(wrapper != null) {
-					wrapper.cleanUp();
-				}
-			}
-		}
+//		// let me pull all the relationships that are ignore
+//		// this means i use the relationship to pull in any query
+//		if(!relationshipEquivMap.isEmpty()) {
+//			qs = new SelectQueryStruct();
+//			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+//			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
+//			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+//			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+//			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+//			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+//			if(engineFilter != null && !engineFilter.isEmpty()) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+//			}
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", new Vector<String>(relationshipEquivMap.keySet())));
+//			qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
+//			qs.addOrderBy("ENGINECONCEPT__ENGINE");
+//			try {
+//				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+//				while(wrapper.hasNext()) {
+//					IHeadersDataRow row = wrapper.next();
+//					Object[] data = row.getValues();
+//					
+//					String engineName = (String) data[0];
+//					String engineId = (String) data[1];
+//					String parentName = (String) data[2];
+//					String name = (String) data[3];
+//					String type = (String) data[4];
+//					String parentId = (String) data[5];
+//		
+//					Object[] equivTableCol = relationshipEquivMap.get(parentId);
+//					
+//					// if we passed the above test, add the valid connection
+//					Map<String, Object> mapRow = new HashMap<>();
+//					mapRow.put("app_id", engineId);
+//					mapRow.put("app_name", engineName);
+//					mapRow.put("table", parentName);
+//					mapRow.put("column", name);
+//					mapRow.put("pk", false);
+//					mapRow.put("dataType", type);
+//					mapRow.put("type", "downstream");
+////					mapRow.put("relName", relName);
+//					mapRow.put("equivTable", equivTableCol[0]);
+//					mapRow.put("equivColumn", equivTableCol[1]);
+//					mapRow.put("equivPk", equivTableCol[2]);
+//					returnData.add(mapRow);
+//				}
+//			} catch (Exception e) {
+//				logger.error(STACKTRACE, e);
+//			} finally {
+//				if(wrapper != null) {
+//					wrapper.cleanUp();
+//				}
+//			}
+//		}
 		relationshipEquivMap.clear();
 		
 		// let me find up and upstream connections for my equivalent concepts
@@ -935,60 +935,60 @@ public class MasterDatabaseUtility {
 			}
 		}
 		
-		// let me pull all the relationships that are ignore
-		// this means i use the relationship to pull in any query
-		if(!relationshipEquivMap.isEmpty()) {
-			qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
-			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
-			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
-			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
-			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
-			if(engineFilter != null && !engineFilter.isEmpty()) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
-			}
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", new Vector<String>(relationshipEquivMap.keySet())));
-			qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
-			qs.addOrderBy("ENGINECONCEPT__ENGINE");
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-				while(wrapper.hasNext()) {
-					IHeadersDataRow row = wrapper.next();
-					Object[] data = row.getValues();
-					
-					String engineName = (String) data[0];
-					String engineId = (String) data[1];
-					String parentName = (String) data[2];
-					String name = (String) data[3];
-					String type = (String) data[4];
-					String parentId = (String) data[5];
-		
-					Object[] equivTableCol = relationshipEquivMap.get(parentId);
-					
-					// if we passed the above test, add the valid connection
-					Map<String, Object> mapRow = new HashMap<>();
-					mapRow.put("app_id", engineId);
-					mapRow.put("app_name", engineName);
-					mapRow.put("table", parentName);
-					mapRow.put("column", name);
-					mapRow.put("pk", false);
-					mapRow.put("dataType", type);
-					mapRow.put("type", "upstream");
-//					mapRow.put("relName", relName);
-					mapRow.put("equivTable", equivTableCol[0]);
-					mapRow.put("equivColumn", equivTableCol[1]);
-					mapRow.put("equivPk", equivTableCol[2]);
-					returnData.add(mapRow);
-				}
-			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
-			} finally {
-				if(wrapper != null) {
-					wrapper.cleanUp();
-				}
-			}
-		}
+//		// let me pull all the relationships that are ignore
+//		// this means i use the relationship to pull in any query
+//		if(!relationshipEquivMap.isEmpty()) {
+//			qs = new SelectQueryStruct();
+//			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+//			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
+//			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+//			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+//			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+//			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+//			if(engineFilter != null && !engineFilter.isEmpty()) {
+//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+//			}
+//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", new Vector<String>(relationshipEquivMap.keySet())));
+//			qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
+//			qs.addOrderBy("ENGINECONCEPT__ENGINE");
+//			try {
+//				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+//				while(wrapper.hasNext()) {
+//					IHeadersDataRow row = wrapper.next();
+//					Object[] data = row.getValues();
+//					
+//					String engineName = (String) data[0];
+//					String engineId = (String) data[1];
+//					String parentName = (String) data[2];
+//					String name = (String) data[3];
+//					String type = (String) data[4];
+//					String parentId = (String) data[5];
+//		
+//					Object[] equivTableCol = relationshipEquivMap.get(parentId);
+//					
+//					// if we passed the above test, add the valid connection
+//					Map<String, Object> mapRow = new HashMap<>();
+//					mapRow.put("app_id", engineId);
+//					mapRow.put("app_name", engineName);
+//					mapRow.put("table", parentName);
+//					mapRow.put("column", name);
+//					mapRow.put("pk", false);
+//					mapRow.put("dataType", type);
+//					mapRow.put("type", "upstream");
+////					mapRow.put("relName", relName);
+//					mapRow.put("equivTable", equivTableCol[0]);
+//					mapRow.put("equivColumn", equivTableCol[1]);
+//					mapRow.put("equivPk", equivTableCol[2]);
+//					returnData.add(mapRow);
+//				}
+//			} catch (Exception e) {
+//				logger.error(STACKTRACE, e);
+//			} finally {
+//				if(wrapper != null) {
+//					wrapper.cleanUp();
+//				}
+//			}
+//		}
 		relationshipEquivMap.clear();
 		
 		return returnData;
