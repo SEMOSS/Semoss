@@ -93,6 +93,11 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String constraintExistsQuery(String constraintName) {
+		return "SELECT * FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME ='" + constraintName + "'";
+	}
+	
+	@Override
 	public String alterTableName(String tableName, String newTableName) {
 		return "sp_reanme '" + tableName + "', '" + newTableName + "';";
 	}
