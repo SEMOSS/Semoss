@@ -1252,5 +1252,10 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		// there is no commonality that i have found for this
 		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
-
+	
+	@Override
+	public String constraintExistsQuery(String constraintName) {
+		// there is no commonality that i have found for this
+		throw new UnsupportedOperationException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
+	}
 }
