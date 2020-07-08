@@ -896,6 +896,13 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract String allIndexForTableQuery(String tableName, String schema);
 
+	/**
+	 * Query to get if a constraint exists
+	 * @param constraintName
+	 * @return
+	 */
+	public abstract String constraintExistsQuery(String constraintName);
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
@@ -982,6 +989,69 @@ public abstract class AbstractSqlQueryUtil {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, indexCheckQ);
+			if (wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			logger.error(STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+
+		return false;
+	}
+	
+	/**
+	 * Test on the connection if a constraint exists
+	 * 
+	 * @param conn
+	 * @param constraintName
+	 * @return
+	 */
+	public boolean constraintExists(Connection conn, String constraintName) {
+		String query = this.constraintExistsQuery(constraintName);
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+
+			return rs.next();
+		} catch (SQLException e) {
+			return false;
+		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					logger.error(STACKTRACE, e);
+				}
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					logger.error(STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Test on the engine if a constraint exists
+	 * 
+	 * @param engine
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	public boolean constraintExists(IEngine engine, String constraintName) {
+		String query = this.constraintExistsQuery(constraintName);
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
 			if (wrapper.hasNext()) {
 				return true;
 			}
