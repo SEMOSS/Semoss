@@ -17,6 +17,7 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
@@ -178,6 +179,11 @@ public class ZKClient implements Watcher{
 				
 				connected = true;
 			}
+			if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
+				SchedulerListener.getListener();
+			}
+			
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -378,14 +384,14 @@ public class ZKClient implements Watcher{
 		EventType type = event.getType();
 		
 		
-		
-		System.out.println("Some Event came in.. " + event.getType());
-		
 		String path = event.getPath();
+
+		System.out.println("Some Event came in.. " + event.getType() + " at path " + path);
+		
 		
 		if(path != null)
 		{
-			
+		
 			String key = path + "_" + event.getType();
 			
 			if(listeners.containsKey(key))
@@ -435,6 +441,55 @@ public class ZKClient implements Watcher{
 		}
 		
 		return data;
+	}
+	
+	public List<String> getChildren(String node, final boolean watch) {
+		
+		List<String> childNodes = null;
+		
+		try {
+			childNodes = zk.getChildren(node, watch);
+		} catch (KeeperException | InterruptedException e) {
+			throw new IllegalStateException(e);
+		}
+		
+		return childNodes;
+	}
+	
+	public boolean watchSchedulerNode(String node, boolean watch) {
+		
+		boolean watched = false;
+		try {
+			final Stat nodeStat =  zk.exists(node, watch);
+			
+			if(nodeStat != null) {
+				watched = true;
+			}
+			
+		} catch (KeeperException | InterruptedException e) {
+			throw new IllegalStateException(e);
+		}
+		
+		return watched;
+	}
+	
+	public String createSchedulerNode( String node,  boolean watch, boolean ephimeral) {
+		String createdNodePath = null;
+		try {
+			
+			final Stat nodeStat =  zk.exists(node, watch);
+			
+			if(nodeStat == null) {
+				createdNodePath = zk.create(node, new byte[0], Ids.OPEN_ACL_UNSAFE, (ephimeral ?  CreateMode.EPHEMERAL_SEQUENTIAL : CreateMode.PERSISTENT));
+			} else {
+				createdNodePath = node;
+			}
+			
+		} catch (KeeperException | InterruptedException e) {
+			throw new IllegalStateException(e);
+		}
+		
+		return createdNodePath;
 	}
 	
 	
