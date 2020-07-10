@@ -1110,11 +1110,21 @@ public class MasterDatabaseUtility {
 				if(relName.contains(".")) {
 					String[] split = relName.split("[.]");
 					if(split.length == 4) {
-						newEdge.put("sourceColumn", split[1]);
-						newEdge.put("targetColumn", split[3]);
+						if(startName.equals(split[0])) {
+							newEdge.put("sourceColumn", split[1]);
+							newEdge.put("targetColumn", split[3]);
+						} else {
+							newEdge.put("sourceColumn", split[3]);
+							newEdge.put("targetColumn", split[1]);
+						}
 					} else if(split.length == 6) {
-						newEdge.put("sourceColumn", split[2]);
-						newEdge.put("targetColumn", split[5]);
+						if(startName.equals(split[1])) {
+							newEdge.put("sourceColumn", split[2]);
+							newEdge.put("targetColumn", split[5]);
+						} else {
+							newEdge.put("sourceColumn", split[5]);
+							newEdge.put("targetColumn", split[2]);
+						}
 					}
 				}
 				edgeHash.put(endName + "-" + endName + "-" + relName, newEdge);
