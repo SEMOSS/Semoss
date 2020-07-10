@@ -1107,6 +1107,16 @@ public class MasterDatabaseUtility {
 				newEdge.put("source", startName);
 				newEdge.put("target", endName);
 				newEdge.put("relation", relName);
+				if(relName.contains(".")) {
+					String[] split = relName.split("[.]");
+					if(split.length == 4) {
+						newEdge.put("sourceColumn", split[1]);
+						newEdge.put("targetColumn", split[3]);
+					} else if(split.length == 6) {
+						newEdge.put("sourceColumn", split[2]);
+						newEdge.put("targetColumn", split[5]);
+					}
+				}
 				edgeHash.put(endName + "-" + endName + "-" + relName, newEdge);
 			}
 		} catch (Exception e) {
