@@ -41,7 +41,6 @@ public class InsightCacheUtility {
 
 	private static final Logger logger = LogManager.getLogger(InsightCacheUtility.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private static byte[] buffer = new byte[2048];
@@ -108,11 +107,11 @@ public class InsightCacheUtility {
 			try {
 				FileUtils.writeStringToFile(insightFile, writer.toString());
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 			addToZipFile(insightFile, zos);
 		} catch(Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			closeStream(zos);
 			closeStream(fos);
@@ -178,7 +177,7 @@ public class InsightCacheUtility {
 			Insight insight = iAdapter.read(jReader);
 			return insight;
 		} catch(Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
 			closeStream(br);
@@ -240,7 +239,7 @@ public class InsightCacheUtility {
 			return gson.fromJson(jsonString, Map.class);
 		} catch(Exception e) {
 			logger.error("Error retrieving cache for " + rdbmsId);
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(zis != null) {
 				zis.close();
@@ -299,20 +298,20 @@ public class InsightCacheUtility {
                 fos.write(buffer, 0, len);
             }
 		} catch(Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(fos != null) {
 				try {
 					fos.close();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(zis != null) {
 				try {
 					zis.close();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -327,7 +326,7 @@ public class InsightCacheUtility {
 			try {
 				is.close();
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
