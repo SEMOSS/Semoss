@@ -416,8 +416,8 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 				// add relationships
 				List<String> relList = null;
-				String predicate = cleanToConceptTableName + "." + cleanFromConceptTableName + FK + "." 
-						+ cleanFromConceptTableName + "." + cleanFromConceptTableName;
+				String predicate = cleanFromConceptTableName + "." + cleanFromConceptTableName
+						+ "." + cleanToConceptTableName + "." + cleanFromConceptTableName + FK;
 				// determine order based on *
 				// if it is fromConcept *has toConcept
 				// then toConcept has the FK for fromConcept
@@ -463,8 +463,8 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					relations.put(fromConcept, relList);
 
 					// the predicate string is different from the default defined
-					predicate = cleanToConceptTableName + "." + cleanToConceptTableName + "."
-							+ cleanFromConceptTableName + "." + cleanToConceptTableName + FK;
+					predicate = cleanFromConceptTableName + "." + cleanToConceptTableName + FK 
+							+ "." + cleanToConceptTableName + "." + cleanToConceptTableName;
 
 					// add the FK as a property to view
 					owler.addProp(cleanFromConceptTableName, cleanToConceptTableName + FK, 
