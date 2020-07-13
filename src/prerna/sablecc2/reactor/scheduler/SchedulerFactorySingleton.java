@@ -11,6 +11,7 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.impl.StdSchedulerFactory;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.rdbms.H2EmbeddedServerEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
@@ -66,6 +67,10 @@ public class SchedulerFactorySingleton {
 				+ DIR_SEPARATOR + QUARTZ_CONFIGURATION_FILE)) {
 			quartzProperties.load(input);
 			quartzProperties.setProperty("org.quartz.dataSource.myDS.URL", serverUrl);
+			if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
+				quartzProperties.setProperty("org.quartz.scheduler.instanceId", "AUTO");
+				quartzProperties.setProperty("org.quartz.jobStore.isClustered", "true");
+			}
 		} catch (IOException ex) {
 			logger.error("Error with loading properties in config file " + ex.getMessage());
 		}
@@ -92,6 +97,7 @@ public class SchedulerFactorySingleton {
 	}
 
 	public void shutdownScheduler(boolean waitForJobsToComplete) {
+		if(!ClusterUtil.IS_CLUSTERED_SCHEDULER) {
 		try {
 			if (scheduler != null && scheduler.isStarted()) {
 				scheduler.shutdown(waitForJobsToComplete); 
@@ -99,5 +105,6 @@ public class SchedulerFactorySingleton {
 		} catch (SchedulerException se) {
 			logger.error(Constants.STACKTRACE, se);
 		}
+	}
 	}
 }
