@@ -7,6 +7,7 @@ public class InsightSheet {
 	private String backgroundColor;
 	private Boolean hideHeaders;
 	private Boolean hideBorders;
+	private int borderSize = 2;
 	
 	/*
 	 * Basic setter/getters for the sheet state
@@ -55,5 +56,13 @@ public class InsightSheet {
 	
 	public Boolean getHideBorders() {
 		return this.hideBorders;
+	}
+
+	public int getBorderSize() {
+		return borderSize;
+	}
+
+	public void setBorderSize(int borderSize) {
+		this.borderSize = borderSize;
 	}
 }

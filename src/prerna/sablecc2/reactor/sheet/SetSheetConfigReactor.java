@@ -34,6 +34,9 @@ public class SetSheetConfigReactor extends AbstractSheetReactor {
 		if(sheetConfig.containsKey("hideBorders")) {
 			insightSheet.setHideBorders((Boolean) sheetConfig.get("hideBorders"));
 		}
+		if(sheetConfig.containsKey("borderSize")) {
+			insightSheet.setBorderSize( ((Number) sheetConfig.get("borderSize")).intValue() );
+		}
 		
 		return new NounMetadata(insightSheet, PixelDataType.SHEET, PixelOperationType.SHEET_CONFIG);
 	}
