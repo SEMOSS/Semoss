@@ -3282,27 +3282,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outANumScalar(node);
     }
 
-    public void inAWordOrIdScalar(AWordOrIdScalar node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAWordOrIdScalar(AWordOrIdScalar node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAWordOrIdScalar(AWordOrIdScalar node)
-    {
-        inAWordOrIdScalar(node);
-        if(node.getWordOrId() != null)
-        {
-            node.getWordOrId().apply(this);
-        }
-        outAWordOrIdScalar(node);
-    }
-
     public void inABooleanScalar(ABooleanScalar node)
     {
         defaultIn(node);
@@ -3343,6 +3322,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getNull().apply(this);
         }
         outANullScalar(node);
+    }
+
+    public void inAWordOrIdScalar(AWordOrIdScalar node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWordOrIdScalar(AWordOrIdScalar node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWordOrIdScalar(AWordOrIdScalar node)
+    {
+        inAWordOrIdScalar(node);
+        if(node.getWordOrId() != null)
+        {
+            node.getWordOrId().apply(this);
+        }
+        outAWordOrIdScalar(node);
     }
 
     public void inAWordWordOrId(AWordWordOrId node)
