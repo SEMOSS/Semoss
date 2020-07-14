@@ -139,9 +139,9 @@ public interface Analysis extends Switch
     void caseAMapVar(AMapVar node);
     void caseAMapNegNum(AMapNegNum node);
     void caseANumScalar(ANumScalar node);
-    void caseAWordOrIdScalar(AWordOrIdScalar node);
     void caseABooleanScalar(ABooleanScalar node);
     void caseANullScalar(ANullScalar node);
+    void caseAWordOrIdScalar(AWordOrIdScalar node);
     void caseAWordWordOrId(AWordWordOrId node);
     void caseAIdWordOrId(AIdWordOrId node);
     void caseAWholeDecimalDecimal(AWholeDecimalDecimal node);
@@ -149,10 +149,10 @@ public interface Analysis extends Switch
     void caseAWholeDecimal(AWholeDecimal node);
     void caseAFractionDecimal(AFractionDecimal node);
 
-    void caseTMeta(TMeta node);
     void caseTNull(TNull node);
     void caseTNumber(TNumber node);
     void caseTBoolean(TBoolean node);
+    void caseTMeta(TMeta node);
     void caseTId(TId node);
     void caseTDot(TDot node);
     void caseTSemicolon(TSemicolon node);
