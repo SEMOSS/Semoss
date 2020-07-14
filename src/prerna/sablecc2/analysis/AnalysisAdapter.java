@@ -837,12 +837,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAWordOrIdScalar(AWordOrIdScalar node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseABooleanScalar(ABooleanScalar node)
     {
         defaultCase(node);
@@ -850,6 +844,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseANullScalar(ANullScalar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWordOrIdScalar(AWordOrIdScalar node)
     {
         defaultCase(node);
     }
@@ -891,12 +891,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseTMeta(TMeta node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseTNull(TNull node)
     {
         defaultCase(node);
@@ -910,6 +904,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTBoolean(TBoolean node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTMeta(TMeta node)
     {
         defaultCase(node);
     }
