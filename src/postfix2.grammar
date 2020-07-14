@@ -27,10 +27,10 @@ Helpers
  hash_comment = '##' not_hash+ (not_hash | ('#' not_hash)+)* '##'; 
  
 Tokens
- meta = 'META';
  null = 'null';
  number = ['0' .. '9']+;
  boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
+ meta = 'META';
  id = (letter_s | letter_b | digit | underscore)*;
  dot = '.';
  semicolon = ';';
@@ -44,7 +44,7 @@ Tokens
  mult = '*';
  comma = ',';
  div = '/';
- comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like' | '?nlike' | '==' | '<>');
+ comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like' | '?nlike' | '?begins' | '?nbegins' | '?ends' | '?nends' | '==' | '<>');
  and_comparator = ' AND ';
  or_comparator = ' OR ';
  equal = '=';
@@ -320,7 +320,7 @@ Productions
  ///////////////////////////////////////////////////////////////////////
  
  // word or id or number
- scalar = {num} decimal | {word_or_id} word_or_id | {boolean} boolean | {null} null;
+ scalar = {num} decimal | {boolean} boolean | {null} null | {word_or_id} word_or_id ;
  
  // word or an id
  word_or_id = {word} word | {id} id;

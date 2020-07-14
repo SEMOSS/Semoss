@@ -10,25 +10,25 @@ class TokenIndex extends AnalysisAdapter
     int index;
 
     @Override
-    public void caseTMeta(@SuppressWarnings("unused") TMeta node)
+    public void caseTNull(@SuppressWarnings("unused") TNull node)
     {
         this.index = 0;
     }
 
     @Override
-    public void caseTNull(@SuppressWarnings("unused") TNull node)
+    public void caseTNumber(@SuppressWarnings("unused") TNumber node)
     {
         this.index = 1;
     }
 
     @Override
-    public void caseTNumber(@SuppressWarnings("unused") TNumber node)
+    public void caseTBoolean(@SuppressWarnings("unused") TBoolean node)
     {
         this.index = 2;
     }
 
     @Override
-    public void caseTBoolean(@SuppressWarnings("unused") TBoolean node)
+    public void caseTMeta(@SuppressWarnings("unused") TMeta node)
     {
         this.index = 3;
     }
