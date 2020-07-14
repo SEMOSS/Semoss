@@ -720,8 +720,10 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					filterBuilder.append("AND ");
 				}
 			}
-			boolean isSearch = thisComparator.trim().equals(SEARCH_COMPARATOR);
-			boolean isNotSearch = thisComparator.trim().contentEquals(NOT_SEARCH_COMPARATOR);
+			boolean isSearch = thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.equals(BEGINS_COMPARATOR) 
+					|| thisComparator.equals(ENDS_COMPARATOR);
+			boolean isNotSearch = thisComparator.equals(NOT_SEARCH_COMPARATOR) || thisComparator.equals(NOT_BEGINS_COMPARATOR)
+					|| thisComparator.equals(NOT_ENDS_COMPARATOR);
 			if(isSearch || isNotSearch) {
 				String thisFilterSearch = " LIKE ";
 				if(isNotSearch) {
@@ -899,8 +901,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
 				} else {
-					leftWrapper = "\'";
-					rightWrapper = "\'";
+					leftWrapper = "'";
+					rightWrapper = "'";
 				}
 				
 				// get the first value
@@ -918,13 +920,21 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				boolean isSearch = comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR);
-				if(isSearch) {
+				boolean isSearch = comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR)
+						|| comparator.equalsIgnoreCase(BEGINS_COMPARATOR) || comparator.equals(NOT_BEGINS_COMPARATOR)
+						|| comparator.equalsIgnoreCase(ENDS_COMPARATOR) || comparator.equals(NOT_ENDS_COMPARATOR);
+				if(comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR)) {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
+				} else if(comparator.equalsIgnoreCase(BEGINS_COMPARATOR) || comparator.equals(NOT_BEGINS_COMPARATOR)) {
+					leftWrapper = "'";
+					rightWrapper = "%'";
+				} else if(comparator.equalsIgnoreCase(ENDS_COMPARATOR) || comparator.equals(NOT_ENDS_COMPARATOR)) {
+					leftWrapper = "'%";
+					rightWrapper = "'";					
 				} else {
-					leftWrapper = "\'";
-					rightWrapper = "\'";
+					leftWrapper = "'";
+					rightWrapper = "'";
 				}
 				
 				// get the first value
@@ -968,8 +978,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
 				} else {
-					leftWrapper = "\'";
-					rightWrapper = "\'";
+					leftWrapper = "'";
+					rightWrapper = "'";
 				}
 				
 				// get the first value
@@ -987,13 +997,21 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				boolean isSearch = comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR);
-				if(isSearch) {
+				boolean isSearch = comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR)
+						|| comparator.equalsIgnoreCase(BEGINS_COMPARATOR) || comparator.equals(NOT_BEGINS_COMPARATOR)
+						|| comparator.equalsIgnoreCase(ENDS_COMPARATOR) || comparator.equals(NOT_ENDS_COMPARATOR);
+				if(comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR)) {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
+				} else if(comparator.equalsIgnoreCase(BEGINS_COMPARATOR) || comparator.equals(NOT_BEGINS_COMPARATOR)) {
+					leftWrapper = "'";
+					rightWrapper = "%'";
+				} else if(comparator.equalsIgnoreCase(ENDS_COMPARATOR) || comparator.equals(NOT_ENDS_COMPARATOR)) {
+					leftWrapper = "'%";
+					rightWrapper = "'";					
 				} else {
-					leftWrapper = "\'";
-					rightWrapper = "\'";
+					leftWrapper = "'";
+					rightWrapper = "'";
 				}
 				
 				// get the first value

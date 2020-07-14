@@ -177,7 +177,11 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 * @return
 	 */
 	private boolean isAdditive(String comparator) {
-		if(this.comparator.equals("==") || this.comparator.equals("!=") || this.comparator.equals("<>") || this.comparator.equals("?like") || this.comparator.equals("?nlike")) {
+		if(this.comparator.equals("==") || this.comparator.equals("!=") || this.comparator.equals("<>") 
+				|| this.comparator.equals("?like") || this.comparator.equals("?nlike")
+				|| this.comparator.equals("?begins") || this.comparator.equals("?nbegins")
+				|| this.comparator.equals("?ends") || this.comparator.equals("?nends")
+				) {
 			return true;
 		}
 		return false;
