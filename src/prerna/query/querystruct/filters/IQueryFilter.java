@@ -82,12 +82,23 @@ public interface IQueryFilter {
 			return "?nlike";
 		} else if(comparator.equals("?nlike")) {
 			return "?like";
+		} else if(comparator.equals("?begins")) {
+			return "?nbegins";
+		} else if(comparator.equals("?nbegins")) {
+			return "?begins";
+		} else if(comparator.equals("?ends")) {
+			return "?nends";
+		} else if(comparator.equals("?nends")) {
+			return "?ends";
 		}
 		return null;
 	}
 	
 	public static boolean isRegexComparator(String comparator) {
-		if(comparator.equals("?like") || comparator.equals("?nlike")) {
+		if(comparator.equals("?like") || comparator.equals("?nlike")
+				|| comparator.equals("?begins") || comparator.equals("?nbegins")
+				|| comparator.equals("?ends") || comparator.equals("?nends")
+				) {
 			return true;
 		}
 		return false;
@@ -166,31 +177,27 @@ public interface IQueryFilter {
 	}
 	
 	public static boolean comparatorIsNumeric(String comparator) {
-		if(comparator.equals(">")) {
-			return true;
-		} else if(comparator.equals(">=")) {
-			return true;
-		} else if(comparator.equals("<")) {
-			return true;
-		} else if(comparator.equals("<=")) {
+		if(comparator.equals(">") || comparator.equals(">=")
+				|| comparator.equals("<") || comparator.equals("<=")
+				) {
 			return true;
 		}
 		return false;
 	}
 	
 	public static boolean comparatorNotNumeric(String comparator) {
-		if(comparator.equals("==")) {
-			return true;
-		} else if(comparator.equals("!=")) {
-			return true;
-		} else if(comparator.equals("<>")) {
-			return true;
-		} else if (comparator.equals("?nlike")) {
-			return true;
-		} else if (comparator.equals("?like")) {
+		if(comparator.equals("==")
+				|| comparator.equals("!=")
+				|| comparator.equals("<>")
+				|| comparator.equals("?like")
+				|| comparator.equals("?nlike")
+				|| comparator.equals("?begins")
+				|| comparator.equals("?nbegins")
+				|| comparator.equals("?ends")
+				|| comparator.equals("?nends")
+				) {
 			return true;
 		}
-		
 		return false;
 	}
 	
