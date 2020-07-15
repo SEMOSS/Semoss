@@ -19,6 +19,7 @@ public class InsightSheetAdapter extends TypeAdapter<InsightSheet> {
 		String backgroundColor = value.getBackgroundColor();
 		Boolean hideHeaders = value.getHideHeaders();
 		Boolean hideBorders = value.getHideBorders();
+		int borderSize = value.getBorderSize();
 		
 		out.beginObject();
 		out.name("sheetId").value(sheetId);
@@ -42,6 +43,10 @@ public class InsightSheetAdapter extends TypeAdapter<InsightSheet> {
 		} else {
 			out.name("hideBorders").value(hideBorders);
 		}
+		
+		// border size has default of 2
+		out.name("borderSize").value(borderSize);
+		
 		out.endObject();
 	}
 
@@ -52,7 +57,8 @@ public class InsightSheetAdapter extends TypeAdapter<InsightSheet> {
 		String backgroundColor = null;
 		Boolean hideHeaders = null;
 		Boolean hideBorders = null;
-
+		Integer borderSize = null;
+		
 		in.beginObject();
 		while(in.hasNext()) {
 			String key = in.nextName();
@@ -71,6 +77,8 @@ public class InsightSheetAdapter extends TypeAdapter<InsightSheet> {
 				hideHeaders = in.nextBoolean();
 			} else if(key.equals("hideBorders")) {
 				hideBorders = in.nextBoolean();
+			} else if(key.equals("borderSize")) {
+				borderSize = in.nextInt();
 			}
 		}
 		in.endObject();
@@ -80,6 +88,9 @@ public class InsightSheetAdapter extends TypeAdapter<InsightSheet> {
 		sheet.setBackgroundColor(backgroundColor);
 		sheet.setHideHeaders(hideHeaders);
 		sheet.setHideBorders(hideBorders);
+		if(borderSize != null) {
+			sheet.setBorderSize(borderSize);
+		}
 		return sheet;
 	}
 
