@@ -17,7 +17,8 @@ public class AddPanelIfAbsentReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		// first input is the name of the panel
-		String panelId = this.curRow.get(0).toString();
+		organizeKeys();
+		String panelId = this.keyValue.get(this.keysToGet[0]);
 		InsightPanel panel = this.insight.getInsightPanels().get(panelId);
 		if(panel == null) {
 			String sheetId = this.keyValue.get(this.keysToGet[1]);
