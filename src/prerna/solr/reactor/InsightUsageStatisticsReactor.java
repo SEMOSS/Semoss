@@ -132,7 +132,9 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("There was an error in querying the data frame with the loaded insight query statistics", e);
 		}
 		
-		return new NounMetadata(retNouns, PixelDataType.VECTOR);
+		NounMetadata noun = new NounMetadata(retNouns, PixelDataType.VECTOR, PixelOperationType.VECTOR);
+		noun.addAdditionalReturn(getSuccess("Successfully generated new frame with insight usage statistics"));
+		return noun;
 	}
 	
 	/**
