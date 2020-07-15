@@ -73,6 +73,9 @@ public class UploadUtilities {
 		ENGINE_DIRECTORY = DIR_SEPARATOR + "db" + DIR_SEPARATOR;
 	}
 	
+	public static final String INSIGHT_USAGE_STATS_INSIGHT_NAME = "Explore insight usage stats";
+	public static final String INSIGHT_USAGE_STATS_LAYOUT = "Grid";
+	
 	public static final String EXPLORE_INSIGHT_INSIGHT_NAME = "Explore an instance of a selected node type";
 	public static final String EXPLORE_INSIGHT_LAYOUT = "Graph";
 
@@ -1423,6 +1426,34 @@ public class UploadUtilities {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+		return null;
+	}
+	
+	public static String addInsightUsageStats(String appId, String appName, RDBMSNativeEngine insightEngine) {
+		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+		StringBuilder newPixel = new StringBuilder();
+		newPixel.append("AddPanel(panel = [ 0 ] , sheet = [ \"0\" ] );");
+		newPixel.append("Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] );");
+		newPixel.append("Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;");
+		newPixel.append("InsightUsageStatistics ( app = [ \"").append(appId).append("\" ] , panel = [ \"0\" ] ) ;");
+		newPixel.append("SetInsightConfig({\"panels\":{\"0\":{\"config\":{\"type\":\"golden\",\"backgroundColor\":\"\",\"opacity\":100}}},\"sheets\":{\"0\":{\"golden\":{\"content\":[{\"type\":\"row\",\"content\":[{\"type\":\"stack\",\"activeItemIndex\":0,\"width\":100,\"content\":[{\"type\":\"component\",\"componentName\":\"panel\",\"componentState\":{\"panelId\":\"0\"}}]}]}]}}},\"sheet\":\"0\"});");
+		try {
+
+			String[] pixelRecipeToSave = { newPixel.toString() };
+			String insightId = admin.addInsight(INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave);
+			// write recipe to file
+			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave, false);
+			// add the git here
+			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			List<String> files = new Vector<>();
+			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
+			GitRepoUtils.addSpecificFiles(gitFolder, files);
+			GitRepoUtils.commitAddedFiles(gitFolder,
+					GitUtils.getDateMessage("Saved " + INSIGHT_USAGE_STATS_INSIGHT_NAME + " insight on"));
+			return insightId;
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		return null;
 	}
