@@ -1144,6 +1144,178 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
+	
+	/**
+	 * User has access to specific insights within a database
+	 * User can access if:
+	 * 	1) Is Owner, Editer, or Reader of insight
+	 * 	2) Insight is global
+	 * 	3) Is Owner of database
+	 * 
+	 * @param engineId
+	 * @param userId
+	 * @param searchTerm
+	 * @param tags
+	 * @return
+	 */
+	public static SelectQueryStruct searchUserInsightsUsage(User user, List<String> engineFilter, String searchTerm, List<String> tags) {
+		boolean hasEngineFilters = engineFilter != null && !engineFilter.isEmpty();
+		
+		Collection<String> userIds = getUserFiltersQs(user);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "insight_tags"));
+		
+		// filters
+		// if we have an engine filter
+		// i'm assuming you want these even if visibility is false
+		if(hasEngineFilters) {
+			// will filter to the list of engines
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
+			// make sure you have access to each of these insights
+			// 1) you have access based on user insight permission table -- or
+			// 2) the insight is global -- or 
+			// 3) you are the owner of this engine (defined by the embedded and)
+			OrQueryFilter orFilter = new OrQueryFilter();
+			{
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+				AndQueryFilter embedAndFilter = new AndQueryFilter();
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				orFilter.addFilter(embedAndFilter);
+			}
+			qs.addExplicitFilter(orFilter);
+		} else {
+			// search across all engines
+			// so guessing you only want those you have visible to you
+			// 1) the engine is global -- or
+			// 2) you have access to it
+			
+			OrQueryFilter firstOrFilter = new OrQueryFilter();
+			{
+				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+			}
+			qs.addExplicitFilter(firstOrFilter);
+
+			// subquery time
+			// remove those engines you have visibility as false
+			{
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				// store first and fill in sub query after
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+				
+				// fill in the sub query with the single return + filters
+				subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+			}
+			
+			OrQueryFilter secondOrFilter = new OrQueryFilter();
+			{
+				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+				AndQueryFilter embedAndFilter = new AndQueryFilter();
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", true, PixelDataType.BOOLEAN));
+				secondOrFilter.addFilter(embedAndFilter);
+			}
+			qs.addExplicitFilter(secondOrFilter);
+		}
+		// add the search term filter
+		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+			FunctionQueryFilter filter = new FunctionQueryFilter();
+			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
+			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
+			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
+			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
+			filter.setFunctionSelector(regexFunction);
+			qs.addExplicitFilter(filter);
+		}
+		// if we have tag filters
+		boolean tagFiltering = tags != null && !tags.isEmpty();
+		if(tagFiltering) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+		}
+		// joins
+		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
+		// always adding the tags as returns
+//		if(tagFiltering) {
+			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
+			qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
+//		}
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
+		
+		return qs;
+	}
+	
+	/**
+	 * Search through all insights with an optional filter on engines and an optional search term
+	 * @param engineFilter
+	 * @param searchTerm
+	 * @param tags
+	 * @return
+	 */
+	public static SelectQueryStruct searchInsightsUsage(List<String> engineFilter, String searchTerm, List<String> tags) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "insight_tags"));
+
+		// filters
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
+		}
+		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+			FunctionQueryFilter filter = new FunctionQueryFilter();
+			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
+			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
+			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
+			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
+			filter.setFunctionSelector(regexFunction);
+			qs.addExplicitFilter(filter);
+		}
+		// if we have tag filters
+		boolean tagFiltering = tags != null && !tags.isEmpty();
+		if(tagFiltering) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+		}
+		// joins
+		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
+		// always add tags
+//		if(tagFiltering) {
+		qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
+		qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
+//		}
+
+		return qs;
+	}
+	
+	
 	/**
 	 * Get the wrapper for additional insight metadata
 	 * @param engineId
