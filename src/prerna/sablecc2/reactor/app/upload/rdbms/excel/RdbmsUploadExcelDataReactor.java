@@ -164,6 +164,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(this.appId, newAppName, insightDatabase);
+		UploadUtilities.addInsightUsageStats(this.appId, newAppName, insightDatabase);
 		UploadUtilities.addGridDeltaInsight(this.appId, newAppName, insightDatabase);
 		UploadUtilities.addAuditModificationView(this.appId, newAppName, insightDatabase);
 		UploadUtilities.addAuditTimelineView(this.appId, newAppName, insightDatabase);

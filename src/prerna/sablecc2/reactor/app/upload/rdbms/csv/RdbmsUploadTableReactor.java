@@ -186,6 +186,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(this.appId, newAppName, insightDatabase);
+		UploadUtilities.addInsightUsageStats(this.appId, newAppName, insightDatabase);
 		UploadUtilities.addGridDeltaInsight(this.appId, newAppName, insightDatabase);
 		UploadUtilities.addInsertFormInsight(this.appId, newAppName, insightDatabase, owler, this.helper.orderHeadersToGet(headers));
 		UploadUtilities.addAuditModificationView(this.appId, newAppName, insightDatabase);
