@@ -66,7 +66,12 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	
 	private REXP eval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit, boolean retry) {
 		if (isHealthy(healthTimeout, healthTimeoutUnit)) {
-			LOGGER.info("Running R: " + rScript);
+			if(rScript.length() > 500) {
+				LOGGER.info("Running R: " + rScript.substring(500) + "...");
+				LOGGER.debug("Running R: " + rScript);
+			} else {
+				LOGGER.info("Running R: " + rScript);
+			}
 			ExecutorService executor = Executors.newSingleThreadExecutor();
 			try {
 				synchronized (rconMonitor) {
@@ -120,30 +125,35 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	
 	private void voidEval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit, boolean retry) {
 		if (isHealthy(healthTimeout, healthTimeoutUnit)) {
-			LOGGER.info("Running R: " + rScript);
-				ExecutorService executor = Executors.newSingleThreadExecutor();
-				try {
-					synchronized (rconMonitor) {
-						Future<Void> future = executor.submit(new Callable<Void>() {
-							@Override
-							public Void call() throws Exception {
-								rcon.voidEval(rScript);
-								if (recoveryEnabled) {
-									saveImage(); // Save image after execution
-								}
-								return null;
+			if(rScript.length() > 500) {
+				LOGGER.info("Running R: " + rScript.substring(500) + "...");
+				LOGGER.debug("Running R: " + rScript);
+			} else {
+				LOGGER.info("Running R: " + rScript);
+			}
+			ExecutorService executor = Executors.newSingleThreadExecutor();
+			try {
+				synchronized (rconMonitor) {
+					Future<Void> future = executor.submit(new Callable<Void>() {
+						@Override
+						public Void call() throws Exception {
+							rcon.voidEval(rScript);
+							if (recoveryEnabled) {
+								saveImage(); // Save image after execution
 							}
-						});
-						try {
-							future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
-						} catch (TimeoutException | InterruptedException e) {
-							throw new IllegalArgumentException("Timout occured when running R script = " + rScript, e);
-						} catch (ExecutionException e) {
-							throw new IllegalArgumentException("Failed to run R script = " + rScript, e);
+							return null;
 						}
+					});
+					try {
+						future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
+					} catch (TimeoutException | InterruptedException e) {
+						throw new IllegalArgumentException("Timout occured when running R script = " + rScript, e);
+					} catch (ExecutionException e) {
+						throw new IllegalArgumentException("Failed to run R script = " + rScript, e);
 					}
-				} finally {
-					executor.shutdownNow();
+				}
+			} finally {
+				executor.shutdownNow();
 				}
 		} else {
 			
