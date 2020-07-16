@@ -157,6 +157,12 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR("setwd(" + wd + ")");
 			this.rJavaTranslator.executeEmptyR("rm( " + wd + "); gc();");
 		}
+		
+		// error catch -- if retData is null, return empty list
+		// return error message??
+		if(retData == null) {
+			retData = new String[0];
+		}
 
 		// make sure to catch it if it is an error message
 		if (retData.length == 1 && retData[0].equals("Selected data could not be joined together")) {
@@ -178,6 +184,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		String filePath = (baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR)
 				.replace("\\", "/");
 		rsb.append("source(\"" + filePath + "template.R\");");
+		rsb.append("source(\"" + filePath + "template_assembly.R\");");
 		
 		// build the dataframe of COLUMN and TYPE
 		Map<String, SemossDataType> colHeadersAndTypes = frame.getMetaData().getHeaderToTypeMap();
@@ -233,7 +240,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			String comp = component.get("component").toString();
 			
 			// handle select and group
-			String[] selectAndGroup = { "select", "average", "count", "max", "min", "sum", "group" };
+			String[] selectAndGroup = { "select", "average", "count", "max", "min", "sum", "group", "stdev" , "unique count" };
 			List<String> selectAndGroupList = Arrays.asList(selectAndGroup);
 			if (selectAndGroupList.contains(comp)) {
 				List<String> columns = new Vector<String>();
@@ -307,6 +314,36 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 					valueList.add("?");
 				}else {
 					valueList.add(component.get("value").toString());
+				}
+			}
+			
+			// handle where and having
+			else if (comp.equals("sort") || comp.equals("rank")) {
+				componentList.add(comp);
+				componentList.add(comp);
+				
+				elementList.add("column");
+				if(component.get("column") == null) {
+					valueList.add("?");
+				} else {
+					valueList.add(component.get("column").toString());
+				}
+				
+				elementList.add("is");
+				if(component.get("operation") == null) {
+					valueList.add("?");
+				} else {
+					valueList.add(component.get("operation").toString());
+				}
+				
+				if(comp.equals("rank")) {
+					componentList.add(comp);
+					elementList.add("value");
+					if(component.get("value") == null) {
+						valueList.add("?");
+					} else {
+						valueList.add(component.get("value").toString());
+					}
 				}
 			}
 		}
