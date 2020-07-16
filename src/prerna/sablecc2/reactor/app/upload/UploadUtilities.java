@@ -73,7 +73,7 @@ public class UploadUtilities {
 		ENGINE_DIRECTORY = DIR_SEPARATOR + "db" + DIR_SEPARATOR;
 	}
 	
-	public static final String INSIGHT_USAGE_STATS_INSIGHT_NAME = "Explore insight usage stats";
+	public static final String INSIGHT_USAGE_STATS_INSIGHT_NAME = "View insight usage stats";
 	public static final String INSIGHT_USAGE_STATS_LAYOUT = "Grid";
 	
 	public static final String EXPLORE_INSIGHT_INSIGHT_NAME = "Explore an instance of a selected node type";
