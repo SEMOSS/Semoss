@@ -56,7 +56,11 @@ adjust_request<-function(df){
 }
 
 get_element_alternatves<-function(db,df,nbr){
-	OPS<-c('=','<','<=','>','>=','<>')
+	OPS<-c('=','<','<=','>','>=','!=','between value and value')
+	OPS_STRING<-c('begins with','contains','ends with','not begins with','not contains','not ends with')
+	OPS_DATE<-c('after','before')
+	DATE_GROUPPING<-c('daily','weekly','monthly','yearly')
+	
 	MISSING_VALUE<-'?'
 	# element alternatives
 	component<-df$Component[nbr]
@@ -69,8 +73,10 @@ get_element_alternatves<-function(db,df,nbr){
 			# aggregate column
 			if(df$Value[nbr-1]=='count'){
 				out<-unique(db[db$Datatype=='STRING','Column'])
-			}else{
+			}else if(df$Value[nbr-1]!='sum'){
 				out<-unique(db[db$Datatype %in% c('DATE','NUMBER'),'Column'])
+			}else{
+				out<-unique(db[db$Datatype %in% c('NUMBER'),'Column'])
 			}
 		}else{
 			# single column
@@ -83,7 +89,9 @@ get_element_alternatves<-function(db,df,nbr){
 			column<-df$Value[nbr-1]
 			type<-db[tolower(db$Column)==tolower(column),'Datatype']
 			if(type=='STRING'){
-				out<-OPS[1]
+				out<-c(OPS[1],OPS_STRING)
+			}else if(type=='DATE'){
+				out<-c(OPS[1],OPS[7],OPS_DATE)
 			}else{
 				out<-OPS[2:length(OPS)]
 			}
@@ -92,7 +100,13 @@ get_element_alternatves<-function(db,df,nbr){
 			out<-MISSING_VALUE
 		}
 	}else if(component=='group'){
+		# get all string columns
 		out<-unique(db[db$Datatype=='STRING','Column'])
+		# get all date columns and append date groupping
+		date_cols<-unique(db[db$Datatype=='DATE','Column'])
+		if(length(date_cols)>0){
+			out<-append(out,c(date_cols,as.vector(sapply(date_cols,function(x) paste(x,DATE_GROUPPING,sep=' ')))))
+		}
 	}else if(component=='having'){
 		if(element=='column'){
 			if(df$Value[nbr-1]=='count'){
@@ -105,33 +119,60 @@ get_element_alternatves<-function(db,df,nbr){
 		}else{
 			out<-MISSING_VALUE
 		}
+	}else if(component=='rank'){
+		if(element=='column'){
+			single_cols<-get_single_cols(df)
+			aggr_cols<-get_aliases(df)
+			out<-append(single_cols,aggr_cols)
+		}else{
+			out<-MISSING_VALUE
+		}
+	}
+	else if(component=='sort'){
+		single_cols<-get_single_cols(df)
+		aggr_cols<-get_aliases(df)
+		out<-append(single_cols,aggr_cols)
 	}
 	return(out)
 }
 
+get_single_cols<-function(df){
+	ind<-which(df$Element=='aggregate')
+	if(length(ind)>0){
+		df<-df[-c(ind,ind+1),]
+	}
+	single_cols<-df[df$Component=='select' & df$Element=='column','Value']
+	return(single_cols)
+}
+
 get_component_alternatives<-function(df){
-	COMPONENTS<-c('select column','sum column','average column','min column','max column','count column','where column is value',
-	'group column','having min column is value','having max column is value','having sum column is value',
-	'having average column is value','having count column is value')
+	COMPONENTS<-c('select column','sum column','average column','min column','max column','stdev column','count column',
+	'unique column count','where column is value','group column','having min column is value','having max column is value',
+	'having sum column is value','having average column is value','having count column is value','rank column top',
+	'rank column top n','rank column bottom','rank column bottom n','sort column ascending','sort column descending')
 	if(nrow(df)==0){
 		# for the first run only select components available
-		out<-COMPONENTS[1:6]
+		out<-COMPONENTS[1:8]
 	}else{
 		# where is always available
-		out<-COMPONENTS[2:7]
+		out<-COMPONENTS[2:9]
 		
 		ind<-which(df$Element=='aggregate')
+		# if there are aggregates
 		if(length(ind)>0){
 			# when aggregate element is present in select group and having avaible
-			out<-append(out,COMPONENTS[8:13])
+			out<-append(out,COMPONENTS[10:21])
+		}else{
+			out<-append(out,COMPONENTS[16:21])
 		}
 	}
 	return(out)
 }
 
+
 exec_componentized_query<-function(db,joins,request){
-	COMPONENTS<-c('select','where','group','having')
-	KEYWORDS<-c("sum","average","count","min","max",'where','group','by','having','order')
+	COMPONENTS<-c('select','where','group','having','rank','sort')
+	KEYWORDS<-c('sum','average','unique','count','min','max','stdev','where','group','by','having','sort','rank')
 	
 	library(data.table)
 	p<-data.table(query=integer(),appid=character(),appid2=character(),part=character(),item1=character(),item2=character(),
@@ -140,19 +181,28 @@ exec_componentized_query<-function(db,joins,request){
 	cols<-db[db$Column %in% words,"Column"]
 	cols<-cols[!(tolower(cols) %in% KEYWORDS)]
 	cluster_joins<-build_joins(cols,joins,db)
-	for(i in 1:length(COMPONENTS)){
-		ind<-which(names(request)==COMPONENTS[i])
-		if(length(ind)>0){
+	components<-names(request)
+	unique_components<-intersect(COMPONENTS,components)
+	n<-length(unique_components)
+	if(n > 0){
+		for(i in 1:n){
+			ind<-which(components==unique_components[i])
 			part<-unlist(strsplit(unname(sapply(request[ind],function(x) paste(unlist(strsplit(x,' '))[-1],collapse=' '))),' '))
-			if(COMPONENTS[i]=='select'){
+			if(unique_components[i]=='select'){
 				p<-process_select(db,part,cols,p,1)
 				p<-process_from(cluster_joins,p,1)
-			}else if(COMPONENTS[i]=='where'){
+			}else if(unique_components[i]=='where'){
 				p<-process_where(db,part,cols,p,1)
-			}else if(COMPONENTS[i]=='group'){
+			}else if(unique_components[i]=='group'){
 				p<-process_group(db,part,cols,p,1)
-			}else if(COMPONENTS[i]=='having'){
+			}else if(unique_components[i]=='having'){
 				p<-process_having(db,part,cols,p,1)
+			}else if(unique_components[i]=='rank'){
+				all_cols<-get_all_cols(p)
+				p<-process_rank(db,part,all_cols,p,1)
+			}else if(unique_components[i]=='sort'){
+				all_cols<-get_all_cols(p)
+				p<-process_sort(db,part,all_cols,p,1)
 			}
 		}
 	}
@@ -160,7 +210,37 @@ exec_componentized_query<-function(db,joins,request){
 	return(p)
 }
 
+get_all_cols<-function(p){
+	cols<-p[p$part=='select' & p$item3=='',]$item2
+	if(length(cols)>0){
+		tbls<-paste0(p[p$part=='select' & p$item3=='',]$appid,'._.',p[p$part=='select' & p$item3=='',]$item1)
+		out<-c(rbind(cols, tbls))
+	}else{
+		out<-vector()
+	}
 
+	cols<-p[p$part=='select' & p$item3!='',]$item4
+	if(length(cols)>0){
+		tbls<-paste0(p[p$part=='select' & p$item3!='',]$appid,'._.',p[p$part=='select' & p$item3!='',]$item1)
+		out<-append(out,c(rbind(cols, tbls)))
+	}
+	return(out)
+}
+
+get_aliases<-function(df){
+	aliases<-vector()
+	ind<-which(df$Component=='select' & df$Element=='aggregate')
+	if(length(ind)>0){
+		for(i in 1:length(ind)){
+			if(df$Value[ind[i]] == 'unique count'){
+				aliases<-append(aliases,paste0('unique_count_of_',df$Value[ind[i]+1]))
+			}else{
+				aliases<-append(aliases,paste0(df$Value[ind[i]],'_of_',df$Value[ind[i]+1]))
+			}
+		}
+	}
+	return(aliases)
+}
 
 
 
