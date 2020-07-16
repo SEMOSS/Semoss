@@ -108,17 +108,20 @@ public class DeleteInsightReactor extends AbstractReactor {
 			Stream<Path> walk = null;
 			try {
 				// delete insight files from git
-				String insightName = MosfetSyncHelper.getInsightName(new File(insightFolderPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE));
-				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
-				// grab relative file paths
-				walk = Files.walk(Paths.get(insightFolder.toURI()));
-				List<String> files = walk
-						.map(x -> insightId + DIR_SEPARATOR
-								+ insightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString())
-						.collect(Collectors.toList());
-				files.remove(""); // removing empty path
-				GitDestroyer.removeSpecificFiles(gitFolder, true, files);
-				GitRepoUtils.commitAddedFiles(gitFolder,GitUtils.getDateMessage("Deleted " + insightName + " insight on"), author, email);
+				File mosfitF = new File(insightFolderPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
+				if(mosfitF.exists() && mosfitF.isFile()) {
+					String insightName = MosfetSyncHelper.getInsightName(mosfitF);
+					String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+					// grab relative file paths
+					walk = Files.walk(Paths.get(insightFolder.toURI()));
+					List<String> files = walk
+							.map(x -> insightId + DIR_SEPARATOR
+									+ insightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString())
+							.collect(Collectors.toList());
+					files.remove(""); // removing empty path
+					GitDestroyer.removeSpecificFiles(gitFolder, true, files);
+					GitRepoUtils.commitAddedFiles(gitFolder,GitUtils.getDateMessage("Deleted " + insightName + " insight on"), author, email);
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {
