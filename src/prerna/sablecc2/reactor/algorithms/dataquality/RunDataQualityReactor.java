@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.algorithms.dataquality;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -47,7 +48,15 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		String rFrameVariable = frame.getName();
 		String rule = getData(RULE_KEY);
+
 		String column = getData(COLUMNS_KEY);
+		// only apply char length to string cols
+		if(rule.equals("Character Length")) {
+			SemossDataType dt = frame.getMetaData().getHeaderTypeAsEnum(frame.getName() + "__" + column);
+			if(!dt.equals(SemossDataType.STRING)) {
+				throw new IllegalArgumentException("Character length rule only applies to STRING column");
+			}
+		}
 		List<String> optionsList = getOptions(OPTIONS_KEY);
 		RDataTable inputTable = getInputTable();
 		
