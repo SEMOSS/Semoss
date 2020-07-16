@@ -67,7 +67,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	private REXP eval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit, boolean retry) {
 		if (isHealthy(healthTimeout, healthTimeoutUnit)) {
 			if(rScript.length() > 500) {
-				LOGGER.info("Running R: " + rScript.substring(500) + "...");
+				LOGGER.info("Running R: " + rScript.substring(0, 500) + "...");
 				LOGGER.debug("Running R: " + rScript);
 			} else {
 				LOGGER.info("Running R: " + rScript);
@@ -126,7 +126,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	private void voidEval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit, boolean retry) {
 		if (isHealthy(healthTimeout, healthTimeoutUnit)) {
 			if(rScript.length() > 500) {
-				LOGGER.info("Running R: " + rScript.substring(500) + "...");
+				LOGGER.info("Running R: " + rScript.substring(0, 500) + "...");
 				LOGGER.debug("Running R: " + rScript);
 			} else {
 				LOGGER.info("Running R: " + rScript);
