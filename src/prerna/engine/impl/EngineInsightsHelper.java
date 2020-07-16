@@ -53,6 +53,7 @@ public class EngineInsightsHelper {
 			// make a new database
 			RDBMSNativeEngine insightsRdbms = (RDBMSNativeEngine) UploadUtilities.generateInsightsDatabase(engineId, engineName);
 			UploadUtilities.addExploreInstanceInsight(engineId, engineName, insightsRdbms);
+			UploadUtilities.addInsightUsageStats(engineId, engineName, insightsRdbms);
 			return insightsRdbms;
 		}
 		RDBMSNativeEngine insightsRdbms = new RDBMSNativeEngine();

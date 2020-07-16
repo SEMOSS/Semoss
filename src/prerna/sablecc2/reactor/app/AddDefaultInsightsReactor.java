@@ -30,6 +30,8 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	private static final String GRID_DELTA_INSTANCE = "grid-delta";
 	private static final String AUDIT_MODIFICATION = "audit-modification";
 	private static final String AUDIT_TIMELINE = "audit-timeline";
+	private static final String INSIGHT_STATS = "insight-stats";
+
 
 	public AddDefaultInsightsReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), INSIGHT_KEYS};
@@ -73,6 +75,12 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			addedInsight = true;
 			registerInsightAndMetadata(appId, newInsightId, UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME, UploadUtilities.EXPLORE_INSIGHT_LAYOUT);
 			logger.info("Done adding explore an instance");
+			
+			newInsightId = UploadUtilities.addInsightUsageStats(appId, appName, insightEngine);
+			addedInsight = true;
+			registerInsightAndMetadata(appId, newInsightId, UploadUtilities.INSIGHT_USAGE_STATS_INSIGHT_NAME, UploadUtilities.INSIGHT_USAGE_STATS_LAYOUT);
+			logger.info("Done adding insight usage stats");
+			
 			if(eType == ENGINE_TYPE.RDBMS) {
 				newInsightId = UploadUtilities.addGridDeltaInsight(appId, appName, insightEngine);
 				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.GRID_DELTA_INSIGHT_NAME, UploadUtilities.GRID_DELTA_LAYOUT);
@@ -104,6 +112,12 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				addedInsight = true;
 				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME, UploadUtilities.EXPLORE_INSIGHT_LAYOUT);
 				logger.info("Done adding explore an instance");
+			}
+			if(insightsToAdd.contains(INSIGHT_STATS)) {
+				String newInsightId = UploadUtilities.addInsightUsageStats(appId, appName, insightEngine);
+				addedInsight = true;
+				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.INSIGHT_USAGE_STATS_INSIGHT_NAME, UploadUtilities.INSIGHT_USAGE_STATS_LAYOUT);
+				logger.info("Done adding insight usage stats");
 			}
 			if(insightsToAdd.contains(GRID_DELTA_INSTANCE)) {
 				if(eType == ENGINE_TYPE.RDBMS) {
