@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.algorithms;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -13,10 +14,15 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -27,6 +33,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -47,12 +54,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 	protected static final String CLASS_NAME = NaturalLanguageSearchReactor.class.getName();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String BASIC_ONLY = "basicOnly";
+	protected static final String GLOBAL = "global";
 
 	private static LinkedHashMap<String, String> appIdToTypeStore = new LinkedHashMap<>(250);
-
+	
 	public NaturalLanguageSearchReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.APP.getKey(), BASIC_ONLY };
+		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.APP.getKey(), GLOBAL , ReactorKeysEnum.PANEL.getKey() };
 	}
 
 	@Override
@@ -65,10 +72,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String query = this.keyValue.get(this.keysToGet[0]);
 		List<String> engineFilters = getEngineIds();
 		boolean hasFilters = !engineFilters.isEmpty();
-		String basicOnly = getBasicOnly();
+		boolean global = getGlobal();
+		String panelId = getPanelId();
 
-		//for demo only
-		// TODO: pull asset app
+		//pull asset app
 		//set default paths
 		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
 		if (AbstractSecurityUtils.securityEnabled()) {
@@ -96,7 +103,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		File algo1 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_guide.R");
 		File algo2 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_assembly.R");
 		File algo3 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_validate.R");
-		if (!algo1.exists() || !algo2.exists()) {
+		File algo4 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "template.R");		
+		File algo5 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "template_assembly.R");		
+		if (!algo1.exists() || !algo2.exists() || !algo4.exists() || !algo5.exists()) {
 			String message = "Necessary files missing to generate search results.";
 			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException exception = new SemossPixelException(noun);
@@ -116,6 +125,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		sb.append(("source(\"" + algo1.getPath() + "\");").replace("\\", "/"));
 		sb.append(("source(\"" + algo2.getPath() + "\");").replace("\\", "/"));
 		sb.append(("source(\"" + algo3.getPath() + "\");").replace("\\", "/"));
+		sb.append(("source(\"" + algo4.getPath() + "\");").replace("\\", "/"));
+		sb.append(("source(\"" + algo5.getPath() + "\");").replace("\\", "/"));
 		this.rJavaTranslator.runR(sb.toString());
 		logger.info(stepCounter + ". Done");
 		stepCounter++;
@@ -160,13 +171,20 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		logger.info(stepCounter + ". Done");
 		stepCounter++;
 		
-		// remove spaces in query if first characters
-		while(query.charAt(0) == ' ') {
-			query = query.substring(1);
-		}
+		if(global) {
+			// remove spaces in query if first characters
+			while(query.charAt(0) == ' ') {
+				query = query.substring(1);
+			}
+			query = "\"" + query + "\"";
+		} else {
+			// query = "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"=\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"=\",\"value\":\"R\"},{\"component\":\"having sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
+			query = buildNamedArray(query);
 
+		}
+		
 		logger.info(stepCounter + ". Generating search results");
-		List<Object[]> retData = generateAndRunScript(query, engineFilters, rSessionTable, rSessionJoinTable);
+		List<Object[]> retData = generateAndRunScript(query, engineFilters, rSessionTable, rSessionJoinTable, global);
 		logger.info(stepCounter + ". Done");
 		
 		// check for error
@@ -185,7 +203,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 		
 		logger.info(stepCounter + ". Generating pixel return from results");
-		List<Map<String, Object>> returnPixels = generatePixels(retData, query, rSessionTable);
+		List<Map<String, Object>> returnPixels = generatePixels(retData, query, rSessionTable, global, panelId);
 		logger.info(stepCounter + ". Done");
 
 		// reset working directory and run garbage cleanup
@@ -193,7 +211,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.executeEmptyR("rm(" + wd + "," + rSessionTable + "," + rSessionJoinTable + "); gc();");
 		
 		
-		// TODO: push asset app
+		// push asset app
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
 			String appId = user.getAssetEngineId(user.getPrimaryLogin());
@@ -206,6 +224,100 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 
 		return new NounMetadata(returnPixels, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
+
+	private String buildNamedArray(String query) {
+		// read string into list
+		List<Map<String, Object>> optMap = new Vector<Map<String, Object>>();
+		optMap = new Gson().fromJson(query, optMap.getClass());
+		StringBuilder arrayRsb = new StringBuilder();
+		StringBuilder namesRsb = new StringBuilder();
+		String request = "request_" + Utility.getRandomString(6);
+		String comma = "";
+		
+		// start rsb's
+		arrayRsb.append(request + " <- c(");
+		namesRsb.append("names(" + request + ") <- c(");
+		
+		// loop through the map
+		for (Map<String, Object> component : optMap) {
+			String comp = component.get("component").toString();
+			String elemToAdd = "";
+			String elemName = "";
+			
+			// handle select and group
+			String[] selectAndGroup = { "select", "average", "count", "max", "min", "sum", "group" , "stdev" , "unique count" };
+			List<String> selectAndGroupList = Arrays.asList(selectAndGroup);
+			if (selectAndGroupList.contains(comp)) {
+				List<String> columns = new Vector<String>();
+				
+				// if aggregate, add the aggregate row
+				if (!comp.equals("select") && !comp.equals("group")) {
+					// change aggregate to select
+					if(!comp.equals("group")) {
+						elemToAdd += "select ";
+						elemName = "select";
+					}
+					
+					// so first add the aggregate row
+					elemToAdd += comp;
+					
+					// change the column to arraylist for below
+					columns.add(component.get("column").toString());
+					
+				} else {
+					// change the column to arraylist for below
+					elemName = comp;
+					elemToAdd += comp;
+					columns = (List<String>) component.get("column");
+				}
+				
+				// then, add the component and columns
+				for(String col : columns) {
+					elemToAdd += " " + col;
+				}
+			}
+			
+			// handle where and having
+			else if (comp.equals("where") || comp.startsWith("having")) {
+				if(comp.startsWith("having")) {
+					elemName = "having";
+				} else {
+					elemName = "where";
+				}
+				
+				elemToAdd += comp;
+				elemToAdd += " " + component.get("column").toString();
+				elemToAdd += " " + component.get("operation").toString();
+				elemToAdd += " " + component.get("value").toString();
+			}
+			
+			// handle sort and rank
+			else if (comp.equals("sort") || comp.equals("rank")) {
+				elemName = comp;
+				elemToAdd += comp;
+				elemToAdd += " " + component.get("column").toString();
+				elemToAdd += " " + component.get("operation").toString();
+				
+				if(comp.equals("rank")) {
+					elemToAdd += " " + component.get("value").toString();
+				}
+			}
+			
+			// put it into the rsb
+			arrayRsb.append(comma + "'" + elemToAdd + "'");
+			namesRsb.append(comma + "'" + elemName + "'");
+			comma = ",";
+		}
+
+		// wrap up arrays
+		arrayRsb.append(");");
+		namesRsb.append(");");
+		
+		// run arrays in r
+		this.rJavaTranslator.runR(arrayRsb.toString() + namesRsb.toString());
+		
+		return request;
 	}
 
 	private void createRdsFiles() {
@@ -403,29 +515,71 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @param engineFilters
 	 * @return
 	 */
-	private List<Object[]> generateAndRunScript(String query, List<String> engineFilters,String rSessionTable, String rSessionJoinTable) {
+	private List<Object[]> generateAndRunScript(String query, List<String> engineFilters,String rSessionTable, String rSessionJoinTable, boolean global) {
 		String tempResult = "result" + Utility.getRandomString(8);
 		StringBuilder rsb = new StringBuilder();
+		String gcToAdd = "";
 		
-		// read in the rds files
-		rsb.append(rSessionTable + " <- readRDS(\"nldr_db.rds\");");
-		rsb.append(rSessionJoinTable + " <- readRDS(\"nldr_joins.rds\");");
-		
-		// filter the rds files to the engineFilters
-		String appFilters = "appFilters" + Utility.getRandomString(8);
-		rsb.append(appFilters + " <- c(");
-		String comma = "";
-		for (String appId : engineFilters) {
-			rsb.append(comma + " \"" + appId + "\" ");
-			comma = " , ";
+		// read in the rds files if global
+		// use the frame columns if not
+		if(global) {
+			rsb.append(rSessionTable + " <- readRDS(\"nldr_db.rds\");");
+			rsb.append(rSessionJoinTable + " <- readRDS(\"nldr_joins.rds\");");
+			
+			// filter the rds files to the engineFilters
+			String appFilters = "appFilters" + Utility.getRandomString(8);
+			gcToAdd += "," + appFilters;
+			rsb.append(appFilters + " <- c(");
+			String comma = "";
+			for (String appId : engineFilters) {
+				rsb.append(comma + " \"" + appId + "\" ");
+				comma = " , ";
+			}
+			rsb.append(");");
+			rsb.append(rSessionTable + " <- " + rSessionTable + "[" + rSessionTable + "$AppID %in% " + appFilters + " ,];");
+			rsb.append(rSessionJoinTable + " <- " + rSessionJoinTable + "[" + rSessionJoinTable + "$AppID %in% " + appFilters + " ,];");
+			rsb.append(tempResult + " <- build_valid_query(" + rSessionTable + "," + rSessionJoinTable + " , " + query + " );");
+
+		} else {
+			// build the dataframe of COLUMN and TYPE
+			ITableDataFrame frame = this.getFrame();
+			Map<String, SemossDataType> colHeadersAndTypes = frame.getMetaData().getHeaderToTypeMap();
+			List<String> columnList = new Vector<String>();
+			List<String> tableList = new Vector<String>();
+			List<String> typeList = new Vector<String>();
+			List<String> pkList = new Vector<String>();
+			for(Map.Entry<String,SemossDataType> entry : colHeadersAndTypes.entrySet()) {
+				String col = entry.getKey();
+				String type = entry.getValue().toString();
+				if(col.contains("__")) {
+					col = col.split("__")[1];
+				}
+				columnList.add(col);
+				
+				if(type.equals("INT") || type.equals("DOUBLE")) {
+					type = "NUMBER";
+				}
+				typeList.add(type);
+				pkList.add("FALSE");
+				tableList.add(frame.getName() + "._." + frame.getName());
+			}
+			// turn into R table
+			String rColumns = RSyntaxHelper.createStringRColVec(columnList);
+			String rTables = RSyntaxHelper.createStringRColVec(tableList);
+			String rTypes = RSyntaxHelper.createStringRColVec(typeList);
+			String rPK = RSyntaxHelper.createStringRColVec(pkList);
+			rsb.append(rSessionTable + " <- data.frame(Table = " + rTables + ", Column = " + rColumns + " , Datatype = " + rTypes
+					+ ", Key = " + rPK + ", stringsAsFactors = FALSE);");
+			rsb.append(rSessionJoinTable + " <- data.frame(tbl1 = character(0) , tbl2 = character(0) , joinby1 = character(0)"
+					+ ", joinby2 = character(0) , AppID = character(0), stringsAsFactors = FALSE);");
 		}
-		rsb.append(");");
-		rsb.append(rSessionTable + " <- " + rSessionTable + "[" + rSessionTable + "$AppID %in% " + appFilters + " ,];");
-		rsb.append(rSessionJoinTable + " <- " + rSessionJoinTable + "[" + rSessionJoinTable + "$AppID %in% " + appFilters + " ,];");
-		
 		
 		// lets run the function on the filtered apps
-		rsb.append(tempResult + " <- build_valid_query(" + rSessionTable + "," + rSessionJoinTable + " , " + "\"" + query + "\" );");
+		if(global) {
+			rsb.append(tempResult + " <- build_valid_query(" + rSessionTable + "," + rSessionJoinTable + " , " + query + " );");
+		} else {
+			rsb.append(tempResult + " <- exec_componentized_query(" + rSessionTable + "," + rSessionJoinTable + " , " + query + " );");
+		}		
 		
 		// run it
 		this.rJavaTranslator.runR(rsb.toString());
@@ -435,7 +589,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		List<Object[]> list = this.rJavaTranslator.getBulkDataRow(tempResult, headerOrdering);
 
 		// garbage cleanup
-		this.rJavaTranslator.executeEmptyR("rm(" + tempResult + "," + appFilters + "); gc();");
+		this.rJavaTranslator.executeEmptyR("rm(" + tempResult + gcToAdd + "); gc();");
 
 		return list;
 	}
@@ -447,7 +601,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @param queryInput
 	 * @return
 	 */
-	private List<Map<String, Object>> generatePixels(List<Object[]> retData, String queryInput, String rSessionTable) {
+	private List<Map<String, Object>> generatePixels(List<Object[]> retData, String queryInput, String rSessionTable, boolean global, String panelId) {
 		// we do not know how many rows associate with the same QS
 		// but we know the algorithm only returns one QS per engine
 		// and the rows are ordered with regards to how the engine comes back
@@ -493,24 +647,36 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// meaning it is the first of a certain select of a combined entry
 				currAppId = rowAppId;
 				curQs = new SelectQueryStruct();
-				curQs.setEngineId(currAppId);
-				curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+				if(global) {
+					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setEngineId(currAppId);
+				} else {
+					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+				}
 				qsList.put("Multiple" + combinedQs.size(), curQs);
 				combinedQs.put(currAppId, curQs);
 			} else if (!combined && currAppId == null) {
 				// this is the first one of a non-combined
 				currAppId = rowAppId;
 				curQs = new SelectQueryStruct();
-				curQs.setEngineId(currAppId);
-				curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+				if(global) {
+					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setEngineId(currAppId);
+				} else {
+					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+				}
 				qsList.put(label, curQs);
 			} else if (!combined && currAppId != null && !currAppId.equals(rowAppId)) {
 				// okay this row is now starting a new QS
 				// we gotta init another one
 				currAppId = rowAppId;
 				curQs = new SelectQueryStruct();
-				curQs.setEngineId(currAppId);
-				curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+				if(global) {
+					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setEngineId(currAppId);
+				} else {
+					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+				}
 				qsList.put(label, curQs);
 			}
 
@@ -533,7 +699,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				IQuerySelector selector = null;
 				// need to properly send/receive null values in case there is a
 				// property with the same name as the node
-				boolean isPK = checkForPK(selectConcept, selectProperty, rSessionTable, currAppId);
+				boolean isPK = checkForPK(selectConcept, selectProperty, rSessionTable, currAppId, global);
 				if (isPK) {
 					selector = new QueryColumnSelector(selectConcept);
 				} else {
@@ -606,7 +772,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				IQuerySelector selector = null;
 				// need to properly send/receive null values in case there is a
 				// property with the same name as the node
-				boolean isPK = checkForPK(whereTable, whereCol, rSessionTable, currAppId);
+				boolean isPK = checkForPK(whereTable, whereCol, rSessionTable, currAppId, global);
 				if (isPK) {
 					selector = new QueryColumnSelector(whereTable);
 				} else {
@@ -704,7 +870,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// so we exec a query to determine if we should use the current selectedProperty
 				// or keep it as PRIM_KEY_PLACEHOLDER
 				IQuerySelector selector = null;
-				boolean isPK = checkForPK(havingTable, havingCol, rSessionTable, currAppId);
+				boolean isPK = checkForPK(havingTable, havingCol, rSessionTable, currAppId, global);
 				if (isPK) {
 					selector = new QueryColumnSelector(havingTable);
 				} else {
@@ -740,7 +906,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 					// my rhs is another column agg
 					IQuerySelector selectorR = null;
-					isPK = checkForPK(havingTable, havingCol, rSessionTable, currAppId);
+					isPK = checkForPK(havingTable, havingCol, rSessionTable, currAppId, global);
 					if (isPK) {
 						selector = new QueryColumnSelector(havingTable);
 					} else {
@@ -809,13 +975,57 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					// we do not know the correct primary key
 					// so we exec a query to determine if we should use the current selectedProperty
 					// or keep it as PRIM_KEY_PLACEHOLDER
-					boolean isPK = checkForPK(groupConcept, groupProperty, rSessionTable, currAppId);
+					boolean isPK = checkForPK(groupConcept, groupProperty, rSessionTable, currAppId, global);
 					if (isPK) {
 						curQs.addGroupBy(groupConcept, null);
 					} else {
 						curQs.addGroupBy(groupConcept, groupProperty);
 					}
 				}
+			} else if (part.equalsIgnoreCase("rank")) {
+				String rankTable = row[4].toString();
+				String rankCol = row[5].toString();
+				String rankDir = row[6].toString();
+				String rankAmount = row[7].toString();
+				
+				// adjust rank direction
+				if(rankDir.equals("top")) {
+					rankDir = ORDER_BY_DIRECTION.DESC.toString();
+				} else if (rankDir.equals("bottom")) {
+					rankDir = ORDER_BY_DIRECTION.ASC.toString();
+				}
+				
+				boolean isPK = checkForPK(rankTable, rankCol, rSessionTable, currAppId, global);
+				QueryColumnOrderBySelector orderBy = null;
+				if (isPK) {
+					orderBy = new QueryColumnOrderBySelector(rankTable);
+				} else {
+					orderBy = new QueryColumnOrderBySelector(rankTable + "__" + rankCol);
+				}
+				orderBy.setSortDir(rankDir);
+				curQs.addOrderBy(orderBy);
+				curQs.setLimit(Integer.parseInt(rankAmount));
+				
+			} else if (part.equalsIgnoreCase("sort")) {
+				String sortTable = row[4].toString();
+				String sortCol = row[5].toString();
+				String sortDir = row[6].toString();
+				
+				if(sortDir.equalsIgnoreCase("ascending")) {
+					sortDir = ORDER_BY_DIRECTION.ASC.toString();
+				} else if (sortDir.equals("descending")) {
+					sortDir = ORDER_BY_DIRECTION.DESC.toString();
+				}
+				
+				boolean isPK = checkForPK(sortTable, sortCol, rSessionTable, currAppId, global);
+				QueryColumnOrderBySelector orderBy = null;
+				if (isPK) {
+					orderBy = new QueryColumnOrderBySelector(sortTable);
+				} else {
+					orderBy = new QueryColumnOrderBySelector(sortTable + "__" + sortCol);
+				}
+				orderBy.setSortDir(sortDir);
+				curQs.addOrderBy(orderBy);
 			}
 		}
 
@@ -842,7 +1052,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 					// process the qs
 					SelectQueryStruct qs = entry.getValue();
-					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, false);
+					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, false, global);
 
 					// in the case where there is only one combined qs, lets return
 					if (entryCount == qsList.entrySet().size()) {
@@ -851,11 +1061,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						map.put("app_name", "Multiple Apps");
 						map.put("frame_name", frameName);
 						finalPixel += dropUnwantedCols(colsToDrop, groupedCols);
-						finalPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName);
-						finalPixel += "Panel ( 0 ) | SetPanelLabel(\"Multiple Apps: " + queryInput + "\");";
-						finalPixel += "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-						finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ");");
-						map.put("pixel", getStartPixel(frameName) + finalPixel);
+						finalPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
+						finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"NLP Search Result\");";
+						finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
+						finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",panel=[" + panelId + "]);");
+						map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
 						map.put("layout", "NLP");
 						map.put("columns", pickedCols);
 						retMap.add(map);
@@ -870,7 +1080,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				else if (entryCount == qsList.entrySet().size()) {
 					// process the qs
 					SelectQueryStruct qs = entry.getValue();
-					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true);
+					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true, global);
 					finalPixel += addMergePixel(qs, prevAppIds, joinCombinedResult, frameName);
 
 					// return map
@@ -878,11 +1088,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					map.put("app_name", "Multiple Apps");
 					map.put("frame_name", frameName);
 					finalPixel += dropUnwantedCols(colsToDrop, groupedCols);
-					finalPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName);
-					finalPixel += "Panel ( 0 ) | SetPanelLabel(\"Multiple Apps: " + queryInput + "\");";
-					finalPixel += "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-					finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ");");
-					map.put("pixel", getStartPixel(frameName) + finalPixel);
+					finalPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
+					finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"NLP Search Result\");";
+					finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
+					finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",panel=[" + panelId + "]);");
+					map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
 					map.put("layout", "NLP");
 					map.put("columns", pickedCols);
 					retMap.add(map);
@@ -892,7 +1102,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				else {
 					// add to the existing pixel
 					SelectQueryStruct qs = entry.getValue();
-					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true);
+					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true, global);
 					finalPixel += addMergePixel(qs, prevAppIds, joinCombinedResult, frameName);
 					entryCount++;
 
@@ -910,12 +1120,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				map.put("app_id", appId);
 				map.put("app_name", appName);
 				map.put("frame_name", frameName);
-				finalPixel = buildImportPixelFromQs(qs, appId, frameName, false);
-				finalPixel += "Panel ( 0 ) | SetPanelLabel(\"" + appName + ": " + queryInput + "\");";
-				finalPixel += "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
+				finalPixel = buildImportPixelFromQs(qs, appId, frameName, false, global);
+				finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"NLP Search Result\");";
+				finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
 				finalPixel += (frameName + " | PredictViz(app=[\"" + appId + "\"],columns="
-						+ getSelectorAliases(qs.getSelectors()) + ");");
-				map.put("pixel", getStartPixel(frameName) + finalPixel);
+						+ getSelectorAliases(qs.getSelectors()) + ",panel=[" + panelId + "]);");
+				map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
 				map.put("layout", "NLP");
 				map.put("columns", getSelectorAliases(qs.getSelectors()));
 				retMap.add(map);
@@ -943,7 +1153,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @return true or false
 	 */
 
-	private boolean checkForPK(String concept, String property, String rSessionTable, String appId) {
+	private boolean checkForPK(String concept, String property, String rSessionTable, String appId, boolean global) {
+		if(!global) {
+			return false;
+		}
+		
 		StringBuilder rsb = new StringBuilder();
 		String alteredTable = appId + "._." + concept;
 		rsb.append("unique(" + rSessionTable + "[");
@@ -951,7 +1165,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		rsb.append(rSessionTable + "$Table == \"" + alteredTable + "\" & ");
 		rsb.append(rSessionTable + "$Column == \"" + property + "\"");
 		rsb.append(",]$Key);");
-
+		
 		String key = this.rJavaTranslator.getString(rsb.toString());
 
 		return Boolean.parseBoolean(key);
@@ -966,7 +1180,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @param merge
 	 * @return
 	 */
-	public String buildImportPixelFromQs(SelectQueryStruct qs, String appId, String frameName, boolean merge) {
+	public String buildImportPixelFromQs(SelectQueryStruct qs, String appId, String frameName, boolean merge, boolean global) {
 		StringBuilder psb = new StringBuilder();
 		QUERY_STRUCT_TYPE type = qs.getQsType();
 
@@ -974,7 +1188,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			// pull from the appId
 			psb.append("Database ( database = [ \"" + appId + "\" ] ) | ");
 		} else if (type == QUERY_STRUCT_TYPE.FRAME) {
-			psb.append("Frame ( frame = [" + frameName + "] ) | ");
+			psb.append("Frame ( frame = [" + this.getFrame().getName() + "] ) | ");
 		}
 
 		// pull the correct columns
@@ -1188,7 +1402,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				b2.append(orderBy.getSortDirString());
 				i++;
 			}
-			psb.append("Order(columns=[").append(b.toString()).append("], sort=[").append(b2.toString())
+			psb.append("Sort(columns=[").append(b.toString()).append("], sort=[").append(b2.toString())
 					.append("]) | ");
 		}
 
@@ -1201,9 +1415,15 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			psb.append("Import ( frame = [ " + frameName + " ] ) ;");
 
 		}
+		
+		// if its from the frame, then remove reference to the frame
+		String retString = psb.toString();
+		if(!global) {
+			retString = retString.replaceAll(this.getFrame().getName() + "__", "");
+		}
 
 		// return the pixel
-		return psb.toString();
+		return retString;
 	}
 
 	/**
@@ -1247,14 +1467,18 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * 
 	 * @return
 	 */
-	private String getStartPixel(String frameName) {
-
-		String startPixel = "AddPanel ( panel = [ 0 ] , sheet = [ \"0\" ] ) ;";
-		startPixel += "Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ;";
-		startPixel += "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , "
+	private String getStartPixel(String frameName, String panelId) {
+		String addPanelText = panelId;
+		if(panelId.equals("0")) {
+			addPanelText = "panel = [ 0 ] , sheet = [ \"0\" ]";
+		}
+		
+		String startPixel = "AddPanel ( " + addPanelText + " ) ;";
+		startPixel += "Panel ( " + panelId + " ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ;";
+		startPixel += "Panel ( " + panelId + " ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , "
 				+ "\"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" :"
 				+ " \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , "
-				+ "\"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; Panel ( 0 ) | RetrievePanelEvents ( ) ;";
+				+ "\"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; Panel ( " + panelId + " ) | RetrievePanelEvents ( ) ;";
 		startPixel += "CreateFrame ( R ) .as ( [ '" + frameName + "' ] );";
 
 		return startPixel;
@@ -1306,7 +1530,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private String addGroupingsAndHavings(List<Object[]> aggregateCols, LinkedHashSet<String> groupedCols,
-			List<Object[]> combinedHavingRows, String frameName) {
+			List<Object[]> combinedHavingRows, String frameName, boolean global) {
 		// if there were no aggregates, then ignore this
 		if (aggregateCols == null || aggregateCols.isEmpty()) {
 			return "";
@@ -1428,7 +1652,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// create the string and run it
 		StringBuilder psb = new StringBuilder();
-		psb.append(buildImportPixelFromQs(qs, null, frameName, true));
+		psb.append(buildImportPixelFromQs(qs, null, frameName, true, global));
 		psb.append(mergeString);
 
 		// Now lets drop the columns that was the aggregate
@@ -1477,18 +1701,24 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 		return aliases;
 	}
-
-	/**
-	 * Get input engine ids
-	 * 
-	 * @return
-	 */
-	private String getBasicOnly() {
+	
+	private boolean getGlobal() {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
 		if (grs == null || grs.isEmpty()) {
-			return "TRUE";
+			return true;
 		}
-		return grs.get(0).toString().toUpperCase();
+		return Boolean.parseBoolean(grs.get(0).toString());
+	}
+	
+	private String getPanelId() {
+		// see if defined as individual key
+		GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		if (columnGrs != null) {
+			if (columnGrs.size() > 0) {
+				return columnGrs.get(0).toString();
+			}
+		}
+		return "0";
 	}
 
 	////////////////////////////////////////////////////////////
