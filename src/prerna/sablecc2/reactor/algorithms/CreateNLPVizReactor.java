@@ -38,7 +38,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 
 	public CreateNLPVizReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.COLUMNS.getKey(),
-				ReactorKeysEnum.FRAME.getKey() };
+				ReactorKeysEnum.FRAME.getKey() , ReactorKeysEnum.PANEL.getKey() };
 	}
 
 	@Override
@@ -48,6 +48,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String appId = this.keyValue.get(this.keysToGet[0]);
+		String panelId = getPanelId();
 		List<String> cols = getColumns();
 		RDataTable frame = (RDataTable) this.getFrame();
 		String frameName = frame.getName();
@@ -56,14 +57,14 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		String fileroot = "dataitem";
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
 		String appName = "Multiple";
-		if(!appId.contains("Multiple")) {
+		if(!appId.contains("Multiple") && !appId.contains("null")) {
 			appName = MasterDatabaseUtility.getEngineAliasForId(appId).replace(" ", "_");
 		}
 		boolean allStrings = true;
 		
 		// if it only has one column or one row, just return it as a grid
 		if (cols.size() < 2 || frame.getNumRows(frameName) < 2) {
-			String oneColPixel = "Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 );";
+			String oneColPixel = "Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"" + panelId + "\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 );";
 			PixelRunner runner = this.insight.runPixel(oneColPixel);
 			return runner.getResults().get(0);
 //			Map<String, Object> runnerWraper = new HashMap<String, Object>();
@@ -142,7 +143,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		
 		// if all the columns were strings, then make it a grid
 		if(allStrings) {
-			String nullPixel = "Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 );";
+			String nullPixel = "Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"" + panelId + "\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 );";
 			PixelRunner runner = this.insight.runPixel(nullPixel);
 			return runner.getResults().get(0);
 //			Map<String, Object> runnerWraper = new HashMap<String, Object>();
@@ -182,7 +183,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 
 		// if no recommendation was found, lets just return it in a grid
 		if (json == null || json.equals("[]")) {
-			String nullPixel = "Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 );";
+			String nullPixel = "Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"" + panelId + "\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 );";
 			PixelRunner runner = this.insight.runPixel(nullPixel);
 			return runner.getResults().get(0);
 //			Map<String, Object> runnerWraper = new HashMap<String, Object>();
@@ -227,7 +228,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 				+ "validate_like" + " ); gc();";
 		this.rJavaTranslator.executeEmptyR(gc);
 
-		String returnPixel = generatePixelFromRec(recommendations, cols, frameName, metadata);
+		String returnPixel = generatePixelFromRec(recommendations, cols, frameName, metadata, panelId);
 		PixelRunner runner = this.insight.runPixel(returnPixel);
 		return runner.getResults().get(0);
 //		Map<String, Object> runnerWraper = new HashMap<String, Object>();
@@ -251,7 +252,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 	}
 
 	private String generatePixelFromRec(Map<String, HashMap<String, String>> recommendations, List<String> columns,
-			String frameName, OwlTemporalEngineMeta metadata) {
+			String frameName, OwlTemporalEngineMeta metadata, String panelId) {
 		StringBuilder pixel = new StringBuilder();
 		String chartType = recommendations.keySet().toArray()[0].toString();
 		
@@ -315,10 +316,10 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		pixel.append( ") | ");
 
 		// Now add some formatting
-		pixel.append("With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | ");
+		pixel.append("With ( Panel ( " + panelId + " ) ) | Format ( type = [ 'table' ] ) | ");
 
 		// Now add the task options
-		pixel.append("TaskOptions ( { \"0\" : { \"layout\" : \"" + chartType + "\" , \"alignment\" : {");
+		pixel.append("TaskOptions ( { \"" + panelId + "\" : { \"layout\" : \"" + chartType + "\" , \"alignment\" : {");
 
 		// Now add the details from recommendations map
 		delim = "";
@@ -338,8 +339,19 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		pixel.append("} } } ) | Collect ( 2000 )");
 		
 		// catch error and paint as grid
-		pixel.append(") , ( Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ) );");
+		pixel.append(") , ( Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"" + panelId + "\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ) );");
 		
 		return pixel.toString();
+	}
+	
+	private String getPanelId() {
+		// see if defined as individual key
+		GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		if (columnGrs != null) {
+			if (columnGrs.size() > 0) {
+				return columnGrs.get(0).toString();
+			}
+		}
+		return "0";
 	}
 }
