@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.algorithms;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -171,16 +172,18 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		logger.info(stepCounter + ". Done");
 		stepCounter++;
 		
+		String queryString = "";
 		if(global) {
 			// remove spaces in query if first characters
 			while(query.charAt(0) == ' ') {
 				query = query.substring(1);
 			}
+			queryString = query;
 			query = "\"" + query + "\"";
 		} else {
 			// query = "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"=\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"=\",\"value\":\"R\"},{\"component\":\"having sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
 			query = buildNamedArray(query);
-
+			queryString = getQStringFromArray(query);
 		}
 		
 		logger.info(stepCounter + ". Generating search results");
@@ -203,7 +206,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 		
 		logger.info(stepCounter + ". Generating pixel return from results");
-		List<Map<String, Object>> returnPixels = generatePixels(retData, query, rSessionTable, global, panelId);
+		List<Map<String, Object>> returnPixels = generatePixels(retData, query, rSessionTable, global, panelId, queryString);
 		logger.info(stepCounter + ". Done");
 
 		// reset working directory and run garbage cleanup
@@ -224,6 +227,20 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 
 		return new NounMetadata(returnPixels, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
+
+	private String getQStringFromArray(String query) {
+		String retString = "";
+		String space = "";
+		
+		String[] namedArray = this.rJavaTranslator.getStringArray(query);
+		for(String ele : namedArray) {
+			retString += space + ele;
+			space = " ";
+		}
+		
+		
+		return retString;
 	}
 
 	private String buildNamedArray(String query) {
@@ -288,8 +305,16 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				
 				elemToAdd += comp;
 				elemToAdd += " " + component.get("column").toString();
-				elemToAdd += " " + component.get("operation").toString();
-				elemToAdd += " " + component.get("value").toString();
+				
+				// catch the between
+				if(component.get("operation").toString().startsWith("between")) {
+					ArrayList<Integer> values = (ArrayList<Integer>) component.get("value");
+					elemToAdd += " between";
+					elemToAdd += " " + values.get(0) + " and " + values.get(1);
+				} else {
+					elemToAdd += " " + component.get("operation").toString();
+					elemToAdd += " " + component.get("value").toString();
+				}
 			}
 			
 			// handle sort and rank
@@ -599,9 +624,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * 
 	 * @param retData
 	 * @param queryInput
+	 * @param queryString 
 	 * @return
 	 */
-	private List<Map<String, Object>> generatePixels(List<Object[]> retData, String queryInput, String rSessionTable, boolean global, String panelId) {
+	private List<Map<String, Object>> generatePixels(List<Object[]> retData, String queryInput, String rSessionTable, boolean global, String panelId, String queryString) {
 		// we do not know how many rows associate with the same QS
 		// but we know the algorithm only returns one QS per engine
 		// and the rows are ordered with regards to how the engine comes back
@@ -1062,7 +1088,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						map.put("frame_name", frameName);
 						finalPixel += dropUnwantedCols(colsToDrop, groupedCols);
 						finalPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
-						finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"NLP Search Result\");";
+						finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
 						finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
 						finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",panel=[" + panelId + "]);");
 						map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
@@ -1089,7 +1115,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					map.put("frame_name", frameName);
 					finalPixel += dropUnwantedCols(colsToDrop, groupedCols);
 					finalPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
-					finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"NLP Search Result\");";
+					finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
 					finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
 					finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",panel=[" + panelId + "]);");
 					map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
@@ -1121,7 +1147,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				map.put("app_name", appName);
 				map.put("frame_name", frameName);
 				finalPixel = buildImportPixelFromQs(qs, appId, frameName, false, global);
-				finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"NLP Search Result\");";
+				finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
 				finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
 				finalPixel += (frameName + " | PredictViz(app=[\"" + appId + "\"],columns="
 						+ getSelectorAliases(qs.getSelectors()) + ",panel=[" + panelId + "]);");
