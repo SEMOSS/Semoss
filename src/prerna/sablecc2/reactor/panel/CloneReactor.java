@@ -30,12 +30,11 @@ public class CloneReactor extends AbstractInsightPanelReactor {
 		String sheetId = this.keyValue.get(this.keysToGet[2]);
 		if(sheetId == null) {
 			sheetId = existingPanel.getSheetId();
-		} else {
-			if(this.insight.getInsightSheet(sheetId) == null) {
-				// need to ad a new insight sheet
-				InsightSheet newSheet = new InsightSheet(sheetId);
-				this.insight.addNewInsightSheet(newSheet);
-			}
+		}
+		if(this.insight.getInsightSheet(sheetId) == null) {
+			// need to ad a new insight sheet
+			InsightSheet newSheet = new InsightSheet(sheetId);
+			this.insight.addNewInsightSheet(newSheet);
 		}
 		// make the new panel
 		InsightPanel newClonePanel = new InsightPanel(newId, sheetId);

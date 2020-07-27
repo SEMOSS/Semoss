@@ -5,6 +5,7 @@ import java.util.Set;
 
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.om.InsightSheet;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -37,6 +38,11 @@ public class AddPanelReactor extends AbstractReactor {
 		String sheetId = this.keyValue.get(this.keysToGet[1]);
 		if(sheetId == null) {
 			sheetId = Insight.DEFAULT_SHEET_ID;
+		}
+		if(this.insight.getInsightSheet(sheetId) == null) {
+			// need to ad a new insight sheet
+			InsightSheet newSheet = new InsightSheet(sheetId);
+			this.insight.addNewInsightSheet(newSheet);
 		}
 		InsightPanel newPanel = new InsightPanel(panelId, sheetId);
 		this.insight.addNewInsightPanel(newPanel);
