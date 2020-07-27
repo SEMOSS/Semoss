@@ -413,11 +413,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param layout
 	 */
 	public static void addInsight(String engineId, String insightId, String insightName, boolean global, String layout) {
+		addInsight(engineId, insightId, insightName, global, true, layout);
+	}
+	
+	public static void addInsight(String engineId, String insightId, String insightName, boolean global, boolean cacheable, String layout) {
 		LocalDateTime now = LocalDateTime.now();
 		String nowString = java.sql.Timestamp.valueOf(now).toString();
 		String insightQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE) "
 				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + RdbmsQueryBuilder.escapeForSQLStatement(insightName) + "', " 
-				+ global + " ," + 0 + " ,'" + nowString + "' ,'" + nowString + "','" + layout + "', true)";
+				+ global + " ," + 0 + " ,'" + nowString + "' ,'" + nowString + "','" + layout + "', " + cacheable + ")";
 		try {
 			securityDb.insertData(insightQuery);
 			securityDb.commit();
@@ -1254,8 +1258,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
 		// always adding the tags as returns
 //		if(tagFiltering) {
-			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
-			qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
+			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "left.outer.join");
+			qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "left.outer.join");
 //		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
@@ -1308,8 +1312,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
 		// always add tags
 //		if(tagFiltering) {
-		qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
-		qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
+		qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "left.outer.join");
+		qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "left.outer.join");
 //		}
 
 		return qs;

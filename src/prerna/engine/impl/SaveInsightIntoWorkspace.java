@@ -138,7 +138,7 @@ class InsightCacher implements Runnable {
 				} else {
 					// create new
 					String inName = insightName + " " + formatter.format(new Date());
-					insightAdmin.addInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false);
+					insightAdmin.addInsight(this.workspaceSavedInsightId, inName, "default", lastPixel, false, true);
 					SecurityInsightUtils.addInsight(this.workspaceAppId, this.workspaceSavedInsightId, inName, true, "default");
 
 					created = true;
