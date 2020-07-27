@@ -274,14 +274,53 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			curPanelId = trimQuotes(curPanelId);
 		}
 		else if (reactorId.equals("Clone")) {
+			String panelId = curPanelId;
+			String clonePanelId = null;
+			String sheet = null;
 			POpInput closePanelInput = node.getOpInput();
-			String panel = closePanelInput.toString().trim();
-			panel = trimQuotes(panel);
-			addPanelForCurrentIndex(panel);
-			addLayerForCurrentIndex(panel, "base");
+			if(closePanelInput instanceof ANounOpInput) {
+				// see if this starts with panel = [
+				String strI = closePanelInput.toString();
+				if(strI.startsWith("panel = [")) {
+					strI = strI.substring("panel = [ ".length()).trim();
+					strI = strI.substring(0, strI.length()-1).trim();
+					panelId = strI;
+				} else if(strI.startsWith("cloneId = [")) {
+					strI = strI.substring("cloneId = [ ".length()).trim();
+					strI = strI.substring(0, strI.length()-1).trim();
+					clonePanelId = strI;
+				} else if(strI.startsWith("sheet = [")){
+					strI = strI.substring("sheet = [ ".length()).trim();
+					strI = strI.substring(0, strI.length()-1).trim();
+					sheet = strI;
+				}
+				
+				LinkedList<POtherOpInput> oInputs = node.getOtherOpInput();
+				for(POtherOpInput oInput : oInputs) {
+					strI = oInput.toString();
+					if(strI.startsWith("panel = [")) {
+						strI = strI.substring("panel = [ ".length()).trim();
+						strI = strI.substring(0, strI.length()-1).trim();
+						panelId = strI;
+					} else if(oInput.toString().startsWith(", cloneId = [")) {
+						strI = strI.substring(", cloneId = [".length()).trim();
+						strI = strI.substring(0, strI.length()-1).trim();
+						clonePanelId = strI;
+					} else if(oInput.toString().startsWith(", sheet = [")) {
+						strI = strI.substring(", sheet = [".length()).trim();
+						strI = strI.substring(0, strI.length()-1).trim();
+						sheet = strI;
+					}
+				}
+			} else {
+				clonePanelId = closePanelInput.toString().trim();
+			}
+			clonePanelId = trimQuotes(clonePanelId);
+			addPanelForCurrentIndex(clonePanelId);
+			addLayerForCurrentIndex(clonePanelId, "base");
 
 			// store the order of the creation
-			panelCreationOrder.add(panel);
+			panelCreationOrder.add(clonePanelId);
 
 			// in the case when you cloned but the original panel has been modified
 			// we dont want to clone the new modification
@@ -290,14 +329,23 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
 			// first, find the index of the current panel we are cloning from
 			// this is why we keep track of the curPanelId
-			Integer lastIndex = getLastPixelTaskIndexForPanel(curPanelId);
-			cloneToOrigTask.put(panel, lastIndex);
-			clonePanelToOrigPanel.put(panel, curPanelId);
+			panelId = trimQuotes(panelId);
+			Integer lastIndex = getLastPixelTaskIndexForPanel(panelId);
+			cloneToOrigTask.put(clonePanelId, lastIndex);
+			clonePanelToOrigPanel.put(clonePanelId, panelId);
 
 			// store the index of the clone to the panel created
-			cloneIndexToClonePanelId.put(index, panel);
-			cloneIdToIndex.put(panel, index);
-		} 
+			cloneIndexToClonePanelId.put(index, clonePanelId);
+			cloneIdToIndex.put(clonePanelId, index);
+			
+			// also store the sheet
+			if(sheet != null) {
+				sheet = trimQuotes(sheet);
+				if(!sheetList.contains(sheet)) {
+					sheetList.add(sheet);
+				}
+			}
+		}
 		else if (reactorId.equals("SetPanelView")) {
 			// here, if we did a clone
 			// but later changed the panel view
@@ -315,6 +363,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		else if(reactorId.equals("AddPanel")) {
 			// store order of panel creation
 			String panel = null;
+			String sheet = null;
 			POpInput input = node.getOpInput();
 			if(input instanceof ANounOpInput) {
 				// see if this starts with panel = [
@@ -323,15 +372,23 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 					strI = strI.substring("panel = [ ".length()).trim();
 					strI = strI.substring(0, strI.length()-1).trim();
 					panel = strI;
-				} else {
-					LinkedList<POtherOpInput> oInputs = node.getOtherOpInput();
-					for(POtherOpInput oInput : oInputs) {
-						if(oInput.toString().startsWith("panel = [")) {
-							strI = strI.substring("panel = [".length()).trim();
-							strI = strI.substring(0, strI.length()-1).trim();
-							panel = strI;
-							break;
-						}
+				} else if(strI.startsWith("sheet = [")){
+					strI = strI.substring("sheet = [ ".length()).trim();
+					strI = strI.substring(0, strI.length()-1).trim();
+					sheet = strI;
+				}
+				
+				LinkedList<POtherOpInput> oInputs = node.getOtherOpInput();
+				for(POtherOpInput oInput : oInputs) {
+					strI = oInput.toString();
+					if(oInput.toString().startsWith(", panel = [")) {
+						strI = strI.substring(", panel = [".length()).trim();
+						strI = strI.substring(0, strI.length()-1).trim();
+						panel = strI;
+					} else if(oInput.toString().startsWith(", sheet = [")) {
+						strI = strI.substring(", sheet = [".length()).trim();
+						strI = strI.substring(0, strI.length()-1).trim();
+						sheet = strI;
 					}
 				}
 			} else {
@@ -339,6 +396,13 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			}
 			panel = trimQuotes(panel);
 			panelCreationOrder.add(panel);
+			// also store the sheet
+			if(sheet != null) {
+				sheet = trimQuotes(sheet);
+				if(!sheetList.contains(sheet)) {
+					sheetList.add(sheet);
+				}
+			}
 		}
 		// account for new panel creation
 		else if(reactorId.equals("AddPanelIfAbsent")) {
@@ -353,23 +417,6 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		// remove the layer
 		else if(reactorId.equals("RemoveLayer")) {
 			removeLayerIndices.add(this.index);
-
-			//			String panelStr = node.getOpInput().toString().trim();
-			//			String layerStr = node.getOtherOpInput().get(0).toString().trim();
-			//			
-			//			if(panelStr.contains("panel = ")) {
-			//				panelStr = panelStr.replace("panel =", "").trim();
-			//				panelStr = trimQuotes(panelStr.replace("[", "").replace("]", "").trim());
-			//			}
-			//			if(layerStr.contains(", layer = ")) {
-			//				layerStr = layerStr.replaceAll(", layer =", "").trim();
-			//				layerStr = trimQuotes(layerStr.replace("[", "").replace("]", "").trim());
-			//			}
-			//			
-			//			Map<String, List<Integer>> thisLayer = layerMap.get(panelStr);
-			//			if(thisLayer != null) {
-			//				thisLayer.remove(layerStr);
-			//			}
 		}
 		// need to account for auto tasks
 		// need to account for algorithms that just send data to the FE directly
