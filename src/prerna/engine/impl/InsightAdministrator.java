@@ -54,7 +54,12 @@ public class InsightAdministrator {
 	
 	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
 		String newId = UUID.randomUUID().toString();
-		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden);
+		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, true);
+	}
+	
+	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave, boolean hidden, boolean cacheable) {
+		String newId = UUID.randomUUID().toString();
+		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable);
 	}
 	
 	/**
@@ -64,7 +69,7 @@ public class InsightAdministrator {
 	 * @param layout
 	 * @param pixelRecipeToSave
 	 */
-	public String addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
+	public String addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden, boolean cacheable) {
 		LOGGER.info("Adding new question with insight id :::: " + Utility.cleanLogString(insightId));
 		LOGGER.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
 		LOGGER.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
@@ -78,7 +83,7 @@ public class InsightAdministrator {
 				.append(QUESTION_LAYOUT_COL).append(",").append(HIDDEN_INSIGHT_COL).append(",")
 				.append(CACHEABLE_COL).append(",").append(QUESTION_PKQL_COL).append(") VALUES ('")
 				.append(insightId).append("', ").append("'").append(insightName).append("', ")
-				.append("'").append(layout).append("', ").append(hidden).append(", true, ");
+				.append("'").append(layout).append("', ").append(hidden).append(", ").append(cacheable).append(", ");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
 		if(this.allowArrayDatatype) {
@@ -99,6 +104,20 @@ public class InsightAdministrator {
 		// return the new rdbms id
 		return insightId;
 	}
+
+	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave) {
+		return addInsight(insightName, layout, pixelRecipeToSave, false);
+	}
+	
+	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden) {
+		String newId = UUID.randomUUID().toString();
+		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, true);
+	}
+	
+	public String addInsight(String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, boolean cacheable) {
+		String newId = UUID.randomUUID().toString();
+		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden, cacheable);
+	}
 	
 	/**
 	 * Insert a new insight into the engine
@@ -107,7 +126,7 @@ public class InsightAdministrator {
 	 * @param layout
 	 * @param pixelRecipeToSave
 	 */
-	public String addInsight(String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden) {
+	public String addInsight(String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, boolean cacheable) {
 		LOGGER.info("Adding new question with insight id :::: " + insightId);
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
@@ -117,7 +136,7 @@ public class InsightAdministrator {
 				.append(QUESTION_LAYOUT_COL).append(",").append(HIDDEN_INSIGHT_COL).append(",")
 				.append(CACHEABLE_COL).append(",").append(QUESTION_PKQL_COL).append(") VALUES ('")
 				.append(insightId).append("', ").append("'").append(insightName).append("', ")
-				.append("'").append(layout).append("', ").append(hidden).append(", true, ");
+				.append("'").append(layout).append("', ").append(hidden).append(", ").append(cacheable).append(", ");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
 		if(this.allowArrayDatatype) {
