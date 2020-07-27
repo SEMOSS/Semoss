@@ -133,7 +133,8 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		String layout = mosfet.getLayout();
 		String[] pixelRecipeToSave = mosfet.getRecipe();
 		boolean hidden = false;
-		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, pixelRecipeToSave, hidden);
+		boolean cacheable = true;
+		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, pixelRecipeToSave, hidden, cacheable);
 		logger.info(step + ") Done...");
 		step++;
 

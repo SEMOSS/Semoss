@@ -82,6 +82,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String[] recipeToSave = getRecipe();
 		String layout = getLayout();
 		boolean hidden = getHidden();
+		boolean cacheable = getUserDefinedCacheable();
 		List<String> params = getParams();
 		Map pipeline = getPipeline();
 
@@ -129,7 +130,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		logger.info(stepCounter + ") Add insight " + insightName + " to rdbms store...");
-		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, recipeToSave, hidden);
+		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, recipeToSave, hidden, cacheable);
 		logger.info(stepCounter +") Done...");
 		stepCounter++;
 

@@ -73,24 +73,24 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			logger.info("Adding all default insights");
 			String newInsightId = UploadUtilities.addExploreInstanceInsight(appId, appName, insightEngine);
 			addedInsight = true;
-			registerInsightAndMetadata(appId, newInsightId, UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME, UploadUtilities.EXPLORE_INSIGHT_LAYOUT);
+			registerInsightAndMetadata(appId, newInsightId, UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME, UploadUtilities.EXPLORE_INSIGHT_LAYOUT, true);
 			logger.info("Done adding explore an instance");
 			
 			newInsightId = UploadUtilities.addInsightUsageStats(appId, appName, insightEngine);
 			addedInsight = true;
-			registerInsightAndMetadata(appId, newInsightId, UploadUtilities.INSIGHT_USAGE_STATS_INSIGHT_NAME, UploadUtilities.INSIGHT_USAGE_STATS_LAYOUT);
+			registerInsightAndMetadata(appId, newInsightId, UploadUtilities.INSIGHT_USAGE_STATS_INSIGHT_NAME, UploadUtilities.INSIGHT_USAGE_STATS_LAYOUT, false);
 			logger.info("Done adding insight usage stats");
 			
 			if(eType == ENGINE_TYPE.RDBMS) {
 				newInsightId = UploadUtilities.addGridDeltaInsight(appId, appName, insightEngine);
-				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.GRID_DELTA_INSIGHT_NAME, UploadUtilities.GRID_DELTA_LAYOUT);
+				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.GRID_DELTA_INSIGHT_NAME, UploadUtilities.GRID_DELTA_LAYOUT, true);
 				logger.info("Done adding grid delta");
 				
 				// add audit insights
 				// there could be an issue with loading the recipes to create
 				newInsightId = UploadUtilities.addAuditModificationView(appId, appName, insightEngine);
 				if (newInsightId != null) {
-					registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT);
+					registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT, false);
 					logger.info("Done adding audit modification view");
 				} else {
 					additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit modification view"));
@@ -98,7 +98,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				
 				newInsightId = UploadUtilities.addAuditTimelineView(appId, appName, insightEngine);
 				if (newInsightId != null) {
-					registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_TIMELINE_INSIGHT_NAME, UploadUtilities.AUDIT_TIMELINE_LAYOUT);
+					registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_TIMELINE_INSIGHT_NAME, UploadUtilities.AUDIT_TIMELINE_LAYOUT, false);
 					logger.info("Done adding audit timeline view");
 				} else {
 					additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
@@ -110,20 +110,20 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			if(insightsToAdd.contains(EXPLORE_INSTANCE)) {
 				String newInsightId = UploadUtilities.addExploreInstanceInsight(appId, appName, insightEngine);
 				addedInsight = true;
-				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME, UploadUtilities.EXPLORE_INSIGHT_LAYOUT);
+				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME, UploadUtilities.EXPLORE_INSIGHT_LAYOUT, true);
 				logger.info("Done adding explore an instance");
 			}
 			if(insightsToAdd.contains(INSIGHT_STATS)) {
 				String newInsightId = UploadUtilities.addInsightUsageStats(appId, appName, insightEngine);
 				addedInsight = true;
-				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.INSIGHT_USAGE_STATS_INSIGHT_NAME, UploadUtilities.INSIGHT_USAGE_STATS_LAYOUT);
+				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.INSIGHT_USAGE_STATS_INSIGHT_NAME, UploadUtilities.INSIGHT_USAGE_STATS_LAYOUT, false);
 				logger.info("Done adding insight usage stats");
 			}
 			if(insightsToAdd.contains(GRID_DELTA_INSTANCE)) {
 				if(eType == ENGINE_TYPE.RDBMS) {
 					String newInsightId = UploadUtilities.addGridDeltaInsight(appId, appName, insightEngine);
 					addedInsight = true;
-					registerInsightAndMetadata(appId, newInsightId, UploadUtilities.GRID_DELTA_INSIGHT_NAME, UploadUtilities.GRID_DELTA_LAYOUT);
+					registerInsightAndMetadata(appId, newInsightId, UploadUtilities.GRID_DELTA_INSIGHT_NAME, UploadUtilities.GRID_DELTA_LAYOUT, true);
 					logger.info("Done adding grid delta");
 				} else {
 					additionalNouns.add(NounMetadata.getWarningNounMessage("This app is not an RDBMS so grid delta insight cannot be added"));
@@ -134,7 +134,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 					String newInsightId = UploadUtilities.addAuditModificationView(appId, appName, insightEngine);
 					if (newInsightId != null) {
 						addedInsight = true;
-						registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT);
+						registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT, false);
 						logger.info("Done adding audit modification view");
 					} else {
 						additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit modification view"));
@@ -148,7 +148,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 					String newInsightId = UploadUtilities.addAuditTimelineView(appId, appName, insightEngine);
 					if (newInsightId != null) {
 						addedInsight = true;
-						registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_TIMELINE_INSIGHT_NAME, UploadUtilities.AUDIT_TIMELINE_LAYOUT);
+						registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_TIMELINE_INSIGHT_NAME, UploadUtilities.AUDIT_TIMELINE_LAYOUT, false);
 						logger.info("Done adding audit timeline view");
 					} else {
 						additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
@@ -173,8 +173,8 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		return noun;
 	}
 	
-	private void registerInsightAndMetadata(String appId, String insightIdToSave, String insightName, String layout) {
-		SecurityInsightUtils.addInsight(appId, insightIdToSave, insightName, true, layout);
+	private void registerInsightAndMetadata(String appId, String insightIdToSave, String insightName, String layout, boolean cacheable) {
+		SecurityInsightUtils.addInsight(appId, insightIdToSave, insightName, true, cacheable, layout);
 		if(this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), appId, insightIdToSave);
 		}
