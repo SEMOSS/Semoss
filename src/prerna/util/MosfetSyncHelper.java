@@ -142,10 +142,11 @@ public class MosfetSyncHelper {
 		String layout = mosfet.getLayout();
 		String[] recipe = mosfet.getRecipe();
 		boolean hidden = mosfet.isHidden();
-
+		boolean cacheable = true;
+		
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
-		admin.addInsight(id, insightName, layout, recipe, hidden);
+		admin.addInsight(id, insightName, layout, recipe, hidden, cacheable);
 		SecurityInsightUtils.addInsight(appId, id, insightName, false, layout);
 		
 		// also sync the metadata
