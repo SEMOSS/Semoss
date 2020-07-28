@@ -197,6 +197,9 @@ public class Insight {
 	
 	public NettyClient nc = null;
 	
+	// base URL
+	public String baseURL = null;
+	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////// START CONSTRUCTORS //////////////////////////////////
@@ -1376,5 +1379,19 @@ public class Insight {
 		}
 		
 		return frameName.toString();
+	}
+	
+	public String getInsightURL()
+	{
+		StringBuffer retURL = new StringBuffer(baseURL);
+		retURL.append("insight?engine=").append(engineId).append("&").append("id=").append(rdbmsId);
+		return retURL.toString();
+	}
+
+	public String getLiveURL()
+	{
+		StringBuffer retURL = new StringBuffer(baseURL);
+		retURL.append("insight?insightId=").append(insightId);
+		return retURL.toString();
 	}
 }
