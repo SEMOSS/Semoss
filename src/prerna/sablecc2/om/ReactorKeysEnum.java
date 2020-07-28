@@ -150,6 +150,7 @@ public enum ReactorKeysEnum {
 	QUERY_KEY("query", 										"Query string to be executed on the database"),
 	QUERY_STRUCT("qs", 										"QueryStruct object that contains selectors, filters, and joins"),
 	URL("url",                                              "The url"),
+	USE_PANEL("usePanel",                                   "Boolean to export each panel as a separate sheet on exports instead of the entire dashboard"),
 	USE_LABEL("useLabel",                                   "Boolean to use the label to query a graph database"),
 	VALUE("value", 											"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 										"Numeric or string values used as input text or inputs to an operation"),
