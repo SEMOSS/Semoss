@@ -1484,6 +1484,12 @@
 		    <artifactId>ooxml-schemas</artifactId>
 		    <version>1.4</version>
 		</dependency> 
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
+		<dependency>
+		    <groupId>org.apache.poi</groupId>
+		    <artifactId>poi-scratchpad</artifactId>
+		    <version>4.1.1</version>
+		</dependency>
 		<!-- cleanup -->
 		<!--dependency>
 			<groupId>gov.sandia.foundry</groupId>
