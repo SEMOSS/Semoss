@@ -1565,4 +1565,60 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 	
+	/////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Copying permissions
+	 */
+	
+	/**
+	 * Copy the app permissions from one app to another
+	 * @param sourceEngineId
+	 * @param targetEngineId
+	 * @throws SQLException
+	 */
+	public static void copyInsightPermissions(String sourceEngineId, String sourceInsightId, String targetEngineId, String targetInsightId) throws Exception {
+		String insertTargetAppInsightPermissionSql = "INSERT INTO USERINSIGHTPERMISSION (ENGINEID, INSIGHTID, USERID, PERMISSION) VALUES (?, ?, ?, ?)";
+		PreparedStatement insertTargetAppInsightPermissionStatement = securityDb.bulkInsertPreparedStatement(insertTargetAppInsightPermissionSql);
+		if(insertTargetAppInsightPermissionStatement == null) {
+			throw new IllegalArgumentException("An error occured trying to generate the appropriate query to copy the data");
+		}
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID"));
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				
+				insertTargetAppInsightPermissionStatement.setString(1, targetEngineId);
+				insertTargetAppInsightPermissionStatement.setString(2, targetInsightId);
+				insertTargetAppInsightPermissionStatement.setString(3, (String) row[2]);
+				insertTargetAppInsightPermissionStatement.setInt(4, ((Number) row[3]).intValue());
+				// add to batch
+				insertTargetAppInsightPermissionStatement.addBatch();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		// first delete the current app permissions on the database
+		String deleteTargetAppPermissionsSql = "DELETE FROM USERINSIGHTPERMISSION WHERE ENGINEID = '" 
+				+ AbstractSqlQueryUtil.escapeForSQLStatement(targetEngineId) + "' AND INSIGHTID = '" 
+				+ AbstractSqlQueryUtil.escapeForSQLStatement(targetInsightId) + "'";
+		securityDb.removeData(deleteTargetAppPermissionsSql);
+		// execute the query
+		insertTargetAppInsightPermissionStatement.executeBatch();
+	}
 }
