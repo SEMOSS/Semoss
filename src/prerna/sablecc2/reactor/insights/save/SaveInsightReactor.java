@@ -82,7 +82,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String[] recipeToSave = getRecipe();
 		String layout = getLayout();
 		boolean hidden = getHidden();
-		boolean cacheable = getUserDefinedCacheable();
+		Boolean cacheable = getUserDefinedCacheable();
+		if(cacheable == null) {
+			cacheable = true;
+		}
 		List<String> params = getParams();
 		Map pipeline = getPipeline();
 
