@@ -16,6 +16,12 @@ public class ChromeDriverUtility {
 	
 	private static String contextPath = null;
 	private static String sessionCookie = null;
+	private static ChromeDriver driver = null;
+
+	public static void captureImage(String feUrl, String url, String imagePath, String sessionId) {
+		captureImage(feUrl, url, imagePath, sessionId, 1920, 1080, true);
+	}
+
 	
 	/**
 	 * Capture the image of from a url
@@ -24,7 +30,7 @@ public class ChromeDriverUtility {
 	 * @param imagePath location to save image
 	 * @param sessionId user session id if logged in
 	 */
-	public static void captureImage(String feUrl, String url, String imagePath, String sessionId) {
+	public static void captureImage(String feUrl, String url, String imagePath, String sessionId, int height, int width,  boolean close) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		// load driver options
 		String os = System.getProperty("os.name").toUpperCase();
@@ -48,7 +54,7 @@ public class ChromeDriverUtility {
 	    }
 		chromeOptions.addArguments("--headless");
 		chromeOptions.addArguments("--disable-gpu");
-		chromeOptions.addArguments("--window-size=1920,1080");
+		chromeOptions.addArguments("--window-size=" + height + "," + width);
 		chromeOptions.addArguments("--remote-debugging-port=9222");
 		if(linux) {
 			chromeOptions.addArguments("-disable-dev-shm-usage");
@@ -57,7 +63,8 @@ public class ChromeDriverUtility {
 		if(url.contains("localhost") && url.contains("https")) {
 			chromeOptions.addArguments("--allow-insecure-localhost ");
 		}
-		ChromeDriver driver = new ChromeDriver(chromeOptions);
+		driver = new ChromeDriver(chromeOptions);
+	
 		// need to go to the base url first
 		// so that the cookie is applied at root level
 		if(ChromeDriverUtility.contextPath != null) {
@@ -91,8 +98,14 @@ public class ChromeDriverUtility {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-	    driver.quit();
+		if(close)
+			driver.quit();
+	}
+	
+	public static void close()
+	{
+		if(driver != null)
+			driver.quit();
 	}
 	
 	public static void setContextPath(String contextPath) {
@@ -108,4 +121,6 @@ public class ChromeDriverUtility {
 	public static void setSessionCookie(String sessionCookie) {
 		ChromeDriverUtility.sessionCookie = sessionCookie;
 	}
+	
+	
 }
