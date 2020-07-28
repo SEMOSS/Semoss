@@ -58,9 +58,9 @@ public class CopyAppPermissionsReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(SOURCE_APP)) {
-			return "The name of the app that is used to provide information";
+			return "The app id that is used to provide information";
 		} else if(key.equals(TARGET_APP)) {
-			return "The name of the app that an operation is applied on";
+			return "The app id that the operation is applied on";
 		}
 		return ReactorKeysEnum.getDescriptionFromKey(key);
 	}
