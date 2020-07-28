@@ -695,7 +695,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @param targetEngineId
 	 * @throws SQLException
 	 */
-	public static void copyAppPermissions(String sourceEngineId, String targetEngineId) throws SQLException {
+	public static void copyAppPermissions(String sourceEngineId, String targetEngineId) throws Exception {
 		String insertTargetAppPermissionSql = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
 		PreparedStatement insertTargetAppPermissionStatement = securityDb.bulkInsertPreparedStatement(insertTargetAppPermissionSql);
 		if(insertTargetAppPermissionStatement == null) {
@@ -714,13 +714,14 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				
 				insertTargetAppPermissionStatement.setString(1, targetEngineId);
 				insertTargetAppPermissionStatement.setString(2, (String) row[1]);
-				insertTargetAppPermissionStatement.setInt(3, ((Number) row[0]).intValue() );
-				insertTargetAppPermissionStatement.setBoolean(4, (Boolean) row[0]);
+				insertTargetAppPermissionStatement.setInt(3, ((Number) row[2]).intValue() );
+				insertTargetAppPermissionStatement.setBoolean(4, (Boolean) row[3]);
 				// add to batch
 				insertTargetAppPermissionStatement.addBatch();
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
