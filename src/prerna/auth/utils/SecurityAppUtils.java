@@ -686,7 +686,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
-	 * Modifications to the 
+	 * Copying permissions
 	 */
 	
 	/**
@@ -701,6 +701,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		if(insertTargetAppPermissionStatement == null) {
 			throw new IllegalArgumentException("An error occured trying to generate the appropriate query to copy the data");
 		}
+		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
