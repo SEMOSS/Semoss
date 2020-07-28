@@ -54,7 +54,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		if(keyValue.containsKey(ReactorKeysEnum.FILE_NAME.getKey()))
 			fileName = (String)keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
 		
-		String baseUrl = this.insight.baseURL;
+		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
 		String imageUrl = this.insight.getLiveURL();
 		boolean panel = false;

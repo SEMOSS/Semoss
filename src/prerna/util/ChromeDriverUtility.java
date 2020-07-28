@@ -98,12 +98,12 @@ public class ChromeDriverUtility {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		if(close)
+		if(close) {
 			driver.quit();
+		}
 	}
 	
-	public static void close()
-	{
+	public static void close() {
 		if(driver != null)
 			driver.quit();
 	}
@@ -121,6 +121,4 @@ public class ChromeDriverUtility {
 	public static void setSessionCookie(String sessionCookie) {
 		ChromeDriverUtility.sessionCookie = sessionCookie;
 	}
-	
-	
 }
