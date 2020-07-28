@@ -34,10 +34,10 @@ public class CopyAppPermissionsReactor extends AbstractReactor {
 		String targetAppId = this.keyValue.get(this.keysToGet[1]);
 
 		// must be an editor for both to run this
-		if(SecurityAppUtils.userCanEditEngine(this.insight.getUser(), sourceAppId)) {
+		if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), sourceAppId)) {
 			throw new IllegalArgumentException("You do not have edit access to the source app");
 		}
-		if(SecurityAppUtils.userCanEditEngine(this.insight.getUser(), targetAppId)) {
+		if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), targetAppId)) {
 			throw new IllegalArgumentException("You do not have edit access to the target app");
 		}
 		
