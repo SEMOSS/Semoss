@@ -107,6 +107,22 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return results.get(0);
 	}
 	
+	/**
+	 * Get the engine alias for a id
+	 * @return
+	 */
+	public static String getInsightNameForId(String engineId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
+		List<String> results = QueryExecutionUtility.flushToListString(securityDb, qs);
+		if(results.isEmpty()) {
+			return null;
+		}
+		return results.get(0);
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
