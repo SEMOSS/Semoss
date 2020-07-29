@@ -146,10 +146,9 @@ get_single_cols<-function(df){
 }
 
 get_component_alternatives<-function(df){
-	COMPONENTS<-c('select column','sum column','average column','min column','max column','stdev column','count column',
-	'unique column count','where column is value','group column','having min column is value','having max column is value',
-	'having sum column is value','having average column is value','having count column is value','rank column top',
-	'rank column top n','rank column bottom','rank column bottom n','sort column ascending','sort column descending')
+	COMPONENTS<-c('select column','sum column','average column','min column','max column','stdev column','count column','unique column count','where column is value',
+	'group column','based on column','having min column is value','having max column is value','having sum column is value','having average column is value',
+	'having count column is value','rank column top n','rank column bottom n','sort column ascending','sort column descending')
 	if(nrow(df)==0){
 		# for the first run only select components available
 		out<-COMPONENTS[1:8]
@@ -160,10 +159,16 @@ get_component_alternatives<-function(df){
 		ind<-which(df$Element=='aggregate')
 		# if there are aggregates
 		if(length(ind)>0){
-			# when aggregate element is present in select group and having avaible
-			out<-append(out,COMPONENTS[10:21])
+			group_ind<-which(df$Component=='group')
+			if(length(group_ind)>0){
+				# when aggregate element is present in select component then having is avaible
+				# if group component already present it is not included for the next component list
+				out<-append(out,COMPONENTS[12:20])
+			}else{
+				out<-append(out,COMPONENTS[10:20])
+			}
 		}else{
-			out<-append(out,COMPONENTS[16:21])
+			out<-append(out,COMPONENTS[17:20])
 		}
 	}
 	return(out)
