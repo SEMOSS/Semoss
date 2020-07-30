@@ -118,6 +118,11 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 					propertyURI = property.get("propertyName").toString();
 					propertyValue = property.get("propertyValue");
 					
+					// if it is null, there is nothing to remove
+					if(propertyValue == null) {
+						continue;
+					}
+					
 					// TODO: trying to account for more FE issues - delete original value being sent
 					// TODO: trying to account for more FE issues - delete original value being sent
 					// TODO: trying to account for more FE issues - delete original value being sent
