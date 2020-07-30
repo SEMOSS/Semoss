@@ -38,8 +38,6 @@ public class User extends AbstractValueObject implements Serializable {
 
 	private static Logger logger = Logger.getLogger(User.class);
 	
-	private static final String STACKTRACE = "StackTrace: ";
-
 	// name of this user in the SEMOSS system if there is one
 	
 	// need to have an access token store
@@ -215,7 +213,7 @@ public class User extends AbstractValueObject implements Serializable {
 					}
 				}
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 
 			this.workspaceEngineMap.put(token, engineId);
@@ -241,7 +239,7 @@ public class User extends AbstractValueObject implements Serializable {
 					}
 				}
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 
 			this.assetEngineMap.put(token, engineId);
@@ -252,11 +250,11 @@ public class User extends AbstractValueObject implements Serializable {
 			try {
 				CloudClient.getClient().pullApp(engineId);
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} catch (InterruptedException ie) {
 				// Restore interrupted state...
 				Thread.currentThread().interrupt();
-				logger.error(STACKTRACE, ie);
+				logger.error(Constants.STACKTRACE, ie);
 			}
 		}
 
@@ -611,8 +609,7 @@ public class User extends AbstractValueObject implements Serializable {
 									Thread.sleep(logSleeper*1000);
 									logSleeper++;
 								} catch (InterruptedException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
+									logger.error(Constants.STACKTRACE, e);
 								}
 							}
 							logger.info("Jep Start is Complete");
@@ -641,8 +638,7 @@ public class User extends AbstractValueObject implements Serializable {
 										Thread.sleep(logSleeper*1000);
 										logSleeper++;
 									} catch (InterruptedException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
+										logger.error(Constants.STACKTRACE, e);
 									}
 								}
 								this.setPyServe(nc);
