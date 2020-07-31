@@ -374,10 +374,25 @@ public class InsightAdministrator {
 	}
 	
 
-	public void updateInsightCache(String existingRdbmsId, boolean parseBoolean) {
+	public void updateInsightCache(String existingRdbmsId, boolean isCacheable) {
 		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
-				.append(CACHEABLE_COL).append(" = ").append(parseBoolean)
+				.append(CACHEABLE_COL).append(" = ").append(isCacheable)
+				.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
+	
+		// now run the query and commit
+		try {
+			this.insightEngine.insertData(updateQuery.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		this.insightEngine.commit();
+	}
+	
+	public void updateInsightGlobal(String existingRdbmsId, boolean isHidden) {
+		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
+		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
+				.append(HIDDEN_INSIGHT_COL).append(" = ").append(isHidden)
 				.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
 	
 		// now run the query and commit
