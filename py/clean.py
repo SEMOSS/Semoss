@@ -828,3 +828,34 @@ class PyFrame:
 		
 		for del_key in del_keys:
 			del this.cache[del_key]
+			
+	def hasFrameChanged(this):
+		imm = ['data', 'version', 'low_version', 0]
+		cur_meta = []
+		if 'meta' not in this.cache:
+			cur_meta = this.cache['data'].dtypes.to_dict()
+			this.cache['meta'] = cur_meta
+			return "False"
+		cur_meta = this.cache['data'].dtypes.to_dict()
+		prev_meta = this.cache['meta']
+		prev_keys = set(this.cache['meta'].keys())
+		cur_keys = set(cur_meta.keys())
+        
+        # first just compare keys
+		added = prev_keys - cur_keys
+		removed = cur_keys - prev_keys
+		shared_keys = prev_keys.intersection(cur_keys)
+		#print(shared_keys)
+		if(len(added) > 0 or len(removed) > 0):
+			cur_meta = this.cache['data'].dtypes.to_dict()
+			this.cache['meta'] = cur_meta
+			return "True"
+		# if not check the values next
+		if(len(shared_keys) > 0):
+			modified = {o : (cur_meta[o], prev_meta[o]) for o in shared_keys if cur_meta[o] != prev_meta[o]}
+			if(len(modified) > 0):
+				cur_meta = this.cache['data'].dtypes.to_dict()
+				this.cache['meta'] = cur_meta
+				return "True"
+        #same = set(o for o in shared_keys if d1[o] == d2[o])
+		return "False"
