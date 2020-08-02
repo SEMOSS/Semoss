@@ -17,23 +17,22 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
-import prerna.query.interpreters.RInterpreter;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc.ReactorSecurityManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public final class RReactor extends AbstractReactor {
+public final class RReactor extends AbstractRFrameReactor {
 	
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	private static final String CLASS_NAME = RReactor.class.getName();
@@ -45,13 +44,16 @@ public final class RReactor extends AbstractReactor {
 		System.setSecurityManager(tempManager);
 		
 		Logger logger = getLogger(CLASS_NAME);
-		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
+		this.rJavaTranslator = this.insight.getRJavaTranslator(logger);
 		rJavaTranslator.startR();
+		
+		//this.rJavaTranslator = rJavaTranslator;
 		
 		
 		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
 		logger.info("Execution r script: " + code);
 		
+		// bifurcation for ggplot
 		if(code.startsWith("ggplot"))
 			return handleGGPlot(code);
 		
@@ -68,7 +70,42 @@ public final class RReactor extends AbstractReactor {
 		tempManager.removeClass(CLASS_NAME);
 		System.setSecurityManager(defaultManager);	
 		
+		boolean smartSync = (DIHelper.getInstance().getProperty("SMART_SYNC") != null && DIHelper.getInstance().getProperty("SMART_SYNC").equalsIgnoreCase("true"));
+		
+		if(smartSync)
+			smartSync(rJavaTranslator);
+		
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
+	}
+	
+	public void smartSync(AbstractRJavaTranslator rJavaTranslator)
+	{
+		// at this point try to see if something has changed and if so
+		// trigger smart sync
+		ITableDataFrame frame = this.insight.getCurFrame();
+		if(frame != null && frame instanceof RDataTable)
+		{
+			StringBuffer script = new StringBuffer();
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			script.append("source(\"" + baseFolder.replace("\\", "/") + "/R/util/smssutil.R\");\n");
+			script.append("if (!exists(\"allframe\")) allframe <- list();");
+			script.append("allframe <- getCurMeta(" + this.insight.getCurFrame().getName() + ", allframe); \n");
+			script.append("allframe <- hasFrameChanged('" + this.insight.getCurFrame().getName() + "', allframe); \n");
+			
+			// source the script
+			//script.append("source(\"" + baseFolder.replace("\\", "/") + "/R/util/smssutil.R\");").append("hasFrameChanged(" + this.insight.getCurFrame().getName() + ");");
+			//String output = rJavaTranslator.getString(script.toString());
+			
+			String sync = rJavaTranslator.runRAndReturnOutput(script.toString());
+			System.err.println("Output >> " + sync);
+			if(sync.contains("true"))
+			{
+				System.err.println("sync > " + sync);
+				OwlTemporalEngineMeta meta =  genNewMetaFromVariable(frame.getName());
+				// replace the meta in the R Data table
+				((RDataTable)frame).setMetaData(meta);
+			}
+		}		
 	}
 	
 	public NounMetadata handleGGPlot(String ggplotCommand)
