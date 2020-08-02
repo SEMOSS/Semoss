@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
@@ -26,10 +27,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class PyReactor extends AbstractReactor {
+public class PyReactor extends AbstractPyFrameReactor {
 	
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	private static final String CLASS_NAME = PyReactor.class.getName();
@@ -58,8 +60,34 @@ public class PyReactor extends AbstractReactor {
 		}
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
+		
+		boolean smartSync = (DIHelper.getInstance().getProperty("SMART_SYNC") != null && DIHelper.getInstance().getProperty("SMART_SYNC").equalsIgnoreCase("true"));		
+		if(smartSync)
+			smartSync(pyTranslator);
+		// call it here.. and if it return true
+		// regenerate the metadata. 
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 	}
+	
+	public void smartSync(PyTranslator pyt)
+	{
+		// at this point try to see if something has changed and if so
+		// trigger smart sync
+		if(this.insight.getCurFrame() != null && this.insight.getCurFrame() instanceof PandasFrame)
+		{
+			StringBuffer script = new StringBuffer();
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			// source the script
+			script.append(this.insight.getCurFrame().getName() + "w.hasFrameChanged()");
+			String sync = pyt.runScript(script.toString()) + "";
+			if(sync.equalsIgnoreCase("true"))
+			{
+				System.err.println("sync > " + sync);
+				recreateMetadata((PandasFrame)insight.getCurFrame(), true);	
+			}
+		}	
+	}
+
 	
 	public NounMetadata handleSeaborn(String command)
 	{

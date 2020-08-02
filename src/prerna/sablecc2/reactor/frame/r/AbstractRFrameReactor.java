@@ -43,7 +43,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 	 * @param frameName
 	 * @return
 	 */
-	private OwlTemporalEngineMeta genNewMetaFromVariable(String frameName) {
+	protected OwlTemporalEngineMeta genNewMetaFromVariable(String frameName) {
 		// recreate a new frame and set the frame name
 		String[] colNames = getColumns(frameName);
 		String[] colTypes = getColumnTypes(frameName);
