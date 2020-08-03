@@ -63,30 +63,16 @@ public class PyReactor extends AbstractPyFrameReactor {
 		
 		boolean smartSync = (DIHelper.getInstance().getProperty("SMART_SYNC") != null && DIHelper.getInstance().getProperty("SMART_SYNC").equalsIgnoreCase("true"));		
 		if(smartSync)
-			smartSync(pyTranslator);
+		{
+			// if this returns true
+			if(smartSync(pyTranslator))
+				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
+		}
 		// call it here.. and if it return true
 		// regenerate the metadata. 
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 	}
 	
-	public void smartSync(PyTranslator pyt)
-	{
-		// at this point try to see if something has changed and if so
-		// trigger smart sync
-		if(this.insight.getCurFrame() != null && this.insight.getCurFrame() instanceof PandasFrame)
-		{
-			StringBuffer script = new StringBuffer();
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			// source the script
-			script.append(this.insight.getCurFrame().getName() + "w.hasFrameChanged()");
-			String sync = pyt.runScript(script.toString()) + "";
-			if(sync.equalsIgnoreCase("true"))
-			{
-				System.err.println("sync > " + sync);
-				recreateMetadata((PandasFrame)insight.getCurFrame(), true);	
-			}
-		}	
-	}
 
 	
 	public NounMetadata handleSeaborn(String command)
