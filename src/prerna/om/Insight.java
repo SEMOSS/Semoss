@@ -76,6 +76,7 @@ import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.sablecc2.reactor.frame.r.util.PyTranslatorFactory;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
@@ -714,6 +715,11 @@ public class Insight {
 		// this is really where I need to pull from user
 		// I need to recreate since i make the translator specific to 
 		System.out.println("Trying to see if this prints ");
+		if(user != null)
+			this.pyt = user.getPyTranslator();
+		else // there is no user
+			this.pyt = PyTranslatorFactory.getTranslator();			
+		
 		if(this.pyt == null)
 		{
 			this.pyt = user.getPyTranslator();

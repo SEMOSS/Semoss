@@ -1,16 +1,19 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
 import java.io.File;
+import java.util.List;
+import java.util.Vector;
 
 import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.py.AbstractPyFrameReactor;
 import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 
-public class PySourceReactor extends AbstractReactor {
+public class PySourceReactor extends AbstractPyFrameReactor {
 
 	public PySourceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
@@ -41,8 +44,20 @@ public class PySourceReactor extends AbstractReactor {
 		//pyt.runScript("smssutil.runwrapper(" +  path + ", " + assetOutput + ", " + assetOutput + "globals()\")");
 		//pyt.runScript(name +  " = smssutil.loadScript('smss', '" + path + "')");
 		pyt.runScript("smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())");
+		
+		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
+		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		boolean smartSync = (DIHelper.getInstance().getProperty("SMART_SYNC") != null && DIHelper.getInstance().getProperty("SMART_SYNC").equalsIgnoreCase("true"));		
+		if(smartSync)
+		{
+			// if this returns true
+			if(smartSync(pyt))
+				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
+		}
+
+		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
+		//return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
 	/**

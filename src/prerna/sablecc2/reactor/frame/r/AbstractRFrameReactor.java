@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.Arrays;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
@@ -11,6 +12,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
@@ -211,4 +213,38 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
           }
           return baseFolder;
      }
+     
+ 	public boolean smartSync(AbstractRJavaTranslator rJavaTranslator)
+ 	{
+ 		// at this point try to see if something has changed and if so
+ 		// trigger smart sync
+ 		boolean frameChanged = false;
+ 		ITableDataFrame frame = this.insight.getCurFrame();
+ 		if(frame != null && frame instanceof RDataTable)
+ 		{
+ 			StringBuffer script = new StringBuffer();
+ 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+ 			script.append("source(\"" + baseFolder.replace("\\", "/") + "/R/util/smssutil.R\");\n");
+ 			script.append("if (!exists(\"allframe\")) allframe <- list();");
+ 			script.append("allframe <- getCurMeta(" + this.insight.getCurFrame().getName() + ", allframe); \n");
+ 			script.append("allframe <- hasFrameChanged('" + this.insight.getCurFrame().getName() + "', allframe); \n");
+ 			
+ 			// source the script
+ 			//script.append("source(\"" + baseFolder.replace("\\", "/") + "/R/util/smssutil.R\");").append("hasFrameChanged(" + this.insight.getCurFrame().getName() + ");");
+ 			//String output = rJavaTranslator.getString(script.toString());
+ 			
+ 			String sync = rJavaTranslator.runRAndReturnOutput(script.toString());
+ 			System.err.println("Output >> " + sync);
+ 			if(sync.contains("true"))
+ 			{
+ 				frameChanged = true;
+ 				System.err.println("sync > " + sync);
+ 				OwlTemporalEngineMeta meta =  genNewMetaFromVariable(frame.getName());
+ 				// replace the meta in the R Data table
+ 				((RDataTable)frame).setMetaData(meta);
+ 			}
+ 		}		
+ 		return frameChanged;
+ 	}
+
 }
