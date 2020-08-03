@@ -108,7 +108,7 @@ public class PyTranslatorFactory {
 	public static void stopPy()
 	{
 		// stop python too
-		if (PyUtils.pyEnabled()) 
+		if (pyt != null) 
 		{
 			if (pyt instanceof prerna.ds.py.PyTranslator)
 				PyUtils.getInstance().killPyThread(pyt.getPy());
