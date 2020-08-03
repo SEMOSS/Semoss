@@ -1,12 +1,17 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.util.List;
+import java.util.Vector;
+
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.AssetUtility;
+import prerna.util.DIHelper;
 
-public class RSourceReactor extends AbstractReactor {
+public class RSourceReactor extends AbstractRFrameReactor {
 
 	public RSourceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
@@ -63,6 +68,19 @@ public class RSourceReactor extends AbstractReactor {
 		rJavaTranslator.executeEmptyRDirect(rScript);
 		rScript = "with(" + rJavaTranslator.env + ", { rm(" + removePathVariables + ") });"; 
 		rJavaTranslator.executeEmptyRDirect(rScript);
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		
+		List<NounMetadata> outputs = new Vector<>(1);
+		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));
+
+		boolean smartSync = (DIHelper.getInstance().getProperty("SMART_SYNC") != null && DIHelper.getInstance().getProperty("SMART_SYNC").equalsIgnoreCase("true"));
+		
+		if(smartSync)
+		{
+			if(smartSync(rJavaTranslator))
+				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
+		}
+
+		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
+		//return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 }
