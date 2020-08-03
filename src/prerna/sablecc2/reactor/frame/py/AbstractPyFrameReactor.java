@@ -7,10 +7,13 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
+import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.imports.ImportUtility;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 
@@ -84,5 +87,26 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		String pythonDt = (String) insight.getPyTranslator().runScript(columnType);
 		SemossDataType smssDT = this.insight.getPyTranslator().convertDataType(pythonDt);
 		return smssDT.toString();
+	}	public boolean smartSync(PyTranslator pyt)
+	{
+		// at this point try to see if something has changed and if so
+		// trigger smart sync
+		boolean frameChanged = false;
+		if(this.insight.getCurFrame() != null && this.insight.getCurFrame() instanceof PandasFrame)
+		{
+			StringBuffer script = new StringBuffer();
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			// source the script
+			script.append(this.insight.getCurFrame().getName() + "w.hasFrameChanged()");
+			String sync = pyt.runScript(script.toString()) + "";
+			frameChanged = sync.equalsIgnoreCase("true");
+			if(frameChanged)
+			{
+				System.err.println("sync > " + sync);
+				recreateMetadata((PandasFrame)insight.getCurFrame(), true);	
+			}
+		}	
+		return frameChanged;
 	}
+
 }
