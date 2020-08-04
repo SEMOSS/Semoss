@@ -36,7 +36,7 @@ public class PyTranslatorFactory {
 			// all of the logic should go here now ?
 			//synchronized(this)
 			{
-				if (AbstractSecurityUtils.securityEnabled() && PyUtils.pyEnabled()) 
+				if (PyUtils.pyEnabled()) 
 				{
 		
 					boolean useFilePy = DIHelper.getInstance().getProperty("USE_PY_FILE") != null
