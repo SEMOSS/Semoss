@@ -233,14 +233,15 @@ get_all_cols<-function(p){
 }
 
 get_aliases<-function(df){
+	library(tools)
 	aliases<-vector()
 	ind<-which(df$Component=='select' & df$Element=='aggregate')
 	if(length(ind)>0){
 		for(i in 1:length(ind)){
 			if(df$Value[ind[i]] == 'unique count'){
-				aliases<-append(aliases,paste0('unique_count_of_',df$Value[ind[i]+1]))
+				aliases<-append(aliases,paste0('UniqueCount_',df$Value[ind[i]+1]))
 			}else{
-				aliases<-append(aliases,paste0(df$Value[ind[i]],'_of_',df$Value[ind[i]+1]))
+				aliases<-append(aliases,paste0(tools::toTitleCase(df$Value[ind[i]]),'_',df$Value[ind[i]+1]))
 			}
 		}
 	}

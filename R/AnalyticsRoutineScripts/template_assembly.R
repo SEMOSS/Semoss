@@ -1,4 +1,5 @@
 process_select<-function(db,part,cols,p,k){
+	library(tools)
 	AGGR<-c("sum","average","count","min","max","stdev")
 
 	ind<-which(tolower(part) %in% tolower(cols))
@@ -16,10 +17,10 @@ process_select<-function(db,part,cols,p,k){
 					}
 					appid_tbl<-unlist(strsplit(db[tolower(db$Column)==tolower(cur),"Table"][1],"._.",fixed=TRUE))
 					if(unique_count){
-						aggr_alias<-paste0('unique_',prev,'_of_',cur)
-						p<-rbindlist(list(p,list(k,appid_tbl[1],'','select',appid_tbl[2],cur,'uniquecount',aggr_alias,'','','')))
+						aggr_alias<-paste0('UniqueCount','_',cur)
+						p<-rbindlist(list(p,list(k,appid_tbl[1],'','select',appid_tbl[2],cur,'UniqueCount',aggr_alias,'','','')))
 					}else{
-						aggr_alias<-paste0(prev,'_of_',cur)
+						aggr_alias<-paste0(tools::toTitleCase(prev),'_',cur)
 						p<-rbindlist(list(p,list(k,appid_tbl[1],'','select',appid_tbl[2],cur,prev,aggr_alias,'','','')))
 					}
 				}else{
