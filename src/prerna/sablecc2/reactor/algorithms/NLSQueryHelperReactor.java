@@ -284,7 +284,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			// handle where and having
 			else if (comp.equals("where") || comp.startsWith("having")) {
 				if(comp.startsWith("having")) {
-					String agg = comp.split(" ")[1];
+					String agg = comp.substring(7); 
 					comp = "having";
 					componentList.add(comp);
 					elementList.add("aggregate");
