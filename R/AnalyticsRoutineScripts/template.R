@@ -71,7 +71,7 @@ get_element_alternatves<-function(db,df,nbr){
 			out<-unique(db$Column)
 		}else if(df$Element[nbr-1]=='aggregate'){
 			# aggregate column
-			if(df$Value[nbr-1]=='count'){
+			if(df$Value[nbr-1] %in% c('count','unique count')){
 				out<-unique(db[db$Datatype=='STRING','Column'])
 			}else if(df$Value[nbr-1]!='sum'){
 				out<-unique(db[db$Datatype %in% c('DATE','NUMBER'),'Column'])
@@ -109,7 +109,7 @@ get_element_alternatves<-function(db,df,nbr){
 		}
 	}else if(component=='having'){
 		if(element=='column'){
-			if(df$Value[nbr-1]=='count'){
+			if(df$Value[nbr-1] %in% c('count','unique count')){
 				out<-unique(db[db$Datatype=='STRING','Column'])
 			}else{
 				out<-unique(db[db$Datatype %in% c('DATE','NUMBER'),'Column'])
@@ -148,7 +148,7 @@ get_single_cols<-function(df){
 get_component_alternatives<-function(df){
 	COMPONENTS<-c('select column','sum column','average column','min column','max column','stdev column','count column','unique column count','where column is value',
 	'group column','based on column','having min column is value','having max column is value','having sum column is value','having average column is value',
-	'having count column is value','rank column top n','rank column bottom n','sort column ascending','sort column descending')
+	'having count column is value','having unique count column is value','rank column top n','rank column bottom n','sort column ascending','sort column descending')
 	if(nrow(df)==0){
 		# for the first run only select components available
 		out<-COMPONENTS[1:8]
@@ -163,12 +163,12 @@ get_component_alternatives<-function(df){
 			if(length(group_ind)>0){
 				# when aggregate element is present in select component then having is avaible
 				# if group component already present it is not included for the next component list
-				out<-append(out,COMPONENTS[12:20])
+				out<-append(out,COMPONENTS[12:21])
 			}else{
-				out<-append(out,COMPONENTS[10:20])
+				out<-append(out,COMPONENTS[10:21])
 			}
 		}else{
-			out<-append(out,COMPONENTS[17:20])
+			out<-append(out,COMPONENTS[18:21])
 		}
 	}
 	return(out)
