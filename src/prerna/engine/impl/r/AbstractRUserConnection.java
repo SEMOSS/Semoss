@@ -154,7 +154,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 				}
 			} finally {
 				executor.shutdownNow();
-				}
+			}
 		} else {
 			
 			// If there was no exception with the recovery, then retry once more

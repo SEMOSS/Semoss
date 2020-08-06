@@ -667,7 +667,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			boolean multi = false;
 			String myFilterFormatted = null;
 			// format the objects based on the type of the column
-			boolean useStringForType = thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.contentEquals(NOT_SEARCH_COMPARATOR);
+			boolean useStringForType = thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.contentEquals(NOT_SEARCH_COMPARATOR)
+					|| thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.contentEquals(NOT_BEGINS_COMPARATOR)
+					|| thisComparator.equals(ENDS_COMPARATOR) || thisComparator.contentEquals(NOT_ENDS_COMPARATOR);
 			if(useStringForType) {
 				leftDataType = SemossDataType.STRING;
 			}
@@ -731,13 +733,22 @@ public class RInterpreter extends AbstractQueryInterpreter {
 						filterBuilder.append(leftSelectorExpression).append(" ").append(" %in% ").append(myFilterFormatted);
 					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
 						filterBuilder.append("!(").append(leftSelectorExpression).append(" ").append(" %in% ").append(myFilterFormatted).append(")");
-					} else {
+					} else if(thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(ENDS_COMPARATOR)){
+						String rFunction = thisComparator.equals(BEGINS_COMPARATOR) ? "startsWith" : "endsWith";
+						String expression = rFunction + "( tolower(" + leftSelectorExpression + ")," + myFilterFormatted.toLowerCase() + ")";
+						filterBuilder.append(expression);
+					} else if(thisComparator.equals(NOT_BEGINS_COMPARATOR) || thisComparator.equals(NOT_ENDS_COMPARATOR)){
+						String rFunction = thisComparator.equals(NOT_BEGINS_COMPARATOR) ? "startsWith" : "endsWith";
+						String expression = "!" + rFunction + "( tolower(" + leftSelectorExpression + ")," + myFilterFormatted.toLowerCase() + ")";
+						filterBuilder.append(expression);
+					}
+					else {
 						// this will probably break...
 						filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
 					}
 				}
 			} else {
-				if(thisComparator.equals(SEARCH_COMPARATOR)) {
+				if(thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(ENDS_COMPARATOR)) {
 					if(myFilterFormatted.endsWith("\\\"")) {
 						myFilterFormatted = myFilterFormatted.substring(0, myFilterFormatted.length()-1) + "\\\"";
 					}
@@ -746,13 +757,32 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					} else {
 						filterBuilder.append("tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(").append(myFilterFormatted).append(")");
 					}
-				} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+				} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR) || thisComparator.equals(NOT_BEGINS_COMPARATOR) || thisComparator.equals(NOT_ENDS_COMPARATOR)) {
 					if(SemossDataType.STRING == leftDataType) {
 						filterBuilder.append("!(tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append("))");
 					} else {
 						filterBuilder.append("!(tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(").append(myFilterFormatted).append("))");
 					}
-				} else {
+				} else if(thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(ENDS_COMPARATOR)){
+					String rFunction = thisComparator.equals(BEGINS_COMPARATOR) ? "startsWith" : "endsWith";
+					String expression = null;
+					if(SemossDataType.STRING == leftDataType) {
+						expression = rFunction + "( tolower(" + leftSelectorExpression + ")," + myFilterFormatted.toLowerCase() + ")";
+					} else {
+						expression = rFunction + "( tolower(as.character(" + leftSelectorExpression + "))," + myFilterFormatted.toLowerCase() + ")";
+					}
+					filterBuilder.append(expression);
+				} else if(thisComparator.equals(NOT_BEGINS_COMPARATOR) || thisComparator.equals(NOT_ENDS_COMPARATOR)){
+					String rFunction = thisComparator.equals(NOT_BEGINS_COMPARATOR) ? "startsWith" : "endsWith";
+					String expression = null;
+					if(SemossDataType.STRING == leftDataType) {
+						expression = "!" + rFunction + "( tolower(" + leftSelectorExpression + ")," + myFilterFormatted.toLowerCase() + ")";
+					} else {
+						expression = "!" + rFunction + "( tolower(as.character(" + leftSelectorExpression + "))," + myFilterFormatted.toLowerCase() + ")";
+					}
+					filterBuilder.append(expression);
+				}
+				else {
 					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 				}
 			}
