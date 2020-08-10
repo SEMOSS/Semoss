@@ -635,4 +635,7 @@ public class Constants {
 	// do not encode the log
 	public static final String LOG_ENCODING = "LOG_ENCODING";
 	
+	// public home to be used for deployments
+	public static final String PUBLIC_HOME = "public_home";
+	
 }

@@ -40,6 +40,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Clob;
 import java.sql.ResultSet;
@@ -251,6 +252,9 @@ public abstract class AbstractEngine implements IEngine {
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 		} 
+		
+		if(this.engineName != null && this.engineId != null)
+			mapDir(this.engineName + "__" + this.engineId);
 	}
 	
 	/**
@@ -281,6 +285,25 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		if (auditDatabase != null) {
 			auditDatabase.close();
+		}
+		
+		// remove the symbolic link
+		if(this.engineId != null && this.engineName != null)
+		{
+			String public_home = DIHelper.getInstance().getProperty(Constants.PUBLIC_HOME);
+			if(public_home != null)
+			{
+				String fileName = public_home + java.nio.file.FileSystems.getDefault().getSeparator() + engineName + "__" + engineId;
+				File file = new File(fileName);
+				
+					try {
+						if(file.exists() && Files.isSymbolicLink(Paths.get(fileName)))
+							FileUtils.forceDelete(file);
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			}
 		}
 	}
 	
@@ -1481,6 +1504,37 @@ public abstract class AbstractEngine implements IEngine {
 		return null;
 	}
 		
+	
+	// create a symbolic link to the version directory
+	public void mapDir(String appId)
+	{
+		// find what is the final URL
+		// this is the base url plus manipulations
+		// find what the tomcat deploy directory is
+		// no easy way to find other than may be find the classpath ? - will instrument this through RDF Map
+		try {
+			String public_home = DIHelper.getInstance().getProperty(Constants.PUBLIC_HOME);
+			if(public_home != null)
+			{
+				String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + java.nio.file.FileSystems.getDefault().getSeparator() + "db" + java.nio.file.FileSystems.getDefault().getSeparator();
+				
+				Path sourcePath = Paths.get(appHome + appId + java.nio.file.FileSystems.getDefault().getSeparator() + "version");
+				Path targetPath = Paths.get(public_home + java.nio.file.FileSystems.getDefault().getSeparator() + appId);
+	
+				File file = new File(public_home + java.nio.file.FileSystems.getDefault().getSeparator() + appId);
+							
+				if(!file.exists() &&  !Files.isSymbolicLink(targetPath))
+				{
+					Files.createSymbolicLink(targetPath, sourcePath);
+				}
+				file.deleteOnExit();
+			}			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
