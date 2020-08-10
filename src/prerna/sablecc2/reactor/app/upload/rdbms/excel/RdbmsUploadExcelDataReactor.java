@@ -534,7 +534,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 
 		// if user defines unique column name set that if not generate one
 		// TODO: add change for false values once we want to enable that
-		String uniqueRowId = uniqueColumnName == null ? tableName + "_UNIQUE_ROW_ID": uniqueColumnName;
+		String uniqueRowId = uniqueColumnName == null ? tableName + RdbmsUploadReactorUtility.UNIQUE_ROW_ID: uniqueColumnName;
 
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 		String[] sqlTypes = null;

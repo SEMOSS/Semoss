@@ -148,7 +148,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 
 		// if user defines unique column name set that if not generate one
 		// TODO: add change for false values once we want to enable that
-		String uniqueRowId = uniqueColumnName.equalsIgnoreCase("true") ? tableName + "_UNIQUE_ROW_ID": uniqueColumnName;
+		String uniqueRowId = uniqueColumnName.equalsIgnoreCase("true") ? tableName + RdbmsUploadReactorUtility.UNIQUE_ROW_ID: uniqueColumnName;
 
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// parse the information
@@ -245,7 +245,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 			}
 			tableToInsertInto = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 			
-			String uniqueRowId = tableToInsertInto + "_UNIQUE_ROW_ID";
+			String uniqueRowId = tableToInsertInto + RdbmsUploadReactorUtility.UNIQUE_ROW_ID;
 			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 			String[] sqlTypes = null;
 			try {

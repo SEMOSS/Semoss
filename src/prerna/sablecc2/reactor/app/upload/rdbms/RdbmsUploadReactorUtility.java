@@ -14,6 +14,8 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class RdbmsUploadReactorUtility {
 
+	public static final String UNIQUE_ROW_ID = "_UNIQUE_ROW_ID";
+	
 	private RdbmsUploadReactorUtility() {
 		
 	}
