@@ -29,6 +29,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.RemoveOwlConceptReactor;
+import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
 
@@ -132,7 +133,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			sqlTypes = new String[size + 1];
 			targetSize = size + 1;
 			if(this.override || this.newTable){
-				headers[0] = targetTable + "_UNIQUE_ROW";
+				headers[0] = targetTable + RdbmsUploadReactorUtility.UNIQUE_ROW_ID;
 			} else {
 				headers[0] = targetTable;
 			}
