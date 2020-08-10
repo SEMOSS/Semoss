@@ -70,7 +70,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		tempManager.removeClass(CLASS_NAME);
 		System.setSecurityManager(defaultManager);	
 		
-		boolean smartSync = (DIHelper.getInstance().getProperty("SMART_SYNC") != null && DIHelper.getInstance().getProperty("SMART_SYNC").equalsIgnoreCase("true"));		
+		boolean smartSync = (insight.getProperty("SMART_SYNC") != null) && insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
 		if(smartSync)
 		{
 			if(smartSync(rJavaTranslator))

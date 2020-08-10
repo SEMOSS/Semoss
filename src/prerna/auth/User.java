@@ -418,8 +418,6 @@ public class User extends AbstractValueObject implements Serializable {
 			}
 			engineIdMap.put("COUNT", allEngines.size() + "");
 		}
-		
-		
 	}
 
 	public boolean addVarMap(String varName, String appName)
@@ -654,6 +652,11 @@ public class User extends AbstractValueObject implements Serializable {
 			}
 		}
 		return this.pyt;
+	}
+	
+	public boolean checkAppAccess(String appName, String appId)
+	{
+		return (engineIdMap.containsKey(appName) && engineIdMap.get(appName).equalsIgnoreCase(appId));	
 	}
 	
 }

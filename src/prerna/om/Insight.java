@@ -1406,4 +1406,23 @@ public class Insight {
 		retURL.append("insight?insightId=").append(insightId);
 		return retURL.toString();
 	}
+	
+	public Object getVar(String varName)
+	{
+		Object retObject = this.varStore.get(varName);
+		return ((NounMetadata)retObject).getValue();
+	}
+	
+	public String getProperty(String propName)
+	{
+		String retOutput = DIHelper.getInstance().getProperty(propName);
+		if(retOutput == null)
+		{
+			Object retObject = this.varStore.get(propName);
+			if(retObject != null)
+				retOutput = ((NounMetadata)retObject).getValue().toString();
+		}
+		return retOutput;
+	}
+
 }
