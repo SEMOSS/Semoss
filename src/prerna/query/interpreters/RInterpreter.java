@@ -68,9 +68,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		if(this.colDataTypes == null) {
 			this.colDataTypes = new Hashtable<String, SemossDataType>();
 		}
-//		if(this.additionalTypes == null) {
-//			this.additionalTypes = new Hashtable<String, String>();
-//		}
+		
 		boolean isDistinct = ((SelectQueryStruct) this.qs).isDistinct();
 		// note, that the join info in the QS has no meaning for a R frame as 
 		// we cannot connect across data tables
