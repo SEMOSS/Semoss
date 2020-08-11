@@ -36,9 +36,9 @@ public class RunPixelJobFromDB implements InterruptableJob {
 
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {
-		if(!ClusterUtil.isSchedulerExecutor()) {
-			return;
-		}
+		//if(!ClusterUtil.isSchedulerExecutor()) {
+		//	return;
+		//}
 		// Get inputs
 		JobDataMap dataMap = context.getMergedJobDataMap();
 		jobName = context.getJobDetail().getKey().getName();

@@ -179,10 +179,10 @@ public class ZKClient implements Watcher{
 				
 				connected = true;
 			}
-			if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
-				SchedulerListener.getListener();
-			}
-			
+//			if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
+//				SchedulerListener.getListener();
+//			}
+//			
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
