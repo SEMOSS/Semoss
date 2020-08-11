@@ -153,6 +153,7 @@ import prerna.sablecc2.reactor.expression.OpContains;
 import prerna.sablecc2.reactor.expression.OpIsEmpty;
 import prerna.sablecc2.reactor.expression.OpLarge;
 import prerna.sablecc2.reactor.expression.OpLen;
+import prerna.sablecc2.reactor.expression.OpList;
 import prerna.sablecc2.reactor.expression.OpMatch;
 import prerna.sablecc2.reactor.expression.OpMax;
 import prerna.sablecc2.reactor.expression.OpMean;
@@ -363,8 +364,8 @@ import prerna.sablecc2.reactor.storage.TaxRetrieveValue2;
 import prerna.sablecc2.reactor.task.AutoTaskOptionsReactor;
 import prerna.sablecc2.reactor.task.CollectMetaReactor;
 import prerna.sablecc2.reactor.task.FormatReactor;
-import prerna.sablecc2.reactor.task.RemoveTaskReactor;
 import prerna.sablecc2.reactor.task.RefreshPanelTaskReactor;
+import prerna.sablecc2.reactor.task.RemoveTaskReactor;
 import prerna.sablecc2.reactor.task.ResetTaskReactor;
 import prerna.sablecc2.reactor.task.TaskOptionsReactor;
 import prerna.sablecc2.reactor.task.TaskReactor;
@@ -1334,6 +1335,7 @@ public class ReactorFactory {
 		expressionHash.put("CONCAT", OpConcat.class);
 		
 		// none excel functions
+		expressionHash.put("LIST", OpList.class);
 		expressionHash.put("PASTE0", OpPaste0.class);
 		expressionHash.put("PASTE", OpPaste.class);
 		expressionHash.put("CONTAINS", OpContains.class);
