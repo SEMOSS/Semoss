@@ -112,6 +112,7 @@ import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
@@ -472,6 +473,9 @@ public class SchedulerH2DatabaseUtility {
 	}
 
 	public static void executeAllTriggerOnLoads(Connection connection) {
+		if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
+			return;
+		}
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		ResultSet result = null;
 
@@ -484,8 +488,9 @@ public class SchedulerH2DatabaseUtility {
 				String jobName = result.getString(JOB_NAME);
 				String jobGroup = result.getString(JOB_GROUP);
 				JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
-
+				logger.info("Triggering job on startup " + jobName);
 				scheduler.triggerJob(jobKey);
+				
 			}
 
 			logger.info("All trigger on load jobs executed successfully");
