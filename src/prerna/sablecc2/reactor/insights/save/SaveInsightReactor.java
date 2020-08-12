@@ -83,7 +83,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		if(cacheable == null) {
 			cacheable = true;
 		}
-		List<String> params = getParams();
+		List<Map<String, Object>> params = getParams();
 		Map pipeline = getPipeline();
 
 		// saving an empty recipe?
