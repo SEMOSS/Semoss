@@ -71,7 +71,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		}
 		String layout = getLayout();
 		boolean hidden = getHidden();
-		List<String> params = getParams();
+		List<Map<String, Object>> params = getParams();
 		Map pipeline = getPipeline();
 
 		// this is always encoded before it gets here
