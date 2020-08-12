@@ -514,6 +514,7 @@ public class PixelUtility {
 		List<Map<String, Object>> paramList = new Vector<>();
 		for(int i = 0; i < numParams; i++) {
 			Map<String, Object> pMap = paramsMap.get(i);
+			boolean keepSearch = keepSearchParameter(pMap);
 			String param = (String) pMap.get("paramName");
 			
 			// and now for the param itself
@@ -543,22 +544,25 @@ public class PixelUtility {
 			modelMap.put("query", paramQ);
 			modelMap.put("infiniteQuery", "infinite | Collect(20)");
 			modelMap.put("searchParam", param + "_Search");
-			modelMap.put("dependsOn", new String[]{param + "_Search"});
+			if(keepSearch) {
+				modelMap.put("dependsOn", new String[]{param + "_Search"});
+			}
 			paramMap.put("model", modelMap);
 			
-			// each param gets its own search
-			Map<String, Object> paramSearchMap = new LinkedHashMap<>();
-			paramSearchMap.put("paramName", param + "_Search");
-			paramSearchMap.put("view", false);
-			Map<String, String> paramSearchModel = new LinkedHashMap<>();
-			paramSearchModel.put("defaultValue", "");
-			paramSearchMap.put("model", paramSearchModel);
-
+			if(keepSearch) {
+				// each param gets its own search
+				Map<String, Object> paramSearchMap = new LinkedHashMap<>();
+				paramSearchMap.put("paramName", param + "_Search");
+				paramSearchMap.put("view", false);
+				Map<String, String> paramSearchModel = new LinkedHashMap<>();
+				paramSearchModel.put("defaultValue", "");
+				paramSearchMap.put("model", paramSearchModel);
+				paramList.add(paramSearchMap);
+			}
+			
 			// now merge the existing pMap into the default values
 			recursivelyMergeMaps(paramMap, pMap);
-			
 			// add to the param list
-			paramList.add(paramSearchMap);
 			paramList.add(paramMap);
 		}
 		// add param list
@@ -571,6 +575,11 @@ public class PixelUtility {
 		return "AddPanel(0); Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");";
 	}
 	
+	/**
+	 * Recursively join two maps together based on the keys
+	 * @param mainMap
+	 * @param newMap
+	 */
 	private static void recursivelyMergeMaps(Map<String, Object> mainMap, Map<String, Object> newMap) {
 		if(newMap != null) {
 			for(String key : newMap.keySet()) {
@@ -595,6 +604,26 @@ public class PixelUtility {
 			}
 		}
 	}
+	
+	/**
+	 * Determine if we need the search in the parameter list
+	 * @param map
+	 * @return
+	 */
+	private static boolean keepSearchParameter(Map<String, Object> map) {
+		final String MODEL_KEY = "model";
+		final String DEFAULT_OPTIONS_KEY = "defaultOptions";
+		
+		if(map.containsKey(MODEL_KEY)) {
+			Map<String, Object> innerMap = (Map<String, Object>) map.get(MODEL_KEY);
+			if(innerMap.containsKey(DEFAULT_OPTIONS_KEY)) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
