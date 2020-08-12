@@ -225,15 +225,15 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 	}
 	
-	protected List<String> getParams() {
+	protected List<Map<String, Object>> getParams() {
 		GenRowStruct paramGrs = this.store.getNoun(ReactorKeysEnum.PARAM_KEY.getKey());
 		if(paramGrs == null || paramGrs.isEmpty()) {
 			return null;
 		}
 		
-		List<String> params = new ArrayList<String>();
+		List<Map<String, Object>> params = new ArrayList<>();
 		for(int i = 0; i < paramGrs.size(); i++) {
-			params.add(paramGrs.get(i).toString());
+			params.add( (Map<String, Object>) paramGrs.get(i));
 		}
 		return params;
 	}
@@ -413,7 +413,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		return recipeToSave;
 	}
 	
-	protected String[] getParamRecipe(String[] recipe, List<String> params, String insightName) {
+	protected String[] getParamRecipe(String[] recipe, List<Map<String, Object>> params, String insightName) {
 		String paramRecipe = PixelUtility.getParameterizedRecipe(this.insight.getUser(), recipe, params, insightName);
 		return new String[]{paramRecipe};
 	}
