@@ -67,7 +67,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(RSyntaxHelper.loadPackages(packages));
 		
 		// handle differently depending on whether it is from the frame or global
-		String[] retData = null;
+		Object[] retData = null;
 		if(!global) {
 			// convert json input into java map
 			// query = "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"==\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"==\",\"value\":\"R\"},{\"component\":\"having sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
@@ -173,11 +173,12 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		return new NounMetadata(retData, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
-	private String[] getDropdownItems(String queryTable, ITableDataFrame frame) {
+	private Object[] getDropdownItems(String queryTable, ITableDataFrame frame) {
 		// init
 		String dbTable = "db_" + Utility.getRandomString(6);
 		String retList = "retList_" + Utility.getRandomString(6);
 		StringBuilder rsb = new StringBuilder();
+		Object[] dropdownOptions = null;
 		
 		// source the files
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
@@ -214,7 +215,19 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(rsb.toString());
 		
 		// collect the array
-		String[] dropdownOptions = this.rJavaTranslator.getStringArray(retList);
+		int requestRows = this.rJavaTranslator.getInt("nrow(" + queryTable + ")");
+		if(requestRows > 0) {
+			dropdownOptions = this.rJavaTranslator.getStringArray(retList);
+		} else {
+			// if its a blank template, then pass as a list of component lists
+			int dropdownLength = this.rJavaTranslator.getInt("length(" + retList + ")");
+			dropdownOptions = new Object[dropdownLength];
+			for(int i = 0; i < dropdownLength; i++) {
+				int rIndex = i + 1;
+				String[] item = this.rJavaTranslator.getStringArray(retList + "[[" + rIndex + "]]");
+				dropdownOptions[i] = item;
+			}
+		}
 		
 		// garbage cleanup
 		this.rJavaTranslator.executeEmptyR("rm( " + retList + "," + dbTable + " ); gc();");
