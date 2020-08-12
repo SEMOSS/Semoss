@@ -542,9 +542,9 @@ public class PixelUtility {
 					+ ") | Filter(" + physicalQs + " ?like \"<" + param + "_Search>\") | Sort(columns=[" 
 					+ physicalQs + "], sort=[asc]) | Iterate()) | Collect(20);";  
 			modelMap.put("query", paramQ);
-			modelMap.put("infiniteQuery", "infinite | Collect(20)");
-			modelMap.put("searchParam", param + "_Search");
 			if(keepSearch) {
+				modelMap.put("infiniteQuery", "infinite | Collect(20)");
+				modelMap.put("searchParam", param + "_Search");
 				modelMap.put("dependsOn", new String[]{param + "_Search"});
 			}
 			paramMap.put("model", modelMap);
