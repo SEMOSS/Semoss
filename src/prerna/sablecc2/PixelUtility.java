@@ -453,7 +453,17 @@ public class PixelUtility {
 	 * @param params
 	 * @return
 	 */
-	public static String getParameterizedRecipe(User user, String[] recipe, List<String> params, String insightName) {
+	public static String getParameterizedRecipe(User user, String[] recipe, List<Map<String, Object>> paramsMap, String insightName) {
+		int numParams = paramsMap.size();
+		List<String> params = new ArrayList<>(numParams);
+		for(Map<String, Object> pMap : paramsMap) {
+			String pName = (String) pMap.get("paramName");
+			if(pName == null || pName.isEmpty()) {
+				throw new IllegalArgumentException("Parameter list must all contain 'paramName'");
+			}
+			params.add(pName);
+		}
+		
 		Insight in = new Insight();
 		in.setUser(user);
 		ParameterizeSaveRecipeTranslation translation = new ParameterizeSaveRecipeTranslation(in);
@@ -502,14 +512,9 @@ public class PixelUtility {
 		map.put("description", "Please select paramters for the insight");
 		// add params
 		List<Map<String, Object>> paramList = new Vector<>();
-		for(String param : params) {
-			// each param gets its own search
-			Map<String, Object> paramSearchMap = new LinkedHashMap<>();
-			paramSearchMap.put("paramName", param + "_Search");
-			paramSearchMap.put("view", false);
-			Map<String, String> paramSearchModel = new LinkedHashMap<>();
-			paramSearchModel.put("defaultValue", "");
-			paramSearchMap.put("model", paramSearchModel);
+		for(int i = 0; i < numParams; i++) {
+			Map<String, Object> pMap = paramsMap.get(i);
+			String param = (String) pMap.get("paramName");
 			
 			// and now for the param itself
 			Map<String, Object> paramMap = new LinkedHashMap<>();
@@ -541,6 +546,17 @@ public class PixelUtility {
 			modelMap.put("dependsOn", new String[]{param + "_Search"});
 			paramMap.put("model", modelMap);
 			
+			// each param gets its own search
+			Map<String, Object> paramSearchMap = new LinkedHashMap<>();
+			paramSearchMap.put("paramName", param + "_Search");
+			paramSearchMap.put("view", false);
+			Map<String, String> paramSearchModel = new LinkedHashMap<>();
+			paramSearchModel.put("defaultValue", "");
+			paramSearchMap.put("model", paramSearchModel);
+
+			// now merge the existing pMap into the default values
+			recursivelyMergeMaps(paramMap, pMap);
+			
 			// add to the param list
 			paramList.add(paramSearchMap);
 			paramList.add(paramMap);
@@ -553,6 +569,31 @@ public class PixelUtility {
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		return "AddPanel(0); Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");";
+	}
+	
+	private static void recursivelyMergeMaps(Map<String, Object> mainMap, Map<String, Object> newMap) {
+		if(newMap != null) {
+			for(String key : newMap.keySet()) {
+				if(mainMap.containsKey(key)) {
+					// we have an overlap
+					// lets see if the children are both maps
+					boolean newKeyIsMap = (newMap.get(key) instanceof Map);
+					boolean existingKeyIsMap = (mainMap.get(key) instanceof Map);
+					if(newKeyIsMap && existingKeyIsMap) {
+						// recursively go through and try to add
+						recursivelyMergeMaps( (Map) mainMap.get(key), (Map) newMap.get(key));
+					} else {
+						// both are not maps
+						// just override
+						mainMap.putAll(newMap);
+					}
+				} else {
+					// brand new key
+					// put all into the main map
+					mainMap.putAll(newMap);
+				}
+			}
+		}
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
