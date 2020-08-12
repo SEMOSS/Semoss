@@ -594,12 +594,12 @@ public class PixelUtility {
 					} else {
 						// both are not maps
 						// just override
-						mainMap.putAll(newMap);
+						mainMap.put(key, newMap.get(key));
 					}
 				} else {
 					// brand new key
 					// put all into the main map
-					mainMap.putAll(newMap);
+					mainMap.put(key, newMap.get(key));
 				}
 			}
 		}
