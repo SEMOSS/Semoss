@@ -59,42 +59,41 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	
 	@Override
 	public String getSqlFunctionSyntax(String inputFunction) {
-		String findFunction = inputFunction.toLowerCase();
-		if(findFunction.equals(QueryFunctionHelper.MIN)) {
+		if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.MIN)) {
 			return getMinFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.MAX)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.MAX)) {
 			return getMaxFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.MEAN) 
-				|| findFunction.equals(QueryFunctionHelper.AVERAGE_1) 
-				|| findFunction.equals(QueryFunctionHelper.AVERAGE_2)) { 
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.MEAN) 
+				|| inputFunction.equalsIgnoreCase(QueryFunctionHelper.AVERAGE_1) 
+				|| inputFunction.equalsIgnoreCase(QueryFunctionHelper.AVERAGE_2)) { 
 			return getAvgFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.UNIQUE_MEAN) 
-				|| findFunction.equals(QueryFunctionHelper.UNIQUE_AVERAGE_1) 
-				|| findFunction.equals(QueryFunctionHelper.UNIQUE_AVERAGE_2)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.UNIQUE_MEAN) 
+				|| inputFunction.equalsIgnoreCase(QueryFunctionHelper.UNIQUE_AVERAGE_1) 
+				|| inputFunction.equalsIgnoreCase(QueryFunctionHelper.UNIQUE_AVERAGE_2)) {
 			return getAvgFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.MEDIAN)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.MEDIAN)) {
 			return getMedianFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.SUM) 
-				|| findFunction.equals(QueryFunctionHelper.UNIQUE_SUM)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.SUM) 
+				|| inputFunction.equalsIgnoreCase(QueryFunctionHelper.UNIQUE_SUM)) {
 			return getSumFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.STDEV_1) 
-				|| findFunction.equals(QueryFunctionHelper.STDEV_2)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.STDEV_1) 
+				|| inputFunction.equalsIgnoreCase(QueryFunctionHelper.STDEV_2)) {
 			return getStdevFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.COUNT)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.COUNT)) {
 			return getCountFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.UNIQUE_COUNT)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.UNIQUE_COUNT)) {
 			return getCountFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.CONCAT)) {
 			return getConcatFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.GROUP_CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.GROUP_CONCAT)) {
 			return getGroupConcatFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.UNIQUE_GROUP_CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.UNIQUE_GROUP_CONCAT)) {
 			return getGroupConcatFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.LOWER)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.LOWER)) {
 			return getLowerFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.COALESCE)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.COALESCE)) {
 			return getCoalesceFunctionSyntax();
-		} else if(findFunction.equals(QueryFunctionHelper.REGEXP_LIKE)) {
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.REGEXP_LIKE)) {
 			return getRegexLikeFunctionSyntax();
 		}
 		
