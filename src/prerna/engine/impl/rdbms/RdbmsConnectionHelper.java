@@ -400,9 +400,9 @@ public class RdbmsConnectionHelper {
 		ResultSet tablesRs;
 		if (driver == RdbmsTypeEnum.ORACLE) {
 			String query = "SELECT TABLE_NAME AS \"table_name\", 'TABLE' AS \"table_type\"" + 
-					"FROM ALL_TABLES WHERE TABLESPACE_NAME = 'USERS'" +
+					"FROM ALL_TABLES " +
 					"UNION SELECT VIEW_NAME AS \"table_name\", 'VIEW' AS \"table_type\" " + 
-					"FROM ALL_VIEWS WHERE ORIGIN_CON_ID > 1";
+					"FROM ALL_VIEWS ";
 			tablesRs = con.createStatement().executeQuery(query);
 		} else if (driver == RdbmsTypeEnum.ATHENA){
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL_TABLE", "VIEW" });
