@@ -2,27 +2,27 @@ package prerna.query.querystruct.selectors;
 
 public class QueryFunctionHelper {
 
-	public static final String MIN = "min";
-	public static final String MAX = "max";
-	public static final String MEAN = "mean";
-	public static final String UNIQUE_MEAN = "uniquemean";
-	public static final String AVERAGE_1 = "average";
-	public static final String UNIQUE_AVERAGE_1 = "uniqueaverage";
-	public static final String AVERAGE_2 = "avg";
-	public static final String UNIQUE_AVERAGE_2 = "uniqueavg";
-	public static final String MEDIAN = "median";
-	public static final String SUM = "sum";
-	public static final String UNIQUE_SUM = "uniquesum";
-	public static final String STDEV_1 = "standarddeviation";
+	public static final String MIN = "Min";
+	public static final String MAX = "Max";
+	public static final String MEAN = "Mean";
+	public static final String UNIQUE_MEAN = "UniqueMean";
+	public static final String AVERAGE_1 = "Average";
+	public static final String UNIQUE_AVERAGE_1 = "UniqueAverage";
+	public static final String AVERAGE_2 = "Avg";
+	public static final String UNIQUE_AVERAGE_2 = "UniqueAvg";
+	public static final String MEDIAN = "Median";
+	public static final String SUM = "Sum";
+	public static final String UNIQUE_SUM = "UniqueSum";
+	public static final String STDEV_1 = "StandardDeviation";
 	public static final String STDEV_2 = "stdev";
-	public static final String COUNT = "count";
-	public static final String UNIQUE_COUNT = "uniquecount";
-	public static final String CONCAT = "concat";
-	public static final String GROUP_CONCAT = "groupconcat";
-	public static final String UNIQUE_GROUP_CONCAT = "uniquegroupconcat";
-	public static final String LOWER = "lower";
-	public static final String COALESCE = "coalesce";
-	public static final String REGEXP_LIKE = "regexlike";
+	public static final String COUNT = "Count";
+	public static final String UNIQUE_COUNT = "UniqueCount";
+	public static final String CONCAT = "Concat";
+	public static final String GROUP_CONCAT = "GroupConcat";
+	public static final String UNIQUE_GROUP_CONCAT = "UniqueGroupConcat";
+	public static final String LOWER = "Lower";
+	public static final String COALESCE = "Coalesce";
+	public static final String REGEXP_LIKE = "RegexLike";
 	
 	private QueryFunctionHelper() {
 		
@@ -44,33 +44,32 @@ public class QueryFunctionHelper {
 //	 * @return
 //	 */
 //	public static String convertFunctionToSqlSyntax(String inputFunction) {
-//		String lowerfunction = inputFunction.toLowerCase();
-//		if(lowerfunction.equals(MIN)) {
+//		if(inputFunction.equalsIgnoreCase(MIN)) {
 //			inputFunction = "MIN";
-//		} else if(lowerfunction.equals(MAX)) {
+//		} else if(inputFunction.equalsIgnoreCase(MAX)) {
 //			inputFunction = "MAX";
-//		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2) 
-//				|| lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
+//		} else if(inputFunction.equalsIgnoreCase(MEAN) || inputFunction.equalsIgnoreCase(AVERAGE_1) || inputFunction.equalsIgnoreCase(AVERAGE_2) 
+//				|| inputFunction.equalsIgnoreCase(UNIQUE_MEAN) || inputFunction.equalsIgnoreCase(UNIQUE_AVERAGE_1) || inputFunction.equalsIgnoreCase(UNIQUE_AVERAGE_2)) {
 //			inputFunction = "AVG";
-//		} else if(lowerfunction.equals(MEDIAN)) {
+//		} else if(inputFunction.equalsIgnoreCase(MEDIAN)) {
 //			inputFunction = "MEDIAN";
-//		} else if(lowerfunction.equals(SUM) || lowerfunction.equals(UNIQUE_SUM)) {
+//		} else if(inputFunction.equalsIgnoreCase(SUM) || inputFunction.equalsIgnoreCase(UNIQUE_SUM)) {
 //			inputFunction = "SUM";
-//		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
+//		} else if(inputFunction.equalsIgnoreCase(STDEV_1) || inputFunction.equalsIgnoreCase(STDEV_2)) {
 //			inputFunction = "STDDEV_SAMP";
-//		} else if(lowerfunction.equals(COUNT)) {
+//		} else if(inputFunction.equalsIgnoreCase(COUNT)) {
 //			inputFunction = "COUNT";
-//		} else if(lowerfunction.equals(UNIQUE_COUNT)) {
+//		} else if(inputFunction.equalsIgnoreCase(UNIQUE_COUNT)) {
 //			inputFunction = "COUNT";
-//		} else if(lowerfunction.equals(CONCAT)) {
+//		} else if(inputFunction.equalsIgnoreCase(CONCAT)) {
 //			inputFunction = "CONCAT";
-//		} else if(lowerfunction.equals(GROUP_CONCAT)) {
+//		} else if(inputFunction.equalsIgnoreCase(GROUP_CONCAT)) {
 //			inputFunction = "GROUP_CONCAT";
-//		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
+//		} else if(inputFunction.equalsIgnoreCase(UNIQUE_GROUP_CONCAT)) {
 //			inputFunction = "GROUP_CONCAT";
-//		} else if(lowerfunction.equals(LOWER)) {
+//		} else if(inputFunction.equalsIgnoreCase(LOWER)) {
 //			inputFunction = "LOWER";
-//		} else if(lowerfunction.equals(COALESCE)) {
+//		} else if(inputFunction.equalsIgnoreCase(COALESCE)) {
 //			inputFunction = "COALESCE";
 //		}
 //		
@@ -83,31 +82,30 @@ public class QueryFunctionHelper {
 	 * @return
 	 */
 	public static String convertFunctionToRSyntax(String inputFunction) {
-		String lowerfunction = inputFunction.toLowerCase();
-		if(lowerfunction.equals(MIN)) {
+		if(inputFunction.equalsIgnoreCase(MIN)) {
 			inputFunction = "min";
-		} else if(lowerfunction.equals(MAX)) {
+		} else if(inputFunction.equalsIgnoreCase(MAX)) {
 			inputFunction = "max";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)
-				|| lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
+		} else if(inputFunction.equalsIgnoreCase(MEAN) || inputFunction.equalsIgnoreCase(AVERAGE_1) || inputFunction.equalsIgnoreCase(AVERAGE_2)
+				|| inputFunction.equalsIgnoreCase(UNIQUE_MEAN) || inputFunction.equalsIgnoreCase(UNIQUE_AVERAGE_1) || inputFunction.equalsIgnoreCase(UNIQUE_AVERAGE_2)) {
 			inputFunction = "mean";
-		} else if(lowerfunction.equals(MEDIAN)) {
+		} else if(inputFunction.equalsIgnoreCase(MEDIAN)) {
 			inputFunction = "median";
-		} else if(lowerfunction.equals(SUM) || lowerfunction.equals(UNIQUE_SUM)) {
+		} else if(inputFunction.equalsIgnoreCase(SUM) || inputFunction.equalsIgnoreCase(UNIQUE_SUM)) {
 			inputFunction = "sum";
-		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
+		} else if(inputFunction.equalsIgnoreCase(STDEV_1) || inputFunction.equalsIgnoreCase(STDEV_2)) {
 			inputFunction = "sd";
-		} else if(lowerfunction.equals(COUNT)) {
+		} else if(inputFunction.equalsIgnoreCase(COUNT)) {
 			inputFunction = "length";
-		} else if(lowerfunction.equals(UNIQUE_COUNT)) {
+		} else if(inputFunction.equalsIgnoreCase(UNIQUE_COUNT)) {
 			inputFunction = "uniqueN";
-		} else if(lowerfunction.equals(CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(CONCAT)) {
 			inputFunction = "paste";
-		} else if(lowerfunction.equals(GROUP_CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(GROUP_CONCAT)) {
 			inputFunction = "paste";
-		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(UNIQUE_GROUP_CONCAT)) {
 			inputFunction = "paste";
-		} else if(lowerfunction.equals(LOWER)) {
+		} else if(inputFunction.equalsIgnoreCase(LOWER)) {
 			inputFunction = "tolower";
 		}
 		
@@ -120,31 +118,30 @@ public class QueryFunctionHelper {
 	 * @return
 	 */
 	public static String convertFunctionToPandasSyntax(String inputFunction) {
-		String lowerfunction = inputFunction.toLowerCase();
-		if(lowerfunction.equals(MIN)) {
+		if(inputFunction.equalsIgnoreCase(MIN)) {
 			inputFunction = "min";
-		} else if(lowerfunction.equals(MAX)) {
+		} else if(inputFunction.equalsIgnoreCase(MAX)) {
 			inputFunction = "max";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)
-				|| lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
+		} else if(inputFunction.equalsIgnoreCase(MEAN) || inputFunction.equalsIgnoreCase(AVERAGE_1) || inputFunction.equalsIgnoreCase(AVERAGE_2)
+				|| inputFunction.equalsIgnoreCase(UNIQUE_MEAN) || inputFunction.equalsIgnoreCase(UNIQUE_AVERAGE_1) || inputFunction.equalsIgnoreCase(UNIQUE_AVERAGE_2)) {
 			inputFunction = "mean";
-		} else if(lowerfunction.equals(MEDIAN)) {
+		} else if(inputFunction.equalsIgnoreCase(MEDIAN)) {
 			inputFunction = "median";
-		} else if(lowerfunction.equals(SUM) || lowerfunction.equals(UNIQUE_SUM)) {
+		} else if(inputFunction.equalsIgnoreCase(SUM) || inputFunction.equalsIgnoreCase(UNIQUE_SUM)) {
 			inputFunction = "sum";
-		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
+		} else if(inputFunction.equalsIgnoreCase(STDEV_1) || inputFunction.equalsIgnoreCase(STDEV_2)) {
 			inputFunction = "std";
-		} else if(lowerfunction.equals(COUNT)) {
+		} else if(inputFunction.equalsIgnoreCase(COUNT)) {
 			inputFunction = "count";
-		} else if(lowerfunction.equals(UNIQUE_COUNT)) {
+		} else if(inputFunction.equalsIgnoreCase(UNIQUE_COUNT)) {
 			inputFunction = "nunique";
-		} else if(lowerfunction.equals(CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(CONCAT)) {
 			inputFunction = "sum";
-		} else if(lowerfunction.equals(GROUP_CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(GROUP_CONCAT)) {
 			inputFunction = "count";
-		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(UNIQUE_GROUP_CONCAT)) {
 			inputFunction = "count";
-		} else if(lowerfunction.equals(LOWER)) {
+		} else if(inputFunction.equalsIgnoreCase(LOWER)) {
 			inputFunction = "str.lower";
 		}
 		
@@ -159,33 +156,32 @@ public class QueryFunctionHelper {
 	 * @return
 	 */
 	public static String convertFunctionToSparqlSyntax(String inputFunction) {
-		String lowerfunction = inputFunction.toLowerCase();
-		if(lowerfunction.equals(MIN)) {
+		if(inputFunction.equalsIgnoreCase(MIN)) {
 			inputFunction = "MIN";
-		} else if(lowerfunction.equals(MAX)) {
+		} else if(inputFunction.equalsIgnoreCase(MAX)) {
 			inputFunction = "MAX";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2) 
-				|| lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
+		} else if(inputFunction.equalsIgnoreCase(MEAN) || inputFunction.equalsIgnoreCase(AVERAGE_1) || inputFunction.equalsIgnoreCase(AVERAGE_2) 
+				|| inputFunction.equalsIgnoreCase(UNIQUE_MEAN) || inputFunction.equalsIgnoreCase(UNIQUE_AVERAGE_1) || inputFunction.equalsIgnoreCase(UNIQUE_AVERAGE_2)) {
 			inputFunction = "AVG";
-		} else if(lowerfunction.equals(MEDIAN)) {
+		} else if(inputFunction.equalsIgnoreCase(MEDIAN)) {
 			inputFunction = null;
-		} else if(lowerfunction.equals(SUM) || lowerfunction.equals(UNIQUE_SUM)) {
+		} else if(inputFunction.equalsIgnoreCase(SUM) || inputFunction.equalsIgnoreCase(UNIQUE_SUM)) {
 			inputFunction = "SUM";
-		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
+		} else if(inputFunction.equalsIgnoreCase(STDEV_1) || inputFunction.equalsIgnoreCase(STDEV_2)) {
 			inputFunction = null;
-		} else if(lowerfunction.equals(COUNT)) {
+		} else if(inputFunction.equalsIgnoreCase(COUNT)) {
 			inputFunction = "COUNT";
-		} else if(lowerfunction.equals(UNIQUE_COUNT)) {
+		} else if(inputFunction.equalsIgnoreCase(UNIQUE_COUNT)) {
 			inputFunction = "COUNT";
-		} else if(lowerfunction.equals(CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(CONCAT)) {
 			inputFunction = "CONCAT";
-		} else if(lowerfunction.equals(GROUP_CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(GROUP_CONCAT)) {
 			inputFunction = "GROUP_CONCAT";
-		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(UNIQUE_GROUP_CONCAT)) {
 			inputFunction = "GROUP_CONCAT";
-		} else if(lowerfunction.equals(LOWER)) {
+		} else if(inputFunction.equalsIgnoreCase(LOWER)) {
 			inputFunction = "LCASE";
-		} else if(lowerfunction.endsWith(COALESCE)) {
+		} else if(inputFunction.equalsIgnoreCase(COALESCE)) {
 			inputFunction = "COALESCE";
 		}
 		
@@ -199,15 +195,14 @@ public class QueryFunctionHelper {
 	 * @return
 	 */
 	public static String determineTypeOfFunction(String inputFunction) {
-		String lowerfunction = inputFunction.toLowerCase();
-		if(lowerfunction.equals(CONCAT) 
-				|| lowerfunction.equals(GROUP_CONCAT) 
-				|| lowerfunction.equals(UNIQUE_GROUP_CONCAT)
-				|| lowerfunction.equals(LOWER)
-				|| lowerfunction.equals(COALESCE)) {
+		if(inputFunction.equalsIgnoreCase(CONCAT) 
+				|| inputFunction.equalsIgnoreCase(GROUP_CONCAT) 
+				|| inputFunction.equalsIgnoreCase(UNIQUE_GROUP_CONCAT)
+				|| inputFunction.equalsIgnoreCase(LOWER)
+				|| inputFunction.equalsIgnoreCase(COALESCE)) {
 			return "STRING";
-		} else if(lowerfunction.equals(COUNT) 
-				|| lowerfunction.equals(UNIQUE_COUNT) ) {
+		} else if(inputFunction.equalsIgnoreCase(COUNT) 
+				|| inputFunction.equalsIgnoreCase(UNIQUE_COUNT) ) {
 			return "INT";
 		}
 		
@@ -216,38 +211,37 @@ public class QueryFunctionHelper {
 	}
 	
 	public static String getPrettyName(String inputFunction) {
-		String lowerfunction = inputFunction.toLowerCase();
-		if(lowerfunction.equals(MIN)) {
+		if(inputFunction.equalsIgnoreCase(MIN)) {
 			inputFunction = "Min";
-		} else if(lowerfunction.equals(MAX)) {
+		} else if(inputFunction.equalsIgnoreCase(MAX)) {
 			inputFunction = "Max";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)) {
+		} else if(inputFunction.equalsIgnoreCase(MEAN) || inputFunction.equalsIgnoreCase(AVERAGE_1) || inputFunction.equalsIgnoreCase(AVERAGE_2)) {
 			inputFunction = "Average";
-		} else if(lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
+		} else if(inputFunction.equalsIgnoreCase(UNIQUE_MEAN) || inputFunction.equalsIgnoreCase(UNIQUE_AVERAGE_1) || inputFunction.equalsIgnoreCase(UNIQUE_AVERAGE_2)) {
 			inputFunction = "UniqueAverage";
-		} else if(lowerfunction.equals(MEDIAN)) {
+		} else if(inputFunction.equalsIgnoreCase(MEDIAN)) {
 			inputFunction = "Median";
-		} else if(lowerfunction.equals(SUM)) {
+		} else if(inputFunction.equalsIgnoreCase(SUM)) {
 			inputFunction = "Sum";
-		} else if(lowerfunction.equals(UNIQUE_SUM)) {
+		} else if(inputFunction.equalsIgnoreCase(UNIQUE_SUM)) {
 			inputFunction = "UniqueSum";
-		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
+		} else if(inputFunction.equalsIgnoreCase(STDEV_1) || inputFunction.equalsIgnoreCase(STDEV_2)) {
 			inputFunction = "StandardDeviation";
-		} else if(lowerfunction.equals(COUNT)) {
+		} else if(inputFunction.equalsIgnoreCase(COUNT)) {
 			inputFunction = "Count";
-		} else if(lowerfunction.equals(UNIQUE_COUNT)) {
+		} else if(inputFunction.equalsIgnoreCase(UNIQUE_COUNT)) {
 			inputFunction = "UniqueCount";
-		} else if(lowerfunction.equals(CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(CONCAT)) {
 			inputFunction = "Concat";
-		} else if(lowerfunction.equals(GROUP_CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(GROUP_CONCAT)) {
 			inputFunction = "GroupConcat";
-		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
+		} else if(inputFunction.equalsIgnoreCase(UNIQUE_GROUP_CONCAT)) {
 			inputFunction = "UniqueGroupConcat";
-		} else if(lowerfunction.equals(LOWER)) {
+		} else if(inputFunction.equalsIgnoreCase(LOWER)) {
 			inputFunction = "Lower";
-		} else if(lowerfunction.equals(COALESCE)) {
+		} else if(inputFunction.equalsIgnoreCase(COALESCE)) {
 			inputFunction = "Coalesce";
-		} else if(lowerfunction.equals(REGEXP_LIKE)) {
+		} else if(inputFunction.equalsIgnoreCase(REGEXP_LIKE)) {
 			inputFunction = "RegexLike";
 		}
 		
