@@ -14,7 +14,6 @@ import org.quartz.UnableToInterruptJobException;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.cluster.util.ClusterUtil;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
@@ -28,7 +27,6 @@ public class RunPixelJobFromDB implements InterruptableJob {
 	private static final Logger logger = LogManager.getLogger(RunPixelJobFromDB.class);
 
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	public static final String IN_PIXEL_KEY = RunPixelJobFromDB.class + ".pixel";
 	public static final String OUT_INSIGHT_ID_KEY = CommonDataKeys.INSIGHT_ID;
 
 	private String jobName;
@@ -44,7 +42,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		jobName = context.getJobDetail().getKey().getName();
 		jobGroup = context.getJobDetail().getKey().getGroup();
 
-		String pixel = dataMap.getString(IN_PIXEL_KEY);
+		String pixel = dataMap.getString(JobConfigKeys.PIXEL);
 		String userAccess = RPAProps.getInstance().decrypt(dataMap.getString(JobConfigKeys.USER_ACCESS));
 
 		// Execute job
