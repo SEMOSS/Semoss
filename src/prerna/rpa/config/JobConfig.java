@@ -65,20 +65,12 @@ public abstract class JobConfig {
 			return new ExecuteSQLJobConfig(jobDefinition);
 		case GENERATE_HASHED_PRIMKEY_JOB:
 			return new GenerateHashedPrimkeyJobConfig(jobDefinition);
-		case BAKE_PIE_JOB:
-			return new BakePieJobConfig(jobDefinition);
-		case EAT_PIE_JOB:
-			return new EmptyJobConfig(jobDefinition);
-		case JUDGE_PIES_JOB:
-			return new EmptyJobConfig(jobDefinition);
 		case CONDITIONAL_JOB:
 			return new ConditionalJobConfig(jobDefinition);
 		case ONE_COL_CONDITION_JOB:
 			return new OneColConditionJobConfig(jobDefinition);
 		case CREATE_INSIGHT_JOB:
 			return new CreateInsightJobConfig(jobDefinition);
-		case GET_FRAME_FROM_INSIGHT_JOB:
-			return new EmptyJobConfig(jobDefinition); // Don't need to provide any keys
 		case INSIGHT_RERUN_JOB:
 			return new InsightsRerunCronJobConfig(jobDefinition);
 		case GET_SMTP_SESSION_JOB:
