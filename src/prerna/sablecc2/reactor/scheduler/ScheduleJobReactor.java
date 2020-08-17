@@ -26,8 +26,6 @@ import com.google.gson.JsonObject;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.rpa.RPAProps;
-import prerna.rpa.config.ConfigUtil;
 import prerna.rpa.config.ConfigurableJob;
 import prerna.rpa.config.IllegalConfigException;
 import prerna.rpa.config.JobConfig;
@@ -120,8 +118,12 @@ public class ScheduleJobReactor extends AbstractReactor {
 				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
 			}
 
-			scheduleJob(jsonObject);
-
+			try {
+				scheduleJob(jsonObject);
+			} catch (ParseConfigException | IllegalConfigException | SchedulerException e) {
+				throw new RuntimeException("Failed to schedule the job", e);
+			}
+			
 			if (triggerNow) {
 				triggerJobNow(jobKey);
 			}
@@ -157,15 +159,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 	}
 
-	public void scheduleJob(JsonObject jsonObject) {
-		try {
-			schedule(jsonObject);
-		} catch (ParseConfigException | IllegalConfigException | SchedulerException e) {
-			throw new RuntimeException("Failed to schedule the job", e);
-		}
-	}
-
-	public JobKey schedule(JsonObject jsonObject) throws ParseConfigException, IllegalConfigException, SchedulerException {
+	public JobKey scheduleJob(JsonObject jsonObject) throws ParseConfigException, IllegalConfigException, SchedulerException {
 		// Get the job's properties
 		JobConfig jobConfig = JobConfig.initialize(jsonObject);
 		Class<? extends Job> jobClass = RunPixelJobFromDB.class;
@@ -203,11 +197,11 @@ public class ScheduleJobReactor extends AbstractReactor {
 		jsonObject.addProperty(JobConfigKeys.JOB_CRON_EXPRESSION, cronExpression);
 		jsonObject.addProperty(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
 		jsonObject.addProperty(JobConfigKeys.PARAMETERS, parameters);
-		jsonObject.addProperty(JobConfigKeys.USER_ACCESS, RPAProps.getInstance().encrypt(providerInfo));
+		jsonObject.addProperty(JobConfigKeys.USER_ACCESS, providerInfo);
 
 		// need this for the job config
 		jsonObject.addProperty(JobConfigKeys.JOB_CLASS_NAME, ConfigurableJob.RUN_PIXEL_JOB.getJobClassName());
-		jsonObject.addProperty(ConfigUtil.getJSONKey(RunPixelJobFromDB.IN_PIXEL_KEY), recipe);
+		jsonObject.addProperty(JobConfigKeys.PIXEL, recipe);
 		
 		return jsonObject;
 	}

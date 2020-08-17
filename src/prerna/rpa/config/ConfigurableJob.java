@@ -13,9 +13,6 @@ import prerna.rpa.quartz.jobs.db.JedisToJDBCJob;
 import prerna.rpa.quartz.jobs.db.jdbc.ETLJob;
 import prerna.rpa.quartz.jobs.db.jdbc.ExecuteSQLJob;
 import prerna.rpa.quartz.jobs.db.jdbc.maria.GenerateHashedPrimkeyJob;
-import prerna.rpa.quartz.jobs.example.BakePieJob;
-import prerna.rpa.quartz.jobs.example.EatPieJob;
-import prerna.rpa.quartz.jobs.example.JudgePiesJob;
 import prerna.rpa.quartz.jobs.insight.ConditionalJob;
 import prerna.rpa.quartz.jobs.insight.CreateInsightJob;
 import prerna.rpa.quartz.jobs.insight.GetFrameFromInsightJob;
@@ -38,9 +35,6 @@ public enum ConfigurableJob {
 	ETL_JOB("ETLJob", ETLJob.class),
 	GENERATE_HASHED_PRIMKEY_JOB("GenerateHashedPrimkeyJob", GenerateHashedPrimkeyJob.class),
 	EXECUTE_SQL_JOB("ExecuteSQLJob", ExecuteSQLJob.class),
-	BAKE_PIE_JOB("BakePieJob", BakePieJob.class),
-	EAT_PIE_JOB("EatPieJob", EatPieJob.class),
-	JUDGE_PIES_JOB("JudgePiesJob", JudgePiesJob.class),
 	CONDITIONAL_JOB("ConditionalJob", ConditionalJob.class),
 	ONE_COL_CONDITION_JOB("OneColConditionJob", OneColConditionJob.class),
 	CREATE_INSIGHT_JOB("CreateInsightJob", CreateInsightJob.class),
