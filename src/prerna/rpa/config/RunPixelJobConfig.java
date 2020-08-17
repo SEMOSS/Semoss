@@ -2,8 +2,6 @@ package prerna.rpa.config;
 
 import com.google.gson.JsonObject;
 
-import prerna.rpa.quartz.jobs.insight.RunPixelJobFromDB;
-
 public class RunPixelJobConfig  extends JobConfig {
 	
 	public RunPixelJobConfig(JsonObject jobDefinition) {
@@ -12,7 +10,7 @@ public class RunPixelJobConfig  extends JobConfig {
 	
 	@Override
 	public void populateJobDataMap() throws ParseConfigException {
-		putString(RunPixelJobFromDB.IN_PIXEL_KEY);
+		putString(JobConfigKeys.PIXEL);
 		putString(JobConfigKeys.USER_ACCESS);
 	}
 
