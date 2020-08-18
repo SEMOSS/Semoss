@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.scheduler;
 
-import java.sql.Connection;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.quartz.JobKey;
@@ -52,10 +50,9 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		}
 
 		// Delete record from SMSS_JOB_RECIPES table in H2
-		Connection connection = SchedulerH2DatabaseUtility.connectToSchedulerH2();
-		boolean recordExists = SchedulerH2DatabaseUtility.existsInJobRecipesTable(connection, jobName, jobGroup);
+		boolean recordExists = SchedulerH2DatabaseUtility.existsInJobRecipesTable(jobName, jobGroup);
 		if (recordExists) {
-			SchedulerH2DatabaseUtility.removeFromJobRecipesTable(connection, jobName, jobGroup);
+			SchedulerH2DatabaseUtility.removeFromJobRecipesTable(jobName, jobGroup);
 		}
 
 		return new NounMetadata(deleteJob, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
