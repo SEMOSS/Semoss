@@ -40,7 +40,6 @@ import prerna.sablecc2.reactor.scheduler.SchedulerH2DatabaseUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 @Deprecated
 public class JsonConversionToQuartzJob {
@@ -207,16 +206,7 @@ public class JsonConversionToQuartzJob {
 					.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
 
 			// insert into SMSS_JOB_RECIPES table
-			Connection connection = null;
-			AbstractSqlQueryUtil queryUtil = null;
-			try {
-				connection = SchedulerH2DatabaseUtility.connectToSchedulerH2();
-				queryUtil = SchedulerH2DatabaseUtility.getQueryUtil();
-			} catch(Exception e) {
-				connection = connectToSchedulerH2(serverUrl);
-				queryUtil = SchedulerH2DatabaseUtility.getQueryUtil();
-			}
-			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(connection, queryUtil, userAccess, jobName, jobGroup, cronExpression, pixel, "Default", triggerOnLoad, parameters);
+			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userAccess, jobName, jobGroup, cronExpression, pixel, "Default", triggerOnLoad, parameters);
 
 			if (active) {
 				scheduler.scheduleJob(job, trigger);
