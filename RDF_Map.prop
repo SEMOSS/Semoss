@@ -19,12 +19,13 @@ BaseFolder	C:\\workspace\\Semoss_Dev
 LOG4J	C:\\workspace\\Semoss_Dev\\log4j.prop
 ADDITIONAL_REACTORS C:\\workspace\\Semoss_Dev\\reactors.json
 SOCIAL	C:\\workspace\\Semoss_Dev\\social.properties
-#SEMOSS logo used for exporting files
-EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss_Dev\\images\\embed\\semoss_logo.png
 
-USE_PYTHON	false
-PY_WORKER	prerna.pyserve.FileBasedPyWorker
+X_CACHE false
+
+USE_PYTHON false
+PY_WORKER prerna.pyserve.FileBasedPyWorker
 LD_LIBRARY_PATH	{{INPUT_YOUR_PYTHON_HOME}}\\Lib\\site-packages\\jep
+USE_PY_FILE	TRUE 
 
 USE_R true
 R_CONNECTION_JRI	true
@@ -44,11 +45,11 @@ R_MEM_LIMIT 4096
 #FOR NO LIMIT USE -1
 FRAME_SIZE_LIMIT -1
 
-FILE_TRANSFER_LIMIT 500
+FILE_TRANSFER_LIMIT 5000
 USER_WORKSPACE false
 
 #SET DEFAULT FRAME TO LOAD DATA
-#Frame type options: GRID, R, NATIVE, GRAPH
+#Frame type options: GRID, R, NATIVE, GRAPH, PY
 DEFAULT_FRAME_TYPE GRID
 #CURRENTLY ONLY SUPPORT VALUES OF : H2_DB OR SQLITE
 DEFAULT_GRID_TYPE H2_DB
@@ -69,6 +70,14 @@ EMBED_URL_LOGO	semoss_logo_dark.svg
 
 #ENCODE LOGS
 LOG_ENCODING false
+
+#Use a custom chrome binary
+#GOOGLE_CHROME_BINARY C:\\Users\\mahkhalil\\Desktop\\GoogleChromePortable\\GoogleChromePortable.exe
+#SEMOSS logo used for exporting files
+EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss_Dev\\images\\embed\\semoss_logo.png
+
+#SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith_Dev
+SCHEDULER_ENDPOINT	http://localhost:8080/Monolith_Dev
 
 #SET THIS TO TRUE IF RUNNING LOCALLY ON LAPTOP
 #OTHERWISE, KEEP THIS FALSE FOR SERVER DEPLOYMENT
