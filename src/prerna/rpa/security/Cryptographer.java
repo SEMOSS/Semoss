@@ -56,9 +56,6 @@ public class Cryptographer {
 			}
 		}
 		reader.close();
-		
-		// Flush to file
-		RPAProps.getInstance().flushPropertiesToFile();
 	}
 	
     public static String encrypt(String unprotectedString, String salt, char[] password) {

@@ -20,6 +20,7 @@ public final class SchedulerConstants {
 	// Semoss tables
 	public static final String SMSS_JOB_RECIPES = "SMSS_JOB_RECIPES";
 	public static final String SMSS_AUDIT_TRAIL = "SMSS_AUDIT_TRAIL";
+	public static final String SMSS_EXECUTION = "SMSS_EXECUTION";
 
 	// Column Headers
 	public static final String SCHED_NAME = "SCHED_NAME";
@@ -78,7 +79,8 @@ public final class SchedulerConstants {
 	public static final String JOB_CATEGORY = "JOB_CATEGORY";
 	public static final String TRIGGER_ON_LOAD = "TRIGGER_ON_LOAD";
 	public static final String PARAMETERS = "PARAMETERS";
-
+	public static final String EXEC_ID = "EXEC_ID";
+	
 	// SQL data types
 	public static final String VARCHAR_8 = "VARCHAR (8)";
 	public static final String VARCHAR_16 = "VARCHAR (16)";
