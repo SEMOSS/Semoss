@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.scheduler;
 
-import java.sql.Connection;
 import java.util.Map;
 
 import prerna.sablecc2.om.PixelDataType;
@@ -8,7 +7,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ListAllJobsReactor extends AbstractReactor {
 
@@ -39,20 +37,17 @@ public class ListAllJobsReactor extends AbstractReactor {
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		String userId = this.keyValue.get(this.keysToGet[1]);
 
-		Connection connection = SchedulerH2DatabaseUtility.connectToSchedulerH2();
-		AbstractSqlQueryUtil queryUtil = SchedulerH2DatabaseUtility.getQueryUtil();
-		
 		if (appId == null && userId == null) {
 			// TODO: check if admin if not admin throw permissions error
 			// security utils. isAdmin() to check if user is admin *******
 			// return all jobs
-			jobMap = SchedulerH2DatabaseUtility.retrieveAllJobs(connection, queryUtil);
+			jobMap = SchedulerH2DatabaseUtility.retrieveAllJobs();
 		} else if (appId != null && userId == null) {
-			jobMap = SchedulerH2DatabaseUtility.retrieveJobsForApp(connection, queryUtil, appId);
+			jobMap = SchedulerH2DatabaseUtility.retrieveJobsForApp(appId);
 		} else if (appId == null) {
-			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobs(connection, queryUtil, userId);
+			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobs(userId);
 		} else {
-			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobsForApp(connection, queryUtil, appId, userId);
+			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobsForApp(appId, userId);
 		}
 
 		return new NounMetadata(jobMap, PixelDataType.MAP, PixelOperationType.LIST_JOB);
