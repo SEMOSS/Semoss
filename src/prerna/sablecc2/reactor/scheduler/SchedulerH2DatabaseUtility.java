@@ -19,6 +19,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.ENTRY_ID;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXECUTION_DELTA;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXECUTION_END;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXECUTION_START;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXEC_ID;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.FIRED_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IMAGE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INSTANCE_NAME;
@@ -63,6 +64,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SCHED_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SCHED_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMALLINT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_AUDIT_TRAIL;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_EXECUTION;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_JOB_RECIPES;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.START_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.STATE;
@@ -122,8 +124,6 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class SchedulerH2DatabaseUtility {
 	
 	private static final Logger logger = LogManager.getLogger(SchedulerH2DatabaseUtility.class);
-
-	private static final String JDBC_DRIVER = "org.h2.Driver";
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	static RDBMSNativeEngine schedulerDb;
@@ -165,16 +165,12 @@ public class SchedulerH2DatabaseUtility {
 		addAllForeignKeys();
 	}
 
-	public static Connection connectToSchedulerH2() {
+	public static Connection connectToScheduler() {
 		Connection connection = null;
 
 		try {
-			// Register JDBC Driver
-			Class.forName(JDBC_DRIVER);
 			schedulerDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SCHEDULER_DB);
 			connection = schedulerDb.getConnection();
-		} catch (ClassNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
 		} catch (SQLException se) {
 			logger.error(Constants.STACKTRACE, se);
 		} catch (Exception ex) {
@@ -201,9 +197,70 @@ public class SchedulerH2DatabaseUtility {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
+	
+	//TODO: DEFINE COLUMN NAMES AND NOT BE INDEX BASED
+	public static boolean insertIntoExecutionTable(String execId, String jobName, String jobGroup) {
+		Connection connection = connectToScheduler();
+		try (PreparedStatement statement = connection
+				.prepareStatement("INSERT INTO SMSS_EXECUTION VALUES (?,?,?)")) {
+			statement.setString(1, execId);
+			statement.setString(2, jobName);
+			statement.setString(3, jobGroup);
+			statement.executeUpdate();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return false;
+		}
 
-	public static boolean insertIntoAuditTrailTable(Connection connection, String jobName, String jobGroup, Long start,
-			Long end, boolean success) {
+		return true;
+	}
+	
+	public static String[] executionIdExists(String execId) {
+		Connection connection = connectToScheduler();
+		ResultSet rs = null;
+		try (PreparedStatement statement = connection
+				.prepareStatement("SELECT JOB_NAME, JOB_GROUP FROM SMSS_EXECUTION WHERE EXEC_ID = ?")) {
+			statement.setString(1, execId);
+			rs = statement.executeQuery();
+			if(rs.next()) {
+				String jobName = rs.getString(1);
+				String jobGroup = rs.getString(2);
+				return new String[] {jobName, jobGroup};
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return null;
+		} finally {
+			if(rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		return null;
+	}
+	
+	public static boolean removeExecutionId(String execId) {
+		Connection connection = connectToScheduler();
+		try (PreparedStatement statement = connection
+				.prepareStatement("DELETE FROM SMSS_EXECUTION WHERE EXEC_ID = ?")) {
+			statement.setString(1, execId);
+			statement.executeUpdate();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return false;
+		}
+
+		return true;
+	}
+
+	//TODO: DEFINE COLUMN NAMES AND NOT BE INDEX BASED
+	public static boolean insertIntoAuditTrailTable(String jobName, String jobGroup, Long start, Long end, boolean success) {
+		Connection connection = connectToScheduler();
+
 		Timestamp startTimeStamp = new Timestamp(start);
 		Timestamp endTimeStamp = new Timestamp(end);
 
@@ -224,8 +281,11 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static boolean insertIntoJobRecipesTable(Connection connection, AbstractSqlQueryUtil queryUtil, String userId, String jobName,
-			String jobGroup, String cronExpression, String recipe, String jobCategory, boolean triggerOnLoad, String parameters) {
+	//TODO: DEFINE COLUMN NAMES AND NOT BE INDEX BASED
+	public static boolean insertIntoJobRecipesTable(String userId, String jobName, String jobGroup, String cronExpression, String recipe, 
+			String jobCategory, boolean triggerOnLoad, String parameters) {
+
+		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
 				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES VALUES (?,?,?,?,?,?,?,?)")) {
 			statement.setString(1, userId);
@@ -252,7 +312,8 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static boolean removeFromJobRecipesTable(Connection connection, String jobName, String jobGroup) {
+	public static boolean removeFromJobRecipesTable(String jobName, String jobGroup) {
+		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
 				.prepareStatement("DELETE FROM SMSS_JOB_RECIPES WHERE JOB_NAME=? AND JOB_GROUP=?")) {
 			statement.setString(1, jobName);
@@ -267,7 +328,8 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static boolean existsInJobRecipesTable(Connection connection, String jobName, String jobGroup) {
+	public static boolean existsInJobRecipesTable(String jobName, String jobGroup) {
+		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
 				.prepareStatement("SELECT COUNT(JOB_NAME) FROM SMSS_JOB_RECIPES WHERE JOB_NAME=? AND JOB_GROUP=?");) {
 			statement.setString(1, jobName);
@@ -288,7 +350,8 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static boolean existsInAuditTrailTable(Connection connection, String jobName, String jobGroup) {
+	public static boolean existsInAuditTrailTable(String jobName, String jobGroup) {
+		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
 				.prepareStatement("SELECT COUNT(JOB_NAME) FROM SMSS_AUDIT_TRAIL WHERE JOB_NAME=? AND JOB_GROUP=?")) {
 			statement.setString(1, jobName);
@@ -309,7 +372,8 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static Map<String, Map<String, String>> retrieveJobsForApp(Connection connection, AbstractSqlQueryUtil queryUtil, String appId) {
+	public static Map<String, Map<String, String>> retrieveJobsForApp(String appId) {
+		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
 				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES WHERE JOB_GROUP=?")) {
@@ -351,7 +415,8 @@ public class SchedulerH2DatabaseUtility {
 		return jobMap;
 	}
 
-	public static Map<String, Map<String, String>> retrieveUsersJobsForApp(Connection connection, AbstractSqlQueryUtil queryUtil, String appId, String userId) {
+	public static Map<String, Map<String, String>> retrieveUsersJobsForApp(String appId, String userId) {
+		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
 				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES WHERE USER_ID=? AND JOB_GROUP=?")) {
@@ -393,7 +458,8 @@ public class SchedulerH2DatabaseUtility {
 		return jobMap;
 	}
 
-	public static Map<String, Map<String, String>> retrieveUsersJobs(Connection connection, AbstractSqlQueryUtil queryUtil, String userId) {
+	public static Map<String, Map<String, String>> retrieveUsersJobs(String userId) {
+		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
 				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES WHERE USER_ID=?")) {
@@ -434,7 +500,8 @@ public class SchedulerH2DatabaseUtility {
 		return jobMap;
 	}
 
-	public static Map<String, Map<String, String>> retrieveAllJobs(Connection connection, AbstractSqlQueryUtil queryUtil) {
+	public static Map<String, Map<String, String>> retrieveAllJobs() {
+		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
 				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES")) {
@@ -472,10 +539,12 @@ public class SchedulerH2DatabaseUtility {
 		return jobMap;
 	}
 
-	public static void executeAllTriggerOnLoads(Connection connection) {
+	public static void executeAllTriggerOnLoads() {
 		if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
 			return;
 		}
+		
+		Connection connection = connectToScheduler();
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		ResultSet result = null;
 
@@ -860,6 +929,23 @@ public class SchedulerH2DatabaseUtility {
 					// make the table
 					schedulerDb.insertData(
 							queryUtil.createTableWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types, constraints));
+				}
+			}
+			
+			
+			// SMSS_EXECUTION_SCHEDULE
+			colNames = new String[] { EXEC_ID, JOB_NAME, JOB_GROUP};
+			types = new String[] { VARCHAR_200, VARCHAR_200, VARCHAR_200};
+			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
+			if(!dateTimeType.equals(TIMESTAMP)) { types = cleanUpDataType(types, TIMESTAMP, dateTimeType); };
+	
+			if (allowIfExistsTable) {
+				schedulerDb.insertData(queryUtil.createTableIfNotExists(SMSS_EXECUTION, colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(connection, SMSS_EXECUTION, schema)) {
+					// make the table
+					schedulerDb.insertData(queryUtil.createTable(SMSS_EXECUTION, colNames, types));
 				}
 			}
 		} catch (SQLException se) {
