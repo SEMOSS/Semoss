@@ -31,6 +31,9 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		String column = this.keyValue.get(this.keysToGet[0]);
+		if(column == null | column.isEmpty()) {
+			throw new IllegalArgumentException("Must pass in the column to run the update on");
+		}
 		String matchesTable = this.keyValue.get(this.keysToGet[1]);
 
 		// check if packages are installed
@@ -52,32 +55,33 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 
 		// iterate matches and create the link frame
 		List<String> allMatches = getInputList(MATCHES);
-		// add all matches
-		if (allMatches != null && !(allMatches.isEmpty())) {
-			StringBuilder col1Builder = new StringBuilder();
-			StringBuilder col2Builder = new StringBuilder();
-			StringBuilder col3Builder = new StringBuilder();
-			for (int i = 0; i < allMatches.size(); i++) {
-				if (i != 0) {
-					col1Builder.append(",");
-					col2Builder.append(",");
-					col3Builder.append(",");
-				}
-				String match = (String) allMatches.get(i);
-				String[] matchList = match.split(" == ");
-				if (matchList.length > 2) {
-					throw new IllegalArgumentException("match seperator didnt work");
-				}
-				String column1 = matchList[0];
-				String column2 = matchList[1];
-				col1Builder.append("\"" + column1 + "\"");
-				col2Builder.append("\"" + column2 + "\"");
-				col3Builder.append("1");
-			}
-			// add all matches provided
-			String script = linkFrame + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder	+ ")); ";
-			rsb.append(script);
+		if(allMatches == null || allMatches.isEmpty()) {
+			throw new IllegalArgumentException("Must pass in matches to connect the 'current value' to the 'replacement value'");
 		}
+		// add all matches
+		StringBuilder col1Builder = new StringBuilder();
+		StringBuilder col2Builder = new StringBuilder();
+		StringBuilder col3Builder = new StringBuilder();
+		for (int i = 0; i < allMatches.size(); i++) {
+			if (i != 0) {
+				col1Builder.append(",");
+				col2Builder.append(",");
+				col3Builder.append(",");
+			}
+			String match = (String) allMatches.get(i);
+			String[] matchList = match.split(" == ");
+			if (matchList.length > 2) {
+				throw new IllegalArgumentException("match seperator didnt work");
+			}
+			String column1 = matchList[0];
+			String column2 = matchList[1];
+			col1Builder.append("\"" + column1 + "\"");
+			col2Builder.append("\"" + column2 + "\"");
+			col3Builder.append("1");
+		}
+		// add all matches provided
+		String script = linkFrame + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder	+ ")); ";
+		rsb.append(script);
 		// make link frame unique
 		rsb.append(linkFrame + " <- unique(" + linkFrame + ");");
 
