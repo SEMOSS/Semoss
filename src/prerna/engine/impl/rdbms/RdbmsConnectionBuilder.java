@@ -28,6 +28,9 @@ public class RdbmsConnectionBuilder {
 	 */
 	private String connectionUrl;
 	
+	// we will maintain the original url just incase we update the connection url
+	private String originalUrl;
+	
 	// build the parts
 	// host
 	private String host;
@@ -142,6 +145,11 @@ public class RdbmsConnectionBuilder {
 		this.columnToTypesMap = columnToTypesMap;
 		return this;
 	}
+	
+	public RdbmsConnectionBuilder setOriginalUrl(String originalUrl) {
+		this.originalUrl = originalUrl;
+		return this;
+	}
 
 	////////////////////////////////////////////////////////
 	
@@ -201,4 +209,7 @@ public class RdbmsConnectionBuilder {
 		return columnToTypesMap;
 	}
 	
+	public String getOriginalUrl() {
+		return originalUrl;
+	}
 }
