@@ -19,12 +19,18 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 
 	private Server server;
 	private String serverUrl;
-
+	
 	@Override
 	protected void init(RdbmsConnectionBuilder builder, boolean force) {
 		String connectionUrl = builder.getConnectionUrl();
-		if(connectionUrl.startsWith("jdbc:h2:nio:")) {
-			connectionUrl = connectionUrl.substring("jdbc:h2:nio:".length());
+		String originalUrl = builder.getOriginalUrl();
+		if(originalUrl != null) {
+			connectionUrl = originalUrl;
+		}
+		
+		String baseConnUrl = connectionUrl;
+		if(baseConnUrl.startsWith("jdbc:h2:nio:")) {
+			baseConnUrl = baseConnUrl.substring("jdbc:h2:nio:".length());
 		}
 		if(force && server != null) {
 			try {
@@ -39,7 +45,7 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 			try {
 				// make sure the database file exists if it does not
 				{
-					File dbFile = new File(connectionUrl + ".mv.db");
+					File dbFile = new File(baseConnUrl + ".mv.db");
 					String dbFileName = FilenameUtils.getName(dbFile.getAbsolutePath());
 					if(dbFileName.contains(";")) {
 						dbFileName = dbFileName.substring(0, dbFileName.indexOf(";"));
@@ -60,10 +66,13 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 				// create a random user and password
 				// get the connection object and start up the frame
 				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
-				serverUrl = "jdbc:h2:" + server.getURL() + "/nio:" + connectionUrl;
+				serverUrl = "jdbc:h2:" + server.getURL() + "/nio:" + baseConnUrl;
 				server.start();
 				
 				// update the builder
+				if(originalUrl == null) {
+					builder.setOriginalUrl(connectionUrl);
+				}
 				builder.setConnectionUrl(serverUrl);
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
