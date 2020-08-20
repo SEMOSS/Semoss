@@ -146,9 +146,8 @@ get_single_cols<-function(df){
 }
 
 get_component_alternatives<-function(df){
-	COMPONENTS<-c('select column','sum column','average column','min column','max column','stdev column','count column','unique column count','where column is value',
-	'group column','based on column','having min column is value','having max column is value','having sum column is value','having average column is value',
-	'having count column is value','having unique count column is value','rank column top n','rank column bottom n','sort column ascending','sort column descending')	
+	COMPONENTS<-c('select column','aggregate column','where column is value','group column','based on column','having column operation value','rank column position n',
+	'sort column direction')	
 	REQUEST_COMPONENTS<-list('1'='select column','2'=c('select column','rank column position n'),'3'=c('select column','where column is value'),'4'=c('select column','where column is value',
 	'rank column position n'),'5'=c('select column', 'aggregate column','based on column'),'6'=c('select column','aggregate column','based on column','rank column position n'),'7'=c('select column',
 	'aggregate column','based on column','having column operation value'),'8'=c('select column','aggregate column','based on column','having column operation value','rank column position n'))
@@ -157,7 +156,7 @@ get_component_alternatives<-function(df){
 		out<-REQUEST_COMPONENTS
 	}else{
 		# where is always available
-		out<-COMPONENTS[2:9]
+		out<-COMPONENTS[2:3]
 		
 		ind<-which(df$Element=='aggregate')
 		# if there are aggregates
@@ -166,12 +165,12 @@ get_component_alternatives<-function(df){
 			if(length(group_ind)>0){
 				# when aggregate element is present in select component then having is avaible
 				# if group component already present it is not included for the next component list
-				out<-append(out,COMPONENTS[12:21])
+				out<-append(out,COMPONENTS[6:8])
 			}else{
-				out<-append(out,COMPONENTS[10:21])
+				out<-append(out,COMPONENTS[4:8])
 			}
 		}else{
-			out<-append(out,COMPONENTS[18:21])
+			out<-append(out,COMPONENTS[7:8])
 		}
 	}
 	return(out)
