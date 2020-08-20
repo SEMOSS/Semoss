@@ -340,7 +340,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			// re-establish bad connections
 			if(this.dataSource.isClosed()) {
 				try {
-					init(connBuilder);
+					init(connBuilder, true);
 					this.engineConn = connBuilder.build();
 					if(useConnectionPooling) {
 						this.dataSource = connBuilder.getDataSource();
@@ -359,7 +359,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 		// re-establish bad connections
 		if(!isConnected() || this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
-			init(connBuilder);
+			init(connBuilder, true);
 			this.engineConn = connBuilder.build();
 			if(useConnectionPooling) {
 				this.dataSource = connBuilder.getDataSource();
