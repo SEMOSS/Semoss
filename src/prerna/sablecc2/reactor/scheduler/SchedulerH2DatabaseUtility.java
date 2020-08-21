@@ -920,7 +920,7 @@ public class SchedulerH2DatabaseUtility {
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB, BLOB, VARCHAR_200, BOOLEAN, BLOB };
 			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			if(!allowBlobDataType) { types = cleanUpDataType(types, BLOB, queryUtil.getBlobReplacementDataType()); };
-			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null };
+			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null };
 	
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(
