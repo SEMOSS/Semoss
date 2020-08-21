@@ -44,6 +44,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.NOT_NULL;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.NUMERIC_13_4;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PARAMETERS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PIXEL_RECIPE;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PIXEL_RECIPE_PARAMETERS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PREV_FIRE_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PRIORITY;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.QRTZ_BLOB_TRIGGERS;
@@ -198,11 +199,10 @@ public class SchedulerH2DatabaseUtility {
 		}
 	}
 	
-	//TODO: DEFINE COLUMN NAMES AND NOT BE INDEX BASED
 	public static boolean insertIntoExecutionTable(String execId, String jobName, String jobGroup) {
 		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
-				.prepareStatement("INSERT INTO SMSS_EXECUTION VALUES (?,?,?)")) {
+				.prepareStatement("INSERT INTO SMSS_EXECUTION (EXEC_ID, JOB_NAME, JOB_GROUP) VALUES (?,?,?)")) {
 			statement.setString(1, execId);
 			statement.setString(2, jobName);
 			statement.setString(3, jobGroup);
@@ -257,7 +257,6 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	//TODO: DEFINE COLUMN NAMES AND NOT BE INDEX BASED
 	public static boolean insertIntoAuditTrailTable(String jobName, String jobGroup, Long start, Long end, boolean success) {
 		Connection connection = connectToScheduler();
 
@@ -265,13 +264,13 @@ public class SchedulerH2DatabaseUtility {
 		Timestamp endTimeStamp = new Timestamp(end);
 
 		try (PreparedStatement statement = connection
-				.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL VALUES (?,?,?,?,?,?)")) {
+				.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL (JOB_NAME, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS) VALUES (?,?,?,?,?,?)")) {
 			statement.setString(1, jobName);
 			statement.setString(2, jobGroup);
 			statement.setTimestamp(3, startTimeStamp);
 			statement.setTimestamp(4, endTimeStamp);
 			statement.setString(5, String.valueOf(end - start));
-			statement.setString(6, String.valueOf(success));
+			statement.setBoolean(6, success);
 			statement.executeUpdate();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -281,26 +280,35 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	//TODO: DEFINE COLUMN NAMES AND NOT BE INDEX BASED
-	public static boolean insertIntoJobRecipesTable(String userId, String jobName, String jobGroup, String cronExpression, String recipe, 
+	public static boolean insertIntoJobRecipesTable(String userId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters, 
 			String jobCategory, boolean triggerOnLoad, String parameters) {
-
+		
 		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
-				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES VALUES (?,?,?,?,?,?,?,?)")) {
+				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS) VALUES (?,?,?,?,?,?,?,?,?)")) {
 			statement.setString(1, userId);
 			statement.setString(2, jobName);
 			statement.setString(3, jobGroup);
 			statement.setString(4, cronExpression);
-			statement.setString(6, jobCategory);
-			statement.setBoolean(7, triggerOnLoad);
+			statement.setString(7, jobCategory);
+			statement.setBoolean(8, triggerOnLoad);
 
 			if(queryUtil.allowBlobJavaObject()) {
 				statement.setBlob(5, stringToBlob(connection, recipe));
-				statement.setBlob(8, stringToBlob(connection, parameters));
+				if(recipeParameters == null || recipeParameters.isEmpty()) {
+					statement.setNull(6, java.sql.Types.BLOB);
+				} else {
+					statement.setBlob(6, stringToBlob(connection, recipeParameters));
+				}
+				statement.setBlob(9, stringToBlob(connection, parameters));
 			} else {
 				statement.setString(5, recipe);
-				statement.setString(8, parameters);
+				if(recipeParameters == null || recipeParameters.isEmpty()) {
+					statement.setNull(6, java.sql.Types.BLOB);
+				} else {
+					statement.setString(6, recipeParameters);
+				}
+				statement.setString(9, parameters);
 			}
 			
 			statement.executeUpdate();
@@ -654,6 +662,19 @@ public class SchedulerH2DatabaseUtility {
 
 		return recipe;
 	}
+	
+	public static String validateAndDecodeRecipeParameters(String recipeParameters) {
+		if(recipeParameters == null || recipeParameters.isEmpty()) {
+			return null;
+		}
+		try {
+			recipeParameters = URLDecoder.decode(recipeParameters, "UTF-8");
+		} catch (UnsupportedEncodingException e1) {
+			throw new IllegalArgumentException("Must be able to decode recipe");
+		}
+
+		return recipeParameters;
+	}
 
 	private static void createQuartzTables(Connection connection, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
@@ -895,15 +916,15 @@ public class SchedulerH2DatabaseUtility {
 
 		try {
 			// SMSS_JOB_RECIPES
-			colNames = new String[] { USER_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS };
-			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB, VARCHAR_200, BOOLEAN, BLOB };
+			colNames = new String[] { USER_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS };
+			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB, BLOB, VARCHAR_200, BOOLEAN, BLOB };
 			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			if(!allowBlobDataType) { types = cleanUpDataType(types, BLOB, queryUtil.getBlobReplacementDataType()); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null };
 	
 			if (allowIfExistsTable) {
-				schedulerDb.insertData(queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_JOB_RECIPES, colNames,
-						types, constraints));
+				schedulerDb.insertData(
+						queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints));
 			} else {
 				// see if table exists
 				if (!queryUtil.tableExists(connection, SMSS_JOB_RECIPES, schema)) {
@@ -912,7 +933,22 @@ public class SchedulerH2DatabaseUtility {
 							queryUtil.createTableWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints));
 				}
 			}
-	
+			
+			// ADDED 2020-08-21
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			{
+				// since we added the pixel recipe parameters at a later point...
+				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, schema).contains(PIXEL_RECIPE_PARAMETERS)) {
+					// alter table to add the column
+					String dataType = BLOB;
+					if(!allowBlobDataType) { dataType = queryUtil.getBlobReplacementDataType(); };
+					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, dataType));
+				}
+			}
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			
 			// SMSS_AUDIT_TRAIL
 			colNames = new String[] { JOB_NAME, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS };
 			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN };
