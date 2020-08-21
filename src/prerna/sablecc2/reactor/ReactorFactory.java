@@ -356,7 +356,7 @@ import prerna.sablecc2.reactor.runtime.codeexec.CodeExecReactor;
 import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
 import prerna.sablecc2.reactor.scheduler.RescheduleExistingJobReactor;
 import prerna.sablecc2.reactor.scheduler.ScheduleJobReactor;
-import prerna.sablecc2.reactor.scheduler.UnscheduleJobReactor;
+import prerna.sablecc2.reactor.scheduler.UnscheduleExistingJobReactor;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.SaveTaxScenarioReactor;
 import prerna.sablecc2.reactor.storage.StoreValue;
@@ -1108,7 +1108,7 @@ public class ReactorFactory {
 
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
-		reactorHash.put("UnscheduleJob", UnscheduleJobReactor.class);
+		reactorHash.put("UnscheduleJob", UnscheduleExistingJobReactor.class);
 		reactorHash.put("ListAllJobs", ListAllJobsReactor.class);
 		reactorHash.put("RescheduleExistingJob", RescheduleExistingJobReactor.class);
 		// User Tracking

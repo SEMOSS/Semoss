@@ -206,7 +206,8 @@ public class JsonConversionToQuartzJob {
 					.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
 
 			// insert into SMSS_JOB_RECIPES table
-			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userAccess, jobName, jobGroup, cronExpression, pixel, "Default", triggerOnLoad, parameters);
+			// THERE WAS NO POSSIBILITY OF RUNNING OLD JOBS WITH RECIPE PARAMETERS
+			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userAccess, jobName, jobGroup, cronExpression, pixel, null, "Default", triggerOnLoad, parameters);
 
 			if (active) {
 				scheduler.scheduleJob(job, trigger);
