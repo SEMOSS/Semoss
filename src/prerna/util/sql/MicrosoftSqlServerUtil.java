@@ -93,13 +93,46 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getAllColumnDetails(String tableName, String schema) {
+		return "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + schema + "' AND TABLE_NAME='" + tableName +"'";
+	}
+	
+	@Override
+	public String columnDetailsQuery(String tableName, String columnName, String schema) {
+		return "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG='" + schema + "' AND TABLE_NAME='" + tableName +"'" + "' AND COLUMN_NAME='" + columnName.toUpperCase() + "'";
+	}
+	
+	@Override
 	public String constraintExistsQuery(String constraintName) {
 		return "SELECT * FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME ='" + constraintName + "'";
 	}
 	
 	@Override
 	public String alterTableName(String tableName, String newTableName) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(newTableName)) {
+			newTableName = getEscapeKeyword(newTableName);
+		}
 		return "sp_reanme '" + tableName + "', '" + newTableName + "';";
+	}
+	
+	@Override
+	public String alterTableAddColumn(String tableName, String newColumn, String newColType) {
+		if(!allowAddColumn()) {
+			throw new UnsupportedOperationException("Does not support add column syntax");
+		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(newColumn)) {
+			newColumn = getEscapeKeyword(newColumn);
+		}
+		return "ALTER TABLE " + tableName + " ADD " + newColumn + " " + newColType + ";";
 	}
 	
 	@Override

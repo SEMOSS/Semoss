@@ -56,8 +56,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 	public ScheduleJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
-				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), TRIGGER_ON_LOAD, TRIGGER_NOW,
-				PARAMETERS };
+				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), 
+				TRIGGER_ON_LOAD, TRIGGER_NOW, PARAMETERS };
 	}
 
 	@Override
@@ -76,11 +76,14 @@ public class ScheduleJobReactor extends AbstractReactor {
 		String recipe = this.keyValue.get(this.keysToGet[3]);
 		recipe = SchedulerH2DatabaseUtility.validateAndDecodeRecipe(recipe);
 
+		String recipeParameters = this.keyValue.get(this.keysToGet[4]);
+		recipeParameters = SchedulerH2DatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
+		
 		// get triggers
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 
-		String parameters = this.keyValue.get(this.keysToGet[6]);
+		String parameters = this.keyValue.get(this.keysToGet[7]);
 		if(parameters == null) {
 			parameters = "";
 		}
@@ -127,7 +130,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			}
 
 			// insert into SMOSS_JOB_RECIPES table
-			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userId, jobName, jobGroup, cronExpression, recipe, "Default", triggerOnLoad, parameters);
+			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default", triggerOnLoad, parameters);
 
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
