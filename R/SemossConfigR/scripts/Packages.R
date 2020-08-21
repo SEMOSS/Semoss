@@ -246,3 +246,6 @@ install.packages("sentimentr", dependencies=TRUE)
 
 # Fuzzy Lookup
 install.packages("qs", dependencies=TRUE)
+
+# Pivot Tables
+install.packages("pivottabler", dependencies=TRUE)
