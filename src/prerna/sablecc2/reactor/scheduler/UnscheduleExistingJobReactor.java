@@ -14,11 +14,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 
-public class UnscheduleJobReactor extends AbstractReactor {
+public class UnscheduleExistingJobReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(UnscheduleJobReactor.class);
+	private static final Logger logger = LogManager.getLogger(UnscheduleExistingJobReactor.class);
 
-	public UnscheduleJobReactor() {
+	public UnscheduleExistingJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
 	}
 

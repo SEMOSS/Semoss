@@ -72,6 +72,7 @@ public final class SchedulerConstants {
 	public static final String TRIGGER_TYPE = "TRIGGER_TYPE";
 	public static final String USER_ID = "USER_ID";
 	public static final String PIXEL_RECIPE = "PIXEL_RECIPE";
+	public static final String PIXEL_RECIPE_PARAMETERS = "PIXEL_RECIPE_PARAMETERS";
 	public static final String EXECUTION_START = "EXECUTION_START";
 	public static final String EXECUTION_END = "EXECUTION_END";
 	public static final String EXECUTION_DELTA = "EXECUTION_DELTA";
