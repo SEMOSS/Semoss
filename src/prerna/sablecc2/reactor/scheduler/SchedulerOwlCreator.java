@@ -18,6 +18,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.ENTRY_ID;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXECUTION_DELTA;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXECUTION_END;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXECUTION_START;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.EXEC_ID;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.FIRED_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IMAGE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INSTANCE_NAME;
@@ -41,6 +42,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.NEXT_FIRE_TIM
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.NUMERIC_13_4;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PARAMETERS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PIXEL_RECIPE;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PIXEL_RECIPE_PARAMETERS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PREV_FIRE_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PRIORITY;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.QRTZ_BLOB_TRIGGERS;
@@ -61,6 +63,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SCHED_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SCHED_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMALLINT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_AUDIT_TRAIL;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_EXECUTION;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_JOB_RECIPES;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.START_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.STATE;
@@ -124,6 +127,7 @@ public class SchedulerOwlCreator {
 		conceptsRequired.add(QRTZ_TRIGGERS);
 		conceptsRequired.add(SMSS_JOB_RECIPES);
 		conceptsRequired.add(SMSS_AUDIT_TRAIL);
+		conceptsRequired.add(SMSS_EXECUTION);
 	}
 
 	public SchedulerOwlCreator(IEngine schedulerDb) {
@@ -317,6 +321,7 @@ public class SchedulerOwlCreator {
 		owler.addProp(SMSS_JOB_RECIPES, JOB_GROUP, VARCHAR_200);
 		owler.addProp(SMSS_JOB_RECIPES, CRON_EXPRESSION, VARCHAR_250);
 		owler.addProp(SMSS_JOB_RECIPES, PIXEL_RECIPE, BLOB);
+		owler.addProp(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB);
 		owler.addProp(SMSS_JOB_RECIPES, JOB_CATEGORY, VARCHAR_200);
 		owler.addProp(SMSS_JOB_RECIPES, TRIGGER_ON_LOAD, BOOLEAN);
 		owler.addProp(SMSS_JOB_RECIPES, PARAMETERS, BLOB);
@@ -330,6 +335,12 @@ public class SchedulerOwlCreator {
 		owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_DELTA, VARCHAR_255);
 		owler.addProp(SMSS_AUDIT_TRAIL, SUCCESS, BOOLEAN);
 
+		// SMSS_EXECUTION
+		owler.addConcept(SMSS_EXECUTION, null, null);
+		owler.addProp(SMSS_EXECUTION, EXEC_ID, VARCHAR_200);
+		owler.addProp(SMSS_EXECUTION, JOB_NAME, VARCHAR_200);
+		owler.addProp(SMSS_EXECUTION, JOB_GROUP, VARCHAR_200);
+		
 		// add Foreign Keys/Relations
 		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS, QRTZ_CRON_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
 		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS, QRTZ_CRON_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);

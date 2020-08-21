@@ -114,6 +114,7 @@ public enum ReactorKeysEnum {
 	QUERY_PART("querypart",                                 "Specify the query part that is being replaced. This will help toward REPL"),	
 	REACTOR("reactor", 										"Reactor name"),
 	RECIPE("recipe", 										"Recipe that shows the sequence of pixels resulting in the insight"),
+	RECIPE_PARAMETERS("recipeParameters", 					"Parameters for the recipe to execute on the insight recipe"),
 	REGEX("regex", 											"Regular expression (sequence of characters)"),
 	RELATIVE_PATH("relativePath", 							"Relative file path for user assets"),
 	RELOAD("reload", 										"Reload an object or connection"),
