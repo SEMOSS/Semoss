@@ -23,6 +23,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
@@ -715,35 +716,38 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	private void addOrderBy() {
 		// grab the order by and get the corresponding display name for that
 		// order by column
-		List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
-		if (orderBy == null || orderBy.isEmpty()) {
+		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getOrderBy();
+		if (orderByList == null || orderByList.isEmpty()) {
 			return;
 		}
 
 		boolean initialized = false;
 		StringBuilder builderOrdering = null;
-		for (QueryColumnOrderBySelector orderBySelector : orderBy) {
-			String tableName = orderBySelector.getTable();
-			String columnName = orderBySelector.getColumn();
-			if (columnName.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-				// we are querying a node I need to get the property
-				columnName = getNodeName(tableName);
-			}
-			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
-
-			// grab temp table name
-			String intermediateNode = labelAliasMap.get(tableName);
-
-			if (initialized) {
-				builderOrdering.append(", ").append(intermediateNode).append(".").append(columnName);
-			} else {
-				builderOrdering = new StringBuilder();
-				builderOrdering.append(intermediateNode).append(".").append(columnName);
-				initialized = true;
-			}
-
-			if (orderByDir == ORDER_BY_DIRECTION.DESC) {
-				builderOrdering.append(" ").append(ORDER_BY_DIRECTION.DESC);
+		for (IQuerySort orderBy : orderByList) {
+			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+				QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
+				String tableName = orderBySelector.getTable();
+				String columnName = orderBySelector.getColumn();
+				if (columnName.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					// we are querying a node I need to get the property
+					columnName = getNodeName(tableName);
+				}
+				ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
+	
+				// grab temp table name
+				String intermediateNode = labelAliasMap.get(tableName);
+	
+				if (initialized) {
+					builderOrdering.append(", ").append(intermediateNode).append(".").append(columnName);
+				} else {
+					builderOrdering = new StringBuilder();
+					builderOrdering.append(intermediateNode).append(".").append(columnName);
+					initialized = true;
+				}
+	
+				if (orderByDir == ORDER_BY_DIRECTION.DESC) {
+					builderOrdering.append(" ").append(ORDER_BY_DIRECTION.DESC);
+				}
 			}
 		}
 

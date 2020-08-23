@@ -14,10 +14,12 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -69,12 +71,12 @@ public class QSRenameColumnConverter {
 		}
 		
 		// now go through the order by
-		List<QueryColumnOrderBySelector> origOrders = qs.getOrderBy();
+		List<IQuerySort> origOrders = qs.getOrderBy();
 		if(origOrders != null && !origOrders.isEmpty()) {
-			List<QueryColumnOrderBySelector> convertedOrderBys =  new Vector<QueryColumnOrderBySelector>();
+			List<IQuerySort> convertedOrderBys =  new Vector<IQuerySort>();
 			for(int i = 0; i < origOrders.size(); i++) {
-				QueryColumnOrderBySelector origOrderS = origOrders.get(i);
-				QueryColumnOrderBySelector convertedOrderByS = convertOrderBySelector(origOrderS, transformationMap);
+				IQuerySort origOrderS = origOrders.get(i);
+				IQuerySort convertedOrderByS = convertOrderByOperation(origOrderS, transformationMap);
 				convertedOrderBys.add(convertedOrderByS);
 			}
 			convertedQs.setOrderBy(convertedOrderBys);
@@ -172,17 +174,35 @@ public class QSRenameColumnConverter {
 	 * @param meta
 	 * @return
 	 */
-	public static QueryColumnOrderBySelector convertOrderBySelector(QueryColumnOrderBySelector selector, Map<String, String> transformationMap) {
-		String newAlias = transformationMap.get(selector.getAlias());
-		if(newAlias == null) {
-			// nothing to do
-			// return the original
-			return selector;
+	public static IQuerySort convertOrderByOperation(IQuerySort orderBy, Map<String, String> transformationMap) {
+		if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+			QueryColumnOrderBySelector selector = (QueryColumnOrderBySelector) orderBy;
+			String newAlias = transformationMap.get(selector.getAlias());
+			if(newAlias == null) {
+				// nothing to do
+				// return the original
+				return selector;
+			}
+			QueryColumnOrderBySelector newS = new QueryColumnOrderBySelector(newAlias);
+			newS.setSortDir(selector.getSortDirString());
+			newS.setAlias(selector.getAlias());
+			return newS;
+		} else if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.CUSTOM) {
+			QueryCustomOrderBy customSort = (QueryCustomOrderBy) orderBy;
+			String newAlias = transformationMap.get(customSort.getColumnToSort().getAlias());
+			if(newAlias == null) {
+				// nothing to do
+				// return the original
+				return customSort;
+			}
+			QueryCustomOrderBy newCustomSort = new QueryCustomOrderBy();
+			QueryColumnSelector newS = new QueryColumnSelector(newAlias);
+			newCustomSort.setColumnToSort(newS);
+			newCustomSort.setCustomOrder(customSort.getCustomOrder());
+			return newCustomSort;
 		}
-		QueryColumnOrderBySelector newS = new QueryColumnOrderBySelector(newAlias);
-		newS.setSortDir(selector.getSortDirString());
-		newS.setAlias(selector.getAlias());
-		return newS;
+		
+		return null;
 	}
 	
 	public static GenRowFilters convertGenRowFilters(GenRowFilters grs, Map<String, String> transformationMap, boolean keepOrigAlias) {

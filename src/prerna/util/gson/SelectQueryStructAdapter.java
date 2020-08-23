@@ -16,8 +16,10 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 
 public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 
@@ -69,12 +71,26 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			}
 			// orders
 			else if(name.equals("orders")) {
+				List<IQuerySort> orders = new Vector<IQuerySort>();
 				in.beginArray();
-				List<QueryColumnOrderBySelector> orders = new Vector<QueryColumnOrderBySelector>();
+				orders = new Vector<IQuerySort>();
 				while(in.hasNext()) {
-					String str = in.nextString();
-					QueryColumnOrderBySelector s = SIMPLE_GSON.fromJson(str, QueryColumnOrderBySelector.class);
-					orders.add(s);
+					// we have 2 values
+					// first is the class
+					// second is the object itself
+					in.beginObject();
+					in.nextName();
+					String className = in.nextString();
+					in.nextName();
+					String serializedObject = in.nextString();
+					IQuerySort thisSort = null;
+					if(className == QueryColumnOrderBySelector.class.getName()) {
+						thisSort = SIMPLE_GSON.fromJson(serializedObject, QueryColumnOrderBySelector.class);
+					} else if(className == QueryCustomOrderBy.class.getName()) {
+						thisSort = SIMPLE_GSON.fromJson(serializedObject, QueryCustomOrderBy.class);
+					}
+					orders.add(thisSort);
+					in.endObject();
 				}
 				in.endArray();
 				qs.setOrderBy(orders);
@@ -165,13 +181,19 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			out.endArray();
 		}
 
-		List<QueryColumnOrderBySelector> orders = value.getOrderBy();
+		List<IQuerySort> orders = value.getOrderBy();
 		int numOrders = orders.size();
 		if(numOrders > 0) {
-			out.name("orders");
+			out.name("order");
 			out.beginArray();
-			for(int i = 0; i < numOrders; i++) {
+			for(int i = 0; i < orders.size(); i++) {
+				IQuerySort orderBy = orders.get(i);
+				out.beginObject();
+				out.name("class");
+				out.value(orderBy.getClass().getName());
+				out.name("object");
 				out.value(SIMPLE_GSON.toJson(orders.get(i)));
+				out.endObject();
 			}
 			out.endArray();
 		}

@@ -20,6 +20,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
@@ -496,32 +497,36 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 	
 	private void processOrderBy() {
-		List <QueryColumnOrderBySelector> qcos = ((SelectQueryStruct) this.qs).getOrderBy();
+		List<IQuerySort> qcos = ((SelectQueryStruct) this.qs).getOrderBy();
 		for(int orderIndex = 0; orderIndex < qcos.size(); orderIndex++) {
-			String sort = null;
-			String alias = qcos.get(orderIndex).getAlias();
-			if(alias.length() == 0) {
-				alias = qcos.get(orderIndex).getTable();
-			}
-			ORDER_BY_DIRECTION sortDir = qcos.get(orderIndex).getSortDir();
-			if(sortDir == ORDER_BY_DIRECTION.ASC) {
-				sort = "True";
-			} else {
-				sort = "False";
-			}
-			StringBuilder orderByClause = null;
-			if(orderHash.containsKey(alias)) {
-				orderByClause = orderHash.get(alias);
-			}
-			
-			if(orderByClause != null) {
-				// check if it is aggregate
-				// at this point the alias does it
-				//addOrder(orderByClause, sort);
-				addOrder(new StringBuilder(alias), sort);
+			IQuerySort sortOp = qcos.get(orderIndex);
+			if(sortOp.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+				QueryColumnOrderBySelector orderBy = (QueryColumnOrderBySelector) sortOp;
+				String sort = null;
+				String alias = orderBy.getAlias();
+				if(alias.length() == 0) {
+					alias = orderBy.getTable();
+				}
+				ORDER_BY_DIRECTION sortDir = orderBy.getSortDir();
+				if(sortDir == ORDER_BY_DIRECTION.ASC) {
+					sort = "True";
+				} else {
+					sort = "False";
+				}
+				StringBuilder orderByClause = null;
+				if(orderHash.containsKey(alias)) {
+					orderByClause = orderHash.get(alias);
+				}
 				
-				// also add the other piece to test
-				addOrder2(orderByClause, sort);
+				if(orderByClause != null) {
+					// check if it is aggregate
+					// at this point the alias does it
+					//addOrder(orderByClause, sort);
+					addOrder(new StringBuilder(alias), sort);
+					
+					// also add the other piece to test
+					addOrder2(orderByClause, sort);
+				}
 			}
 		}
 		
@@ -1211,13 +1216,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			overrideQuery = new StringBuilder(frameName).append("w.").append("column_like(").append(finalFilter).append(",").append(leftSelectorExpression).append(", '").append(objects.get(0)).append("')");
 			this.headers.add(leftSelectorExpression);
 			return new StringBuilder("");
-		}else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+		} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
 			overrideQuery = new StringBuilder(frameName).append("w.").append("column_not_like(").append(finalFilter).append(",").append(leftSelectorExpression).append(", '").append(objects.get(0)).append("')");
 			this.headers.add(leftSelectorExpression);
 			return new StringBuilder("");
+		} else if(thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(ENDS_COMPARATOR)){
+			String function = thisComparator.equals(BEGINS_COMPARATOR) ? "startswith" : "endswith";
+			overrideQuery = new StringBuilder("{ 'data':"+tableName).append("[").append(tableName).append("[").append(leftSelectorExpression).append("].str.casefold().str.")
+					.append(function).append("('").append(objects.get(0).toString().toLowerCase()).append("')].values.tolist(), 'columns': list("+tableName+ ".columns)}");
+			this.headers.add(leftSelectorExpression);
+			return new StringBuilder("");
 		}
-
-
 		
 		// if it is null, then we know we have a column
 		// need to account for null inputs

@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.panel.sort;
 import java.util.List;
 
 import prerna.om.InsightPanel;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -20,7 +20,7 @@ public class SetPanelSortReactor extends AbstractPanelSortReactor {
 		InsightPanel panel = getInsightPanel();
 		
 		// get the sort information
-		List<QueryColumnOrderBySelector> sorts = getSortColumns();
+		List<IQuerySort> sorts = getColumnSortBys();
 		// set it in the panel
 		panel.setPanelOrderBys(sorts);
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.PANEL_SORT);

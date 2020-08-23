@@ -8,6 +8,7 @@ import prerna.engine.api.IEngine;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -194,57 +195,60 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 
 	private StringBuilder appendOrderBy(StringBuilder query, String tempTable) {
 		//grab the order by and get the corresponding display name for that order by column
-		List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
-		List<StringBuilder> validOrderBys = new Vector<StringBuilder>();
-		for(QueryColumnOrderBySelector orderBySelector : orderBy) {
-			String tableConceptualName = orderBySelector.getTable();
-			String columnConceptualName = orderBySelector.getColumn();
-			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
-
-			boolean origPrim = false;
-			if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-				origPrim = true;
-				columnConceptualName = getPrimKey4Table(tableConceptualName);
-			} else {
-				columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-			}
-
-			StringBuilder thisOrderBy = new StringBuilder();
-
-			// might want to order by a derived column being returned
-			if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
-				// either instantiate the string builder or add a comma for multi sort
-				if(queryUtil.isSelectorKeyword(tableConceptualName)) {
-					thisOrderBy.append(queryUtil.getEscapeKeyword(tempTable));
+		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getOrderBy();
+		List<StringBuilder> validOrderBys = new Vector<>();
+		for(IQuerySort orderBy : orderByList) {
+			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+				QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
+				String tableConceptualName = orderBySelector.getTable();
+				String columnConceptualName = orderBySelector.getColumn();
+				ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
+	
+				boolean origPrim = false;
+				if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+					origPrim = true;
+					columnConceptualName = getPrimKey4Table(tableConceptualName);
 				} else {
-					thisOrderBy.append(tempTable);
+					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
 				}
-			}
-			// we need to make sure the sort is a valid one!
-			// if it is not already processed, there is no way to sort it...
-			else if(this.retTableToCols.containsKey(tableConceptualName)){
-				if(this.retTableToCols.get(tableConceptualName).contains(columnConceptualName)) {
-					String orderByColumn = columnConceptualName;
-					if(queryUtil.isSelectorKeyword(orderByColumn)) {
-						orderByColumn = queryUtil.getEscapeKeyword(orderByColumn);
+	
+				StringBuilder thisOrderBy = new StringBuilder();
+	
+				// might want to order by a derived column being returned
+				if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
+					// either instantiate the string builder or add a comma for multi sort
+					if(queryUtil.isSelectorKeyword(tableConceptualName)) {
+						thisOrderBy.append(queryUtil.getEscapeKeyword(tempTable));
+					} else {
+						thisOrderBy.append(tempTable);
 					}
-					thisOrderBy.append(tempTable).append(".").append(orderByColumn);
-				} else {
+				}
+				// we need to make sure the sort is a valid one!
+				// if it is not already processed, there is no way to sort it...
+				else if(this.retTableToCols.containsKey(tableConceptualName)){
+					if(this.retTableToCols.get(tableConceptualName).contains(columnConceptualName)) {
+						String orderByColumn = columnConceptualName;
+						if(queryUtil.isSelectorKeyword(orderByColumn)) {
+							orderByColumn = queryUtil.getEscapeKeyword(orderByColumn);
+						}
+						thisOrderBy.append(tempTable).append(".").append(orderByColumn);
+					} else {
+						continue;
+					}
+				} 
+	
+				// well, this is not a valid order by to add
+				else {
 					continue;
 				}
-			} 
-
-			// well, this is not a valid order by to add
-			else {
-				continue;
+	
+				if(orderByDir == ORDER_BY_DIRECTION.ASC) {
+					thisOrderBy.append(" ASC ");
+				} else {
+					thisOrderBy.append(" DESC ");
+				}
+				validOrderBys.add(thisOrderBy);
 			}
-
-			if(orderByDir == ORDER_BY_DIRECTION.ASC) {
-				thisOrderBy.append(" ASC ");
-			} else {
-				thisOrderBy.append(" DESC ");
-			}
-			validOrderBys.add(thisOrderBy);
 		}
 
 		int size = validOrderBys.size();
