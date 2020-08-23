@@ -18,7 +18,9 @@ import prerna.om.ColorByValueRule;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 
 public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	
@@ -97,9 +99,15 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 
 		out.name("order");
 		out.beginArray();
-		List<QueryColumnOrderBySelector> orders = value.getPanelOrderBys();
+		List<IQuerySort> orders = value.getPanelOrderBys();
 		for(int i = 0; i < orders.size(); i++) {
+			IQuerySort orderBy = orders.get(i);
+			out.beginObject();
+			out.name("class");
+			out.value(orderBy.getClass().getName());
+			out.name("object");
 			out.value(GSON.toJson(orders.get(i)));
+			out.endObject();
 		}
 		out.endArray();
 		
@@ -127,7 +135,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		Map<String, Object> ornaments = null;
 		Map<String, Object> events = null;
 		GenRowFilters grf = null;
-		List<QueryColumnOrderBySelector> orders = null;
+		List<IQuerySort> orders = null;
 		Map<String, Map<String, Object>> comments = null;
 		Map<String, Object> position = null;
 		List<ColorByValueRule> cbvList = null;
@@ -194,11 +202,24 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				
 			} else if(key.equals("order")) {
 				in.beginArray();
-				orders = new Vector<QueryColumnOrderBySelector>();
+				orders = new Vector<IQuerySort>();
 				while(in.hasNext()) {
-					String str = in.nextString();
-					QueryColumnOrderBySelector s = GSON.fromJson(str, QueryColumnOrderBySelector.class);
-					orders.add(s);
+					// we have 2 values
+					// first is the class
+					// second is the object itself
+					in.beginObject();
+					in.nextName();
+					String className = in.nextString();
+					in.nextName();
+					String serializedObject = in.nextString();
+					IQuerySort thisSort = null;
+					if(className == QueryColumnOrderBySelector.class.getName()) {
+						thisSort = GSON.fromJson(serializedObject, QueryColumnOrderBySelector.class);
+					} else if(className == QueryCustomOrderBy.class.getName()) {
+						thisSort = GSON.fromJson(serializedObject, QueryCustomOrderBy.class);
+					}
+					orders.add(thisSort);
+					in.endObject();
 				}
 				in.endArray();
 			
