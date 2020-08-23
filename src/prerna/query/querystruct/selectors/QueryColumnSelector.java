@@ -9,9 +9,9 @@ public class QueryColumnSelector extends AbstractQuerySelector {
 
 	private static final IQuerySelector.SELECTOR_TYPE SELECTOR_TYPE = IQuerySelector.SELECTOR_TYPE.COLUMN;
 	
-	private String column;
-	private String table;
-	private String tableAlias;
+	protected String column;
+	protected String table;
+	protected String tableAlias;
 	
 	public QueryColumnSelector() {
 		this.column = "";

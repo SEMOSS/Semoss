@@ -1,6 +1,6 @@
 package prerna.query.querystruct.selectors;
 
-public class QueryColumnOrderBySelector extends QueryColumnSelector {
+public class QueryColumnOrderBySelector extends QueryColumnSelector implements IQuerySort {
 
 	public enum ORDER_BY_DIRECTION {ASC, DESC};
 	
@@ -46,6 +46,22 @@ public class QueryColumnOrderBySelector extends QueryColumnSelector {
 		}
 		
 		return ORDER_BY_DIRECTION.DESC;
+	}
+
+	@Override
+	public QUERY_SORT_TYPE getQuerySortType() {
+		return QUERY_SORT_TYPE.COLUMN;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof QueryColumnOrderBySelector) {
+			QueryColumnOrderBySelector selector = (QueryColumnOrderBySelector)obj;
+			if(super.equals(selector) && this.getSortDir() == selector.getSortDir()) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 }
