@@ -6,7 +6,7 @@ import prerna.om.InsightPanel;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -22,7 +22,7 @@ public class WithReactor extends AbstractQueryStructReactor {
 		InsightPanel panel = getPanel();
 		GenRowFilters panelFilters = panel.getPanelFilters();
 		qs.mergeImplicitFilters(panelFilters);
-		List<QueryColumnOrderBySelector> orderBys = panel.getPanelOrderBys();
+		List<IQuerySort> orderBys = panel.getPanelOrderBys();
 		((SelectQueryStruct) qs).mergeOrderBy(orderBys);
 		return qs;
 	}
