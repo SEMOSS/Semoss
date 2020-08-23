@@ -19,6 +19,7 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
@@ -816,42 +817,45 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	
 	private void addOrderBy(String tempTableName) {
 		//grab the order by and get the corresponding display name for that order by column
-		List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
-		if (orderBy == null || orderBy.isEmpty()) {
+		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getOrderBy();
+		if (orderByList == null || orderByList.isEmpty()) {
 			return;
 		}
 		
 		boolean initialized = false;
 		StringBuilder builderOrdering = null;
-		for(QueryColumnOrderBySelector orderBySelector : orderBy) {
-			String tableName = orderBySelector.getTable();
-			String columnName = orderBySelector.getColumn();
-			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
-			
-			String orderByName = null;
-			if(columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-				orderByName = tableName;
-			} else {
-				orderByName = columnName;
+		for(IQuerySort orderBy : orderByList) {
+			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+				QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
+				String tableName = orderBySelector.getTable();
+				String columnName = orderBySelector.getColumn();
+				ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
+				
+				String orderByName = null;
+				if(columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					orderByName = tableName;
+				} else {
+					orderByName = columnName;
+				}
+				
+				if(!this.validHeaders.contains(orderByName)) {
+					// not a valid order by column based on what data is being 
+					// return, so just continue
+					continue;
+				}
+				
+				if(initialized) {
+					builderOrdering.append(",");
+				} else {
+					builderOrdering = new StringBuilder();
+					initialized = true;
+				}
+				
+				if(orderByDir == ORDER_BY_DIRECTION.DESC) {
+					builderOrdering.append("-");
+				}
+				builderOrdering.append(tempTableName).append("$").append(orderByName);
 			}
-			
-			if(!this.validHeaders.contains(orderByName)) {
-				// not a valid order by column based on what data is being 
-				// return, so just continue
-				continue;
-			}
-			
-			if(initialized) {
-				builderOrdering.append(",");
-			} else {
-				builderOrdering = new StringBuilder();
-				initialized = true;
-			}
-			
-			if(orderByDir == ORDER_BY_DIRECTION.DESC) {
-				builderOrdering.append("-");
-			}
-			builderOrdering.append(tempTableName).append("$").append(orderByName);
 		}
 		
 		if(builderOrdering != null) {

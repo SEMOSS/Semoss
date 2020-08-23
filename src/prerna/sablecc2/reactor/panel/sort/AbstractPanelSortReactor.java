@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -14,10 +15,11 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 
 	/**
 	 * Grab the sort information from the curRow of the reactor
+	 * THIS ALWAYS ASSUME A COLUMN SORT IS BEING USED
 	 * @return
 	 */
-	protected List<QueryColumnOrderBySelector> getSortColumns() {
-		List<QueryColumnOrderBySelector> sorts = new ArrayList<QueryColumnOrderBySelector>();
+	protected List<IQuerySort> getColumnSortBys() {
+		List<IQuerySort> sorts = new ArrayList<IQuerySort>();
 		List<String> colInputs = getOrderByColumns();
 		List<String> sortDirs = getSortDirections();
 		int colSize = colInputs.size();
