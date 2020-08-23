@@ -11,7 +11,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.gson.ColorByValueRuleAdapter;
 import prerna.util.gson.GsonUtility;
@@ -45,7 +45,7 @@ public class InsightPanel {
 	// set of filters that are only applied to this panel
 	private transient GenRowFilters grf;
 	// set the sorts on the panel
-	private transient List<QueryColumnOrderBySelector> orderBys;
+	private transient List<IQuerySort> orderBys;
 	// list of comments added to the panel
 	// key is the id pointing to the info on the comment
 	// the info on the comment also contains the id
@@ -73,7 +73,7 @@ public class InsightPanel {
 		
 		this.colorByValue = new ArrayList<ColorByValueRule>();
 		this.grf = new GenRowFilters();
-		this.orderBys = new ArrayList<QueryColumnOrderBySelector>();
+		this.orderBys = new ArrayList<IQuerySort>();
 	}
 	
 	/**
@@ -485,11 +485,11 @@ public class InsightPanel {
 	 * Return the panel level sorts
 	 * @return
 	 */
-	public List<QueryColumnOrderBySelector> getPanelOrderBys() {
+	public List<IQuerySort> getPanelOrderBys() {
 		return this.orderBys;
 	}
 	
-	public void setPanelOrderBys(List<QueryColumnOrderBySelector> orderBys) {
+	public void setPanelOrderBys(List<IQuerySort> orderBys) {
 		this.orderBys = orderBys;
 	}
 	

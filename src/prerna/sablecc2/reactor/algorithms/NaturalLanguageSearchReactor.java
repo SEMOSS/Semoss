@@ -31,10 +31,11 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -1410,23 +1411,26 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			psb.append(") | ");
 		}
 
-		List<QueryColumnOrderBySelector> orderBys = qs.getOrderBy();
+		List<IQuerySort> orderBys = qs.getOrderBy();
 		if (orderBys != null && !orderBys.isEmpty()) {
 			StringBuilder b = new StringBuilder();
 			StringBuilder b2 = new StringBuilder();
 			int i = 0;
-			for (QueryColumnOrderBySelector orderBy : orderBys) {
-				if (i > 0) {
-					b.append(", ");
-					b2.append(", ");
+			for (IQuerySort orderBy : orderBys) {
+				if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+					QueryColumnOrderBySelector columnSort = (QueryColumnOrderBySelector) orderBy;
+					if (i > 0) {
+						b.append(", ");
+						b2.append(", ");
+					}
+					if (qsToAlias.containsKey(columnSort.getQueryStructName().toUpperCase())) {
+						b.append(qsToAlias.get(columnSort.getQueryStructName().toUpperCase()));
+					} else {
+						b.append(columnSort.getQueryStructName());
+					}
+					b2.append(columnSort.getSortDirString());
+					i++;
 				}
-				if (qsToAlias.containsKey(orderBy.getQueryStructName().toUpperCase())) {
-					b.append(qsToAlias.get(orderBy.getQueryStructName().toUpperCase()));
-				} else {
-					b.append(orderBy.getQueryStructName());
-				}
-				b2.append(orderBy.getSortDirString());
-				i++;
 			}
 			psb.append("Sort(columns=[").append(b.toString()).append("], sort=[").append(b2.toString())
 					.append("]) | ");

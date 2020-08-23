@@ -29,7 +29,10 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -256,17 +259,28 @@ public class BasicIteratorTask extends AbstractTask {
 		setQsMetadata(qs);
 	}
 	
-	private void optimizeFrame(ITableDataFrame dataframe, List<QueryColumnOrderBySelector> orderBys) {
+	private void optimizeFrame(ITableDataFrame dataframe, List<IQuerySort> orderBys) {
 		if (dataframe instanceof AbstractRdbmsFrame) {
 			AbstractRdbmsFrame rdbmsFrame = (AbstractRdbmsFrame) dataframe;
 			OwlTemporalEngineMeta meta = rdbmsFrame.getMetaData();
 			for(int i = 0; i < orderBys.size(); i++) {
-				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
-				QueryColumnOrderBySelector convertedOrderByS = QSAliasToPhysicalConverter.convertOrderBySelector(origOrderS, meta);
-				String table = convertedOrderByS.getTable();
-				String col = convertedOrderByS.getColumn();
-				if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col)) {
-					rdbmsFrame.getBuilder().addColumnIndex(table, col);
+				IQuerySort origOrderS = orderBys.get(i);
+				IQuerySort convertedOrderByS = QSAliasToPhysicalConverter.convertOrderByOperation(origOrderS, meta);
+				if(convertedOrderByS.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+					QueryColumnOrderBySelector columnOrderBy = (QueryColumnOrderBySelector) convertedOrderByS;
+					String table = columnOrderBy.getTable();
+					String col = columnOrderBy.getColumn();
+					if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col)) {
+						rdbmsFrame.getBuilder().addColumnIndex(table, col);
+					}
+				} else if(convertedOrderByS.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.CUSTOM) {
+					QueryCustomOrderBy customOrderBy = (QueryCustomOrderBy) convertedOrderByS;
+					QueryColumnSelector columnToSort = customOrderBy.getColumnToSort();
+					String table = columnToSort.getTable();
+					String col = columnToSort.getColumn();
+					if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col)) {
+						rdbmsFrame.getBuilder().addColumnIndex(table, col);
+					}
 				}
 			}
 		} else if(dataframe instanceof RDataTable) {
@@ -274,11 +288,21 @@ public class BasicIteratorTask extends AbstractTask {
 			OwlTemporalEngineMeta meta = rFrame.getMetaData();
 			Set<String> rIndexedCols = rFrame.getColumnsWithIndexes();
 			for(int i = 0; i < orderBys.size(); i++) {
-				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
-				QueryColumnOrderBySelector convertedOrderByS = QSAliasToPhysicalConverter.convertOrderBySelector(origOrderS, meta);
-				String col = convertedOrderByS.getColumn();
-				if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col) && !rIndexedCols.contains(col)) {
-					rFrame.addColumnIndex(col);
+				IQuerySort origOrderS = orderBys.get(i);
+				IQuerySort convertedOrderByS = QSAliasToPhysicalConverter.convertOrderByOperation(origOrderS, meta);
+				if(convertedOrderByS.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+					QueryColumnOrderBySelector columnOrderBy = (QueryColumnOrderBySelector) convertedOrderByS;
+					String col = columnOrderBy.getColumn();
+					if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col) && !rIndexedCols.contains(col)) {
+						rFrame.addColumnIndex(col);
+					}
+				} else if(convertedOrderByS.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.CUSTOM) {
+					QueryCustomOrderBy customOrderBy = (QueryCustomOrderBy) convertedOrderByS;
+					QueryColumnSelector columnToSort = customOrderBy.getColumnToSort();
+					String col = columnToSort.getColumn();
+					if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col) && !rIndexedCols.contains(col)) {
+						rFrame.addColumnIndex(col);
+					}
 				}
 			}
 		}

@@ -6,6 +6,7 @@ import java.util.Vector;
 public class QueryCustomOrderBy implements IQuerySort {
 
 	private List<Object> customOrder = new Vector<Object>();
+	private QueryColumnSelector columnToSort = null;
 	
 	public QueryCustomOrderBy() {
 		
@@ -18,6 +19,14 @@ public class QueryCustomOrderBy implements IQuerySort {
 	public List<Object> getCustomOrder() {
 		return this.customOrder;
 	}
+	
+	public QueryColumnSelector getColumnToSort() {
+		return columnToSort;
+	}
+
+	public void setColumnToSort(QueryColumnSelector columnToSort) {
+		this.columnToSort = columnToSort;
+	}
 
 	@Override
 	public QUERY_SORT_TYPE getQuerySortType() {
@@ -29,7 +38,7 @@ public class QueryCustomOrderBy implements IQuerySort {
 		if(obj instanceof QueryCustomOrderBy) {
 			QueryCustomOrderBy orderBy = (QueryCustomOrderBy)obj;
 			// see if the 2 lists are the same
-			return this.customOrder.equals(orderBy.customOrder);
+			return this.columnToSort.equals(orderBy.columnToSort) && this.customOrder.equals(orderBy.customOrder);
 		}
 		return false;
 	}

@@ -24,6 +24,7 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -577,29 +578,36 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	}
 
 	protected void addOrderBy() {
-		List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
-		int numOrderBys = orderBy.size();
+		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getOrderBy();
+		if (orderByList == null || orderByList.isEmpty()) {
+			return;
+		}
+		int numOrderBys = orderByList.size();
+
 		for(int i = 0; i < numOrderBys; i++) {
-			QueryColumnOrderBySelector orderSelector = orderBy.get(i);
-			String tableName = orderSelector.getTable();
-			String columnName = orderSelector.getColumn();
-			ORDER_BY_DIRECTION sortDirection = orderSelector.getSortDir();
-			//order by for vector
-			if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
-				if(this.selectors.contains(tableName)) {
-					if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-						gt = gt.select(tableName).order().by(getNodeName(tableName), Order.incr);
-					} else {
-						gt = gt.select(tableName).order().by(getNodeName(tableName), Order.decr);
+			IQuerySort orderBy = orderByList.get(i);
+			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+				QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
+				String tableName = orderBySelector.getTable();
+				String columnName = orderBySelector.getColumn();
+				ORDER_BY_DIRECTION sortDirection = orderBySelector.getSortDir();
+				//order by for vector
+				if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
+					if(this.selectors.contains(tableName)) {
+						if(sortDirection == ORDER_BY_DIRECTION.ASC) {
+							gt = gt.select(tableName).order().by(getNodeName(tableName), Order.incr);
+						} else {
+							gt = gt.select(tableName).order().by(getNodeName(tableName), Order.decr);
+						}
 					}
 				}
-			}
-			//order by for property
-			else {
-				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-					gt = gt.select(tableName).order().by(columnName, Order.incr);
-				} else {
-					gt = gt.select(tableName).order().by(columnName, Order.decr);
+				//order by for property
+				else {
+					if(sortDirection == ORDER_BY_DIRECTION.ASC) {
+						gt = gt.select(tableName).order().by(columnName, Order.incr);
+					} else {
+						gt = gt.select(tableName).order().by(columnName, Order.decr);
+					}
 				}
 			}
 		}

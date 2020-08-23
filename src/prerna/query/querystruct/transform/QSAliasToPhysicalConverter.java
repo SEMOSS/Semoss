@@ -1,6 +1,5 @@
 package prerna.query.querystruct.transform;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,10 +17,12 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -115,13 +116,13 @@ public class QSAliasToPhysicalConverter {
 		}
 		
 		// now go through the order by
-		List<QueryColumnOrderBySelector> origOrders = qs.getOrderBy();
+		List<IQuerySort> origOrders = qs.getOrderBy();
 		if(origOrders != null && !origOrders.isEmpty()) {
-			List<QueryColumnOrderBySelector> convertedOrderBys =  new Vector<QueryColumnOrderBySelector>();
+			List<IQuerySort> convertedOrderBys =  new Vector<IQuerySort>();
 			for(int i = 0; i < origOrders.size(); i++) {
-				QueryColumnOrderBySelector origOrderS = origOrders.get(i);
-				QueryColumnOrderBySelector convertedOrderByS = convertOrderBySelector(origOrderS, meta);
-				convertedOrderBys.add(convertedOrderByS);
+				IQuerySort origOrderOp = origOrders.get(i);
+				IQuerySort convertedOrderByOp = convertOrderByOperation(origOrderOp, meta);
+				convertedOrderBys.add(convertedOrderByOp);
 			}
 			convertedQs.setOrderBy(convertedOrderBys);
 		}
@@ -256,25 +257,51 @@ public class QSAliasToPhysicalConverter {
 	 * @param meta
 	 * @return
 	 */
-	public static QueryColumnOrderBySelector convertOrderBySelector(QueryColumnOrderBySelector selector, OwlTemporalEngineMeta meta) {
-		String newQsName = meta.getUniqueNameFromAlias(selector.getQueryStructName());
-		if(newQsName == null) {
-			// nothing to do
-			// return the original
-			return selector;
+	public static IQuerySort convertOrderByOperation(IQuerySort orderBy, OwlTemporalEngineMeta meta) {
+		if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+			QueryColumnOrderBySelector selector = (QueryColumnOrderBySelector) orderBy;
+			String newQsName = meta.getUniqueNameFromAlias(selector.getQueryStructName());
+			if(newQsName == null) {
+				// nothing to do
+				// return the original
+				return selector;
+			}
+			QueryColumnOrderBySelector newS = new QueryColumnOrderBySelector();
+			if(newQsName.contains("__")) {
+				String[] split = newQsName.split("__");
+				newS.setTable(split[0]);
+				newS.setColumn(split[1]);
+			} else {
+				newS.setTable(newQsName);
+				newS.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+			}
+			newS.setSortDir(selector.getSortDirString());
+			newS.setAlias(selector.getAlias());
+			return newS;
+		} else if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.CUSTOM) {
+			QueryCustomOrderBy customSort = (QueryCustomOrderBy) orderBy;
+			String newQsName = meta.getUniqueNameFromAlias(customSort.getColumnToSort().getQueryStructName());
+			if(newQsName == null) {
+				// nothing to do
+				// return the original
+				return customSort;
+			}
+			QueryCustomOrderBy newCustomS = new QueryCustomOrderBy();
+			QueryColumnSelector newS = new QueryColumnSelector();
+			if(newQsName.contains("__")) {
+				String[] split = newQsName.split("__");
+				newS.setTable(split[0]);
+				newS.setColumn(split[1]);
+			} else {
+				newS.setTable(newQsName);
+				newS.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+			}
+			newCustomS.setColumnToSort(newS);
+			newCustomS.setCustomOrder(customSort.getCustomOrder());
+			return newCustomS;
 		}
-		QueryColumnOrderBySelector newS = new QueryColumnOrderBySelector();
-		if(newQsName.contains("__")) {
-			String[] split = newQsName.split("__");
-			newS.setTable(split[0]);
-			newS.setColumn(split[1]);
-		} else {
-			newS.setTable(newQsName);
-			newS.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
-		}
-		newS.setSortDir(selector.getSortDirString());
-		newS.setAlias(selector.getAlias());
-		return newS;
+		
+		return null;
 	}
 	
 	public static GenRowFilters convertGenRowFilters(GenRowFilters grs, OwlTemporalEngineMeta meta) {
