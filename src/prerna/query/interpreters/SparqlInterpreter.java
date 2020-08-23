@@ -26,6 +26,7 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
@@ -780,38 +781,41 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	 * Generate the order by clause
 	 * @param orderBy
 	 */
-	private void addOrderByClause(List<QueryColumnOrderBySelector> orderBy) {
+	private void addOrderByClause(List<IQuerySort> orderByList) {
 		this.sortByClause = new StringBuilder();
-		int numOrders = orderBy.size();
+		int numOrders = orderByList.size();
 		if(numOrders == 0) {
 			return;
 		}
 
 		this.sortByClause.append(" ORDER BY");
 		for(int i = 0; i < numOrders; i++) {
-			QueryColumnOrderBySelector gSelect = orderBy.get(i);
-			String tableName = gSelect.getTable();
-			String columnName = gSelect.getColumn();
-			ORDER_BY_DIRECTION sortDirection = gSelect.getSortDir();
-			
-			String varName = Utility.cleanVariableString(tableName);
-			if(!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-				varName += "__" + Utility.cleanVariableString(columnName);
+			IQuerySort orderBy = orderByList.get(i);
+			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+				QueryColumnOrderBySelector gSelect = (QueryColumnOrderBySelector) orderBy;
+				String tableName = gSelect.getTable();
+				String columnName = gSelect.getColumn();
+				ORDER_BY_DIRECTION sortDirection = gSelect.getSortDir();
+				
+				String varName = Utility.cleanVariableString(tableName);
+				if(!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					varName += "__" + Utility.cleanVariableString(columnName);
+				}
+	
+				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
+					this.sortByClause.append(" ASC(");
+				} else {
+					this.sortByClause.append(" DESC(");
+				}
+				
+				if(this.selectorAlias.containsKey(varName)) {
+					this.sortByClause.append("?").append(this.selectorAlias.get(varName));
+				} else {
+					this.sortByClause.append("?").append(varName);
+				}
+				// remember to close the direction block
+				this.sortByClause.append(") ");
 			}
-
-			if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-				this.sortByClause.append(" ASC(");
-			} else {
-				this.sortByClause.append(" DESC(");
-			}
-			
-			if(this.selectorAlias.containsKey(varName)) {
-				this.sortByClause.append("?").append(this.selectorAlias.get(varName));
-			} else {
-				this.sortByClause.append("?").append(varName);
-			}
-			// remember to close the direction block
-			this.sortByClause.append(") ");
 		}
 	}
 	

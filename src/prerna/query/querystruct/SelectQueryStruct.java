@@ -9,8 +9,10 @@ import java.util.Set;
 
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
@@ -18,7 +20,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	protected boolean isDistinct = true;
 	
-	protected List<QueryColumnOrderBySelector> orderBySelectors = new ArrayList<>();
+	protected List<IQuerySort> orderBySelectors = new ArrayList<>();
 	protected List<QueryColumnSelector> groupBy = new ArrayList<>();
 
 	protected long limit = -1;
@@ -35,7 +37,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	///////////////////// ORDERING /////////////////////
 	////////////////////////////////////////////////////	
 	
-	public void setOrderBy(List<QueryColumnOrderBySelector> orderBySelectors) {
+	public void setOrderBy(List<IQuerySort> orderBySelectors) {
 		this.orderBySelectors = orderBySelectors;
 	}
 	
@@ -65,7 +67,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		this.orderBySelectors.add(selector);
 	}
 	
-	public List<QueryColumnOrderBySelector> getOrderBy() {
+	public List<IQuerySort> getOrderBy() {
 		return this.orderBySelectors;
 	}
 	
@@ -215,8 +217,8 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	 * @param orderBys
 	 * Merge the order by selectors
 	 */
-	public void mergeOrderBy(List<QueryColumnOrderBySelector> orderBys) {
-		for(QueryColumnOrderBySelector selector : orderBys) {
+	public void mergeOrderBy(List<IQuerySort> orderBys) {
+		for(IQuerySort selector : orderBys) {
 			if(!this.orderBySelectors.contains(selector)) {
 				this.orderBySelectors.add(selector);
 			}
@@ -322,16 +324,25 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	public List<Map<String, Object>> getSortInfo() {
 		List<Map<String, Object>> orderByInfo = new ArrayList<Map<String, Object>>();
-		for(QueryColumnOrderBySelector orderBy : this.orderBySelectors) {
-			Map<String, Object> selectorMap = new HashMap<String, Object>();
-			String alias = orderBy.getAlias();
-			QueryColumnOrderBySelector.ORDER_BY_DIRECTION direction = orderBy.getSortDir();
-			String qsHeader = orderBy.getQueryStructName();
-			selectorMap.put("alias", alias);
-			selectorMap.put("header", qsHeader);
-			selectorMap.put("derived", false);
-			selectorMap.put("dir", direction.toString());
-			orderByInfo.add(selectorMap);
+		for(IQuerySort orderBy : this.orderBySelectors) {
+			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+				QueryColumnOrderBySelector columnSort = (QueryColumnOrderBySelector) orderBy;
+				Map<String, Object> selectorMap = new HashMap<String, Object>();
+				selectorMap.put("alias", columnSort.getAlias());
+				selectorMap.put("header", columnSort.getQueryStructName());
+				selectorMap.put("derived", false);
+				selectorMap.put("dir", columnSort.getSortDir().toString());
+				orderByInfo.add(selectorMap);
+			} else if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.CUSTOM) {
+				QueryCustomOrderBy customSort = (QueryCustomOrderBy) orderBy;
+				QueryColumnSelector columnSort = customSort.getColumnToSort();
+				Map<String, Object> selectorMap = new HashMap<String, Object>();
+				selectorMap.put("alias", columnSort.getAlias());
+				selectorMap.put("header", columnSort.getQueryStructName());
+				selectorMap.put("derived", false);
+				selectorMap.put("customOrder", customSort.getCustomOrder());
+				orderByInfo.add(selectorMap);
+			}
 		}
 		return orderByInfo;
 	}
