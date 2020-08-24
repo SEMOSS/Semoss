@@ -607,4 +607,6 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		pragmap.clear();
 	}
 	
+	
+	
 }
