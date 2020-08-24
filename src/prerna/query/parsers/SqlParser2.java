@@ -1,0 +1,2163 @@
+package prerna.query.parsers;
+
+import java.sql.Time;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
+
+import net.sf.jsqlparser.expression.Alias;
+import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.CaseExpression;
+import net.sf.jsqlparser.expression.CastExpression;
+import net.sf.jsqlparser.expression.DateValue;
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.Parenthesis;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.TimeValue;
+import net.sf.jsqlparser.expression.WhenClause;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.relational.Between;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.AllTableColumns;
+import net.sf.jsqlparser.statement.select.FromItem;
+import net.sf.jsqlparser.statement.select.GroupByElement;
+import net.sf.jsqlparser.statement.select.Join;
+import net.sf.jsqlparser.statement.select.Limit;
+import net.sf.jsqlparser.statement.select.OrderByElement;
+import net.sf.jsqlparser.statement.select.ParenthesisFromItem;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.SelectBody;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItem;
+import net.sf.jsqlparser.statement.select.SetOperation;
+import net.sf.jsqlparser.statement.select.SetOperationList;
+import net.sf.jsqlparser.statement.select.SubSelect;
+import prerna.query.querystruct.GenExpression;
+import prerna.query.querystruct.OperationExpression;
+import prerna.query.querystruct.OrderByExpression;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.WhenExpression;
+import prerna.query.querystruct.filters.IQueryFilter;
+
+
+/*
+ * Select > SelectBody > 
+ * 				PlainSelect - Simple one
+ * 					- Select - SelectItem - Simple COlumn / Expression 
+ * 				SetOperationsList - Union ?
+ * 				WithItem - WithItemsList (SelectItem)
+ * 					- Select Body (Recursion)
+ * 		  > FromItem
+ * 				> Table - simple case - sometimes alieas is there sometimes no alias
+ * 				> Subselect - this is the case of it is full on paranthesis and output - the paranthesis is established through isUseBrackets / setUseBrackets
+ * 					> SelectBody (recursion)
+ * 				> TableFunction
+ * 				> ParanthesisFromItem
+ * 				> SpecialSubselect
+ * 				> ValuesList - ColumnNames, ExpressionList
+ * 		> Join - On expression, isLeft etc. using Columns
+ * 				> FromItem - RightItem (Recursion)
+ * 				> Expression - This can be a loop of its own - We have a shit ton of stuff here to deal with
+ * 					> SubSelect
+ * 					   > Select Body - Recursion
+ * 		> Where
+ * 				> Expression (Recursion)
+ * 					
+ * 			
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
+
+
+
+public class SqlParser2 {
+
+	// to determine type of the expression
+	private static enum EXPR_TYPE {LEFT, RIGHT, INNER};
+
+	// keep table alias
+	private Map<String, String> tableAlias = null;
+	// keep column alias
+	private Map<String, String> columnAlias = null;
+	// used to keep track of every table and column set used
+	private Map<String, Set<String>> schema = null;
+	
+	
+	
+	// keeps track of column to select
+	private Map <String, List<GenExpression>> columnSelect = new Hashtable<String, List<GenExpression>>();
+	
+	// keep track of table to select
+	private Map <String, List<GenExpression>> tableSelect = new Hashtable<String, List<GenExpression>>();
+	
+	// keep a list of selects as well
+	// to the columns
+	private Map <GenExpression, List<String>> selectColumns = new Hashtable<GenExpression, List<String>>();
+	
+	// alias to columns
+	private Map <String, List<GenExpression>> aliasColumns = new Hashtable<String, List<GenExpression>>();
+	
+
+	public SqlParser2() {
+		this.tableAlias = new Hashtable <String, String>();
+		this.columnAlias = new Hashtable <String, String>();
+		this.schema = new Hashtable<String, Set<String>>();
+	}
+
+	public SelectQueryStruct processQuery(String query) throws Exception 
+	{
+
+		// this is the main query struct
+		GenExpression qs = new GenExpression();
+		// parse the sql
+		Statement stmt = CCJSqlParserUtil.parse(query);
+		Select select = ((Select)stmt);
+		
+		if(select.getSelectBody() instanceof PlainSelect)
+		{
+			PlainSelect sb = (PlainSelect)select.getSelectBody();
+			qs = processSelect(null, sb);
+		}
+		if(select.getSelectBody() instanceof SetOperationList)
+		{
+			qs = processOperation((SetOperationList)select.getSelectBody());
+		}
+				
+			
+		
+		return qs;
+	}
+	
+	public void printOutput(SelectQueryStruct qs) throws Exception
+	{
+		String finalQuery = ((GenExpression)qs).printQS(((GenExpression)qs), new StringBuffer()).toString(); 
+		
+		System.err.println(finalQuery);
+		
+		// the real test is can I parse it back :)
+		Statement stmt = CCJSqlParserUtil.parse(finalQuery);
+		
+		System.err.println("Success ");
+	}
+	
+	
+	// the key is the table name and the value is the GenExpression that should be used
+	public void addRowFilter(Map <String, GenExpression> filterValues)
+	{
+		// I still need to account for if the user already comes with this
+		
+		Iterator <String> cols = filterValues.keySet().iterator();
+		while(cols.hasNext())
+		{
+			// get the col
+			String thisCol = cols.next();
+			GenExpression userFilter = filterValues.get(thisCol);
+			
+			// see if a select with that table exists
+			if(tableSelect.containsKey(thisCol))
+			{
+				// get the expression and see what is the where clause
+				List <GenExpression> selects = tableSelect.get(thisCol);
+				for(int selectIndex = 0;selectIndex < selects.size();selectIndex++)
+				{
+					SelectQueryStruct select = selects.get(selectIndex);
+					GenExpression filter = select.filter;
+					
+					System.out.println("Filter is set to  " + filter);
+					if(filter != null)
+					{
+						GenExpression thisFilter = new GenExpression();
+						thisFilter.setOperation(" AND ");
+						((GenExpression)filter).paranthesis = true;
+						thisFilter.setLeftExpresion(filter);
+						// forcing a random opaque one
+						userFilter.paranthesis = true;
+						thisFilter.setRightExpresion(userFilter);
+						// replace with the new filter
+						select.filter = thisFilter;
+					}
+					// add a new filter otherwise
+					else
+					{
+						select.filter = userFilter;						
+					}
+					
+				}
+			}
+		}
+	}
+	
+	// get the query for a given column in the select
+	public String getFilterQuery(String columnName)
+	{
+		String retQuery = null;
+		
+		
+		return retQuery;
+		
+	}
+	
+	// the key is the table name and the value is the GenExpression that should be used
+	// I have a query with a few parameters
+	// if the parameters are not there then drop it from groupby ?
+	// if there are then add it
+	// I have a query with multiple groupby, if the groupby is not 
+	// the parameter i.e. the column can be - drop
+	// 2 blocks
+	// columns to be removed
+	// columns to be parameterized
+	
+	public void appendParameter(List <String> columnsToRemove, Map <String, GenExpression> paramValues)
+	{
+		// I still need to account for if the user already comes with this
+		// get the selects for the param columns
+		// add them 
+		
+		// this whole caching strategy is not working
+		// I have to just go off every select and do it
+		
+		// first is the remove
+		for(int colIndex = 0;colIndex < columnsToRemove.size();colIndex++)
+		{
+			// find the alias
+			// find the column
+			// remove from the select and also from the group by
+			
+			// this is probably coming through with the alias name
+			// get all of the selects and run through it
+			Iterator <GenExpression> allSelects = selectColumns.keySet().iterator();
+			
+			while(allSelects.hasNext())
+			{
+				
+					GenExpression thisSelect = allSelects.next();	
+					// remove from the selector
+					thisSelect.removeSelect(columnsToRemove.get(colIndex));
+					thisSelect.removeGroup(columnsToRemove.get(colIndex));
+					
+					StringBuffer buff = thisSelect.printQS((GenExpression)thisSelect, new StringBuffer());
+				
+				// go through every select and replace it 
+				// there is a possibility where there are 2 different aliases refering to the same column name ?
+				// and this can lead to issues
+			}
+		}
+
+		// second is add
+		// need a way to get to the appropriate selector
+		Iterator <String> cols = paramValues.keySet().iterator();
+		while(cols.hasNext())
+		{
+			// get the col
+			String thisCol = cols.next();
+			GenExpression userFilter = paramValues.get(thisCol);
+			
+			// see if a select with that table exists
+			if(columnSelect.containsKey(thisCol))
+			{
+				// get the expression and see what is the where clause
+				List <GenExpression> selects = columnSelect.get(thisCol);
+				for(int selectIndex = 0;selectIndex < selects.size();selectIndex++)
+				{
+					SelectQueryStruct select = selects.get(selectIndex);
+					select.parameterizeColumn(thisCol, userFilter);
+				}
+			}
+		}
+	}
+
+	
+	
+	public GenExpression processSelect(GenExpression qs, PlainSelect sb)
+	{
+		//if(sb.toString().contains("UNION"))
+		//	System.err.println("Found it.. " + sb);
+		GenExpression thisQs = null;
+		//System.err.println("Select " + sb);
+		if(qs == null)
+		{
+			qs = new GenExpression();
+			thisQs = qs;
+			
+		}
+		//else
+		{
+			thisQs = new GenExpression();
+			thisQs.parentStruct = qs; // set the parent here
+			thisQs.aQuery = sb.toString();
+			thisQs.operation = "select";
+			thisQs.aliasHash = qs.aliasHash;
+			thisQs.randomHash = qs.randomHash;
+		}
+		FromItem fi = sb.getFromItem();
+		
+		// can this be null ?
+		String alias = "";
+		if(fi.getAlias() != null)
+			alias = fi.getAlias().getName();
+
+		List<SelectItem> items = sb.getSelectItems();		
+
+		// this is the simple case
+		//if(fi instanceof Table)
+		{
+			/*Table fromTable = (Table) sb.getFromItem();
+			String fromTableName = fromTable.getName();
+	
+			// if there is no alias
+			// we will determine to set the table as the alias
+			Alias fromTableAliasObj = fromTable.getAlias();
+			if(fromTableAliasObj != null) {
+				tableAlias.put(fromTable.getAlias().getName(), fromTable.getName());
+			} else {
+				tableAlias.put(fromTableName, fromTableName);
+			}
+			*/
+			
+			
+			if(fi instanceof Table)
+			{
+				String fromTableName = "";
+				Table fromTable = (Table) sb.getFromItem();
+				fromTableName = fromTable.getName();
+				Alias fromTableAliasObj = fromTable.getAlias();
+				if(fromTableAliasObj != null) {
+					tableAlias.put(fromTable.getAlias().getName(), fromTable.getName());
+				} else {
+					tableAlias.put(fromTableName, fromTableName);
+				}
+				thisQs.currentTable = fromTableName;
+				GenExpression fromExpr = new GenExpression();
+				fromExpr.setOperation("from");
+				fromExpr.setComposite(false);
+				fromExpr.aQuery = fi.toString();
+				fromExpr.setLeftExpr(fromTableName);
+				fromExpr.setLeftAlias(alias);
+				thisQs.from = fromExpr;
+				
+				// tracking tables
+				List <GenExpression>selectList = null;
+				if(tableSelect.containsKey(fromTableName))
+					selectList = tableSelect.get(fromTableName);
+				else
+					selectList = new Vector<GenExpression>();
+				if(!selectList.contains(qs))
+					selectList.add(qs);
+				
+				
+				tableSelect.put(fromTableName, selectList);
+			}
+			else if(fi instanceof PlainSelect)
+			{
+				thisQs.currentTable = fi.getAlias().getName();
+			}
+			else if(fi instanceof SubSelect)
+			{
+				thisQs.currentTable = fi.getAlias().getName();
+			}
+
+			
+			// process the joins into the QS
+			fillJoins(thisQs, sb.getJoins());
+	
+			// now that we have the joins
+			// we also have the table aliases we need
+			// so we can add the selectors
+			fillSelects(thisQs, items);
+	
+			// fill the filters
+			fillFilters(thisQs, null, sb.getWhere());
+	
+			// fill the groups
+			fillGroups(thisQs, sb.getGroupBy());
+	
+			// fill the order by
+			fillOrder(thisQs, sb.getOrderByElements());
+	
+			// fill the limit
+			fillLimitOffset(thisQs, sb.getLimit());
+			
+			//return thisQs;
+		}
+		// at this point
+		// I need to capture this back and then 
+		// and then put this back as an alias
+		if(fi instanceof SubSelect)
+		{
+			SelectBody sbody = ((SubSelect)fi).getSelectBody();
+			if(sbody instanceof PlainSelect)
+			{
+				GenExpression substruct =  processSelect(thisQs, (PlainSelect)sbody);
+				substruct.setLeftAlias(alias);
+				substruct.setComposite(true);
+				
+				thisQs.setComposite(true);
+				thisQs.aliasHash.put(alias, substruct);
+				thisQs.from = substruct;
+			}
+			else if(sbody instanceof SetOperationList)
+			{
+				System.err.println("Et Tu Union ?");
+			}
+		}
+		else if(fi instanceof SetOperationList)
+		{
+			System.err.println("Into the union ? " + fi);
+		}
+		else
+		{
+			//System.err.println(" From Item is " + fi);
+		}
+		return thisQs;
+	}
+	/**
+	 * Add the selectors into the query struct
+	 * @param qs
+	 * @param selects
+	 */
+	public void fillSelects(SelectQueryStruct qs, List<SelectItem> selects) {
+		for(int selectIndex = 0;selectIndex < selects.size();selectIndex++) {
+			SelectItem si = selects.get(selectIndex);
+			if(si instanceof SelectExpressionItem) {
+				SelectExpressionItem sei = (SelectExpressionItem) si;
+				Alias seiAlias = sei.getAlias();				
+				GenExpression gep = processExpression(qs, sei.getExpression(), null);
+				if(seiAlias != null)
+					gep.setLeftAlias(seiAlias.getName());
+				qs.nselectors.add(gep);
+				
+				// process for colum cleanup
+				if(seiAlias != null && columnSelect.containsKey(seiAlias.getName()))
+				{
+					// remove it / add it as the actual one
+					// it is already accomodated for some other place
+					columnSelect.remove(seiAlias.getName());					
+				}
+				
+			}
+			else if(si instanceof AllTableColumns)
+			{
+				GenExpression gep = new GenExpression();
+				gep.aQuery = si.toString();
+				gep.setLeftExpr(si.toString()); 
+				gep.setOperation("opaque");
+				qs.nselectors.add(gep);
+			}
+		}
+	}
+
+
+
+	/**
+	 * Add the joins and store table aliases used
+	 * @param qs
+	 * @param tableName
+	 * @param joins
+	 */
+	public void fillJoins(GenExpression qs, List <Join> joins) {
+		// if there are no joins
+		// nothing to do
+		if(joins == null || joins.isEmpty()) {
+			return;
+		}
+
+		// joins are all sitting onproces
+		// select.getJoins()
+		// each one of which is telling what type of join it is
+		// for the case of engineconcept ec and engine e
+		// the join seems to say simple is true
+		// the last one it says simple is false and it also puts an equation to it
+		// each join has a table associated with it
+		// sb.joins.get(index).rightitem - table and alias
+		// sb.join.get(index).onExpression - tells you the quals to expression
+
+		for(int joinIndex = 0; joinIndex < joins.size(); joinIndex++) 
+		{
+			Join thisJoin = joins.get(joinIndex);
+			
+			FromItem fi = thisJoin.getRightItem();
+
+			String rightTableName = null;
+			String rightTableAlias = null;
+			// if somebody -- need to see if sql grammar can accomodate for stupidity where alias and table are same kind of
+			//tableAlias.put(rightTableName, rightTableAlias);
+			//tableAlias.put(rightTableAlias, rightTableName);
+			
+			Expression curJoinExpr = thisJoin.getOnExpression();
+			GenExpression expr = processJoinExpression(qs, null, thisJoin);
+			qs.joins.add(expr);
+			//qs.randomHash.put(expr, expr);
+		}
+	}
+	
+	// recurse through the join expressions to get the final
+	public GenExpression processJoinExpression(GenExpression qs, GenExpression expr, Join thisJoin) 
+	{
+
+		// TODO - process using columns
+		GenExpression gep = new GenExpression(); // this is the one I am processing for the actual join itself. 
+		GenExpression retExpr = processExpression(qs, thisJoin.getOnExpression(), expr);
+		gep.telescope = true;
+		gep.body = retExpr;
+		gep.aQuery = thisJoin.toString();
+		
+		// process the from
+		FromItem fi = thisJoin.getRightItem();
+		if(fi instanceof ParenthesisFromItem)
+			System.err.println("Found the culprint");
+		GenExpression from2 = new GenExpression();
+
+		String joinType = null;
+		// add the join type etc. 
+		if(thisJoin.isInner()) {
+			joinType = "inner join";
+		} else if(thisJoin.isLeft()) {
+			joinType = "left outer join";
+		} else if(thisJoin.isRight()) {
+			joinType = "right outer join";
+		} else if(thisJoin.isOuter()) {
+			joinType = "outer join";
+		} else if(thisJoin.isFull()) {
+			joinType = "full join";
+		}
+		if(joinType == null)
+			joinType = "JOIN";
+		gep.setOperation("join");
+		gep.setOn(joinType);
+	//qs.joins.add(gep);
+
+		String rightTableName = null;
+		String rightTableAlias = null;
+		
+		
+		//System.err.println("From item is " + fi);
+		
+		if(fi instanceof Table)
+		{
+			Table rightTable = (Table)thisJoin.getRightItem();
+			// add the alias
+			rightTableName = rightTable.getName();
+			rightTableAlias = rightTableName;
+			if(rightTable.getAlias() != null)
+				rightTableAlias = rightTable.getAlias().getName();
+			
+			// turn this into a full from
+			from2.setOperation("table");
+			from2.setLeftExpr(rightTableName);
+			from2.setLeftAlias(rightTableAlias);
+		}
+		else
+		{
+			//System.out.println("Right is" + fi);
+			rightTableName = fi.getAlias().getName();
+			rightTableAlias = rightTableName;
+			String alias = fi.getAlias().getName();
+		
+			SelectBody sbody = ((SubSelect)fi).getSelectBody();
+			if(sbody instanceof PlainSelect)
+			{
+				from2 =  processSelect(qs, (PlainSelect)sbody);
+				from2.operation = "querystruct";
+				from2.telescope = true;
+				from2.setComposite(true);
+				//from2.body = substruct;
+				from2.setLeftAlias(alias);
+				//qs.joins.add(substruct);
+				// add it to the current qs
+				// this alias hash 
+				//qs.aliasHash.put(alias, substruct);
+			}
+			// union if it is a set operations list
+			else if(sbody instanceof SetOperationList)
+			{
+				from2 = processOperation((SetOperationList)sbody);
+				from2.telescope = true;
+				//from2.operation = "union";
+				from2.setComposite(true);
+				from2.setLeftAlias(alias);
+				//from2.body = opQS;
+				//gep.randomHash.put("UNION", opQS);
+				
+				//qs.joins.add(opQS);
+			}
+		}
+		gep.from = from2;
+		
+	return gep;
+
+	}
+	
+	public GenExpression processExpression(SelectQueryStruct qs, Expression joinExpr, GenExpression expr)
+	{
+		// these are either composite relations like and or etc. or simple relations
+		if(expr == null)
+		{
+		}
+		if(joinExpr instanceof AndExpression) // || joinExpr instanceof OrExpression)
+		{
+			GenExpression expr2 = new GenExpression();
+			AndExpression aExpr = (AndExpression)joinExpr;
+			expr2.setOperation(aExpr.getStringExpression());
+			expr2.aQuery = joinExpr.toString();
+			
+			// this is composite
+			expr2.setComposite(true);
+			//expr.setExpression(joinExpr.toString());
+
+			Expression left = aExpr.getLeftExpression();
+			Expression right = aExpr.getRightExpression();
+			expr2.recursive = true;
+			
+			// process the left and right
+			expr2.setLeftExpresion(processExpression(qs, left,  expr));
+			expr2.setRightExpresion(processExpression(qs, right,  expr));
+			return expr2;
+			//System.err.println("Expression.. " + aExpr.getStringExpression());
+		}
+		// only the binary expression has 2 sides
+		else if(joinExpr instanceof BinaryExpression)
+		{
+			// do the regular stuff.. I need to accomodate for other pieces but
+			//if(!simple) 
+			//{
+				// this is another fractal that needs to be taken care of
+				// so it is like and / or and then below that you have the equal expression etc.
+				GenExpression eqExpr = new GenExpression();
+				eqExpr.setComposite(true);
+				eqExpr.aQuery = joinExpr.toString();
+				BinaryExpression joinExpr2 = (BinaryExpression)joinExpr;
+				eqExpr.setOperation(joinExpr2.getStringExpression());
+				
+				//System.err.println("Expression.. " + joinExpr2.getStringExpression());
+				
+				String full_from = null;
+				String full_To = null;
+				
+				GenExpression sqs = processExpression(qs,  joinExpr2.getLeftExpression(), eqExpr);
+				GenExpression sqs2 = processExpression(qs,  joinExpr2.getRightExpression(), eqExpr);
+				
+				if(((GenExpression)sqs).getOperation().equalsIgnoreCase("column"))
+					full_from = ((GenExpression)sqs).getLeftExpr();
+
+				if(((GenExpression)sqs2).getOperation().equalsIgnoreCase("column"))
+					full_To = ((GenExpression)sqs2).getLeftExpr();
+
+				
+//				// keep track of column and table in schema
+//				// from 
+//				Set<String> columns = new HashSet<String>();
+//				if(fromTable != null && this.schema.containsKey(fromTable)) {
+//					columns = this.schema.get(fromTable);
+//				}
+//				columns.add(fromColumn);
+//				this.schema.put(fromTable, columns);
+//				// to
+//				Set<String> columns2 = new HashSet<String>();
+//				if(this.schema.containsKey(rightTableName)) {
+//					columns2 = this.schema.get(rightTableName);
+//				}
+//				columns2.add(toColumn);
+//				this.schema.put(rightTableName, columns2);
+//				
+				// need to translate the alias into column name				
+				eqExpr.recursive = true;
+				eqExpr.setLeftExpresion(sqs);
+				eqExpr.setRightExpresion(sqs2);
+				eqExpr.setComposite(false);
+				eqExpr.setExpression(joinExpr2.toString());
+				eqExpr.setLeftExpr(full_from);
+				eqExpr.setRightExpr(full_To);
+				
+				return eqExpr;
+		}	
+		// need to handle the between join
+		else if(joinExpr instanceof SubSelect)
+		{
+			// need to process this again
+			SubSelect ss = (SubSelect)joinExpr;
+			SelectBody sb = ss.getSelectBody();
+			String alias = ss.getAlias().getName();
+			
+			// this can be something else other than plain select
+			if(sb instanceof PlainSelect)
+			{
+				GenExpression ge = new GenExpression();
+				ge.aliasHash = qs.aliasHash;
+				ge.randomHash = qs.randomHash;
+				ge.setOperation("querystruct");
+				ge.telescope = true;
+				
+				GenExpression sqs = processSelect(ge,  (PlainSelect)ss.getSelectBody());
+				ge.body = sqs;
+				qs.aliasHash.put(alias, sqs);
+				return ge;
+			}
+			else if(sb instanceof SetOperationList)
+			{
+				//System.err.println("This is probably unin ?" + joinExpr);
+				GenExpression gep = processOperation((SetOperationList)sb);
+				return gep;
+			}
+				
+		}
+		else if(joinExpr instanceof Between)// between // this needs to be handled better
+		{
+			//System.err.println("This is a between expression " + joinExpr);
+			GenExpression retExpr = new GenExpression();
+			retExpr.setComposite(true);
+			retExpr.setOperation("between");
+			retExpr.aQuery = joinExpr.toString();
+			retExpr.recursive = true;
+			
+			// left and right re set as start and end
+			// the actual expression is set up as the body
+			
+			Between betw = (Between)joinExpr;
+			Expression leftExpr = betw.getLeftExpression();
+			retExpr.body = processExpression(qs, leftExpr, retExpr);
+			Expression start = betw.getBetweenExpressionStart();
+			Expression end = betw.getBetweenExpressionEnd();
+			//System.err.println("I am missing something here " + joinExpr);
+			retExpr.setLeftExpresion(processExpression(qs, start, retExpr));
+			retExpr.setRightExpresion(processExpression(qs, end, retExpr));
+			return retExpr;
+		}
+		else if(joinExpr instanceof Column)
+		{
+			// process the column and return back
+			GenExpression retExpr = new GenExpression();
+			Column thisCol = (Column)joinExpr;
+			retExpr.aQuery = thisCol.toString();
+			retExpr.setComposite(false);
+			retExpr.setOperation("column");
+			String tableName = "";
+			// need to fix the table name
+			if(thisCol.getTable() != null)
+				tableName = thisCol.getTable().getFullyQualifiedName();
+			else
+				tableName = qs.currentTable;
+			// take out __ and put .
+			retExpr.setLeftExpr(tableName + "." + thisCol.getColumnName());
+			
+			
+			// starts keeping track of the columns
+			String columnName = thisCol.getColumnName();
+			
+			List <GenExpression>selectList = null;
+			if(columnSelect.containsKey(tableName + "." + columnName))
+				selectList = columnSelect.get(tableName + "." + columnName);
+			else
+				selectList = new Vector<GenExpression>();
+			if(!selectList.contains(qs))
+				selectList.add((GenExpression) qs);
+
+			columnSelect.put(tableName + "." + columnName, selectList);
+			
+			// track based on select too
+			List <String> columnList = null;
+			if(selectColumns.containsKey(qs))
+				columnList = selectColumns.get(qs);
+			else
+				columnList = new Vector<String>();
+			if(!columnList.contains(tableName + "." + columnName))
+				columnList.add(tableName + "." + columnName);
+			
+			selectColumns.put((GenExpression) qs, columnList);
+			
+			return retExpr;
+		}
+		else if(joinExpr instanceof Function)
+		{
+			//System.err.println("This is not being handled in expression " + joinExpr);
+			Function fexpr = (Function)joinExpr;
+			GenExpression gep = new GenExpression();
+			gep.aQuery = fexpr.toString();
+			gep.setExpression(fexpr.getName());
+			//if(fexpr.toString().contains("coalesce"))
+			//	System.err.println("Found a coalesce");
+			gep.setOperation("opaque");
+			// going to make this opaque
+			gep.setLeftExpr(fexpr.toString());
+			/*
+			List <Expression> el = fexpr.getParameters().getExpressions();
+			// will work through expression later
+			for(int exprIndex = 0;exprIndex < el.size();exprIndex++)
+			{
+				
+			}
+			*/
+			return gep;
+			
+			//gep.setLeftExpr(fexpr.getP);
+		}
+		else if(joinExpr instanceof CaseExpression)
+		{
+			//System.err.println("This is not being handled in expression " + joinExpr);
+			CaseExpression cep = (CaseExpression)joinExpr;
+
+			WhenExpression wep = new WhenExpression();
+			wep.setOperation("case");
+			List <WhenClause> whens = cep.getWhenClauses();
+			
+			for(int whenIndex = 0;whenIndex < whens.size();whenIndex++)
+			{
+				WhenClause wc = whens.get(whenIndex);
+				Expression we = wc.getWhenExpression();
+				Expression te = wc.getThenExpression();
+				
+				wep.addWhenThen(we.toString(), te.toString());				
+			}
+			wep.setElse(cep.getElseExpression().toString());
+			
+			return wep;
+		}
+		else if(joinExpr instanceof DoubleValue)
+		{
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Double value = ((DoubleValue)joinExpr).getValue();
+			gep.setExpression("double");
+			gep.setLeftExpresion(value);
+			
+		}
+		else if(joinExpr instanceof DoubleValue)
+		{
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Double value = ((DoubleValue)joinExpr).getValue();
+			gep.setOperation("double");
+			gep.setExpression("double");
+			gep.setLeftExpresion(value);
+			return gep;
+		}
+		else if(joinExpr instanceof TimeValue)
+		{
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Time value = ((TimeValue)joinExpr).getValue();
+			gep.setOperation("time");
+			gep.setExpression("time");
+			gep.setLeftExpresion(value);
+			return gep;
+		}
+		else if(joinExpr instanceof StringValue)
+		{
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			String value = ((StringValue)joinExpr).getValue();
+			gep.setOperation("string");
+			gep.setExpression("string");
+			gep.setLeftExpresion("'" + value + "'");
+			return gep;
+		}
+		else if(joinExpr instanceof DateValue)
+		{
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Date value = ((DateValue)joinExpr).getValue();
+			gep.setOperation("date");
+			gep.setExpression("date");
+			gep.setLeftExpresion(value);
+			return gep;
+		}
+		else if(joinExpr instanceof LongValue)
+		{
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Long value = ((LongValue)joinExpr).getValue();
+			gep.setOperation("long");
+			gep.setExpression("date");
+			gep.setLeftExpresion(value);
+			return gep;
+		}
+		else if(joinExpr instanceof CastExpression)
+		{
+			CastExpression ce = (CastExpression)joinExpr;
+			GenExpression gep = new GenExpression();
+			gep.aQuery = ce.toString();
+			gep.setLeftExpr(ce.toString()); 
+			gep.setOperation("opaque");
+			return gep;
+		}
+		else if(joinExpr instanceof Parenthesis)
+		{
+			GenExpression gep = new GenExpression();
+			gep.setOperation("paranthesis");
+			gep.setLeftExpresion("(");
+			gep.setExpression(joinExpr.toString());
+			
+			Expression nextExpr = ((Parenthesis) joinExpr).getExpression();
+			gep.telescope = true;
+			GenExpression body = processExpression(qs,nextExpr, null);
+			gep.body = body;
+			gep.setLeftExpresion(body);
+			// reset it back
+			return gep;
+		}
+		else
+		{
+			System.err.println("Unhandled expression >>>>> " + joinExpr);
+		}
+		
+		// also need to handle subselect
+		return expr;
+		
+	}
+
+	
+	// process operations
+	public GenExpression processOperation(SetOperationList sol)
+	{
+		OperationExpression opExpr = new OperationExpression();
+		// recursion follows
+		// things it is unioning
+		List <SelectBody> solParts = sol.getSelects();
+		List <SetOperation> solOps = sol.getOperations();
+		
+		// now I need to cobble this together
+		
+		// need to process every select and then tag it with the specific union
+		opExpr.setOperation("union");
+		opExpr.setComposite(true);
+		
+		int solIndex = 0;
+		for(;solIndex < solOps.size();solIndex++)
+		{
+			SelectBody sb1 = solParts.get(solIndex);
+			
+			opExpr.opNames.add(solOps.get(solIndex).toString());
+			
+			GenExpression sqs1  = null;
+			
+			if(sb1 instanceof PlainSelect)
+			{
+				sqs1 = processSelect(null, (PlainSelect)sb1);
+			}
+			else if(sb1 instanceof SetOperationList)
+			{
+				sqs1 = processOperation((SetOperationList)sb1);
+			}
+		
+			opExpr.operands.add(sqs1);			
+		}
+		
+		SelectBody lastS = solParts.get(solIndex);
+		GenExpression sqs1  = null;
+		
+		if(lastS instanceof PlainSelect)
+		{
+			sqs1 = processSelect(null, (PlainSelect)lastS);
+		}
+		else if(lastS instanceof SetOperationList)
+		{
+			sqs1 = processOperation((SetOperationList)lastS);
+		}
+		opExpr.operands.add(sqs1);			
+		
+		return opExpr;
+
+	}
+	
+	// things I need to recurse
+	// Main Query Struct
+	// What was previously executed
+	// for instance if the previous piece was and and this is or, I need to close and start it ?
+	// Need some way to jump back to the previous level
+
+	// I need some way to go in and go out kind of like the sablecc here
+	// so I will do this artifically
+	// Start of with a simple query filter or even a null
+	// if the first one is an and/or 
+	// I create the and/or filter and call this with left expression
+	// and right expression
+	// With the filter as a curFilter
+	// if the expression is simple
+	// it will continue to add itself as a simple filter
+	// if the expression is complex then it will create another filter and add it into it - FE cant handle it right now
+	// Once complete, there is nothing to change, since at this point it is all done
+	// everytime I finish up with the expression which is a simple one like equals etc. 
+
+	public void fillFilters(SelectQueryStruct qs, IQueryFilter curFilter, Expression expr) {
+		// this is a simple one just go ahead and process it like anything else
+		// this should go first.. 
+		// if unable to process it is only then we should attempt to create other pieces
+		if(expr != null)
+		{
+			GenExpression fExpr = processExpression(qs, expr, null);
+			qs.filter = fExpr;
+		}
+	}
+
+
+	/**
+	 * Fills in the limit and offset for the query
+	 * @param qs
+	 * @param limit
+	 */
+	public void fillLimitOffset(SelectQueryStruct qs, Limit limit) {
+		if(limit == null) {
+			return;
+		}
+		// add limit
+		if(limit.getRowCount() instanceof LongValue) {
+			long limitRow =  ((LongValue)limit.getRowCount()).getValue();
+			qs.setLimit(limitRow);
+		}
+
+		// add offset
+		if(limit.getOffset() instanceof LongValue) {
+			long offset =  ((LongValue)limit.getOffset()).getValue();
+			qs.setOffSet(offset);
+		}
+	}
+
+	/**
+	 * Add in the order by
+	 * @param qs
+	 * @param orders
+	 */
+	public void fillOrder(SelectQueryStruct qs, List <OrderByElement> orders) {
+		if(orders == null || orders.isEmpty()) {
+			return;
+		}
+
+		for(int orderIndex = 0; orderIndex < orders.size(); orderIndex++) {
+			
+			OrderByElement thisElement = orders.get(orderIndex);
+			Expression expr = thisElement.getExpression();
+			String sortDir = "ASC";
+			if(thisElement.isAscDescPresent() && !thisElement.isAsc()) {
+				sortDir = "DESC";
+			}
+
+			OrderByExpression obe = new OrderByExpression();
+			obe.telescope = true;
+			obe.body = processExpression(qs, expr, null);
+			if(!sortDir.equalsIgnoreCase("ASC"))
+				obe.direction = sortDir;
+			qs.norderBy.add(obe);
+		}
+	}
+	
+	/**
+	 * Add in the group bys
+	 * @param qs
+	 * @param groupByElement
+	 */
+	public void fillGroups(SelectQueryStruct qs, GroupByElement groups) {
+		if(groups == null) {
+			return;
+		}
+		List<Expression> groupByElement = groups.getGroupByExpressions();
+		if(groupByElement == null || groupByElement.isEmpty()) {
+			return;
+		}
+		
+		for(int groupIndex = 0; groupIndex < groupByElement.size(); groupIndex++) {
+			Expression expr = groupByElement.get(groupIndex);
+			GenExpression gep = processExpression(qs, expr, null);
+			qs.ngroupBy.add(gep);
+		}
+	}
+
+	public Map<String, String> getTableAlias() {
+		return this.tableAlias;
+	}
+	public Map<String, String> getColumnAlias() {
+		return this.columnAlias;
+	}
+	public Map<String, Set<String>> getSchema() {
+		return this.schema;
+	}
+
+
+	public static void main(String [] args) throws Exception {
+		SqlParser2 test = new SqlParser2();
+		String query = "Select * from employee";
+		query =  "select distinct c.logicalname ln, (ec.physicalName + 1) ep from "
+				+ "concept c, engineconcept ec, engine e inner join sometable s on c.logicalname=s.logical where (ec.localconceptid=c.localconceptid and "
+				+ "c.conceptualname in ('val1', 'val2')) or (ec.localconceptid + 5) =1 group by ln order by ln limit 200 offset 50 ";// order by c.logicalname";
+
+		query = "select distinct f.studio, (f.movie_budget - 3) / 2 from f where f.movie_budget * 4 > 10";
+		
+		// thank you so much anthem
+		String query2 = " SELECT	Member_Engagement_Tier AS `Member Engagement Tier`,Site_Service_Name AS `Site Service Name`," + 
+				"		Age_Group_Description AS `Age " + 
+				"Group Description`," + 
+				"		Medical_Member_Paid_PMPM AS `Medical Member Paid PMPM`  " + 
+				"FROM	 (  " + 
+				"	SELECT	MBRSHP.MBR_ENGGMNT_TIER AS `Member_Engagement_Tier`," + 
+				"			CLMS.SITE_SRVC_NM AS `Site_Service_Name`," + 
+				"			MBRSHP.AGE_GRP_DESC AS `Age_Group_Description`," + 
+				"			case " + 
+				"				when sum( MBRSHP.MDCL_MBR_CVRG_CNT ) = 0 then 0 " + 
+				"				else sum(CLMS.MDCL_ACCT_PAID_AMT )/sum( MBRSHP.MDCL_MBR_CVRG_CNT )" + 
+				"			end AS `Medical_Member_Paid_PMPM`," + 
+				"			MBRSHP.TM_PRD_NM AS `Time_Period`  " + 
+				"	FROM	 (  " + 
+				"		SELECT	coalesce(TMBRENGGMNT.ENGGMNT_TIER," + 
+				"				'Not Engaged' ) AS MBR_ENGGMNT_TIER," + 
+				"				DIM_AGE_GRP.AGE_GRP_DESC AS AGE_GRP_DESC," + 
+				"				TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM," + 
+				"				SUM(" + 
+				"				case " + 
+				"					when CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD='001' then CII_FACT_MBRSHP.MBR_CVRG_CNT " + 
+				"					else 0 " + 
+				"				end) AS MDCL_MBR_CVRG_CNT," + 
+				"				CII_ACCT_PRFL.ACCT_ID AS ACCT_ID," + 
+				"				CII_FACT_MBRSHP.MCID AS MCID," + 
+				"				CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY  " + 
+				"		FROM	CII_FACT_MBRSHP " + 
+				"		INNER JOIN (" + 
+				"			SELECT	B.*," + 
+				"					case " + 
+				"						when paidIncurred='Paid' then 111101 " + 
+				"						else B.START_YEAR_MNTH " + 
+				"					end as STRT_SRVC_YEAR_MNTH," + 
+				"					case " + 
+				"						WHEN paidIncurred='Paid' then 888811 " + 
+				"						else B." + 
+				"					END_YEAR_MNTH " + 
+				"					end as " + 
+				"					END_SRVC_YEAR_MNTH," + 
+				"					Case " + 
+				"						when paidIncurred='Paid' then B." + 
+				"					END_YEAR_MNTH " + 
+				"						when paidIncurred='Incurred' " + 
+				"				and 0=0 then 202002 " + 
+				"						else 888811 " + 
+				"					end as " + 
+				"					END_RPTG_PAID_YEAR_MNTH " + 
+				"			FROM	ACIISST_PERIOD_KEY A JOIN     (" + 
+				"				SELECT	LKUP_ID," + 
+				"						YEAR_ID," + 
+				"						 CONCAT(''," + 
+				"						'Paid') AS paidIncurred," + 
+				"						CASE " + 
+				"							WHEN YEAR_ID=1 THEN 'Current Period' " + 
+				"							WHEN YEAR_ID=2 THEN 'Prior Period' " + 
+				"							ELSE 'Prior Period 2' " + 
+				"						END AS TM_PRD_NM," + 
+				"						CASE " + 
+				"							WHEN YEAR_ID=1 THEN 201903 " + 
+				"							WHEN YEAR_ID=2 THEN 201803 " + 
+				"							ELSE 201703 " + 
+				"						END AS START_YEAR_MNTH," + 
+				"						    " + 
+				"						CASE " + 
+				"							WHEN YEAR_ID=1 THEN 202002 " + 
+				"							WHEN YEAR_ID=2 THEN 201902    " + 
+				"							ELSE  201802 " + 
+				"						END AS " + 
+				"						END_YEAR_MNTH " + 
+				"				FROM	ACIISST_PERIOD_KEY) B " + 
+				"				ON A.LKUP_ID = B.LKUP_ID " + 
+				"				AND B.YEAR_ID = A.YEAR_ID " + 
+				"			WHERE	A.LKUP_ID=1 " + 
+				"				AND A.YEAR_ID <= 1) TM_PRD_FNCTN " + 
+				"			ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH " + 
+				"			and TM_PRD_FNCTN." + 
+				"				END_YEAR_MNTH " + 
+				"		INNER JOIN CII_ACCT_PRFL " + 
+				"			ON CII_FACT_MBRSHP.ACCT_ID = CII_ACCT_PRFL.ACCT_ID " + 
+				"		LEFT	JOIN  ( " + 
+				"			select	a.acct_id," + 
+				"					a.MCID," + 
+				"					a.TM_PRD_NM," + 
+				"					a.ENGGMNT," + 
+				"					b.ENGGMNT_TIER  " + 
+				"			from	 ( " + 
+				"				select	CII_FACT_CP_ENGGMNT.acct_id," + 
+				"						CII_FACT_CP_ENGGMNT.MCID," + 
+				"						TM_PRD_FNCTN.TM_PRD_NM ," + 
+				"								(" + 
+				"						CASE  	" + 
+				"							WHEN MAX(DIM_ENGGMNT.TRDTNL_IND)= 1 THEN 'Traditional'       	" + 
+				"							WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0  	" + 
+				"					AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 1 THEN 'Care Coordination'       	" + 
+				"							WHEN MAX(DIM_ENGGMNT.TRDTNL_IND) = 0   	" + 
+				"					AND MAX(DIM_ENGGMNT.ENHNCD_IND) = 0  	" + 
+				"					AND MAX(DIM_ENGGMNT.EXPNDD_IND)= 1 THEN 'Comprehensive'       	" + 
+				"							ELSE 'Not Engaged'  " + 
+				"						END) AS ENGGMNT 	  " + 
+				"				from	CII_FACT_CP_ENGGMNT  " + 
+				"				inner join DIM_ENGGMNT      	" + 
+				"					on CII_FACT_CP_ENGGMNT.MBR_ENGGMNT_ID = DIM_ENGGMNT.ENGGMNT_ID JOIN ( " + 
+				"					SELECT	B.*," + 
+				"							  case	   	" + 
+				"								when paidIncurred='Paid' then 111101    	" + 
+				"								else B.START_YEAR_MNTH   " + 
+				"							end	as STRT_SRVC_YEAR_MNTH," + 
+				"							 case	   	" + 
+				"								WHEN paidIncurred='Paid' then 888811    	" + 
+				"								else B." + 
+				"							END_YEAR_MNTH   " + 
+				"							end	as " + 
+				"							END_SRVC_YEAR_MNTH," + 
+				"							 Case	   	" + 
+				"								when paidIncurred='Paid' then B." + 
+				"							END_YEAR_MNTH    	" + 
+				"								when paidIncurred='Incurred'    	" + 
+				"						and 0=0 then  202002    	" + 
+				"								else 888811   " + 
+				"							end	as " + 
+				"							END_RPTG_PAID_YEAR_MNTH   " + 
+				"					FROM	ACIISST_PERIOD_KEY A  JOIN (  " + 
+				"						SELECT	LKUP_ID," + 
+				"								YEAR_ID," + 
+				"								CONCAT(''," + 
+				"								'Paid' ) AS paidIncurred," + 
+				"										 " + 
+				"								CASE    	" + 
+				"									WHEN YEAR_ID=1 THEN 'Current Period'    	" + 
+				"									WHEN YEAR_ID=2 THEN 'Prior Period'    	" + 
+				"									ELSE 'Prior Period 2'  " + 
+				"								END	AS TM_PRD_NM," + 
+				"								  CASE	   	" + 
+				"									WHEN YEAR_ID=1 THEN 201903    	" + 
+				"									WHEN YEAR_ID=2 THEN 201803    	" + 
+				"									ELSE  201703   " + 
+				"								END	AS START_YEAR_MNTH," + 
+				"								  CASE	   	" + 
+				"									WHEN YEAR_ID=1 THEN 202002    	" + 
+				"									WHEN YEAR_ID=2 THEN  201902     	" + 
+				"									ELSE 201802   " + 
+				"								END	AS " + 
+				"								END_YEAR_MNTH   " + 
+				"						FROM	ACIISST_PERIOD_KEY) B    	" + 
+				"						ON A.LKUP_ID = B.LKUP_ID    	" + 
+				"						AND B.YEAR_ID = A.YEAR_ID   " + 
+				"					WHERE	A.LKUP_ID=1    	" + 
+				"						AND A.YEAR_ID <= 1  )  TM_PRD_FNCTN    	" + 
+				"					ON CII_FACT_CP_ENGGMNT.ENGGMNT_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH   	" + 
+				"					and TM_PRD_FNCTN." + 
+				"						END_YEAR_MNTH  " + 
+				"				WHERE	CII_FACT_CP_ENGGMNT.ACCT_ID = 'W0016437'  " + 
+				"				group by  CII_FACT_CP_ENGGMNT.acct_id," + 
+				"						CII_FACT_CP_ENGGMNT.MCID ," + 
+				"						TM_PRD_FNCTN.TM_PRD_NM ) a " + 
+				"			inner join ( " + 
+				"				select	 " + 
+				"						CASE	 	" + 
+				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))  	" + 
+				"							WHEN DIM_ENGGMNT.TRDTNL_IND = 0  	" + 
+				"					AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))  	" + 
+				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 0   	" + 
+				"					AND DIM_ENGGMNT.ENHNCD_IND = 0  	" + 
+				"					AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN  cast('Comprehensive' as char(20))  	" + 
+				"							ELSE cast('Not Engaged' as char(20))  " + 
+				"						END	AS ENGGMNT ," + 
+				"						 CASE	 	" + 
+				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))  	" + 
+				"							WHEN DIM_ENGGMNT.TRDTNL_IND = 0  	" + 
+				"					AND DIM_ENGGMNT.ENHNCD_IND= 1 THEN cast('Care Coordination' as char(20))  	" + 
+				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 0   	" + 
+				"					AND DIM_ENGGMNT.ENHNCD_IND = 0  	" + 
+				"					AND DIM_ENGGMNT.EXPNDD_IND= 1 THEN cast('Comprehensive' as char(20))  	" + 
+				"							ELSE cast('Not Engaged' as char(20))  " + 
+				"						END	AS ENGGMNT_TIER                        " + 
+				"				from	DIM_ENGGMNT 					   " + 
+				"				union	all 					   " + 
+				"				select	 " + 
+				"						CASE	 	" + 
+				"							WHEN DIM_ENGGMNT.TRDTNL_IND= 1 THEN cast('Traditional' as char(20))  	" + 
+				"							else cast('Care Coordination' as char(20))  " + 
+				"						end	as ENGGMNT ," + 
+				"						cast( 'Comprehensive' as char(20))  AS ENGGMNT_TIER  " + 
+				"				from	DIM_ENGGMNT  " + 
+				"				where	DIM_ENGGMNT.TRDTNL_IND= 1  	" + 
+				"					or DIM_ENGGMNT.ENHNCD_IND= 1 					   " + 
+				"				union	all 					   " + 
+				"				select	cast('Traditional' as char(20)) as ENGGMNT," + 
+				"						cast('Care Coordination' as char(20))  AS ENGGMNT_TIER  " + 
+				"				from	DIM_ENGGMNT  " + 
+				"				where	DIM_ENGGMNT.TRDTNL_IND= 1 ) b  	" + 
+				"				on a.ENGGMNT = b.ENGGMNT				   )  TMBRENGGMNT   	" + 
+				"			ON CII_FACT_MBRSHP.ACCT_ID = TMBRENGGMNT.ACCT_ID   	" + 
+				"			and CII_FACT_MBRSHP.MCID=TMBRENGGMNT.MCID   	" + 
+				"			and TM_PRD_FNCTN.TM_PRD_NM =  TMBRENGGMNT.TM_PRD_NM " + 
+				"		INNER JOIN DIM_AGE_GRP " + 
+				"			ON CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY = DIM_AGE_GRP.AGE_GRP_KEY  " + 
+				"		WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   " + 
+				"		GROUP BY coalesce(TMBRENGGMNT.ENGGMNT_TIER," + 
+				"				'Not Engaged' )," + 
+				"				DIM_AGE_GRP.AGE_GRP_DESC," + 
+				"				TM_PRD_FNCTN.TM_PRD_NM," + 
+				"				CII_ACCT_PRFL.ACCT_ID," + 
+				"				CII_FACT_MBRSHP.MCID," + 
+				"				CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY ) AS MBRSHP " + 
+				"	LEFT OUTER JOIN  (  " + 
+				"		SELECT	DIM_SITE_SRVC.SITE_SRVC_NM AS SITE_SRVC_NM," + 
+				"				SUM(" + 
+				"				case " + 
+				"					when CII_FACT_CLM_LINE.MBR_CVRG_TYPE_CD='001' then CII_FACT_CLM_LINE.ACCT_PAID_AMT " + 
+				"					else 0 " + 
+				"				end ) AS MDCL_ACCT_PAID_AMT," + 
+				"				TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM," + 
+				"				CII_FACT_CLM_LINE.MCID AS MCID," + 
+				"				CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY," + 
+				"				CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID  " + 
+				"		FROM	CII_FACT_CLM_LINE " + 
+				"		INNER JOIN (" + 
+				"			SELECT	B.*," + 
+				"					case " + 
+				"						when paidIncurred='Paid' then 111101 " + 
+				"						else B.START_YEAR_MNTH " + 
+				"					end as STRT_SRVC_YEAR_MNTH," + 
+				"					case " + 
+				"						WHEN paidIncurred='Paid' then 888811 " + 
+				"						else B." + 
+				"					END_YEAR_MNTH " + 
+				"					end as " + 
+				"					END_SRVC_YEAR_MNTH," + 
+				"					Case " + 
+				"						when paidIncurred='Paid' then B." + 
+				"					END_YEAR_MNTH " + 
+				"						when paidIncurred='Incurred' " + 
+				"				and 0=0 then 202002 " + 
+				"						else 888811 " + 
+				"					end as " + 
+				"					END_RPTG_PAID_YEAR_MNTH " + 
+				"			FROM	ACIISST_PERIOD_KEY A JOIN     (" + 
+				"				SELECT	LKUP_ID," + 
+				"						YEAR_ID," + 
+				"						 CONCAT(''," + 
+				"						'Paid') AS paidIncurred," + 
+				"						CASE " + 
+				"							WHEN YEAR_ID=1 THEN 'Current Period' " + 
+				"							WHEN YEAR_ID=2 THEN 'Prior Period' " + 
+				"							ELSE 'Prior Period 2' " + 
+				"						END AS TM_PRD_NM," + 
+				"						CASE " + 
+				"							WHEN YEAR_ID=1 THEN 201903 " + 
+				"							WHEN YEAR_ID=2 THEN 201803 " + 
+				"							ELSE 201703 " + 
+				"						END AS START_YEAR_MNTH," + 
+				"						    " + 
+				"						CASE " + 
+				"							WHEN YEAR_ID=1 THEN 202002 " + 
+				"							WHEN YEAR_ID=2 THEN 201902    " + 
+				"							ELSE  201802 " + 
+				"						END AS " + 
+				"						END_YEAR_MNTH " + 
+				"				FROM	ACIISST_PERIOD_KEY) B " + 
+				"				ON A.LKUP_ID = B.LKUP_ID " + 
+				"				AND B.YEAR_ID = A.YEAR_ID " + 
+				"			WHERE	A.LKUP_ID=1 " + 
+				"				AND A.YEAR_ID <= 1) TM_PRD_FNCTN " + 
+				"			ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH " + 
+				"			and TM_PRD_FNCTN." + 
+				"				END_SRVC_YEAR_MNTH " + 
+				"			AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH " + 
+				"			and TM_PRD_FNCTN." + 
+				"				END_RPTG_PAID_YEAR_MNTH " + 
+				"		INNER JOIN DIM_SITE_SRVC " + 
+				"			ON CII_FACT_CLM_LINE.SITE_SRVC_CD = DIM_SITE_SRVC.SITE_SRVC_CD " + 
+				"			AND CII_FACT_CLM_LINE.MBR_cvrg_type_cd <> 'back_fill'  " + 
+				"		WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   " + 
+				"		GROUP BY DIM_SITE_SRVC.SITE_SRVC_NM," + 
+				"				TM_PRD_FNCTN.TM_PRD_NM," + 
+				"				CII_FACT_CLM_LINE.MCID," + 
+				"				CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY," + 
+				"				CII_FACT_CLM_LINE.ACCT_ID ) AS CLMS " + 
+				"		ON MBRSHP.MCID=CLMS.MCID " + 
+				"		AND MBRSHP.TM_PRD_NM=CLMS.TM_PRD_NM " + 
+				"		AND MBRSHP.ACCT_AGE_GRP_KEY=CLMS.ACCT_AGE_GRP_KEY " + 
+				"		AND MBRSHP.ACCT_ID=CLMS.ACCT_ID  " + 
+				"	GROUP BY MBRSHP.MBR_ENGGMNT_TIER," + 
+				"			CLMS.SITE_SRVC_NM," + 
+				"			MBRSHP.AGE_GRP_DESC," + 
+				"			MBRSHP.TM_PRD_NM ) AS FNL   " + 
+				"ORDER BY Member_Engagement_Tier," + 
+				"		Site_Service_Name," + 
+				"		Age_Group_Description," + 
+				"		Medical_Member_Paid_PMPM";
+
+		 /*query =  "select distinct c.logicalname ln, (ec.physicalName + 1) ep from "
+		 
+				+ "concept c, engineconcept ec, engine e inner join sometable s on c.logicalname=s.logical where (ec.localconceptid=c.localconceptid and "
+				+ "c.conceptualname in ('val1', 'val2')) or (ec.localconceptid + 5) =1 group by ln order by ln limit 200 offset 50 ";// order by c.logicalname";
+		*/
+		
+		// key things to look at
+		// select expression item and select item
+		// from - seems to be many combinations to from that is interesting
+		// selectbody - it can either be a simple one or a set operation - This is where the union sits. This can be a plain select or something else - I only accomodate for plain select at this point
+		// same with join as well
+		// the select item itself can be a expression
+		
+		// we need a way to parse
+		// but more importantly - we also need a way to express it in pixel
+		
+		// I need the query struct to have to have a full select query struct
+		
+		/*query = "SELECT City FROM Customers\r\n" + 
+				"UNION\r\n" + 
+				"SELECT City FROM Suppliers\r\n" + 
+				"ORDER BY City;";
+		*/
+		String query3 = "Select col as abc from (select mango from t) k";
+
+		String query4 = " SELECT Health_Condition_Category_Description AS \"Health Condition Category Description\",\r\n" + 
+				"		Total_Utilization_Count AS \"Total Utilization Count\"  \r\n" + 
+				"FROM	 (  \r\n" + 
+				"SELECT	CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
+				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,CLMS.TM_PRD_NM AS Time_Period  \r\n" + 
+				"FROM	 (  \r\n" + 
+				"SELECT	DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+				"		sum(CII_FACT_CLM_LINE.ACCT_ADMT_CNT + CII_FACT_CLM_LINE.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
+				"		TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM  \r\n" + 
+				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case	\r\n" + 
+				"	when paidIncurred='Paid' then 111101 \r\n" + 
+				"	else B.START_YEAR_MNTH \r\n" + 
+				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case	\r\n" + 
+				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				"	else B.END_YEAR_MNTH \r\n" + 
+				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case	\r\n" + 
+				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				"	when paidIncurred='Incurred' \r\n" + 
+				"	and 0=0 then 201908 \r\n" + 
+				"	else 888811 \r\n" + 
+				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				"	ELSE 'Prior Period 2' \r\n" + 
+				"END	AS TM_PRD_NM, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				"	ELSE 201609 \r\n" + 
+				"END	AS START_YEAR_MNTH,     \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+				"	ELSE  201708 \r\n" + 
+				"END	AS END_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE	A.LKUP_ID=1 \r\n" + 
+				"	AND A.YEAR_ID <= 1) TM_PRD_FNCTN \r\n" + 
+				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
+				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
+				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY  \r\n" + 
+				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
+				"GROUP BY DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,TM_PRD_FNCTN.TM_PRD_NM ) AS CLMS  \r\n" + 
+				"GROUP BY CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.TM_PRD_NM ) AS FNL   \r\n" + 
+				"ORDER BY Health_Condition_Category_Description,Total_Utilization_Count";
+		
+		String query5 = "SELECT Time_Period AS \"Time Period\",Health_Condition_Category_Description AS \"Health Condition Category Description\",\r\n" + 
+				"		Total_Utilization_Count AS \"Total Utilization Count\",Paid_Amount AS \"Paid Amount\",\r\n" + 
+				"		Account_Name AS \"Account Name\",CBSA_Name AS \"CBSA Name\",ICD_Diagnosis_Source_Short_Code_Definition_Text AS \"ICD Diagnosis Source Short Code Definition Text\",\r\n" + 
+				"		Paid_PMPM AS \"Paid PMPM\",Paid_HCC_Indicator AS \"Paid HCC Indicator\"  \r\n" + 
+				"FROM	 (  \r\n" + 
+				"SELECT	CLMS.TM_PRD_NM AS Time_Period,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
+				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,SUM(CLMS.ACCT_PAID_AMT) AS Paid_Amount,\r\n" + 
+				"		CLMS.CII_ACCT_PRFL_ACCT_NM AS Account_Name,CLMS.DIM_CBSA_CBSA_NM AS CBSA_Name,\r\n" + 
+				"		CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT AS ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
+				"		CASE \r\n" + 
+				"	WHEN SUM(MBRSHP.TOTL_CVRG_CNT) = 0 THEN 0 \r\n" + 
+				"	ELSE SUM(CAST (CLMS.ACCT_PAID_AMT as DECIMAL(18,6))) / SUM(CAST (MBRSHP.TOTL_CVRG_CNT as DECIMAL(18,\r\n" + 
+				"		6))) \r\n" + 
+				"END	AS Paid_PMPM,CLMS.PAID_HCC_IND AS Paid_HCC_Indicator  \r\n" + 
+				"FROM	 (  \r\n" + 
+				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+				"		sum(cii_fact_clm_line.ACCT_ADMT_CNT +cii_fact_clm_line.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
+				"		SUM(CII_FACT_CLM_LINE.ACCT_PAID_AMT) AS ACCT_PAID_AMT,CII_ACCT_PRFL.ACCT_NM AS CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+				"		DIM_CBSA.CBSA_NM AS DIM_CBSA_CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT AS DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N') AS PAID_HCC_IND,CII_FACT_CLM_LINE.CBSA_ID AS CBSA_ID,\r\n" + 
+				"		CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID  \r\n" + 
+				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case	\r\n" + 
+				"	when paidIncurred='Paid' then 111101 \r\n" + 
+				"	else B.START_YEAR_MNTH \r\n" + 
+				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case	\r\n" + 
+				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				"	else B.END_YEAR_MNTH \r\n" + 
+				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case	\r\n" + 
+				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				"	when paidIncurred='Incurred' \r\n" + 
+				"	and 0=0 then 201908 \r\n" + 
+				"	else 888811 \r\n" + 
+				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				"	ELSE 'Prior Period 2' \r\n" + 
+				"END	AS TM_PRD_NM, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				"	ELSE 201609 \r\n" + 
+				"END	AS START_YEAR_MNTH,     \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+				"	ELSE  201708 \r\n" + 
+				"END	AS END_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE	A.LKUP_ID=1 \r\n" + 
+				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
+				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
+				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY INNER JOIN CII_ACCT_PRFL \r\n" + 
+				"	ON CII_FACT_CLM_LINE.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_CBSA \r\n" + 
+				"	ON CII_FACT_CLM_LINE.CBSA_ID = DIM_CBSA.CBSA_ID LEFT JOIN (\r\n" + 
+				"select TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID,  \r\n" + 
+				"CASE \r\n" + 
+				"	WHEN  CONCAT('','Paid') = 'Paid' THEN \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN SUM(cii_fact_clm_line.ACCT_PAID_AMT) >= 100000  THEN 'Y' \r\n" + 
+				"	ELSE 'N' \r\n" + 
+				"END\r\n" + 
+				"	ELSE \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN SUM(cii_fact_clm_line.ACCT_ALWD_AMT) >= 100000  THEN 'Y' \r\n" + 
+				"	ELSE 'N' \r\n" + 
+				"END\r\n" + 
+				"END AS PAID_HCC_IND\r\n" + 
+				"from cii_fact_clm_line \r\n" + 
+				"JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case \r\n" + 
+				" when paidIncurred='Paid' then 111101 \r\n" + 
+				" else B.START_YEAR_MNTH \r\n" + 
+				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case \r\n" + 
+				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				" else B.END_YEAR_MNTH \r\n" + 
+				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case \r\n" + 
+				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				" when paidIncurred='Incurred' \r\n" + 
+				" and 0=0 then 201908 \r\n" + 
+				" else 888811 \r\n" + 
+				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
+				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				" ELSE 'Prior Period 2'\r\n" + 
+				"END AS TM_PRD_NM, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				" ELSE 201609 \r\n" + 
+				"END AS START_YEAR_MNTH, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
+				" ELSE  201708 \r\n" + 
+				"END AS END_YEAR_MNTH \r\n" + 
+				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
+				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE A.LKUP_ID=1 \r\n" + 
+				" AND A.YEAR_ID <= 3)  TM_PRD_FNCTN \r\n" + 
+				" ON CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH\r\n" + 
+				"	AND RPTG_PAID_YEAR_MNTH_NBR between TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH\r\n" + 
+				"WHERE cii_fact_clm_line.ACCT_ID = 'W0016437'\r\n" + 
+				"	AND cii_fact_clm_line.MBR_CVRG_TYPE_CD IN ('001','102')\r\n" + 
+				"group by TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID\r\n" + 
+				")HCC_CHK \r\n" + 
+				"	ON HCC_CHK.MCID=CII_FACT_CLM_LINE.MCID \r\n" + 
+				"	and HCC_CHK.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM  \r\n" + 
+				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
+				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+				"		CII_ACCT_PRFL.ACCT_NM,DIM_CBSA.CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N'),CII_FACT_CLM_LINE.CBSA_ID,\r\n" + 
+				"		CII_FACT_CLM_LINE.ACCT_ID ) AS CLMS LEFT OUTER JOIN  (  \r\n" + 
+				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,SUM(\r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 \r\n" + 
+				"	ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT \r\n" + 
+				"END) AS TOTL_CVRG_CNT,CII_FACT_MBRSHP.CBSA_ID AS CBSA_ID,CII_FACT_MBRSHP.ACCT_ID AS ACCT_ID  \r\n" + 
+				"FROM	CII_FACT_MBRSHP INNER JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case	\r\n" + 
+				"	when paidIncurred='Paid' then 111101 \r\n" + 
+				"	else B.START_YEAR_MNTH \r\n" + 
+				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case	\r\n" + 
+				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				"	else B.END_YEAR_MNTH \r\n" + 
+				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case	\r\n" + 
+				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				"	when paidIncurred='Incurred' \r\n" + 
+				"	and 0=0 then 201908 \r\n" + 
+				"	else 888811 \r\n" + 
+				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				"	ELSE 'Prior Period 2' \r\n" + 
+				"END	AS TM_PRD_NM, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				"	ELSE 201609 \r\n" + 
+				"END	AS START_YEAR_MNTH,     \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+				"	ELSE  201708 \r\n" + 
+				"END	AS END_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE	A.LKUP_ID=1 \r\n" + 
+				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_YEAR_MNTH LEFT JOIN (\r\n" + 
+				"select acct_id as FRC_JN,ELGBLTY_CY_MNTH_END_NBR, MCID,  MIN(CVRG_PRTY_NBR) as MIN_CVRG_PRTY_NBR,\r\n" + 
+				"		TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+				"from cii_fact_mbrshp \r\n" + 
+				"JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case \r\n" + 
+				" when paidIncurred='Paid' then 111101 \r\n" + 
+				" else B.START_YEAR_MNTH \r\n" + 
+				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case \r\n" + 
+				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				" else B.END_YEAR_MNTH \r\n" + 
+				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case \r\n" + 
+				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				" when paidIncurred='Incurred' \r\n" + 
+				" and 0=0 then 201908 \r\n" + 
+				" else 888811 \r\n" + 
+				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
+				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				" ELSE 'Prior Period 2'\r\n" + 
+				"END AS TM_PRD_NM, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				" ELSE 201609 \r\n" + 
+				"END AS START_YEAR_MNTH, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
+				" ELSE  201708 \r\n" + 
+				"END AS END_YEAR_MNTH \r\n" + 
+				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
+				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE A.LKUP_ID=1 \r\n" + 
+				" AND A.YEAR_ID <= 3) \r\n" + 
+				" TM_PRD_FNCTN \r\n" + 
+				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_YEAR_MNTH\r\n" + 
+				"\r\n" + 
+				"WHERE CII_FACT_MBRSHP.ACCT_ID = 'W0016437'\r\n" + 
+				"GROUP BY acct_id, ELGBLTY_CY_MNTH_END_NBR, MCID,TM_PRD_NM\r\n" + 
+				")  TMBRSHP \r\n" + 
+				"	ON CII_FACT_MBRSHP.CVRG_PRTY_NBR = TMBRSHP.MIN_CVRG_PRTY_NBR \r\n" + 
+				"	and CII_FACT_MBRSHP.MCID=TMBRSHP.MCID \r\n" + 
+				"	and TMBRSHP.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+				"	and TMBRSHP.ELGBLTY_CY_MNTH_END_NBR=CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR  \r\n" + 
+				"WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   \r\n" + 
+				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,CII_FACT_MBRSHP.CBSA_ID,CII_FACT_MBRSHP.ACCT_ID ) AS MBRSHP \r\n" + 
+				"	ON CLMS.CBSA_ID=MBRSHP.CBSA_ID \r\n" + 
+				"	AND CLMS.ACCT_ID=MBRSHP.ACCT_ID \r\n" + 
+				"	AND CLMS.TM_PRD_NM=MBRSHP.TM_PRD_NM  \r\n" + 
+				"GROUP BY CLMS.TM_PRD_NM,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+				"		CLMS.DIM_CBSA_CBSA_NM,CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,CLMS.PAID_HCC_IND ) AS FNL   \r\n" + 
+				"ORDER BY Time_Period,Health_Condition_Category_Description,Total_Utilization_Count,\r\n" + 
+				"		Paid_Amount,Account_Name,CBSA_Name,ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
+				"		Paid_PMPM,Paid_HCC_Indicator";
+		
+		String query6 = "\r\n" + 
+				" SELECT Time_Period AS \"Time_Period\",Health_Condition_Category_Description AS \"Health_Condition_Category_Description\",\r\n" + 
+				"		Total_Utilization_Count AS \"Total_Utilization_Count\",Paid_Amount AS \"Paid_Amount\",\r\n" + 
+				"		Account_Name AS \"Account_Name\",CBSA_Name AS \"CBSA_Name\",ICD_Diagnosis_Source_Short_Code_Definition_Text AS \"ICD_Diagnosis_Source_Short_Code_Definition_Text \" ,\r\n" + 
+				"		Paid_PMPM AS \"Paid_PMPM\", Paid_HCC_Indicator AS \"Paid_HCC_Indicator\",\r\n" + 
+				"		Age_Group_Description AS \"Age_Group_Description\"  \r\n" + 
+				"FROM	 (  \r\n" + 
+				"SELECT	CLMS.TM_PRD_NM AS Time_Period,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
+				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,SUM(CLMS.ACCT_PAID_AMT) AS Paid_Amount,\r\n" + 
+				"		CLMS.CII_ACCT_PRFL_ACCT_NM AS Account_Name,CLMS.DIM_CBSA_CBSA_NM AS CBSA_Name,\r\n" + 
+				"		CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT AS ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
+				"		CASE \r\n" + 
+				"	WHEN SUM(MBRSHP.TOTL_CVRG_CNT) = 0 THEN 0 \r\n" + 
+				"	ELSE SUM(CAST (CLMS.ACCT_PAID_AMT as DECIMAL(18,6))) / SUM(CAST (MBRSHP.TOTL_CVRG_CNT as DECIMAL(18,\r\n" + 
+				"		6))) \r\n" + 
+				"END	AS Paid_PMPM,CLMS.PAID_HCC_IND AS Paid_HCC_Indicator,\r\n" + 
+				"		CLMS.DIM_AGE_GRP_AGE_GRP_DESC AS Age_Group_Description  \r\n" + 
+				"FROM	 (  \r\n" + 
+				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+				"		sum(cii_fact_clm_line.ACCT_ADMT_CNT +cii_fact_clm_line.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
+				"		SUM(CII_FACT_CLM_LINE.ACCT_PAID_AMT) AS ACCT_PAID_AMT,CII_ACCT_PRFL.ACCT_NM AS CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+				"		DIM_CBSA.CBSA_NM AS DIM_CBSA_CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT AS DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N') AS PAID_HCC_IND,\r\n" + 
+				"		DIM_AGE_GRP.AGE_GRP_DESC AS DIM_AGE_GRP_AGE_GRP_DESC,CII_FACT_CLM_LINE.CBSA_ID AS CBSA_ID,\r\n" + 
+				"		CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID,CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY  \r\n" + 
+				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case	\r\n" + 
+				"	when paidIncurred='Paid' then 111101 \r\n" + 
+				"	else B.START_YEAR_MNTH \r\n" + 
+				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case	\r\n" + 
+				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				"	else B.END_YEAR_MNTH \r\n" + 
+				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case	\r\n" + 
+				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				"	when paidIncurred='Incurred' \r\n" + 
+				"	and 0=0 then 201908 \r\n" + 
+				"	else 888811 \r\n" + 
+				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				"	ELSE 'Prior Period 2' \r\n" + 
+				"END	AS TM_PRD_NM, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				"	ELSE 201609 \r\n" + 
+				"END	AS START_YEAR_MNTH,     \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+				"	ELSE  201708 \r\n" + 
+				"END	AS END_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE	A.LKUP_ID=1 \r\n" + 
+				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
+				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
+				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY INNER JOIN CII_ACCT_PRFL \r\n" + 
+				"	ON CII_FACT_CLM_LINE.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_CBSA \r\n" + 
+				"	ON CII_FACT_CLM_LINE.CBSA_ID = DIM_CBSA.CBSA_ID LEFT JOIN (\r\n" + 
+				"select TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID,  \r\n" + 
+				"CASE \r\n" + 
+				"	WHEN  CONCAT('','Paid') = 'Paid' THEN \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN SUM(cii_fact_clm_line.ACCT_PAID_AMT) >= 100000  THEN 'Y' \r\n" + 
+				"	ELSE 'N' \r\n" + 
+				"END\r\n" + 
+				"	ELSE \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN SUM(cii_fact_clm_line.ACCT_ALWD_AMT) >= 100000  THEN 'Y' \r\n" + 
+				"	ELSE 'N' \r\n" + 
+				"END\r\n" + 
+				"END AS PAID_HCC_IND\r\n" + 
+				"from cii_fact_clm_line \r\n" + 
+				"JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case \r\n" + 
+				" when paidIncurred='Paid' then 111101 \r\n" + 
+				" else B.START_YEAR_MNTH \r\n" + 
+				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case \r\n" + 
+				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				" else B.END_YEAR_MNTH \r\n" + 
+				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case \r\n" + 
+				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				" when paidIncurred='Incurred' \r\n" + 
+				" and 0=0 then 201908 \r\n" + 
+				" else 888811 \r\n" + 
+				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
+				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				" ELSE 'Prior Period 2'\r\n" + 
+				"END AS TM_PRD_NM, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				" ELSE 201609 \r\n" + 
+				"END AS START_YEAR_MNTH, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
+				" ELSE  201708 \r\n" + 
+				"END AS END_YEAR_MNTH \r\n" + 
+				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
+				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE A.LKUP_ID=1 \r\n" + 
+				" AND A.YEAR_ID <= 3)  TM_PRD_FNCTN \r\n" + 
+				" ON CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH\r\n" + 
+				"	AND RPTG_PAID_YEAR_MNTH_NBR between TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH\r\n" + 
+				"WHERE cii_fact_clm_line.ACCT_ID = 'W0016437'\r\n" + 
+				"	AND cii_fact_clm_line.MBR_CVRG_TYPE_CD IN ('001','102')\r\n" + 
+				"group by TM_PRD_FNCTN.TM_PRD_NM, cii_fact_clm_line.MCID\r\n" + 
+				")HCC_CHK \r\n" + 
+				"	ON HCC_CHK.MCID=CII_FACT_CLM_LINE.MCID \r\n" + 
+				"	and HCC_CHK.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM \r\n" + 
+				"	INNER JOIN DIM_AGE_GRP \r\n" + 
+				"	ON CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY = DIM_AGE_GRP.AGE_GRP_KEY  \r\n" + 
+				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
+				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+				"		CII_ACCT_PRFL.ACCT_NM,DIM_CBSA.CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+				"		COALESCE(HCC_CHK.PAID_HCC_IND,'N'),\r\n" + 
+				"			DIM_AGE_GRP.AGE_GRP_DESC,CII_FACT_CLM_LINE.CBSA_ID,CII_FACT_CLM_LINE.ACCT_ID,\r\n" + 
+				"		CII_FACT_CLM_LINE.ACCT_AGE_GRP_KEY ) AS CLMS LEFT OUTER JOIN  (  \r\n" + 
+				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,SUM(\r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 \r\n" + 
+				"	ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT \r\n" + 
+				"END) AS TOTL_CVRG_CNT,CII_FACT_MBRSHP.CBSA_ID AS CBSA_ID,CII_FACT_MBRSHP.ACCT_ID AS ACCT_ID,\r\n" + 
+				"		CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY AS ACCT_AGE_GRP_KEY  \r\n" + 
+				"FROM	CII_FACT_MBRSHP INNER JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case	\r\n" + 
+				"	when paidIncurred='Paid' then 111101 \r\n" + 
+				"	else B.START_YEAR_MNTH \r\n" + 
+				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case	\r\n" + 
+				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				"	else B.END_YEAR_MNTH \r\n" + 
+				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case	\r\n" + 
+				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				"	when paidIncurred='Incurred' \r\n" + 
+				"	and 0=0 then 201908 \r\n" + 
+				"	else 888811 \r\n" + 
+				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				"	ELSE 'Prior Period 2' \r\n" + 
+				"END	AS TM_PRD_NM, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				"	ELSE 201609 \r\n" + 
+				"END	AS START_YEAR_MNTH,     \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+				"	ELSE  201708 \r\n" + 
+				"END	AS END_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE	A.LKUP_ID=1 \r\n" + 
+				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_YEAR_MNTH LEFT JOIN (\r\n" + 
+				"select acct_id as FRC_JN,ELGBLTY_CY_MNTH_END_NBR, MCID,  MIN(CVRG_PRTY_NBR) as MIN_CVRG_PRTY_NBR,\r\n" + 
+				"		TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+				"from cii_fact_mbrshp \r\n" + 
+				"JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case \r\n" + 
+				" when paidIncurred='Paid' then 111101 \r\n" + 
+				" else B.START_YEAR_MNTH \r\n" + 
+				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case \r\n" + 
+				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				" else B.END_YEAR_MNTH \r\n" + 
+				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case \r\n" + 
+				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				" when paidIncurred='Incurred' \r\n" + 
+				" and 0=0 then 201908 \r\n" + 
+				" else 888811 \r\n" + 
+				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
+				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				" ELSE 'Prior Period 2'\r\n" + 
+				"END AS TM_PRD_NM, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				" ELSE 201609 \r\n" + 
+				"END AS START_YEAR_MNTH, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
+				" ELSE  201708 \r\n" + 
+				"END AS END_YEAR_MNTH \r\n" + 
+				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
+				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE A.LKUP_ID=1 \r\n" + 
+				" AND A.YEAR_ID <= 3) \r\n" + 
+				" TM_PRD_FNCTN \r\n" + 
+				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_YEAR_MNTH\r\n" + 
+				"\r\n" + 
+				"WHERE CII_FACT_MBRSHP.ACCT_ID = 'W0016437'\r\n" + 
+				"GROUP BY acct_id, ELGBLTY_CY_MNTH_END_NBR, MCID,TM_PRD_NM\r\n" + 
+				")  TMBRSHP \r\n" + 
+				"	ON CII_FACT_MBRSHP.CVRG_PRTY_NBR = TMBRSHP.MIN_CVRG_PRTY_NBR \r\n" + 
+				"	and CII_FACT_MBRSHP.MCID=TMBRSHP.MCID \r\n" + 
+				"	and TMBRSHP.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+				"	and TMBRSHP.ELGBLTY_CY_MNTH_END_NBR=CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR  \r\n" + 
+				"WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   \r\n" + 
+				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,CII_FACT_MBRSHP.CBSA_ID,CII_FACT_MBRSHP.ACCT_ID,\r\n" + 
+				"		CII_FACT_MBRSHP.ACCT_AGE_GRP_KEY ) AS MBRSHP \r\n" + 
+				"	ON CLMS.CBSA_ID=MBRSHP.CBSA_ID \r\n" + 
+				"	AND CLMS.ACCT_ID=MBRSHP.ACCT_ID \r\n" + 
+				"	AND CLMS.TM_PRD_NM=MBRSHP.TM_PRD_NM \r\n" + 
+				"	AND CLMS.ACCT_AGE_GRP_KEY=MBRSHP.ACCT_AGE_GRP_KEY  \r\n" + 
+				"GROUP BY CLMS.TM_PRD_NM,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+				"		CLMS.DIM_CBSA_CBSA_NM,CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,CLMS.PAID_HCC_IND,\r\n" + 
+				"		CLMS.DIM_AGE_GRP_AGE_GRP_DESC ) AS FNL\r\n" + 
+				"	";
+		String query7 = "SELECT Time_Period AS \"Time Period\",Health_Condition_Category_Description AS \"Health Condition Category Description\",\r\n" + 
+				"		Total_Utilization_Count AS \"Total Utilization Count\",Paid_Amount AS \"Paid Amount\",\r\n" + 
+				"		Account_Name AS \"Account Name\",CBSA_Name AS \"CBSA Name\",ICD_Diagnosis_Source_Short_Code_Definition_Text AS \"ICD Diagnosis Source Short Code Definition Text\",\r\n" + 
+				"		Paid_PMPM AS \"Paid PMPM\"  \r\n" + 
+				"FROM	 (  \r\n" + 
+				"SELECT	CLMS.TM_PRD_NM AS Time_Period,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC AS Health_Condition_Category_Description,\r\n" + 
+				"		SUM(CLMS.TOTL_UTIL_CNT) AS Total_Utilization_Count,SUM(CLMS.ACCT_PAID_AMT) AS Paid_Amount,\r\n" + 
+				"		CLMS.CII_ACCT_PRFL_ACCT_NM AS Account_Name,CLMS.DIM_CBSA_CBSA_NM AS CBSA_Name,\r\n" + 
+				"		CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT AS ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
+				"		CASE \r\n" + 
+				"	WHEN SUM(MBRSHP.TOTL_CVRG_CNT) = 0 THEN 0 \r\n" + 
+				"	ELSE SUM(CAST (CLMS.ACCT_PAID_AMT as DECIMAL(18,6))) / SUM(CAST (MBRSHP.TOTL_CVRG_CNT as DECIMAL(18,\r\n" + 
+				"		6))) \r\n" + 
+				"END	AS Paid_PMPM\r\n" + 
+				"FROM	 (  \r\n" + 
+				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC AS DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+				"		sum(cii_fact_clm_line.ACCT_ADMT_CNT +cii_fact_clm_line.ACCT_VST_CNT) AS TOTL_UTIL_CNT,\r\n" + 
+				"		SUM(CII_FACT_CLM_LINE.ACCT_PAID_AMT) AS ACCT_PAID_AMT,CII_ACCT_PRFL.ACCT_NM AS CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+				"		DIM_CBSA.CBSA_NM AS DIM_CBSA_CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT AS DIM_DIAG_SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+				"		CII_FACT_CLM_LINE.CBSA_ID AS CBSA_ID,CII_FACT_CLM_LINE.ACCT_ID AS ACCT_ID  \r\n" + 
+				"FROM	CII_FACT_CLM_LINE INNER JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case	\r\n" + 
+				"	when paidIncurred='Paid' then 111101 \r\n" + 
+				"	else B.START_YEAR_MNTH \r\n" + 
+				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case	\r\n" + 
+				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				"	else B.END_YEAR_MNTH \r\n" + 
+				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case	\r\n" + 
+				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				"	when paidIncurred='Incurred' \r\n" + 
+				"	and 0=0 then 201908 \r\n" + 
+				"	else 888811 \r\n" + 
+				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				"	ELSE 'Prior Period 2' \r\n" + 
+				"END	AS TM_PRD_NM, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				"	ELSE 201609 \r\n" + 
+				"END	AS START_YEAR_MNTH,     \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+				"	ELSE  201708 \r\n" + 
+				"END	AS END_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE	A.LKUP_ID=1 \r\n" + 
+				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+				"	ON CII_FACT_CLM_LINE.CLM_SRVC_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.STRT_SRVC_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_SRVC_YEAR_MNTH \r\n" + 
+				"	AND CII_FACT_CLM_LINE.RPTG_PAID_YEAR_MNTH_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_RPTG_PAID_YEAR_MNTH INNER JOIN DIM_DIAG \r\n" + 
+				"	ON CII_FACT_CLM_LINE.RPTG_PRNCPAL_DIAG_KEY = DIM_DIAG.DIAG_KEY INNER JOIN CII_ACCT_PRFL \r\n" + 
+				"	ON CII_FACT_CLM_LINE.ACCT_ID = CII_ACCT_PRFL.ACCT_ID INNER JOIN DIM_CBSA \r\n" + 
+				"	ON CII_FACT_CLM_LINE.CBSA_ID = DIM_CBSA.CBSA_ID  \r\n" + 
+				"WHERE	CII_FACT_CLM_LINE.ACCT_ID = 'W0016437'   \r\n" + 
+				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,DIM_DIAG.HLTH_CNDTN_CTGRY_DESC,\r\n" + 
+				"		CII_ACCT_PRFL.ACCT_NM,DIM_CBSA.CBSA_NM,DIM_DIAG.SRC_SHRT_CD_DEFN_TXT,\r\n" + 
+				"		CII_FACT_CLM_LINE.CBSA_ID,CII_FACT_CLM_LINE.ACCT_ID ) AS CLMS LEFT OUTER JOIN  (  \r\n" + 
+				"SELECT	TM_PRD_FNCTN.TM_PRD_NM AS TM_PRD_NM,SUM(\r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 \r\n" + 
+				"	ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT \r\n" + 
+				"END) AS TOTL_CVRG_CNT,CII_FACT_MBRSHP.CBSA_ID AS CBSA_ID,CII_FACT_MBRSHP.ACCT_ID AS ACCT_ID  \r\n" + 
+				"FROM	CII_FACT_MBRSHP INNER JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case	\r\n" + 
+				"	when paidIncurred='Paid' then 111101 \r\n" + 
+				"	else B.START_YEAR_MNTH \r\n" + 
+				"end	as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case	\r\n" + 
+				"	WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				"	else B.END_YEAR_MNTH \r\n" + 
+				"end	as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case	\r\n" + 
+				"	when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				"	when paidIncurred='Incurred' \r\n" + 
+				"	and 0=0 then 201908 \r\n" + 
+				"	else 888811 \r\n" + 
+				"end	as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY A JOIN     (\r\n" + 
+				"SELECT	LKUP_ID, YEAR_ID,  CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				"	ELSE 'Prior Period 2' \r\n" + 
+				"END	AS TM_PRD_NM, \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				"	ELSE 201609 \r\n" + 
+				"END	AS START_YEAR_MNTH,     \r\n" + 
+				"CASE	\r\n" + 
+				"	WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				"	WHEN YEAR_ID=2 THEN 201808    \r\n" + 
+				"	ELSE  201708 \r\n" + 
+				"END	AS END_YEAR_MNTH \r\n" + 
+				"FROM	ACIISST_PERIOD_KEY) B \r\n" + 
+				"	ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				"	AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE	A.LKUP_ID=1 \r\n" + 
+				"	AND A.YEAR_ID <= 3) TM_PRD_FNCTN \r\n" + 
+				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_YEAR_MNTH LEFT JOIN (\r\n" + 
+				"select acct_id as FRC_JN,ELGBLTY_CY_MNTH_END_NBR, MCID,  MIN(CVRG_PRTY_NBR) as MIN_CVRG_PRTY_NBR,\r\n" + 
+				"		TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+				"from cii_fact_mbrshp \r\n" + 
+				"JOIN (\r\n" + 
+				"SELECT	B.*, \r\n" + 
+				"case \r\n" + 
+				" when paidIncurred='Paid' then 111101 \r\n" + 
+				" else B.START_YEAR_MNTH \r\n" + 
+				"end as STRT_SRVC_YEAR_MNTH,\r\n" + 
+				"case \r\n" + 
+				" WHEN paidIncurred='Paid' then 888811 \r\n" + 
+				" else B.END_YEAR_MNTH \r\n" + 
+				"end as END_SRVC_YEAR_MNTH,\r\n" + 
+				"Case \r\n" + 
+				" when paidIncurred='Paid' then B.END_YEAR_MNTH \r\n" + 
+				" when paidIncurred='Incurred' \r\n" + 
+				" and 0=0 then 201908 \r\n" + 
+				" else 888811 \r\n" + 
+				"end as END_RPTG_PAID_YEAR_MNTH \r\n" + 
+				"FROM ACIISST_PERIOD_KEY A JOIN (\r\n" + 
+				"SELECT LKUP_ID, YEAR_ID, CONCAT('','Paid') AS paidIncurred, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 'Current Period' \r\n" + 
+				" WHEN YEAR_ID=2 THEN 'Prior Period' \r\n" + 
+				" ELSE 'Prior Period 2'\r\n" + 
+				"END AS TM_PRD_NM, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 201809 \r\n" + 
+				" WHEN YEAR_ID=2 THEN 201709 \r\n" + 
+				" ELSE 201609 \r\n" + 
+				"END AS START_YEAR_MNTH, \r\n" + 
+				"CASE \r\n" + 
+				" WHEN YEAR_ID=1 THEN 201908 \r\n" + 
+				" WHEN YEAR_ID=2 THEN 201808  \r\n" + 
+				" ELSE  201708 \r\n" + 
+				"END AS END_YEAR_MNTH \r\n" + 
+				"FROM ACIISST_PERIOD_KEY) B \r\n" + 
+				" ON A.LKUP_ID = B.LKUP_ID \r\n" + 
+				" AND B.YEAR_ID = A.YEAR_ID \r\n" + 
+				"WHERE A.LKUP_ID=1 \r\n" + 
+				" AND A.YEAR_ID <= 3) \r\n" + 
+				" TM_PRD_FNCTN \r\n" + 
+				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
+				"	and TM_PRD_FNCTN.END_YEAR_MNTH\r\n" + 
+				"\r\n" + 
+				"WHERE CII_FACT_MBRSHP.ACCT_ID = 'W0016437'\r\n" + 
+				"GROUP BY acct_id, ELGBLTY_CY_MNTH_END_NBR, MCID,TM_PRD_NM\r\n" + 
+				")  TMBRSHP \r\n" + 
+				"	ON CII_FACT_MBRSHP.CVRG_PRTY_NBR = TMBRSHP.MIN_CVRG_PRTY_NBR \r\n" + 
+				"	and CII_FACT_MBRSHP.MCID=TMBRSHP.MCID \r\n" + 
+				"	and TMBRSHP.TM_PRD_NM=TM_PRD_FNCTN.TM_PRD_NM\r\n" + 
+				"	and TMBRSHP.ELGBLTY_CY_MNTH_END_NBR=CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR  \r\n" + 
+				"WHERE	CII_FACT_MBRSHP.ACCT_ID = 'W0016437'   \r\n" + 
+				"GROUP BY TM_PRD_FNCTN.TM_PRD_NM,CII_FACT_MBRSHP.CBSA_ID,CII_FACT_MBRSHP.ACCT_ID ) AS MBRSHP \r\n" + 
+				"	ON CLMS.CBSA_ID=MBRSHP.CBSA_ID \r\n" + 
+				"	AND CLMS.ACCT_ID=MBRSHP.ACCT_ID \r\n" + 
+				"	AND CLMS.TM_PRD_NM=MBRSHP.TM_PRD_NM  \r\n" + 
+				"GROUP BY CLMS.TM_PRD_NM,CLMS.DIM_DIAG_HLTH_CNDTN_CTGRY_DESC,CLMS.CII_ACCT_PRFL_ACCT_NM,\r\n" + 
+				"		CLMS.DIM_CBSA_CBSA_NM,CLMS.DIM_DIAG_SRC_SHRT_CD_DEFN_TXT ) AS FNL   \r\n" + 
+				"ORDER BY Time_Period,Health_Condition_Category_Description,Total_Utilization_Count,\r\n" + 
+				"		Paid_Amount,Account_Name,CBSA_Name,ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
+				"		Paid_PMPM";
+		
+		String query8 = "Select a.abc a1 from table a";
+		
+		SelectQueryStruct qs = test.processQuery(query7);
+		
+		Map <String, GenExpression> filterMap = new HashMap<String, GenExpression>();
+		
+		// remove the groupby on cii_fact_mbrshp.acct_id
+		List <String> columnsToRemove = new Vector<String>();
+		columnsToRemove.add("cii_fact_mbrshp.ELGBLTY_CY_MNTH_END_NBR");
+
+		// parameterize something else
+		GenExpression ge = new GenExpression();
+		ge.setOperation("Opaque");
+		ge.setLeftExpr("  Account = 'PK Imagined'  ");
+		//ACIISST_PERIOD_KEY
+		//filterMap.put("CII_FACT_CLM_LINE", ge);
+		filterMap.put("CII_FACT_MBRSHP.ACCT_ID", ge);
+		
+		//test.addRowFilter(filterMap);
+		test.appendParameter(columnsToRemove, filterMap);
+		test.printOutput(qs);
+	}
+}
+
