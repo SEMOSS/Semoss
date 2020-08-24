@@ -20,7 +20,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	protected boolean isDistinct = true;
 	
-	protected List<IQuerySort> orderBySelectors = new ArrayList<>();
+	protected List<IQuerySort> orderByOperations = new ArrayList<>();
 	protected List<QueryColumnSelector> groupBy = new ArrayList<>();
 
 	protected long limit = -1;
@@ -37,8 +37,8 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	///////////////////// ORDERING /////////////////////
 	////////////////////////////////////////////////////	
 	
-	public void setOrderBy(List<IQuerySort> orderBySelectors) {
-		this.orderBySelectors = orderBySelectors;
+	public void setOrderBy(List<IQuerySort> orderByOperations) {
+		this.orderByOperations = orderByOperations;
 	}
 	
 	public void addOrderBy(String concept, String property, String sortDir) {
@@ -49,26 +49,26 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		selector.setTable(concept);
 		selector.setColumn(property);
 		selector.setSortDir(sortDir);
-		this.orderBySelectors.add(selector);
+		this.orderByOperations.add(selector);
 	}
 	
 	public void addOrderBy(String qsName) {
 		QueryColumnOrderBySelector selector = new QueryColumnOrderBySelector(qsName);
-		this.orderBySelectors.add(selector);
+		this.orderByOperations.add(selector);
 	}
 	
 	public void addOrderBy(String qsName, String sortDir) {
 		QueryColumnOrderBySelector selector = new QueryColumnOrderBySelector(qsName);
 		selector.setSortDir(sortDir);
-		this.orderBySelectors.add(selector);
+		this.orderByOperations.add(selector);
 	}
 	
-	public void addOrderBy(QueryColumnOrderBySelector selector) {
-		this.orderBySelectors.add(selector);
+	public void addOrderBy(IQuerySort selector) {
+		this.orderByOperations.add(selector);
 	}
 	
 	public List<IQuerySort> getOrderBy() {
-		return this.orderBySelectors;
+		return this.orderByOperations;
 	}
 	
 	////////////////////////////////////////////////////
@@ -188,7 +188,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		if(incomingQS instanceof SelectQueryStruct) {
 			SelectQueryStruct selectQS = (SelectQueryStruct) incomingQS;
 			mergeGroupBy(selectQS.groupBy);
-			mergeOrderBy(selectQS.orderBySelectors);
+			mergeOrderBy(selectQS.orderByOperations);
 			if(selectQS.limit > -1) {
 				setLimit(selectQS.limit);
 			}
@@ -219,8 +219,8 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	 */
 	public void mergeOrderBy(List<IQuerySort> orderBys) {
 		for(IQuerySort selector : orderBys) {
-			if(!this.orderBySelectors.contains(selector)) {
-				this.orderBySelectors.add(selector);
+			if(!this.orderByOperations.contains(selector)) {
+				this.orderByOperations.add(selector);
 			}
 		}
 	}
@@ -324,7 +324,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	public List<Map<String, Object>> getSortInfo() {
 		List<Map<String, Object>> orderByInfo = new ArrayList<Map<String, Object>>();
-		for(IQuerySort orderBy : this.orderBySelectors) {
+		for(IQuerySort orderBy : this.orderByOperations) {
 			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
 				QueryColumnOrderBySelector columnSort = (QueryColumnOrderBySelector) orderBy;
 				Map<String, Object> selectorMap = new HashMap<String, Object>();
