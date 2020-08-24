@@ -10,12 +10,12 @@ import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
-public class CustomSortReactor extends AbstractQueryStructReactor {
+public class SortBy extends AbstractQueryStructReactor {
 
 	private static final String COLUMN_KEY = ReactorKeysEnum.COLUMN.getKey();
 	private static final String VALUES_KEY = ReactorKeysEnum.VALUES.getKey();
 	
-	public CustomSortReactor() {
+	public SortBy() {
 		this.keysToGet = new String[]{COLUMN_KEY, VALUES_KEY};
 	}
 	
