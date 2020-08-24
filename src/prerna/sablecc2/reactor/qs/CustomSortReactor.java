@@ -20,6 +20,10 @@ public class CustomSortReactor extends AbstractQueryStructReactor {
 	}
 	
 	protected AbstractQueryStruct createQueryStruct() {
+		/**
+		 * Grab the column we are sorting on
+		 * Grab the list of values we are using
+		 */
 		String columnToSort = getColumnToSort();
 		if(columnToSort == null || columnToSort.trim().isEmpty()) {
 			throw new IllegalArgumentException("Must pass in a column to sort");
