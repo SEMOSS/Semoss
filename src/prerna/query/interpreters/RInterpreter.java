@@ -889,6 +889,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					customSortArray = new StringBuilder();
 				}
 				
+				//TODO: should not always use STRING as the data type
 				String randomSortMatchVar = "cSort_" + Utility.getRandomString(6);
 				customSortArray.append(randomSortMatchVar).append(" <- ")
 					.append(RSyntaxHelper.createRColVec(customSort.getCustomOrder(), SemossDataType.STRING)).append(";");
