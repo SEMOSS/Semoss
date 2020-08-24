@@ -74,6 +74,48 @@ public abstract class AbstractQueryStruct {
 	// map of pragmas
 	protected transient Map pragmap = new HashMap();
 	
+	
+	/////////////////////////////////////// experimental ////////////////////////////////////////
+	
+	// may be a better idea to keep the hash here
+	// and make it look
+	
+	// do the selectors to be fyu
+	// so this is basically the in memory version of the properties table
+	public Map <String, SelectQueryStruct> aliasHash = new HashMap<String, SelectQueryStruct>();
+	
+	public Map randomHash = new HashMap();
+	
+	// add the joins to this query struct
+	public List<GenExpression> joins = new Vector<GenExpression>();
+	
+	public List<GenExpression> nselectors = new Vector<GenExpression>();
+	
+	// current table
+	public String currentTable = null;
+	
+	public GenExpression from = null;
+	
+	
+	// sets the body
+	public GenExpression body = null;
+	
+	public GenExpression filter = null;
+	
+	public String operation = null;
+	
+	public List<GenExpression> ngroupBy = new Vector<GenExpression>();
+
+	public List<GenExpression> norderBy = new Vector<GenExpression>();
+	
+	// parent struct
+	public GenExpression parentStruct = null;
+	
+	////////////////////////////////////// experimental /////////////////////////////////////////
+	
+	// this is the actual query
+	//public String aQuery = null;
+	
 	//////////////////////////////////////////// SELECTORS /////////////////////////////////////////////////
 	
 	public void setSelectors(List<IQuerySelector> selectors) {
@@ -401,4 +443,83 @@ public abstract class AbstractQueryStruct {
 	{
 		this.pragmap.clear();
 	}
+	
+	
+	/////////////////////////////////////// experimental ////////////////////////////////////////
+	
+	public void removeSelect(String column)
+	{
+		this.nselectors = removeExpression(column, nselectors);
+		//this.ngroupBy = removeExpression(column, ngroupBy);
+	}
+
+	public void removeGroup(String column)
+	{
+		//this.nselectors = removeExpression(column, nselectors);
+		this.ngroupBy = removeExpression(column, ngroupBy);
+	}
+	
+	public void parameterizeColumn(String column, GenExpression userFilter)
+	{
+		// need to see if the filter is already there
+		// if so.. add to that value.. 
+		// if not add a new filter
+		
+
+		// need a way to find if this column even exists
+		
+		System.out.println("Filter is set to  " + filter);
+		if(filter != null)
+		{
+			GenExpression thisFilter = new GenExpression();
+			thisFilter.setOperation(" AND ");
+			((GenExpression)filter).paranthesis = true;
+			thisFilter.setLeftExpresion(filter);
+			// forcing a random opaque one
+			userFilter.paranthesis = true;
+			thisFilter.setRightExpresion(userFilter);
+			// replace with the new filter
+			this.filter = thisFilter;
+		}
+		// add a new filter otherwise
+		else
+		{
+			this.filter = userFilter;						
+		}
+
+	}
+
+	private boolean doesColumnExist(String column)
+	{
+		boolean retValue = true;
+		// this only checks the selectors
+		
+		return retValue;
+	}
+	
+	private List <GenExpression> removeExpression(String column, List <GenExpression> input)
+	{
+		// remove first from selectors
+		List <GenExpression> output = new Vector<GenExpression>();
+		for(int selectIndex = 0;selectIndex < input.size();selectIndex++)
+		{
+			// compare the left expression
+			GenExpression thisSelector = input.get(selectIndex);
+			if(!(thisSelector.getLeftExpr() != null && thisSelector.getLeftExpr().equalsIgnoreCase(column)) && !(thisSelector.getLeftAlias() != null && thisSelector.getLeftAlias().equalsIgnoreCase(column)))
+				output.add(thisSelector);
+		}
+		//nselectors = output;
+		return output;
+		
+		// next from parameters i.e. where if we have it
+		// this can be recursive
+		
+		// next from order by if you have it
+		
+		// next from groupby if we have it		
+	}
+	
+	
+	
+	
 }
