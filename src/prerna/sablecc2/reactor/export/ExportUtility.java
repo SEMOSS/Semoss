@@ -2,8 +2,9 @@ package prerna.sablecc2.reactor.export;
 
 import org.apache.poi.xddf.usermodel.chart.ChartTypes;
 import org.apache.poi.xddf.usermodel.chart.XDDFChart;
-import org.apache.poi.xslf.usermodel.XSLFChart;
-import org.apache.poi.xssf.usermodel.XSSFChart;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFDataFormat;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTAreaChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTBarChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLblPos;
@@ -104,5 +105,16 @@ public class ExportUtility {
 
 			dLbls.setDLblPos(ctdLblPos);
 		}
+	}
+
+	public static XSSFCellStyle getCurrentStyle(XSSFWorkbook workbook, String additionalDataType) {
+		XSSFCellStyle curStyle = workbook.createCellStyle();
+		XSSFDataFormat df = workbook.createDataFormat();
+
+		if (additionalDataType.contains("currency")) {
+			curStyle.setDataFormat(df.getFormat("$#,#0.00"));
+		}
+
+		return curStyle;
 	}
 }
