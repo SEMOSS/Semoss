@@ -25,6 +25,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -822,8 +823,11 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			return;
 		}
 		
-		boolean initialized = false;
+		// custom sort
 		StringBuilder builderOrdering = null;
+		StringBuilder customSortArray = null;
+		boolean initialized = false;
+		
 		for(IQuerySort orderBy : orderByList) {
 			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
 				QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
@@ -855,10 +859,49 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					builderOrdering.append("-");
 				}
 				builderOrdering.append(tempTableName).append("$").append(orderByName);
+			} else if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.CUSTOM) {
+				QueryCustomOrderBy customSort = (QueryCustomOrderBy) orderBy;
+				
+				QueryColumnSelector orderBySelector = customSort.getColumnToSort();
+				String tableName = orderBySelector.getTable();
+				String columnName = orderBySelector.getColumn();
+				String orderByName = null;
+				if(columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					orderByName = tableName;
+				} else {
+					orderByName = columnName;
+				}
+				
+				if(!this.validHeaders.contains(orderByName)) {
+					// not a valid order by column based on what data is being 
+					// return, so just continue
+					continue;
+				}
+				
+				if(initialized) {
+					builderOrdering.append(", ");
+				} else {
+					builderOrdering = new StringBuilder();
+					initialized = true;
+				}
+				
+				if(customSortArray == null) {
+					customSortArray = new StringBuilder();
+				}
+				
+				String randomSortMatchVar = "cSort_" + Utility.getRandomString(6);
+				customSortArray.append(randomSortMatchVar).append(" <- ")
+					.append(RSyntaxHelper.createRColVec(customSort.getCustomOrder(), SemossDataType.STRING)).append(";");
+				
+				builderOrdering.append("match(").append(tempTableName).append("$").append(orderByName)
+					.append(" , ").append(randomSortMatchVar).append(")");;
 			}
 		}
 		
 		if(builderOrdering != null) {
+			if(customSortArray != null) {
+				orderBys.append(customSortArray.toString());
+			}
 			orderBys.append(tempTableName).append(" <- ").append(tempTableName)
 					.append("[order(").append(builderOrdering.toString()).append("),]");
 		}
