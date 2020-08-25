@@ -185,6 +185,10 @@ public class SchedulerH2DatabaseUtility {
 		return connection;
 	}
 	
+	public static RDBMSNativeEngine getSchedulerDB() {
+		return schedulerDb;
+	}
+	
 	public static AbstractSqlQueryUtil getQueryUtil() {
 		return schedulerDb.getQueryUtil();
 	}
@@ -358,27 +362,27 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static boolean existsInAuditTrailTable(String jobName, String jobGroup) {
-		Connection connection = connectToScheduler();
-		try (PreparedStatement statement = connection
-				.prepareStatement("SELECT COUNT(JOB_NAME) FROM SMSS_AUDIT_TRAIL WHERE JOB_NAME=? AND JOB_GROUP=?")) {
-			statement.setString(1, jobName);
-			statement.setString(2, jobGroup);
-			try (ResultSet result = statement.executeQuery()) {
-				while (result.next()) {
-					int count = result.getInt(1);
-					if (count == 0) {
-						return false;
-					}
-				}
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-			return false;
-		}
-
-		return true;
-	}
+//	public static boolean existsInAuditTrailTable(String jobName, String jobGroup) {
+//		Connection connection = connectToScheduler();
+//		try (PreparedStatement statement = connection
+//				.prepareStatement("SELECT COUNT(JOB_NAME) FROM SMSS_AUDIT_TRAIL WHERE JOB_NAME=? AND JOB_GROUP=?")) {
+//			statement.setString(1, jobName);
+//			statement.setString(2, jobGroup);
+//			try (ResultSet result = statement.executeQuery()) {
+//				while (result.next()) {
+//					int count = result.getInt(1);
+//					if (count == 0) {
+//						return false;
+//					}
+//				}
+//			}
+//		} catch (SQLException e) {
+//			logger.error(Constants.STACKTRACE, e);
+//			return false;
+//		}
+//
+//		return true;
+//	}
 
 	public static Map<String, Map<String, String>> retrieveJobsForApp(String appId) {
 		Connection connection = connectToScheduler();
