@@ -56,6 +56,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			if(url == null) {
 				throw new IllegalArgumentException("Must define the scheduler endpoint to run scheduled jobs");
 			}
+			url = url.trim();
 			if(url.endsWith("/")) {
 				url += "api/schedule/executePixel";
 			} else {
