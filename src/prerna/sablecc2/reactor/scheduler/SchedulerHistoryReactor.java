@@ -9,6 +9,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySort;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
@@ -49,7 +50,8 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 			qs.setOrderBy(sorts);
 		} else {
 			// set default
-			qs.addOrderBy(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.EXECUTION_START);
+			qs.addOrderBy(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.EXECUTION_START, 
+					QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
 		}
 		qs.setLimit(getLimit());
 		qs.setOffSet(getOffset());
