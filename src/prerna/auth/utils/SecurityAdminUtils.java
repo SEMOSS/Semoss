@@ -15,6 +15,8 @@ import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -118,6 +120,36 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addRelation("ENGINEPERMISSION", "ENGINE", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Get all user databases
+	 * @param userId
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public List<Map<String, Object>> getAllUserInsightAccess(String appId, String userId) throws IllegalArgumentException{
+		String query = "SELECT DISTINCT " 
+				+ "INSIGHT.INSIGHTID AS \"insight_id\", "
+				+ "INSIGHT.INSIGHTNAME AS \"insight_name\", " 
+				+ "INSIGHT.GLOBAL AS \"insight_public\", " 
+				+ "INSIGHT.ENGINEID AS \"app_id\", " 
+				+ "SUB_Q.NAME AS \"app_permission\", " 
+				+ "SUB_Q.USERID AS \"user_id\" " 
+				+ "FROM INSIGHT LEFT OUTER JOIN ( "
+					+ "SELECT USERINSIGHTPERMISSION.INSIGHTID, "
+						+ "PERMISSION.NAME, "
+						+ "USERINSIGHTPERMISSION.USERID "
+						+ "FROM USERINSIGHTPERMISSION "
+						+ "INNER JOIN PERMISSION on USERINSIGHTPERMISSION.PERMISSION=PERMISSION.ID "
+						+ "WHERE USERINSIGHTPERMISSION.ENGINEID = '" + appId + "' AND USERINSIGHTPERMISSION.USERID = '" + userId + "'" 
+					+ ") AS SUB_Q ON SUB_Q.INSIGHTID = INSIGHT.INSIGHTID "
+				+ "WHERE INSIGHT.ENGINEID = '" + appId + "' ORDER BY INSIGHT.INSIGHTNAME";
+		
+		HardSelectQueryStruct qs = new HardSelectQueryStruct();
+		qs.setQuery(query);
+		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
