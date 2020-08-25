@@ -323,6 +323,51 @@ public class SchedulerH2DatabaseUtility {
 
 		return true;
 	}
+	
+	public static boolean updateJobRecipesTable(String userId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters, 
+			String jobCategory, boolean triggerOnLoad, String parameters, String existingJobName, String existingJobGroup) {
+		
+		Connection connection = connectToScheduler();
+		try (PreparedStatement statement = connection
+				.prepareStatement("UPDATE SMSS_JOB_RECIPES SET USER_ID = ?, JOB_NAME = ?, JOB_GROUP = ?, CRON_EXPRESSION = ?, PIXEL_RECIPE = ?, "
+						+ "PIXEL_RECIPE_PARAMETERS = ?, JOB_CATEGORY = ?, TRIGGER_ON_LOAD = ?, PARAMETERS = ? WHERE JOB_NAME = ? AND JOB_GROUP = ?")) {
+			statement.setString(1, userId);
+			statement.setString(2, jobName);
+			statement.setString(3, jobGroup);
+			statement.setString(4, cronExpression);
+			statement.setString(7, jobCategory);
+			statement.setBoolean(8, triggerOnLoad);
+
+			if(queryUtil.allowBlobJavaObject()) {
+				statement.setBlob(5, stringToBlob(connection, recipe));
+				if(recipeParameters == null || recipeParameters.isEmpty()) {
+					statement.setNull(6, java.sql.Types.BLOB);
+				} else {
+					statement.setBlob(6, stringToBlob(connection, recipeParameters));
+				}
+				statement.setBlob(9, stringToBlob(connection, parameters));
+			} else {
+				statement.setString(5, recipe);
+				if(recipeParameters == null || recipeParameters.isEmpty()) {
+					statement.setNull(6, java.sql.Types.BLOB);
+				} else {
+					statement.setString(6, recipeParameters);
+				}
+				statement.setString(9, parameters);
+			}
+			
+			// where clause filters
+			statement.setString(10, existingJobName);
+			statement.setString(11, existingJobGroup);
+			
+			statement.executeUpdate();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return false;
+		}
+
+		return true;
+	}
 
 	public static boolean removeFromJobRecipesTable(String jobName, String jobGroup) {
 		Connection connection = connectToScheduler();

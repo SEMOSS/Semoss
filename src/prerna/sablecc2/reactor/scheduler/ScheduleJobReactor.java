@@ -45,14 +45,14 @@ public class ScheduleJobReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(ScheduleJobReactor.class);
 
 	// Inputs
-	private static final String TRIGGER_NOW = "triggerNow";
-	private static final String TRIGGER_ON_LOAD = "triggerOnLoad";
+	public static final String TRIGGER_NOW = "triggerNow";
+	public static final String TRIGGER_ON_LOAD = "triggerOnLoad";
 	public static final String PARAMETERS = "parameters";
 
 	// Outputs
-	private static final String JSON_CONFIG = "jsonConfig";
+	public static final String JSON_CONFIG = "jsonConfig";
 
-	public Scheduler scheduler = null;
+	protected Scheduler scheduler = null;
 
 	public ScheduleJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
@@ -115,7 +115,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 			// if job exists throw error, job already exists
 			if (scheduler.checkExists(jobKey)) {
-				logger.error("job" + Utility.cleanLogString(jobKey.toString()) + "already exists");
+				logger.error("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
 				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
 			}
 
@@ -148,7 +148,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 	////////////////// Helper Methods ////////////////////////
 
-	private void triggerJobNow(JobKey jobKey) {
+	protected void triggerJobNow(JobKey jobKey) {
 		try {
 			if (scheduler.checkExists(jobKey)) {
 				scheduler.triggerJob(jobKey);
@@ -158,7 +158,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 	}
 
-	public JobKey scheduleJob(JsonObject jsonObject) throws ParseConfigException, IllegalConfigException, SchedulerException {
+	protected JobKey scheduleJob(JsonObject jsonObject) throws ParseConfigException, IllegalConfigException, SchedulerException {
 		// Get the job's properties
 		JobConfig jobConfig = JobConfig.initialize(jsonObject);
 		Class<? extends Job> jobClass = RunPixelJobFromDB.class;
@@ -205,7 +205,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		return jsonObject;
 	}
 
-	private boolean getTriggerOnLoad() {
+	protected boolean getTriggerOnLoad() {
 		GenRowStruct boolGrs = this.store.getNoun(TRIGGER_ON_LOAD);
 		if (boolGrs != null && !boolGrs.isEmpty()) {
 			List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
@@ -216,7 +216,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		return false;
 	}
 
-	private boolean getTriggerNow() {
+	protected boolean getTriggerNow() {
 		GenRowStruct boolGrs = this.store.getNoun(TRIGGER_NOW);
 		if (boolGrs != null && !boolGrs.isEmpty()) {
 			List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
