@@ -100,7 +100,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			JsonObject jsonObject = createJsonObject(jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
 
 			JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
-			JobKey oldJobKey = JobKey.jobKey(jobName, jobGroup);
+			JobKey oldJobKey = JobKey.jobKey(curJobName, curJobGroup);
 
 			// if job exists throw error, job already exists
 			if (!scheduler.checkExists(oldJobKey)) {
