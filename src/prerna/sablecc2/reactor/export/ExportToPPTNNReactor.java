@@ -1,14 +1,17 @@
 package prerna.sablecc2.reactor.export;
 
 import java.awt.Rectangle;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.poi.hslf.usermodel.HSLFPictureData;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
@@ -30,6 +33,9 @@ import prerna.util.Utility;
 
 // export to excel non-native is the NN
 public class ExportToPPTNNReactor extends AbstractReactor {
+	
+	public static final String exportTemplate = "EXCEL_EXPORT_TEMPLATE";
+	
 
 	public ExportToPPTNNReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.USE_PANEL.getKey()};
@@ -64,9 +70,10 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			panel = panelUse.equalsIgnoreCase("yes") || panelUse.equalsIgnoreCase("true");
 		}
 		
-		
+		String template = insight.getProperty(exportTemplate);
+
 		// open a workbook
-		XMLSlideShow hslfSlideShow = new XMLSlideShow();	 
+		XMLSlideShow hslfSlideShow = null;
 	   
 	   Map <String, InsightSheet> allSheets = insight.getInsightSheets();
 	   Map <String, InsightPanel> allPanels = insight.getInsightPanels();
@@ -77,7 +84,19 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 	   
 	   
 	   try {
-		   while(keys.hasNext())
+			if(template != null)
+				hslfSlideShow = new XMLSlideShow(new FileInputStream(exportTemplate));	 
+			else
+				hslfSlideShow = new XMLSlideShow();	 
+
+			XSLFSlide templateSlide = null;
+		   if(exportTemplate != null)
+		   {
+			   // assumes 0th slide is the slide
+			   templateSlide = hslfSlideShow.getSlides().get(0);
+		   }
+
+			while(keys.hasNext())
 		   {
 			   String thisKey = keys.next();
 			   String sheetAppender = "";
@@ -96,7 +115,11 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 				   InsightSheet thisSheet = allSheets.get(thisKey);
 				   sheetAppender = "&sheet=" + thisKey;
 			   }
+			   
 			   XSLFSlide blankSlide = hslfSlideShow.createSlide();
+			   // make a copy of the slide
+			   if(templateSlide != null)
+				   blankSlide.importContent(templateSlide);
 			   
 			   // now capture the image and fill it
 				String prefixName = Utility.getRandomString(8);
@@ -114,6 +137,8 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			   byte[] bytes = IOUtils.toByteArray(inputStream);
 			   //close the input stream
 			   inputStream.close();
+			   
+			   FileUtils.forceDelete(new File(fileLocation));
 
 			   XSLFPictureData hslfPictureData = hslfSlideShow.addPicture(bytes, HSLFPictureData.PictureType.PNG);
 			   XSLFPictureShape pic = blankSlide.createPicture(hslfPictureData);
@@ -122,6 +147,11 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		   }
 		   
 		   String prefixName = fileName;
+		   
+		   // remove the template slide
+		   if(templateSlide != null)
+			   hslfSlideShow.removeSlide(0);
+		   
 		   String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pptx");
 		   String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 		   FileOutputStream fileOut = null;
