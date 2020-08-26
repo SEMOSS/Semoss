@@ -84,9 +84,9 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 					in.nextName();
 					String serializedObject = in.nextString();
 					IQuerySort thisSort = null;
-					if(className == QueryColumnOrderBySelector.class.getName()) {
+					if(className.equals(QueryColumnOrderBySelector.class.getName())) {
 						thisSort = SIMPLE_GSON.fromJson(serializedObject, QueryColumnOrderBySelector.class);
-					} else if(className == QueryCustomOrderBy.class.getName()) {
+					} else if(className.equals(QueryCustomOrderBy.class.getName())) {
 						thisSort = SIMPLE_GSON.fromJson(serializedObject, QueryCustomOrderBy.class);
 					}
 					orders.add(thisSort);
@@ -184,7 +184,7 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		List<IQuerySort> orders = value.getOrderBy();
 		int numOrders = orders.size();
 		if(numOrders > 0) {
-			out.name("order");
+			out.name("orders");
 			out.beginArray();
 			for(int i = 0; i < orders.size(); i++) {
 				IQuerySort orderBy = orders.get(i);
@@ -192,7 +192,7 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 				out.name("class");
 				out.value(orderBy.getClass().getName());
 				out.name("object");
-				out.value(SIMPLE_GSON.toJson(orders.get(i)));
+				out.value(SIMPLE_GSON.toJson(orderBy));
 				out.endObject();
 			}
 			out.endArray();
