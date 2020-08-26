@@ -34,7 +34,7 @@ import prerna.util.Utility;
 // export to excel non-native is the NN
 public class ExportToPPTNNReactor extends AbstractReactor {
 	
-	public static final String exportTemplate = "EXCEL_EXPORT_TEMPLATE";
+	public static final String exportTemplate = "PPT_EXPORT_TEMPLATE";
 	
 
 	public ExportToPPTNNReactor() {
