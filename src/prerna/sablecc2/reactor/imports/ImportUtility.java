@@ -1249,9 +1249,9 @@ public class ImportUtility {
 	public static Map<String, SemossDataType> getTypesFromQs(SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		if(qsType == QUERY_STRUCT_TYPE.ENGINE) {
-			return getMetaDataFromEngineQs(qs);
+			return getMetaDataFromEngineQs(qs, it);
 		} else if(qsType == QUERY_STRUCT_TYPE.FRAME) {
-			return getMetaDataFromFrameQs(qs);
+			return getMetaDataFromFrameQs(qs, it);
 		} else if(qsType == QUERY_STRUCT_TYPE.CSV_FILE) {
 			return getMetaDataFromCsvQs((CsvQueryStruct)qs);
 		} else if (qsType == QUERY_STRUCT_TYPE.EXCEL_FILE) {
@@ -1294,7 +1294,10 @@ public class ImportUtility {
 		return metaData;
 	}
 
-	private static Map<String, SemossDataType> getMetaDataFromEngineQs(SelectQueryStruct qs) {
+	private static Map<String, SemossDataType> getMetaDataFromEngineQs(SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
+		if(it instanceof IRawSelectWrapper) {
+			return getMetaDataFromQuery((IRawSelectWrapper)it);
+		}
 		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String engineName = qs.getEngineId();
@@ -1322,7 +1325,10 @@ public class ImportUtility {
 		return metaData;
 	}
 
-	private static Map<String, SemossDataType> getMetaDataFromFrameQs(SelectQueryStruct qs) {
+	private static Map<String, SemossDataType> getMetaDataFromFrameQs(SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
+		if(it instanceof IRawSelectWrapper) {
+			return getMetaDataFromQuery((IRawSelectWrapper)it);
+		}
 		Map <String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		OwlTemporalEngineMeta owlMeta = qs.getFrame().getMetaData();
 		List<IQuerySelector> selectors = qs.getSelectors();
