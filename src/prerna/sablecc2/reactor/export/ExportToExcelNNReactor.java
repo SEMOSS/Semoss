@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -10,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.ClientAnchor;
 import org.apache.poi.ss.usermodel.CreationHelper;
@@ -34,6 +36,8 @@ import prerna.util.Utility;
 
 // export to excel non-native is the NN
 public class ExportToExcelNNReactor extends AbstractReactor {
+	
+	public static final String exportTemplate = "EXCEL_EXPORT_TEMPLATE";
 
 	public ExportToExcelNNReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.USE_PANEL.getKey()};
@@ -46,6 +50,8 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 		// export each sheet using the insight definition
 		// Open excel
 		// embed each of the sheet
+		
+		
 		NounMetadata retNoun = null;
 		organizeKeys();
 		String insightFolder = this.insight.getInsightFolder();
@@ -67,9 +73,10 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 		}
 		
 		
+		// see if someone has pushed a template file into insight
+		String template = insight.getProperty(exportTemplate);
 		// open a workbook
-	   Workbook wb = new XSSFWorkbook();
-	   
+		
 	   Map <String, InsightSheet> allSheets = insight.getInsightSheets();
 	   Map <String, InsightPanel> allPanels = insight.getInsightPanels();
 	   
@@ -80,6 +87,10 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 	   List <String> processedSheetPanel = new ArrayList<String>();
 	   
 	   try {
+		   Workbook wb = new XSSFWorkbook();
+			if(template != null)
+				wb = new XSSFWorkbook(template);
+			
 		   while(keys.hasNext())
 		   {
 			   String thisKey = keys.next();
@@ -111,7 +122,12 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 					   sheetLabel = "Sheet" + (Integer.parseInt(thisKey) + 1); 
 			   }
 			   
-			   Sheet sheet = wb.createSheet(sheetLabel);
+			   Sheet sheet = null;
+			   
+			   if(template != null)
+				   sheet = wb.cloneSheet(wb.getSheetIndex("Template"));
+			   else
+				   sheet = wb.createSheet(sheetLabel);
 			   
 			   // now capture the image and fill it
 				String prefixName = Utility.getRandomString(8);
@@ -131,6 +147,9 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 			   int pictureIdx = wb.addPicture(bytes, Workbook.PICTURE_TYPE_PNG);
 			   //close the input stream
 			   inputStream.close();
+			   
+			   FileUtils.forceDelete(new File(fileLocation));
+
 			   //Returns an object that handles instantiating concrete classes
 			   CreationHelper helper = wb.getCreationHelper();
 			   //Creates the top-level drawing patriarch.
@@ -154,6 +173,12 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 			   //Create the Cell B3
 			   Cell cell = sheet.createRow(2).createCell(1);
 		   }
+		   
+		   // remove the template sheet when you finally save it
+		   // it is no longer needed
+		   if(template != null)
+			   wb.removeSheetAt(wb.getSheetIndex(wb.getSheet("Template")));
+		   
 		   String prefixName = fileName;
 		   String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 		   String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
