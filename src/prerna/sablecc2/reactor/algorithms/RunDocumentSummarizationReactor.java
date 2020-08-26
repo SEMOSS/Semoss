@@ -10,6 +10,7 @@ import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -89,8 +90,8 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 
 		// if file path, make sure that the file exists
 		if (fileOrigin.equals("File Path")) {
+			userInput = UploadInputUtility.getFilePath(this.store, this.insight, USER_INPUT);
 			userInput = userInput.replace("\\", "/");
-			// String[] accetableFormats = {"txt","doc","docx","pdf"};
 			File f = new File(userInput);
 			if (!f.exists()) {
 				throw new IllegalArgumentException("File does not exist at that location");

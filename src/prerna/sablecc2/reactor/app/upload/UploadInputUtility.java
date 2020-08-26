@@ -76,9 +76,13 @@ public class UploadInputUtility {
 	}
 
 	public static String getFilePath(NounStore store, Insight in) {
-		GenRowStruct fileGrs = store.getNoun(FILE_PATH);
+		return getFilePath(store, in, FILE_PATH);
+	}
+
+	public static String getFilePath(NounStore store, Insight in, String keyToGrab) {
+		GenRowStruct fileGrs = store.getNoun(keyToGrab);
 		if(fileGrs == null || fileGrs.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the relative file path as filePath=[\"input_path\"]");
+			throw new IllegalArgumentException("Must pass in the relative file path as " + keyToGrab + "=[\"input_path\"]");
 		}
 		
 		String fileLocation = fileGrs.get(0).toString();
@@ -87,7 +91,7 @@ public class UploadInputUtility {
 		} 
 		GenRowStruct spaceGrs = store.getNoun(SPACE);
 		if (fileGrs == null || fileGrs.isEmpty()) {
-			throw new IllegalArgumentException("Must define the file path using key " + FILE_PATH);
+			throw new IllegalArgumentException("Must define the file path using key " + keyToGrab);
 		}
 
 		String filePrefix = null;
@@ -111,7 +115,7 @@ public class UploadInputUtility {
 
 		return fileLocation;
 	}
-
+	
 	public static boolean getExisting(NounStore store) {
 		GenRowStruct grs = store.getNoun(ADD_TO_EXISTING);
 		if (grs == null || grs.isEmpty()) {
