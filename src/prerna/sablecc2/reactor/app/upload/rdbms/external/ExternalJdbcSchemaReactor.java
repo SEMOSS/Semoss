@@ -101,8 +101,9 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, RdbmsTypeEnum.getEnumFromString(driver));
+		
 		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
+		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
 
 		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, driverEnum, tableAndViewFilters); 
 		
