@@ -41,7 +41,8 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	protected static final String GLOBAL = "global";
 
 	public NLSQueryHelperReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.APP.getKey(), HELP_ON , GLOBAL };
+		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.APP.getKey(), HELP_ON,
+				GLOBAL };
 	}
 
 	@Override
@@ -50,7 +51,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		boolean helpOn = getHelpOn();
 		boolean global = getGlobal();
-		
+
 		// if user wants this off, then check first and return null if so
 		if (!helpOn) {
 			String[] emptyArray = new String[0];
@@ -65,15 +66,20 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 		// Generate string to initialize R console
 		this.rJavaTranslator.runR(RSyntaxHelper.loadPackages(packages));
-		
+
 		// handle differently depending on whether it is from the frame or global
 		Object[] retData = null;
-		if(!global) {
+		if (!global) {
 			// convert json input into java map
-			// query = "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"==\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"==\",\"value\":\"R\"},{\"component\":\"having sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
-			// query = "[{\"component\":\"select\",\"column\":[\"Title\",\"Genre\"]},{\"component\": \"sum\"}]";
+			// query =
+			// "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"==\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"==\",\"value\":\"R\"},{\"component\":\"having
+			// sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having
+			// average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
+			// query =
+			// "[{\"component\":\"select\",\"column\":[\"Title\",\"Genre\"]},{\"component\":
+			// \"sum\"}]";
 			String queryTable = getQueryTableFromJson(query);
-			
+
 			// run R function to get the dropdown items
 			ITableDataFrame frame = this.getFrame();
 			retData = getDropdownItems(queryTable, frame);
@@ -103,7 +109,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 					engineFilters = MasterDatabaseUtility.getAllEngineIds();
 				}
 			}
-			
+
 			// set default paths
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
@@ -148,19 +154,19 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 					}
 				}
 			}
-			
+
 			// run script and get array in alphabetical order
 			retData = generateAndRunScript(query, engineFilters);
 			Arrays.sort(retData);
-			
+
 			// run Garbage Cleanup
 			this.rJavaTranslator.runR("setwd(" + wd + ")");
 			this.rJavaTranslator.executeEmptyR("rm( " + wd + "); gc();");
 		}
-		
+
 		// error catch -- if retData is null, return empty list
 		// return error message??
-		if(retData == null) {
+		if (retData == null) {
 			retData = new String[0];
 		}
 
@@ -179,27 +185,27 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		String retList = "retList_" + Utility.getRandomString(6);
 		StringBuilder rsb = new StringBuilder();
 		Object[] dropdownOptions = null;
-		
+
 		// source the files
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String filePath = (baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR)
 				.replace("\\", "/");
 		rsb.append("source(\"" + filePath + "template.R\");");
 		rsb.append("source(\"" + filePath + "template_assembly.R\");");
-		
+
 		// build the dataframe of COLUMN and TYPE
 		Map<String, SemossDataType> colHeadersAndTypes = frame.getMetaData().getHeaderToTypeMap();
 		List<String> columnList = new Vector<String>();
 		List<String> typeList = new Vector<String>();
-		for(Map.Entry<String,SemossDataType> entry : colHeadersAndTypes.entrySet()) {
+		for (Map.Entry<String, SemossDataType> entry : colHeadersAndTypes.entrySet()) {
 			String col = entry.getKey();
 			String type = entry.getValue().toString();
-			if(col.contains("__")) {
+			if (col.contains("__")) {
 				col = col.split("__")[1];
 			}
 			columnList.add(col);
-			
-			if(type.equals("INT") || type.equals("DOUBLE")) {
+
+			if (type.equals("INT") || type.equals("DOUBLE")) {
 				type = "NUMBER";
 			}
 			typeList.add(type);
@@ -209,29 +215,29 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		String rTypes = RSyntaxHelper.createStringRColVec(typeList);
 		rsb.append(dbTable + " <- data.frame(Column = " + rColumns + " , Datatype = " + rTypes
 				+ ", stringsAsFactors = FALSE);");
-		
+
 		// pass the query table and the new dataframe to the script
 		rsb.append(retList + " <- analyze_request(" + dbTable + "," + queryTable + ")");
 		this.rJavaTranslator.runR(rsb.toString());
-		
+
 		// collect the array
 		int requestRows = this.rJavaTranslator.getInt("nrow(" + queryTable + ")");
-		if(requestRows > 0) {
+		if (requestRows > 0) {
 			dropdownOptions = this.rJavaTranslator.getStringArray(retList);
 		} else {
 			// if its a blank template, then pass as a list of component lists
 			int dropdownLength = this.rJavaTranslator.getInt("length(" + retList + ")");
 			dropdownOptions = new Object[dropdownLength];
-			for(int i = 0; i < dropdownLength; i++) {
+			for (int i = 0; i < dropdownLength; i++) {
 				int rIndex = i + 1;
 				String[] item = this.rJavaTranslator.getStringArray(retList + "[[" + rIndex + "]]");
 				dropdownOptions[i] = item;
 			}
 		}
-		
+
 		// garbage cleanup
 		this.rJavaTranslator.executeEmptyR("rm( " + retList + "," + dbTable + " ); gc();");
-		
+
 		// return
 		return dropdownOptions;
 	}
@@ -251,112 +257,160 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		// loop through the map
 		for (Map<String, Object> component : optMap) {
 			String comp = component.get("component").toString();
-			
+
 			// handle select and group
-			String[] selectAndGroup = { "select", "average", "count", "max", "min", "sum", "group", "stdev" , "unique count" };
+			String[] selectAndGroup = { "select", "average", "count", "max", "min", "sum", "group", "stdev",
+					"unique count" };
 			List<String> selectAndGroupList = Arrays.asList(selectAndGroup);
 			if (selectAndGroupList.contains(comp)) {
 				List<String> columns = new Vector<String>();
-				
+
 				// if aggregate, add the aggregate row
 				if (!comp.equals("select") && !comp.equals("group")) {
 					// change aggregate to select
-					if(!comp.equals("group")) {
+					if (!comp.equals("group")) {
 						comp = "select";
 					}
-					
+
 					// so first add the aggregate row
 					componentList.add(comp);
 					elementList.add("aggregate");
 					valueList.add(component.get("component").toString());
-					
+
 					// change the column to arraylist for below
-					if(component.get("column") == null) {
+					if (component.get("column") == null) {
 						columns.add("?");
 					} else {
 						columns.add(component.get("column").toString());
 					}
-					
+
 				} else {
 					// change the column to arraylist for below
-					if(component.get("column") == null) {
+					if (component.get("column") == null) {
 						columns.add("?");
 					} else {
 						columns = (List<String>) component.get("column");
 					}
 				}
-				
+
 				// then, add the component and columns
-				for(String col : columns) {
+				for (String col : columns) {
 					componentList.add(comp);
 					elementList.add("column");
 					valueList.add(col);
 				}
 			}
-			
+
+			// handle the based on
+			else if (comp.startsWith("based on")) {
+				String agg = comp.substring(9);
+				comp = "based on";
+				componentList.add(comp);
+				componentList.add(comp);
+
+				elementList.add("aggregate");
+				valueList.add(agg);
+
+				elementList.add("column");
+				if (component.get("column") == null) {
+					valueList.add("?");
+				} else {
+					valueList.add(component.get("column").toString());
+				}
+			}
+
 			// handle where and having
 			else if (comp.equals("where") || comp.startsWith("having")) {
-				if(comp.startsWith("having")) {
-					String agg = comp.substring(7); 
+				if (comp.startsWith("having")) {
+					String agg = comp.substring(7);
 					comp = "having";
 					componentList.add(comp);
 					elementList.add("aggregate");
 					valueList.add(agg);
 				}
-				
+
 				componentList.add(comp);
 				componentList.add(comp);
 				componentList.add(comp);
-				
+
 				elementList.add("column");
-				if(component.get("column") == null) {
+				if (component.get("column") == null) {
 					valueList.add("?");
-				}else {
+				} else {
 					valueList.add(component.get("column").toString());
 				}
-				
+
 				elementList.add("is");
-				if(component.get("operation") == null) {
+				if (component.get("operation") == null) {
 					valueList.add("?");
-				}else {
+				} else {
 					valueList.add(component.get("operation").toString());
 				}
-				
+
 				elementList.add("value");
-				if(component.get("value") == null) {
+				if (component.get("value") == null) {
 					valueList.add("?");
-				}else {
+				} else {
 					valueList.add(component.get("value").toString());
 				}
 			}
-			
-			// handle where and having
-			else if (comp.equals("sort") || comp.equals("rank")) {
+
+			// handle sort and rank
+			else if (comp.equals("sort") || comp.equals("rank") || comp.equals("position")) {
 				componentList.add(comp);
 				componentList.add(comp);
-				
+
 				elementList.add("column");
-				if(component.get("column") == null) {
+				if (component.get("column") == null) {
 					valueList.add("?");
 				} else {
 					valueList.add(component.get("column").toString());
 				}
-				
+
 				elementList.add("is");
-				if(component.get("operation") == null) {
+				if (component.get("operation") == null) {
 					valueList.add("?");
 				} else {
 					valueList.add(component.get("operation").toString());
 				}
-				
-				if(comp.equals("rank")) {
+
+				if (!comp.equals("sort")) {
 					componentList.add(comp);
 					elementList.add("value");
-					if(component.get("value") == null) {
+					if (component.get("value") == null) {
 						valueList.add("?");
 					} else {
 						valueList.add(component.get("value").toString());
 					}
+				}
+
+				// handle position
+				else if (comp.equals("position")) {
+					componentList.add(comp);
+					componentList.add(comp);
+					componentList.add(comp);
+
+					elementList.add("is");
+					if (component.get("operation") == null) {
+						valueList.add("?");
+					} else {
+						valueList.add(component.get("operation").toString());
+					}
+
+					elementList.add("value");
+					if (component.get("value") == null) {
+						valueList.add("?");
+					} else {
+						valueList.add(component.get("value").toString());
+					}
+
+					elementList.add("column");
+					if (component.get("column") == null) {
+						valueList.add("?");
+					} else {
+						valueList.add(component.get("column").toString());
+					}
+
 				}
 			}
 		}
@@ -617,7 +671,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		// default is to override
 		return true;
 	}
-	
+
 	private boolean getGlobal() {
 		GenRowStruct overrideGrs = this.store.getNoun(this.keysToGet[3]);
 		if (overrideGrs != null && !overrideGrs.isEmpty()) {

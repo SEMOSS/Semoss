@@ -10,54 +10,15 @@ analyze_request<-function(db,df){
 		# element alternatives
 		choices<-get_element_alternatves(db,df,nbr)
 	}else{
-		#if(nrow(df)>0){
-		#	df<-adjust_request(df)
-		#}
-		# component alternatives
 		choices<-get_component_alternatives(df)
 	}
-	#out<-list()
-	#out[[1]]<-df
-	#out[[2]]<-choices
 	gc()
 	return(choices)
 }
 
-adjust_request<-function(df){
-	# if aggregate column is present in select then all single columns must be in group
-	select_part<-df[df$Component=='select',]
-	single_part<-df[0,]
-	if(nrow(select_part)>0){
-		ind<-which(df$Element=='aggregate')
-		# check whether aggregate column present
-		if(length(ind)>0){
-			# check whether a single column present
-			if(ind[1]>1){
-				single_part<-select_part[1:(ind[1]-1),]
-				group_candidate_part<-single_part
-				group_candidate_part$Component<-'group'
-				group_part<-df[df$Component=='group',]
-				group_part<-unique(rbind(group_part,group_candidate_part))
-				where_part<-df[df$Component=='where',]
-				df<-do.call("rbind", list(select_part,where_part,group_part,df[df$Component=='having',]))
-			}
-		}else{
-			# if aggregate not present remove groups and having
-			df<-df[df$Component %in% c('select','where'),]
-		}
-	}
-	# if column inserted in the group -> add it to the singles!!!
-	group_part<-df[df$Component=='group',]
-	if(nrow(group_part)>0){
-		group_part$Component<-'select'
-		df<-unique(rbind(group_part,df))
-	}
-	return(df)
-}
-
 get_element_alternatves<-function(db,df,nbr){
 	OPS<-c('=','<','<=','>','>=','!=','between value and value')
-	OPS_STRING<-c('begins with','contains','ends with','not begins with','not contains','not ends with')
+	OPS_STRING<-c('begins with','contains','ends with','not begins with','not contains','not ends with','?like','?nlike')
 	OPS_DATE<-c('after','before')
 	DATE_GROUPPING<-c('daily','weekly','monthly','yearly')
 	
@@ -65,7 +26,7 @@ get_element_alternatves<-function(db,df,nbr){
 	# element alternatives
 	component<-df$Component[nbr]
 	element<-df$Element[nbr]
-	if(component=='select'){
+	if(component %in% c('select','based on')){
 		if(nbr==1){
 			# single
 			out<-unique(db$Column)
@@ -119,11 +80,9 @@ get_element_alternatves<-function(db,df,nbr){
 		}else{
 			out<-MISSING_VALUE
 		}
-	}else if(component=='rank'){
+	}else if(component=='position'){
 		if(element=='column'){
-			single_cols<-get_single_cols(df)
-			aggr_cols<-get_aliases(df)
-			out<-append(single_cols,aggr_cols)
+			out<-db$Column
 		}else{
 			out<-MISSING_VALUE
 		}
@@ -146,75 +105,138 @@ get_single_cols<-function(df){
 }
 
 get_component_alternatives<-function(df){
-	COMPONENTS<-c('select column','aggregate column','where column is value','group column','based on column','having column operation value','rank column position n',
-	'sort column direction')	
-	REQUEST_COMPONENTS<-list('1'='select column','2'=c('select column','rank column position n'),'3'=c('select column','where column is value'),'4'=c('select column','where column is value',
-	'rank column position n'),'5'=c('select column', 'aggregate column','based on column'),'6'=c('select column','aggregate column','based on column','rank column position n'),'7'=c('select column',
-	'aggregate column','based on column','having column operation value'),'8'=c('select column','aggregate column','based on column','having column operation value','rank column position n'))
+	COMPONENTS<-c('aggregate column','where column is value','position n column',
+	'sort column direction','based on aggregate column','group column','having column is value')	
+	REQUEST_COMPONENTS<-list('1'='select column','2'=c('select column','where column is value'),
+	'3'=c('select column','aggregate column','group column'),	'4'=c('position n column','based on aggregate column'))
 	if(nrow(df)==0){
 		# for the first run only select components available
 		out<-REQUEST_COMPONENTS
 	}else{
 		# where is always available
-		out<-COMPONENTS[2:3]
+		out<-COMPONENTS[1:4]
 		
+		ind<-which(df$Component=='position')
+		ind2<-which(df$Component=='based on')
+		if(length(ind)>0 & length(ind2)==0){
+			out<-append(out,COMPONENTS[5])
+		}
+		# if aggregate element present and there is no group or based on components
+		# we can add group component
 		ind<-which(df$Element=='aggregate')
 		# if there are aggregates
 		if(length(ind)>0){
-			group_ind<-which(df$Component=='group')
-			if(length(group_ind)>0){
-				# when aggregate element is present in select component then having is avaible
-				# if group component already present it is not included for the next component list
-				out<-append(out,COMPONENTS[6:8])
-			}else{
-				out<-append(out,COMPONENTS[4:8])
+			group_ind<-which(df$Component %in% c('group','based on'))
+			if(length(group_ind)==0){
+				out<-append(out,COMPONENTS[6])
 			}
-		}else{
-			out<-append(out,COMPONENTS[7:8])
+		}
+		# if group or based on components present we can add having component
+		group_ind<-which(df$Component %in% c('group','based on'))
+		if(length(group_ind)>0){
+			out<-append(out,COMPONENTS[7])
 		}
 	}
 	return(out)
 }
 
 
+# updates to the function below
+# what is the the group components should be in the select
+# in the rank should be aggregate column
+
 exec_componentized_query<-function(db,joins,request){
 	COMPONENTS<-c('select','where','group','having','rank','sort')
-	KEYWORDS<-c('sum','average','unique','count','min','max','stdev','where','group','by','having','sort','rank')
+	KEYWORDS<-c('sum','average','unique','count','min','max','stdev','where','group','by','having','sort','position','based','on')
 	
 	library(data.table)
-	p<-data.table(query=integer(),appid=character(),appid2=character(),part=character(),item1=character(),item2=character(),
-	item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
 	words<-unlist(strsplit(unname(request),' '))
 	cols<-db[db$Column %in% words,"Column"]
 	cols<-cols[!(tolower(cols) %in% KEYWORDS)]
-	cluster_joins<-build_joins(cols,joins,db)
-	components<-names(request)
-	unique_components<-intersect(COMPONENTS,components)
-	n<-length(unique_components)
-	if(n > 0){
-		for(i in 1:n){
-			ind<-which(components==unique_components[i])
-			part<-unlist(strsplit(unname(sapply(request[ind],function(x) paste(unlist(strsplit(x,' '))[-1],collapse=' '))),' '))
-			if(unique_components[i]=='select'){
-				p<-process_select(db,part,cols,p,1)
-				p<-process_from(cluster_joins,p,1)
-			}else if(unique_components[i]=='where'){
-				p<-process_where(db,part,cols,p,1)
-			}else if(unique_components[i]=='group'){
-				p<-process_group(db,part,cols,p,1)
-			}else if(unique_components[i]=='having'){
-				p<-process_having(db,part,cols,p,1)
-			}else if(unique_components[i]=='rank'){
-				all_cols<-get_all_cols(p)
-				p<-process_rank(db,part,all_cols,p,1)
-			}else if(unique_components[i]=='sort'){
-				all_cols<-get_all_cols(p)
-				p<-process_sort(db,part,all_cols,p,1)
+	request<-preprocess_request(request,cols)
+	if(!is.null(names(request))){
+		p<-data.table(query=integer(),appid=character(),appid2=character(),part=character(),item1=character(),item2=character(),
+		item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
+		cluster_joins<-build_joins(cols,joins,db)
+		components<-names(request)
+		unique_components<-intersect(COMPONENTS,components)
+		n<-length(unique_components)
+		if(n > 0){
+			for(i in 1:n){
+				ind<-which(components==unique_components[i])
+				part<-unlist(strsplit(unname(sapply(request[ind],function(x) paste(unlist(strsplit(x,' '))[-1],collapse=' '))),' '))
+				if(unique_components[i]=='select'){
+					p<-process_select(db,part,cols,p,1)
+					p<-process_from(cluster_joins,p,1)
+				}else if(unique_components[i]=='where'){
+					p<-process_where(db,part,cols,p,1)
+				}else if(unique_components[i]=='group'){
+					p<-process_group(db,part,cols,p,1)
+				}else if(unique_components[i]=='having'){
+					p<-process_having(db,part,cols,p,1)
+				}else if(unique_components[i]=='rank'){
+					all_cols<-get_all_cols(p)
+					p<-process_rank(db,part,all_cols,p,1)
+				}else if(unique_components[i]=='sort'){
+					all_cols<-get_all_cols(p)
+					p<-process_sort(db,part,all_cols,p,1)
+				}
 			}
 		}
+	}else{
+		p<-request
 	}
 	gc()
 	return(p)
+}
+
+preprocess_request<-function(request,cols){
+	out<-vector()
+	components<-names(request)
+	n<-length(components)
+	if(n>0){
+		if('position' %in% components | 'based on' %in% components){
+			if('based on' %in% components){
+				based_on<-TRUE
+			}else{
+				based_on<-FALSE
+			}
+			pos_ind<-0
+			for(i in 1:n){
+				if(components[i]=='position'){
+					pos_ind<-i
+					comp_words<-unlist(strsplit(unname(request[i]),' '))
+					if(based_on){
+						position<-paste(comp_words[2:3],collapse=' ')
+						comp_cols<-intersect(comp_words,cols)
+						if(length(comp_cols)>0){
+							out<-append(out,setNames(c(paste0('select ',paste(comp_cols,collapse=' ')),paste0('group ',paste(comp_cols,collapse=' '))),c('select','group')))
+						}
+					}else{
+						out<-append(out,setNames(c(paste0('select ',paste(comp_cols,collapse=' ')),paste0('rank ',comp_words[4],' ',paste(comp_words[2:3],collapse=' '))),c('select','rank')))
+					}	
+					
+				}else if(components[i]=='based on'){
+					if(pos_ind>0){
+						comp_words<-unlist(strsplit(unname(request[i]),' '))
+						comp_cols<-intersect(comp_words,cols)
+						aggr_select<-paste0('select ',paste(comp_words[3:length(comp_words)],collapse=' '))
+						comp_rank<-paste0('rank ',get_aggr_alias(comp_words[3:length(comp_words)]),' ',position)
+						out<-append(out,setNames(c(aggr_select,comp_rank),c('select','rank')))
+					}else{
+						out<-'request format is incorrect'
+						break
+					}
+				}else{
+					out<-append(out,request[i])
+				}
+				
+			}
+		}else{
+			out<-request
+		}
+	}
+	return(out)
 }
 
 get_all_cols<-function(p){
@@ -249,6 +271,25 @@ get_aliases<-function(df){
 	}
 	return(aliases)
 }
+
+get_aggr_alias<-function(comp_text){
+	library(tools)
+	if(comp_text[1]=='unique' & comp_text[2]=='count'){
+		aggr_alias<-paste0('UniqueCount_',comp_text[3])
+	}else{
+		aggr_alias<-paste0(tools::toTitleCase(comp_text[1]),'_',comp_text[2])
+	}
+	return(aggr_alias)
+}
+
+
+
+
+
+
+
+
+
 
 
 
