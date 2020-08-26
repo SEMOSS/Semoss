@@ -296,6 +296,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				}
 			}
 			
+			// handle the based on
+			else if(comp.startsWith("based on")) {
+				elemName = "based on";
+				elemToAdd += comp;
+				elemToAdd += " " + component.get("column");
+				
+			}
+			
 			// handle where and having
 			else if (comp.equals("where") || comp.startsWith("having")) {
 				if(comp.startsWith("having")) {
@@ -325,9 +333,18 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				elemToAdd += " " + component.get("column").toString();
 				elemToAdd += " " + component.get("operation").toString();
 				
-				if(comp.equals("rank")) {
+				if(!comp.equals("sort")) {
 					elemToAdd += " " + component.get("value").toString();
 				}
+			}
+			
+			// handle position
+			else if(comp.equals("position")) {
+				elemName = comp;
+				elemToAdd += comp;
+				elemToAdd += " " + component.get("operation").toString();
+				elemToAdd += " " + component.get("value").toString();
+				elemToAdd += " " + component.get("column").toString();
 			}
 			
 			// put it into the rsb
@@ -341,6 +358,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		namesRsb.append(");");
 		
 		// run arrays in r
+		System.out.println(arrayRsb.toString() + namesRsb.toString());
 		this.rJavaTranslator.runR(arrayRsb.toString() + namesRsb.toString());
 		
 		return request;
