@@ -321,7 +321,6 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param inputFunction
 	 * @return
 	 */
-	public abstract String getSqlFunctionSyntax(String inputFunction);
 
 	// there are all the specific functions
 	// the {@link #getSqlFunctionSyntax(String) getSqlFunctionSyntax}
@@ -353,6 +352,10 @@ public abstract class AbstractSqlQueryUtil {
 
 	public abstract String getRegexLikeFunctionSyntax();
 
+	// date functions
+	
+	public abstract String getSqlFunctionSyntax(String inputFunction);
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
@@ -1165,5 +1168,10 @@ public abstract class AbstractSqlQueryUtil {
 		while (wrapper.hasNext()) {
 			logger.debug(wrapper.next());
 		}
+	}
+
+	public String getMonthNameFunctionSyntax() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
