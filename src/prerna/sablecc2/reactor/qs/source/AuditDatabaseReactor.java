@@ -66,8 +66,19 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		// process column filters
 		String columnFilterSyntax = generateFilterSyntax(ReactorKeysEnum.COLUMNS.getKey());
 		String dateTimeField = this.keyValue.get(ReactorKeysEnum.DATE_TIME_FIELD.getKey());
-		String dateDiff = this.keyValue.get(ReactorKeysEnum.VALUE.getKey());
-
+		String dateDiffStr = this.keyValue.get(ReactorKeysEnum.VALUE.getKey());
+		int dateDiff = -1;
+		if(dateDiffStr != null && !dateDiffStr.trim().isEmpty()) {
+			try {
+				dateDiff = Integer.parseInt(dateDiffStr);
+			} catch(Exception e) {
+				throw new IllegalArgumentException("Must provide a date difference that is an integer value");
+			}
+			if(dateDiff < 0) {
+				throw new IllegalArgumentException("Must provide a positive date difference value");
+			}
+		}
+		
 		// get audit database from app id
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(appId);
 		AuditDatabase audit = engine.generateAudit();
@@ -109,8 +120,8 @@ public class AuditDatabaseReactor extends AbstractReactor {
 			// add table and column filters
 			sql.append(" in " + tableFilterSyntax + " AND ALTERED_COLUMN IN " + columnFilterSyntax + " ");
 			// add time filters
-			if (dateTimeField != null && dateDiff != null) {
-				sql.append(" AND TIMESTAMP > DATEADD('" + dateTimeField + "',-" + dateDiff + ", CURRENT_DATE)");
+			if (dateTimeField != null && dateDiffStr != null) {
+				sql.append(" AND TIMESTAMP > " + queryUtil.getDateAddFunctionSyntax(dateTimeField, dateDiff * -1, queryUtil.getCurrentDate()));
 			}
 			// end sql staement
 			sql.append(";");

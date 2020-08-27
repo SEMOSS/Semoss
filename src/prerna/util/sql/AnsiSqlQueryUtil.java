@@ -167,6 +167,16 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	public String getMonthNameFunctionSyntax() {
 		return "MONTHNAME";
 	}
+
+	@Override
+	public String getCurrentDate() {
+		return "CURRENT_DATE";
+	}
+	
+	@Override
+	public String getDateAddFunctionSyntax(String timeUnit, int value, String dateToModify) {
+		return "DATEADD('" + timeUnit + "'," + value + "," + dateToModify + ")";
+	}
 	
 	/////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////
@@ -1182,6 +1192,8 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 					} else {
 						template.append("'").append(((SemossDate) value).getFormatted("yyyy-MM-dd")).append("'");
 					}
+				} else if(value instanceof java.sql.Date) {
+					template.append("'").append(value.toString()).append("'");
 				} else {
 					SemossDate dateValue = SemossDate.genDateObj(value + "");
 					if(dateValue == null) {
@@ -1198,6 +1210,8 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 					} else {
 						template.append("'").append(((SemossDate) value).getFormatted("yyyy-MM-dd HH:mm:ss")).append("'");
 					}
+				} else if(value instanceof java.sql.Timestamp) {
+					template.append("'").append(value.toString()).append("'");
 				} else {
 					SemossDate dateValue = SemossDate.genTimeStampDateObj(value + "");
 					if(dateValue == null) {
