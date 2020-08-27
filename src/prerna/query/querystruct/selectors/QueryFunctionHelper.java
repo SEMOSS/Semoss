@@ -26,7 +26,7 @@ public class QueryFunctionHelper {
 	
 	// date functions
 	public static final String MONTH_NAME = "MonthName";
-
+	public static final String DATE_ADD = "DateAdd";
 	
 	private QueryFunctionHelper() {
 		
