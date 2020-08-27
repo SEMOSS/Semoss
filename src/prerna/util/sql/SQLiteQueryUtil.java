@@ -70,6 +70,16 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 		return "REGEXP";
 	}
 	
+	@Override
+	public String getCurrentDate() {
+		return "DATE('now')";
+	}
+	
+	@Override
+	public String getDateAddFunctionSyntax(String timeUnit, int value, String dateToModify) {
+		return "DATE(" + dateToModify + ", '" + value + " " + timeUnit + "')";
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	/**
