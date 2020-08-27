@@ -95,6 +95,9 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			return getCoalesceFunctionSyntax();
 		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.REGEXP_LIKE)) {
 			return getRegexLikeFunctionSyntax();
+		// date functions
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.MONTH_NAME)) {
+			return getMonthNameFunctionSyntax();
 		}
 		
 		return inputFunction;
@@ -158,6 +161,11 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	@Override
 	public String getRegexLikeFunctionSyntax() {
 		return "REGEXP_LIKE";
+	}
+	
+	@Override
+	public String getMonthNameFunctionSyntax() {
+		return "MONTHNAME";
 	}
 	
 	/////////////////////////////////////////////////////////////////////////
