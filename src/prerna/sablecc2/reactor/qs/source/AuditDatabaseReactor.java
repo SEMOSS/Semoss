@@ -26,6 +26,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ConnectionUtils;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AuditDatabaseReactor extends AbstractReactor {
 
@@ -70,6 +71,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		// get audit database from app id
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(appId);
 		AuditDatabase audit = engine.generateAudit();
+		AbstractSqlQueryUtil queryUtil = audit.getQueryUtil();
 		Connection conn = null;
 
 		HashSet<String> userIdSet = new HashSet<String>();
@@ -86,10 +88,26 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		try {
 			// create query with specified parameters
 			StringBuilder sql = new StringBuilder();
-			sql.append(
-					"SELECT timestamp, id, type, table, key_column, key_column_value, altered_column, old_value, new_value, user FROM AUDIT_TABLE ");
+			sql.append("SELECT ");
+			String[] selectCols = new String[] {"TIMESTAMP", "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "USER"};
+			for(int i = 0; i < selectCols.length; i++) {
+				if(i > 0) {
+					sql.append(", ");
+				}
+				String selector = selectCols[i];
+				if(queryUtil.isSelectorKeyword(selector)) {
+					selector = queryUtil.getEscapeKeyword(selector);
+				}
+				sql.append(selector);
+			}
+			sql.append(" FROM AUDIT_TABLE WHERE ");
+			if(queryUtil.isSelectorKeyword("TABLE")) {
+				sql.append(queryUtil.getEscapeKeyword("TABLE"));
+			} else {
+				sql.append("TABLE");
+			}
 			// add table and column filters
-			sql.append(" WHERE table in " + tableFilterSyntax + " AND altered_column IN " + columnFilterSyntax + " ");
+			sql.append(" in " + tableFilterSyntax + " AND ALTERED_COLUMN IN " + columnFilterSyntax + " ");
 			// add time filters
 			if (dateTimeField != null && dateDiff != null) {
 				sql.append(" AND TIMESTAMP > DATEADD('" + dateTimeField + "',-" + dateDiff + ", CURRENT_DATE)");
@@ -129,13 +147,13 @@ public class AuditDatabaseReactor extends AbstractReactor {
 				insertPS.addBatch();
 			}
 			insertPS.executeBatch();
-			if (userIdSet.isEmpty()) {
-				String errorMsg = "No modifications have been made with the specified parameters.";
-				NounMetadata noun = new NounMetadata(errorMsg, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
+//			if (userIdSet.isEmpty()) {
+//				String errorMsg = "No modifications have been made with the specified parameters.";
+//				NounMetadata noun = new NounMetadata(errorMsg, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+//				SemossPixelException err = new SemossPixelException(noun);
+//				err.setContinueThreadOfExecution(false);
+//				throw err;
+//			}
 			// get user info from ids
 			List<String> userIds = new Vector<>(userIdSet);
 			Map<String, Map<String, Object>> userInfo = SecurityQueryUtils.getUserInfo(userIds);
