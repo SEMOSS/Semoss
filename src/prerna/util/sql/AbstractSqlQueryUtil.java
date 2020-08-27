@@ -328,6 +328,8 @@ public abstract class AbstractSqlQueryUtil {
 	// where it loops through everything and the specifics can be
 	// implemented in the query util implementations
 
+	public abstract String getSqlFunctionSyntax(String inputFunction);
+
 	public abstract String getMinFunctionSyntax();
 
 	public abstract String getMaxFunctionSyntax();
@@ -352,9 +354,12 @@ public abstract class AbstractSqlQueryUtil {
 
 	public abstract String getRegexLikeFunctionSyntax();
 
-	// date functions
+	public abstract String getMonthNameFunctionSyntax();
 	
-	public abstract String getSqlFunctionSyntax(String inputFunction);
+	// date functions - require more complex inputs
+	public abstract String getCurrentDate();
+	
+	public abstract String getDateAddFunctionSyntax(String timeUnit, int value, String  dateTimeField);
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 
@@ -1168,10 +1173,5 @@ public abstract class AbstractSqlQueryUtil {
 		while (wrapper.hasNext()) {
 			logger.debug(wrapper.next());
 		}
-	}
-
-	public String getMonthNameFunctionSyntax() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }
