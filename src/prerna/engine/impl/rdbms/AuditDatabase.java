@@ -176,7 +176,7 @@ public class AuditDatabase {
 		StringBuilder auditInserts = new StringBuilder();
 
 		String id = UUID.randomUUID().toString();
-		String time = getTime();
+		java.sql.Timestamp time = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
 		Object[] insert = new Object[INSERT_SIZE];
 		insert[0] = id;
@@ -252,7 +252,7 @@ public class AuditDatabase {
 		StringBuilder auditUpdates = new StringBuilder();
 
 		String id = UUID.randomUUID().toString();
-		String time = getTime();
+		java.sql.Timestamp time = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
 		for (int i = 0; i < numUpdates; i++) {
 			Object[] insert = new Object[INSERT_SIZE];
@@ -328,7 +328,7 @@ public class AuditDatabase {
 		StringBuilder auditDeletes = new StringBuilder();
 
 		String id = UUID.randomUUID().toString();
-		String time = getTime();
+		java.sql.Timestamp time = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
 		for (String alteredColumn : constraintMap.keySet()) {
 			if (alteredColumn.contains("__")) {
@@ -452,11 +452,6 @@ public class AuditDatabase {
 		}
 	}
 
-	private String getTime() {
-		java.sql.Timestamp t = java.sql.Timestamp.valueOf(LocalDateTime.now());
-		return t.toString();
-	}
-
 	@Deprecated
 	private String[] getPrimKey(String pixelName) {
 		if (primaryKeyCache.containsKey(pixelName)) {
@@ -483,4 +478,9 @@ public class AuditDatabase {
 	public Connection getConnection() {
 		return this.conn;
 	}
+
+	public AbstractSqlQueryUtil getQueryUtil() {
+		return queryUtil;
+	}
+
 }
