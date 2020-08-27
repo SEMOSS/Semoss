@@ -24,6 +24,10 @@ public class QueryFunctionHelper {
 	public static final String COALESCE = "Coalesce";
 	public static final String REGEXP_LIKE = "RegexLike";
 	
+	// date functions
+	public static final String MONTH_NAME = "MonthName";
+
+	
 	private QueryFunctionHelper() {
 		
 	}
