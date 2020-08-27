@@ -1,3 +1,51 @@
+find_topics_nbr<-function(filename="",content="",cnt=1){
+	library(topicmodels)
+	library(tm)
+	MARGIN<-0.95
+	if(filename!=""){
+		txt<-readLines(con <- file(filename),warn=FALSE)
+		close(con)
+	}else if(content!=""){
+		txt<-content
+	}else{
+		return("Provide either file name or content to analyze")
+	}
+	
+	txt = tolower(gsub("[[:punct:]]", " ", txt))
+	txt<-removeWords(txt, stopwords("english"))
+	corpus = Corpus(VectorSource(txt))
+	tdm = DocumentTermMatrix(corpus)
+	term_tfidf <- tapply(tdm$v/rowSums(as.array(tdm))[tdm$i], tdm$j, mean) * log2(nDocs(tdm)/colSums(as.array(tdm > 0)))
+	summary(term_tfidf)
+	
+	tdm <- tdm[,term_tfidf >= 0.1]
+	tdm <- tdm[rowSums(as.array(tdm)) > 0,]
+	summary(colSums(as.array(tdm)))
+	for (j in 1:cnt){
+		best.model <- lapply(seq(2, 50, by = 1), function(d){LDA(tdm, d)})
+		#best.model.logLik<-unlist(lapply(best.model, logLik))
+		# perplexity Perplexity is a statistical measure of how well a probability model predicts a sample
+		# good model have low perplexity score
+		# we use rate of perplexity change instead of perplexity to identify the optimal number of topics
+		if(cnt==1){
+			p<-unlist(lapply(best.model, perplexity))
+		}else{
+			if(j==1){
+				p<-unlist(lapply(best.model, perplexity))/cnt
+			}else{
+				p<-p+unlist(lapply(best.model, perplexity))/cnt
+			}
+		}
+	}
+
+	rpc<-sapply(seq(2,50,1),function(i) abs(p[i]-p[i-1]))
+	rpc[is.na(rpc)]<-0
+	nbr.topics<-min(which(rpc>=MARGIN*max(rpc)))+1
+	closeAllConnections()
+	gc()
+	return(nbr.topics)
+}
+
 
 text_summary<-function(filename="",page_url="",content="",topN=5,ord=FALSE,limit=100,min_words=2){
 # Description
@@ -38,11 +86,12 @@ text_summary<-function(filename="",page_url="",content="",topN=5,ord=FALSE,limit
 	return(out)
 }
 
-prepare_doc<-function(filename,page_url,content,exclude=FALSE){
+prepare_doc<-function(filename="",page_url="",content="",exclude=FALSE){
 	library(textreuse)
 	library(textreadr)
 	library(readtext)
-	sink("log-text-summary.txt")
+	library(stringr)
+	#sink("log-text-summary.txt")
 	if(filename!=""){
 		t<-unlist(strsplit(filename,"[.]"))	
 		if(length(t)>0){
@@ -66,12 +115,8 @@ prepare_doc<-function(filename,page_url,content,exclude=FALSE){
 			}
 		}
 	}else if(page_url!=""){
-		library(xml2)
-		library(rvest)
-		page = xml2::read_html(page_url)
-		lines<-page %>% rvest::html_nodes("body") %>% rvest::html_nodes("section") %>% rvest::html_nodes("p") %>% rvest::html_text()
-		txt = clean_text(lines,exclude)
-		txt<-gsub("[[:punct:]]","",txt)
+		txt<-get_link_content(page_url,exclude)
+		#txt<-get_url_content(page_url,exclude)
 	}else if(content!=""){
 		txt<-clean_text(page_text=content,exclude)
 		txt<-textreuse::tokenize_sentences(txt, lowercase = FALSE)
@@ -79,9 +124,34 @@ prepare_doc<-function(filename,page_url,content,exclude=FALSE){
 	}else{
 		txt=""
 	}
-	sink()
+	#sink()
 	return(txt)
 }
+
+get_url_content<-function(page_url,exclude){
+	library(xml2)
+	library(rvest)
+	page = xml2::read_html(page_url)
+	lines<-page %>% html_nodes("p") %>% html_text()
+	txt = clean_text(lines,exclude)
+	txt<-gsub("[[:punct:]]","",txt)
+	return(txt)
+}
+
+get_link_content<- function(page_url,exclude){
+	library(XML)
+	library(xml2)
+	library(rvest)
+	page = xml2::read_html(page_url)
+
+	doc = htmlParse(page, asText=TRUE)
+	doc_text <- xpathSApply(doc, "//text()[not(ancestor::script)][not(ancestor::style)][not(ancestor::noscript)][not(ancestor::form)]", xmlValue)
+	txt = clean_text(doc_text,exclude)
+	txt<-txt[nchar(txt)>1]
+	txt<-gsub("[[:punct:]]","",txt)
+	return(txt)
+}
+
 
 
 summarize_text<-function(filename="",page_url="",content="",topN=5){
@@ -216,7 +286,11 @@ topic_terms_freq<-function(txt,topics,phi,topTerms){
 	ctrl<-list(wordLengths=c(2,Inf))
 	term_freq<-tm::termFreq(txt,control=ctrl)
 	topics_top_terms<-GetTopTerms(phi,topTerms)
+	# annotation as topic labels should be only nouns
+	pos<-annotate_doc(txt)
+	pos<-pos[,c("token","upos")]
 	n<-nrow(topics)
+	labels<-vector()
 	for(i in 1:n){
 		top_terms<-topics_top_terms[,topics$topic[i]]
 		top_terms_share<-phi[topics$topic[i],top_terms]
@@ -226,19 +300,22 @@ topic_terms_freq<-function(txt,topics,phi,topTerms){
 
 		df<-data.frame(keyword=top_terms,freq=term_freq[names(term_freq) %in% top_terms],
 		topic_share=round(top_terms_share*ordered_term_freq,2),terms_relevance=topic_terms_relevance)
+		df$pos<-sapply(df$keyword,function(x) pos[pos$token==x,]$upos[1])
 		rownames(df)<-NULL
 		df$keyword<-as.character(df$keyword)
-		df$label<-df[df$terms_relevance==max(df$terms_relevance),]$keyword[1]
+		df$label<-df[df$terms_relevance==max(df[df$pos=="NOUN" & !is.na(df$pos),"terms_relevance"]),]$keyword[1]
+		cur_label<-unique(df$label)
 		df$topic<-topics$topic[i]
 		df$prevalence<-topics$prevalence[i]
 		df$coherence<-topics$coherence[i]
 		if(i==1){
 			out<-df
-		}else{
-			out<-rbind(out,df)
+		}else if(!(cur_label %in% labels)){
+				labels[i]<-cur_label
+				out<-rbind(out,df)
 		}
 	}
-	out<-out[,c(6,5,7,8,1,2,3,4)]
+	out<-out[,c(7,6,8,9,1,2,3,4)]
 	gc()
 	return(out[order(-out$prevalence,-out$coherence,-out$terms_relevance),])
 }
