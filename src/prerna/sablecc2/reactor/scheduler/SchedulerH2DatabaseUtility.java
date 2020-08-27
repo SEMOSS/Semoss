@@ -97,6 +97,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -104,6 +105,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -127,9 +131,28 @@ public class SchedulerH2DatabaseUtility {
 	private static final Logger logger = LogManager.getLogger(SchedulerH2DatabaseUtility.class);
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	/**
+	 * SELECT SMSS_JOB_RECIPES.USER_ID, SMSS_JOB_RECIPES.JOB_NAME, SMSS_JOB_RECIPES.JOB_GROUP, SMSS_JOB_RECIPES.CRON_EXPRESSION, 
+	 * SMSS_JOB_RECIPES.PIXEL_RECIPE, SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, SMSS_JOB_RECIPES.PARAMETERS, QRTZ_TRIGGERS.NEXT_FIRE_TIME 
+	 * FROM SMSS_JOB_RECIPES LEFT OUTER JOIN QRTZ_TRIGGERS ON SMSS_JOB_RECIPES.JOB_NAME = QRTZ_TRIGGERS.JOB_NAME AND SMSS_JOB_RECIPES.JOB_GROUP = QRTZ_TRIGGERS.JOB_GROUP
+	 */
+	private static final String BASE_JOB_DETAILS_QUERY = "SELECT SMSS_JOB_RECIPES.USER_ID, "
+			+ "SMSS_JOB_RECIPES.JOB_NAME, "
+			+ "SMSS_JOB_RECIPES.JOB_GROUP, "
+			+ "SMSS_JOB_RECIPES.CRON_EXPRESSION, "
+			+ "SMSS_JOB_RECIPES.PIXEL_RECIPE, "
+			+ "SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, "
+			+ "SMSS_JOB_RECIPES.PARAMETERS, "
+			+ "QRTZ_TRIGGERS.NEXT_FIRE_TIME, "
+			+ "QRTZ_TRIGGERS.PREV_FIRE_TIME "
+			+ "FROM SMSS_JOB_RECIPES "
+			+ "LEFT OUTER JOIN QRTZ_TRIGGERS ON "
+			+ "SMSS_JOB_RECIPES.JOB_NAME = QRTZ_TRIGGERS.JOB_NAME "
+			+ "AND SMSS_JOB_RECIPES.JOB_GROUP = QRTZ_TRIGGERS.JOB_GROUP ";
+	
 	static RDBMSNativeEngine schedulerDb;
 	static AbstractSqlQueryUtil queryUtil;
-	
+
 	private SchedulerH2DatabaseUtility() {
 		throw new IllegalStateException("Utility class");
 	}
@@ -433,36 +456,11 @@ public class SchedulerH2DatabaseUtility {
 		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
-				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES WHERE JOB_GROUP=?")) {
+				.prepareStatement(BASE_JOB_DETAILS_QUERY + " WHERE JOB_GROUP=?")) {
 			statement.setString(1, appId);
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
-					Map<String, String> jobDetailsMap = new HashMap<>();
-
-					String userId = result.getString(USER_ID);
-					String jobGroup = result.getString(JOB_GROUP);
-					String jobName = result.getString(JOB_NAME);
-					String cronExpression = result.getString(CRON_EXPRESSION);
-					JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
-					
-					String recipe = null;
-					String parameters = null;
-					if(queryUtil.allowBlobJavaObject()) {
-						recipe = blobToString(result.getBlob(PIXEL_RECIPE));
-						parameters = blobToString(result.getBlob(PARAMETERS));
-					} else {
-						recipe = result.getString(PIXEL_RECIPE);
-						parameters = result.getString(PARAMETERS);
-					}
-
-					jobDetailsMap.put(USER_ID, userId);
-					jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
-					jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
-					jobDetailsMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
-					jobDetailsMap.put(ScheduleJobReactor.PARAMETERS, parameters);
-
-					// what key do we want to return here?
-					jobMap.put(jobKey.toString(), jobDetailsMap);
+					fillJobDetailsMap(jobMap, result);
 				}
 			}
 		} catch (SQLException e) {
@@ -476,36 +474,13 @@ public class SchedulerH2DatabaseUtility {
 		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
-				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES WHERE USER_ID=? AND JOB_GROUP=?")) {
+				.prepareStatement(BASE_JOB_DETAILS_QUERY + " WHERE USER_ID=? AND JOB_GROUP=?")) {
 			statement.setString(1, userId);
 			statement.setString(2, appId);
 
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
-					Map<String, String> jobDetailsMap = new HashMap<>();
-
-					String jobName = result.getString(JOB_NAME);
-					String jobGroup = result.getString(JOB_GROUP);
-					String cronExpression = result.getString(CRON_EXPRESSION);
-					JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
-
-					String recipe = null;
-					String parameters = null;
-					if(queryUtil.allowBlobJavaObject()) {
-						recipe = blobToString(result.getBlob(PIXEL_RECIPE));
-						parameters = blobToString(result.getBlob(PARAMETERS));
-					} else {
-						recipe = result.getString(PIXEL_RECIPE);
-						parameters = result.getString(PARAMETERS);
-					}
-					
-					jobDetailsMap.put(JOB_GROUP, jobName);
-					jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
-					jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
-					jobDetailsMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
-					jobDetailsMap.put(ScheduleJobReactor.PARAMETERS, parameters);
-
-					jobMap.put(jobKey.toString(), jobDetailsMap);
+					fillJobDetailsMap(jobMap, result);
 				}
 			}
 		} catch (SQLException e) {
@@ -519,35 +494,11 @@ public class SchedulerH2DatabaseUtility {
 		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
-				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES WHERE USER_ID=?")) {
+				.prepareStatement(BASE_JOB_DETAILS_QUERY + " WHERE USER_ID=?")) {
 			statement.setString(1, userId);
-
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
-					Map<String, String> jobDetailsMap = new HashMap<>();
-
-					String jobName = result.getString(JOB_NAME);
-					String jobGroup = result.getString(JOB_GROUP);
-					String cronExpression = result.getString(CRON_EXPRESSION);
-					JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
-
-					String recipe = null;
-					String parameters = null;
-					if(queryUtil.allowBlobJavaObject()) {
-						recipe = blobToString(result.getBlob(PIXEL_RECIPE));
-						parameters = blobToString(result.getBlob(PARAMETERS));
-					} else {
-						recipe = result.getString(PIXEL_RECIPE);
-						parameters = result.getString(PARAMETERS);
-					}
-					
-					jobDetailsMap.put(JOB_GROUP, jobName);
-					jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
-					jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
-					jobDetailsMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
-					jobDetailsMap.put(ScheduleJobReactor.PARAMETERS, parameters);
-
-					jobMap.put(jobKey.toString(), jobDetailsMap);
+					fillJobDetailsMap(jobMap, result);
 				}
 			}
 		} catch (SQLException e) {
@@ -561,32 +512,10 @@ public class SchedulerH2DatabaseUtility {
 		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
-				.prepareStatement("SELECT * FROM SMSS_JOB_RECIPES")) {
+				.prepareStatement(BASE_JOB_DETAILS_QUERY)) {
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
-					Map<String, String> jobDetailsMap = new HashMap<>();
-
-					String jobName = result.getString(JOB_NAME);
-					String jobGroup = result.getString(JOB_GROUP);
-					String cronExpression = result.getString(CRON_EXPRESSION);
-					JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
-					String recipe = null;
-					String parameters = null;
-					if(queryUtil.allowBlobJavaObject()) {
-						recipe = blobToString(result.getBlob(PIXEL_RECIPE));
-						parameters = blobToString(result.getBlob(PARAMETERS));
-					} else {
-						recipe = result.getString(PIXEL_RECIPE);
-						parameters = result.getString(PARAMETERS);
-					}
-					
-					jobDetailsMap.put(JOB_GROUP, jobName);
-					jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
-					jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
-					jobDetailsMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
-					jobDetailsMap.put(ScheduleJobReactor.PARAMETERS, parameters);
-
-					jobMap.put(jobKey.toString(), jobDetailsMap);
+					fillJobDetailsMap(jobMap, result);
 				}
 			}
 		} catch (SQLException e) {
@@ -594,6 +523,56 @@ public class SchedulerH2DatabaseUtility {
 		}
 
 		return jobMap;
+	}
+	
+	private static void fillJobDetailsMap(Map<String, Map<String, String>> jobMap, ResultSet result) throws SQLException {
+		Map<String, String> jobDetailsMap = new HashMap<>();
+
+		String userId = result.getString(USER_ID);
+		String jobName = result.getString(JOB_NAME);
+		String jobGroup = result.getString(JOB_GROUP);
+		String cronExpression = result.getString(CRON_EXPRESSION);
+		String recipe = null;
+		String recipeParameters = null;
+		String parameters = null;
+		BigInteger prevExecTime = result.getBigDecimal(PREV_FIRE_TIME).toBigInteger();
+		BigInteger nextExecTime = result.getBigDecimal(NEXT_FIRE_TIME).toBigInteger();
+		if(queryUtil.allowBlobJavaObject()) {
+			recipe = blobToString(result.getBlob(PIXEL_RECIPE));
+			recipeParameters = blobToString(result.getBlob(PIXEL_RECIPE_PARAMETERS));
+			parameters = blobToString(result.getBlob(PARAMETERS));
+		} else {
+			recipe = result.getString(PIXEL_RECIPE);
+			recipeParameters = result.getString(PIXEL_RECIPE_PARAMETERS);
+			parameters = result.getString(PARAMETERS);
+		}
+		
+		jobDetailsMap.put(USER_ID, userId);
+		jobDetailsMap.put(ReactorKeysEnum.JOB_GROUP.getKey(), jobName);
+		jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
+		jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
+		jobDetailsMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
+		jobDetailsMap.put(ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), recipeParameters);
+		jobDetailsMap.put(ScheduleJobReactor.PARAMETERS, parameters);
+		// add next fire time
+		if(nextExecTime != null) {
+			Instant instant = Instant.ofEpochMilli(nextExecTime.longValue());
+			DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+			jobDetailsMap.put(NEXT_FIRE_TIME, fmt.format(instant.atZone(ZoneId.systemDefault())));
+		} else {
+			jobDetailsMap.put(NEXT_FIRE_TIME, "INACTIVE");
+		}
+		if(prevExecTime != null) {
+			Instant instant = Instant.ofEpochMilli(prevExecTime.longValue());
+			DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+			jobDetailsMap.put(PREV_FIRE_TIME, fmt.format(instant.atZone(ZoneId.systemDefault())));
+		} else {
+			jobDetailsMap.put(PREV_FIRE_TIME, "INACTIVE");
+		}
+
+		// add to the job map
+		JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
+		jobMap.put(jobKey.toString(), jobDetailsMap);
 	}
 
 	public static void executeAllTriggerOnLoads() {
@@ -636,6 +615,9 @@ public class SchedulerH2DatabaseUtility {
 	}
 
 	private static String blobToString(Blob blob) {
+		if(blob == null) {
+			return null;
+		}
 		StringBuffer strOut = new StringBuffer();
 		String aux;
 		BufferedReader br;
