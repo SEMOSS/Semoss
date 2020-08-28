@@ -32,15 +32,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class ToExcelReactor extends TaskBuilderReactor {
 
 	private static final String CLASS_NAME = ToExcelReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
 	
 	protected String fileLocation = null;
 	protected Logger logger;
+	protected boolean includeLogo = true;
 	
 	public ToExcelReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), 
@@ -202,8 +203,10 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			sheet.setColumnWidth(i, 5_000);
 		}
 		
-		addLogo(workbook, sheet, size + 1);
-
+		if(includeLogo) {
+			addLogo(workbook, sheet, size + 1);
+		}
+		
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
 		if(password != null) {
 			// encrypt file
@@ -224,9 +227,9 @@ public class ToExcelReactor extends TaskBuilderReactor {
 				try {
 					picture = IOUtils.toByteArray(new FileInputStream(semossLogoPath));
 				} catch (FileNotFoundException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				} catch (IOException ioe) {
-					logger.error(STACKTRACE, ioe);
+					logger.error(Constants.STACKTRACE, ioe);
 				}
 				
 				// Insert image into workbook
