@@ -893,7 +893,7 @@ public abstract class AbstractSecurityUtils {
 	 * Current salt generation by BCrypt
 	 * @return salt
 	 */
-	static String generateSalt(){
+	public static String generateSalt(){
 		return BCrypt.gensalt();
 	}
 
@@ -903,7 +903,7 @@ public abstract class AbstractSecurityUtils {
 	 * @param salt
 	 * @return hash
 	 */
-	static String hash(String password, String salt) {
+	public static String hash(String password, String salt) {
 		return BCrypt.hashpw(password, salt);
 	}
 }
