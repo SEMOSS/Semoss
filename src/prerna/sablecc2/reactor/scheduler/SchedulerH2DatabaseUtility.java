@@ -133,7 +133,7 @@ public class SchedulerH2DatabaseUtility {
 
 	/**
 	 * SELECT SMSS_JOB_RECIPES.USER_ID, SMSS_JOB_RECIPES.JOB_NAME, SMSS_JOB_RECIPES.JOB_GROUP, SMSS_JOB_RECIPES.CRON_EXPRESSION, 
-	 * SMSS_JOB_RECIPES.PIXEL_RECIPE, SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, SMSS_JOB_RECIPES.PARAMETERS, QRTZ_TRIGGERS.NEXT_FIRE_TIME 
+	 * SMSS_JOB_RECIPES.PIXEL_RECIPE, SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, SMSS_JOB_RECIPES.PARAMETERS, QRTZ_TRIGGERS.NEXT_FIRE_TIME, QRTZ_TRIGGERS.PREV_FIRE_TIME
 	 * FROM SMSS_JOB_RECIPES LEFT OUTER JOIN QRTZ_TRIGGERS ON SMSS_JOB_RECIPES.JOB_NAME = QRTZ_TRIGGERS.JOB_NAME AND SMSS_JOB_RECIPES.JOB_GROUP = QRTZ_TRIGGERS.JOB_GROUP
 	 */
 	private static final String BASE_JOB_DETAILS_QUERY = "SELECT SMSS_JOB_RECIPES.USER_ID, "
@@ -172,6 +172,7 @@ public class SchedulerH2DatabaseUtility {
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		try {
 			if(!scheduler.isStarted()) {
+				logger.info("Scheduler is not active. Starting up scheduler...");
 				scheduler.start();
 			}
 		} catch (SchedulerException e) {
@@ -563,9 +564,13 @@ public class SchedulerH2DatabaseUtility {
 			jobDetailsMap.put(NEXT_FIRE_TIME, "INACTIVE");
 		}
 		if(prevExecTime != null) {
-			Instant instant = Instant.ofEpochMilli(prevExecTime.longValue());
-			DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-			jobDetailsMap.put(PREV_FIRE_TIME, fmt.format(instant.atZone(ZoneId.systemDefault())));
+			if(BigInteger.valueOf(-1).equals(prevExecTime)) {
+				jobDetailsMap.put(PREV_FIRE_TIME, "N/A");
+			} else {
+				Instant instant = Instant.ofEpochMilli(prevExecTime.longValue());
+				DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+				jobDetailsMap.put(PREV_FIRE_TIME, fmt.format(instant.atZone(ZoneId.systemDefault())));
+			}
 		} else {
 			jobDetailsMap.put(PREV_FIRE_TIME, "INACTIVE");
 		}
