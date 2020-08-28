@@ -15,7 +15,7 @@ import prerna.util.Utility;
 public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 
 	private static final Logger logger = LogManager.getLogger(H2EmbeddedServerEngine.class);
-	private static final String DATABASE_RUNNING_ON = "DATABASE RUNNING ON";
+	private static final String DATABASE_RUNNING_ON = " DATABASE RUNNING ON ";
 
 	private Server server;
 	private String serverUrl;
