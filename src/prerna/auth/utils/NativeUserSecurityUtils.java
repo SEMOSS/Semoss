@@ -98,8 +98,8 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 				// lets see if he exists or not
 				boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getUsername(), newUser.getEmail());
 				if (!isNewUser) {
-					String salt = SecurityQueryUtils.generateSalt();
-					String hashedPassword = (SecurityQueryUtils.hash(password, salt));
+					String salt = AbstractSecurityUtils.generateSalt();
+					String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
 
 					String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('"
 							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '"

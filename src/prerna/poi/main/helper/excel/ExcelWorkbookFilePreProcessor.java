@@ -3,6 +3,7 @@ package prerna.poi.main.helper.excel;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -85,6 +86,19 @@ public class ExcelWorkbookFilePreProcessor {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Get the sheets in order
+	 * @return
+	 */
+	public List<String> getSheetNames() {
+		int numSheets = this.workbook.getNumberOfSheets();
+		List<String> sheets = new ArrayList<String>(numSheets);
+		for(int i = 0; i < numSheets; i++) {
+			sheets.add(this.workbook.getSheetName(i));
+		}
+		return sheets;
 	}
 	
 	
