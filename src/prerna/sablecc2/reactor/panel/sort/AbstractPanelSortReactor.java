@@ -7,19 +7,41 @@ import java.util.Vector;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.panel.AbstractInsightPanelReactor;
 
 public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReactor {
 
+	protected List<String> getColumnsForSort() {
+		List<String> colInputs = getOrderByColumns();
+		if(colInputs != null && !colInputs.isEmpty()) {
+			return colInputs;
+		}
+		
+		List<String> columns = new Vector<>();
+		
+		String singleSort = getColumnToSort();
+		if(singleSort != null && !singleSort.isEmpty()) {
+			columns.add(singleSort);
+		}
+		
+		return columns;
+	}
+	
+	/*
+	 * THIS IS FOR COLUMN SORTS
+	 */
+	
 	/**
 	 * Grab the sort information from the curRow of the reactor
 	 * THIS ALWAYS ASSUME A COLUMN SORT IS BEING USED
 	 * @return
 	 */
 	protected List<IQuerySort> getColumnSortBys() {
-		List<IQuerySort> sorts = new ArrayList<IQuerySort>();
+		List<IQuerySort> sorts = new ArrayList<>();
 		List<String> colInputs = getOrderByColumns();
 		List<String> sortDirs = getSortDirections();
 		int colSize = colInputs.size();
@@ -52,7 +74,7 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 	 */
 	private List<String> getOrderByColumns() {
 		// if it was passed based on the key
-		List<String> colInputs = new Vector<String>();
+		List<String> colInputs = new Vector<>();
 		GenRowStruct colsGrs = this.store.getNoun(ReactorKeysEnum.COLUMNS.getKey());
 		if(colsGrs != null) {
 			int size = colsGrs.size();
@@ -78,7 +100,7 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 	 */
 	private List<String> getSortDirections() {
 		// if it was passed based on the key
-		List<String> sortDirections = new Vector<String>();
+		List<String> sortDirections = new Vector<>();
 		GenRowStruct colsGrs = this.store.getNoun(ReactorKeysEnum.SORT.getKey());
 		if(colsGrs != null) {
 			int size = colsGrs.size();
@@ -89,5 +111,82 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 			}
 		}
 		return sortDirections;
+	}
+	
+	
+	///////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * THIS IS FOR CUSTOM SORTS
+	 */
+	
+	/**
+	 * Grab the custom sort by 
+	 * @return
+	 */
+	protected IQuerySort getCustomSortBy() {
+		String columnToSort = getColumnToSort();
+		if(columnToSort == null || columnToSort.trim().isEmpty()) {
+			throw new IllegalArgumentException("Must pass in a column to sort");
+		}
+		List<Object> valuesForSort = getValuesToOrder();
+		if(valuesForSort == null || valuesForSort.isEmpty()) {
+			throw new IllegalArgumentException("Must pass in values for the custom sort");
+		}
+		
+		QueryCustomOrderBy customSort = new QueryCustomOrderBy();
+		customSort.setColumnToSort(new QueryColumnSelector(columnToSort));
+		customSort.setCustomOrder(valuesForSort);
+		return customSort;
+	}
+	
+	/**
+	 * Get the order by columns
+	 * These could be in the store or passed in cur row
+	 * @return
+	 */
+	private String getColumnToSort() {
+		// if it was passed based on the key
+		GenRowStruct colsGrs = this.store.getNoun(ReactorKeysEnum.COLUMN.getKey());
+		if(colsGrs != null) {
+			int size = colsGrs.size();
+			if(size > 0) {
+				return colsGrs.get(0).toString();
+			}
+		}
+		
+		// if it was passed directly in
+		if(this.curRow.isEmpty()) {
+			return null;
+		}
+		
+		return this.curRow.get(0).toString();
+	}
+	
+	/**
+	 * Get the values to use for the ordering
+	 * @return
+	 */
+	private List<Object> getValuesToOrder() {
+		// if it was passed based on the key
+		List<Object> colInputs = new Vector<>();
+		GenRowStruct colsGrs = this.store.getNoun(ReactorKeysEnum.VALUES.getKey());
+		if(colsGrs != null) {
+			int size = colsGrs.size();
+			if(size > 0) {
+				for(int i = 0; i < size; i++) {
+					colInputs.add(colsGrs.get(i));
+				}
+				return colInputs;
+			}
+		}
+		
+		// if it was passed directly in
+		int size = this.curRow.size();
+		// index 0 should be the column
+		for(int i = 1; i < size; i++) {
+			colInputs.add(this.curRow.get(i));
+		}
+		return colInputs;
 	}
 }

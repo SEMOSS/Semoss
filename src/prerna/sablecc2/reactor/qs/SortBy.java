@@ -69,7 +69,7 @@ public class SortBy extends AbstractQueryStructReactor {
 	 */
 	private List<Object> getValuesToOrder() {
 		// if it was passed based on the key
-		List<Object> colInputs = new Vector<Object>();
+		List<Object> colInputs = new Vector<>();
 		GenRowStruct colsGrs = this.store.getNoun(VALUES_KEY);
 		if(colsGrs != null) {
 			int size = colsGrs.size();
