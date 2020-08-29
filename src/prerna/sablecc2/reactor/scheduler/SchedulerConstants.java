@@ -13,7 +13,7 @@ public final class SchedulerConstants {
 	public static final String QRTZ_LOCKS = "QRTZ_LOCKS";
 	public static final String QRTZ_JOB_DETAILS = "QRTZ_JOB_DETAILS";
 	public static final String QRTZ_SIMPLE_TRIGGERS = "QRTZ_SIMPLE_TRIGGERS";
-	public static final String QRTZ_SIMPROP_TRIGGERS = "qrtz_simprop_triggers";
+	public static final String QRTZ_SIMPROP_TRIGGERS = "QRTZ_SIMPROP_TRIGGERS";
 	public static final String QRTZ_BLOB_TRIGGERS = "QRTZ_BLOB_TRIGGERS";
 	public static final String QRTZ_TRIGGERS = "QRTZ_TRIGGERS";
 
