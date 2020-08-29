@@ -5,12 +5,10 @@ import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.quartz.CronScheduleBuilder;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
-import org.quartz.Trigger;
-import org.quartz.TriggerBuilder;
+import org.quartz.TriggerKey;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -19,13 +17,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 
-public class RescheduleExistingJobReactor extends AbstractReactor {
+public class ResumeJobTriggerReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(RescheduleExistingJobReactor.class);
+	private static final Logger logger = LogManager.getLogger(ResumeJobTriggerReactor.class);
 
-	public RescheduleExistingJobReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(), 
-				ReactorKeysEnum.CRON_EXPRESSION.getKey() };
+	public ResumeJobTriggerReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
 	}
 
 	@Override
@@ -40,8 +37,6 @@ public class RescheduleExistingJobReactor extends AbstractReactor {
 		// Get inputs
 		String jobName = this.keyValue.get(this.keysToGet[0]);
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
-		String cronExpression = this.keyValue.get(this.keysToGet[2]);
-		SchedulerH2DatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
 
 		// resume the job in quartz
 		// later grab cron expression and add functionality to resume specific trigger under job
@@ -49,9 +44,7 @@ public class RescheduleExistingJobReactor extends AbstractReactor {
 			JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
 			String triggerName = jobName.concat("Trigger");
 			String triggerGroup = jobGroup.concat("TriggerGroup");
-			Trigger trigger = TriggerBuilder.newTrigger().withIdentity(triggerName, triggerGroup)
-					.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-					.forJob(jobKey).build();
+			TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
 
 			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
@@ -60,7 +53,7 @@ public class RescheduleExistingJobReactor extends AbstractReactor {
 
 			// reschedule job
 			if (scheduler.checkExists(jobKey)) {
-				scheduler.scheduleJob(trigger);
+				scheduler.resumeTrigger(triggerKey);
 			}
 		} catch (SchedulerException se) {
 			logger.error(Constants.STACKTRACE, se);
@@ -70,7 +63,6 @@ public class RescheduleExistingJobReactor extends AbstractReactor {
 		Map<String, String> quartzJobMetadata = new HashMap<>();
 		quartzJobMetadata.put("jobName", jobName);
 		quartzJobMetadata.put("jobGroup", jobGroup);
-		quartzJobMetadata.put("cronExpression", cronExpression);
 
 		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.RESCHEDULE_JOB);
 	}

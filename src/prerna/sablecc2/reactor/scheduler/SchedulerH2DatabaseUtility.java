@@ -145,7 +145,8 @@ public class SchedulerH2DatabaseUtility {
 			+ "SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, "
 			+ "SMSS_JOB_RECIPES.PARAMETERS, "
 			+ "QRTZ_TRIGGERS.NEXT_FIRE_TIME, "
-			+ "QRTZ_TRIGGERS.PREV_FIRE_TIME "
+			+ "QRTZ_TRIGGERS.PREV_FIRE_TIME, "
+			+ "QRTZ_TRIGGERS.TRIGGER_STATE "
 			+ "FROM SMSS_JOB_RECIPES "
 			+ "LEFT OUTER JOIN QRTZ_TRIGGERS ON "
 			+ "SMSS_JOB_RECIPES.JOB_NAME = QRTZ_TRIGGERS.JOB_NAME "
@@ -541,6 +542,7 @@ public class SchedulerH2DatabaseUtility {
 		BigInteger nextExecTime = null;
 		BigDecimal pExecTimeD = result.getBigDecimal(PREV_FIRE_TIME);
 		BigDecimal nExecTimeD = result.getBigDecimal(NEXT_FIRE_TIME);
+		String tiggerState = result.getString(TRIGGER_STATE);
 		if(pExecTimeD != null) {
 			prevExecTime = pExecTimeD.toBigInteger();
 		}
@@ -565,7 +567,7 @@ public class SchedulerH2DatabaseUtility {
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), recipeParameters);
 		jobDetailsMap.put(ScheduleJobReactor.PARAMETERS, parameters);
 		// add next fire time
-		if(nextExecTime != null) {
+		if(nextExecTime != null && !tiggerState.equals("PAUSED")) {
 			Instant instant = Instant.ofEpochMilli(nextExecTime.longValue());
 			DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 			jobDetailsMap.put(NEXT_FIRE_TIME, fmt.format(instant.atZone(ZoneId.systemDefault())));
