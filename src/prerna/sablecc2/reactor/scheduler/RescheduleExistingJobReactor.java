@@ -11,7 +11,6 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
-import org.quartz.TriggerKey;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -50,9 +49,9 @@ public class RescheduleExistingJobReactor extends AbstractReactor {
 			JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
 			String triggerName = jobName.concat("Trigger");
 			String triggerGroup = jobGroup.concat("TriggerGroup");
-			TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
 			Trigger trigger = TriggerBuilder.newTrigger().withIdentity(triggerName, triggerGroup)
-					.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
+					.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+					.forJob(jobKey).build();
 
 			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
@@ -61,7 +60,7 @@ public class RescheduleExistingJobReactor extends AbstractReactor {
 
 			// reschedule job
 			if (scheduler.checkExists(jobKey)) {
-				scheduler.rescheduleJob(triggerKey, trigger);
+				scheduler.scheduleJob(trigger);
 			}
 		} catch (SchedulerException se) {
 			logger.error(Constants.STACKTRACE, se);
