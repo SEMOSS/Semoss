@@ -97,6 +97,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.sql.Blob;
@@ -536,8 +537,16 @@ public class SchedulerH2DatabaseUtility {
 		String recipe = null;
 		String recipeParameters = null;
 		String parameters = null;
-		BigInteger prevExecTime = result.getBigDecimal(PREV_FIRE_TIME).toBigInteger();
-		BigInteger nextExecTime = result.getBigDecimal(NEXT_FIRE_TIME).toBigInteger();
+		BigInteger prevExecTime = null;
+		BigInteger nextExecTime = null;
+		BigDecimal pExecTimeD = result.getBigDecimal(PREV_FIRE_TIME);
+		BigDecimal nExecTimeD = result.getBigDecimal(NEXT_FIRE_TIME);
+		if(pExecTimeD != null) {
+			prevExecTime = pExecTimeD.toBigInteger();
+		}
+		if(nExecTimeD != null) {
+			nextExecTime = nExecTimeD.toBigInteger();
+		}
 		if(queryUtil.allowBlobJavaObject()) {
 			recipe = blobToString(result.getBlob(PIXEL_RECIPE));
 			recipeParameters = blobToString(result.getBlob(PIXEL_RECIPE_PARAMETERS));
