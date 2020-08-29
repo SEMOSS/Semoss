@@ -260,10 +260,10 @@ public class NativeFrame extends AbstractTableDataFrame {
 	public IRawSelectWrapper query(String query) throws Exception {
 		long start = System.currentTimeMillis();
 		IEngine engine = this.qs.retrieveQueryStructEngine();
-		this.logger.info("Executing query on engine " + engine.getEngineId());
+		logger.info("Executing query on engine " + engine.getEngineId());
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), query);
 		long end = System.currentTimeMillis();
-		this.logger.info("Engine execution time = " + (end-start) + "ms");
+		logger.info("Engine execution time = " + (end-start) + "ms");
 		return it;
 	}
 
@@ -303,7 +303,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// execution
 
 		// we can cache a few different engine types
-		boolean cache = true;
+		boolean cache = false;
 		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache")) {
 			cache = ((String)qs.getPragmap().get("xCache")).equalsIgnoreCase("True") ? true : false;
 		}
@@ -328,10 +328,10 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// if we still dont have an iterator
 		// create it
 		if(it == null) {
-			this.logger.info("Executing query on engine " + Utility.cleanLogString(engine.getEngineId()));
+			logger.info("Executing query on engine " + Utility.cleanLogString(engine.getEngineId()));
 			it = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			long end = System.currentTimeMillis();
-			this.logger.info("Engine execution time = " + (end-start) + "ms");
+			logger.info("Engine execution time = " + (end-start) + "ms");
 			return it;
 		}
 
