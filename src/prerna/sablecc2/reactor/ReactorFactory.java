@@ -354,9 +354,9 @@ import prerna.sablecc2.reactor.qs.source.URLSourceReactor;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.sablecc2.reactor.runtime.codeexec.CodeExecReactor;
 import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
-import prerna.sablecc2.reactor.scheduler.RescheduleExistingJobReactor;
+import prerna.sablecc2.reactor.scheduler.PauseJobTriggerReactor;
+import prerna.sablecc2.reactor.scheduler.ResumeJobTriggerReactor;
 import prerna.sablecc2.reactor.scheduler.ScheduleJobReactor;
-import prerna.sablecc2.reactor.scheduler.UnscheduleExistingJobReactor;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.SaveTaxScenarioReactor;
 import prerna.sablecc2.reactor.storage.StoreValue;
@@ -1108,9 +1108,9 @@ public class ReactorFactory {
 
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
-		reactorHash.put("UnscheduleJob", UnscheduleExistingJobReactor.class);
+		reactorHash.put("PauseJobTrigger", PauseJobTriggerReactor.class);
 		reactorHash.put("ListAllJobs", ListAllJobsReactor.class);
-		reactorHash.put("RescheduleExistingJob", RescheduleExistingJobReactor.class);
+		reactorHash.put("ResumeJobTrigger", ResumeJobTriggerReactor.class);
 		// User Tracking
 		reactorHash.put("UpdateSemanticData", UpdateSemanticDataReactor.class);
 		reactorHash.put("UpdateQueryData", UpdateQueryDataReactor.class);
