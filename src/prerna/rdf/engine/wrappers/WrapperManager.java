@@ -189,25 +189,40 @@ public class WrapperManager {
 		}
 
 		if(genQueryString) {
-			long start = System.currentTimeMillis();
-			IQueryInterpreter interpreter = engine.getQueryInterpreter();
-			interpreter.setQueryStruct(qs);
-			String query = interpreter.composeQuery();
-			String appId = engine.getEngineId();
-			if(Constants.LOCAL_MASTER_DB_NAME.equals(appId) || Constants.SECURITY_DB.equals(appId)) {
-				logger.debug("Executing query on engine " + engine.getEngineId());
-				returnWrapper.setEngine(engine);
-				returnWrapper.setQuery(query);
-				returnWrapper.execute();
-				long end = System.currentTimeMillis();
-				logger.debug("Engine execution time = " + (end-start) + "ms");
-			} else {
-				logger.info("Executing query on engine " + engine.getEngineId());
-				returnWrapper.setEngine(engine);
-				returnWrapper.setQuery(query);
-				returnWrapper.execute();
-				long end = System.currentTimeMillis();
-				logger.info("Engine execution time = " + (end-start) + "ms");
+			boolean error = false;
+			String query = null;
+			try {
+				long start = System.currentTimeMillis();
+				IQueryInterpreter interpreter = engine.getQueryInterpreter();
+				interpreter.setQueryStruct(qs);
+				query = interpreter.composeQuery();
+				String appId = engine.getEngineId();
+				if(Constants.LOCAL_MASTER_DB_NAME.equals(appId) || Constants.SECURITY_DB.equals(appId)) {
+					logger.debug("Executing query on engine " + engine.getEngineId());
+					returnWrapper.setEngine(engine);
+					returnWrapper.setQuery(query);
+					returnWrapper.execute();
+					long end = System.currentTimeMillis();
+					logger.debug("Engine execution time = " + (end-start) + "ms");
+				} else {
+					logger.info("Executing query on engine " + engine.getEngineId());
+					returnWrapper.setEngine(engine);
+					returnWrapper.setQuery(query);
+					returnWrapper.execute();
+					long end = System.currentTimeMillis();
+					logger.info("Engine execution time = " + (end-start) + "ms");
+				}
+			} catch(Exception e) {
+				error = true;
+				throw e;
+			} finally {
+				// clean up errors 
+				// if the wrapper is created
+				// but not returned
+				if(error && returnWrapper != null) {
+					logger.debug("Error occured executing query on engine " + engine.getEngineId() + " with query = " + query);
+					returnWrapper.cleanUp();
+				}
 			}
 		} 
 
