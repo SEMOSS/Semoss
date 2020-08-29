@@ -692,7 +692,7 @@ public class OwlTemporalEngineMeta {
 				+ "where {"
 				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"}"
+				+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}"
 				+ "{?header <" + QUERY_SELECTOR_TYPE_PRED + "> ?queryType}"
 				+ "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}"
 				+ "}";
