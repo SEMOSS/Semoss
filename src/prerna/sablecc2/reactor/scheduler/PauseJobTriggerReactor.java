@@ -14,21 +14,21 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 
-public class UnscheduleExistingJobReactor extends AbstractReactor {
+public class PauseJobTriggerReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(UnscheduleExistingJobReactor.class);
+	private static final Logger logger = LogManager.getLogger(PauseJobTriggerReactor.class);
 
-	public UnscheduleExistingJobReactor() {
+	public PauseJobTriggerReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		/**
-		 * UnscheduleJobFromDB(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
+		 * PauseJobTrigger(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
 		 * 
-		 * This reactor will unschedule the job in Quartz but keep the job stored in the database.
-		 * The jobs that're unscheduled can be rescheduled in the future.
+		 * This reactor will pause the job in Quartz but keep the job stored in the database.
+		 * The jobs that are paused can be resumed in the future.
 		 */
 
 		organizeKeys();
@@ -48,7 +48,7 @@ public class UnscheduleExistingJobReactor extends AbstractReactor {
 			SchedulerH2DatabaseUtility.startScheduler(scheduler);
 
 			if (scheduler.checkExists(jobKey)) {
-				scheduler.unscheduleJob(triggerKey);
+				scheduler.pauseTrigger(triggerKey);
 				return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
 			}
 		} catch (SchedulerException se) {
