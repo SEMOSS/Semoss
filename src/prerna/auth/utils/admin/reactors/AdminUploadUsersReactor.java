@@ -112,7 +112,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 				loadExcelFile(conn, database.getQueryUtil(), it);
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new IllegalArgumentException("Error loading request table : " + e.getMessage());
+				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
 			} finally {
 				if(it != null) {
 					it.cleanUp();
