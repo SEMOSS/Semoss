@@ -4,16 +4,17 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.HiveSqlInterpreter;
-import prerna.query.interpreters.sql.TeradataSqlInterpreter;
 
 public class HiveQueryUtil  extends AnsiSqlQueryUtil {
 
 	HiveQueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.HIVE);
 	}
 	
 	HiveQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.HIVE);
 	}
 	
 	HiveQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
