@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
@@ -45,6 +46,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 			throw new IllegalArgumentException("Input values are not the same size");
 		}
 		
+		ClusterUtil.reactorPullOwl(appId);
 		Owler owler = getOWLER(appId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
@@ -73,7 +75,8 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		
+		ClusterUtil.reactorPushOwl(appId);
+
 		// store user inputed values
 		storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "removed");
 		
