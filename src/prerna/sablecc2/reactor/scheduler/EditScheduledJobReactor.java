@@ -20,6 +20,8 @@ import com.google.gson.JsonObject;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.rpa.config.IllegalConfigException;
 import prerna.rpa.config.ParseConfigException;
 import prerna.sablecc2.om.PixelDataType;
@@ -56,6 +58,14 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		String cronExpression = this.keyValue.get(this.keysToGet[2]);
 		SchedulerH2DatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
 
+		// the job group is the app the user is in
+		// user must be an admin or editor of the app
+		// to add a scheduled job
+		User user = this.insight.getUser();
+		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityAppUtils.userCanEditEngine(user, jobGroup)) {
+			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
+		}
+		
 		String recipe = this.keyValue.get(this.keysToGet[3]);
 		recipe = SchedulerH2DatabaseUtility.validateAndDecodeRecipe(recipe);
 
@@ -82,7 +92,6 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			SchedulerH2DatabaseUtility.startScheduler(scheduler);
 
 			// get user access information
-			User user = this.insight.getUser();
 			List<AuthProvider> authProviders = user.getLogins();
 			StringBuilder providerInfo = new StringBuilder(); 
 			for (int i = 0; i < authProviders.size(); i++) {
