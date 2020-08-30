@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.commons.io.IOUtils;
@@ -55,28 +56,38 @@ import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
 import prerna.test.TestUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public abstract class AbstractSqlQueryUtil {
+	
 	private static final Logger logger = LogManager.getLogger(AbstractSqlQueryUtil.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
 	protected RdbmsTypeEnum dbType = null;
+	// there are 2 differnet ways of providing the inputs
+	// properties - primarily for grabbing from SMSS files
+	// map - primarily for getting input details from FE / JSON
+	protected Properties properites;
+	protected Map<String, Object> conDetails;
+
+	protected String connectionUrl;
+	protected String username;
+	protected String password;
+	
+	// these should be replaced and use the properties / conDetails
 	protected String hostname;
 	protected String port;
 	protected String schema;
-	protected String username;
-	protected String password;
-	protected String connectionUrl;
 
+	// reserved words
 	protected List<String> reservedWords = null;
-
+	// type conversions
 	protected Map<String, String> typeConversionMap = new HashMap<>();
 
 	AbstractSqlQueryUtil() {
 		initTypeConverstionMap();
 	}
-
+	
 	AbstractSqlQueryUtil(String connectionURL, String username, String password) {
 		this.connectionUrl = connectionURL;
 		this.username = username;
@@ -95,11 +106,25 @@ public abstract class AbstractSqlQueryUtil {
 		try {
 			this.connectionUrl = RdbmsConnectionHelper.getConnectionUrl(dbType.name(), hostname, port, schema, "");
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		initTypeConverstionMap();
 	}
 
+	/**
+	 * Build the connection string from a JSON map
+	 * @param configMap
+	 * @return
+	 */
+	public abstract String buildConnectionString(Map<String, Object> configMap);
+	
+	/**
+	 * Build the connection string from a properties file (SMSS file)
+	 * @param prop
+	 * @return
+	 */
+	public abstract String buildConnectionString(Properties prop);
+	
 	/**
 	 * Use this when we need to make any modifications to the connection object for
 	 * proper usage Example ::: Adding user defined functions for RDBMS types that
@@ -245,9 +270,9 @@ public abstract class AbstractSqlQueryUtil {
 				inputstream = inputClob.getAsciiStream();
 				return IOUtils.toString(inputstream);
 			} catch (SQLException sqe) {
-				logger.error(STACKTRACE, sqe);
+				logger.error(Constants.STACKTRACE, sqe);
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return null;
@@ -942,14 +967,14 @@ public abstract class AbstractSqlQueryUtil {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -973,7 +998,7 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -1001,7 +1026,7 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -1034,14 +1059,14 @@ public abstract class AbstractSqlQueryUtil {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -1064,7 +1089,7 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -1094,20 +1119,20 @@ public abstract class AbstractSqlQueryUtil {
 				tableColumns.add(rs.getString(1).toUpperCase());
 			}
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (rs != null) {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

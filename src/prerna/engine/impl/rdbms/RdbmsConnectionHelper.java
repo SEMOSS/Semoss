@@ -13,14 +13,13 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsConnectionHelper {
 
 	private static final Logger logger = LogManager.getLogger(RdbmsConnectionHelper.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	private RdbmsConnectionHelper() {
 
@@ -46,7 +45,7 @@ public class RdbmsConnectionHelper {
 				Class.forName(driver);
 			}
 		} catch (ClassNotFoundException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new SQLException("Unable to find driver for engine type");
 		}
 
@@ -59,7 +58,7 @@ public class RdbmsConnectionHelper {
 				conn = DriverManager.getConnection(connectionUrl, userName, password);
 			}
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new SQLException(e.getMessage());
 		}
 
@@ -267,7 +266,7 @@ public class RdbmsConnectionHelper {
 		try {
 			driverName = meta.getDriverName().toLowerCase();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		// in oracle
@@ -278,7 +277,7 @@ public class RdbmsConnectionHelper {
 			try {
 				schema = meta.getUserName();
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -294,7 +293,7 @@ public class RdbmsConnectionHelper {
 				schema = con.getSchema();
 			}
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		//hive doesn't support getURL
@@ -303,7 +302,7 @@ public class RdbmsConnectionHelper {
 			try {
 				url = meta.getURL();
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 			
 	
@@ -343,13 +342,13 @@ public class RdbmsConnectionHelper {
 					}
 				}
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(schemaRs != null) {
 					try {
 						schemaRs.close();
 					} catch (SQLException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -368,13 +367,13 @@ public class RdbmsConnectionHelper {
 					}
 				}
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(catalogRs != null) {
 					try {
 						catalogRs.close();
 					} catch (SQLException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}

@@ -1,26 +1,20 @@
 package prerna.util.sql;
 
-import java.sql.Connection;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.TeradataSqlInterpreter;
-import prerna.sablecc2.om.Join;
-import prerna.util.Utility;
 
 public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 
 	TeradataQueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.TERADATA);
 	}
 	
 	TeradataQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.TERADATA);
 	}
 	
 	TeradataQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
