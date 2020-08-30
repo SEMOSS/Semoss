@@ -2341,6 +2341,12 @@
 			<artifactId>postgresql</artifactId>
 			<version>42.2.8</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/io.prestosql/presto-jdbc -->
+		<dependency>
+		    <groupId>io.prestosql</groupId>
+		    <artifactId>presto-jdbc</artifactId>
+		    <version>340</version>
+		</dependency>
 		<!-- cleanup -->
 		<!--dependency>
 			<groupId>org.apache.derby</groupId>
