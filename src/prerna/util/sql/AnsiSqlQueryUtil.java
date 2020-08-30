@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
@@ -14,7 +15,7 @@ import prerna.date.SemossDate;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.sablecc2.om.Join;
 
-public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
+public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 
 	AnsiSqlQueryUtil() {
 		super();
@@ -26,6 +27,28 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	
 	AnsiSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
 		super(dbType, hostname, port, schema, username, password);
+	}
+	
+	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+	@Override
+	public String buildConnectionString(Map<String, Object> configMap) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+	@Override
+	public String buildConnectionString(Properties prop) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	@Override
