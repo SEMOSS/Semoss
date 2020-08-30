@@ -387,19 +387,25 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		String function = selector.getFunction();
 
 		StringBuilder expression = new StringBuilder();
-		expression.append(QueryFunctionHelper.convertFunctionToRSyntax(function));
 		// we auto add some cleaning up for specific functions
 		StringBuilder endExpr = new StringBuilder();
 		if(function.equals(QueryFunctionHelper.GROUP_CONCAT)) {
+			expression.append(QueryFunctionHelper.convertFunctionToRSyntax(function));
 			expression.append("(na.omit(");
 			endExpr.append("), collapse = \", \")");
 		} else if (function.equals(QueryFunctionHelper.UNIQUE_GROUP_CONCAT)) {
+			expression.append(QueryFunctionHelper.convertFunctionToRSyntax(function));
 			expression.append("(unique((na.omit(");
 			endExpr.append("))), collapse = \", \")");
 		} else if(function.equals(QueryFunctionHelper.COUNT) || function.equals(QueryFunctionHelper.UNIQUE_COUNT) ) {
+			expression.append(QueryFunctionHelper.convertFunctionToRSyntax(function));
 			expression.append("(na.omit(");
 			endExpr.append("))");
+		} else if(function.equals(QueryFunctionHelper.MONTH_NAME)) {
+			expression.append("(format(as.Date(");
+			endExpr.append("), \"%B\"))");
 		} else {
+			expression.append(QueryFunctionHelper.convertFunctionToRSyntax(function));
 			// if we have a non-defined type of function
 			// we need to account for additional params
 			List<Object[]> additionalParams = selector.getAdditionalFunctionParams();
