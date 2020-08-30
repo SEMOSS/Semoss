@@ -36,10 +36,12 @@ public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 	
 	SnowFlakeQueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.SNOWFLAKE);
 	}
 	
 	SnowFlakeQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.SNOWFLAKE);
 	}
 	
 	SnowFlakeQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {

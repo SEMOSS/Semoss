@@ -17,13 +17,15 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.sablecc2.om.Join;
 
 public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
-
+	
 	SQLiteQueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.SQLITE);
 	}
 	
 	SQLiteQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.SQLITE);
 	}
 	
 	SQLiteQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {

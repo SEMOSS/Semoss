@@ -4,10 +4,12 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 	
 	MySQLQueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.MYSQL);
 	}
 	
 	MySQLQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.MYSQL);
 	}
 	
 	MySQLQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
