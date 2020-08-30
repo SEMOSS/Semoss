@@ -31,10 +31,12 @@ public class MariaDbQueryUtil extends MySQLQueryUtil {
 	
 	MariaDbQueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.MARIADB);
 	}
 	
 	MariaDbQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.MARIADB);
 	}
 	
 	MariaDbQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {

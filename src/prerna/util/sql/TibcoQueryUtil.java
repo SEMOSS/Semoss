@@ -4,10 +4,12 @@ public class TibcoQueryUtil extends AnsiSqlQueryUtil {
 
 	TibcoQueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.TIBCO);
 	}
 	
 	TibcoQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.TIBCO);
 	}
 	
 	TibcoQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {

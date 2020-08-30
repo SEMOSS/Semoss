@@ -42,10 +42,12 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	
 	H2QueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.H2_DB);
 	}
 	
 	H2QueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.H2_DB);
 	}
 	
 	H2QueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
