@@ -9,10 +9,12 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	
 	MicrosoftSqlServerUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.SQLSERVER);
 	}
 	
 	MicrosoftSqlServerUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.SQLSERVER);
 	}
 	
 	MicrosoftSqlServerUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {

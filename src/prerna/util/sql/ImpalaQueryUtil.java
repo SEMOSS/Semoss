@@ -9,10 +9,12 @@ public class ImpalaQueryUtil extends AnsiSqlQueryUtil {
 	
 	ImpalaQueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.IMPALA);
 	}
 	
 	ImpalaQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.IMPALA);
 	}
 	
 	ImpalaQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {

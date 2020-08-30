@@ -1,18 +1,15 @@
 package prerna.util.sql;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
-import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
-
 public class OracleQueryUtil extends AnsiSqlQueryUtil {
 	
 	OracleQueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.ORACLE);
 	}
 	
 	OracleQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.ORACLE);
 	}
 	
 	OracleQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {

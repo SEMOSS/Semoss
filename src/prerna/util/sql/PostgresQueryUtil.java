@@ -36,10 +36,12 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	
 	PostgresQueryUtil() {
 		super();
+		setDbType(RdbmsTypeEnum.POSTGRES);
 	}
 	
 	PostgresQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
+		setDbType(RdbmsTypeEnum.POSTGRES);
 	}
 	
 	PostgresQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
