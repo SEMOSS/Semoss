@@ -6,6 +6,9 @@ import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -33,12 +36,19 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
 		boolean deleteJob = false;
 		
+		// the job group is the app the user is in
+		// user must be an admin or editor of the app
+		// to add a scheduled job
+		User user = this.insight.getUser();
+		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityAppUtils.userCanEditEngine(user, jobGroup)) {
+			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
+		}
+		
 		// delete job from quartz
 		try {
 			JobKey job = JobKey.jobKey(jobName, jobGroup);
-
 			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
-
+			
 			// start up scheduler
 			SchedulerH2DatabaseUtility.startScheduler(scheduler);
 
