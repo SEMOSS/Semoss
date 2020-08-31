@@ -18,7 +18,7 @@ analyze_request<-function(db,df){
 
 get_element_alternatves<-function(db,df,nbr){
 	OPS<-c('=','<','<=','>','>=','!=','between value and value')
-	OPS_STRING<-c('begins with','contains','ends with','not begins with','not contains','not ends with','?like','?nlike')
+	OPS_STRING<-c('begins with','contains','ends with','not begins with','not contains','not ends with')
 	OPS_DATE<-c('after','before')
 	DATE_GROUPPING<-c('daily','weekly','monthly','yearly')
 	
@@ -105,21 +105,21 @@ get_single_cols<-function(df){
 }
 
 get_component_alternatives<-function(df){
-	COMPONENTS<-c('aggregate column','where column is value','position n column',
+	COMPONENTS<-c('aggregate column','where column is value','top n column','bottom n column',
 	'sort column direction','based on aggregate column','group column','having column is value')	
 	REQUEST_COMPONENTS<-list('1'='select column','2'=c('select column','where column is value'),
-	'3'=c('select column','aggregate column','group column'),	'4'=c('position n column','based on aggregate column'))
+	'3'=c('select column','aggregate column','group column'),'4'=c('top n column','based on aggregate column'),'5'=c('bottom n column','based on aggregate column'))
 	if(nrow(df)==0){
 		# for the first run only select components available
 		out<-REQUEST_COMPONENTS
 	}else{
 		# where is always available
-		out<-COMPONENTS[1:4]
+		out<-COMPONENTS[1:5]
 		
 		ind<-which(df$Component=='position')
 		ind2<-which(df$Component=='based on')
 		if(length(ind)>0 & length(ind2)==0){
-			out<-append(out,COMPONENTS[5])
+			out<-append(out,COMPONENTS[6])
 		}
 		# if aggregate element present and there is no group or based on components
 		# we can add group component
@@ -128,13 +128,13 @@ get_component_alternatives<-function(df){
 		if(length(ind)>0){
 			group_ind<-which(df$Component %in% c('group','based on'))
 			if(length(group_ind)==0){
-				out<-append(out,COMPONENTS[6])
+				out<-append(out,COMPONENTS[7])
 			}
 		}
 		# if group or based on components present we can add having component
 		group_ind<-which(df$Component %in% c('group','based on'))
 		if(length(group_ind)>0){
-			out<-append(out,COMPONENTS[7])
+			out<-append(out,COMPONENTS[8])
 		}
 	}
 	return(out)
@@ -164,22 +164,24 @@ exec_componentized_query<-function(db,joins,request){
 		if(n > 0){
 			for(i in 1:n){
 				ind<-which(components==unique_components[i])
-				part<-unlist(strsplit(unname(sapply(request[ind],function(x) paste(unlist(strsplit(x,' '))[-1],collapse=' '))),' '))
-				if(unique_components[i]=='select'){
-					p<-process_select(db,part,cols,p,1)
-					p<-process_from(cluster_joins,p,1)
-				}else if(unique_components[i]=='where'){
-					p<-process_where(db,part,cols,p,1)
-				}else if(unique_components[i]=='group'){
-					p<-process_group(db,part,cols,p,1)
-				}else if(unique_components[i]=='having'){
-					p<-process_having(db,part,cols,p,1)
-				}else if(unique_components[i]=='rank'){
-					all_cols<-get_all_cols(p)
-					p<-process_rank(db,part,all_cols,p,1)
-				}else if(unique_components[i]=='sort'){
-					all_cols<-get_all_cols(p)
-					p<-process_sort(db,part,all_cols,p,1)
+				for(j in 1:length(ind)){
+					part<-unlist(strsplit(unname(sapply(request[ind[j]],function(x) paste(unlist(strsplit(x,' '))[-1],collapse=' '))),' '))
+					if(unique_components[i]=='select'){
+						p<-process_select(db,part,cols,p,1)
+						p<-process_from(cluster_joins,p,1)
+					}else if(unique_components[i]=='where'){
+						p<-process_where(db,part,cols,p,1)
+					}else if(unique_components[i]=='group'){
+						p<-process_group(db,part,cols,p,1)
+					}else if(unique_components[i]=='having'){
+						p<-process_having(db,part,cols,p,1)
+					}else if(unique_components[i]=='rank'){
+						all_cols<-get_all_cols(p)
+						p<-process_rank(db,part,all_cols,p,1)
+					}else if(unique_components[i]=='sort'){
+						all_cols<-get_all_cols(p)
+						p<-process_sort(db,part,all_cols,p,1)
+					}
 				}
 			}
 		}
@@ -206,9 +208,9 @@ preprocess_request<-function(request,cols){
 				if(components[i]=='position'){
 					pos_ind<-i
 					comp_words<-unlist(strsplit(unname(request[i]),' '))
+					comp_cols<-intersect(comp_words,cols)
 					if(based_on){
 						position<-paste(comp_words[2:3],collapse=' ')
-						comp_cols<-intersect(comp_words,cols)
 						if(length(comp_cols)>0){
 							out<-append(out,setNames(c(paste0('select ',paste(comp_cols,collapse=' ')),paste0('group ',paste(comp_cols,collapse=' '))),c('select','group')))
 						}
