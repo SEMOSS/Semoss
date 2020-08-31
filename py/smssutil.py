@@ -132,3 +132,7 @@ def get_size(obj, seen=None):
         
     return size
 
+def install_py(packageName):
+	from pip._internal import main as pipmain
+	pipmain(['install', packageName])
+
