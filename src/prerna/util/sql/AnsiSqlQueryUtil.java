@@ -118,10 +118,19 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			return getCoalesceFunctionSyntax();
 		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.REGEXP_LIKE)) {
 			return getRegexLikeFunctionSyntax();
-		// date functions
+		// Date functions
 		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.MONTH_NAME)) {
 			return getMonthNameFunctionSyntax();
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.DAY_NAME)) {
+			return getDayNameFunctionSyntax();
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.QUARTER)) {
+			return getQuarterFunctionSyntax();
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.WEEK)) {
+			return getWeekFunctionSyntax();
+		} else if(inputFunction.equalsIgnoreCase(QueryFunctionHelper.YEAR)) {
+			return getYearFunctionSyntax();
 		}
+		
 		
 		return inputFunction;
 	}
@@ -190,6 +199,27 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	public String getMonthNameFunctionSyntax() {
 		return "MONTHNAME";
 	}
+	
+	@Override
+	public String getDayNameFunctionSyntax() {
+		return "DAYNAME";
+	}
+	
+	@Override
+	public String getQuarterFunctionSyntax() {
+		return "QUARTER";
+	}
+	
+	@Override
+	public String getWeekFunctionSyntax() {
+		return "WEEK";
+	}
+	
+	@Override
+	public String getYearFunctionSyntax() {
+		return "YEAR";
+	}
+
 
 	@Override
 	public String getCurrentDate() {
