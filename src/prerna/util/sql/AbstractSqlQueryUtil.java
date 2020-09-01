@@ -381,6 +381,18 @@ public abstract class AbstractSqlQueryUtil {
 
 	public abstract String getMonthNameFunctionSyntax();
 	
+	public abstract String getDayNameFunctionSyntax();
+	
+	public abstract String getQuarterFunctionSyntax();
+	
+	public abstract String getWeekFunctionSyntax();
+	
+	public abstract String getYearFunctionSyntax();
+	
+		// TODO Auto-generated method stub
+		
+	
+	
 	// date functions - require more complex inputs
 	public abstract String getCurrentDate();
 	
