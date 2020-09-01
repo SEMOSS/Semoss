@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
@@ -18,53 +19,53 @@ import prerna.util.Utility;
 public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 
 	public AddOwlConceptReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
-				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), 
-				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), CONCEPTUAL_NAME, 
-				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()
-			};
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
+				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(),
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), CONCEPTUAL_NAME, ReactorKeysEnum.DESCRIPTION.getKey(),
+				ReactorKeysEnum.LOGICAL_NAME.getKey() };
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
 		appId = testAppId(appId, true);
-		
+
 		String concept = this.keyValue.get(this.keysToGet[1]);
-		if(concept == null || concept.isEmpty()) {
+		if (concept == null || concept.isEmpty()) {
 			throw new IllegalArgumentException("Must define the concept being added to the app metadata");
 		}
-		
+
 		// if RDBMS, we need to know the prim key of the column
 		IEngine engine = Utility.getEngine(appId);
+		ClusterUtil.reactorPullOwl(appId);
 		String column = this.keyValue.get(this.keysToGet[2]);
-		if( (column == null || column.isEmpty()) && engine.getEngineType() == ENGINE_TYPE.RDBMS ) {
+		if ((column == null || column.isEmpty()) && engine.getEngineType() == ENGINE_TYPE.RDBMS) {
 			throw new IllegalArgumentException("Must define the column for the concept being added to the app metadata");
 		}
 		String dataType = this.keyValue.get(this.keysToGet[3]);
-		if(dataType == null || dataType.isEmpty()) {
+		if (dataType == null || dataType.isEmpty()) {
 			throw new IllegalArgumentException("Must define the data type for the concept being added to the app metadata");
 		}
 		
 		// TODO: need to account for this on concepts!!!!
 		String additionalDataType = this.keyValue.get(this.keysToGet[4]);
 		String conceptual = this.keyValue.get(this.keysToGet[5]);
-		if(conceptual != null) {
+		if (conceptual != null) {
 			conceptual = conceptual.trim();
-			if(!conceptual.matches("^[a-zA-Z0-9-_]+$")) {
+			if (!conceptual.matches("^[a-zA-Z0-9-_]+$")) {
 				throw new IllegalArgumentException("Conceptual name must contain only letters, numbers, and underscores");
 			}
 			conceptual = conceptual.replaceAll("_{2,}", "_");
 		}
 
 		List<String> concepts = engine.getPhysicalConcepts();
-		for(String conceptUri : concepts) {
+		for (String conceptUri : concepts) {
 			String table = Utility.getInstanceName(conceptUri);
-			if(table.equalsIgnoreCase(concept)) {
+			if (table.equalsIgnoreCase(concept)) {
 				throw new IllegalArgumentException("A concept already exists with this name. "
 						+ "Add a new unique concept or edit the existing concept");
 			}
@@ -87,9 +88,11 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add the desired concept", 
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add the desired concept",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
+		} finally {
+			ClusterUtil.reactorPushOwl(appId);
 		}
 	
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -99,6 +102,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 	
 	/**
 	 * Get the logical names
+	 * 
 	 * @return
 	 */
 	private List<String> getLogicalNames() {
