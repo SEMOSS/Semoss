@@ -22,6 +22,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -219,6 +221,8 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		HashMap<String, Object> ret = new HashMap<String, Object>();
 		ret.put(TABLES_KEY, databaseTables);
 		ret.put(RELATIONS_KEY, databaseJoins);
+		Map<String, Map<String, Double>> positions = GenerateMetamodelLayout.generateMetamodelLayoutForExternal(databaseTables, databaseJoins);
+		ret.put(Constants.POSITION_PROP, positions);
 		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
