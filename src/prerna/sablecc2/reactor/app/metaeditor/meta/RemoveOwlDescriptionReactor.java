@@ -49,10 +49,9 @@ public class RemoveOwlDescriptionReactor extends AbstractMetaEditorReactor {
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove descriptions : " + description, 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
-		} finally {
-			ClusterUtil.reactorPushOwl(appId);
 		}
-		
+		ClusterUtil.reactorPushOwl(appId);
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed descriptions : " + description, 
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
