@@ -189,7 +189,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		}
 
 		this.insight.setDataMaker(frame);
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		return retNoun;
 	}
 
