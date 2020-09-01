@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.MetadataUtility;
 import prerna.engine.api.impl.util.Owler;
@@ -33,12 +34,12 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
 		appId = testAppId(appId, true);
-		
+
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		String column = this.keyValue.get(this.keysToGet[2]);
 		String dataType = this.keyValue.get(this.keysToGet[3]);
@@ -52,20 +53,21 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 //			}
 //			conceptual = conceptual.replaceAll("_{2,}", "_");
 //		}
-		
+
 		IEngine engine = Utility.getEngine(appId);
+		ClusterUtil.reactorPullOwl(appId);
 		// make sure the concept exists
 		String conceptPhysicalUri = engine.getPhysicalUriFromPixelSelector(concept);
-		if(conceptPhysicalUri == null) {
+		if (conceptPhysicalUri == null) {
 			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before adding properties");
 		}
 		
 		// make sure this property doesn't already exist for this concept
-		if(MetadataUtility.propertyExistsForConcept(engine, conceptPhysicalUri, column)) {
+		if (MetadataUtility.propertyExistsForConcept(engine, conceptPhysicalUri, column)) {
 			throw new IllegalArgumentException("A property already exists for this concept with this name. "
 					+ "Add a new unique property or edit the existing property");
 		}
-		
+
 		// set the owler
 		Owler owler = getOWLER(appId);
 		setOwlerValues(engine, owler);
@@ -82,20 +84,21 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 		owler.addDescription(physicalUri, description);
 		// add the logical names (additional checks done in method)
 		List<String> logicalNames = getLogicalNames();
-		if(!logicalNames.isEmpty()) {
-			owler.addLogicalNames(physicalUri, logicalNames.toArray(new String[]{}));
+		if (!logicalNames.isEmpty()) {
+			owler.addLogicalNames(physicalUri, logicalNames.toArray(new String[] {}));
 		}
-		
+
 		try {
 			owler.export();
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add the desired property", 
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add the desired property", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
+		} finally {
+			ClusterUtil.reactorPushOwl(appId);
 		}
-	
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully added new property", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
@@ -103,6 +106,7 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 	
 	/**
 	 * Get the logical names
+	 * 
 	 * @return
 	 */
 	private List<String> getLogicalNames() {

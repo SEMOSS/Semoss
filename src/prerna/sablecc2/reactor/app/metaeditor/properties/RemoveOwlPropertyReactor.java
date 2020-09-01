@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app.metaeditor.properties;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -15,7 +16,7 @@ import prerna.util.Utility;
 public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 
 	public RemoveOwlPropertyReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
 				ReactorKeysEnum.COLUMN.getKey() };
 	}
 	
@@ -29,7 +30,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 		appId = testAppId(appId, true);
 		
 		String concept = this.keyValue.get(this.keysToGet[1]);
-		if(concept == null || concept.isEmpty()) {
+		if (concept == null || concept.isEmpty()) {
 			throw new IllegalArgumentException("Must define the concept being added to the app metadata");
 		}
 		String column = this.keyValue.get(this.keysToGet[2]);
@@ -38,6 +39,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 		}
 		// if RDBMS, we need to know the prime key of the column
 		IEngine engine = Utility.getEngine(appId);
+		ClusterUtil.reactorPullOwl(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		String physicalPropUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + column);
 		if(physicalPropUri == null) {
@@ -98,9 +100,10 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 		} catch (Exception e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove the desired property", 
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove the desired property", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
+		} finally {
+			ClusterUtil.reactorPushOwl(appId);
 		}
 	
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);

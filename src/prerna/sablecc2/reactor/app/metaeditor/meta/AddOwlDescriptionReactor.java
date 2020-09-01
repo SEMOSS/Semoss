@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.app.metaeditor.meta;
 
 import java.io.IOException;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.PixelDataType;
@@ -29,8 +30,9 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		String description = this.keyValue.get(this.keysToGet[3]);
 		
 		IEngine engine = Utility.getEngine(appId);
+		ClusterUtil.reactorPullOwl(appId);
 		String physicalUri = null;
-		if(prop == null || prop.isEmpty()) {
+		if (prop == null || prop.isEmpty()) {
 			physicalUri = engine.getPhysicalUriFromPixelSelector(concept);
 		} else {
 			physicalUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + prop);
@@ -44,14 +46,14 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add description", 
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add description", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
+		} finally {
+			ClusterUtil.reactorPushOwl(appId);
 		}
-		
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions",
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 }
