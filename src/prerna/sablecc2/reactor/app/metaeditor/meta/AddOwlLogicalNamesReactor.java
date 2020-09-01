@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.app.metaeditor.meta;
 
 import java.io.IOException;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
@@ -29,8 +30,9 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		String[] logicalNames = getLogicalNames();
 		
 		IEngine engine = Utility.getEngine(appId);
+		ClusterUtil.reactorPullOwl(appId);
 		String physicalUri = null;
-		if(prop == null || prop.isEmpty()) {
+		if (prop == null || prop.isEmpty()) {
 			physicalUri = engine.getPhysicalUriFromPixelSelector(concept);
 		} else {
 			physicalUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + prop);
@@ -46,6 +48,8 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
+		} finally {
+			ClusterUtil.reactorPushOwl(appId);
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);

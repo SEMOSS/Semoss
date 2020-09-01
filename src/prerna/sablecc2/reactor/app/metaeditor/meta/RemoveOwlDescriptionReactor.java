@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.app.metaeditor.meta;
 
 import java.io.IOException;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.PixelDataType;
@@ -29,6 +30,7 @@ public class RemoveOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		String description = this.keyValue.get(this.keysToGet[3]);
 		
 		IEngine engine = Utility.getEngine(appId);
+		ClusterUtil.reactorPullOwl(appId);
 		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
 			physicalUri = engine.getPhysicalUriFromPixelSelector(concept);
@@ -47,6 +49,8 @@ public class RemoveOwlDescriptionReactor extends AbstractMetaEditorReactor {
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove descriptions : " + description, 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
+		} finally {
+			ClusterUtil.reactorPushOwl(appId);
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
