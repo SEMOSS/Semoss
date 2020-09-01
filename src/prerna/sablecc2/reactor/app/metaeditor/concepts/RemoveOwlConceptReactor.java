@@ -146,9 +146,8 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove the desired concept", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
-		} finally {
-			ClusterUtil.reactorPushOwl(appId);
-		}
+		} 
+		ClusterUtil.reactorPushOwl(appId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed concept and all its dependencies", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
