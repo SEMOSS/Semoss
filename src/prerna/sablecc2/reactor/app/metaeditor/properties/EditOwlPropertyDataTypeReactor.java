@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.app.metaeditor.properties;
 
 import org.openrdf.model.vocabulary.RDFS;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -48,15 +49,16 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 		String newAdditionalDataType = this.keyValue.get(this.keysToGet[4]);
 
 		IEngine engine = Utility.getEngine(appId);
+		ClusterUtil.reactorPullOwl(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		
 		String parentPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept);
-		if(parentPhysicalURI == null) {
+		if (parentPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the concept");
 		}
-		
+
 		String propertyPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept + "__" + property);
-		if(propertyPhysicalURI == null) {
+		if (propertyPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the property. Please define the property first before modifying the conceptual name");
 		}
 
@@ -87,6 +89,8 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to commit modifications", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
+		} finally {
+			ClusterUtil.reactorPushOwl(appId);
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
