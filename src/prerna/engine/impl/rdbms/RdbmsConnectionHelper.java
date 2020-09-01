@@ -459,8 +459,9 @@ public class RdbmsConnectionHelper {
 			// do not pass in schema
 			columnsRs = meta.getColumns(catalogFilter, null, tableOrView, null);
 		} else if(driver == RdbmsTypeEnum.SNOWFLAKE) {
+			schemaFilter = schemaFilter.replace("_", "\\_");
 			tableOrView = tableOrView.replace("_", "\\_");
-			columnsRs = meta.getColumns(catalogFilter, null, tableOrView, null);
+			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
 		} else {
 			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
 		}
