@@ -48,7 +48,11 @@ public class ConstantDataTask extends AbstractTask {
 	protected Map<String, Object> getFormatMap() {
 		if(this.formatMap == null) {
 			formatMap = new HashMap<String, Object>();
-			formatMap.put("type", "Custom Task Output");
+			if(this.formatter == null) {
+				formatMap.put("type", "Custom Task Output");
+			} else {
+				formatMap.put("type", formatter.getFormatType());
+			}
 		}
 		return formatMap;
 	}

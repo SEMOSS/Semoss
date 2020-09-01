@@ -23,9 +23,9 @@ public class CollectPivotReactor extends AbstractReactor {
 		
 		TaskBuilderReactor reactor = null;
 		if(frameType.equalsIgnoreCase("Py") && PyUtils.pyEnabled()) {
-			reactor = new prerna.sablecc2.reactor.export.CollectPivotPyReactor();
+			reactor = new prerna.sablecc2.reactor.frame.py.CollectPivotReactor();
 		} else {
-			reactor = new prerna.sablecc2.reactor.export.CollectPivotRReactor();
+			reactor = new prerna.sablecc2.reactor.frame.r.CollectPivotReactor();
 		}
 		
 		// pass the references/values
