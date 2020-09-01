@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.py;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -29,6 +30,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		mathMap.put("Max", "max");
 		mathMap.put("Median", "median");
 		mathMap.put("StandardDeviation", "std");
+		mathMap.put("Count", "count");
 	};
 
 	public CollectPivotReactor() {
@@ -173,7 +175,10 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		cdt.setHeaderInfo(task.getHeaderInfo());
 		cdt.setSortInfo(task.getSortInfo());
 		cdt.setId(task.getId());
-
+		Map<String, Object> formatMap = new Hashtable<String, Object>();
+		formatMap.put("type", "TABLE");
+		cdt.setFormatMap(formatMap);
+		
 		// set the output so it can give it
 		Map<String, Object> outputMap = new HashMap<String, Object>();
 		outputMap.put("headers", new String[] {});
