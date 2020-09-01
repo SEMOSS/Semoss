@@ -458,6 +458,9 @@ public class RdbmsConnectionHelper {
 		if (driver == RdbmsTypeEnum.ORACLE || driver == RdbmsTypeEnum.SQLSERVER) {
 			// do not pass in schema
 			columnsRs = meta.getColumns(catalogFilter, null, tableOrView, null);
+		} else if(driver == RdbmsTypeEnum.SNOWFLAKE) {
+			tableOrView = tableOrView.replace("_", "\\_");
+			columnsRs = meta.getColumns(catalogFilter, null, tableOrView, null);
 		} else {
 			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
 		}
