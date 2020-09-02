@@ -29,28 +29,13 @@
 //http://stackoverflow.com/questions/10250617/java-apache-poi-can-i-get-clean-text-from-ms-word-doc-files
 package prerna.poi.main;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.apache.tika.detect.DefaultDetector;
-import org.apache.tika.detect.Detector;
-import org.apache.tika.exception.TikaException;
-import org.apache.tika.io.TikaInputStream;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.parser.AutoDetectParser;
-import org.apache.tika.parser.ParseContext;
-import org.apache.tika.parser.Parser;
-import org.apache.tika.sax.BodyContentHandler;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
-import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
 public final class TextExtractor { 
@@ -82,33 +67,39 @@ public final class TextExtractor {
 		return extractedtext;
 	}
 
-	public static String fileTextExtractor(String filename) throws IOException, SAXException, TikaException {
-		Metadata metadata = new Metadata();
-		ParseContext context = new ParseContext();
-		Detector detector = new DefaultDetector();
-		Parser parser = new AutoDetectParser(detector);
-		context.set(Parser.class, parser);
-
-		URL url;
-		File file = new File(filename);
-		if(file.exists() && file.isFile()) {
-			url = file.toURI().toURL();
-		} else {
-			url = new URL(filename);
-		}
+	public static String fileTextExtractor(String filename) throws IOException, SAXException //, TikaException 
+	{
+		/*
+		 * Removing TIKA library so commeting out below...
+		 */
 		
-		InputStream input = TikaInputStream.get(url, metadata);
-		OutputStream outputstream = new ByteArrayOutputStream();
-		
-		ContentHandler handler = new BodyContentHandler(outputstream);
-		parser.parse(input, handler, metadata, context); 
-		input.close();
-		
-		String extractedText = outputstream.toString();
-		outputstream.close();
-		
-		extractedText = extractedText.replace("\n+|\r+", " ");
-		return extractedText;
+//		Metadata metadata = new Metadata();
+//		ParseContext context = new ParseContext();
+//		Detector detector = new DefaultDetector();
+//		Parser parser = new AutoDetectParser(detector);
+//		context.set(Parser.class, parser);
+//
+//		URL url;
+//		File file = new File(filename);
+//		if(file.exists() && file.isFile()) {
+//			url = file.toURI().toURL();
+//		} else {
+//			url = new URL(filename);
+//		}
+//		
+//		InputStream input = TikaInputStream.get(url, metadata);
+//		OutputStream outputstream = new ByteArrayOutputStream();
+//		
+//		ContentHandler handler = new BodyContentHandler(outputstream);
+//		parser.parse(input, handler, metadata, context); 
+//		input.close();
+//		
+//		String extractedText = outputstream.toString();
+//		outputstream.close();
+//		
+//		extractedText = extractedText.replace("\n+|\r+", " ");
+//		return extractedText;
+		return "";
 	}
 	
 	/**
