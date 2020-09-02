@@ -38,7 +38,6 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
 
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
@@ -133,7 +132,7 @@ public class ProcessNLP {
 				LOGGER.info("Extracting text from a text file...");
 				readFile(TextExtractor.fileTextExtractor(file), fileSentences);
 			}
-		} catch (IOException | SAXException | TikaException e) {
+		} catch (IOException | SAXException e) { //| TikaException e) {
 			e.printStackTrace();
 			throw new IOException("Error extrating text from document");
 		}
