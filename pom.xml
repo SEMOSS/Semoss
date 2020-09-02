@@ -1789,6 +1789,8 @@
 				</exclusion>
 			</exclusions>
 		</dependency-->
+		<!-- cleanup -->
+		<!-- 
 		<dependency>
 			<groupId>org.apache.tika</groupId>
 			<artifactId>tika-core</artifactId>
@@ -1799,7 +1801,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
+		</dependency-->
 		<dependency>
 			<groupId>com.univocity</groupId>
 			<artifactId>univocity-parsers</artifactId>
