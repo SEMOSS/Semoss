@@ -1,5 +1,6 @@
 package prerna.engine.impl;
 
+import java.io.File;
 import java.io.StringWriter;
 import java.util.Hashtable;
 import java.util.List;
@@ -462,6 +463,12 @@ public class MetaHelper implements IExplorable {
 	}
 	
 	@Override
+	public File getOwlPositionFile() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
 	public void setInsightDatabase(RDBMSNativeEngine insightDatabase) {
 		// TODO Auto-generated method stub
 	}
@@ -859,4 +866,5 @@ public class MetaHelper implements IExplorable {
 		
 		return null;
 	}
+
 }
