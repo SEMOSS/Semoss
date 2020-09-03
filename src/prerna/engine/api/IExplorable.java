@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,7 +69,11 @@ public interface IExplorable {
 	// sets the owl
 	void setOWL(String owl);
 	
+	// get the OWL file
 	String getOWL();
+	
+	// get the position file used to paint the metamodel
+	File getOwlPositionFile();
 	
 	boolean isBasic();
 

@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
@@ -18,6 +17,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -26,10 +26,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.app.metaeditor.SaveOwlPositions;
 import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GetDatabaseMetamodelReactor extends AbstractReactor {
@@ -72,18 +69,13 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 		// this is for the OWL positions for the new layout
 		if(options.contains("positions")) {
-			Utility.getEngine(engineId);
+			IEngine app = Utility.getEngine(engineId);
 			// if the file is present, pull it and load
-			String smssFile = DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
-			Properties prop = Utility.loadProperties(smssFile);
-			File owlF = SmssUtilities.getOwlFile(prop);
+			File owlF = SmssUtilities.getOwlFile(app.getProp());
 			if(owlF == null) {
 				metamodelObject.put("positions", new HashMap<String, Object>());
 			} else {
-				String baseFolder = owlF.getParent();
-				String positionJson = baseFolder + DIR_SEPARATOR + SaveOwlPositions.FILE_NAME;
-				File positionFile = new File(positionJson);
-	
+				File positionFile = app.getOwlPositionFile();
 				// try to make the file
 				if(!positionFile.exists()) {
 					GenerateMetamodelLayout.generateLayout(engineId);
