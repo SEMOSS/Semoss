@@ -96,6 +96,7 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		// create typesArr as an array for faster searching
 		String[] headers = null;
 		SemossDataType[] typesArr = null;
+		String[] additionalType = null;
 		
 		// style dates
 		CellStyle dateCellStyle = workbook.createCellStyle();
@@ -130,11 +131,13 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			headers = row.getHeaders();
 			size = headers.length;
 			typesArr = new SemossDataType[size];
+			additionalType = new String[size];
 			for(; i < size; i++) {
 				Cell cell = headerRow.createCell(i);
 				cell.setCellValue(headers[i]);
 				cell.setCellStyle(headerCellStyle);
 				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+				additionalType[i] = headerInfo.get(i).get("additionalType") + "";
 			}
 
 			// generate the data row
