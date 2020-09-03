@@ -477,7 +477,7 @@
 		<dependency>
 			<groupId>commons-fileupload</groupId>
 			<artifactId>commons-fileupload</artifactId>
-			<version>1.3</version>
+			<version>1.3.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1940,18 +1940,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- cleanup -->
-		<!--dependency>
-			<groupId>org.apache.zookeeper</groupId>
-			<artifactId>zookeeper</artifactId>
-			<version>3.4.9</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency-->
 		<dependency>
 			<groupId>aurelionribon.ui</groupId>
 			<artifactId>css-engine-swing-api</artifactId>
@@ -2794,7 +2782,7 @@
 		<dependency>
 			<groupId>org.apache.zookeeper</groupId>
 			<artifactId>zookeeper</artifactId>
-			<version>3.4.9</version>
+			<version>3.4.10</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
