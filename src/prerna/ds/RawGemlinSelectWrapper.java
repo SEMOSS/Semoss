@@ -33,13 +33,15 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 	
 	public RawGemlinSelectWrapper(GremlinInterpreter interp, SelectQueryStruct qs) {
 		this.interp = interp;
-		this.qs = qs;
 		this.nameMap = interp.getNameMap();
+		this.qs = qs;
 	}
 	
 	public RawGemlinSelectWrapper(GremlinInterpreter interp, SelectQueryStruct qs, OwlTemporalEngineMeta meta) {
 		this.interp = interp;
+		this.nameMap = interp.getNameMap();
 		this.qs = qs;
+		this.meta = meta;
 	}
 	
 	@Override

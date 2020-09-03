@@ -115,6 +115,12 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				this.logger.info("Process app metadata to allow for traversing across apps");
 				UploadUtilities.updateMetadata(this.engine.getEngineId());
 				this.logger.info("Complete");
+				this.logger.info("Delete OWL position map");
+				File owlF = this.engine.getOwlPositionFile();
+				if(owlF.exists()) {
+					owlF.delete();
+				}
+				this.logger.info("Complete");
 			} catch (Exception e) {
 				e.printStackTrace();
 				this.error = true;
