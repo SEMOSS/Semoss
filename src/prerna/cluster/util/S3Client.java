@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.LogManager;
@@ -19,7 +18,7 @@ import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.EngineInsightsHelper;
 import prerna.engine.impl.SmssUtilities;
-import prerna.sablecc2.reactor.app.metaeditor.SaveOwlPositions;
+import prerna.sablecc2.reactor.app.metaeditor.SaveOwlPositionsReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
@@ -172,7 +171,7 @@ public class S3Client extends CloudClient {
 			//sync will delete files that are in the destination if they aren't being synced
 			
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":" + BUCKET + "/" + appId+"/"+ owlFile.getName(), appFolder);
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":" + BUCKET + "/" + appId+"/"+ SaveOwlPositions.FILE_NAME, appFolder);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":" + BUCKET + "/" + appId+"/"+ AbstractEngine.OWL_POSITION_FILENAME, appFolder);
 
 		}  finally {
 			if (rCloneConfig != null) {
@@ -218,7 +217,7 @@ public class S3Client extends CloudClient {
 			//sync will delete files that are in the destination if they aren't being synced
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", appFolder+"/" + owlFile.getName(), rCloneConfig + ":" + BUCKET + "/" + appId);			 
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", appFolder+"/" + SaveOwlPositions.FILE_NAME , rCloneConfig + ":" + BUCKET + "/" + appId);			 
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", appFolder+"/" + AbstractEngine.OWL_POSITION_FILENAME, rCloneConfig + ":" + BUCKET + "/" + appId);			 
 
 
 		}  finally {

@@ -22,11 +22,12 @@ import org.graphstream.ui.layout.springbox.implementations.SpringBox;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.sablecc2.reactor.app.metaeditor.SaveOwlPositions;
+import prerna.sablecc2.reactor.app.metaeditor.SaveOwlPositionsReactor;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -86,7 +87,7 @@ public class GenerateMetamodelLayout {
 
 		// now write the file
 		String baseFolder = owlF.getParent();
-		String positionJson = baseFolder + "/" + SaveOwlPositions.FILE_NAME;
+		String positionJson = baseFolder + "/" + AbstractEngine.OWL_POSITION_FILENAME;
 		FileWriter writer = null;
 		try {
 			writer = new FileWriter(positionJson);

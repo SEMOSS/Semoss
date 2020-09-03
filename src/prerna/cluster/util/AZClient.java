@@ -33,8 +33,7 @@ import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.EngineInsightsHelper;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.sablecc2.reactor.app.metaeditor.SaveOwlPositions;
+import prerna.sablecc2.reactor.app.metaeditor.SaveOwlPositionsReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
@@ -331,7 +330,7 @@ public class AZClient extends CloudClient {
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+appId+"/"+ owlFile.getName(), appFolder);
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+appId+"/"+ SaveOwlPositions.FILE_NAME, appFolder);
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+appId+"/"+ AbstractEngine.OWL_POSITION_FILENAME, appFolder);
 
 		}  finally {
 			if (appRcloneConfig != null) {
@@ -376,7 +375,7 @@ public class AZClient extends CloudClient {
 			//sync will delete files that are in the destination if they aren't being synced
 			
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + owlFile.getName(), appRcloneConfig + ":");			 
-			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + SaveOwlPositions.FILE_NAME , appRcloneConfig + ":");			 
+			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + AbstractEngine.OWL_POSITION_FILENAME, appRcloneConfig + ":");			 
 
 
 		}  finally {
