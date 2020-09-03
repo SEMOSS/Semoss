@@ -9,6 +9,7 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -18,13 +19,11 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.util.Utility;
 
-public class SaveOwlPositions extends AbstractReactor {
+public class SaveOwlPositionsReactor extends AbstractReactor {
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	
-	public static final String FILE_NAME = "positions.json";
-	
-	public SaveOwlPositions() {
+	public SaveOwlPositionsReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.POSITION_MAP.getKey()};
 	}
 	
@@ -44,12 +43,8 @@ public class SaveOwlPositions extends AbstractReactor {
 		// write the json file in the app folder
 		// just put it in the same location as the OWL
 		IEngine app = Utility.getEngine(appId);
-		String owlFileLocation = app.getOWL();
-		// put in same location
-		File owlF = new File(owlFileLocation);
-		String baseFolder = owlF.getParent();
-		String positionJson = baseFolder + DIR_SEPARATOR + SaveOwlPositions.FILE_NAME;
-		File positionFile = new File(positionJson);
+		ClusterUtil.reactorPullOwl(appId);
+		File positionFile = app.getOwlPositionFile();
 		
 		FileWriter writer = null;
 		try {
@@ -66,7 +61,8 @@ public class SaveOwlPositions extends AbstractReactor {
 				}
 			}
 		}
-		
+		ClusterUtil.reactorPushOwl(appId);
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
