@@ -2369,21 +2369,30 @@
 			<artifactId>neo4j-tinkerpop-api-impl</artifactId>
 			<version>0.9-3.4.0</version>
 			<exclusions>
-               <exclusion>  <!-- declare the exclusion here -->
-			    <groupId>org.bouncycastle</groupId>
-			    <artifactId>bcpkix-jdk15on</artifactId>            
-            </exclusion>
-               <exclusion>  <!-- declare the exclusion here -->
-			    <groupId>io.netty</groupId>
-			    <artifactId>netty</artifactId>            
-            </exclusion>
-               <exclusion>  <!-- declare the exclusion here -->
-			    <groupId>io.netty</groupId>
-			    <artifactId>netty-all</artifactId>            
-            </exclusion>
-           </exclusions>  	
+				<exclusion>  <!-- declare the exclusion here -->
+					<groupId>org.bouncycastle</groupId>
+					<artifactId>bcpkix-jdk15on</artifactId>
+				</exclusion>
+				<exclusion>  <!-- declare the exclusion here -->
+					<groupId>io.netty</groupId>
+					<artifactId>netty</artifactId>
+				</exclusion>
+				<exclusion>  <!-- declare the exclusion here -->
+					<groupId>io.netty</groupId>
+					<artifactId>netty-all</artifactId>
+				</exclusion>
+				<exclusion>  <!-- declare the exclusion here -->
+					<groupId>org.apache.shiro</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
-		<!-- neo4j jdbc driver used for remote neo4j engine -->
+		<!-- https://mvnrepository.com/artifact/org.apache.shiro/shiro-core -->
+		<dependency>
+		    <groupId>org.apache.shiro</groupId>
+		    <artifactId>shiro-core</artifactId>
+		    <version>1.6.0</version>
+		</dependency>		<!-- neo4j jdbc driver used for remote neo4j engine -->
 		<dependency>
 			<groupId>org.neo4j.driver</groupId>
 			<artifactId>neo4j-java-driver</artifactId>
