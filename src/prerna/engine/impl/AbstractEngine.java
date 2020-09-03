@@ -103,7 +103,8 @@ public abstract class AbstractEngine implements IEngine {
 	
 	public static final String USE_FILE = "USE_FILE";
 	public static final String DATA_FILE = "DATA_FILE";
-	
+	public static final String OWL_POSITION_FILENAME = "positions.json";
+
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private static final Logger LOGGER = LogManager.getLogger(AbstractEngine.class);
@@ -1012,6 +1013,20 @@ public abstract class AbstractEngine implements IEngine {
 	 */
 	public Map<String, Object[]> getMetamodel() {
 		return owlHelper.getMetamodel();
+	}
+	
+	/**
+	 * Get the OWL position map file location
+	 * @return
+	 */
+	public File getOwlPositionFile() {
+		String owlFileLocation = getOWL();
+		// put in same location
+		File owlF = new File(owlFileLocation);
+		String baseFolder = owlF.getParent();
+		String positionJson = baseFolder + DIR_SEPARATOR + AbstractEngine.OWL_POSITION_FILENAME;
+		File positionFile = new File(positionJson);
+		return positionFile;
 	}
 	
 	// load the prop file
