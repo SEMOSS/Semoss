@@ -442,6 +442,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			owler.commit();
 			this.logger.info("writing changes to OWL");
 			owler.export();
+			this.logger.info("deleting OWL position map");
+			File owlF = this.engine.getOwlPositionFile();
+			if(owlF.exists()) {
+				owlF.delete();
+			}
 		}
 	}
 
