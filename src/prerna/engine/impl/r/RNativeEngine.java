@@ -35,7 +35,8 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
