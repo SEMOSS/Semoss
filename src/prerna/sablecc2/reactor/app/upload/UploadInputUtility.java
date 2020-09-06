@@ -8,8 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.codehaus.jackson.map.ObjectMapper;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 
 import prerna.om.Insight;
