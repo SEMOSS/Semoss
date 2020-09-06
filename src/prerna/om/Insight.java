@@ -714,24 +714,21 @@ public class Insight {
 	public PyTranslator getPyTranslator() {
 		// this is really where I need to pull from user
 		// I need to recreate since i make the translator specific to 
-		System.out.println("Trying to see if this prints ");
-		if(user != null)
+		if(user != null) {
 			this.pyt = user.getPyTranslator();
-		else // there is no user
+		} else {
+			// there is no user
 			this.pyt = PyTranslatorFactory.getTranslator();			
+		}		
 		
-		if(this.pyt == null)
-		{
+		if(this.pyt == null) {
 			this.pyt = user.getPyTranslator();
 			// need to recreate the translator
-			if(this.pyt instanceof TCPPyTranslator)
-			{
+			if(this.pyt instanceof TCPPyTranslator) {
 				NettyClient nc1 = ((TCPPyTranslator)pyt).nc;
 				this.pyt = new TCPPyTranslator();
 				((TCPPyTranslator)pyt).nc = nc1;
-			}
-			else if(this.pyt instanceof PyTranslator)
-			{
+			} else if(this.pyt instanceof PyTranslator) {
 				this.jepThread = pyt.getPy();
 				this.pyt = new PyTranslator();
 				this.pyt.setPy(this.jepThread);
