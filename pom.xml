@@ -1313,16 +1313,17 @@
 			<groupId>org.apache.shiro</groupId>
 			<artifactId>shiro-core</artifactId>
 			<version>1.6.0</version>
-		</dependency>		<!-- neo4j jdbc driver used for remote neo4j engine -->
+		</dependency>		
+		<!-- neo4j jdbc driver used for remote neo4j engine -->
 		<dependency>
 			<groupId>org.neo4j.driver</groupId>
 			<artifactId>neo4j-java-driver</artifactId>
-			<version>4.1.1</version>
+			<version>1.7.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-jdbc-bolt</artifactId>
-			<version>4.0.1</version>
+			<version>3.4.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>
