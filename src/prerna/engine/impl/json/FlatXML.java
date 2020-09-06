@@ -24,13 +24,13 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import net.minidev.json.JSONArray;
-import prerna.util.Utility;
-
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
+
+import net.minidev.json.JSONArray;
+import prerna.util.Utility;
 
 public class FlatXML {
 
