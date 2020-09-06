@@ -6,12 +6,12 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import com.datastax.driver.dse.DseCluster;
 import com.datastax.driver.dse.DseSession;
 import com.datastax.driver.dse.graph.GraphOptions;
 import com.datastax.dse.graph.api.DseGraph;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
