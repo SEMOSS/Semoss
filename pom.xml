@@ -1397,10 +1397,11 @@
 			<artifactId>jackson-core</artifactId>
 			<version>2.10.5</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.amazon.redshift/redshift-jdbc42 -->
 		<dependency>
-			<groupId>com.amazon.redshift</groupId>
-			<artifactId>redshift-jdbc41</artifactId>
-			<version>1.2.10.1009</version>
+		    <groupId>com.amazon.redshift</groupId>
+		    <artifactId>redshift-jdbc42</artifactId>
+		    <version>1.2.43.1067</version>
 		</dependency>
 		<!-- NODE -->
 		<dependency>
@@ -1647,6 +1648,12 @@
 			<groupId>com.syncron.amazonaws</groupId>
 			<artifactId>simba-athena-jdbc-driver</artifactId>
 			<version>2.0.2</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>me.xdrop</groupId>
