@@ -135,6 +135,7 @@ public enum ReactorKeysEnum {
 	SPACE("space", 											"The space to work with assets (user, insight, app)."),
 	START_ROW("startRow", 									"The starting row number to import from a file."),
 	STATEMENT("statement", 									"Statement to be evaluated"),
+	SUBTOTALS("subtotals",                                  "All the columns in a pivot that you need subtotal for. Default is all. "),	
 	SUM_RANGE("sumRange", 									"Range that values to sum over"),
 	SYNC_PULL("dual", 										"True/False value to determine if the sync should also pull the latest updates from the repository"),
 	SYNC_DATABASE("syncDatabase", 							"True/False value to detetermine if the database should be published with the app"),
