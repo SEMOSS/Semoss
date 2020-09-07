@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.r;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -12,6 +13,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
@@ -153,6 +155,27 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		outputMap.put("values", new String[] {htmlOutput});
 		outputMap.put("pivotData", pivotMap);
 		cdt.setOutputData(outputMap);
+				
+		// need to set the task options
+		// hopefully this is the current one I am working with
+		if(this.task.getTaskOptions() != null)
+		{
+			prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
+			// I really hope this is only one
+			Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
+			while(panelIds.hasNext()) {
+				String panelId = panelIds.next();
+				// this is a bit silly
+				// but will set the formatter into the task options
+				// so if we pull the task options we have that information
+				// this is for {{@link RefreshPanelTaskReactor}}
+				task.getTaskOptions().setFormatter(task.getFormatter());
+				task.getTaskOptions().getOptions().put("values", values);
+				this.insight.setFinalViewOptions(panelId, sqs, task.getTaskOptions());
+			}
+		}
+
+		
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 
