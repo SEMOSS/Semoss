@@ -29,14 +29,19 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -876,6 +881,116 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public String getFilterString() {
 		return "";
 	}
+	
+	public Map<String, StringBuffer> printFilters(List <String> columns, boolean all)
+	{
+		Map <String, StringBuffer> columnMap = new HashMap<String, StringBuffer>();
+		// if null
+		// I will get all of it
+		Iterator <String> allColumns = grf.getAllFilteredColumns().iterator();
+		
+		while(allColumns.hasNext())
+		{
+			String thisColumn = allColumns.next();
+			if((columns != null && columns.contains(thisColumn) )|| all)
+			{
+				StringBuffer columnValues = printFilter(grf.getAllQueryFiltersContainingColumn(thisColumn));
+				columnMap.put(thisColumn, columnValues);
+			}
+		}
+		
+		return columnMap;
+	}
+	
+	// this is where we do the same process as the processFilter in our 
+	private StringBuffer printFilter(List <IQueryFilter> filters)
+	{
+		StringBuffer retBuffer = new StringBuffer();
+		
+		for(int filterIndex = 0;filterIndex < filters.size();filterIndex++)
+		{
+			retBuffer.append("  ").append(processFilter(filters.get(filterIndex)));
+			retBuffer.append("\n");
+		}
+		return retBuffer;
+	}
+	
+	private StringBuilder processFilter(IQueryFilter filter) {
+		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
+		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			return processSimpleQueryFilter((SimpleQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+			return processAndQueryFilter((AndQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+			return processOrQueryFilter((OrQueryFilter) filter);
+		}
+		return null;
+	}
+	
+	private StringBuilder processOrQueryFilter(OrQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i == 0) {
+				filterBuilder.append("(");
+			} else {
+				filterBuilder.append(" OR ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i)));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
+
+	private StringBuilder processAndQueryFilter(AndQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i == 0) {
+				filterBuilder.append("(");
+			} else {
+				filterBuilder.append(" AND ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i)));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
+	
+	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
+		
+		StringBuilder retBuilder = new StringBuilder();
+		NounMetadata leftComp = filter.getLComparison(); // this is the column, I am not going to bother ?
+		NounMetadata rightComp = filter.getRComparison();
+		String thisComparator = filter.getComparator();
+		
+		retBuilder.append(thisComparator).append("  ");
+		
+		FILTER_TYPE fType = filter.getSimpleFilterType();
+		if(fType == FILTER_TYPE.COL_TO_VALUES) {
+			if(rightComp.getValue() instanceof List) {
+				retBuilder.append("[");
+				List values = (List) rightComp.getValue();
+				for(int valIndex = 0;valIndex < values.size();valIndex++)
+				{
+					if(valIndex != 0)
+						retBuilder.append("  or  ");
+					retBuilder.append(values.get(valIndex));
+				}
+				retBuilder.append("]");
+			} else {
+				retBuilder.append(rightComp.getValue());
+			}
+
+		} 
+		return retBuilder;
+	}
+
+	
+	
+	
 
 //	@Override
 //	@Deprecated
