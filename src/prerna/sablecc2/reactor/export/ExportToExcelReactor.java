@@ -136,7 +136,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFWorkbook workbook = new XSSFWorkbook();
 		// sheet alias
 		Map<String, String> sheetAlias = new HashMap<>();
+		
 		// create each sheet
+		// this is purely for positioning where we put the panel
 		for (String sheetId : sheetMap.keySet()) {
 			InsightSheet sheet = sheetMap.get(sheetId);
 			if (sheet == null) {
@@ -151,6 +153,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 					sheetName = "Sheet " + sheetId;
 				}
 			}
+			// this is where the alias is being kept
 			sheetAlias.put(sheetId, sheetName);
 			HashMap<String, Object> sheetChartMap = new HashMap<>();
 			sheetChartMap.put("colIndex", 0);
@@ -305,6 +308,15 @@ public class ExportToExcelReactor extends AbstractReactor {
 			for (String column : label) {
 				panelChartMap.put(column, new HashMap<>());
 			}
+		} // making accomodation for pivot
+		else if (chartLayout.contentEquals("Pivot Table"))
+		{
+			// rows
+			// columns
+			// calculations
+			List <String> rows = (Vector)alignmentMap.get("rows");
+			List <String> columns = (Vector)alignmentMap.get("columns");
+			List <String> calcs = (Vector)alignmentMap.get("calculations");
 		}
 	}
 
@@ -415,7 +427,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 				curSheetCol = i + excelColStart;
 				Cell cell = excelRow.createCell(curSheetCol);
 				Object value = dataRow[i];
-				if (value == null) {
+				if (value == null || value.toString().length() == 0) {
 					cell.setCellValue("");
 				} else {
 					if (typesArr[i] == SemossDataType.STRING) {
@@ -451,7 +463,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 				curSheetCol = i + excelColStart;
 				Cell cell = excelRow.createCell(curSheetCol);
 				Object value = dataRow[i];
-				if (value == null) {
+				if (value == null || value.toString().length() == 0) {
 					cell.setCellValue("");
 				} else {
 					if (typesArr[i] == SemossDataType.STRING) {
