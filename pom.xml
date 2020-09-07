@@ -1793,9 +1793,9 @@
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-io -->
 		<dependency>
-			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-io</artifactId>
-			<version>9.4.11.v20180605</version>
+		    <groupId>org.eclipse.jetty</groupId>
+		    <artifactId>jetty-io</artifactId>
+		    <version>9.4.12.v20180830</version>
 		</dependency>
 	</dependencies>
 </project>
