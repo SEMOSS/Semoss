@@ -3,15 +3,18 @@ package prerna.sablecc2.reactor.frame.py;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
 import prerna.ds.py.PyTranslator;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
@@ -21,6 +24,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	/**
 	 * This class is responsible for collecting data from a task and returning it
 	 */
+	
+	private static String curEncoding = null;
 
 	private static Map<String, String> mathMap = new HashMap<String, String>();
 	static {
@@ -34,7 +39,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	};
 
 	public CollectPivotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(),  ReactorKeysEnum.SUBTOTALS.getKey()};
 	}
 
 	public NounMetadata execute() {
@@ -71,32 +76,18 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		List<String> rowGroups = this.store.getNoun(keysToGet[0]).getAllStrValues();
 		List<String> colGroups = this.store.getNoun(keysToGet[1]).getAllStrValues();
 		List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
-
-		// convert the inputs into a cgroup
+		List<String> subtotals = rowGroups;
+		if(keyValue.containsKey(keysToGet[3]))
+			subtotals = this.store.getNoun(keysToGet[3]).getAllStrValues();
 		
-		StringBuilder rows = new StringBuilder("index=[");
-		for(int rowIndex = 0;rowIndex < rowGroups.size();rowIndex++)
-		{
-			String curValue = rowGroups.get(rowIndex);
-			if(rowIndex != 0)
-				rows.append(",");
-			rows.append("'").append(curValue).append("'");
-		}
-		rows.append("]");
-
-		StringBuilder cols = new StringBuilder("columns=[");
-		for(int colIndex = 0;colIndex < colGroups.size();colIndex++)
-		{
-			String curValue = colGroups.get(colIndex);
-			if(colIndex != 0)
-				cols.append(",");
-			cols.append("'").append(curValue).append("'");
-		}
-		if(cols.toString().equalsIgnoreCase("columns["))
-			cols = new StringBuilder("");
-		else
-			cols.append("]").insert(0, " , ");
+		if(curEncoding == null)
+			curEncoding = pyt.runPyAndReturnOutput("print(sys.stdout.encoding)");
 		
+		String frameName = Utility.getRandomString(6);
+		String makeFrame =frameName + " = pd.read_csv('" + outputFile + "', encoding='" + curEncoding + "')"; //.replace(np.nan, '', regex=True)";
+		
+		List <String> newValues = new Vector<String>();
+		List <String> functions = new Vector<String>();
 
 		// lastly the values
 		// need to create a pivot map for the FE
@@ -104,8 +95,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		pivotMap.put(keysToGet[0], rowGroups);
 		pivotMap.put(keysToGet[1], colGroups);
 		List<Map<String, String>> valuesList = new Vector<Map<String, String>>();
-		StringBuilder aggFunctions = new StringBuilder(", aggfunc={");
-		StringBuilder valueSelects = new StringBuilder(", values=[");
+
+		
 		for(int valIndex = 0;valIndex < values.size();valIndex++)
 		{
 			Map<String, String> valueMap = new HashMap<String, String>();
@@ -115,55 +106,51 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			//String [] composite = curValue.split("(");
 			String operator = curValue.substring(0, curValue.indexOf("(")).trim();
 			String operand = curValue.substring(curValue.indexOf("(") + 1, curValue.length()-1).trim();
-			
-			
-			if(valIndex != 0)
-			{
-				aggFunctions.append(",");
-				valueSelects.append(",");
-			}
-			
+			newValues.add(operand);
+			functions.add(operator);
 			// pass back the original operator before converting
 			valueMap.put("math", operator);
 
-			for (Map.Entry<String, String> mathElement : mathMap.entrySet()) {
-				String key = (String) mathElement.getKey();
-				String value = (String) mathElement.getValue();
-				// convert syntax for operator
-				operator = operator.replace(key, value);
-			}
-
-			
-			valueSelects.append("'").append(operand).append("'");
-			
-			
-			aggFunctions.append("'").append(operand).append("'");
-			aggFunctions.append(":");
-			
-			// do the replacement logic
-			// step 1 do it simple
-			aggFunctions.append("np.").append(operator);
-			
 			valueMap.put("alias", operand);
 			valuesList.add(valueMap);
 		}
-		aggFunctions.append("}");
-		valueSelects.append("]");
+
+		// making the new call here
+		// columns are not really required
+		// going to ignore for now
+		List <String> rowAndColumnGroups = rowGroups;
+		rowAndColumnGroups.addAll(colGroups);
+		String commands = genPivot(frameName, rowAndColumnGroups, null, subtotals, newValues, functions, true, true);
+		commands = makeFrame + "\n" + commands;
+		
+//		// convert the inputs into a cgroup
+//		StringBuilder rows = new StringBuilder("index=[");
+//		for(int rowIndex = 0;rowIndex < rowGroups.size();rowIndex++)
+//		{
+//			String curValue = rowGroups.get(rowIndex);
+//			if(rowIndex != 0)
+//				rows.append(",");
+//			rows.append("'").append(curValue).append("'");
+//		}
+//		rows.append("]");
+//
+//		StringBuilder cols = new StringBuilder("columns=[");
+//		for(int colIndex = 0;colIndex < colGroups.size();colIndex++)
+//		{
+//			String curValue = colGroups.get(colIndex);
+//			if(colIndex != 0)
+//				cols.append(",");
+//			cols.append("'").append(curValue).append("'");
+//		}
+//		if(cols.toString().equalsIgnoreCase("columns["))
+//			cols = new StringBuilder("");
+//		else
+//			cols.append("]").insert(0, " , ");
+		
+
 		pivotMap.put(keysToGet[2], valuesList);
 
-		// random variable
-		String frameName = Utility.getRandomString(6);
-		String makeFrame =frameName + " = pd.read_csv('" + outputFile + "')";
-		String pivot = "print(pd.pivot_table(" + frameName + ", " + rows + cols + valueSelects + aggFunctions + ").to_html())";
-		String deleteFrame = "del(" + frameName + ")";
-		
-		String [] inscript = new String[]{makeFrame, pivot, deleteFrame}; 
-		// now compose the whole thing
-		pyt.runEmptyPy(makeFrame);
-		String htmlOutput = pyt.runPyAndReturnOutput(pivot); 
-		pyt.runEmptyPy(deleteFrame);
-		
-		
+		String htmlOutput = pyt.runPyAndReturnOutput(commands); 
 		
 		File outputF = new File(outputFile);
 		outputF.delete();
@@ -186,7 +173,30 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		outputMap.put("values", new String[] {htmlOutput});
 		outputMap.put("pivotData", pivotMap);
 		cdt.setOutputData(outputMap);
+		
+		// need to set the task options
+		// hopefully this is the current one I am working with
+		if(this.task.getTaskOptions() != null)
+		{
+			prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
+			// I really hope this is only one
+			Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
+			while(panelIds.hasNext()) {
+				String panelId = panelIds.next();
+				// this is a bit silly
+				// but will set the formatter into the task options
+				// so if we pull the task options we have that information
+				// this is for {{@link RefreshPanelTaskReactor}}
+				task.getTaskOptions().setFormatter(task.getFormatter());
+				task.getTaskOptions().getOptions().put("values", values);
+				this.insight.setFinalViewOptions(panelId, sqs, task.getTaskOptions());
+			}
+		}
+		
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		
+		
+		
 	}
 
 	@Override
@@ -205,4 +215,213 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// do nothing
 		
 	}
+	
+	public String genPivot(String frameName, List <String> rows, List <String> columns, List <String> subtotalColumns, List <String> values, List <String> functions, boolean dropNA, boolean fill_value)
+	{
+		StringBuilder retString = new StringBuilder();
+		// pd.pivot_table(df, values='D', index=['A', 'B'],
+        //columns=['C'], aggfunc=np.sum, fill_value=0)
+		// this will never happen
+		//if(functions.size() != values.size())
+		//	return; // ciao
+		
+		
+		// generate the index string
+		StringBuilder idxString = new StringBuilder("");
+		for(int idxIndex = 0;idxIndex < rows.size();idxIndex++)
+		{
+			if(idxIndex != 0)
+				idxString.append(", ");
+			idxString.append("'").append(rows.get(idxIndex)).append("'");			
+		}		
+		if(idxString.length() > 0)
+			idxString = new StringBuilder("index = [").append(idxString).append("], ");
+
+
+		// generate the column string
+		StringBuilder colString = new StringBuilder("");
+		if(columns != null)
+		{
+			for(int colIndex = 0;colIndex < columns.size();colIndex++)
+			{
+				if(colIndex != 0)
+					colString.append(", ");
+				colString.append("'").append(columns.get(colIndex)).append("'");			
+			}		
+			if(colString.length() > 0)
+				colString = new StringBuilder("columns = [").append(colString).append("], ");
+		}
+		
+		// generate agg functions
+		// should be the same size as the values
+		StringBuilder funString = new StringBuilder("");
+		for(int funIndex = 0;funIndex < functions.size();funIndex++)
+		{
+			// following functions are available
+			// np.sum, np.mean, min, max, count, numpy.size, pd.Series.nunique
+			String fun = functions.get(funIndex);
+			String value = values.get(funIndex);
+			
+			fun = QueryFunctionHelper.convertFunctionToPandasSyntax(fun);
+			if(funIndex != 0)
+				funString.append(", ");
+			funString.append("'").append(value).append("' : ");
+			funString.append("'").append(fun).append("'");
+		}		
+		if(funString.length() > 0)
+			funString = new StringBuilder("aggfunc = {").append(funString).append("}, ");
+
+		// generate the values string
+		StringBuilder pdValuesString = new StringBuilder("");
+		for(int valIndex = 0;valIndex < values.size();valIndex++)
+		{
+			if(valIndex != 0)
+				pdValuesString.append(", ");
+			pdValuesString.append("'").append(values.get(valIndex)).append("'");
+		}
+		if(pdValuesString.length() > 0)
+			pdValuesString = new StringBuilder("values = [").append(pdValuesString).append("], ");
+
+		// handle drop na
+		// handle fillvalues
+		
+		// create the pivot
+		// generate the pivot first
+		StringBuilder pivotString = new StringBuilder("");
+		String pivotName = Utility.getRandomString(5);
+		pivotString.append(pivotName)
+				.append(" = ")
+				.append("pd.pivot_table(")
+				.append(frameName).append(",")
+				//.append(pdValuesString)
+				.append(colString)
+				.append(idxString)
+				.append(funString)
+				.append("dropna=True")
+				.append(")");
+		
+		System.out.println(pivotString);
+		retString.append(pivotString).append("\n");
+		
+		
+		// generate the subtotals now
+		// need to do this for every level
+		//df1 = table.groupby(level=[0,1]).sum()
+		//		df1.index = pd.MultiIndex.from_arrays([df1.index.get_level_values(0), 
+		//		                                       df1.index.get_level_values(1)+ '_sum', 
+		//		                                       len(df1.index) * ['']])
+		
+		// df2 = table.groupby(level=0).sum()
+		//df2.index = pd.MultiIndex.from_arrays([df2.index.values + '_sum',
+		 //                                      len(df2.index) * [''], 
+		 //                                      len(df2.index) * ['']])
+		
+		// see which subtotal columns we want
+		// stop at that level when we get to
+		//df = pd.concat([table, df1, df2]).sort_index(level=[0])
+		
+		if(subtotalColumns != null)
+		{
+			StringBuilder groupBy = new StringBuilder();
+			
+			StringBuilder concat = new StringBuilder("pd.concat([").append(pivotName);
+			StringBuilder deleter = new StringBuilder("del(").append(pivotName);
+			
+			String totalAppender = "";
+			
+			
+			for(int subIndex = 0;subIndex < subtotalColumns.size();subIndex++)
+			{
+				String groupFrameName = Utility.getRandomString(5);
+				String thisSub = subtotalColumns.get(subIndex);
+				String function = "sum()";
+				int totalerIndex = 0; // this is the place to start
+	
+				StringBuilder leveler = new StringBuilder("");
+	
+				// set up the multiindex
+				StringBuilder indexer = new StringBuilder("");
+				indexer.append("pd.MultiIndex.from_arrays([");
+				
+				boolean processLevel = true;
+				boolean totalColumn = true;
+				
+				// need to find which level this one is at
+				for(int idx = 0;idx < rows.size();idx++)
+				{
+					//System.err.println("Current Sub is " + thisSub + " and rows is " + rows.get(idx));
+					
+					if(processLevel)
+					{
+						// create the lever for the groupby
+						if(idx != 0)
+							leveler.append(", ");
+						leveler.append(idx);
+					}
+
+					if(idx != 0)
+						indexer.append(", ");
+					// add the rows
+					if(rows.get(idx).equalsIgnoreCase(thisSub))
+					{
+						totalerIndex = idx;
+						processLevel = false;
+						totalColumn = true;
+						totalAppender = "  Total  ";
+					}
+					
+					// add these only if they are not the last level
+					//if(idx + 1 < rows.size())
+					{
+						if(totalColumn)
+						{
+							indexer.append(groupFrameName).append(".index.get_level_values(").append(idx).append(")").append(" + '").append(totalAppender).append("'");
+							totalColumn = false;
+							totalAppender  = "";
+						}
+						else 
+						{
+							indexer.append("len(").append(groupFrameName).append(".index)* ['']");
+						}
+					}						
+				}
+				
+				if(!rows.get(rows.size() -1).equalsIgnoreCase(thisSub))
+				{
+					// set up the groupby
+					StringBuffer curGroup = new StringBuffer("");
+					curGroup.append(groupFrameName).append(" = ").append(pivotName).append(".groupby(level=[").append(leveler).append("]).").append(function);
+					groupBy.append(curGroup.toString()).append("\n");
+					
+					System.err.println(curGroup);
+					// set the indexer into the groupby
+					indexer.append("]");
+					indexer = new StringBuilder().append(groupFrameName).append(".index = ").append(indexer).append(")");
+					groupBy.append(indexer.toString()).append("\n");
+					System.err.println(indexer);
+					
+					concat.append(", ").append(groupFrameName);
+					deleter.append(", ").append(groupFrameName);
+				}
+			}
+			concat.append("]).sort_index(level=[0]).fillna('')");
+			String finalPivotName = Utility.getRandomString(5);
+			deleter.append(", ").append(finalPivotName);
+			deleter.append(")");
+			String finalPivot = finalPivotName + " = " + concat;
+			System.err.println(finalPivot);
+			System.err.println(deleter);
+			String output = "print(" + finalPivotName + ".to_html())"; //.encode('utf-8'))";
+			String deleteLast = "del(" + finalPivotName + ")";
+			
+			retString.append(groupBy).append("\n").append(finalPivot).append("\n").append(output).append("\n").append(deleter);
+		}		
+		else
+			retString.append("\n").append(pivotName).append(".to_html()").append("\n").append("del(").append(pivotName).append(")");
+		
+		return retString.toString();
+	}
+
+	
+	
 }
