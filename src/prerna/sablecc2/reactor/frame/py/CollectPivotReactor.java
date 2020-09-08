@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import oracle.net.aso.a;
 import prerna.ds.py.PyTranslator;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.sablecc2.om.PixelDataType;
@@ -118,9 +119,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// making the new call here
 		// columns are not really required
 		// going to ignore for now
-		List <String> rowAndColumnGroups = rowGroups;
-		rowAndColumnGroups.addAll(colGroups);
-		String commands = genPivot(frameName, rowAndColumnGroups, null, subtotals, newValues, functions, true, true);
+		String commands = genPivot(frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true);
 		commands = makeFrame + "\n" + commands;
 		
 //		// convert the inputs into a cgroup
@@ -228,33 +227,63 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		// generate the index string
 		StringBuilder idxString = new StringBuilder("");
-		for(int idxIndex = 0;idxIndex < rows.size();idxIndex++)
+		StringBuilder crosstabRows = new StringBuilder("");
+		
+		List <String> rowsAndColumns = new Vector<String>();
+		rowsAndColumns.addAll(rows);
+		//rowsAndColumns.addAll(columns);
+
+		// geenerate rows
+		for(int idxIndex = 0;idxIndex < rowsAndColumns.size();idxIndex++)
 		{
 			if(idxIndex != 0)
+			{
 				idxString.append(", ");
-			idxString.append("'").append(rows.get(idxIndex)).append("'");			
+			}
+				
+			idxString.append("'").append(rowsAndColumns.get(idxIndex)).append("'");			
 		}		
 		if(idxString.length() > 0)
 			idxString = new StringBuilder("index = [").append(idxString).append("], ");
 
+		// do it for cross tab also
+		for(int idxIndex = 0;idxIndex < rows.size();idxIndex++)
+		{
+			if(idxIndex != 0)
+				crosstabRows.append(", ");
+				
+			crosstabRows.append(frameName).append(".").append(rows.get(idxIndex));
+		}		
+		if(idxString.length() > 0)
+			crosstabRows = new StringBuilder("[").append(crosstabRows).append("], ");
 
 		// generate the column string
-		StringBuilder colString = new StringBuilder("");
+		StringBuilder colString = new StringBuilder(""); // we dont need colstring anymore for pivot. We append it to rows
+		StringBuilder crosstabCols = new StringBuilder("");
 		if(columns != null)
 		{
 			for(int colIndex = 0;colIndex < columns.size();colIndex++)
 			{
 				if(colIndex != 0)
+				{
 					colString.append(", ");
+					crosstabCols.append(", ");
+				}
 				colString.append("'").append(columns.get(colIndex)).append("'");			
+				crosstabCols.append(frameName).append(".").append(columns.get(colIndex));
 			}		
 			if(colString.length() > 0)
+			{
 				colString = new StringBuilder("columns = [").append(colString).append("], ");
+				crosstabCols = new StringBuilder("[").append(crosstabCols).append("], ");
+			}
 		}
 		
 		// generate agg functions
 		// should be the same size as the values
 		StringBuilder funString = new StringBuilder("");
+		StringBuilder crosstabVal = new StringBuilder("");
+		StringBuilder crosstabAgg = new StringBuilder("");
 		for(int funIndex = 0;funIndex < functions.size();funIndex++)
 		{
 			// following functions are available
@@ -264,13 +293,25 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			
 			fun = QueryFunctionHelper.convertFunctionToPandasSyntax(fun);
 			if(funIndex != 0)
+			{
 				funString.append(", ");
+				crosstabVal.append(", ");
+				crosstabAgg.append(", ");
+			}
 			funString.append("'").append(value).append("' : ");
 			funString.append("'").append(fun).append("'");
+			
+			crosstabVal.append(frameName).append(".").append(value);
+			crosstabAgg.append("'").append(fun).append("'");
+			
+			
 		}		
 		if(funString.length() > 0)
+		{
 			funString = new StringBuilder("aggfunc = {").append(funString).append("}, ");
-
+			crosstabVal = new StringBuilder("values = ").append(crosstabVal).append(", ");
+			crosstabAgg = new StringBuilder("aggfunc = ").append(crosstabAgg).append(", "); // need to put margins finally
+		}
 		// generate the values string
 		StringBuilder pdValuesString = new StringBuilder("");
 		for(int valIndex = 0;valIndex < values.size();valIndex++)
@@ -287,22 +328,49 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		// create the pivot
 		// generate the pivot first
+		String totalAppender = "";
+		String marginName = " ...All Total... ";
+
 		StringBuilder pivotString = new StringBuilder("");
 		String pivotName = Utility.getRandomString(5);
 		pivotString.append(pivotName)
 				.append(" = ")
 				.append("pd.pivot_table(")
 				.append(frameName).append(",")
-				//.append(pdValuesString)
+				.append(pdValuesString)
 				.append(colString)
 				.append(idxString)
 				.append(funString)
-				.append("dropna=True")
-				.append(")");
+				.append("dropna=True,")
+				.append("margins=True, ")
+				.append("margins_name='" + marginName + "'")
+				.append(").fillna('')");
+		
+		StringBuilder crosstabString = new StringBuilder("");
+		crosstabString.append(pivotName)
+		.append(" = ")
+		.append("pd.crosstab(")
+		.append(crosstabRows)
+		//.append(pdValuesString)
+		//.append(colString)
+		.append(crosstabCols)
+		.append(crosstabVal)
+		.append(crosstabAgg)
+		.append("margins=True,")
+		.append("margins_name='..ALL'")
+		.append(").fillna('')");
+		
 		
 		System.out.println(pivotString);
-		retString.append(pivotString).append("\n");
-		
+		System.out.println(crosstabString);
+		// append the formatter to start.. need a better way for this.. but for now
+		// 2 decimal places
+		retString.append("pd.set_option('display.float_format', lambda x: '%.2f' % x)").append("\n");
+		// check to see size of values and then append
+//		if(values.size() == 1)
+//			retString.append(crosstabString).append("\n");
+//		else 
+			retString.append(pivotString).append("\n");
 		
 		// generate the subtotals now
 		// need to do this for every level
@@ -326,9 +394,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			
 			StringBuilder concat = new StringBuilder("pd.concat([").append(pivotName);
 			StringBuilder deleter = new StringBuilder("del(").append(pivotName);
-			
-			String totalAppender = "";
-			
+						
 			
 			for(int subIndex = 0;subIndex < subtotalColumns.size();subIndex++)
 			{
@@ -404,21 +470,37 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					deleter.append(", ").append(groupFrameName);
 				}
 			}
-			concat.append("]).sort_index(level=[0]).fillna('')");
+			String labelsCheat = "zzzzzzzzzzzz";
+			
+			concat.append("], axis=1)")
+				.append(".rename(index={'").append(marginName).append("': '").append(labelsCheat).append("'})")
+				.append(".sort_index(level=[0]).fillna('')")
+				.append(".rename(index={'").append(labelsCheat).append("': '").append(marginName).append("'})");
+			
 			String finalPivotName = Utility.getRandomString(5);
 			deleter.append(", ").append(finalPivotName);
 			deleter.append(")");
 			String finalPivot = finalPivotName + " = " + concat;
+			
+			// change the margin name to seomthing 
+			
+			// need to drop the all total from 
+			String dropAllTotal = "";
+			
+			if(rows.size() > 1) // else there is no total
+				dropAllTotal = finalPivotName + " = " + finalPivotName +".drop('" + marginName + "  Total  '" +", level=0)";
+			
 			System.err.println(finalPivot);
 			System.err.println(deleter);
 			String output = "print(" + finalPivotName + ".to_html())"; //.encode('utf-8'))";
 			String deleteLast = "del(" + finalPivotName + ")";
 			
-			retString.append(groupBy).append("\n").append(finalPivot).append("\n").append(output).append("\n").append(deleter);
+			retString.append(groupBy).append("\n").append(finalPivot).append("\n").append(dropAllTotal).append("\n").append(output).append("\n").append(deleter);
 		}		
 		else
 			retString.append("\n").append(pivotName).append(".to_html()").append("\n").append("del(").append(pivotName).append(")");
 		
+		System.err.println(retString);
 		return retString.toString();
 	}
 
