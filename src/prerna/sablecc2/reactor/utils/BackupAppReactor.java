@@ -10,9 +10,11 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -25,20 +27,21 @@ public class BackupAppReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String dbName = this.keyValue.get(this.keysToGet[0]);
-		if(dbName == null || dbName.isEmpty()) {
+		String appId = this.keyValue.get(this.keysToGet[0]);
+		if(appId == null || appId.isEmpty()) {
 			throw new IllegalArgumentException("Invalid database!");
 		}
 		
 		// get engine details
-		IEngine engine = Utility.getEngine(dbName);
+		IEngine engine = Utility.getEngine(appId);
 		if (engine == null){
 			throw new IllegalArgumentException("Invalid database!");
 		}
 		ENGINE_TYPE dbType = engine.getEngineType();
 		
 		// get db directory and dates for renaming the backup file
-		String dbDir = DIHelper.getInstance().getProperty("BaseFolder") + DIR_SEPARATOR + "db" + DIR_SEPARATOR + dbName;
+		String dbDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		dbDir += DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), appId);
 		DateFormat dateFormat = new SimpleDateFormat("ddMMyyyy_HHmmss");
 		Date date = new Date();
 		String todayDate = dateFormat.format(date);
@@ -49,8 +52,8 @@ public class BackupAppReactor extends AbstractReactor {
 			File newFile = new File(dbDir + DIR_SEPARATOR + "backup" + DIR_SEPARATOR + "database_" + todayDate + ".mv.db");
 			copyFile(originalFile, newFile);
 		} else if (dbType == IEngine.ENGINE_TYPE.SESAME){
-			File originalFile = new File(dbDir + DIR_SEPARATOR + dbName + ".jnl");
-			File newFile = new File(dbDir + DIR_SEPARATOR + "backup" + DIR_SEPARATOR + dbName + "_" + todayDate + ".jnl");
+			File originalFile = new File(dbDir + DIR_SEPARATOR + appId + ".jnl");
+			File newFile = new File(dbDir + DIR_SEPARATOR + "backup" + DIR_SEPARATOR + appId + "_" + todayDate + ".jnl");
 			copyFile(originalFile, newFile);
 		} else {
 			throw new IllegalArgumentException("Backup failed! Note: only H2 and RDF database support backups.");
