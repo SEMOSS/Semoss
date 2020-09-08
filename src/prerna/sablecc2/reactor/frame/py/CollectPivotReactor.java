@@ -472,7 +472,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			}
 			String labelsCheat = "zzzzzzzzzzzz";
 			
-			concat.append("], axis=1)")
+			concat.append("])")
 				.append(".rename(index={'").append(marginName).append("': '").append(labelsCheat).append("'})")
 				.append(".sort_index(level=[0]).fillna('')")
 				.append(".rename(index={'").append(labelsCheat).append("': '").append(marginName).append("'})");
