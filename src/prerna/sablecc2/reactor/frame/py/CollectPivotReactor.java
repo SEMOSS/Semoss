@@ -330,6 +330,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// generate the pivot first
 		String totalAppender = "";
 		String marginName = " ...All Total... ";
+		String labelsCheat = "zzzzzzzzzzzz";
 
 		StringBuilder pivotString = new StringBuilder("");
 		String pivotName = Utility.getRandomString(5);
@@ -343,7 +344,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				.append(funString)
 				.append("dropna=True,")
 				.append("margins=True, ")
-				.append("margins_name='" + marginName + "'")
+				.append("margins_name='" + labelsCheat + "'")
 				.append(").fillna('')");
 		
 		StringBuilder crosstabString = new StringBuilder("");
@@ -470,11 +471,12 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					deleter.append(", ").append(groupFrameName);
 				}
 			}
-			String labelsCheat = "zzzzzzzzzzzz";
 			
 			concat.append("])")
-				.append(".rename(index={'").append(marginName).append("': '").append(labelsCheat).append("'})")
+				//.append(".rename(index={'").append(marginName).append("': '").append(labelsCheat).append("'})")
+				//.append(".rename(columns={'").append(marginName).append("' : '").append(labelsCheat).append("'}, levels=1)")
 				.append(".sort_index(level=[0]).fillna('')")
+				.append(".rename(columns={'").append(labelsCheat).append("' : '").append(marginName).append("'}, level=1)")
 				.append(".rename(index={'").append(labelsCheat).append("': '").append(marginName).append("'})");
 			
 			String finalPivotName = Utility.getRandomString(5);
@@ -487,8 +489,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			// need to drop the all total from 
 			String dropAllTotal = "";
 			
-			if(rows.size() > 1) // else there is no total
-				dropAllTotal = finalPivotName + " = " + finalPivotName +".drop('" + marginName + "  Total  '" +", level=0)";
+			//if(rows.size() > 1) // else there is no total
+			//	dropAllTotal = finalPivotName + " = " + finalPivotName +".drop('" + marginName + "  Total  '" +", level=0)";
 			
 			System.err.println(finalPivot);
 			System.err.println(deleter);
