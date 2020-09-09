@@ -1386,6 +1386,7 @@ public abstract class AbstractEngine implements IEngine {
 
         URL[] urls = ((URLClassLoader)cl).getURLs();
 
+        if(System.getProperty("os.name").toLowerCase().contains("win")) {
         for(URL url: urls){
         	String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
         	if(thisURL.endsWith("/"))
@@ -1398,6 +1399,20 @@ public abstract class AbstractEngine implements IEngine {
         		.append(";");
         	
         }
+        } else {
+            for(URL url: urls){
+            	String thisURL = URLDecoder.decode((url.getFile()));
+            	if(thisURL.endsWith("/"))
+            		thisURL = thisURL.substring(0, thisURL.length()-1);
+
+            	retClassPath
+            		//.append("\"")
+            		.append(thisURL)
+            		//.append("\"")
+            		.append(":");
+            }
+        }
+ 
         envClassPath = "\"" + retClassPath.toString() + "\"";
         
         return envClassPath;
