@@ -459,8 +459,12 @@ public class RdbmsConnectionHelper {
 			// do not pass in schema
 			columnsRs = meta.getColumns(catalogFilter, null, tableOrView, null);
 		} else if(driver == RdbmsTypeEnum.SNOWFLAKE) {
-			schemaFilter = schemaFilter.replace("_", "\\_");
-			tableOrView = tableOrView.replace("_", "\\_");
+			if(schemaFilter != null) {
+				schemaFilter = schemaFilter.replace("_", "\\_");
+			}
+			if(tableOrView != null) {
+				tableOrView = tableOrView.replace("_", "\\_");
+			}
 			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
 		} else {
 			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
@@ -508,6 +512,16 @@ public class RdbmsConnectionHelper {
 				return schema;
 			}
 		}
+		
+		if(url.contains("&currentSchema=")) {
+			Pattern p = Pattern.compile("currentSchema=[a-zA-Z0-9_]*");
+			Matcher m = p.matcher(url);
+			if(m.find()) {
+				schema = m.group(0);
+				schema = schema.replace("currentSchema=", "");
+				return schema;
+			}
+		}
 
 		if(url.contains("?schema=")) {
 			Pattern p = Pattern.compile("schema=[a-zA-Z0-9_]*");
@@ -520,6 +534,16 @@ public class RdbmsConnectionHelper {
 		}
 
 		if(url.contains(";schema=")) {
+			Pattern p = Pattern.compile("schema=[a-zA-Z0-9_]*");
+			Matcher m = p.matcher(url);
+			if(m.find()) {
+				schema = m.group(0);
+				schema = schema.replace("schema=", "");
+				return schema;
+			}
+		}
+		
+		if(url.contains("&schema=")) {
 			Pattern p = Pattern.compile("schema=[a-zA-Z0-9_]*");
 			Matcher m = p.matcher(url);
 			if(m.find()) {
