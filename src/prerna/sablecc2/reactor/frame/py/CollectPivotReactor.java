@@ -40,7 +40,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	};
 
 	public CollectPivotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(),  ReactorKeysEnum.SUBTOTALS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(),  ReactorKeysEnum.SUBTOTALS.getKey(), "json"};
 	}
 
 	public NounMetadata execute() {
@@ -80,7 +80,12 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		List<String> subtotals = rowGroups;
 		if(keyValue.containsKey(keysToGet[3]))
 			subtotals = this.store.getNoun(keysToGet[3]).getAllStrValues();
-		
+
+		boolean json = false;
+
+		if(this.store.getNounKeys().contains("json"))
+			json = this.store.getNoun(keysToGet[4]).get(0).toString().equalsIgnoreCase("true");
+
 		if(curEncoding == null)
 			curEncoding = pyt.runPyAndReturnOutput("print(sys.stdout.encoding)");
 		
@@ -119,7 +124,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// making the new call here
 		// columns are not really required
 		// going to ignore for now
-		String commands = genPivot(frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true);
+		String commands = genPivot(frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true, json);
 		commands = makeFrame + "\n" + commands;
 		
 //		// convert the inputs into a cgroup
@@ -215,7 +220,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 	}
 	
-	public String genPivot(String frameName, List <String> rows, List <String> columns, List <String> subtotalColumns, List <String> values, List <String> functions, boolean dropNA, boolean fill_value)
+	public String genPivot(String frameName, List <String> rows, List <String> columns, List <String> subtotalColumns, List <String> values, List <String> functions, boolean dropNA, boolean fill_value, boolean json)
 	{
 		StringBuilder retString = new StringBuilder();
 		// pd.pivot_table(df, values='D', index=['A', 'B'],
@@ -232,7 +237,10 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		List <String> rowsAndColumns = new Vector<String>();
 		rowsAndColumns.addAll(rows);
 		//rowsAndColumns.addAll(columns);
-
+		
+		// set it up for subtotals as well
+		subtotalColumns = rowsAndColumns;
+		
 		// geenerate rows
 		for(int idxIndex = 0;idxIndex < rowsAndColumns.size();idxIndex++)
 		{
@@ -343,8 +351,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				.append(idxString)
 				.append(funString)
 				.append("dropna=True,")
-				.append("margins=True, ")
-				.append("margins_name='" + labelsCheat + "'")
+				.append("margins=True")
+				.append(", margins_name='" + labelsCheat + "'")
 				.append(").fillna('')");
 		
 		StringBuilder crosstabString = new StringBuilder("");
@@ -388,6 +396,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// see which subtotal columns we want
 		// stop at that level when we get to
 		//df = pd.concat([table, df1, df2]).sort_index(level=[0])
+		String outputFormat = ".to_html()";
+		if(json)
+			outputFormat = ".to_json(orient='split')";
 		
 		if(subtotalColumns != null)
 		{
@@ -414,7 +425,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				boolean totalColumn = true;
 				
 				// need to find which level this one is at
-				for(int idx = 0;idx < rows.size();idx++)
+				for(int idx = 0;idx < rowsAndColumns.size();idx++)
 				{
 					//System.err.println("Current Sub is " + thisSub + " and rows is " + rows.get(idx));
 					
@@ -429,7 +440,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					if(idx != 0)
 						indexer.append(", ");
 					// add the rows
-					if(rows.get(idx).equalsIgnoreCase(thisSub))
+					if(rowsAndColumns.get(idx).equalsIgnoreCase(thisSub))
 					{
 						totalerIndex = idx;
 						processLevel = false;
@@ -453,11 +464,12 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					}						
 				}
 				
-				if(!rows.get(rows.size() -1).equalsIgnoreCase(thisSub))
+				if(!rowsAndColumns.get(rowsAndColumns.size() -1).equalsIgnoreCase(thisSub))
 				{
 					// set up the groupby
 					StringBuffer curGroup = new StringBuffer("");
 					curGroup.append(groupFrameName).append(" = ").append(pivotName).append(".groupby(level=[").append(leveler).append("]).").append(function);
+					curGroup.append("\n");
 					groupBy.append(curGroup.toString()).append("\n");
 					
 					System.err.println(curGroup);
@@ -465,6 +477,13 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					indexer.append("]");
 					indexer = new StringBuilder().append(groupFrameName).append(".index = ").append(indexer).append(")");
 					groupBy.append(indexer.toString()).append("\n");
+					
+					// should do this only if it is the first column I think ?
+					// I need to really drop the last row
+					// everytime
+					groupBy.append("totalRows = len(").append(groupFrameName).append(")").append("\n");
+					groupBy.append(groupFrameName).append("=").append(groupFrameName).append(".iloc[:").append("totalRows -1]").append("\n");
+					//groupBy.append(groupFrameName).append("=").append(groupFrameName).append(".drop('").append(labelsCheat).append("  Total  ").append("', level=0, errors='ignore')");
 					System.err.println(indexer);
 					
 					concat.append(", ").append(groupFrameName);
@@ -475,9 +494,10 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			concat.append("])")
 				//.append(".rename(index={'").append(marginName).append("': '").append(labelsCheat).append("'})")
 				//.append(".rename(columns={'").append(marginName).append("' : '").append(labelsCheat).append("'}, levels=1)")
-				.append(".sort_index(level=[0]).fillna('')")
-				.append(".rename(columns={'").append(labelsCheat).append("' : '").append(marginName).append("'}, level=1)")
-				.append(".rename(index={'").append(labelsCheat).append("': '").append(marginName).append("'})");
+				.append(".sort_index(level=[0]).fillna('')");
+				if(columns.size() > 1) // this happens only when more than 1 column
+					concat.append(".rename(columns={'").append(labelsCheat).append("' : '").append(marginName).append("'}, level=1)");
+				concat.append(".rename(index={'").append(labelsCheat).append("': '").append(marginName).append("'})");
 			
 			String finalPivotName = Utility.getRandomString(5);
 			deleter.append(", ").append(finalPivotName);
@@ -494,13 +514,13 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			
 			System.err.println(finalPivot);
 			System.err.println(deleter);
-			String output = "print(" + finalPivotName + ".to_html())"; //.encode('utf-8'))";
+			String output = "print(" + finalPivotName + outputFormat + ")"; //.encode('utf-8'))";
 			String deleteLast = "del(" + finalPivotName + ")";
 			
 			retString.append(groupBy).append("\n").append(finalPivot).append("\n").append(dropAllTotal).append("\n").append(output).append("\n").append(deleter);
 		}		
 		else
-			retString.append("\n").append(pivotName).append(".to_html()").append("\n").append("del(").append(pivotName).append(")");
+			retString.append("\n").append(pivotName).append(outputFormat).append("\n").append("del(").append(pivotName).append(")");
 		
 		System.err.println(retString);
 		return retString.toString();
