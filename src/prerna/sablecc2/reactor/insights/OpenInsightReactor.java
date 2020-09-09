@@ -96,7 +96,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			newInsight = in.get(0);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			logger.info("Pulling app from cloud storage, appid=" + appId);
-			ClusterUtil.reactorUpdateApp(appId);
+			ClusterUtil.reactorPullInsightsDB(appId);
 			try {
 				List<Insight> in = engine.getInsight(rdbmsId + "");
 				newInsight = in.get(0);
