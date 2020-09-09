@@ -96,7 +96,8 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		// create typesArr as an array for faster searching
 		String[] headers = null;
 		SemossDataType[] typesArr = null;
-		String[] additionalType = null;
+		String[] additionalDataTypeArr = null;
+		CellStyle[] stylingArr = null;
 		
 		// style dates
 		CellStyle dateCellStyle = workbook.createCellStyle();
@@ -131,13 +132,27 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			headers = row.getHeaders();
 			size = headers.length;
 			typesArr = new SemossDataType[size];
-			additionalType = new String[size];
+			additionalDataTypeArr = new String[size];
+			stylingArr = new CellStyle[size];
 			for(; i < size; i++) {
 				Cell cell = headerRow.createCell(i);
 				cell.setCellValue(headers[i]);
 				cell.setCellStyle(headerCellStyle);
+				// grab metadata from iterator
 				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
-				additionalType[i] = headerInfo.get(i).get("additionalType") + "";
+				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
+				try {
+					stylingArr[i] = ExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i]);
+				} catch(Exception e) {
+					// ignore
+				}
+				if(stylingArr[i] == null) {
+					if(typesArr[i] == SemossDataType.DATE) {
+						stylingArr[i] = dateCellStyle;
+					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
+						stylingArr[i] = timeStampCellStyle;
+					}
+				}
 			}
 
 			// generate the data row
@@ -156,14 +171,16 @@ public class ToExcelReactor extends TaskBuilderReactor {
 						cell.setCellValue( ((Number) value).doubleValue() ) ;
 					} else if(typesArr[i] == SemossDataType.DATE) {
 						cell.setCellValue( ((SemossDate) value).getDate() ) ;
-						cell.setCellStyle(dateCellStyle);
 					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
 						cell.setCellValue( ((SemossDate) value).getDate() ) ;
-						cell.setCellStyle(timeStampCellStyle);
 					} else if(typesArr[i] == SemossDataType.BOOLEAN) {
 						cell.setCellValue( (boolean) value);
 					} else {
 						cell.setCellValue(value + "");
+					}
+					
+					if(stylingArr[i] != null) {
+						cell.setCellStyle(stylingArr[i]);
 					}
 				}
 			}
@@ -187,14 +204,16 @@ public class ToExcelReactor extends TaskBuilderReactor {
 						cell.setCellValue( ((Number) value).doubleValue() ) ;
 					} else if(typesArr[i] == SemossDataType.DATE) {
 						cell.setCellValue( ((SemossDate) value).getDate() ) ;
-						cell.setCellStyle(dateCellStyle);
 					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
 						cell.setCellValue( ((SemossDate) value).getDate() ) ;
-						cell.setCellStyle(timeStampCellStyle);
 					} else if(typesArr[i] == SemossDataType.BOOLEAN) {
 						cell.setCellValue( (boolean) value);
 					} else {
 						cell.setCellValue(value + "");
+					}
+					
+					if(stylingArr[i] != null) {
+						cell.setCellStyle(stylingArr[i]);
 					}
 				}
 			}
