@@ -358,7 +358,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 		// create typesArr as an array for faster searching
 		String[] headers = null;
 		SemossDataType[] typesArr = null;
-
+		String[] additionalDataTypeArr = null;
+		CellStyle[] stylingArr = null;
+		
 		// style dates
 		CellStyle dateCellStyle = workbook.createCellStyle();
 		dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy"));
@@ -401,16 +403,27 @@ public class ExportToExcelReactor extends AbstractReactor {
 			headers = row.getHeaders();
 			size = headers.length;
 			typesArr = new SemossDataType[size];
+			additionalDataTypeArr = new String[size];
+			stylingArr = new CellStyle[size];
 			for (; i < size; i++) {
 				curSheetCol = i + excelColStart;
 				Cell cell = headerRow.createCell(curSheetCol);
 				cell.setCellValue(headers[i]);
 				cell.setCellStyle(headerCellStyle);
-
-				if (headerInfo.get(i).containsKey("type")) {
-					typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
-				} else {
-					typesArr[i] = SemossDataType.STRING;
+				// grab metadata from iterator
+				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
+				try {
+					stylingArr[i] = ExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i]);
+				} catch(Exception e) {
+					// ignore
+				}
+				if(stylingArr[i] == null) {
+					if(typesArr[i] == SemossDataType.DATE) {
+						stylingArr[i] = dateCellStyle;
+					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
+						stylingArr[i] = timeStampCellStyle;
+					}
 				}
 			}
 
@@ -436,14 +449,16 @@ public class ExportToExcelReactor extends AbstractReactor {
 						cell.setCellValue(((Number) value).doubleValue());
 					} else if (typesArr[i] == SemossDataType.DATE) {
 						cell.setCellValue(((SemossDate) value).getDate());
-						cell.setCellStyle(dateCellStyle);
 					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
 						cell.setCellValue(((SemossDate) value).getDate());
-						cell.setCellStyle(timeStampCellStyle);
 					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
 						cell.setCellValue((boolean) value);
 					} else {
 						cell.setCellValue(value + "");
+					}
+					
+					if(stylingArr[i] != null) {
+						cell.setCellStyle(stylingArr[i]);
 					}
 				}
 			}
@@ -472,14 +487,16 @@ public class ExportToExcelReactor extends AbstractReactor {
 						cell.setCellValue(((Number) value).doubleValue());
 					} else if (typesArr[i] == SemossDataType.DATE) {
 						cell.setCellValue(((SemossDate) value).getDate());
-						cell.setCellStyle(dateCellStyle);
 					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
 						cell.setCellValue(((SemossDate) value).getDate());
-						cell.setCellStyle(timeStampCellStyle);
 					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
 						cell.setCellValue((boolean) value);
 					} else {
 						cell.setCellValue(value + "");
+					}
+					
+					if(stylingArr[i] != null) {
+						cell.setCellStyle(stylingArr[i]);
 					}
 				}
 			}
