@@ -40,7 +40,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	};
 
 	public CollectPivotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(),  ReactorKeysEnum.SUBTOTALS.getKey(), "json"};
+		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(),  ReactorKeysEnum.SUBTOTALS.getKey(), "json", "margins"};
 	}
 
 	public NounMetadata execute() {
@@ -82,9 +82,13 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			subtotals = this.store.getNoun(keysToGet[3]).getAllStrValues();
 
 		boolean json = false;
+		boolean margins = true;
 
 		if(this.store.getNounKeys().contains("json"))
 			json = this.store.getNoun(keysToGet[4]).get(0).toString().equalsIgnoreCase("true");
+
+		if(this.store.getNounKeys().contains("margins"))
+			margins = this.store.getNoun(keysToGet[5]).get(0).toString().equalsIgnoreCase("true");
 
 		if(curEncoding == null)
 			curEncoding = pyt.runPyAndReturnOutput("print(sys.stdout.encoding)");
@@ -124,7 +128,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// making the new call here
 		// columns are not really required
 		// going to ignore for now
-		String commands = genPivot(frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true, json);
+		String commands = genPivot(frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true, json, margins);
 		commands = makeFrame + "\n" + commands;
 		
 //		// convert the inputs into a cgroup
@@ -220,7 +224,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 	}
 	
-	public String genPivot(String frameName, List <String> rows, List <String> columns, List <String> subtotalColumns, List <String> values, List <String> functions, boolean dropNA, boolean fill_value, boolean json)
+	public String genPivot(String frameName, List <String> rows, List <String> columns, List <String> subtotalColumns, List <String> values, List <String> functions, boolean dropNA, boolean fill_value, boolean json, boolean margins)
 	{
 		StringBuilder retString = new StringBuilder();
 		// pd.pivot_table(df, values='D', index=['A', 'B'],
@@ -339,6 +343,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		String totalAppender = "";
 		String marginName = " ...All Total... ";
 		String labelsCheat = "zzzzzzzzzzzz";
+		
+		String marginValue = margins?"True":"False";
 
 		StringBuilder pivotString = new StringBuilder("");
 		String pivotName = Utility.getRandomString(5);
@@ -351,7 +357,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				.append(idxString)
 				.append(funString)
 				.append("dropna=True,")
-				.append("margins=True")
+				.append("margins=").append(marginValue)
 				.append(", margins_name='" + labelsCheat + "'")
 				.append(").fillna('')");
 		
@@ -380,166 +386,173 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 //			retString.append(crosstabString).append("\n");
 //		else 
 		retString.append(pivotString).append("\n");
+		String outputFormat = ".to_html()";
+		if(json)
+			outputFormat = ".to_json(orient='split')";
 		
 		// need to convert the index as well
 		// I am just going to convert everything to a string
 		//id1 = aVLQIp.index.levels[0]
 		//id1 = id1.astype('str')
 		// make all of the indices string so it doesnt complain later
-		if(rowsAndColumns.size() > 1)
+		if(margins)
 		{
-			for(int idx = 0;idx < rowsAndColumns.size();idx++)
+			if(rowsAndColumns.size() > 1)
 			{
-				String customIdxName = Utility.getRandomString(5);
-				retString.append(customIdxName).append("=").append(pivotName).append(".index.levels[").append(idx).append("]").append("\n");
-				retString.append(customIdxName).append("=").append(customIdxName).append(".astype('str')").append("\n");
-				// set up this level immediately
-				retString.append(pivotName).append(".index.set_levels(").append(customIdxName).append(", level=").append(idx).append(", inplace=True)").append("\n");
-			}
-		}		
-		// generate the subtotals now
-		// need to do this for every level
-		//df1 = table.groupby(level=[0,1]).sum()
-		//		df1.index = pd.MultiIndex.from_arrays([df1.index.get_level_values(0), 
-		//		                                       df1.index.get_level_values(1)+ '_sum', 
-		//		                                       len(df1.index) * ['']])
-		
-		// df2 = table.groupby(level=0).sum()
-		//df2.index = pd.MultiIndex.from_arrays([df2.index.values + '_sum',
-		 //                                      len(df2.index) * [''], 
-		 //                                      len(df2.index) * ['']])
-		
-		// see which subtotal columns we want
-		// stop at that level when we get to
-		//df = pd.concat([table, df1, df2]).sort_index(level=[0])
-		String outputFormat = ".to_html()";
-		if(json)
-			outputFormat = ".to_json(orient='split')";
-		
-		if(subtotalColumns != null)
-		{
-			StringBuilder groupBy = new StringBuilder();
-			
-			StringBuilder concat = new StringBuilder("pd.concat([").append(pivotName);
-			StringBuilder deleter = new StringBuilder("del(").append(pivotName);
-						
-			
-			for(int subIndex = 0;subIndex < subtotalColumns.size();subIndex++)
-			{
-				String groupFrameName = Utility.getRandomString(5);
-				String thisSub = subtotalColumns.get(subIndex);
-				String function = "sum()";
-				int totalerIndex = 0; // this is the place to start
-	
-				StringBuilder leveler = new StringBuilder("");
-	
-				// set up the multiindex
-				StringBuilder indexer = new StringBuilder("");
-				indexer.append("pd.MultiIndex.from_arrays([");
-				
-				boolean processLevel = true;
-				boolean totalColumn = true;
-				
-				// need to find which level this one is at
 				for(int idx = 0;idx < rowsAndColumns.size();idx++)
 				{
-					//System.err.println("Current Sub is " + thisSub + " and rows is " + rows.get(idx));
+					String customIdxName = Utility.getRandomString(5);
+					retString.append(customIdxName).append("=").append(pivotName).append(".index.levels[").append(idx).append("]").append("\n");
+					retString.append(customIdxName).append("=").append(customIdxName).append(".astype('str')").append("\n");
+					// set up this level immediately
+					retString.append(pivotName).append(".index.set_levels(").append(customIdxName).append(", level=").append(idx).append(", inplace=True)").append("\n");
+				}
+			}		
+			// generate the subtotals now
+			// need to do this for every level
+			//df1 = table.groupby(level=[0,1]).sum()
+			//		df1.index = pd.MultiIndex.from_arrays([df1.index.get_level_values(0), 
+			//		                                       df1.index.get_level_values(1)+ '_sum', 
+			//		                                       len(df1.index) * ['']])
+			
+			// df2 = table.groupby(level=0).sum()
+			//df2.index = pd.MultiIndex.from_arrays([df2.index.values + '_sum',
+			 //                                      len(df2.index) * [''], 
+			 //                                      len(df2.index) * ['']])
+			
+			// see which subtotal columns we want
+			// stop at that level when we get to
+			//df = pd.concat([table, df1, df2]).sort_index(level=[0])
+			
+			if(subtotalColumns != null)
+			{
+				StringBuilder groupBy = new StringBuilder();
+				
+				StringBuilder concat = new StringBuilder("pd.concat([").append(pivotName);
+				StringBuilder deleter = new StringBuilder("del(").append(pivotName);
+							
+				
+				for(int subIndex = 0;subIndex < subtotalColumns.size();subIndex++)
+				{
+					String groupFrameName = Utility.getRandomString(5);
+					String thisSub = subtotalColumns.get(subIndex);
+					String function = "sum()";
+					int totalerIndex = 0; // this is the place to start
+		
+					StringBuilder leveler = new StringBuilder("");
+		
+					// set up the multiindex
+					StringBuilder indexer = new StringBuilder("");
+					indexer.append("pd.MultiIndex.from_arrays([");
 					
-					if(processLevel)
+					boolean processLevel = true;
+					boolean totalColumn = true;
+					
+					// need to find which level this one is at
+					for(int idx = 0;idx < rowsAndColumns.size();idx++)
 					{
-						// create the lever for the groupby
+						//System.err.println("Current Sub is " + thisSub + " and rows is " + rows.get(idx));
+						
+						if(processLevel)
+						{
+							// create the lever for the groupby
+							if(idx != 0)
+								leveler.append(", ");
+							leveler.append(idx);
+						}
+	
 						if(idx != 0)
-							leveler.append(", ");
-						leveler.append(idx);
-					}
-
-					if(idx != 0)
-						indexer.append(", ");
-					// add the rows
-					if(rowsAndColumns.get(idx).equalsIgnoreCase(thisSub))
-					{
-						totalerIndex = idx;
-						processLevel = false;
-						totalColumn = true;
-						totalAppender = "  Total  ";
+							indexer.append(", ");
+						// add the rows
+						if(rowsAndColumns.get(idx).equalsIgnoreCase(thisSub))
+						{
+							totalerIndex = idx;
+							processLevel = false;
+							totalColumn = true;
+							totalAppender = "  Total  ";
+						}
+						
+						// add these only if they are not the last level
+						//if(idx + 1 < rows.size())
+						{
+							if(totalColumn)
+							{
+								indexer.append(groupFrameName).append(".index.get_level_values(").append(idx).append(")").append(" + '").append(totalAppender).append("'");
+								totalColumn = false;
+								totalAppender  = "";
+							}
+							else 
+							{
+								indexer.append("len(").append(groupFrameName).append(".index)* ['']");
+							}
+						}						
 					}
 					
-					// add these only if they are not the last level
-					//if(idx + 1 < rows.size())
+					if(!rowsAndColumns.get(rowsAndColumns.size() -1).equalsIgnoreCase(thisSub))
 					{
-						if(totalColumn)
-						{
-							indexer.append(groupFrameName).append(".index.get_level_values(").append(idx).append(")").append(" + '").append(totalAppender).append("'");
-							totalColumn = false;
-							totalAppender  = "";
-						}
-						else 
-						{
-							indexer.append("len(").append(groupFrameName).append(".index)* ['']");
-						}
-					}						
+						// set up the groupby
+						StringBuffer curGroup = new StringBuffer("");
+						curGroup.append(groupFrameName).append(" = ").append(pivotName).append(".groupby(level=[").append(leveler).append("]).").append(function);
+						curGroup.append("\n");
+						groupBy.append(curGroup.toString()).append("\n");
+						
+						System.err.println(curGroup);
+						// set the indexer into the groupby
+						indexer.append("]");
+						indexer = new StringBuilder().append(groupFrameName).append(".index = ").append(indexer).append(")");
+						groupBy.append(indexer.toString()).append("\n");
+						
+						// should do this only if it is the first column I think ?
+						// I need to really drop the last row
+						// everytime
+						groupBy.append("totalRows = len(").append(groupFrameName).append(")").append("\n");
+						groupBy.append(groupFrameName).append("=").append(groupFrameName).append(".iloc[:").append("totalRows -1]").append("\n");
+						//groupBy.append(groupFrameName).append("=").append(groupFrameName).append(".drop('").append(labelsCheat).append("  Total  ").append("', level=0, errors='ignore')");
+						System.err.println(indexer);
+						
+						concat.append(", ").append(groupFrameName);
+						deleter.append(", ").append(groupFrameName);
+					}
 				}
 				
-				if(!rowsAndColumns.get(rowsAndColumns.size() -1).equalsIgnoreCase(thisSub))
-				{
-					// set up the groupby
-					StringBuffer curGroup = new StringBuffer("");
-					curGroup.append(groupFrameName).append(" = ").append(pivotName).append(".groupby(level=[").append(leveler).append("]).").append(function);
-					curGroup.append("\n");
-					groupBy.append(curGroup.toString()).append("\n");
-					
-					System.err.println(curGroup);
-					// set the indexer into the groupby
-					indexer.append("]");
-					indexer = new StringBuilder().append(groupFrameName).append(".index = ").append(indexer).append(")");
-					groupBy.append(indexer.toString()).append("\n");
-					
-					// should do this only if it is the first column I think ?
-					// I need to really drop the last row
-					// everytime
-					groupBy.append("totalRows = len(").append(groupFrameName).append(")").append("\n");
-					groupBy.append(groupFrameName).append("=").append(groupFrameName).append(".iloc[:").append("totalRows -1]").append("\n");
-					//groupBy.append(groupFrameName).append("=").append(groupFrameName).append(".drop('").append(labelsCheat).append("  Total  ").append("', level=0, errors='ignore')");
-					System.err.println(indexer);
-					
-					concat.append(", ").append(groupFrameName);
-					deleter.append(", ").append(groupFrameName);
-				}
-			}
-			
-			concat.append("])")
-			
-			//.append(".rename(index={'").append(marginName).append("': '").append(labelsCheat).append("'})")
-			//.append(".rename(columns={'").append(marginName).append("' : '").append(labelsCheat).append("'}, levels=1)")
-			.append(".sort_index(level=[0]).fillna('')");
-			if(rowsAndColumns.size() == 1) // nothing to concat
-				concat = new StringBuilder(pivotName);
-			//if(columns.size() > 1) // this happens only when more than 1 column
-			concat.append(".rename(columns={'").append(labelsCheat).append("' : '").append(marginName).append("'}, level=1)");
-			concat.append(".rename(index={'").append(labelsCheat).append("': '").append(marginName).append("'})");
-			
-			String finalPivotName = Utility.getRandomString(5);
-			deleter.append(", ").append(finalPivotName);
-			deleter.append(")");
-			String finalPivot = finalPivotName + " = " + concat;
-			
-			// change the margin name to seomthing 
-			
-			// need to drop the all total from 
-			String dropAllTotal = "";
-			
-			//if(rows.size() > 1) // else there is no total
-			//	dropAllTotal = finalPivotName + " = " + finalPivotName +".drop('" + marginName + "  Total  '" +", level=0)";
-			
-			System.err.println(finalPivot);
-			System.err.println(deleter);
-			String output = "print(" + finalPivotName + outputFormat + ")"; //.encode('utf-8'))";
-			String deleteLast = "del(" + finalPivotName + ")";
-			
-			retString.append(groupBy).append("\n").append(finalPivot).append("\n").append(dropAllTotal).append("\n").append(output).append("\n").append(deleter);
-		}		
+				concat.append("])")
+				
+				//.append(".rename(index={'").append(marginName).append("': '").append(labelsCheat).append("'})")
+				//.append(".rename(columns={'").append(marginName).append("' : '").append(labelsCheat).append("'}, levels=1)")
+				.append(".sort_index(level=[0]).fillna('')");
+				if(rowsAndColumns.size() == 1) // nothing to concat
+					concat = new StringBuilder(pivotName);
+				concat.append(".rename(index={'").append(labelsCheat).append("': '").append(marginName).append("'})").append("\n");
+	
+				
+				String finalPivotName = Utility.getRandomString(5);
+				deleter.append(", ").append(finalPivotName);
+				deleter.append(")");
+				String finalPivot = finalPivotName + " = " + concat;
+	
+				// get the number of items on this level
+				StringBuilder columnRenamer = new StringBuilder("");
+				columnRenamer.append("if len(").append(pivotName).append(".columns.get_level_values(").append(columns.size()).append(")):").append("\n");
+				columnRenamer.append("\t").append(finalPivotName).append(" = ").append(finalPivotName).append(".rename(columns={'").append(labelsCheat).append("' : '").append(marginName).append("'}, level=1)");
+				
+				// change the margin name to seomthing 
+				
+				// need to drop the all total from 
+				String dropAllTotal = "";
+				
+				//if(rows.size() > 1) // else there is no total
+				//	dropAllTotal = finalPivotName + " = " + finalPivotName +".drop('" + marginName + "  Total  '" +", level=0)";
+				
+				System.err.println(finalPivot);
+				System.err.println(deleter);
+				String output = "print(" + finalPivotName + outputFormat + ")"; //.encode('utf-8'))";
+				String deleteLast = "del(" + finalPivotName + ")";
+				
+				retString.append(groupBy).append("\n").append(finalPivot).append("\n").append(columnRenamer).append("\n").append(dropAllTotal).append("\n").append(output).append("\n").append(deleter);
+			}		
+		}
 		else
-			retString.append("\n").append(pivotName).append(outputFormat).append("\n").append("del(").append(pivotName).append(")");
+			retString.append("\n").append("print(").append(pivotName).append(outputFormat).append(")").append("\n").append("del(").append(pivotName).append(")");
 		
 		System.err.println(retString);
 		return retString.toString();
