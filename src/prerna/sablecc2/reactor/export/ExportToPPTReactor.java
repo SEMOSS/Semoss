@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.export;
 
-import java.awt.Panel;
 import java.awt.Rectangle;
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,17 +45,8 @@ import org.apache.poi.xslf.usermodel.XSLFChart;
 import org.apache.poi.xslf.usermodel.XSLFPictureData;
 import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
-
-import org.apache.poi.xssf.usermodel.XSSFChart;
-import org.openxmlformats.schemas.drawingml.x2006.chart.CTAreaChart;
-import org.openxmlformats.schemas.drawingml.x2006.chart.CTBarChart;
-import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLblPos;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
-import org.openxmlformats.schemas.drawingml.x2006.chart.CTLineChart;
-import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
-import org.openxmlformats.schemas.drawingml.x2006.chart.CTPlotArea;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
-import org.openxmlformats.schemas.drawingml.x2006.chart.STDLblPos;
 
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -220,7 +210,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
-		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
+		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
 
@@ -251,7 +241,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			ExportUtility.displayValues(ChartTypes.LINE, chart);
+			POIExportUtility.displayValues(ChartTypes.LINE, chart);
 		}
 
 		Rectangle bounds = createStandardPowerPointChartBounds();
@@ -282,7 +272,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XDDFValueAxis bottomAxis = chart.createValueAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
-		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
+		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(ChartTypes.SCATTER, bottomAxis, leftAxis);
 
@@ -308,7 +298,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			ExportUtility.displayValues(ChartTypes.SCATTER, chart);
+			POIExportUtility.displayValues(ChartTypes.SCATTER, chart);
 		}
 
 		Rectangle bounds = createStandardPowerPointChartBounds();
@@ -343,7 +333,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
-		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
+		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(ChartTypes.BAR, bottomAxis, leftAxis);
 
@@ -375,8 +365,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			CTDLbls dLbls = ExportUtility.displayValues(ChartTypes.BAR, chart);
-			ExportUtility.positionDisplayValues(ChartTypes.BAR, dLbls, displayValuesPosition);
+			CTDLbls dLbls = POIExportUtility.displayValues(ChartTypes.BAR, chart);
+			POIExportUtility.positionDisplayValues(ChartTypes.BAR, dLbls, displayValuesPosition);
 		}
 
 		slide.addChart(chart, bounds);
@@ -407,7 +397,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
-		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
+		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFAreaChartData data = (XDDFAreaChartData) chart.createData(ChartTypes.AREA, bottomAxis, leftAxis);
 
@@ -426,7 +416,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			ExportUtility.displayValues(ChartTypes.AREA, chart);
+			POIExportUtility.displayValues(ChartTypes.AREA, chart);
 		}
 
 		Rectangle bounds = createStandardPowerPointChartBounds();
@@ -473,8 +463,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			CTDLbls dLbls = ExportUtility.displayValues(ChartTypes.PIE, chart);
-			ExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
+			CTDLbls dLbls = POIExportUtility.displayValues(ChartTypes.PIE, chart);
+			POIExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
 		}
 
 		Rectangle bounds = createStandardPowerPointChartBounds();
@@ -505,7 +495,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
-		ExportUtility.addGridLines(gridOnX, gridOnY, chart);
+		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFRadarChartData data = (XDDFRadarChartData) chart.createData(ChartTypes.RADAR, bottomAxis, leftAxis);
 
