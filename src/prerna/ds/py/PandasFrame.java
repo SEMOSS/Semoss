@@ -558,6 +558,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public long size(String tableName) {
+		if(isEmpty(tableName)) {
+			return 0;
+		}
 		String command = "len(" + tableName + ")";
 		Number num = (Number) pyt.runScript(command);
 		return num.longValue();
