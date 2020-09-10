@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.export;
 
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataConsolidateFunction;
 import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xddf.usermodel.chart.ChartTypes;
@@ -15,8 +16,12 @@ import org.openxmlformats.schemas.drawingml.x2006.chart.CTPlotArea;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.STDLblPos;
 
-public class ExportUtility {
+public class POIExportUtility {
 
+	private POIExportUtility() {
+		
+	}
+	
     public static void addGridLines(Boolean gridOnX, Boolean gridOnY, XDDFChart chart) {
         CTPlotArea plotArea = null;
         plotArea = chart.getCTChart().getPlotArea();
@@ -193,4 +198,44 @@ public class ExportUtility {
         curStyle.setDataFormat(df.getFormat(format));
         return curStyle;
     }
+    
+    /**
+     * 
+     * @param functionName
+     * @return
+     */
+	public static DataConsolidateFunction convertToExcelFunction(String functionName) {
+		DataConsolidateFunction retFunction = null;
+
+		switch(functionName.toUpperCase()) {
+		case "SUM":
+			retFunction = DataConsolidateFunction.SUM;
+			break;
+		case "COUNT":
+			retFunction = DataConsolidateFunction.COUNT;
+			break;
+		case "MIN":
+			retFunction = DataConsolidateFunction.MIN;
+			break;
+		case "MAX":
+			retFunction = DataConsolidateFunction.MAX;
+			break;
+		case "MEDIAN": // cheating here
+			retFunction = DataConsolidateFunction.AVERAGE;
+			break;
+		case "STDDEV": // need to see the actual name
+			retFunction = DataConsolidateFunction.STD_DEV;
+			break;
+		case "AVERAGE":
+			retFunction = DataConsolidateFunction.AVERAGE;
+			break;
+		case "MEAN":
+			retFunction = DataConsolidateFunction.AVERAGE;
+			break;
+		default:
+			retFunction = DataConsolidateFunction.SUM;
+			break;		
+		}
+		return retFunction;
+	}
 }
