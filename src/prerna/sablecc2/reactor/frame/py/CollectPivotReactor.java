@@ -379,8 +379,24 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 //		if(values.size() == 1)
 //			retString.append(crosstabString).append("\n");
 //		else 
-			retString.append(pivotString).append("\n");
+		retString.append(pivotString).append("\n");
 		
+		// need to convert the index as well
+		// I am just going to convert everything to a string
+		//id1 = aVLQIp.index.levels[0]
+		//id1 = id1.astype('str')
+		// make all of the indices string so it doesnt complain later
+		if(rowsAndColumns.size() > 1)
+		{
+			for(int idx = 0;idx < rowsAndColumns.size();idx++)
+			{
+				String customIdxName = Utility.getRandomString(5);
+				retString.append(customIdxName).append("=").append(pivotName).append(".index.levels[").append(idx).append("]").append("\n");
+				retString.append(customIdxName).append("=").append(customIdxName).append(".astype('str')").append("\n");
+				// set up this level immediately
+				retString.append(pivotName).append(".index.set_levels(").append(customIdxName).append(", level=").append(idx).append(", inplace=True)").append("\n");
+			}
+		}		
 		// generate the subtotals now
 		// need to do this for every level
 		//df1 = table.groupby(level=[0,1]).sum()
@@ -492,12 +508,15 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			}
 			
 			concat.append("])")
-				//.append(".rename(index={'").append(marginName).append("': '").append(labelsCheat).append("'})")
-				//.append(".rename(columns={'").append(marginName).append("' : '").append(labelsCheat).append("'}, levels=1)")
-				.append(".sort_index(level=[0]).fillna('')");
-				if(columns.size() > 1) // this happens only when more than 1 column
-					concat.append(".rename(columns={'").append(labelsCheat).append("' : '").append(marginName).append("'}, level=1)");
-				concat.append(".rename(index={'").append(labelsCheat).append("': '").append(marginName).append("'})");
+			
+			//.append(".rename(index={'").append(marginName).append("': '").append(labelsCheat).append("'})")
+			//.append(".rename(columns={'").append(marginName).append("' : '").append(labelsCheat).append("'}, levels=1)")
+			.append(".sort_index(level=[0]).fillna('')");
+			if(rowsAndColumns.size() == 1) // nothing to concat
+				concat = new StringBuilder(pivotName);
+			//if(columns.size() > 1) // this happens only when more than 1 column
+			concat.append(".rename(columns={'").append(labelsCheat).append("' : '").append(marginName).append("'}, level=1)");
+			concat.append(".rename(index={'").append(labelsCheat).append("': '").append(marginName).append("'})");
 			
 			String finalPivotName = Utility.getRandomString(5);
 			deleter.append(", ").append(finalPivotName);
