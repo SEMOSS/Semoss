@@ -29,6 +29,7 @@ class PyFrame:
 		cache['version'] = 0
 		cache['low_version'] = 0
 		cache[0] = frame
+		cache['meta'] = frame.dtypes.to_dict()
 		return cls(cache)
 
 	@classmethod
