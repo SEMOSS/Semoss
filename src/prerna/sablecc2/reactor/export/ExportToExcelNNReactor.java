@@ -273,13 +273,13 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 					e.printStackTrace();
 				}
 			}
-			if(wb != null) {
-				try {
-					wb.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+//			if(wb != null) {
+//				try {
+//					wb.close();
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
 		}
 		// now that the file location has been set
 		// create the excel file there
