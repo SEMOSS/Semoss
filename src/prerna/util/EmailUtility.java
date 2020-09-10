@@ -114,11 +114,11 @@ public class EmailUtility {
 
 	public static void main(String[] args) {
 
-		// GMAIL
+//		// GMAIL
 //		String smtpHost = "smtp.gmail.com";
 //		String smtpPort = "465";
 //		String username = "***REMOVED***";
-//		String password = "camsqnndycsmhslp";
+//		String password = "***REMOVED***";
 //
 //		Properties props = new Properties();
 //		props.put("mail.smtp.host", smtpHost);
@@ -144,7 +144,7 @@ public class EmailUtility {
 //		boolean isHtml = true;
 //
 //		System.out.println("Connection Made");
-//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"jgarabedian96@gmail.com", "***REMOVED***"}, "***REMOVED***", "Covid Response Test", message, isHtml, null);
+//		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
 //		if(success) {
 //			System.out.println("Email Sent");
 //		} else {
@@ -178,7 +178,7 @@ public class EmailUtility {
 		boolean isHtml = true;
 
 		System.out.println("Connection Made");
-		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
+		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"maher.khalil@va.gov"}, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
 		if(success) {
 			System.out.println("Email Sent");
 		} else {
