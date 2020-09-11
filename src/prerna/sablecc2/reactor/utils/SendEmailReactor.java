@@ -86,7 +86,7 @@ public class SendEmailReactor extends AbstractReactor {
 			emailSession = Session.getInstance(props);
 		}
 		// send email
-		boolean success = EmailUtility.sendEmail(emailSession, recipients, sender, subject, message, isHtml, attachments);
+		boolean success = EmailUtility.sendEmail(emailSession, recipients, null, sender, subject, message, isHtml, attachments);
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 
