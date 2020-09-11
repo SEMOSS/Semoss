@@ -85,12 +85,12 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 	   
 	   try {
 			if(template != null)
-				hslfSlideShow = new XMLSlideShow(new FileInputStream(exportTemplate));	 
+				hslfSlideShow = new XMLSlideShow(new FileInputStream(template));	 
 			else
 				hslfSlideShow = new XMLSlideShow();	 
 
 			XSLFSlide templateSlide = null;
-		   if(exportTemplate != null)
+		   if(template != null)
 		   {
 			   // assumes 0th slide is the slide
 			   templateSlide = hslfSlideShow.getSlides().get(0);
@@ -158,6 +158,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		   fileOut = new FileOutputStream(fileLocation);
 		   hslfSlideShow.write(fileOut);
 		   fileOut.close();
+			this.insight.addExportFile(exportName, fileLocation);
 		   retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
