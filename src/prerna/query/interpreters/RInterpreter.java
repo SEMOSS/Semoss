@@ -404,6 +404,18 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		} else if(function.equals(QueryFunctionHelper.MONTH_NAME)) {
 			expression.append("(format(as.Date(");
 			endExpr.append("), \"%B\"))");
+		} else if(function.equals(QueryFunctionHelper.DAY_NAME)) {
+			expression.append("(format(as.Date(");
+			endExpr.append("), \"%A\"))");
+		} else if(function.equals(QueryFunctionHelper.QUARTER)) {
+			expression.append("(format(quarter(");
+			endExpr.append(")))");
+		} else if(function.equals(QueryFunctionHelper.WEEK)) {
+			expression.append("(format(as.Date(");
+			endExpr.append("), \"%W\"))");
+		} else if(function.equals(QueryFunctionHelper.YEAR)) {
+			expression.append("(format(as.Date(");
+			endExpr.append("), \"%Y\"))");
 		} else {
 			expression.append(QueryFunctionHelper.convertFunctionToRSyntax(function));
 			// if we have a non-defined type of function
