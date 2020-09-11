@@ -39,13 +39,27 @@ public final class RReactor extends AbstractRFrameReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		
+		// if it first time..
+		// get the metasynchronized
+		Logger logger = getLogger(CLASS_NAME);
+		this.rJavaTranslator = this.insight.getRJavaTranslator(logger);
+		rJavaTranslator.startR();
+		boolean smartSync = (insight.getProperty("SMART_SYNC") != null) && insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
+		if(smartSync)
+		{
+			// see if the var has been set for first time
+			if(insight.getProperty("FIRST_SYNC") == null)
+			{
+				smartSync(rJavaTranslator);
+				insight.getVarStore().put("FIRST_SYNC", new NounMetadata("True", PixelDataType.CONST_STRING));
+			}
+		}
+		
 		ReactorSecurityManager tempManager = new ReactorSecurityManager();
 		tempManager.addClass(CLASS_NAME);
 		System.setSecurityManager(tempManager);
 		
-		Logger logger = getLogger(CLASS_NAME);
-		this.rJavaTranslator = this.insight.getRJavaTranslator(logger);
-		rJavaTranslator.startR();
 		
 		//this.rJavaTranslator = rJavaTranslator;
 		
@@ -70,7 +84,6 @@ public final class RReactor extends AbstractRFrameReactor {
 		tempManager.removeClass(CLASS_NAME);
 		System.setSecurityManager(defaultManager);	
 		
-		boolean smartSync = (insight.getProperty("SMART_SYNC") != null) && insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
 		if(smartSync)
 		{
 			if(smartSync(rJavaTranslator))
@@ -131,6 +144,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
 		// run the ggplotter command
+		System.err.println("Running ggplotter string.. " + ggplotter);
 		String fName = rJavaTranslator.runRAndReturnOutput(ggplotter.toString());
 
 		// get file name
