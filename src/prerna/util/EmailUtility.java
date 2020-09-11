@@ -186,7 +186,7 @@ public class EmailUtility {
 		boolean isHtml = true;
 
 		System.out.println("Connection Made");
-		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"maher.khalil@va.gov"}, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
+		boolean success = EmailUtility.sendEmail(emailSession, new String[] {"***REMOVED***"}, null, "***REMOVED***@VA.gov", "Covid Response Test", message, isHtml, null);
 		if(success) {
 			System.out.println("Email Sent");
 		} else {
