@@ -25,15 +25,23 @@ import com.sun.mail.smtp.SMTPSendFailedException;
 
 public class EmailUtility {
 
-	public static boolean sendEmail(Session emailSession, String[] recipients, String from, String subject, String emailMessage, boolean isHtml, String[] attachments) {
+	public static boolean sendEmail(Session emailSession, String[] toRecipients, String[] bccRecipients, 
+			String from, String subject, String emailMessage, boolean isHtml, String[] attachments) {
 		try {
 			// Create an email message we will add multiple parts to this
 			Message email = new MimeMessage(emailSession);
 			// add from
 			email.setFrom(new InternetAddress(from));
 			// add email recipients
-			for (String recipient : recipients) {
-				email.addRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient));
+			if (toRecipients != null) {
+				for (String recipient : toRecipients) {
+					email.addRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient));
+				}
+			}
+			if (bccRecipients != null) {
+				for (String recipient : bccRecipients) {
+					email.addRecipients(Message.RecipientType.BCC, InternetAddress.parse(recipient));
+				}
 			}
 			// add email subject
 			email.setSubject(subject);
