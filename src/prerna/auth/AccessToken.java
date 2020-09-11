@@ -1,6 +1,8 @@
 package prerna.auth;
 
-public class AccessToken {
+import java.io.Serializable;
+
+public class AccessToken implements Serializable {
 
 	AuthProvider provider = null;
 	
