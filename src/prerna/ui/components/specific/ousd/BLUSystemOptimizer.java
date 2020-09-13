@@ -9,8 +9,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.simba.athena.shaded.apache.log4j.PropertyConfigurator;
-
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import prerna.algorithm.impl.LPOptimizer;
@@ -217,7 +215,7 @@ public class BLUSystemOptimizer extends LPOptimizer{
 
 	public static void main(String args[]){
 
-		PropertyConfigurator.configure("log4j.prop");
+//		PropertyConfigurator.configure("log4j.prop");
 		
 		List<Object[]> myList = new ArrayList<Object[]>();
 		

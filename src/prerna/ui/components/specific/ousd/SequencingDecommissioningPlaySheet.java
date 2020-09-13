@@ -38,8 +38,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.simba.athena.shaded.apache.log4j.PropertyConfigurator;
-
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -424,7 +422,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 	public static void main(String args[]){
 
-		PropertyConfigurator.configure("log4j.prop");
+//		PropertyConfigurator.configure("log4j.prop");
 
 		Integer[][] testSystems = new Integer [5][5];
 
