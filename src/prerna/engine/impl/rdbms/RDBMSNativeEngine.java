@@ -175,7 +175,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					this.fetchSize = Integer.parseInt(strFetchSize);
 				} catch(Exception e) {
 					System.out.println("Error occured trying to parse and get the fetch size");
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(prop.getProperty(Constants.POOL_MIN_SIZE) != null) {
@@ -184,7 +184,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					this.poolMinSize = Integer.parseInt(strMinPoolSize);
 				} catch(Exception e) {
 					System.out.println("Error occured trying to parse and get the min pool size");
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(prop.getProperty(Constants.POOL_MAX_SIZE) != null) {
@@ -193,7 +193,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					this.poolMaxSize = Integer.parseInt(strMaxPoolSize);
 				} catch(Exception e) {
 					System.out.println("Error occured trying to parse and get the max pool size");
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			
@@ -250,7 +250,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				this.autoCommit = this.engineConn.getAutoCommit();
 				this.queryUtil.enhanceConnection(this.engineConn);
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}	
@@ -290,13 +290,13 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					conn = getConnection();
 					this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
 				} catch(SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(this.datasourceConnected && conn != null) {
 						try {
 							conn.close();
 						} catch (SQLException e) {
-							e.printStackTrace();
+							logger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -319,9 +319,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			this.autoCommit = this.engineConn.getAutoCommit();
 			this.queryUtil = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL, this.userName, this.password);
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -331,7 +331,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			this.engineConn.close();
 			makeConnection(this.driver, this.userName, this.password, this.connectionURL, this.createString);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -349,7 +349,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					this.engineConnected = true;
 					this.autoCommit = this.engineConn.getAutoCommit();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 
@@ -380,14 +380,14 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			try(Statement statement = conn.createStatement()){
 				statement.executeUpdate(query);
 			} catch(SQLException e){
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 		} else {
 			try(PreparedStatement statement = conn.prepareStatement(query)){
 				statement.execute();
 			} catch(SQLException e){
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 		}
@@ -432,8 +432,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					conceptURI = row.getBinding("concept").getValue().toString();
 				}
 			} catch (QueryEvaluationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
 		}
@@ -456,8 +455,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
 			return columnsFromResult;
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			closeConnections(conn,rs,stmt);
 		}
@@ -476,8 +474,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
 			return columnsFromResult;
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			closeConnections(conn,rs,stmt);	
 		}
@@ -496,7 +493,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			try {
 				rs.setFetchSize(this.fetchSize);
 			} catch(Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		//normally would use instance.getClass() but when we retrieve the 
@@ -533,7 +530,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			statement.executeUpdate();
 		} catch (SQLException e) {
 			statement = null;
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(autoCloseStatement) {
 				closeConnections(conn,null,statement);
@@ -570,7 +567,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -580,7 +577,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				this.dataSource.close();
 				this.datasourceConnected = false;
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -607,8 +604,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					retVector.addElement(list);
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		logger.info("Found " + retVector.size() + " elements in result set");
 		return retVector;
@@ -657,7 +653,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -670,7 +666,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		try(PreparedStatement statement = conn.prepareStatement(query)){
 			statement.execute();
 		} catch(SQLException e){
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw e;
 		}
 		// if datasource, give back the conn to the pool
@@ -686,7 +682,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				getConnection().commit();
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -757,8 +753,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					break;
 			}
 		} catch (QueryEvaluationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return relation;
@@ -782,7 +777,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		// Clean up SMSS and DB files/folder
@@ -799,7 +794,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				engineConn.setAutoCommit(autoCommit);
 				this.autoCommit = autoCommit;
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -844,7 +839,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			// create the prepared statement using the sql query defined
 			ps = makeConnection().prepareStatement(sql);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return ps;
 	}
@@ -857,7 +852,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		try {
 			return this.engineConn.getMetaData();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -894,7 +889,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			this.engineConnected = !this.engineConn.isClosed();
 			this.autoCommit = this.engineConn.getAutoCommit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
