@@ -16,7 +16,6 @@ SMSSWebWatcher_EXT	.smss
 #rpa.config.directory C:\\workspace\\Semoss_Dev\\rpa
 
 BaseFolder	C:\\workspace\\Semoss_Dev
-LOG4J	C:\\workspace\\Semoss_Dev\\log4j.prop
 ADDITIONAL_REACTORS C:\\workspace\\Semoss_Dev\\reactors.json
 SOCIAL	C:\\workspace\\Semoss_Dev\\social.properties
 
