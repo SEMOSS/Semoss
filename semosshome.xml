@@ -84,7 +84,7 @@
       <source>license.txt</source>
     </file>
     <file>
-      <source>log4j.prop</source>
+      <source>log4j2.properties</source>
     </file>
     <file>
       <source>RDF_Map.prop</source>
