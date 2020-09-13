@@ -1,16 +1,9 @@
 package prerna.sablecc2.comm;
 
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.appender.ConsoleAppender;
-import org.apache.logging.log4j.core.config.Configurator;
-import org.apache.logging.log4j.core.config.builder.api.AppenderComponentBuilder;
-import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
-import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
-import org.apache.logging.log4j.core.config.builder.api.LayoutComponentBuilder;
-import org.apache.logging.log4j.core.config.builder.api.RootLoggerComponentBuilder;
-import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
 import prerna.util.Utility;
 
@@ -22,29 +15,8 @@ public class InMemoryConsole extends Logger {
 
 	private String jobID;
 	
-	static LoggerContext buildContext() {
-		//configure the appender
-		ConfigurationBuilder< BuiltConfiguration > builder = ConfigurationBuilderFactory.newConfigurationBuilder();
-		builder.setStatusLevel(Level.INFO);
-		LayoutComponentBuilder layoutBuilder = builder.newLayout("PatternLayout")
-				.addAttribute("pattern", "%d [%p|%c{1.}] %m%n");
-		AppenderComponentBuilder appenderBuilder = builder.newAppender("stdout", "CONSOLE")
-				.addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT)
-				.add(layoutBuilder);
-		builder.add(appenderBuilder);
-//		builder.add(builder.newLogger("org.apache.logging.log4j", Level.INFO).
-//	            add(builder.newAppenderRef("stdout")).
-//	            addAttribute("additivity", false));
-		RootLoggerComponentBuilder rootLogger = builder.newRootLogger(Level.INFO);
-		rootLogger.add(builder.newAppenderRef("stdout"));
-		builder.add(rootLogger);
-		
-		LoggerContext ctx = Configurator.initialize(builder.build());
-		return ctx;
-	}
-	
 	public InMemoryConsole(String name, String jobId) {
-		super(buildContext(), name, null);
+		super((LoggerContext) LogManager.getContext(false), name, null);
 		this.jobID = jobId;
 		// set the repository
 		// set the level
