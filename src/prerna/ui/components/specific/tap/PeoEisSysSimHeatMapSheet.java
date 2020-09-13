@@ -8,7 +8,6 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class PeoEisSysSimHeatMapSheet extends SysSimHeatMapSheet {
 	ArrayList<ArrayList<Object>> sourceFileSelection = null;

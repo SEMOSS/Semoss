@@ -34,18 +34,18 @@ import java.util.logging.Level;
 
 import javax.swing.JPanel;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
-import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
+
+import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * This class is used to create the appropriate window depending on the browser specified (Mozilla, IE, Safari).

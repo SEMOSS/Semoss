@@ -4,8 +4,6 @@ import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 
 import prerna.om.SEMOSSEdge;

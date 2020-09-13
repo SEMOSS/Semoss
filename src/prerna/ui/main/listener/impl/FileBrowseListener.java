@@ -34,7 +34,8 @@ import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JTextField;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.ui.components.api.IChakraListener;
 
@@ -45,7 +46,7 @@ public class FileBrowseListener implements IChakraListener {
 
 	JTextField view = null;
 
-	Logger log = Logger.getLogger(getClass());
+	Logger log = LogManager.getLogger(getClass());
 
 	// TODO Unused, Delete
 	public void setModel(JComponent model) {

@@ -34,18 +34,12 @@ import java.util.Hashtable;
 import javax.swing.JComponent;
 import javax.swing.JList;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryLanguage;
-import org.openrdf.query.Update;
-import org.openrdf.query.UpdateExecutionException;
-import org.openrdf.repository.RepositoryException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;

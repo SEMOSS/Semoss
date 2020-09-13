@@ -6,8 +6,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
@@ -81,13 +82,13 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 		Cluster cluster = new Cluster(attributeNames, isNumeric);
 		cluster.setDistanceMode(distanceMeasure);
 		logger.info("Start generating cluster center for similarity of instances");
-		logger.setLevel(Level.OFF);
+		Configurator.setLevel(logger.getName(), Level.OFF);
 		generateClusterCenters(dataFrame, cluster, isNumeric);
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 		logger.info("Done generating cluster centers for similarity of instances");
 		logger.info("Start generating similarity of instance to dataset center");
 		getSimilarityValuesForInstances(dataFrame, cluster, results, isNumeric, logger);
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 		logger.info("Done generating similarity of instance to dataset center");
 
 		String[] allColNames = dataFrame.getColumnHeaders();
@@ -131,7 +132,7 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 			boolean[] isNumeric,
 			Logger logger
 			) {
-		logger.setLevel(Level.OFF);
+		Configurator.setLevel(logger.getName(), Level.OFF);
 		int counter = 0;
 		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], attributeNamesList);
 		while (it.hasNext()) {
@@ -143,13 +144,13 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 			results.put(instanceName, sim);
 			
 			if(counter % 100 == 0) {
-				logger.setLevel(Level.INFO);
+				Configurator.setLevel(logger.getName(), Level.INFO);
 				logger.info("Finished execution for unique instance number = " + counter);
-				logger.setLevel(Level.OFF);
+				Configurator.setLevel(logger.getName(), Level.OFF);
 			}
 			counter++;
 		}
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 	}
 
 	//////////////////////////////////////////////////////////////

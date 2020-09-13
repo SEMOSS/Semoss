@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.frame.r;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;

@@ -27,27 +27,19 @@
  *******************************************************************************/
 package prerna.ui.components;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Hashtable;
 import java.util.List;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.openrdf.model.Resource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.TupleQuery;
 import org.openrdf.query.TupleQueryResult;
-import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.rio.RDFFormat;
-import org.openrdf.rio.RDFParseException;
-import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
@@ -56,11 +48,8 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.om.GraphDataModel;
-import prerna.om.SEMOSSEdge;
-import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.SesameConstructWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.Constants;
 
 /**
  * This class is responsible for loading many of the hierarchies available in RDF through the repository connection.

@@ -3,10 +3,9 @@ package prerna.pyserve;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import io.netty.buffer.ByteBuf;

@@ -1,12 +1,12 @@
 package prerna.quartz.specific.tap;
 
-import org.quartz.Trigger;
-import static org.quartz.TriggerBuilder.*;
+import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
+import static org.quartz.TriggerBuilder.newTrigger;
+
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
-import static org.quartz.SimpleScheduleBuilder.*;
 import org.quartz.SimpleTrigger;
 
 public class CreateTriggerDetails {

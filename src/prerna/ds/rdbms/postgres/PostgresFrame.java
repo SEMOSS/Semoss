@@ -3,6 +3,10 @@ package prerna.ds.rdbms.postgres;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Properties;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
@@ -13,11 +17,9 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactor;
-import java.util.Properties;
-
-import org.apache.log4j.Logger;
 
 public class PostgresFrame extends AbstractRdbmsFrame {
+	
 	private static final String POSTGRES_HOST = "postgres_host";
 	private static final String POSTGRES_PORT = "postgres_port";
 	private static final String POSTGRES_USERNAME = "postgres_username";
@@ -108,7 +110,7 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 
 	// Testing purposes
 	public static void main(String[] args) {
-		final Logger logger = Logger.getLogger(PostgresFrame.class.getName());
+		final Logger logger = LogManager.getLogger(PostgresFrame.class.getName());
 		DIHelper.getInstance().loadCoreProp("C:/workspace/Semoss_Dev/RDF_Map.prop");
 		try(InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + CONFIGURATION_FILE)) {
 			Properties prop = new Properties();

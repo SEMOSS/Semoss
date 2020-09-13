@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.io.filefilter.WildcardFileFilter;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;

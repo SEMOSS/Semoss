@@ -1,27 +1,23 @@
 package prerna.poi.main.helper;
 
-import java.io.UnsupportedEncodingException; 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TimeZone;
+import java.util.TreeMap;
 
-import java.net.URLDecoder; 
-import java.net.URLEncoder; 
- 
-import java.security.InvalidKeyException; 
-import java.security.NoSuchAlgorithmException; 
- 
-import java.text.DateFormat; 
-import java.text.SimpleDateFormat; 
- 
-import java.util.Calendar; 
-import java.util.HashMap; 
-import java.util.Iterator; 
-import java.util.Map; 
-import java.util.SortedMap; 
-import java.util.TimeZone; 
-import java.util.TreeMap; 
- 
-import javax.crypto.Mac; 
-import javax.crypto.spec.SecretKeySpec; 
- 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.apache.commons.codec.binary.Base64; 
  
 /** 

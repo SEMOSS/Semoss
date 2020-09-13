@@ -11,9 +11,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -151,7 +152,7 @@ public class RatioReactor extends AbstractFrameReactor {
 		List<Object> instanceValuesList = getInstanceValues(frame, instanceColumn);
 
 		//iterate through combinations
-		logger.setLevel(Level.OFF);
+		Configurator.setLevel(logger.getName(), Level.OFF);
 		try {
 			for (int sourceIndex = 0; sourceIndex < instanceValuesList.size(); sourceIndex++) {
 				Object sourceInstance = instanceValuesList.get(sourceIndex);
@@ -241,9 +242,9 @@ public class RatioReactor extends AbstractFrameReactor {
 
 					counter++;
 					if(counter % 5000 == 0) {
-						logger.setLevel(Level.INFO);
+						Configurator.setLevel(logger.getName(), Level.INFO);
 						logger.info("Added row #" + counter);
-						logger.setLevel(Level.OFF);
+						Configurator.setLevel(logger.getName(), Level.OFF);
 					}
 				}
 				//write ratio match to itself A-A 
@@ -307,7 +308,7 @@ public class RatioReactor extends AbstractFrameReactor {
 				logger.error(STACKTRACE, e);
 			}
 		}
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 
 		// add data to R frame
 		CsvQueryStruct csvQS = new CsvQueryStruct();

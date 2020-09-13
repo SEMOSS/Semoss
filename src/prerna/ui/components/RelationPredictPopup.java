@@ -39,8 +39,8 @@ import java.util.regex.Pattern;
 import javax.swing.JList;
 import javax.swing.JMenu;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;

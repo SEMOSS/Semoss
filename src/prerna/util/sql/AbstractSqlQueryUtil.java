@@ -42,8 +42,8 @@ import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -61,6 +61,12 @@ import prerna.util.Utility;
 
 public abstract class AbstractSqlQueryUtil {
 	
+	// inputs for connection string builder
+	public static final String HOSTNAME = "hostname";
+	public static final String PORT = "port";
+	public static final String SCHEMA = "schema";
+	public static final String USERNAME = "username";
+
 	private static final Logger logger = LogManager.getLogger(AbstractSqlQueryUtil.class);
 
 	protected RdbmsTypeEnum dbType = null;
@@ -115,8 +121,9 @@ public abstract class AbstractSqlQueryUtil {
 	 * Build the connection string from a JSON map
 	 * @param configMap
 	 * @return
+	 * @throws SQLException 
 	 */
-	public abstract String buildConnectionString(Map<String, Object> configMap);
+	public abstract String buildConnectionString(Map<String, Object> configMap) throws SQLException;
 	
 	/**
 	 * Build the connection string from a properties file (SMSS file)

@@ -1,7 +1,8 @@
 package prerna.sablecc2.reactor.algorithms;
 
 import java.util.List;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;

@@ -38,7 +38,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 
-import prerna.om.SEMOSSVertex;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.PolarPoint;
 import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
@@ -48,6 +47,7 @@ import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import edu.uci.ics.jung.visualization.transform.MutableTransformerDecorator;
+import prerna.om.SEMOSSVertex;
 
 /**
  * Draws the rings on the graph for the radial tree graph layout.

@@ -37,8 +37,8 @@ import java.util.Vector;
 
 import javax.swing.JMenuItem;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.algorithm.impl.DistanceDownstreamProcessor;

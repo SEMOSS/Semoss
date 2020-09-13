@@ -47,18 +47,18 @@ import javax.swing.JSplitPane;
 
 import org.sourceforge.jlibeps.epsgraphics.EpsGraphics2D;
 
-import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
-
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
+
+import prerna.ui.components.api.IChakraListener;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls the export of a chart to a vector image.

@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.rdf.main;
 
-import info.aduna.iteration.CloseableIteration;
-
 import java.io.FileInputStream;
 import java.net.URLEncoder;
 import java.util.Hashtable;
@@ -41,8 +39,8 @@ import java.util.regex.Pattern;
 
 import javax.swing.JFrame;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
@@ -67,10 +65,6 @@ import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 import org.stringtemplate.v4.ST;
 
-import prerna.om.DBCMVertex;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
@@ -83,6 +77,10 @@ import edu.uci.ics.jung.graph.Forest;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.renderers.BasicRenderer;
 import edu.uci.ics.jung.visualization.renderers.Renderer;
+import info.aduna.iteration.CloseableIteration;
+import prerna.om.DBCMVertex;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 /**
  */

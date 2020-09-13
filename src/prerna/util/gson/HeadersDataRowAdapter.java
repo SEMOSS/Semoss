@@ -1,5 +1,8 @@
 package prerna.util.gson;
 
+import static prerna.util.gson.IHeadersDataRowAdapter.deserializeValues;
+import static prerna.util.gson.IHeadersDataRowAdapter.serializeValues;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,9 +14,6 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.om.HeadersDataRow;
 import prerna.util.gson.IHeadersDataRowAdapter.SerializedValuesAndTypes;
-
-import static prerna.util.gson.IHeadersDataRowAdapter.serializeValues;
-import static prerna.util.gson.IHeadersDataRowAdapter.deserializeValues;
 
 public class HeadersDataRowAdapter extends TypeAdapter<HeadersDataRow> {
 

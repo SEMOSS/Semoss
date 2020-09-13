@@ -34,12 +34,12 @@ import java.util.Iterator;
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
 
+import edu.uci.ics.jung.visualization.VisualizationViewer;
+import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.transformer.EdgeLabelFontTransformer;
 import prerna.ui.transformer.VertexLabelFontTransformer;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 
 /**
  * Controls the re-sizing of text on the graph play sheet.

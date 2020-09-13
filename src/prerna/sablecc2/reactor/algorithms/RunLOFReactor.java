@@ -7,8 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.math3.special.Erf;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.unsupervised.outliers.KDTree;
@@ -109,7 +110,7 @@ public class RunLOFReactor extends AbstractFrameReactor {
 
 		this.Tree = new KDTree(dimensions);
 		logger.info("Starting to process instances..");
-		logger.setLevel(Level.OFF);
+		Configurator.setLevel(logger.getName(), Level.OFF);
 		// This code flattens out instances, incase there are repeat appearances of an identifier
 		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 
@@ -144,13 +145,13 @@ public class RunLOFReactor extends AbstractFrameReactor {
 			
 			// logging
 			if(numInstance % 100 == 0) {
-				logger.setLevel(Level.INFO);
+				Configurator.setLevel(logger.getName(), Level.INFO);
 				logger.info("Finished execution for unique instance number = " + numInstance);
-				logger.setLevel(Level.OFF);
+				Configurator.setLevel(logger.getName(), Level.OFF);
 			}
 			numInstance++;
 		}
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 		logger.info("Done iterating ...");
 		
 		String[] allColNames = dataFrame.getColumnHeaders();

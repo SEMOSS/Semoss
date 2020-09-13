@@ -1,7 +1,7 @@
 package prerna.quartz;
 
-import static org.quartz.impl.matchers.GroupMatcher.jobGroupEquals;
 import static org.quartz.JobBuilder.newJob;
+import static org.quartz.impl.matchers.GroupMatcher.jobGroupEquals;
 
 import java.util.List;
 

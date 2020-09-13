@@ -113,8 +113,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.quartz.CronExpression;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
@@ -1107,52 +1107,52 @@ public class SchedulerH2DatabaseUtility {
 			try {
 				schedulerDb.insertData(query1);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query2);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query3);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query4);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query5);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query6);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query7);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query8);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query9);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query10);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 		}
 	}
@@ -1183,22 +1183,22 @@ public class SchedulerH2DatabaseUtility {
 			try {
 				schedulerDb.insertData(query1);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query2);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query3);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 			try {
 				schedulerDb.insertData(query4);
 			} catch (SQLException se) {
-				logger.error(Constants.STACKTRACE, se);
+//				logger.error(Constants.STACKTRACE, se);
 			}
 		}
 	}

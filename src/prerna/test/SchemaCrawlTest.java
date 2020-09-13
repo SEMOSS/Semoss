@@ -5,20 +5,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import prerna.ds.rdbms.RdbmsFrameBuilder;
-import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
-import prerna.sablecc2.reactor.cluster.CleanUpAppsReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.sql.RdbmsTypeEnum;
 import schemacrawler.schema.Catalog;
 import schemacrawler.schema.Column;
 import schemacrawler.schema.ForeignKey;

@@ -9,8 +9,8 @@ import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 

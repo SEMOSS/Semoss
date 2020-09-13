@@ -9,7 +9,8 @@ import java.util.Map;
 import javax.net.ssl.SSLHandshakeException;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -29,7 +30,7 @@ public class GitFetchUtils {
 		
 	public static void fetchGeneric(String fullRemoteAppName, String localFolder, String host)
 	{
-		Logger logger = Logger.getLogger(GitFetchUtils.class);
+		Logger logger = LogManager.getLogger(GitFetchUtils.class);
 		if(host == null)
 			host = "github.com";
 		// need to get the database folder

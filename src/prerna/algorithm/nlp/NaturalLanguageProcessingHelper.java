@@ -4,14 +4,11 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import rita.RiTa;
-import rita.RiWordNet;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.ling.LabeledWord;
 import edu.stanford.nlp.ling.TaggedWord;
@@ -28,6 +25,8 @@ import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TreeGraphNode;
 import edu.stanford.nlp.trees.TreebankLanguagePack;
 import edu.stanford.nlp.trees.TypedDependency;
+import rita.RiTa;
+import rita.RiWordNet;
 
 public final class NaturalLanguageProcessingHelper {
 

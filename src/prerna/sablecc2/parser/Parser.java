@@ -2,14 +2,19 @@
 
 package prerna.sablecc2.parser;
 
-import prerna.sablecc2.lexer.*;
-import prerna.sablecc2.node.*;
-import prerna.sablecc2.analysis.*;
-import java.util.*;
-
-import java.io.DataInputStream;
 import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+
+import prerna.sablecc2.analysis.Analysis;
+import prerna.sablecc2.analysis.AnalysisAdapter;
+import prerna.sablecc2.lexer.Lexer;
+import prerna.sablecc2.lexer.LexerException;
+import prerna.sablecc2.node.*;
 
 @SuppressWarnings("nls")
 public class Parser

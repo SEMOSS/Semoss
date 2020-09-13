@@ -1,8 +1,6 @@
 package prerna.sablecc2.reactor.map;
 
 import java.util.Hashtable;
-import java.util.List;
-import java.util.Vector;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;

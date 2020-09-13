@@ -2,7 +2,8 @@
 
 package prerna.sablecc2.analysis;
 
-import java.util.*;
+import java.util.Hashtable;
+
 import prerna.sablecc2.node.*;
 
 public class AnalysisAdapter implements Analysis

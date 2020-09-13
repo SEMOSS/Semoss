@@ -12,8 +12,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
@@ -21,11 +21,9 @@ import prerna.ds.EmptyIteratorException;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.r.RNativeEngine;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.RInterpreter;
-import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;

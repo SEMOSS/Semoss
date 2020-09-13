@@ -3,8 +3,6 @@ package prerna.sablecc2.reactor.qs.selectors;
 import java.util.List;
 import java.util.Vector;
 
-import com.sun.tools.javac.resources.javac;
-
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;

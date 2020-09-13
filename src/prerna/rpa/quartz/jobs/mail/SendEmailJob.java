@@ -3,15 +3,14 @@ package prerna.rpa.quartz.jobs.mail;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.UnableToInterruptJobException;
 
 import prerna.rpa.quartz.CommonDataKeys;
-import prerna.rpa.quartz.jobs.mail.EmailMessage;
 import prerna.util.Utility;
 
 public class SendEmailJob implements org.quartz.InterruptableJob {

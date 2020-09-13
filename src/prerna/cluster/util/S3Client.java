@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.common.io.Files;
 
@@ -18,7 +18,6 @@ import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.EngineInsightsHelper;
 import prerna.engine.impl.SmssUtilities;
-import prerna.sablecc2.reactor.app.metaeditor.SaveOwlPositionsReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
@@ -27,7 +26,7 @@ import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class S3Client extends CloudClient {
-	private static Logger logger = Logger.getLogger(S3Client.class);
+	private static Logger logger = LogManager.getLogger(S3Client.class);
 
 	private static final String PROVIDER = "s3";
 	private static final String STACKTRACE = "StackTrace: ";

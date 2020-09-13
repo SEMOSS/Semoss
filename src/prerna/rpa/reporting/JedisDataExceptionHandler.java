@@ -1,8 +1,9 @@
 package prerna.rpa.reporting;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.rpa.db.jedis.JedisStore;
 import redis.clients.jedis.Jedis;
@@ -28,7 +29,7 @@ public class JedisDataExceptionHandler implements Runnable {
 	
 	@Override
 	public void run() {
-		LOGGER.setLevel(Level.DEBUG);
+		Configurator.setLevel(LOGGER.getName(), Level.DEBUG);
 		synchronized (releasedMonitor) {
 			try {
 				while (!released) {

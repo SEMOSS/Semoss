@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;

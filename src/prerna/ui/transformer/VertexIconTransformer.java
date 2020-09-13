@@ -41,11 +41,11 @@ import javax.swing.ImageIcon;
 
 import org.apache.commons.collections15.Transformer;
 
+import edu.uci.ics.jung.visualization.decorators.DefaultVertexIconTransformer;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.DBCMIcon;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import edu.uci.ics.jung.visualization.decorators.DefaultVertexIconTransformer;
 
 /**
  */

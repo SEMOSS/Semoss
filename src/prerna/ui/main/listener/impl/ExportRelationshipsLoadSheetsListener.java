@@ -28,26 +28,16 @@
 package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Vector;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
 import prerna.poi.main.RelationshipLoadingSheetWriter;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -56,7 +46,7 @@ import prerna.util.DIHelper;
  * Controls exporting of graph relationships into loading sheets.
  */
 public class ExportRelationshipsLoadSheetsListener implements IChakraListener {
-	Logger log = Logger.getLogger(getClass());
+	Logger log = LogManager.getLogger(getClass());
 
 	
 	/**

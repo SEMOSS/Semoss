@@ -30,12 +30,11 @@ package prerna.algorithm.impl.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
-
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 import prerna.algorithm.impl.LPOptimizer;
 
 	public class ResidualSystemBudgetOptMaxSavings extends LPOptimizer{

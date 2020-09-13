@@ -2,11 +2,8 @@ package prerna.sablecc;
 
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
-import prerna.sablecc.PKQLRunner.STATUS;
 
 public class H2ImportDataReactor extends MetaH2ImportDataReactor {
 	

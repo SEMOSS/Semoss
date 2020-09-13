@@ -44,7 +44,8 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
@@ -57,7 +58,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class QuestionModificationTypeBtnListener extends AbstractListener {
-	Logger logger = Logger.getLogger(getClass());
+	Logger logger = LogManager.getLogger(getClass());
 	ParamComboBox addParameterComboBox = null;
 	JComboBox<String> questionPerspectiveSelector = new JComboBox<String>();
 	JComboBox<String> questionModSelector = new JComboBox<String>();

@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;

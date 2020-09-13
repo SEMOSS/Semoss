@@ -5,8 +5,8 @@ package prerna.security;
  * Written by Matthew Kwan - April 1997
  */
 
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 class SnowOutput extends BitFilter {
 	private boolean		quiet_flag = false;
