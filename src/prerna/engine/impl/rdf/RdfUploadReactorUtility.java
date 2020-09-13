@@ -7,7 +7,8 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.sail.SailException;
@@ -20,7 +21,7 @@ import prerna.util.Utility;
 
 public class RdfUploadReactorUtility {
 	
-	private static final Logger LOGGER = Logger.getLogger(RdfUploadReactorUtility.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(RdfUploadReactorUtility.class.getName());
 
 	private RdfUploadReactorUtility() {
 		

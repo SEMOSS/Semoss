@@ -1,8 +1,9 @@
 package prerna.algorithm.impl;
-import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 import java.util.Arrays;
+
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 public abstract class OLSTrendLine implements TrendLine {
 
     RealMatrix coef = null; // will hold prediction coefs once we get values

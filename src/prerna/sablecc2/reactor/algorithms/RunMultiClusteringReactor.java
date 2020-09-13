@@ -7,8 +7,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
@@ -224,7 +225,7 @@ public class RunMultiClusteringReactor extends AbstractFrameReactor {
 		}
 
 		double innerClusterSimilairty = 0;
-		logger.setLevel(Level.OFF);
+		Configurator.setLevel(logger.getName(), Level.OFF);
 		Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceColumn, attributeNamesList);
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();
@@ -233,7 +234,7 @@ public class RunMultiClusteringReactor extends AbstractFrameReactor {
 			double simVal = clusters.get(clusterIndex).getSimilarityForInstance(instance, this.attributeNames, isNumeric, this.instanceIndex);
 			innerClusterSimilairty += simVal / clusters.get(clusterIndex).getNumInstances();
 		}
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 		logger.info("For cluster # " + numClusters + ", inner cluster score = " + innerClusterSimilairty);
 		
 		// calculate cluster-cluster similarity

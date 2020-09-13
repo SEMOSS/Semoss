@@ -35,8 +35,8 @@ import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -59,7 +59,7 @@ public class FillTMHash extends GridPlaySheet{
 	ArrayList <String []> list;
 	GridFilterData gfd = new GridFilterData();
 	
-	Logger fileLogger = Logger.getLogger("reportsLogger");
+	Logger fileLogger = LogManager.getLogger("reportsLogger");
 	static final Logger logger = LogManager.getLogger(FillCapabilityBVHash.class.getName());
 	
 	//Necessary items to create a filler

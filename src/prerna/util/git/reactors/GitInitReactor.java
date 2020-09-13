@@ -2,7 +2,6 @@ package prerna.util.git.reactors;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -11,7 +10,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.git.GitAssetUtils;
 import prerna.util.git.GitRepoUtils;
 
 public class GitInitReactor extends AbstractReactor {

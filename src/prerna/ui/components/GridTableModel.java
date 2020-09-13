@@ -29,8 +29,6 @@ package prerna.ui.components;
 
 import prerna.util.Utility;
 
-import com.bigdata.rdf.model.BigdataURIImpl;
-
 
 /**
  * This class is used to create a table model for grids.

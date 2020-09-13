@@ -2,8 +2,8 @@
 
 package prerna.sablecc.parser;
 
+import prerna.sablecc.analysis.AnalysisAdapter;
 import prerna.sablecc.node.*;
-import prerna.sablecc.analysis.*;
 
 class TokenIndex extends AnalysisAdapter
 {

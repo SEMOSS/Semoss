@@ -30,8 +30,10 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.bigdata.rdf.model.BigdataURIImpl;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -41,8 +43,6 @@ import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.bigdata.rdf.model.BigdataURIImpl;
 
 @SuppressWarnings("serial")
 public class SystemTransitionReport extends TablePlaySheet{

@@ -6,8 +6,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
@@ -104,7 +105,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 		while (go) {
 			logger.info("Start iteration number " + (currIt+1) + "...");		
 			go = false;
-			logger.setLevel(Level.OFF);
+			Configurator.setLevel(logger.getName(), Level.OFF);
 			int counter = 0;
 			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 			while (it.hasNext()) {
@@ -124,21 +125,21 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 				
 				// logging
 				if(counter % 100 == 0) {
-					logger.setLevel(Level.INFO);
+					Configurator.setLevel(logger.getName(), Level.INFO);
 					logger.info("Finished execution for loop number = " + (currIt+1) + ", unique instance number = " + counter);
-					logger.setLevel(Level.OFF);
+					Configurator.setLevel(logger.getName(), Level.OFF);
 				}
 				counter++;
 			}
 			currIt++;
 			// break if taking too many iterations
 			if (currIt > maxIt) {
-				logger.setLevel(Level.INFO);
+				Configurator.setLevel(logger.getName(), Level.INFO);
 				logger.info("Convergence Error ::: clustering routine did not converge after " + maxIt + " iterations");		
 				go = false;
 			}
 		}
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 		logger.info("Done iterating ...");		
 		
 		// ughhhh... since we call this class within the 
@@ -192,7 +193,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 
 	// helper methods for clustering
 	private void initializeClusters(ITableDataFrame dataFrame, List<String> attributeNamesList, Logger logger) {
-		logger.setLevel(Level.OFF);
+		Configurator.setLevel(logger.getName(), Level.OFF);
 		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 		List<Object[]> firstInstance = it.next();
 		Cluster firstCluster = new Cluster(attributeNames, isNumeric);
@@ -235,19 +236,19 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 				
 				// logging
 				if(counter % 100 == 0) {
-					logger.setLevel(Level.INFO);
+					Configurator.setLevel(logger.getName(), Level.INFO);
 					logger.info("Trying to determine intial point for cluster # " + i + ". Looped through " + counter + " instances trying to determine inital point");
-					logger.setLevel(Level.OFF);
+					Configurator.setLevel(logger.getName(), Level.OFF);
 				}
 				
 				counter++;
 			}
-			logger.setLevel(Level.INFO);
+			Configurator.setLevel(logger.getName(), Level.INFO);
 			if (bestInstance == null) {
 				throw new NullPointerException("bestInstance should not be null here.");
 			}
 			logger.info("Found new initial instance for cluster # " + i + " with instance = " + bestInstance.get(0)[instanceIndex]);
-			logger.setLevel(Level.OFF);
+			Configurator.setLevel(logger.getName(), Level.OFF);
 			
 			// update combined cluster
 			combinedInstances.addToCluster(bestInstance, attributeNames, isNumeric);
@@ -264,7 +265,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 			// generate new iterator
 			it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 		}
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 	}
 
 	public int findBestClusterForInstance(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, int instanceIndex, List<Cluster> clusters) {

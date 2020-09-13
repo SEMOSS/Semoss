@@ -31,11 +31,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;

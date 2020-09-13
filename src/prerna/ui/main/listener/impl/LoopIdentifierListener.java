@@ -30,11 +30,10 @@ package prerna.ui.main.listener.impl;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.impl.LoopIdentifierProcessor;
-import prerna.om.GraphDataModel;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**

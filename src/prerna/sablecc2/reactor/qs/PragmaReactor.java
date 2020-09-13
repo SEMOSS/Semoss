@@ -4,10 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.task.options.TaskOptions;
 
 public class PragmaReactor extends AbstractQueryStructReactor {
 	

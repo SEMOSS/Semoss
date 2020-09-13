@@ -1,6 +1,4 @@
 package prerna.security;
-import java.io.PrintWriter;
-
 
 public class SnowApi {
 

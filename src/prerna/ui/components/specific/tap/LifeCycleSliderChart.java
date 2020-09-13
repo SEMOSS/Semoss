@@ -42,8 +42,12 @@ import javax.swing.Painter;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -53,10 +57,6 @@ import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 /**
  * This class creates the chart for the lifecycle slider.

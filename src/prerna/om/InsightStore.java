@@ -5,8 +5,8 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class InsightStore extends Hashtable<String, Insight> {
 

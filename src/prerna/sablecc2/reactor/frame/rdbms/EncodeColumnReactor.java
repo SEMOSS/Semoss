@@ -1,5 +1,11 @@
 package prerna.sablecc2.reactor.frame.rdbms;
 
+import java.sql.PreparedStatement;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -7,12 +13,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
-
-import java.sql.PreparedStatement;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class EncodeColumnReactor extends AbstractFrameReactor {
 

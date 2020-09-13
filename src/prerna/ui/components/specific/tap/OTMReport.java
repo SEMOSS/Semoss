@@ -30,18 +30,14 @@ package prerna.ui.components.specific.tap;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Vector;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Hashtable;
 
-import prerna.poi.specific.OTMReportWriter;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.poi.specific.OTMReportWriter;
 import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;

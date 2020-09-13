@@ -34,8 +34,8 @@ import java.util.ArrayList;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.poi.specific.FactSheetProcessor;
@@ -54,8 +54,7 @@ import prerna.util.Utility;
 public class FactSheetListener implements IChakraListener {
 
 	FactSheetProcessor processor;
-	static final Logger logger = LogManager.getLogger(FactSheetListener.class
-			.getName());
+	static final Logger logger = LogManager.getLogger(FactSheetListener.class.getName());
 	ArrayList queryArray = new ArrayList();
 
 	/**

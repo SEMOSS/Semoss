@@ -34,16 +34,16 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.logging.Level;
 
+import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.LoggerProvider;
+import com.teamdev.jxbrowser.chromium.events.FinishLoadingEvent;
+import com.teamdev.jxbrowser.chromium.events.LoadAdapter;
+
 import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.main.listener.specific.tap.CapabilityFactSheetListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.LoggerProvider;
-import com.teamdev.jxbrowser.chromium.events.FinishLoadingEvent;
-import com.teamdev.jxbrowser.chromium.events.LoadAdapter;
 
 /**
  * This class creates the capability fact sheet.

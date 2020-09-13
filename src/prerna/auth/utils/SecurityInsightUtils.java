@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
@@ -35,7 +36,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityInsightUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = Logger.getLogger(SecurityInsightUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityInsightUtils.class);
 	
 	/**
 	 * Get what permission the user has for a given insight

@@ -8,8 +8,13 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import edu.uci.ics.jung.algorithms.layout.FRLayout;
+import edu.uci.ics.jung.algorithms.layout.Layout;
+import edu.uci.ics.jung.graph.DelegateForest;
+import edu.uci.ics.jung.visualization.VisualizationViewer;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
@@ -20,14 +25,10 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.impl.SimpleGraphListener;
 import prerna.util.Utility;
-import edu.uci.ics.jung.algorithms.layout.FRLayout;
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.DelegateForest;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
 
 public class SQLGraphPlaysheet extends AbstractPlaySheet {
 	
-	Logger logger = Logger.getLogger(getClass());
+	Logger logger = LogManager.getLogger(getClass());
 	
 	// visualizationviewer
 	public VisualizationViewer <SEMOSSVertex, SEMOSSEdge> view = null;

@@ -30,14 +30,14 @@ package prerna.ui.main.listener.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
-import prerna.ui.components.specific.tap.SimilarityHeatMapSheet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.BrowserFunction;
 import com.teamdev.jxbrowser.chromium.JSValue;
+
+import prerna.ui.components.specific.tap.SimilarityHeatMapSheet;
 
 /**
  * An browser class for refreshing similarity comparison heat map based on selected parameters.

@@ -38,8 +38,8 @@ import java.util.List;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.engine.api.IEngine;

@@ -12,7 +12,7 @@ import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDFS;
 
 import com.google.common.io.Files;

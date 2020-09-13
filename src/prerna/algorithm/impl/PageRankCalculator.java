@@ -31,9 +31,9 @@ import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
 
-import prerna.om.SEMOSSVertex;
 import edu.uci.ics.jung.algorithms.scoring.PageRank;
 import edu.uci.ics.jung.graph.DelegateForest;
+import prerna.om.SEMOSSVertex;
 
 public class PageRankCalculator {
 	

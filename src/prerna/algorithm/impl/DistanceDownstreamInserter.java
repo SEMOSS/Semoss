@@ -33,17 +33,12 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.openrdf.model.URI;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IConstructStatement;
-import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.specific.tap.QueryProcessor;
 import prerna.ui.helpers.EntityFiller;

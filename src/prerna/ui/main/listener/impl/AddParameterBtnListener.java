@@ -32,14 +32,15 @@ import java.awt.event.ActionEvent;
 import javax.swing.JComponent;
 import javax.swing.JTextPane;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class AddParameterBtnListener extends AbstractListener {
-	Logger logger = Logger.getLogger(getClass());
+	Logger logger = LogManager.getLogger(getClass());
 	/**
 	 * Method actionPerformed.
 	 * @param e ActionEvent

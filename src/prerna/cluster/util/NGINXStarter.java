@@ -1,9 +1,6 @@
 package prerna.cluster.util;
 
-import java.util.Map;
-
 import org.apache.zookeeper.Watcher.Event.EventType;
-import org.apache.zookeeper.ZooKeeper;
 
 public class NGINXStarter {
 

@@ -10,7 +10,8 @@ import java.util.Hashtable;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
-import org.apache.log4j.Level;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -127,7 +128,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			throw new IllegalArgumentException("Invalid engine type");
 		}
 
-		logger.setLevel(Level.ERROR);
+		Configurator.setLevel(logger.getName(), Level.ERROR);
 		Owler owler = new Owler(this.engine);
 		importFile(this.engine, owler, filePath, this.engine.getNodeBaseUri());
 		RdfUploadReactorUtility.loadMetadataIntoEngine(this.engine, owler);

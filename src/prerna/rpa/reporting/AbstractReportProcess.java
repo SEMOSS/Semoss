@@ -3,10 +3,11 @@ package prerna.rpa.reporting;
 import java.io.File;
 import java.util.concurrent.Callable;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.rpa.RPAUtil;
+import redis.clients.jedis.exceptions.JedisDataException;
 
 /**
  * Framework for processing a single report. {@link AbstractReportProcessor}

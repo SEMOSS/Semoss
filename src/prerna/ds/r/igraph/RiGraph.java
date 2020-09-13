@@ -4,28 +4,18 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.LogManager;
-
 import prerna.cache.CachePropFileFrameObject;
 import prerna.cache.ICache;
 import prerna.ds.shared.AbstractTableDataFrame;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
-import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

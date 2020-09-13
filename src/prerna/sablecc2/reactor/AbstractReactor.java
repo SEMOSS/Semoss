@@ -10,8 +10,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
 
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -431,7 +431,7 @@ public abstract class AbstractReactor implements IReactor {
 		String jobId = ThreadStore.getJobId();
 		if(jobId != null) {
 			this.jobId = jobId;
-			Logger retLogger = new InMemoryConsole(this.jobId, className);
+			Logger retLogger = new InMemoryConsole(className, this.jobId);
 			return retLogger;
 		}
 		

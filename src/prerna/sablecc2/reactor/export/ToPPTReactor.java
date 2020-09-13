@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.sl.usermodel.PictureData.PictureType;
 import org.apache.poi.util.Units;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;

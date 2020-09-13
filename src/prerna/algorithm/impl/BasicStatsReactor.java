@@ -2,24 +2,20 @@ package prerna.algorithm.impl;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.MathPkqlMetadata;
-
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
-
-import prerna.util.ArrayUtilityMethods;
 
 
 public class BasicStatsReactor extends BaseReducerReactor {

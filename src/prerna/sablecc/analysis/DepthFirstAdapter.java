@@ -2,7 +2,9 @@
 
 package prerna.sablecc.analysis;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+
 import prerna.sablecc.node.*;
 
 public class DepthFirstAdapter extends AnalysisAdapter
