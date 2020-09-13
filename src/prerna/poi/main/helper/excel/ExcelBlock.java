@@ -40,8 +40,8 @@ public class ExcelBlock {
 	public List<ExcelRange> getRanges() {
 		List<ExcelRange> ranges = new Vector<ExcelRange>();
 		boolean started = false;
-		int startCol = 0;
-		int max = new Double(columnToRowIndexStats.get(new Integer(0)).getMax()).intValue();
+		int startCol = new Double(startColumnIndexStats.getMin()).intValue();
+		int max = new Double(columnToRowIndexStats.get(startCol).getMax()).intValue();
 		for(int colIndex = 0; colIndex <= lastColMaxIndex; colIndex++) {
 			// get max row by comparing every max in each column
 			SummaryStatistics rowIndexStats = columnToRowIndexStats.get(new Integer(colIndex - 1));
