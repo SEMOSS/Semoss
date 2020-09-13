@@ -2,7 +2,7 @@
 
 package prerna.sablecc.node;
 
-import prerna.sablecc.analysis.*;
+import prerna.sablecc.analysis.Analysis;
 
 @SuppressWarnings("nls")
 public final class AMathFun extends PMathFun

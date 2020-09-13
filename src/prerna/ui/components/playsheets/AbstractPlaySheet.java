@@ -28,7 +28,6 @@
 package prerna.ui.components.playsheets;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Hashtable;
 import java.util.Map;
 
 import javax.swing.JComponent;
@@ -41,8 +40,8 @@ import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.plaf.basic.BasicInternalFrameUI;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;

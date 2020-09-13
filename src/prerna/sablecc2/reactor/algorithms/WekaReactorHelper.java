@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.engine.api.IHeadersDataRow;
 import weka.core.Attribute;
@@ -69,13 +70,13 @@ public class WekaReactorHelper {
 			
 			// logging
 			if(counter % 100 == 0) {
-				logger.setLevel(Level.INFO);
+				Configurator.setLevel(logger.getName(), Level.INFO);
 				logger.info("Finished converting row = " + counter + " into WEKA instances object");
-				logger.setLevel(Level.OFF);
+				Configurator.setLevel(logger.getName(), Level.OFF);
 			}
 			counter++;
 		}
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 
 		// most things require the string values to be nominal
 		// so make it nominal

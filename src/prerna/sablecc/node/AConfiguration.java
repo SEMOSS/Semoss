@@ -2,8 +2,11 @@
 
 package prerna.sablecc.node;
 
-import java.util.*;
-import prerna.sablecc.analysis.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+
+import prerna.sablecc.analysis.Analysis;
 
 @SuppressWarnings("nls")
 public final class AConfiguration extends PConfiguration

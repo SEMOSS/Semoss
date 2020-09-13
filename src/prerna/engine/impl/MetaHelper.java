@@ -10,7 +10,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Vector;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
@@ -37,7 +38,7 @@ import prerna.util.Utility;
 
 public class MetaHelper implements IExplorable {
 
-	private static final Logger logger = Logger.getLogger(MetaHelper.class);
+	private static final Logger logger = LogManager.getLogger(MetaHelper.class);
 
 	private static final String STACKTRACE = "StackTrace: ";
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";

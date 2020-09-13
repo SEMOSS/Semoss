@@ -1,8 +1,9 @@
 package prerna.sablecc2.reactor.expression;
 
 import java.math.BigDecimal;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;

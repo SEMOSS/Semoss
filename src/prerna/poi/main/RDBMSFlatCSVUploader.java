@@ -10,9 +10,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
@@ -82,7 +83,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		// sets the custom base uri, sets the owl path, sets the smss location
 		// and returns the fileLocations split into an array based on ';' character
 		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
-		LOGGER.setLevel(Level.WARN);
+		Configurator.setLevel(LOGGER.getName(), Level.WARN);
 		try {
 			// create the engine and the owler
 			openRdbmsEngineWithoutConnection(engineName, appID);
@@ -180,7 +181,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		// and returns the fileLocations split into an array based on ';' character
 		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
 
-		LOGGER.setLevel(Level.WARN);
+		Configurator.setLevel(LOGGER.getName(), Level.WARN);
 		try {
 			// create the engine and the owler
 			openEngineWithConnection(engineName);

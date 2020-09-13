@@ -6,13 +6,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.simba.athena.shaded.apache.log4j.PropertyConfigurator;
+
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
-
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
-
 import prerna.algorithm.impl.LPOptimizer;
 
 public class BLUSystemOptimizer extends LPOptimizer{

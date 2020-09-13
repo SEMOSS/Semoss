@@ -34,8 +34,8 @@ import java.util.logging.Level;
 import javax.swing.JButton;
 import javax.swing.JInternalFrame;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;

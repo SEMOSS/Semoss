@@ -30,8 +30,6 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import prerna.util.Utility;
-
 public class Me {
 	// the idea here really simple
 	// look at where the batch file is 

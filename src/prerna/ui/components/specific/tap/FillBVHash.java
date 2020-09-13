@@ -32,8 +32,8 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -57,7 +57,7 @@ public class FillBVHash implements Runnable{
 	ISelectWrapper wrapper;
 	ArrayList <String []> list;
 	Hashtable tempSelectHash = new Hashtable();
-	Logger fileLogger = Logger.getLogger("reportsLogger");
+	Logger fileLogger = LogManager.getLogger("reportsLogger");
 	
 	//Necessary items to create a filler
 	/**

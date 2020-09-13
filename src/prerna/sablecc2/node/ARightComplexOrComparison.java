@@ -2,8 +2,11 @@
 
 package prerna.sablecc2.node;
 
-import java.util.*;
-import prerna.sablecc2.analysis.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+
+import prerna.sablecc2.analysis.Analysis;
 
 @SuppressWarnings("nls")
 public final class ARightComplexOrComparison extends POrComparison

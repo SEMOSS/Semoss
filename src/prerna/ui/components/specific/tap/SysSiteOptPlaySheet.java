@@ -48,8 +48,8 @@ import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.border.BevelBorder;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;

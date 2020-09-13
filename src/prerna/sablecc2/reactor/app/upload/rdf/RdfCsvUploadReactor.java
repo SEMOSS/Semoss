@@ -8,7 +8,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Level;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.algorithm.api.SemossDataType;
@@ -86,7 +87,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
-		logger.setLevel(Level.WARN);
+		Configurator.setLevel(logger.getName(), Level.WARN);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
 		Owler owler = new Owler(owlFile.getAbsolutePath(), this.engine.getEngineType());
 		owler.addCustomBaseURI(UploadInputUtility.getCustomBaseURI(this.store));
@@ -136,7 +137,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 
 		logger.info(stepCounter + ". Get app upload input...");
-		logger.setLevel(Level.WARN);
+		Configurator.setLevel(logger.getName(), Level.WARN);
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store, this.insight);
 		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);

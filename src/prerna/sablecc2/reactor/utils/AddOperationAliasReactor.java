@@ -5,13 +5,11 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Properties;
+
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.util.Utility;
 
 public class AddOperationAliasReactor extends AbstractReactor {

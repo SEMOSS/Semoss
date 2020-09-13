@@ -34,10 +34,10 @@ import java.util.Iterator;
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
 
-import prerna.om.SEMOSSVertex;
-import prerna.ui.transformer.VertexShapeTransformer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.PickedState;
+import prerna.om.SEMOSSVertex;
+import prerna.ui.transformer.VertexShapeTransformer;
 
 /**
  * Controls the re-sizing of nodes in the graph play sheet.

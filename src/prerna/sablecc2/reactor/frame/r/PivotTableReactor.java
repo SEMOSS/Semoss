@@ -2,16 +2,12 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.List;
 
-import prerna.algorithm.api.SemossDataType;
-import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class PivotTableReactor extends AbstractRFrameReactor {
 

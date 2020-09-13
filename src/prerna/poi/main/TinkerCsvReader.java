@@ -9,9 +9,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.engine.api.IEngine;
@@ -56,7 +57,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		String appID = options.getEngineID();
 
 		boolean error = false;
-		logger.setLevel(Level.WARN);
+		Configurator.setLevel(logger.getName(), Level.WARN);
 		String[] files = prepareCsvReader(fileNames, customBase, owlFile, smssLocation, propertyFiles);
 		try {
 			openTinkerEngineWithoutConnection(appName, appID);
@@ -132,7 +133,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 	 * @throws IOException
 	 */
 	public void importFileWithConnection(ImportOptions options) throws FileNotFoundException, IOException {
-		logger.setLevel(Level.WARN);
+		Configurator.setLevel(logger.getName(), Level.WARN);
 
 		String engineId = options.getEngineID();
 		String fileNames = options.getFileLocations();

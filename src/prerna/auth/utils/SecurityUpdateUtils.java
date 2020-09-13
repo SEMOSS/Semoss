@@ -12,7 +12,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermission;
 import prerna.auth.AccessToken;
@@ -35,7 +36,7 @@ import prerna.util.Utility;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = Logger.getLogger(SecurityUpdateUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityUpdateUtils.class);
 
 	/**
 	 * Only used for static references

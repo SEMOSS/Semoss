@@ -5,13 +5,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 
 public class CurrentVariablesReactor extends AbstractReactor{
 

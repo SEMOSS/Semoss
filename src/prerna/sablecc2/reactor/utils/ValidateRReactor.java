@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.utils;
 
-import org.rosuda.REngine.REXPString;
-
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;

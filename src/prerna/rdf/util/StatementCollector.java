@@ -32,8 +32,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.query.algebra.StatementPattern;
 import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
 

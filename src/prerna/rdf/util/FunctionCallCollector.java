@@ -35,7 +35,6 @@ import org.openrdf.query.algebra.Min;
 import org.openrdf.query.algebra.Sample;
 import org.openrdf.query.algebra.Sum;
 import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
-import org.openrdf.query.algebra.ExtensionElem;
 
 
 class FunctionCallCollector extends QueryModelVisitorBase<Exception> {

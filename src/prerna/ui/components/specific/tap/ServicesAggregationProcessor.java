@@ -33,8 +33,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.vocabulary.RDF;
 
@@ -46,7 +46,7 @@ import prerna.util.Utility;
 
 public class ServicesAggregationProcessor extends AggregationHelper {
 
-	private static final Logger fileLogger = Logger.getLogger("reportsLogger");
+	private static final Logger fileLogger = LogManager.getLogger("reportsLogger");
 	private static final Logger logger = LogManager.getLogger(ServicesAggregationProcessor.class);
 
 	private IEngine servicesDB;

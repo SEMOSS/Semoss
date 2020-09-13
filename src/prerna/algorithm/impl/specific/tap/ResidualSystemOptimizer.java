@@ -29,12 +29,11 @@ package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
-
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 import prerna.algorithm.impl.LPOptimizer;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;

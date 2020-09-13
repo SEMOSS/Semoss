@@ -8,24 +8,20 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 import java.util.Vector;
+import java.util.regex.Pattern;
 
-import java.util.List;
-
+import edu.stanford.nlp.ling.HasWord;
+import edu.stanford.nlp.ling.TaggedWord;
+import edu.stanford.nlp.process.DocumentPreprocessor;
+import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
-import edu.stanford.nlp.ling.CoreLabel;
-import edu.stanford.nlp.ling.HasWord;
-import edu.stanford.nlp.ling.TaggedWord;
-import edu.stanford.nlp.process.CoreLabelTokenFactory;
-import edu.stanford.nlp.process.DocumentPreprocessor;
-import edu.stanford.nlp.process.PTBTokenizer;
-import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 
 
 public class WordCloudReactor extends MathReactor {

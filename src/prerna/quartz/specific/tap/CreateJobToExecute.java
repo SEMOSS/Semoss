@@ -1,24 +1,12 @@
 package prerna.quartz.specific.tap;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.Iterator;
-import java.util.List;
+import static org.quartz.JobBuilder.newJob;
 
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import static org.quartz.JobBuilder.newJob;
 
-import com.google.gson.Gson;
-
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.quartz.LinkedDataKeys;
 
 public class CreateJobToExecute implements org.quartz.Job {

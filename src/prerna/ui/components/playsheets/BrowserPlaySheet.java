@@ -44,13 +44,8 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
-import prerna.engine.api.IEngine;
-import prerna.ui.components.ChartControlPanel;
-import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
-import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -58,6 +53,11 @@ import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.JSValue;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
+
+import prerna.engine.api.IEngine;
+import prerna.ui.components.ChartControlPanel;
+import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
+import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 
 /**
  * The BrowserPlaySheet creates an instance of a browser to utilize the D3 Javascript library to create visualizations.

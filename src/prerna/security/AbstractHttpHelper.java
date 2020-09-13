@@ -31,7 +31,8 @@ import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,7 +44,7 @@ import prerna.auth.AccessToken;
 
 public abstract class AbstractHttpHelper {
 
-	private static final Logger LOGGER = Logger.getLogger(AbstractHttpHelper.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(AbstractHttpHelper.class.getName());
 	private static ObjectMapper mapper = new ObjectMapper();
 	
 	/////////////////////////////////////////////////////

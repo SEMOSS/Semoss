@@ -42,10 +42,10 @@ import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.border.BevelBorder;
 
+import aurelienribon.ui.css.Style;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.ToggleButton;
-import aurelienribon.ui.css.Style;
 
 
 

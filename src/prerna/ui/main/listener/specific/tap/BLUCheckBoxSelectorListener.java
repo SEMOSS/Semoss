@@ -34,7 +34,6 @@ import java.util.Vector;
 import javax.swing.JCheckBox;
 
 import prerna.ui.components.specific.tap.SysOptCheckboxListUpdater;
-import prerna.engine.api.IEngine;
 import prerna.ui.swing.custom.SelectScrollList;
 
 /**

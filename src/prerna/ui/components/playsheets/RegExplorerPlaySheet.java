@@ -47,8 +47,10 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.hp.hpl.jena.query.ResultSet;
 
 import prerna.ui.components.WrapLayout;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -56,8 +58,6 @@ import prerna.ui.swing.custom.CustomButton;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-
-import com.hp.hpl.jena.query.ResultSet;
 
 /**
  */

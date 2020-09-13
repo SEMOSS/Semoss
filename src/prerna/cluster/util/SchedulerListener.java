@@ -3,14 +3,12 @@ package prerna.cluster.util;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.apache.zookeeper.WatchedEvent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooKeeper;
 
 import prerna.util.Utility;
-
-import org.apache.zookeeper.Watcher.Event.EventType;
 
 public class SchedulerListener implements IZKListener { 
 

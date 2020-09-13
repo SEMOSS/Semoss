@@ -3,8 +3,8 @@ package prerna.sablecc2.reactor.storage;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;

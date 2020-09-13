@@ -41,8 +41,8 @@ import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.impl.DataLatencyPerformer;
 import prerna.om.SEMOSSVertex;
