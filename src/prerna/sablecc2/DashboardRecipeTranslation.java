@@ -3,9 +3,6 @@ package prerna.sablecc2;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.ARoutineConfiguration;
@@ -13,7 +10,6 @@ import prerna.sablecc2.node.PRoutine;
 
 public class DashboardRecipeTranslation extends DepthFirstAdapter {
 
-	private static final Logger LOGGER = LogManager.getLogger(DashboardRecipeTranslation.class.getName());
 	private boolean isDashboard = false;
 	
 	@Override

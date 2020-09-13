@@ -13,7 +13,8 @@ import java.util.Map;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.StreamingOutput;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -48,7 +49,7 @@ import prerna.util.insight.InsightUtility;
 
 public class PixelStreamUtility {
 
-	private static final Logger logger = Logger.getLogger(PixelStreamUtility.class);
+	private static final Logger logger = LogManager.getLogger(PixelStreamUtility.class);
 
 	private static final String STACKTRACE = "StackTrace: ";
 

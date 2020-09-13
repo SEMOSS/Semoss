@@ -9,7 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
@@ -20,7 +21,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class InsightAdministrator {
 
-	private static final Logger LOGGER = Logger.getLogger(InsightAdministrator.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(InsightAdministrator.class.getName());
 	private static final String TABLE_NAME = "QUESTION_ID";
 	private static final String QUESTION_ID_COL = "ID";
 	private static final String QUESTION_NAME_COL = "QUESTION_NAME";

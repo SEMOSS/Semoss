@@ -2,7 +2,10 @@
 
 package prerna.sablecc2.analysis;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import prerna.sablecc2.node.*;
 
 public class ReversedDepthFirstAdapter extends AnalysisAdapter

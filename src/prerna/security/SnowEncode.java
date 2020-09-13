@@ -5,7 +5,9 @@ package prerna.security;
  * Written by Matthew Kwan - April 1997
  */
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 class SnowEncode extends BitFilter {
 	private boolean		encode_flag = false;

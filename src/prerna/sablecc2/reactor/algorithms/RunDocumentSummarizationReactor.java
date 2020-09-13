@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.algorithms;
 
 import java.io.File;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;

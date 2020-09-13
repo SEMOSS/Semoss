@@ -1,6 +1,6 @@
 package prerna.util.git.reactors;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.github.GitHub;
 
 import prerna.sablecc2.om.PixelDataType;

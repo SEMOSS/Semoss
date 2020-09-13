@@ -2,7 +2,7 @@
 
 package prerna.sablecc.parser;
 
-import prerna.sablecc.node.*;
+import prerna.sablecc.node.Token;
 
 @SuppressWarnings("serial")
 public class ParserException extends Exception

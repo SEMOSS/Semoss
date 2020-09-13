@@ -1,14 +1,8 @@
 package prerna.pyserve;
 
-import java.io.File;
-
-import org.apache.log4j.LogManager;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelHandlerContext;
-import net.snowflake.client.jdbc.internal.microsoft.azure.storage.core.Logger;
 
 public class CleanerThread extends Thread{
 	
@@ -17,7 +11,7 @@ public class CleanerThread extends Thread{
 	// quite simple
 	public String folder = null;
 	
-	public static final org.apache.log4j.Logger LOGGER = LogManager.getLogger(CleanerThread.class.getName());
+	public static final Logger LOGGER = LogManager.getLogger(CleanerThread.class.getName());
 	
 	public CleanerThread(String folder)
 	{

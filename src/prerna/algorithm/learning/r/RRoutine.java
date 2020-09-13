@@ -7,9 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.PKQLRunner;
@@ -207,7 +206,6 @@ public class RRoutine {
 		this.rReturnFrameName = rReturnFrameName;
 		this.scriptsDirectory = scriptsDirectory;
 		this.utilityScriptPath = utilityScriptPath;
-		LOGGER.setLevel(Level.INFO);
 	}
 
 	/**

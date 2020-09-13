@@ -1,11 +1,12 @@
 package prerna.util.git;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
 public class GitProgressMonitor implements ProgressMonitor {
 	
-	Logger logger = Logger.getLogger(this.getClass());
+	Logger logger = LogManager.getLogger(this.getClass());
 
 	boolean complete = false;
 	

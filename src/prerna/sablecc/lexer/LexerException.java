@@ -2,7 +2,7 @@
 
 package prerna.sablecc.lexer;
 
-import prerna.sablecc.node.*;
+import prerna.sablecc.node.InvalidToken;
 
 @SuppressWarnings("serial")
 public class LexerException extends Exception

@@ -1,6 +1,7 @@
 package prerna.util.sql;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -21,33 +22,23 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		super();
 	}
 	
-	AnsiSqlQueryUtil(String connectionUrl, String username, String password) {
-		super(connectionUrl, username, password);
+	AnsiSqlQueryUtil(String connectionString, String username, String password) {
+		super(connectionString, username, password);
 	}
 	
 	AnsiSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
 		super(dbType, hostname, port, schema, username, password);
 	}
 	
-	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
-	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
-	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
-	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
-	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
+//	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
 	@Override
-	public String buildConnectionString(Map<String, Object> configMap) {
-		// TODO Auto-generated method stub
+	public String buildConnectionString(Map<String, Object> configMap) throws SQLException, RuntimeException {
 		return null;
 	}
 	
 	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
-	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
-	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
-	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
-	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
 	@Override
 	public String buildConnectionString(Properties prop) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 	

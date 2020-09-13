@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.frame.r.util;
 
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.om.Insight;

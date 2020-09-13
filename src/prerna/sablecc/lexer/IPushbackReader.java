@@ -2,7 +2,7 @@
 
 package prerna.sablecc.lexer;
 
-import java.io.*;
+import java.io.IOException;
 
 @SuppressWarnings("serial")
 public interface IPushbackReader

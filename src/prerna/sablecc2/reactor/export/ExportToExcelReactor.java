@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.ClientAnchor;
@@ -74,12 +74,12 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class ExportToExcelReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = ExportToExcelReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
 	private static final String GRID_ON_X = "tools.shared.editGrid.x";
 	private static final String GRID_ON_Y = "tools.shared.editGrid.y";
 	private static final String DISPLAY_VALUES = "tools.shared.displayValues";
@@ -125,7 +125,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 			try {
 				numRowsToExport = Integer.parseInt(limit);
 			} catch (NumberFormatException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -235,9 +235,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 				try {
 					picture = IOUtils.toByteArray(new FileInputStream(semossLogoPath));
 				} catch (FileNotFoundException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				} catch (IOException ioe) {
-					logger.error(STACKTRACE, ioe);
+					logger.error(Constants.STACKTRACE, ioe);
 				}
 
 				// Insert image into workbook

@@ -1,9 +1,5 @@
 package prerna.engine.impl.r;
 
-import org.rosuda.REngine.REXP;
-import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RSession;
-
 public class RUserConnectionSingle  extends AbstractRUserConnection  {
 
 	// Host and port

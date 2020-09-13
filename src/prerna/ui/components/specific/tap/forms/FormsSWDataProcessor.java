@@ -29,29 +29,8 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap.forms;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.TreeSet;
-
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
-import prerna.ui.main.listener.specific.tap.FormsSourceFilesConsolidationListener;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class FormsSWDataProcessor extends FormsTableDataProcessor {
 	public static final Logger LOGGER = LogManager.getLogger(FormsSWDataProcessor.class.getName());	

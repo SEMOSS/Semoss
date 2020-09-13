@@ -14,7 +14,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.log4j.Level;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
@@ -551,7 +552,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	}
 
 	private void processCSVTable(boolean noExistingData, IEngine engine, CSVFileHelper csvHelper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 //		long start = System.currentTimeMillis();
 
 		// Reset rowCounter to 0
@@ -1124,7 +1125,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	}
 
 	private void cleanUpDBTables(IEngine engine, boolean allowDuplicates) throws Exception {
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 		// fill up the availableTables and availableTablesInfo maps
 		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper
 				.getExistingRDBMSStructure(engine);

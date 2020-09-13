@@ -1,9 +1,8 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.py.FilePyTranslator;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
@@ -19,7 +18,7 @@ public class PyTranslatorFactory {
 	// singleton to give you a py reactor when no user is there
 	public static PyTranslator pyt = null;
 	public static NettyClient nc = null;
-	private static Logger logger = Logger.getLogger(User.class);
+	private static Logger logger = LogManager.getLogger(PyTranslatorFactory.class);
 	public static String nouser = "nouser";
 	public static String pyTupleSpace = null;
 	
