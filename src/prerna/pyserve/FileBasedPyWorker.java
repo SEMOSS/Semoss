@@ -12,6 +12,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -20,9 +21,9 @@ import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.nustaq.serialization.FSTObjectOutput;
-
-import com.simba.athena.shaded.apache.log4j.PropertyConfigurator;
 
 import jep.Jep;
 import jep.JepConfig;
@@ -70,9 +71,24 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 		// start this thread
 		
 		// when event comes write it to the command
-		
-		
-		PropertyConfigurator.configure(args[0] + "/log4j.properties");
+		String log4JPropFile = Paths.get(args[0], "log4j2.properties").toAbsolutePath().toString();
+		FileInputStream fis = null;
+		ConfigurationSource source = null;
+		try {
+			fis = new FileInputStream(log4JPropFile);
+			source = new ConfigurationSource(fis);
+			Configurator.initialize(null, source);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if(fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	
 		FileBasedPyWorker worker = new FileBasedPyWorker();
 		logger.info("Here.. ");
