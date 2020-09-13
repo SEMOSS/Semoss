@@ -1,8 +1,12 @@
 package prerna.test;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.SQLException;
 
-import com.simba.athena.shaded.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;
@@ -25,8 +29,24 @@ public final class TestUtilityMethods {
 	public static void loadDIHelper(String propFile) {
 		DIHelper.getInstance().loadCoreProp(propFile);
 		//Set log4j prop
-		String log4jConfig = DIHelper.getInstance().getProperty("LOG4J");
-		PropertyConfigurator.configure(log4jConfig);
+		String log4JPropFile = new File(propFile).getParent() + "/log4j2.properties";
+		FileInputStream fis = null;
+		ConfigurationSource source = null;
+		try {
+			fis = new FileInputStream(log4JPropFile);
+			source = new ConfigurationSource(fis);
+			Configurator.initialize(null, source);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if(fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	public static void loadLocalMasterAndSecruity() throws Exception {

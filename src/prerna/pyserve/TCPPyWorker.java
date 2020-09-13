@@ -3,6 +3,7 @@ package prerna.pyserve;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -10,8 +11,8 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.simba.athena.shaded.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -83,8 +84,25 @@ public class TCPPyWorker
 			args[2] = "8007";
 		}
 		
-		PropertyConfigurator.configure(args[0] + "/log4j.properties");
-	
+		String log4JPropFile = Paths.get(args[0], "log4j2.properties").toAbsolutePath().toString();
+		FileInputStream fis = null;
+		ConfigurationSource source = null;
+		try {
+			fis = new FileInputStream(log4JPropFile);
+			source = new ConfigurationSource(fis);
+			Configurator.initialize(null, source);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if(fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
 		TCPPyWorker worker = new TCPPyWorker();
 		System.out.println("Here.. ");
 		DIHelper.getInstance().loadCoreProp(args[1]);
