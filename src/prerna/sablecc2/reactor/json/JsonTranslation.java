@@ -1,11 +1,10 @@
 package prerna.sablecc2.reactor.json;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
@@ -13,7 +12,6 @@ import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.POtherOpInput;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.IReactor;

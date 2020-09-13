@@ -33,8 +33,8 @@ import javax.swing.JToggleButton;
 import javax.swing.event.InternalFrameEvent;
 import javax.swing.event.InternalFrameListener;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.om.InsightStore;
 import prerna.ui.components.api.IPlaySheet;

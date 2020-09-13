@@ -38,9 +38,10 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -104,7 +105,7 @@ public class POIReader extends AbstractFileReader {
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
-		logger.setLevel(Level.ERROR);
+		Configurator.setLevel(logger.getName(), Level.ERROR);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineId);
 		openEngineWithConnection(engineId);
 
@@ -144,7 +145,7 @@ public class POIReader extends AbstractFileReader {
 		String owlFile = options.getOwlFileLocation();
 		String appID = options.getEngineID();
 		boolean error = false;
-		logger.setLevel(Level.WARN);
+		Configurator.setLevel(logger.getName(), Level.WARN);
 
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {

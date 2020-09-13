@@ -54,9 +54,12 @@ import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.LineBorder;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import com.hp.hpl.jena.query.ResultSet;
+
+import aurelienribon.ui.css.Style;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.SesameJenaSelectStatement;
@@ -72,9 +75,6 @@ import prerna.ui.main.listener.impl.RegressionIndepVarDeleteListener;
 import prerna.ui.main.listener.impl.RegressionIndepVarListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.util.CSSApplication;
-import aurelienribon.ui.css.Style;
-
-import com.hp.hpl.jena.query.ResultSet;
 
 /**
  */

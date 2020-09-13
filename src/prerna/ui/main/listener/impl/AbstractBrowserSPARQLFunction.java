@@ -27,13 +27,13 @@
  *******************************************************************************/
 package prerna.ui.main.listener.impl;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
-import prerna.engine.api.IEngine;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.teamdev.jxbrowser.chromium.BrowserFunction;
 import com.teamdev.jxbrowser.chromium.JSValue;
+
+import prerna.engine.api.IEngine;
 
 
 /**

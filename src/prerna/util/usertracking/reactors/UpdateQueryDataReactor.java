@@ -2,7 +2,7 @@ package prerna.util.usertracking.reactors;
 
 import java.io.File;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.sablecc2.om.PixelDataType;

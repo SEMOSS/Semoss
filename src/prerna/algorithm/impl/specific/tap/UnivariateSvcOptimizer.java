@@ -37,11 +37,11 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Random;
 
 import javax.swing.JDesktopPane;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.om.InsightStore;
@@ -59,7 +59,8 @@ import prerna.util.Utility;
  * This class is used to optimize the calculations for univariate services.
  */
 public class UnivariateSvcOptimizer extends UnivariateOpt {
-	private static Logger logger = Logger.getLogger(UnivariateSvcOptimizer.class);
+	
+	private static Logger logger = LogManager.getLogger(UnivariateSvcOptimizer.class);
 
 	private static final String STACKTRACE = "StackTrace: ";
 

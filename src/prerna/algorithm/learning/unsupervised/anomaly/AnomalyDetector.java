@@ -2,9 +2,9 @@ package prerna.algorithm.learning.unsupervised.anomaly;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.r.RRoutine;
+import prerna.algorithm.learning.r.RRoutine.Builder.RRoutineType;
 import prerna.algorithm.learning.r.RRoutineException;
 import prerna.sablecc.PKQLRunner;
-import prerna.algorithm.learning.r.RRoutine.Builder.RRoutineType;
 
 public class AnomalyDetector {
 

@@ -33,8 +33,8 @@ import java.util.Hashtable;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;

@@ -15,8 +15,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.Literal;
 import org.openrdf.repository.Repository;

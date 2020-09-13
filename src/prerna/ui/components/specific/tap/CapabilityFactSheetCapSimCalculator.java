@@ -31,8 +31,8 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Map.Entry;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This class is used to generate the capability similarity calculations for the fact sheet report.

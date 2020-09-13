@@ -1,15 +1,7 @@
 package prerna.sablecc2.reactor.test;
 
 
-import java.util.List;
-import java.util.Set;
-import java.util.Vector;
-
 import prerna.ds.r.RDataTable;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;

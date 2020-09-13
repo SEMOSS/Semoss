@@ -1,6 +1,12 @@
 package prerna.sablecc2.reactor.qs.source;
 
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+
+import org.apache.logging.log4j.Logger;
+
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -20,12 +26,6 @@ import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
 
 public class S3FileRetrieverReactor extends AbstractQueryStructReactor{
 

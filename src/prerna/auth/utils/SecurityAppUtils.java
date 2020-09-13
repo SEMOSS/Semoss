@@ -9,7 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermission;
 import prerna.auth.User;
@@ -28,7 +29,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityAppUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = Logger.getLogger(SecurityAppUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityAppUtils.class);
 
 	/**
 	 * Get what permission the user has for a given app

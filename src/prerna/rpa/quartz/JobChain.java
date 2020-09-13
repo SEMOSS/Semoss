@@ -1,12 +1,12 @@
 package prerna.rpa.quartz;
 
-import static org.quartz.impl.matchers.GroupMatcher.jobGroupEquals;
 import static org.quartz.JobBuilder.newJob;
+import static org.quartz.impl.matchers.GroupMatcher.jobGroupEquals;
 
 import java.util.List;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.quartz.InterruptableJob;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;

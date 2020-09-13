@@ -9,7 +9,6 @@ import java.util.Vector;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.util.ArrayUtilityMethods;
 
 public class CorrelationCoefficientReactor extends BaseReducerReactor {
 	

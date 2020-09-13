@@ -3,17 +3,14 @@ package prerna.ui.components.specific.tap;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
-
-
-
-import java.util.Collections;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.poi.specific.IndividualSystemTransitionReportWriter;
+import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 

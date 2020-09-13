@@ -31,7 +31,6 @@ import java.awt.event.ActionEvent;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;

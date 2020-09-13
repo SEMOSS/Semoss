@@ -30,11 +30,10 @@ package prerna.ui.components;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.ui.components.playsheets.GraphPlaySheet;

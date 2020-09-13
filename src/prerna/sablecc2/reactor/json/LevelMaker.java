@@ -1,11 +1,5 @@
 package prerna.sablecc2.reactor.json;
 
-import java.util.Hashtable;
-
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.map.AbstractMapReactor;
-
 public class LevelMaker extends GreedyJsonReactor {
 
 	//@Override

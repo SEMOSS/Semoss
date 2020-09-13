@@ -22,7 +22,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
@@ -30,8 +29,6 @@ import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.frame.convert.ConvertReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.sablecc2.reactor.imports.IImporter;
-import prerna.sablecc2.reactor.imports.ImportFactory;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
 

@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.app;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
@@ -14,7 +15,7 @@ import prerna.util.Constants;
 
 public class CopyInsightPermissionsReactor extends AbstractReactor {
 
-	private static final Logger logger = Logger.getLogger(CopyInsightPermissionsReactor.class);
+	private static final Logger logger = LogManager.getLogger(CopyInsightPermissionsReactor.class);
 	
 	private static String SOURCE_APP = "sourceApp";
 	private static String SOURCE_INSIGHT = "sourceInsight";

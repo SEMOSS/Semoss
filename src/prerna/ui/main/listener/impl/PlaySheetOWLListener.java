@@ -34,10 +34,9 @@ import javax.swing.event.InternalFrameListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import prerna.om.GraphDataModel;
 import prerna.ui.components.OPropertyTableModel;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.PropertyTableModel;

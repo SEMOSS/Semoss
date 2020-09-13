@@ -2,8 +2,8 @@ package prerna.ds.py;
 
 import java.util.Hashtable;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import jep.Jep;
 import jep.JepConfig;

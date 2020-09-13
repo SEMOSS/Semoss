@@ -27,7 +27,8 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.ds.RawGemlinSelectWrapper;
 import prerna.engine.api.IConstructWrapper;
@@ -52,7 +53,7 @@ public class WrapperManager {
 	// I need to make this completely through reflection
 	// I will do that later
 
-	private static final Logger logger = Logger.getLogger(WrapperManager.class);
+	private static final Logger logger = LogManager.getLogger(WrapperManager.class);
 	private static final String STACKTRACE = "StackTrace: ";
 	private static WrapperManager manager = null;
 

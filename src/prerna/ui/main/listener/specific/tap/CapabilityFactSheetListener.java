@@ -36,12 +36,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Hashtable;
 
+import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.JSValue;
+
 import prerna.ui.components.specific.tap.CapabilityFactSheet;
 import prerna.ui.main.listener.impl.AbstractBrowserSPARQLFunction;
 import prerna.util.DIHelper;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  */
