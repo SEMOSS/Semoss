@@ -40,7 +40,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.ibm.icu.util.StringTokenizer;
-import com.simba.athena.shaded.apache.log4j.PropertyConfigurator;
 import com.teamdev.jxbrowser.chromium.BrowserPreferences;
 
 import prerna.engine.api.IEngine;
@@ -107,7 +106,7 @@ public class Starter {
 		//Object monitor = new Object(); // stupid object for being a monitor
 		
 		//logger.setLevel(Level.INFO);
-		PropertyConfigurator.configure(workingDir + "/log4j.prop");
+//		PropertyConfigurator.configure(workingDir + "/log4j.prop");
 		
 		// Nimbus me
 		
