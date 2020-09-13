@@ -4,8 +4,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
@@ -147,14 +148,14 @@ public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 			
 			// logging
 			if(n % 100 == 0) {
-				logger.setLevel(Level.INFO);
+				Configurator.setLevel(logger.getName(), Level.INFO);
 				logger.info("Finished row number = " + n);
-				logger.setLevel(Level.OFF);
+				Configurator.setLevel(logger.getName(), Level.OFF);
 			}
 			// we are done with this row
 			n++;
 		}
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 		
 		double[][] retMatrix = new double[numHeaders][numHeaders];
 		for(int i = 0; i < numHeaders; i++) {

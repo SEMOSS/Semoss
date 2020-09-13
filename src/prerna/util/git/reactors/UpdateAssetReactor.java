@@ -3,7 +3,7 @@ package prerna.util.git.reactors;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.github.GitHub;
 
 import prerna.auth.AccessToken;

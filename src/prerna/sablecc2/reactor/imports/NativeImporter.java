@@ -3,11 +3,10 @@ package prerna.sablecc2.reactor.imports;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
+import org.apache.logging.log4j.LogManager;
 
 import net.snowflake.client.jdbc.internal.org.bouncycastle.util.Arrays;
 import prerna.algorithm.api.ITableDataFrame;

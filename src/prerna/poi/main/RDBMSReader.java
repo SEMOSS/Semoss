@@ -15,9 +15,10 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
@@ -86,7 +87,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	 */
 	public IEngine importFileWithOutConnection(ImportOptions options) 
 			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
-		logger.setLevel(Level.WARN);
+		Configurator.setLevel(logger.getName(), Level.WARN);
 
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
@@ -201,7 +202,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		queryUtil = SqlQueryUtilFactor.initialize(dbType);
 		String[] files = prepareCsvReader(fileNames, customBase, owlFile, engineName, propertyFiles);
 
-		logger.setLevel(Level.WARN);
+		Configurator.setLevel(logger.getName(), Level.WARN);
 		try {
 			openEngineWithConnection(engineName);
 			openScriptFile(engineName);
@@ -393,7 +394,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	}
 
 	private void processCSVTable(boolean noExistingData) throws IOException{
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 		long start = System.currentTimeMillis();
 		
 		// Reset rowCounter to 0
@@ -721,7 +722,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	}
 
 	private void cleanUpDBTables(String engineName, boolean allowDuplicates){
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 		//fill up the availableTables and availableTablesInfo maps
 		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
 		Set<String> alteredTables = allConcepts.keySet();

@@ -1,14 +1,15 @@
 package prerna.sablecc2.reactor.frame.py;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class EncodeColumnReactor extends AbstractPyFrameReactor {
 

@@ -2,13 +2,11 @@
 package prerna.sablecc2.reactor.qs.source;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
-
+import org.apache.logging.log4j.Logger;
 
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;

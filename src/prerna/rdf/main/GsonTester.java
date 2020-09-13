@@ -37,9 +37,9 @@ import java.util.Vector;
 
 import javax.xml.bind.DatatypeConverter;
 
-import prerna.engine.impl.rdf.SesameJenaConstructStatement;
-
 import com.google.gson.GsonBuilder;
+
+import prerna.engine.impl.rdf.SesameJenaConstructStatement;
 
 /**
  */

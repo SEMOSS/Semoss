@@ -2,8 +2,8 @@ package prerna.sablecc2.reactor.storage;
 
 import java.util.List;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;

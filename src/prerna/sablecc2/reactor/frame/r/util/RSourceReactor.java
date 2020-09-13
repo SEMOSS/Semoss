@@ -9,7 +9,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.AssetUtility;
-import prerna.util.DIHelper;
 
 public class RSourceReactor extends AbstractRFrameReactor {
 

@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.utils;
 
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;

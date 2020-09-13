@@ -1,10 +1,5 @@
 package prerna.rdf.main;
 
-import java.util.List;
-import java.util.Vector;
-
-import com.hp.hpl.jena.vocabulary.OWL;
-
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;

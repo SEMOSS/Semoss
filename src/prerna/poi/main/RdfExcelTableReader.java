@@ -35,9 +35,10 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -91,7 +92,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 		String appID = options.getEngineID();
 		boolean error = false;
 		
-		logger.setLevel(Level.WARN);
+		Configurator.setLevel(logger.getName(), Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
 			openRdfEngineWithoutConnection(engineName, appID);
@@ -221,7 +222,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
-		logger.setLevel(Level.WARN);
+		Configurator.setLevel(logger.getName(), Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
 		

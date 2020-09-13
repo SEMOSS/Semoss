@@ -13,12 +13,10 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.sablecc.ReactorSecurityManager;
@@ -28,8 +26,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public final class RReactor extends AbstractRFrameReactor {

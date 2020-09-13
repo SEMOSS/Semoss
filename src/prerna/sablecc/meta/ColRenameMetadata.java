@@ -1,7 +1,6 @@
 package prerna.sablecc.meta;
 
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Map;
 
 public class ColRenameMetadata extends AbstractPkqlMetadata {

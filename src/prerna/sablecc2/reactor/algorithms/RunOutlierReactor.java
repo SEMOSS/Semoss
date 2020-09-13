@@ -7,8 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.DuplicationReconciliation;
@@ -93,11 +94,11 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 		int random_skip = numInstances / numSubsetSize;
 
 		for (int k = 0; k < numRuns; k++) {
-			logger.setLevel(Level.INFO);
+			Configurator.setLevel(logger.getName(), Level.INFO);
 			logger.info("Starting execution for run # " + k);
 			// grab R random rows
 			logger.info("Determining random subset of initial instances");
-			logger.setLevel(Level.OFF);
+			Configurator.setLevel(logger.getName(), Level.OFF);
 			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 			List<List<Object[]>> rSubset = new ArrayList<List<Object[]>>();
 			for (int i = 0; i < numSubsetSize; i++) {
@@ -108,9 +109,9 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 				}
 				rSubset.add(it.next());
 			}
-			logger.setLevel(Level.INFO);
+			Configurator.setLevel(logger.getName(), Level.INFO);
 			logger.info("Done determining initial instances");
-			logger.setLevel(Level.OFF);
+			Configurator.setLevel(logger.getName(), Level.OFF);
 			// for row in dataTable, grab R random rows
 			int counter = 0;
 			it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
@@ -148,9 +149,9 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 				
 				// logging
 				if(counter % 100 == 0) {
-					logger.setLevel(Level.INFO);
+					Configurator.setLevel(logger.getName(), Level.INFO);
 					logger.info("Finished execution for run number = " + k + ", unique instance number = " + counter);
-					logger.setLevel(Level.OFF);
+					Configurator.setLevel(logger.getName(), Level.OFF);
 				}
 				counter++;
 			}

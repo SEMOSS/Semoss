@@ -6,13 +6,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Hashtable;
 import java.util.Vector;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.commons.validator.routines.DateValidator;
-import org.apache.commons.validator.routines.DoubleValidator;
-import org.apache.commons.validator.routines.EmailValidator;
-import org.apache.commons.validator.routines.IntegerValidator;
 
 public class GreedyJsonProcessor extends GreedyJsonReactor {
 	

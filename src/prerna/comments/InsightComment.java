@@ -11,7 +11,8 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
@@ -22,7 +23,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class InsightComment {
-	private static Logger logger = Logger.getLogger(InsightComment.class);
+	
+	private static Logger logger = LogManager.getLogger(InsightComment.class);
 	private static Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	private static DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();

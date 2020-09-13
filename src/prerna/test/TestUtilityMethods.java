@@ -2,7 +2,7 @@ package prerna.test;
 
 import java.sql.SQLException;
 
-import org.apache.log4j.PropertyConfigurator;
+import com.simba.athena.shaded.apache.log4j.PropertyConfigurator;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;

@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;

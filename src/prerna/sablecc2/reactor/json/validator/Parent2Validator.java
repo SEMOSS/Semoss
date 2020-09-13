@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.json.validator;
 
-import java.util.Vector;
-
 import prerna.sablecc2.reactor.json.GreedyJsonReactor;
 
 public class Parent2Validator extends GreedyJsonReactor{

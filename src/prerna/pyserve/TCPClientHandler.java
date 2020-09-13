@@ -2,11 +2,10 @@ package prerna.pyserve;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
-import java.util.Vector;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.nustaq.serialization.FSTObjectInput;
 
 import io.netty.buffer.ByteBuf;
@@ -28,7 +27,7 @@ public class TCPClientHandler extends ChannelInboundHandlerAdapter {
     int copyIndex = 0;
     ByteBuf buf = null;
     
-	public static Logger LOGGER = Logger.getLogger(TCPClientHandler.class.getName());
+	public static Logger LOGGER = LogManager.getLogger(TCPClientHandler.class.getName());
 
     /**
      * Creates a client-side handler.

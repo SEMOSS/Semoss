@@ -8,9 +8,10 @@ import java.util.Vector;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
@@ -193,9 +194,9 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 			rowData[counter] = cleanRow;
 			
 			if(counter % 100 == 0) {
-				logger.setLevel(Level.INFO);
+				Configurator.setLevel(logger.getName(), Level.INFO);
 				logger.info("Finished row number = " + counter);
-				logger.setLevel(Level.OFF);
+				Configurator.setLevel(logger.getName(), Level.OFF);
 			}
 			
 			// increase the counter for the next row
@@ -203,7 +204,7 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 		}
 		
 		// set the data within the OLS
-		logger.setLevel(Level.INFO);
+		Configurator.setLevel(logger.getName(), Level.INFO);
 		ols.newSampleData(y, x);
 		return rowData;
 	}

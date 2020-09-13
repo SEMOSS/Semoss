@@ -99,7 +99,8 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
@@ -150,7 +151,7 @@ import prerna.util.git.GitAssetUtils;
 public class Utility {
 
 	public static int id = 0;
-	private static final Logger logger = Logger.getLogger(prerna.util.Utility.class);
+	private static final Logger logger = LogManager.getLogger(prerna.util.Utility.class);
 
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
 	private static final String STACKTRACE = "StackTrace: ";

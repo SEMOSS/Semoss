@@ -28,17 +28,13 @@
 
 package prerna.util.sql;
 
-import org.apache.log4j.Logger;
-
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class RDBMSUtility {
 	
-	static Logger LOGGER = Logger.getLogger(prerna.util.sql.RDBMSUtility.class);
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-
 	
 	public static String getH2BaseConnectionURL() {
 		return "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@" + Constants.ENGINE + "@"

@@ -27,10 +27,8 @@
  *******************************************************************************/
 package prerna.rdf.main;
 
-import info.aduna.iteration.CloseableIteration;
-
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
@@ -48,6 +46,8 @@ import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
+
+import info.aduna.iteration.CloseableIteration;
 
 
 

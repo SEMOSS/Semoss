@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
@@ -32,7 +33,7 @@ import prerna.util.Utility;
 public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	private static SecurityAdminUtils instance = new SecurityAdminUtils();
-	private static final Logger logger = Logger.getLogger(SecurityAdminUtils.class);
+	private static final Logger logger = LogManager.getLogger(SecurityAdminUtils.class);
 
 	private SecurityAdminUtils() {
 		

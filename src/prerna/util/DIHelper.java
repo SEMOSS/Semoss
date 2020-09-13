@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.util;
 
-
-
 import java.awt.Color;
 import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
@@ -42,10 +40,8 @@ import java.util.Properties;
 
 import javax.swing.JList;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
-import prerna.engine.api.IEngine;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.ibm.icu.util.StringTokenizer;
 
@@ -57,6 +53,7 @@ import edu.uci.ics.jung.algorithms.layout.KKLayout;
 import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
 import edu.uci.ics.jung.algorithms.layout.SpringLayout;
 import edu.uci.ics.jung.algorithms.layout.TreeLayout;
+import prerna.engine.api.IEngine;
 
 /**
  * DIHelper is used throughout SEMOSS to obtain property names from core propfiles and engine core propfiles.

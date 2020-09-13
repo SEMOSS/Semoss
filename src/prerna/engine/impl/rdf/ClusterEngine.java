@@ -32,8 +32,8 @@ import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 
@@ -42,9 +42,8 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.H2QueryUtil;
-import prerna.util.sql.SqlQueryUtilFactor;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactor;
 
 public class ClusterEngine extends AbstractEngine {
 

@@ -1,8 +1,7 @@
 package prerna.sablecc2.reactor.test;
 
-import java.util.*;
-
-import prerna.sablecc2.om.VarStore;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * This is just a internal class
