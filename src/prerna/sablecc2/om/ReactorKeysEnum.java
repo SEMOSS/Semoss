@@ -63,6 +63,7 @@ public enum ReactorKeysEnum {
 	GRAPH_NAME_ID("graphNameId",                            "The name identifier of the graph nodes"),
 	GRAPH_METAMODEL("graphMetamodel",                       "The metamodel of the graph"),
 	GRAPH_TYPE_ID("graphTypeId",                            "The type identifier of the graph nodes"),
+	HEIGHT("height", 										"The height to use for screenshot capture."),
 	HOST("host",                                            "The host."),
 	HTML("html",                                            "The html."),
 	ID("id", 												"This key can represent the unique id of the insight instance or the unique id of the saved insight relative to the app"),
@@ -127,10 +128,12 @@ public enum ReactorKeysEnum {
 	SCHEMA("schema",                                        "The database schema."),
 	SEARCH("search",                                        "The search term."),
 	SESSION_ID("sessionId", 								"Id of the session"),
+	SHAPE_INDEX("shapeIndex",                 	            "Which particular shape to replace on the powerpoint"),
 	SHEET("sheet",                 	                		"Id for the sheet"),
 	SHEET_CONFIG_KEY("sheetConfig", 						"Configuration map for the sheet"),
 	SHEET_LABEL_KEY("sheetLabel", 							"Label for the sheet"),
 	SHEET_NAME("sheetName",                                 "The name of the excel sheet"),
+	SLIDE_LAYOUT("slideLayout",                             "Name of the slide layout name to use for the capture"),
 	SORT("sort", 											"Sort direction: ascending (\"asc\") or decending (\"desc\")"),
 	SPACE("space", 											"The space to work with assets (user, insight, app)."),
 	START_ROW("startRow", 									"The starting row number to import from a file."),
@@ -158,6 +161,7 @@ public enum ReactorKeysEnum {
 	VALUES("values", 										"Numeric or string values used as input text or inputs to an operation"),
 	VARIABLE("variable", 									"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 										"The version"),
+	WIDTH("width", 										    "The width to use for screenshot capture."),
 	SCALE("scale", 											"How much to scale the graph, default value is set at 20 based on screen size");
 	
 	private String key;
