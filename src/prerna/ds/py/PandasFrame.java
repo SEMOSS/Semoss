@@ -161,7 +161,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String importS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
 			// generate the script
 			String fileLocation = newFile.getAbsolutePath();
-			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
+			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName, ",", pyt.getCurEncoding());
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
 			// execute the script
 			//pyt.runScript(importS, loadS);
@@ -194,7 +194,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// generate the script
 		String importS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
 		String fileLocation = it.getFileLocation();
-		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
+		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName, ",", pyt.getCurEncoding());
 
 		// need to compose a string for names
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
