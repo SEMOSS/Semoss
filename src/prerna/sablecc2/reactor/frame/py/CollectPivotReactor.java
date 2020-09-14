@@ -172,6 +172,12 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		if(sections == null)
 		{
 			sections = new Vector<String>();
+			sections.add("Nominated");
+		}
+		
+		if(sections == null)
+		{
+			sections = new Vector<String>();
 			sections.add(ALL_SECTIONS);
 			commands = genSections(sections.get(0), sections, "", frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true, json, margins);
 		}
@@ -325,7 +331,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				allSections.append(sectionSpecificFrame).append(" = ").append(frameName).append("[").append(frameName).append("['").append(sectionName).append("'] == ").append(quote).append(thisSectionValue).append(quote).append("]").append("\n");
 				allSections.append(genPivot(sectionSpecificFrame, rows, columns, subtotalColumns, values, functions, dropNA, fill_value, json, margins)).append("\n");		
 				deleteSectionFrames.append(sectionSpecificFrame);
-				sectionBlock.append("'").append(thisSectionValue).append("'");
+				sectionBlock.append("\\\"").append(thisSectionValue).append("\\\"");
 			}
 			sectionBlock.append("], ");
 			deleteSectionFrames.append(")");
@@ -333,6 +339,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					.append("print(\"").append(sectionBlock).append("\")").append("\n")
 					.append("print('[')").append("\n").append(allSections).append("print(']')").append("\n")
 					.append("print(']')").append("\n");
+			// delete them
+			allSections.append(deleteSectionFrames).append("\n");
 		}
 		else
 		{
@@ -346,8 +354,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// close the main json array
 		//allSections.append("print(']')").append("\n");
 		
-		// delete them
-		allSections.append(deleteSectionFrames).append("\n");
 		
 		return allSections.toString();
 	}
