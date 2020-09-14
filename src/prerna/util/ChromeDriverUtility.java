@@ -21,6 +21,83 @@ public class ChromeDriverUtility {
 	public static void captureImage(String feUrl, String url, String imagePath, String sessionId) {
 		captureImage(feUrl, url, imagePath, sessionId, 1920, 1080, true);
 	}
+	
+	public static ChromeDriver makeChromeDriver(String feUrl, String url,String sessionId, int height, int width)
+	{
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String os = System.getProperty("os.name").toUpperCase();
+		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
+		
+		boolean linux = false;
+		if(os.contains("WIN")){
+			sysProp += "chromedriver-win.exe";
+		} else if(os.contains("MAC")) {
+			sysProp += "chromedriver-mac";
+		} else {
+			linux = true;
+			sysProp += "chromedriver-linux";
+		}
+		System.setProperty("webdriver.chrome.driver", sysProp);
+
+	    ChromeOptions chromeOptions = new ChromeOptions();
+	    String customGoogleBinaryLocation = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_BINARY);
+	    if(customGoogleBinaryLocation != null && !customGoogleBinaryLocation.isEmpty()) {
+	    	chromeOptions.setBinary(customGoogleBinaryLocation);
+	    }
+		chromeOptions.addArguments("--headless");
+		chromeOptions.addArguments("--disable-gpu");
+		chromeOptions.addArguments("--window-size=" + height + "," + width);
+		chromeOptions.addArguments("--remote-debugging-port=9222");
+		if(linux) {
+			chromeOptions.addArguments("-disable-dev-shm-usage");
+			chromeOptions.addArguments("--no-sandbox");
+		}
+		if(url.contains("localhost") && url.contains("https")) {
+			chromeOptions.addArguments("--allow-insecure-localhost ");
+		}
+		ChromeDriver newdriver = new ChromeDriver(chromeOptions);
+
+		return newdriver;
+		
+	}
+
+	public static void captureImagePersistent(ChromeDriver driver, String feUrl, String url, String imagePath, String sessionId) 
+	{
+		// need to go to the base url first
+		// so that the cookie is applied at root level
+		if(ChromeDriverUtility.contextPath != null) {
+			String startingUrl = feUrl;
+			if(startingUrl.endsWith("/")) {
+				startingUrl = startingUrl.substring(0, startingUrl.length()-1);
+			}
+			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/")+1) + ChromeDriverUtility.contextPath;
+			driver.get(baseUrl);
+		} else {
+			driver.get(url);
+		}
+		if(sessionId != null && ChromeDriverUtility.sessionCookie != null) {
+			// name, value, domain, path, expiration, secure, http only
+//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
+			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+			driver.manage().addCookie(name);
+		}
+		
+		driver.navigate().to(url);
+		
+		// time for FE to render the page before the image is taken
+	    try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		// take image
+		File scrFile = (File)((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
+		try { 
+			FileUtils.copyFile(scrFile, new File(imagePath));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
 	
 	/**
@@ -30,7 +107,7 @@ public class ChromeDriverUtility {
 	 * @param imagePath location to save image
 	 * @param sessionId user session id if logged in
 	 */
-	public static void captureImage(String feUrl, String url, String imagePath, String sessionId, int height, int width,  boolean close) {
+	public static ChromeDriver captureImage(String feUrl, String url, String imagePath, String sessionId, int height, int width,  boolean close) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		// load driver options
 		String os = System.getProperty("os.name").toUpperCase();
@@ -101,12 +178,9 @@ public class ChromeDriverUtility {
 		if(close) {
 			driver.quit();
 		}
+		return driver;
 	}
 	
-	public static void close() {
-		if(driver != null)
-			driver.quit();
-	}
 	
 	public static void setContextPath(String contextPath) {
 		if(contextPath.startsWith("/")) {
