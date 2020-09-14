@@ -37,6 +37,8 @@ public class PyTranslator
 	Logger logger = null;
 
 	PyExecutorThread pt = null;
+	public static String curEncoding = null;
+
 	
 	Map <Object, Object> responseCache = new HashMap<Object, Object>();
 	String internalLock = "something that the translator will wait on and will be informed by event handler";
@@ -401,6 +403,9 @@ public class PyTranslator
 		File pyTempF = new File(pyTemp);
 		if(!pyTempF.exists()) {
 			pyTempF.mkdirs();
+			pyTempF.setExecutable(true);
+			pyTempF.setReadable(true);
+			pyTempF.setReadable(true);
 		}
 		
 		
@@ -558,6 +563,13 @@ public class PyTranslator
 		return output;
 	}
 
+	// this becomes an issue on windows where it only consumes specific encoding
+	public String getCurEncoding()
+	{
+		if(curEncoding == null)
+			curEncoding = runPyAndReturnOutput("print(sys.stdout.encoding)");
+		return curEncoding;
+	}
 	
 	public static void main(String [] args)
 	{
@@ -595,5 +607,7 @@ public class PyTranslator
 		String output = py.runPyAndReturnOutput(command);
 		System.out.println("Output >> " + output);
 	}
+	
+	
 	
 }

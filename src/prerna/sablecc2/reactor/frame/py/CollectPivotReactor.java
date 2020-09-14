@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.py;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -8,7 +9,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.algorithm.api.SemossDataType;
+import prerna.ds.py.PandasFrame;
+import oracle.net.aso.a;
 import prerna.ds.py.PyTranslator;
+import prerna.query.interpreters.PandasInterpreter;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -26,6 +32,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	 */
 	
 	private static String curEncoding = null;
+	public static final String ALL_SECTIONS = "**ALL_SECTIONS**";
 
 	private static Map<String, String> mathMap = new HashMap<String, String>();
 	static {
@@ -39,7 +46,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	};
 
 	public CollectPivotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(),  ReactorKeysEnum.SUBTOTALS.getKey(), "json", "margins"};
+
+		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(),  ReactorKeysEnum.SUBTOTALS.getKey(), "json", "margins", "sections"};
 	}
 
 	public NounMetadata execute() {
@@ -63,15 +71,41 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		// I need to change this check later
 
-		String fileName = Utility.getRandomString(6);
-		String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
-		File tempDir = new File(dir);
-		if(!tempDir.exists()) {
-			tempDir.mkdir();
-		}
-		String outputFile = dir + "/" + fileName + ".csv";
-		Utility.writeResultToFile(outputFile, this.task, ",");
+		String frameName = Utility.getRandomString(6);
+		String makeFrame = null;
+		String outputFile = null;
+		if(task instanceof BasicIteratorTask && this.insight.getCurFrame() instanceof PandasFrame)
+		{
+			SelectQueryStruct qs = ((BasicIteratorTask)this.task).getQueryStruct();
+			PandasInterpreter interp = new PandasInterpreter();
+			PandasFrame frame = (PandasFrame)this.insight.getCurFrame();
+			interp.setDataTableName(frame.getName(), frame.getWrapperName()+ ".cache['data']");
+			interp.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
+			interp.setQueryStruct(qs);
+			interp.setKeyCache(frame.keyCache);
+			// I should also possibly set up pytranslator so I can run command for creating filter
+			interp.setPyTranslator(pyt);
+			String frameQuery = interp.composeQuery();
+			
+			//aaw8Ciq = mvw.cache['data'][['Genre', 'Nominated', 'MovieBudget']].drop_duplicates().iloc[0:].to_dict('split')
 
+			frameQuery = frameQuery.replace(".drop_duplicates().iloc[0:].to_dict('split')", "");
+			
+			makeFrame = frameName + " = " + frameQuery;
+		}
+		else
+		{
+			String fileName = Utility.getRandomString(6);
+			String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
+			File tempDir = new File(dir);
+			if(!tempDir.exists()) {
+				tempDir.mkdir();
+			}
+			outputFile = dir + "/" + fileName + ".csv";
+			Utility.writeResultToFile(outputFile, this.task, ",");
+			
+			makeFrame = frameName + " = pd.read_csv('" + outputFile + "', encoding='" + pyt.getCurEncoding() + "')"; //.replace(np.nan, '', regex=True)";
+		}
 		// so this is going to come in as vectors
 		List<String> rowGroups = this.store.getNoun(keysToGet[0]).getAllStrValues();
 		List<String> colGroups = this.store.getNoun(keysToGet[1]).getAllStrValues();
@@ -89,12 +123,15 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		if(this.store.getNounKeys().contains("margins"))
 			margins = this.store.getNoun(keysToGet[5]).get(0).toString().equalsIgnoreCase("true");
 
+		List<String> sections = null;
+		
+		if(this.store.getNounKeys().contains(keysToGet[6]))
+			sections = this.store.getNoun(keysToGet[6]).getAllStrValues();
+		
+
 		if(curEncoding == null)
 			curEncoding = pyt.runPyAndReturnOutput("print(sys.stdout.encoding)");
-		
-		String frameName = Utility.getRandomString(6);
-		String makeFrame =frameName + " = pd.read_csv('" + outputFile + "', encoding='" + curEncoding + "')"; //.replace(np.nan, '', regex=True)";
-		
+				
 		List <String> newValues = new Vector<String>();
 		List <String> functions = new Vector<String>();
 
@@ -127,40 +164,54 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// making the new call here
 		// columns are not really required
 		// going to ignore for now
-		String commands = genPivot(frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true, json, margins);
-		commands = makeFrame + "\n" + commands;
 		
-//		// convert the inputs into a cgroup
-//		StringBuilder rows = new StringBuilder("index=[");
-//		for(int rowIndex = 0;rowIndex < rowGroups.size();rowIndex++)
-//		{
-//			String curValue = rowGroups.get(rowIndex);
-//			if(rowIndex != 0)
-//				rows.append(",");
-//			rows.append("'").append(curValue).append("'");
-//		}
-//		rows.append("]");
-//
-//		StringBuilder cols = new StringBuilder("columns=[");
-//		for(int colIndex = 0;colIndex < colGroups.size();colIndex++)
-//		{
-//			String curValue = colGroups.get(colIndex);
-//			if(colIndex != 0)
-//				cols.append(",");
-//			cols.append("'").append(curValue).append("'");
-//		}
-//		if(cols.toString().equalsIgnoreCase("columns["))
-//			cols = new StringBuilder("");
-//		else
-//			cols.append("]").insert(0, " , ");
+		String deleteFrame= "del(" + frameName + ")";
+		
+		String commands = null;
+		
+		if(sections == null)
+		{
+			sections = new Vector<String>();
+			sections.add(ALL_SECTIONS);
+			commands = genSections(sections.get(0), sections, "", frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true, json, margins);
+		}
+		else
+		{
+			String sectionColumnName = sections.get(0);
+			
+			// get the values of the section and pass it in
+			// mv[['Genre']].drop_duplicates().to_dict('list')	
+			String sectionNames = frameName + "[['" + sections.get(0) + "']].drop_duplicates().to_dict('list')";
+			pyt.runEmptyPy(makeFrame);
+			HashMap nameToList = (HashMap) pyt.runScript(sectionNames);
+			//makeFrame = ""; // null the make frame it has been made now
+			Object objList = nameToList.get(sectionColumnName);
+			List <String> allSections = null;
+			if(objList instanceof List)
+				allSections = (List <String>)objList;
+			else if(objList instanceof String)
+			{
+				allSections = new ArrayList<String>();
+				allSections.add((String)objList); 
+			}
+			String quote = getQuote(sectionColumnName);
+			
+			if(allSections != null && allSections.size() > 0)
+				commands = genSections(sections.get(0), allSections, quote, frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true, json, margins);
+		}
+		
+		commands = makeFrame + "\n" + commands + "\n" +deleteFrame;
 		
 
 		pivotMap.put(keysToGet[2], valuesList);
 
 		String htmlOutput = pyt.runPyAndReturnOutput(commands); 
 		
-		File outputF = new File(outputFile);
-		outputF.delete();
+		if(outputFile != null) // if a file was made delete it
+		{
+			File outputF = new File(outputFile);
+			outputF.delete();
+		}
 		
 		ConstantDataTask cdt = new ConstantDataTask();
 		// need to do all the sets
@@ -205,6 +256,25 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		
 	}
+	
+	// based on data type suggests if we need to add the ' or not
+	private String getQuote(String columnName)
+	{
+		String quote = "'";
+		List<Map<String, Object>> headersInfo = task.getHeaderInfo();
+		for (Map<String, Object> headerMap : headersInfo) 
+		{
+			String name = (String) headerMap.get("alias");
+			SemossDataType type = SemossDataType.convertStringToDataType(headerMap.get("type").toString());
+			if(name.equalsIgnoreCase(columnName))
+			{
+				if(type == SemossDataType.INT || type == SemossDataType.DOUBLE)
+					quote = "";
+				break;
+			}
+		}
+		return quote;
+	}
 
 	@Override
 	public List<NounMetadata> getOutputs() {
@@ -221,6 +291,65 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	protected void buildTask() {
 		// do nothing
 		
+	}
+	
+	public String genSections(String sectionName, List <String> sections, String quote, String frameName, List <String> rows, List <String> columns, List <String> subtotalColumns, List <String> values, List <String> functions, boolean dropNA, boolean fill_value, boolean json, boolean margins)
+	{
+		// mv[['Genre']].drop_duplicates().to_dict('list') - Values of this list is an array and for every array .. pass that as a filter
+		 // mv[['Genre']].drop_duplicates().to_dict('list')		
+		// filtered as -  mv[mv['Genre']=='Drama']
+		
+		// need to accomodate when the section is not a string
+		// start the main json array
+		// TODO: need to send the sections too - once davy decides the format
+		
+		StringBuilder allSections = new StringBuilder(""); //print('[')").append("\n");
+		StringBuilder deleteSectionFrames = new StringBuilder("del(");
+		
+		StringBuilder sectionBlock = new StringBuilder("[");
+		
+		// get the sections
+		// need to find a way to pass the pivot and other things
+		if(!sections.get(0).equalsIgnoreCase(ALL_SECTIONS))
+		{
+			for(int sectionIndex = 0;sectionIndex < sections.size();sectionIndex++)
+			{
+				if(sectionIndex != 0)
+				{
+					allSections.append("print(', ')").append("\n");
+					deleteSectionFrames.append(", ");
+					sectionBlock.append(", ");
+				}
+				String thisSectionValue = sections.get(sectionIndex);
+				String sectionSpecificFrame = Utility.getRandomString(5);
+				allSections.append(sectionSpecificFrame).append(" = ").append(frameName).append("[").append(frameName).append("['").append(sectionName).append("'] == ").append(quote).append(thisSectionValue).append(quote).append("]").append("\n");
+				allSections.append(genPivot(sectionSpecificFrame, rows, columns, subtotalColumns, values, functions, dropNA, fill_value, json, margins)).append("\n");		
+				deleteSectionFrames.append(sectionSpecificFrame);
+				sectionBlock.append("'").append(thisSectionValue).append("'");
+			}
+			sectionBlock.append("], ");
+			deleteSectionFrames.append(")");
+			allSections = new StringBuilder("print('[')").append("\n")
+					.append("print(\"").append(sectionBlock).append("\")").append("\n")
+					.append("print('[')").append("\n").append(allSections).append("print(']')").append("\n")
+					.append("print(']')").append("\n");
+		}
+		else
+		{
+			sectionBlock.append(ALL_SECTIONS).append("], ");
+			allSections.append(genPivot(frameName, rows, columns, subtotalColumns, values, functions, dropNA, fill_value, json, margins)).append("\n");		
+			allSections = new StringBuilder("print('[')").append("\n")
+					.append("print(\"").append(sectionBlock).append("\")").append("\n")
+					.append("print('[')").append("\n").append(allSections).append("print(']')").append("\n")
+					.append("print(']')").append("\n");
+		}
+		// close the main json array
+		//allSections.append("print(']')").append("\n");
+		
+		// delete them
+		allSections.append(deleteSectionFrames).append("\n");
+		
+		return allSections.toString();
 	}
 	
 	public String genPivot(String frameName, List <String> rows, List <String> columns, List <String> subtotalColumns, List <String> values, List <String> functions, boolean dropNA, boolean fill_value, boolean json, boolean margins)
@@ -551,7 +680,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			}		
 		}
 		else
+		{
 			retString.append("\n").append("print(").append(pivotName).append(outputFormat).append(")").append("\n").append("del(").append(pivotName).append(")");
+		}
 		
 		System.err.println(retString);
 		return retString.toString();

@@ -73,7 +73,7 @@ public class PandasSyntaxHelper {
 		if(encoding == null || encoding.isEmpty()) {
 			encoding = "utf-8";
 		}
-		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', sep='" + sep + "', encoding='" + encoding + "')";
+		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', sep='" + sep + "', encoding='" + encoding + "')";//.replace(np.nan, '', regex=True)";
 		return readCsv;
 	}
 	
