@@ -2,8 +2,7 @@
 
 package prerna.sablecc2.analysis;
 
-import java.util.Hashtable;
-
+import java.util.*;
 import prerna.sablecc2.node.*;
 
 public class AnalysisAdapter implements Analysis
@@ -472,85 +471,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseASelectNoun(ASelectNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAProjectNoun(AProjectNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseALabelsNoun(ALabelsNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseATooltipsNoun(ATooltipsNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAOthersNoun(AOthersNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPropsNoun(APropsNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseACodeNoun(ACodeNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAGeneric(AGeneric node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseASelectors(ASelectors node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAProjectors(AProjectors node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseALabels(ALabels node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAProps(AProps node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseATooltips(ATooltips node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAJoins(AJoins node)
+    public void caseANoun(ANoun node)
     {
         defaultCase(node);
     }
@@ -1018,48 +939,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseTSelectorid(TSelectorid node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTOptionid(TOptionid node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTProjectid(TProjectid node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTPropid(TPropid node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTLabelid(TLabelid node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTJoinid(TJoinid node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTTooltipid(TTooltipid node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseTLPar(TLPar node)
     {
         defaultCase(node);
@@ -1109,12 +988,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTBlank(TBlank node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTCodeAlpha(TCodeAlpha node)
     {
         defaultCase(node);
     }
