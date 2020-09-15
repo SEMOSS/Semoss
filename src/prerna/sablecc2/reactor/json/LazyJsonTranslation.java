@@ -20,14 +20,12 @@ import prerna.sablecc2.node.AAssignRoutine;
 import prerna.sablecc2.node.AAssignment;
 import prerna.sablecc2.node.ABaseSimpleComparison;
 import prerna.sablecc2.node.ABooleanScalar;
-import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.AEmbeddedAssignmentExpr;
 import prerna.sablecc2.node.AEmbeddedScriptchainExprComponent;
 import prerna.sablecc2.node.AExplicitRel;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFractionDecimal;
-import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AImplicitRel;
 import prerna.sablecc2.node.AJavaOp;
@@ -45,13 +43,13 @@ import prerna.sablecc2.node.ANegTerm;
 import prerna.sablecc2.node.ANestedMapMapExtendedInput;
 import prerna.sablecc2.node.ANestedMapValues;
 import prerna.sablecc2.node.ANormalScalarMapBaseInput;
+import prerna.sablecc2.node.ANoun;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.AOutputRoutine;
 import prerna.sablecc2.node.APlusBaseExpr;
 import prerna.sablecc2.node.APower;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
-import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.Node;
@@ -316,7 +314,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     }
 
     @Override
-    public void inAGeneric(AGeneric node) {
+    public void inANoun(ANoun node) {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
         genReactor.setPixel("PKSL", (node + "").trim());
@@ -325,40 +323,9 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     }
 
     @Override
-    public void outAGeneric(AGeneric node) {
+    public void outANoun(ANoun node) {
     	defaultOut(node);
     	deInitReactor();
-    }
-	
-    // accumulating secondary structures
-    // the values of each of these are generic rows
-    @Override
-    public void inASelectNoun(ASelectNoun node)
-    {
-        defaultIn(node);
-        // in on almost most stuff seems incredibly useless
-        
-        // get the previous reactor
-        // Try to see if this is something that we can hold on to
-        // if the overarching piece on the GenRow struct comes back to be
-        // hey this is all sql
-        // we can continue to build on it
-        // at any point we see this is not the case, we should execute the sql and JAM the operation right after it
-        
-        // we really dont need the selectors.. the only thing we need are really the projectors
-        
-        // make a nounstore if there is not already one
-        // make this as the current noun on the reactor
-        String nounName = "s"; 
-        curReactor.curNoun(nounName);
-    }
-
-    @Override
-    public void outASelectNoun(ASelectNoun node)
-    {
-        defaultOut(node);
-        // not sure if I need anything else right now
-        curReactor.closeNoun("s");
     }
     
     @Override
@@ -579,23 +546,6 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	String key = node.getId().toString().trim();
     	String propValue = node.getScalar().toString().trim();
         curReactor.setProp(key, propValue);
-    }
-    
-    @Override
-    public void inACodeNoun(ACodeNoun node)
-    {
-        defaultIn(node);
-        String code = (node.getCodeAlpha() + "");
-        code = code.replace("<c>",""); 
-        code = code.replace("</c>","");
-        code = code.trim();
-        curReactor.setProp("CODE", code);
-    }
-
-    @Override
-    public void outACodeNoun(ACodeNoun node)
-    {
-        defaultOut(node);
     }
 
     // you definitely need the other party to be in a relationship :)

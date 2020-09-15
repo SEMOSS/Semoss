@@ -20,7 +20,7 @@ public class GenericReactor extends AbstractReactor {
 		// but unlike the mergeup routine
 		// we want to replace anything that is a variable
 		// with the actual object
-		String key = (String)getProp("KEY");
+		String key = (String) store.getNoun("KEY").get(0).toString();
 
 		GenRowStruct allNouns = store.getNoun(NounStore.all);
 		GenRowStruct thisStruct;
@@ -48,17 +48,12 @@ public class GenericReactor extends AbstractReactor {
 
 		// just add this to the parent
 		parentReactor.getNounStore().addNoun(key, thisStruct);
-
-		//push up the props
-		for(String propKey : this.propStore.keySet()) {
-			parentReactor.setProp(propKey, getProp(propKey));
-		}
 		return null;
 	}
 
 	@Override
 	public void mergeUp() {
-		String key = (String)getProp("KEY");
+		String key = (String) store.getNoun("KEY").get(0).toString();
 
 		GenRowStruct allNouns = store.getNoun(NounStore.all);
 		GenRowStruct thisStruct;
@@ -75,11 +70,6 @@ public class GenericReactor extends AbstractReactor {
 
 		// just add this to the parent
 		parentReactor.getNounStore().addNoun(key, thisStruct);
-
-		//push up the props
-		for(String propKey : this.propStore.keySet()) {
-			parentReactor.setProp(propKey, getProp(propKey));
-		}
 	}
 	
 	@Override

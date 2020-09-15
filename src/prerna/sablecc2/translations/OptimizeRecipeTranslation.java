@@ -29,11 +29,11 @@ import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.ABooleanScalar;
 import prerna.sablecc2.node.AFractionDecimal;
-import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AMap;
 import prerna.sablecc2.node.AMapList;
 import prerna.sablecc2.node.AMapNegNum;
 import prerna.sablecc2.node.AMapVar;
+import prerna.sablecc2.node.ANoun;
 import prerna.sablecc2.node.ANounOpInput;
 import prerna.sablecc2.node.ANullScalar;
 import prerna.sablecc2.node.AOperation;
@@ -477,7 +477,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void inAGeneric(AGeneric node) {
+	public void inANoun(ANoun node) {
 		String key = node.getId().toString().trim();
 		if(key.equals(ReactorKeysEnum.PANEL.getKey())) {
 			containsPanelKey = true;
@@ -485,7 +485,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void outAGeneric(AGeneric node) {
+	public void outANoun(ANoun node) {
 		// reset
 		containsPanelKey = false;
 	}

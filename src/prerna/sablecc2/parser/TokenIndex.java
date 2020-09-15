@@ -2,51 +2,8 @@
 
 package prerna.sablecc2.parser;
 
-import prerna.sablecc2.analysis.AnalysisAdapter;
-import prerna.sablecc2.node.EOF;
-import prerna.sablecc2.node.TAndComparator;
-import prerna.sablecc2.node.TAsOp;
-import prerna.sablecc2.node.TBoolean;
-import prerna.sablecc2.node.TCodeAlpha;
-import prerna.sablecc2.node.TColon;
-import prerna.sablecc2.node.TComma;
-import prerna.sablecc2.node.TComment;
-import prerna.sablecc2.node.TComparator;
-import prerna.sablecc2.node.TCustom;
-import prerna.sablecc2.node.TDiv;
-import prerna.sablecc2.node.TDot;
-import prerna.sablecc2.node.TEqual;
-import prerna.sablecc2.node.TFrameid;
-import prerna.sablecc2.node.TFrameprefix;
-import prerna.sablecc2.node.THelpToken;
-import prerna.sablecc2.node.TId;
-import prerna.sablecc2.node.TIf;
-import prerna.sablecc2.node.TJava;
-import prerna.sablecc2.node.TJoinid;
-import prerna.sablecc2.node.TLBrac;
-import prerna.sablecc2.node.TLCurl;
-import prerna.sablecc2.node.TLPar;
-import prerna.sablecc2.node.TLabelid;
-import prerna.sablecc2.node.TMeta;
-import prerna.sablecc2.node.TMinus;
-import prerna.sablecc2.node.TMod;
-import prerna.sablecc2.node.TMult;
-import prerna.sablecc2.node.TNull;
-import prerna.sablecc2.node.TNumber;
-import prerna.sablecc2.node.TOptionid;
-import prerna.sablecc2.node.TOrComparator;
-import prerna.sablecc2.node.TPlus;
-import prerna.sablecc2.node.TPow;
-import prerna.sablecc2.node.TProjectid;
-import prerna.sablecc2.node.TPropid;
-import prerna.sablecc2.node.TRBrac;
-import prerna.sablecc2.node.TRCurl;
-import prerna.sablecc2.node.TRPar;
-import prerna.sablecc2.node.TRelType;
-import prerna.sablecc2.node.TSelectorid;
-import prerna.sablecc2.node.TSemicolon;
-import prerna.sablecc2.node.TTooltipid;
-import prerna.sablecc2.node.TWord;
+import prerna.sablecc2.node.*;
+import prerna.sablecc2.analysis.*;
 
 class TokenIndex extends AnalysisAdapter
 {
@@ -179,140 +136,92 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTSelectorid(@SuppressWarnings("unused") TSelectorid node)
+    public void caseTLPar(@SuppressWarnings("unused") TLPar node)
     {
         this.index = 21;
     }
 
     @Override
-    public void caseTOptionid(@SuppressWarnings("unused") TOptionid node)
+    public void caseTRPar(@SuppressWarnings("unused") TRPar node)
     {
         this.index = 22;
     }
 
     @Override
-    public void caseTProjectid(@SuppressWarnings("unused") TProjectid node)
+    public void caseTLBrac(@SuppressWarnings("unused") TLBrac node)
     {
         this.index = 23;
     }
 
     @Override
-    public void caseTPropid(@SuppressWarnings("unused") TPropid node)
+    public void caseTRBrac(@SuppressWarnings("unused") TRBrac node)
     {
         this.index = 24;
     }
 
     @Override
-    public void caseTLabelid(@SuppressWarnings("unused") TLabelid node)
+    public void caseTLCurl(@SuppressWarnings("unused") TLCurl node)
     {
         this.index = 25;
     }
 
     @Override
-    public void caseTJoinid(@SuppressWarnings("unused") TJoinid node)
+    public void caseTRCurl(@SuppressWarnings("unused") TRCurl node)
     {
         this.index = 26;
     }
 
     @Override
-    public void caseTTooltipid(@SuppressWarnings("unused") TTooltipid node)
+    public void caseTFrameprefix(@SuppressWarnings("unused") TFrameprefix node)
     {
         this.index = 27;
     }
 
     @Override
-    public void caseTLPar(@SuppressWarnings("unused") TLPar node)
+    public void caseTFrameid(@SuppressWarnings("unused") TFrameid node)
     {
         this.index = 28;
     }
 
     @Override
-    public void caseTRPar(@SuppressWarnings("unused") TRPar node)
+    public void caseTJava(@SuppressWarnings("unused") TJava node)
     {
         this.index = 29;
     }
 
     @Override
-    public void caseTLBrac(@SuppressWarnings("unused") TLBrac node)
+    public void caseTIf(@SuppressWarnings("unused") TIf node)
     {
         this.index = 30;
     }
 
     @Override
-    public void caseTRBrac(@SuppressWarnings("unused") TRBrac node)
+    public void caseTAsOp(@SuppressWarnings("unused") TAsOp node)
     {
         this.index = 31;
     }
 
     @Override
-    public void caseTLCurl(@SuppressWarnings("unused") TLCurl node)
+    public void caseTCustom(@SuppressWarnings("unused") TCustom node)
     {
         this.index = 32;
     }
 
     @Override
-    public void caseTRCurl(@SuppressWarnings("unused") TRCurl node)
+    public void caseTRelType(@SuppressWarnings("unused") TRelType node)
     {
         this.index = 33;
     }
 
     @Override
-    public void caseTFrameprefix(@SuppressWarnings("unused") TFrameprefix node)
+    public void caseTHelpToken(@SuppressWarnings("unused") THelpToken node)
     {
         this.index = 34;
     }
 
     @Override
-    public void caseTFrameid(@SuppressWarnings("unused") TFrameid node)
-    {
-        this.index = 35;
-    }
-
-    @Override
-    public void caseTCodeAlpha(@SuppressWarnings("unused") TCodeAlpha node)
-    {
-        this.index = 36;
-    }
-
-    @Override
-    public void caseTJava(@SuppressWarnings("unused") TJava node)
-    {
-        this.index = 37;
-    }
-
-    @Override
-    public void caseTIf(@SuppressWarnings("unused") TIf node)
-    {
-        this.index = 38;
-    }
-
-    @Override
-    public void caseTAsOp(@SuppressWarnings("unused") TAsOp node)
-    {
-        this.index = 39;
-    }
-
-    @Override
-    public void caseTCustom(@SuppressWarnings("unused") TCustom node)
-    {
-        this.index = 40;
-    }
-
-    @Override
-    public void caseTRelType(@SuppressWarnings("unused") TRelType node)
-    {
-        this.index = 41;
-    }
-
-    @Override
-    public void caseTHelpToken(@SuppressWarnings("unused") THelpToken node)
-    {
-        this.index = 42;
-    }
-
-    @Override
     public void caseEOF(@SuppressWarnings("unused") EOF node)
     {
-        this.index = 43;
+        this.index = 35;
     }
 }

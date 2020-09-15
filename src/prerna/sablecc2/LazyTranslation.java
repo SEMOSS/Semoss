@@ -24,7 +24,6 @@ import prerna.sablecc2.node.ABaseSimpleComparison;
 import prerna.sablecc2.node.ABasicAndComparisonTerm;
 import prerna.sablecc2.node.ABasicOrComparisonTerm;
 import prerna.sablecc2.node.ABooleanScalar;
-import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.ACommentExpr;
 import prerna.sablecc2.node.AComplexAndComparisonExpr;
 import prerna.sablecc2.node.AComplexOrComparisonExpr;
@@ -34,7 +33,6 @@ import prerna.sablecc2.node.AEmbeddedScriptchainExprComponent;
 import prerna.sablecc2.node.AExplicitRel;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFractionDecimal;
-import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AHelpExpr;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AImplicitRel;
@@ -50,6 +48,7 @@ import prerna.sablecc2.node.AMinusBaseExpr;
 import prerna.sablecc2.node.AModBaseExpr;
 import prerna.sablecc2.node.AMultBaseExpr;
 import prerna.sablecc2.node.ANegTerm;
+import prerna.sablecc2.node.ANoun;
 import prerna.sablecc2.node.ANullScalar;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.AOutputRoutine;
@@ -58,7 +57,6 @@ import prerna.sablecc2.node.APower;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARoutineConfiguration;
-import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ASubRoutine;
 import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordMapKey;
@@ -505,50 +503,20 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
 
     @Override
-    public void inAGeneric(AGeneric node) {
+    public void inANoun(ANoun node) {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
         genReactor.setPixel("PKSL", (node + "").trim());
-        genReactor.setProp("KEY", node.getId().toString().trim());
+        genReactor.getNounStore().makeNoun("KEY").addLiteral(node.getId().toString().trim());
         initReactor(genReactor);
     }
 
     @Override
-    public void outAGeneric(AGeneric node) {
+    public void outANoun(ANoun node) {
     	defaultOut(node);
     	deInitReactor();
     }
     
-    // accumulating secondary structures
-    // the values of each of these are generic rows
-    @Override
-    public void inASelectNoun(ASelectNoun node)
-    {
-        defaultIn(node);
-        // in on almost most stuff seems incredibly useless
-        
-        // get the previous reactor
-        // Try to see if this is something that we can hold on to
-        // if the overarching piece on the GenRow struct comes back to be
-        // hey this is all sql
-        // we can continue to build on it
-        // at any point we see this is not the case, we should execute the sql and JAM the operation right after it
-        
-        // we really dont need the selectors.. the only thing we need are really the projectors
-        
-        // make a nounstore if there is not already one
-        // make this as the current noun on the reactor
-        String nounName = "s"; 
-        curReactor.curNoun(nounName);
-    }
-
-    @Override
-    public void outASelectNoun(ASelectNoun node) {
-        defaultOut(node);
-        // not sure if I need anything else right now
-        curReactor.closeNoun("s");
-    }
-
     @Override
     public void inANullScalar(ANullScalar node) {
     	NounMetadata noun = new NounMetadata(null, PixelDataType.NULL_VALUE);
@@ -623,7 +591,6 @@ public class LazyTranslation extends DepthFirstAdapter {
 					curReactor.getCurRow().addColumn(s);
     			} else {
     				curReactor.getCurRow().addColumn(idInput);
-    				curReactor.setProp(node.toString().trim(), idInput);
     			}
     		} else {
     			// i guess we should return the actual column from the frame?
@@ -647,7 +614,6 @@ public class LazyTranslation extends DepthFirstAdapter {
     	// just put in results in case we are doing a |
     	if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
 	        curReactor.getCurRow().addLiteral(word);
-	        curReactor.setProp(node.toString().trim(), word);
         } else {
         	NounMetadata noun = new NounMetadata(word, PixelDataType.CONST_STRING);
     		this.planner.addVariable(this.resultKey, noun);
@@ -663,7 +629,6 @@ public class LazyTranslation extends DepthFirstAdapter {
     	// just put in results in case we are doing a |
     	if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
 	        curReactor.getCurRow().addBoolean(bool);
-	        curReactor.setProp(node.toString().trim(), booleanStr);
         } else {
         	NounMetadata noun = new NounMetadata(bool, PixelDataType.BOOLEAN);
     		this.planner.addVariable(this.resultKey, noun);
@@ -773,24 +738,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	String key = node.getId().toString().trim();
     	String propValue = node.getScalar().toString().trim();
-        curReactor.setProp(key, propValue);
-    }
-    
-    @Override
-    public void inACodeNoun(ACodeNoun node)
-    {
-        defaultIn(node);
-        String code = (node.getCodeAlpha() + "");
-        code = code.replace("<c>",""); 
-        code = code.replace("</c>","");
-        code = code.trim();
-        curReactor.setProp("CODE", code);
-    }
-
-    @Override
-    public void outACodeNoun(ACodeNoun node)
-    {
-        defaultOut(node);
+    	curReactor.getNounStore().makeNoun(key).addLiteral(propValue);
     }
 
     // you definitely need the other party to be in a relationship :)
