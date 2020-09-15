@@ -63,6 +63,7 @@ public abstract class AbstractReactor implements IReactor {
 	protected Vector <String> outputFields = null;
 	protected Vector <String> outputTypes = null;
 	
+	@Deprecated
 	protected Hashtable <String, Object> propStore = new Hashtable<String, Object>();
 	
 	protected Lambda runner = null;
@@ -604,21 +605,25 @@ public abstract class AbstractReactor implements IReactor {
 		planner.addOutputs(signature, outputFields, type);
 	}
 	
+	@Deprecated
 	@Override
 	public void setProp(String key, Object value) {
 		propStore.put(key, value);
 	}
 
+	@Deprecated
 	@Override
 	public Object getProp(String key) {
 		return propStore.get(key);
 	}
 	
+	@Deprecated
 	@Override
 	public boolean hasProp(String key) {
 		return propStore.containsKey(key);
 	}
 	
+	@Deprecated
 	@Override
 	public TYPE getType() {
 		Object typeProp = getProp("type");

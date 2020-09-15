@@ -117,12 +117,15 @@ public interface IReactor {
 	void setAs(String [] asName);
 	
 	// adds a property
+	@Deprecated
 	void setProp(String key, Object value);
 	
 	// gets the property
+	@Deprecated
 	Object getProp(String key);
 	
 	//returns whether reactor has Prop
+	@Deprecated
 	boolean hasProp(String key);
 	
 	// map call implement if your type is map

@@ -2,7 +2,7 @@
 
 package prerna.sablecc2.node;
 
-import prerna.sablecc2.analysis.Analysis;
+import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
 public final class AListRegTerm extends PRegTerm

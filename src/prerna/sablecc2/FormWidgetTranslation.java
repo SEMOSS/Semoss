@@ -8,7 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.sablecc2.analysis.DepthFirstAdapter;
-import prerna.sablecc2.node.AGeneric;
+import prerna.sablecc2.node.ANoun;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.AScalarRegTerm;
@@ -49,7 +49,7 @@ public class FormWidgetTranslation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void inAGeneric(AGeneric node) {
+	public void inANoun(ANoun node) {
 		if (isInsert) {
 			String id = node.getId().toString().trim();
 
@@ -62,7 +62,7 @@ public class FormWidgetTranslation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void outAGeneric(AGeneric node) {
+	public void outANoun(ANoun node) {
 		isInto = false;
 		isValues = false;
 	}

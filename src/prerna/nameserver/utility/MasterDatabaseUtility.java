@@ -116,6 +116,7 @@ public class MasterDatabaseUtility {
 			iCols.add("ENGINE");
 			iCols.add("LOCALCONCEPTID");
 			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", iCols));
+			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(engine, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", schema)) {
@@ -123,6 +124,9 @@ public class MasterDatabaseUtility {
 				iCols.add("ENGINE");
 				iCols.add("LOCALCONCEPTID");
 				executeSql(conn, queryUtil.createIndex("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", iCols));
+			}
+			if(!queryUtil.indexExists(engine, "ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", schema)) {
+				executeSql(conn, queryUtil.createIndex("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"));
 			}
 		}
 
@@ -203,10 +207,14 @@ public class MasterDatabaseUtility {
 		// add index
 		if(allowIfExistsIndexs) {
 			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", "KEY"));
+			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", "CONCEPTMETADATA", "PHYSICALNAMEID"));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", schema)) {
 				executeSql(conn, queryUtil.createIndex("CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", "KEY"));
+			}
+			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_PHYSICAL_NAME_ID_INDEX", "CONCEPTMETADATA", schema)) {
+				executeSql(conn, queryUtil.createIndex("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", "CONCEPTMETADATA", "PHYSICALNAMEID"));
 			}
 		}
 
