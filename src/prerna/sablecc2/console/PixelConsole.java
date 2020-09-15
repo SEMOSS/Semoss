@@ -75,11 +75,11 @@ public class PixelConsole {
 	}
 
 	public static void loadEngines() throws Exception {
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+//		IEngine coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 		
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
 //		coreEngine = new RDBMSNativeEngine();
@@ -100,17 +100,17 @@ public class PixelConsole {
 //		coreEngine.openDB(engineProp);
 //		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", coreEngine);
 
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId("Movie_RDBMS");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
-		
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDF.smss";
-		coreEngine = new BigDataEngine();
-		coreEngine.setEngineId("Movie_RDF");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDF", coreEngine);
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+//		coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineId("Movie_RDBMS");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+//		
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDF.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineId("Movie_RDF");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie_RDF", coreEngine);
 //		
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
 //		coreEngine = new BigDataEngine();
