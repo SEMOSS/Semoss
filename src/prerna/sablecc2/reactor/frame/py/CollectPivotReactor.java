@@ -47,7 +47,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 
 	public CollectPivotReactor() {
 
-		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(),  ReactorKeysEnum.SUBTOTALS.getKey(), "json", "margins", "sections"};
+		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(),  ReactorKeysEnum.SUBTOTALS.getKey(), "json", "margins", "sections", "optional"};
 	}
 
 	public NounMetadata execute() {
@@ -110,6 +110,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		List<String> rowGroups = this.store.getNoun(keysToGet[0]).getAllStrValues();
 		List<String> colGroups = this.store.getNoun(keysToGet[1]).getAllStrValues();
 		List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
+		List<String> optional = null;
+
 		List<String> subtotals = rowGroups;
 		if(keyValue.containsKey(keysToGet[3]))
 			subtotals = this.store.getNoun(keysToGet[3]).getAllStrValues();
@@ -128,6 +130,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		if(this.store.getNounKeys().contains(keysToGet[6]))
 			sections = this.store.getNoun(keysToGet[6]).getAllStrValues();
 		
+		if(this.store.getNounKeys().contains(keysToGet[7]))
+			optional = this.store.getNoun(keysToGet[7]).getAllStrValues();
+
 
 		if(curEncoding == null)
 			curEncoding = pyt.runPyAndReturnOutput("print(sys.stdout.encoding)");
@@ -140,6 +145,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		Map<String, Object> pivotMap = new HashMap<String, Object>();
 		pivotMap.put(keysToGet[0], rowGroups);
 		pivotMap.put(keysToGet[1], colGroups);
+		pivotMap.put(keysToGet[6], sections);
+		pivotMap.put(keysToGet[7], optional);
+
 		List<Map<String, String>> valuesList = new Vector<Map<String, String>>();
 
 		
@@ -169,11 +177,11 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		String commands = null;
 		
-		if(sections == null)
-		{
-			sections = new Vector<String>();
-			sections.add("Nominated");
-		}
+//		if(sections == null)
+//		{
+//			sections = new Vector<String>();
+//			sections.add("Nominated");
+//		}
 		
 		if(sections == null)
 		{
@@ -234,7 +242,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		Map<String, Object> outputMap = new HashMap<String, Object>();
 		outputMap.put("headers", new String[] {});
 		outputMap.put("rawHeaders", new String[] {});
-		outputMap.put("values", new String[] {htmlOutput});
+		outputMap.put("values", htmlOutput);
 		outputMap.put("pivotData", pivotMap);
 		cdt.setOutputData(outputMap);
 		
@@ -258,9 +266,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		}
 		
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-		
-		
-		
 	}
 	
 	// based on data type suggests if we need to add the ' or not
@@ -344,7 +349,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		}
 		else
 		{
-			sectionBlock.append(ALL_SECTIONS).append("], ");
+			sectionBlock.append("\\\"").append(ALL_SECTIONS).append("\\\"").append("], ");
 			allSections.append(genPivot(frameName, rows, columns, subtotalColumns, values, functions, dropNA, fill_value, json, margins)).append("\n");		
 			allSections = new StringBuilder("print('[')").append("\n")
 					.append("print(\"").append(sectionBlock).append("\")").append("\n")
