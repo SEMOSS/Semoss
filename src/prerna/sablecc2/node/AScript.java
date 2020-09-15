@@ -2,11 +2,8 @@
 
 package prerna.sablecc2.node;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-
-import prerna.sablecc2.analysis.Analysis;
+import java.util.*;
+import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
 public final class AScript extends PScript
