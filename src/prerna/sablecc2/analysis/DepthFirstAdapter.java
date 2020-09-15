@@ -2,9 +2,7 @@
 
 package prerna.sablecc2.analysis;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import java.util.*;
 import prerna.sablecc2.node.*;
 
 public class DepthFirstAdapter extends AnalysisAdapter
@@ -1669,167 +1667,20 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outARelationColDef(node);
     }
 
-    public void inASelectNoun(ASelectNoun node)
+    public void inANoun(ANoun node)
     {
         defaultIn(node);
     }
 
-    public void outASelectNoun(ASelectNoun node)
+    public void outANoun(ANoun node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseASelectNoun(ASelectNoun node)
+    public void caseANoun(ANoun node)
     {
-        inASelectNoun(node);
-        if(node.getSelectors() != null)
-        {
-            node.getSelectors().apply(this);
-        }
-        outASelectNoun(node);
-    }
-
-    public void inAProjectNoun(AProjectNoun node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAProjectNoun(AProjectNoun node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAProjectNoun(AProjectNoun node)
-    {
-        inAProjectNoun(node);
-        if(node.getProjectors() != null)
-        {
-            node.getProjectors().apply(this);
-        }
-        outAProjectNoun(node);
-    }
-
-    public void inALabelsNoun(ALabelsNoun node)
-    {
-        defaultIn(node);
-    }
-
-    public void outALabelsNoun(ALabelsNoun node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseALabelsNoun(ALabelsNoun node)
-    {
-        inALabelsNoun(node);
-        if(node.getLabels() != null)
-        {
-            node.getLabels().apply(this);
-        }
-        outALabelsNoun(node);
-    }
-
-    public void inATooltipsNoun(ATooltipsNoun node)
-    {
-        defaultIn(node);
-    }
-
-    public void outATooltipsNoun(ATooltipsNoun node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseATooltipsNoun(ATooltipsNoun node)
-    {
-        inATooltipsNoun(node);
-        if(node.getTooltips() != null)
-        {
-            node.getTooltips().apply(this);
-        }
-        outATooltipsNoun(node);
-    }
-
-    public void inAOthersNoun(AOthersNoun node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAOthersNoun(AOthersNoun node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAOthersNoun(AOthersNoun node)
-    {
-        inAOthersNoun(node);
-        if(node.getGeneric() != null)
-        {
-            node.getGeneric().apply(this);
-        }
-        outAOthersNoun(node);
-    }
-
-    public void inAPropsNoun(APropsNoun node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAPropsNoun(APropsNoun node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAPropsNoun(APropsNoun node)
-    {
-        inAPropsNoun(node);
-        if(node.getProps() != null)
-        {
-            node.getProps().apply(this);
-        }
-        outAPropsNoun(node);
-    }
-
-    public void inACodeNoun(ACodeNoun node)
-    {
-        defaultIn(node);
-    }
-
-    public void outACodeNoun(ACodeNoun node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseACodeNoun(ACodeNoun node)
-    {
-        inACodeNoun(node);
-        if(node.getCodeAlpha() != null)
-        {
-            node.getCodeAlpha().apply(this);
-        }
-        outACodeNoun(node);
-    }
-
-    public void inAGeneric(AGeneric node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAGeneric(AGeneric node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAGeneric(AGeneric node)
-    {
-        inAGeneric(node);
+        inANoun(node);
         if(node.getId() != null)
         {
             node.getId().apply(this);
@@ -1842,157 +1693,7 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getGenRow().apply(this);
         }
-        outAGeneric(node);
-    }
-
-    public void inASelectors(ASelectors node)
-    {
-        defaultIn(node);
-    }
-
-    public void outASelectors(ASelectors node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseASelectors(ASelectors node)
-    {
-        inASelectors(node);
-        if(node.getSelectorid() != null)
-        {
-            node.getSelectorid().apply(this);
-        }
-        if(node.getGenRow() != null)
-        {
-            node.getGenRow().apply(this);
-        }
-        outASelectors(node);
-    }
-
-    public void inAProjectors(AProjectors node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAProjectors(AProjectors node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAProjectors(AProjectors node)
-    {
-        inAProjectors(node);
-        if(node.getProjectid() != null)
-        {
-            node.getProjectid().apply(this);
-        }
-        if(node.getGenRow() != null)
-        {
-            node.getGenRow().apply(this);
-        }
-        outAProjectors(node);
-    }
-
-    public void inALabels(ALabels node)
-    {
-        defaultIn(node);
-    }
-
-    public void outALabels(ALabels node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseALabels(ALabels node)
-    {
-        inALabels(node);
-        if(node.getLabelid() != null)
-        {
-            node.getLabelid().apply(this);
-        }
-        if(node.getGenRow() != null)
-        {
-            node.getGenRow().apply(this);
-        }
-        outALabels(node);
-    }
-
-    public void inAProps(AProps node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAProps(AProps node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAProps(AProps node)
-    {
-        inAProps(node);
-        if(node.getPropid() != null)
-        {
-            node.getPropid().apply(this);
-        }
-        if(node.getGenRow() != null)
-        {
-            node.getGenRow().apply(this);
-        }
-        outAProps(node);
-    }
-
-    public void inATooltips(ATooltips node)
-    {
-        defaultIn(node);
-    }
-
-    public void outATooltips(ATooltips node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseATooltips(ATooltips node)
-    {
-        inATooltips(node);
-        if(node.getTooltipid() != null)
-        {
-            node.getTooltipid().apply(this);
-        }
-        if(node.getGenRow() != null)
-        {
-            node.getGenRow().apply(this);
-        }
-        outATooltips(node);
-    }
-
-    public void inAJoins(AJoins node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAJoins(AJoins node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAJoins(AJoins node)
-    {
-        inAJoins(node);
-        if(node.getJoinid() != null)
-        {
-            node.getJoinid().apply(this);
-        }
-        if(node.getGenRow() != null)
-        {
-            node.getGenRow().apply(this);
-        }
-        outAJoins(node);
+        outANoun(node);
     }
 
     public void inAProp(AProp node)

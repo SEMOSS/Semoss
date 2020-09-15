@@ -48,13 +48,6 @@ Tokens
  and_comparator = ' AND ';
  or_comparator = ' OR ';
  equal = '=';
- selectorid = ('s='| 's');
- optionid = 'o=';
- projectid = 'p=';
- propid = 'props=';
- labelid = 'l=';
- joinid = 'j=';
- tooltipid = 't=';
  l_par = '(';
  r_par = ')';
  l_brac = '[';
@@ -64,7 +57,6 @@ Tokens
  frameprefix = 'f$';
  frameid = 'f.';
  blank = (' ' | 13 | 10);
- code_alpha='<c>' encoded_values* '</c>';
  java = '<j>' encoded_values* '</j>';
  if = 'if';
  as_op = ('.as' | '.out');
@@ -207,20 +199,8 @@ Productions
 		;
   
  // NOUN ::: id = [gen_row, gen_row, gen_row...]
- // generic is the catch all
- // then we have defined a few specific ones
- // code alpha is the only noun which differs
- noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic | {props} props | {code} code_alpha;
- 
- generic = id equal gen_row;
- selectors = selectorid  gen_row;
- projectors = projectid  gen_row;
- labels = labelid  gen_row;
- props = propid gen_row;
- tooltips = tooltipid gen_row;
- joins = joinid  gen_row;
-
- // TODO: determine if we still need this
+ noun = id equal gen_row;
+ // SHORTHAND NOTATION FOR NOUN
  prop = id equal scalar;
  
  // operation used for aliasing columns
