@@ -219,7 +219,7 @@ public class InsightUtility {
 	 * @param insight
 	 * @return
 	 */
-	public static NounMetadata clearInsight(Insight insight) {
+	public static NounMetadata clearInsight(Insight insight, boolean noOpType) {
 		synchronized(insight) {
 			LOGGER.info("Start clearning insight " + insight.getInsightId());
 
@@ -269,6 +269,9 @@ public class InsightUtility {
 			}
 			
 			LOGGER.info("Successfully cleared insight " + insight.getInsightId());
+			if(noOpType) {
+				return new NounMetadata(true, PixelDataType.BOOLEAN);
+			}
 			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
 		}
 	}
@@ -293,7 +296,7 @@ public class InsightUtility {
 			
 			// now i will clear
 			LOGGER.info("Clear insight for drop");
-			clearInsight(insight);
+			clearInsight(insight, true);
 	
 			LOGGER.debug("Removing from insight store");
 			String insightId = insight.getInsightId();
