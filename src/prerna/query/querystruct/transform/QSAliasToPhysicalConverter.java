@@ -56,16 +56,16 @@ public class QSAliasToPhysicalConverter {
 		List<IQuerySelector> convertedSelectors = new Vector<IQuerySelector>();
 		for(int i = 0; i < origSelectors.size(); i++) {
 			IQuerySelector origS = origSelectors.get(i);
-			IQuerySelector convertedS = convertSelector(origS, meta);
+			IQuerySelector convertedS = convertSelector(origS, meta, null);
 			convertedSelectors.add(convertedS);
 			aliases.put(convertedS.getAlias(), convertedS);
 		}
 		convertedQs.setSelectors(convertedSelectors);
 
 		// now go through the filters
-		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), meta));
-		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), meta));
-		convertedQs.setHavingFilters(convertHavingGenRowFilters(qs.getHavingFilters(), meta, aliases));
+		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), meta, null));
+		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), meta, null));
+		convertedQs.setHavingFilters(convertHavingGenRowFilters(qs.getHavingFilters(), meta, aliases, null));
 
 		// now go through the joins
 		convertedQs.setRelations(convertJoins(qs.getRelations(), meta));
@@ -81,7 +81,8 @@ public class QSAliasToPhysicalConverter {
 		SelectQueryStruct convertedQs = qs.getNewBaseQueryStruct();
 		convertedQs.setLimit(qs.getLimit());
 		convertedQs.setOffSet(qs.getOffset());
-
+		
+		String customTableName = convertedQs.getCustomFromAliasName();
 		// grab all the selectors
 		// and need to recursively modify the column ones
 		Map<String, IQuerySelector> aliases = new HashMap<String, IQuerySelector>();
@@ -89,16 +90,16 @@ public class QSAliasToPhysicalConverter {
 		List<IQuerySelector> convertedSelectors = new Vector<IQuerySelector>();
 		for(int i = 0; i < origSelectors.size(); i++) {
 			IQuerySelector origS = origSelectors.get(i);
-			IQuerySelector convertedS = convertSelector(origS, meta);
+			IQuerySelector convertedS = convertSelector(origS, meta, customTableName);
 			convertedSelectors.add(convertedS);
 			aliases.put(convertedS.getAlias(), convertedS);
 		}
 		convertedQs.setSelectors(convertedSelectors);
 
 		// now go through the filters
-		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), meta));
-		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), meta));
-		convertedQs.setHavingFilters(convertHavingGenRowFilters(qs.getHavingFilters(), meta, aliases));
+		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), meta, customTableName));
+		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), meta, customTableName));
+		convertedQs.setHavingFilters(convertHavingGenRowFilters(qs.getHavingFilters(), meta, aliases, customTableName));
 
 		// now go through the joins
 		convertedQs.setRelations(convertJoins(qs.getRelations(), meta));
@@ -109,7 +110,7 @@ public class QSAliasToPhysicalConverter {
 			List<QueryColumnSelector> convertedGroups =  new Vector<QueryColumnSelector>();
 			for(int i = 0; i < origGroups.size(); i++) {
 				IQuerySelector origGroupS = origGroups.get(i);
-				QueryColumnSelector convertedGroupS = (QueryColumnSelector) convertSelector(origGroupS, meta);
+				QueryColumnSelector convertedGroupS = (QueryColumnSelector) convertSelector(origGroupS, meta, customTableName);
 				convertedGroups.add(convertedGroupS);
 			}
 			convertedQs.setGroupBy(convertedGroups);
@@ -157,22 +158,29 @@ public class QSAliasToPhysicalConverter {
 	 * @param selector
 	 * @return
 	 */
-	public static IQuerySelector convertSelector(IQuerySelector selector, OwlTemporalEngineMeta meta) {
+	public static IQuerySelector convertSelector(IQuerySelector selector, OwlTemporalEngineMeta meta, String customTableName) {
 		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
 		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
 			return convertConstantSelector((QueryConstantSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-			return convertColumnSelector((QueryColumnSelector) selector, meta);
+			return convertColumnSelector((QueryColumnSelector) selector, meta, customTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-			return convertFunctionSelector((QueryFunctionSelector) selector, meta);
+			return convertFunctionSelector((QueryFunctionSelector) selector, meta, customTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
-			return convertArithmeticSelector((QueryArithmeticSelector) selector, meta);
+			return convertArithmeticSelector((QueryArithmeticSelector) selector, meta, customTableName);
 		}
 		return null;
 	}
 
-	private static IQuerySelector convertColumnSelector(QueryColumnSelector selector, OwlTemporalEngineMeta meta) {
+	private static IQuerySelector convertColumnSelector(QueryColumnSelector selector, OwlTemporalEngineMeta meta, String customTableName) {
 		String qsName = selector.getQueryStructName();
+		if(customTableName != null) {
+			if(qsName.contains("__")) {
+				return new QueryColumnSelector(customTableName + "__" + qsName.split("__")[1]);
+			} else {
+				return new QueryColumnSelector(customTableName + "__" + qsName);
+			}
+		}
 		String newQsName = meta.getUniqueNameFromAlias(qsName);
 		if(newQsName == null) {
 			// see if it is a jsonified selector
@@ -223,19 +231,19 @@ public class QSAliasToPhysicalConverter {
 		return null;
 	}
 	
-	private static IQuerySelector convertArithmeticSelector(QueryArithmeticSelector selector, OwlTemporalEngineMeta meta) {
+	private static IQuerySelector convertArithmeticSelector(QueryArithmeticSelector selector, OwlTemporalEngineMeta meta, String customTableName) {
 		QueryArithmeticSelector newS = new QueryArithmeticSelector();
-		newS.setLeftSelector(convertSelector(selector.getLeftSelector(), meta));
-		newS.setRightSelector(convertSelector(selector.getRightSelector(), meta));
+		newS.setLeftSelector(convertSelector(selector.getLeftSelector(), meta, customTableName));
+		newS.setRightSelector(convertSelector(selector.getRightSelector(), meta, customTableName));
 		newS.setMathExpr(selector.getMathExpr());
 		newS.setAlias(selector.getAlias());
 		return newS;
 	}
 
-	private static IQuerySelector convertFunctionSelector(QueryFunctionSelector selector, OwlTemporalEngineMeta meta) {
+	private static IQuerySelector convertFunctionSelector(QueryFunctionSelector selector, OwlTemporalEngineMeta meta, String customTableName) {
 		QueryFunctionSelector newS = new QueryFunctionSelector();
 		for(IQuerySelector innerS : selector.getInnerSelector()) {
-			newS.addInnerSelector(convertSelector(innerS, meta));
+			newS.addInnerSelector(convertSelector(innerS, meta, customTableName));
 		}
 		newS.setFunction(selector.getFunction());
 		newS.setDistinct(selector.isDistinct());
@@ -304,12 +312,12 @@ public class QSAliasToPhysicalConverter {
 		return null;
 	}
 	
-	public static GenRowFilters convertGenRowFilters(GenRowFilters grs, OwlTemporalEngineMeta meta) {
+	public static GenRowFilters convertGenRowFilters(GenRowFilters grs, OwlTemporalEngineMeta meta, String customTableName) {
 		List<IQueryFilter> origGrf = grs.getFilters();
 		if(origGrf != null && !origGrf.isEmpty()) {
 			GenRowFilters convertedGrf = new GenRowFilters();
 			for(int i = 0; i < origGrf.size(); i++) {
-				convertedGrf.addFilters(convertFilter(origGrf.get(i), meta));
+				convertedGrf.addFilters(convertFilter(origGrf.get(i), meta, customTableName));
 			}
 			return convertedGrf;
 		}
@@ -325,51 +333,51 @@ public class QSAliasToPhysicalConverter {
 	 * @param meta
 	 * @return
 	 */
-	public static IQueryFilter convertFilter(IQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
+	public static IQueryFilter convertFilter(IQueryFilter queryFilter, OwlTemporalEngineMeta meta, String customTableName) {
 		if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-			return convertSimpleQueryFilter((SimpleQueryFilter) queryFilter, meta);
+			return convertSimpleQueryFilter((SimpleQueryFilter) queryFilter, meta, customTableName);
 		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-			return convertAndQueryFilter((AndQueryFilter) queryFilter, meta);
+			return convertAndQueryFilter((AndQueryFilter) queryFilter, meta, customTableName);
 		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-			return convertOrQueryFilter((OrQueryFilter) queryFilter, meta);
+			return convertOrQueryFilter((OrQueryFilter) queryFilter, meta, customTableName);
 		} else {
 			return null;
 		}
 	}
 	
-	private static IQueryFilter convertOrQueryFilter(OrQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
+	private static IQueryFilter convertOrQueryFilter(OrQueryFilter queryFilter, OwlTemporalEngineMeta meta, String customTableName) {
 		OrQueryFilter newF = new OrQueryFilter();
 		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
 		for(IQueryFilter f : andFilterList) {
-			newF.addFilter(convertFilter(f, meta));
+			newF.addFilter(convertFilter(f, meta, customTableName));
 		}
 		return newF;
 	}
 
-	private static IQueryFilter convertAndQueryFilter(AndQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
+	private static IQueryFilter convertAndQueryFilter(AndQueryFilter queryFilter, OwlTemporalEngineMeta meta, String customTableName) {
 		AndQueryFilter newF = new AndQueryFilter();
 		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
 		for(IQueryFilter f : andFilterList) {
-			newF.addFilter(convertFilter(f, meta));
+			newF.addFilter(convertFilter(f, meta, customTableName));
 		}
 		return newF;
 	}
 
-	private static SimpleQueryFilter convertSimpleQueryFilter(SimpleQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
+	private static SimpleQueryFilter convertSimpleQueryFilter(SimpleQueryFilter queryFilter, OwlTemporalEngineMeta meta, String customTableName) {
 		NounMetadata newL = null;
 		NounMetadata newR = null;
 
 		NounMetadata origL = queryFilter.getLComparison();
 		if(origL.getNounType() == PixelDataType.COLUMN) {
 			// need to convert
-			newL = new NounMetadata( convertSelector((IQuerySelector) origL.getValue(), meta) , PixelDataType.COLUMN);
+			newL = new NounMetadata( convertSelector((IQuerySelector) origL.getValue(), meta, customTableName) , PixelDataType.COLUMN);
 		} else {
 			newL = origL;
 		}
 		NounMetadata origR = queryFilter.getRComparison();
 		if(origR.getNounType() == PixelDataType.COLUMN) {
 			// need to convert
-			newR = new NounMetadata( convertSelector((IQuerySelector) origR.getValue(), meta) , PixelDataType.COLUMN);
+			newR = new NounMetadata( convertSelector((IQuerySelector) origR.getValue(), meta, customTableName) , PixelDataType.COLUMN);
 		} else {
 			newR = origR;
 		}
@@ -378,12 +386,12 @@ public class QSAliasToPhysicalConverter {
 		return newF;
 	}
 	
-	private static GenRowFilters convertHavingGenRowFilters(GenRowFilters grs, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases) {
+	private static GenRowFilters convertHavingGenRowFilters(GenRowFilters grs, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases, String customTableName) {
 		List<IQueryFilter> origGrf = grs.getFilters();
 		if(origGrf != null && !origGrf.isEmpty()) {
 			GenRowFilters convertedGrf = new GenRowFilters();
 			for(int i = 0; i < origGrf.size(); i++) {
-				convertedGrf.addFilters(convertFilter(origGrf.get(i), meta, aliases));
+				convertedGrf.addFilters(convertFilter(origGrf.get(i), meta, aliases, customTableName));
 			}
 			return convertedGrf;
 		}
@@ -391,37 +399,37 @@ public class QSAliasToPhysicalConverter {
 		return grs;
 	}
 	
-	public static IQueryFilter convertFilter(IQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases) {
+	public static IQueryFilter convertFilter(IQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases, String customTableName) {
 		if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-			return convertSimpleQueryFilter((SimpleQueryFilter) queryFilter, meta, aliases);
+			return convertSimpleQueryFilter((SimpleQueryFilter) queryFilter, meta, aliases, customTableName);
 		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-			return convertAndQueryFilter((AndQueryFilter) queryFilter, meta, aliases);
+			return convertAndQueryFilter((AndQueryFilter) queryFilter, meta, aliases, customTableName);
 		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-			return convertOrQueryFilter((OrQueryFilter) queryFilter, meta, aliases);
+			return convertOrQueryFilter((OrQueryFilter) queryFilter, meta, aliases, customTableName);
 		} else {
 			return null;
 		}
 	}
 	
-	private static IQueryFilter convertOrQueryFilter(OrQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases) {
+	private static IQueryFilter convertOrQueryFilter(OrQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases, String customTableName) {
 		OrQueryFilter newF = new OrQueryFilter();
 		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
 		for(IQueryFilter f : andFilterList) {
-			newF.addFilter(convertFilter(f, meta));
+			newF.addFilter(convertFilter(f, meta, customTableName));
 		}
 		return newF;
 	}
 
-	private static IQueryFilter convertAndQueryFilter(AndQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases) {
+	private static IQueryFilter convertAndQueryFilter(AndQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases, String customTableName) {
 		AndQueryFilter newF = new AndQueryFilter();
 		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
 		for(IQueryFilter f : andFilterList) {
-			newF.addFilter(convertFilter(f, meta));
+			newF.addFilter(convertFilter(f, meta, customTableName));
 		}
 		return newF;
 	}
 
-	private static SimpleQueryFilter convertSimpleQueryFilter(SimpleQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases) {
+	private static SimpleQueryFilter convertSimpleQueryFilter(SimpleQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases, String customTableName) {
 		NounMetadata newL = null;
 		NounMetadata newR = null;
 
@@ -430,7 +438,7 @@ public class QSAliasToPhysicalConverter {
 			// need to convert
 			IQuerySelector selector = (IQuerySelector) origL.getValue();
 			try {
-				newL = new NounMetadata( convertSelector(selector, meta) , PixelDataType.COLUMN);
+				newL = new NounMetadata( convertSelector(selector, meta, customTableName) , PixelDataType.COLUMN);
 			} catch(IllegalArgumentException e) {
 				IQuerySelector newS = getNewSelectorForAlias(selector, aliases);
 				if(newS == null) {
@@ -446,7 +454,7 @@ public class QSAliasToPhysicalConverter {
 			// need to convert
 			IQuerySelector selector = (IQuerySelector) origR.getValue();
 			try {
-				newR = new NounMetadata( convertSelector(selector, meta) , PixelDataType.COLUMN);
+				newR = new NounMetadata( convertSelector(selector, meta, customTableName) , PixelDataType.COLUMN);
 			} catch(IllegalArgumentException e) {
 				IQuerySelector newS = getNewSelectorForAlias(selector, aliases);
 				if(newS == null) {
