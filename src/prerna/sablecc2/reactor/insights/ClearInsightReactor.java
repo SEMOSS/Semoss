@@ -6,9 +6,23 @@ import prerna.util.insight.InsightUtility;
 
 public class ClearInsightReactor extends AbstractReactor {
 
+	public ClearInsightReactor() {
+		this.keysToGet = new String[] {"suppress"};
+	}
+	
 	@Override
 	public NounMetadata execute() {
-		NounMetadata newNoun = InsightUtility.clearInsight(this.insight);
+		organizeKeys();
+		boolean suppress = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[0]));
+		NounMetadata newNoun = InsightUtility.clearInsight(this.insight, suppress);
 		return newNoun;
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(this.keysToGet[0])) {
+			return "Suppress the opType to be the default OPERATION";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }
