@@ -294,6 +294,18 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	@Override
 	public long getNumRows() {
 		if(this.numRows == 0) {
+			// since we pass via the engine object
+			if(this.dataSource == null) {
+				this.dataSource = ((RDBMSNativeEngine) this.engine).getDataSource();
+			}
+			if(this.dataSource == null && this.conn == null) {
+				try {
+					this.conn = ((RDBMSNativeEngine) this.engine).getConnection();
+				} catch (SQLException e) {
+					logger.error(STACKTRACE, e);
+				}
+			}
+			
 			PraseSqlQueryForCount parser = new PraseSqlQueryForCount();
 			String query;
 			try {
