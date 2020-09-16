@@ -29,6 +29,7 @@ public enum ReactorKeysEnum {
 	CONCEPT("concept", 										"Concept name within an engine"),
 	CONCEPTS("concepts", 									"List of concept names within an engine"),
 	CONFIG("config",                               			"The configuration settings."),
+	CONNECTION_DETAILS("conDetails", 						"Map containing the necessary details to establish a JDBC connection to an external database"),
 	CONNECTION_STRING_KEY("connectionString", 				"JDBC connection string to connect to an external database"),
 	CONTENT("content", 									    "The actual content to be persisted on the file. Tab and Newline Separated"),
 	ADDITIONAL_CONNECTION_PARAMS_KEY("connParams", 			"Additional JDBC connection params to perform connection"),
