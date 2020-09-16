@@ -68,9 +68,13 @@ public class WrapperManager {
 		}
 		return manager;
 	}
-
+	
 	// TODO >>>timb: REST - here add another engine type REMOTE or REST
 	public IRawSelectWrapper getRawWrapper(IEngine engine, SelectQueryStruct qs) throws Exception {
+		return getRawWrapper(engine, qs, false);
+	}
+
+	public IRawSelectWrapper getRawWrapper(IEngine engine, SelectQueryStruct qs, boolean delayExecIfPossible) throws Exception {
 		IRawSelectWrapper returnWrapper = null;
 		boolean genQueryString = true;
 		switch(engine.getEngineType()) {
@@ -199,19 +203,27 @@ public class WrapperManager {
 				query = interpreter.composeQuery();
 				String appId = engine.getEngineId();
 				if(Constants.LOCAL_MASTER_DB_NAME.equals(appId) || Constants.SECURITY_DB.equals(appId)) {
-					logger.debug("Executing query on engine " + engine.getEngineId());
 					returnWrapper.setEngine(engine);
 					returnWrapper.setQuery(query);
-					returnWrapper.execute();
-					long end = System.currentTimeMillis();
-					logger.debug("Engine execution time = " + (end-start) + "ms");
+					if(!delayExecIfPossible) {
+						logger.info("Executing query on engine " + engine.getEngineId());
+						returnWrapper.execute();
+						long end = System.currentTimeMillis();
+						logger.info("Engine execution time = " + (end-start) + "ms");
+					} else {
+						logger.info("Delaying query execution");
+					}
 				} else {
-					logger.info("Executing query on engine " + engine.getEngineId());
 					returnWrapper.setEngine(engine);
 					returnWrapper.setQuery(query);
-					returnWrapper.execute();
-					long end = System.currentTimeMillis();
-					logger.info("Engine execution time = " + (end-start) + "ms");
+					if(!delayExecIfPossible) {
+						logger.info("Executing query on engine " + engine.getEngineId());
+						returnWrapper.execute();
+						long end = System.currentTimeMillis();
+						logger.info("Engine execution time = " + (end-start) + "ms");
+					} else {
+						logger.info("Delaying query execution");
+					}
 				}
 			} catch(Exception e) {
 				error = true;
@@ -225,7 +237,7 @@ public class WrapperManager {
 					returnWrapper.cleanUp();
 				}
 			}
-		} 
+		}
 
 		return returnWrapper;
 	}
