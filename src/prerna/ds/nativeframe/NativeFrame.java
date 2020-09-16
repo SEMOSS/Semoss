@@ -24,10 +24,13 @@ import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -64,6 +67,8 @@ public class NativeFrame extends AbstractTableDataFrame {
 		super();
 		this.qs = new SelectQueryStruct();
 		this.qs.setFrame(this);
+		// by default set to engine
+		this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 		setDefaultName();
 	}
 
@@ -271,37 +276,65 @@ public class NativeFrame extends AbstractTableDataFrame {
 	public IRawSelectWrapper query(SelectQueryStruct qs) throws Exception {
 		long start = System.currentTimeMillis();
 		IEngine engine = this.qs.retrieveQueryStructEngine();
-		// we need to merge everything with the current qs
-		qs.mergeGroupBy(this.qs.getGroupBy());
-		qs.mergeOrderBy(this.qs.getOrderBy());
-		// filters are a bit tricky
-		// if a user is filtering in more on a specific column
-		// we do not want to merge
-		// but want to override
-		GenRowFilters qsGrs = qs.getExplicitFilters();
-		Set<String> qsFilterCols = qsGrs.getAllFilteredColumns();
-		List<IQueryFilter> importFilters = this.qs.getExplicitFilters().getFilters();
-		// if the qsFilterCols doesn't have the base import filter
-		// add the filter
-		// otherwise, do nothing
-		for(IQueryFilter filter : importFilters) {
-			Set<String> importColsFilters = filter.getAllUsedColumns();
-			if(!qsFilterCols.containsAll(importColsFilters)) {
-				// the import filter is not being overridden
-				// so add it into the qs to sue
-				qs.addImplicitFilter(filter);
+		// account for potential double aggregations
+		// TODO: account for double aggregation on other DB types...
+		boolean doubleAggregation = false;
+		if(engine instanceof RDBMSNativeEngine) {
+			boolean hasFunctionSelector = false;
+			for(IQuerySelector selector : qs.getSelectors()) {
+				if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+					hasFunctionSelector = true;
+				}
 			}
+			if(hasFunctionSelector && this.qs.getGroupBy() != null && !this.qs.getGroupBy().isEmpty()) {
+				// we have a double aggregation
+				// need to properly account for this
+				// get the current this.QS and flush it to a query
+				// and use that as a custom from
+				
+				IQueryInterpreter interpreter = engine.getQueryInterpreter();
+				interpreter.setQueryStruct(this.qs);
+				String newFromQuery = interpreter.composeQuery();
+				// update the QS being executed
+				qs.setCustomFrom(newFromQuery);
+				qs.setCustomFromAliasName("embed_subquery");
+				doubleAggregation = true;
+			}
+		} 
+		// normal combination
+		if(!doubleAggregation) {
+			// we need to merge everything with the current qs
+			qs.mergeGroupBy(this.qs.getGroupBy());
+			qs.mergeOrderBy(this.qs.getOrderBy());
+			// filters are a bit tricky
+			// if a user is filtering in more on a specific column
+			// we do not want to merge
+			// but want to override
+			GenRowFilters qsGrs = qs.getExplicitFilters();
+			Set<String> qsFilterCols = qsGrs.getAllFilteredColumns();
+			List<IQueryFilter> importFilters = this.qs.getExplicitFilters().getFilters();
+			// if the qsFilterCols doesn't have the base import filter
+			// add the filter
+			// otherwise, do nothing
+			for(IQueryFilter filter : importFilters) {
+				Set<String> importColsFilters = filter.getAllUsedColumns();
+				if(!qsFilterCols.containsAll(importColsFilters)) {
+					// the import filter is not being overridden
+					// so add it into the qs to sue
+					qs.addImplicitFilter(filter);
+				}
+			}
+			
+			qs.setCustomFrom(this.qs.getCustomFrom());
+			qs.setCustomFromAliasName(this.qs.getCustomFromAliasName());
 		}
-
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		// setters
 		qs.setEngine(this.qs.getEngine());
 		qs.setRelations(this.qs.getRelations());
 		qs.setBigDataEngine(this.qs.getBigDataEngine());
-		qs.setCustomFrom(this.qs.getCustomFrom());
-		qs.setCustomFromAliasName(this.qs.getCustomFromAliasName());
-		// execution
-
+		
+		
 		// we can cache a few different engine types
 		boolean cache = false;
 		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache")) {

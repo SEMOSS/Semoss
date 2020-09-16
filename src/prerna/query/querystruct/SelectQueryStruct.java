@@ -364,6 +364,8 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		}
 		newQs.setDistinct(this.isDistinct);
 		newQs.setOverrideImplicit(this.overrideImplicit);
+		newQs.setCustomFrom(this.customFrom);
+		newQs.setCustomFromAliasName(this.customFromAliasName);
 		return newQs;
 	}
 	
