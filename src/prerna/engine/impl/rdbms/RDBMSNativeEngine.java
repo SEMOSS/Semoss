@@ -334,7 +334,20 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
+	
+	/**
+	 * Get the data source
+	 * @return
+	 */
+	public BasicDataSource getDataSource() {
+		return this.dataSource;
+	}
 
+	/**
+	 * Get the connection
+	 * @return
+	 * @throws SQLException
+	 */
 	public Connection getConnection() throws SQLException {
 		if(this.dataSource != null) {
 			// re-establish bad connections
