@@ -1049,7 +1049,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				}
 				orderBy.setSortDir(rankDir);
 				curQs.addOrderBy(orderBy);
-				curQs.setLimit(Integer.parseInt(rankAmount));
+				
+				// handle both integer types
+				int lim = Integer.parseInt(rankAmount);
+				if (lim >= 0) {
+					curQs.setLimit(lim);
+				} else {
+					curQs.setOffSet(Math.abs(lim));
+				}
 				
 			} else if (part.equalsIgnoreCase("sort")) {
 				String sortTable = row[4].toString();
@@ -1456,6 +1463,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		if (qs.getLimit() > 0) {
 			psb.append("Limit(").append(qs.getLimit()).append(") | ");
+		}
+		
+		if(qs.getOffset() > 0) {
+			psb.append("Offset(").append(qs.getOffset()).append(") | ");
 		}
 
 		// final import statement
