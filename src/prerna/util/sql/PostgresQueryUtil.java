@@ -47,10 +47,6 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		setDbType(RdbmsTypeEnum.POSTGRES);
 	}
 	
-	PostgresQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		super(dbType, hostname, port, schema, username, password);
-	}
-	
 	@Override
 	public void initTypeConverstionMap() {
 		typeConversionMap.put("INT", "INT");

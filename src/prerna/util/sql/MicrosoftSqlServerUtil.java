@@ -19,10 +19,6 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.SQL_SERVER);
 	}
-	
-	MicrosoftSqlServerUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		super(dbType, hostname, port, schema, username, password);
-	}
 
 	@Override
 	public IQueryInterpreter getInterpreter(IEngine engine) {

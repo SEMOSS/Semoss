@@ -15,11 +15,6 @@ public class AsterQueryUtil extends AnsiSqlQueryUtil {
 		setDbType(RdbmsTypeEnum.ASTER);
 	}
 	
-	AsterQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		super(dbType, hostname, port, schema, username, password);
-		setDbType(RdbmsTypeEnum.ASTER);
-	}
-	
 	@Override
 	public String buildConnectionString(Map<String, Object> configMap) throws RuntimeException {
 		if(configMap.isEmpty()){
