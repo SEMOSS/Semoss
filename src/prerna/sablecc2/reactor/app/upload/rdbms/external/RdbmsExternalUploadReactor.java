@@ -102,8 +102,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[8]);
-		String userPassedExisting = this.keyValue.get(this.keysToGet[10]);
+		String appId = this.keyValue.get(this.keysToGet[1]);
+		String userPassedExisting = this.keyValue.get(this.keysToGet[3]);
 		boolean existingApp = false;
 		RDBMSNativeEngine nativeEngine = null;
 
