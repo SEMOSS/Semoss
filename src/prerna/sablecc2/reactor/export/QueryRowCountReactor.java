@@ -10,6 +10,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -42,7 +43,7 @@ public class QueryRowCountReactor  extends AbstractReactor {
 			long numRows = iterator.getNumRows();
 			long end = System.currentTimeMillis();
 			logger.info("Engine execution time = " + (end-start) + "ms");
-			return new NounMetadata(numRows, PixelDataType.CONST_INT);
+			return new NounMetadata(numRows, PixelDataType.CONST_INT, PixelOperationType.QUERY_ROW_COUNT);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Error occured retrieving the count of the query with message " + e.getMessage());
 		}
