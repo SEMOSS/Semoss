@@ -20,10 +20,6 @@ public class HiveQueryUtil  extends AnsiSqlQueryUtil {
 		setDbType(RdbmsTypeEnum.HIVE);
 	}
 	
-	HiveQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		super(dbType, hostname, port, schema, username, password);
-	}
-	
 	@Override
 	public IQueryInterpreter getInterpreter(IEngine engine) {
 		return new HiveSqlInterpreter(engine);
