@@ -12,6 +12,7 @@ public enum PixelOperationType {
 	
 	// QUERY
 	QUERY,
+	QUERY_ROW_COUNT,
 	
 	// FRAME INFORMATION
 	FRAME,
