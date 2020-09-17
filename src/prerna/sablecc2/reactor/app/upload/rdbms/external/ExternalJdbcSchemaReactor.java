@@ -297,7 +297,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	private List<String> getFilters() {
 		List<String> filterValues = new Vector<String>();
 		
-		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[8]);
+		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[1]);
 		if(valueGrs != null && !valueGrs.isEmpty()) {
 			int length = valueGrs.size();
 			for(int i = 0; i < length; i++) {
