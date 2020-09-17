@@ -150,6 +150,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				if(cachedInsight != null) {
 					hasCache = true;
 					cachedInsight.setInsightName(newInsight.getInsightName());
+					cachedInsight.setPixelRecipe(newInsight.getPixelRecipe());
 					newInsight = cachedInsight;
 				}
 			} catch (IOException | RuntimeException e) {
@@ -290,35 +291,38 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		runner.setInsight(insight);
 		
 		// send the view data
-		Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(insight);
-		List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
-		if(!pixelReturn.isEmpty()) {
-			runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
-		}
-		// logic to get all the frame headers
-		{
-			// get all frame headers
-			VarStore vStore = insight.getVarStore();
-			Set<String> keys = vStore.getKeys();
-			for(String k : keys) {
-				NounMetadata noun = insight.getVarStore().get(k);
-				PixelDataType type = noun.getNounType();
-				if(type == PixelDataType.FRAME) {
-					try {
-						ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-						runner.addResult(0, "CACHED_FRAME_HEADERS", 
-								new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS),
-								true);
-					} catch(Exception e) {
-						e.printStackTrace();
-						// ignore
+		try {
+			Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(insight);
+			List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
+			if(!pixelReturn.isEmpty()) {
+				runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
+			}
+			// logic to get all the frame headers
+			{
+				// get all frame headers
+				VarStore vStore = insight.getVarStore();
+				Set<String> keys = vStore.getKeys();
+				for(String k : keys) {
+					NounMetadata noun = insight.getVarStore().get(k);
+					PixelDataType type = noun.getNounType();
+					if(type == PixelDataType.FRAME) {
+						try {
+							ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+							runner.addResult(0, "CACHED_FRAME_HEADERS", 
+									new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS),
+									true);
+						} catch(Exception e) {
+							e.printStackTrace();
+							// ignore
+						}
 					}
 				}
 			}
+		} finally {
+			// we need to reset the recipe
+			insight.setPixelRecipe(origRecipe);
 		}
 		
-		// we need to reset the recipe
-		insight.setPixelRecipe(origRecipe);
 		return runner;
 	}
 	
