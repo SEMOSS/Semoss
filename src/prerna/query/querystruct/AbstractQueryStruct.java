@@ -111,6 +111,9 @@ public abstract class AbstractQueryStruct {
 	// parent struct
 	public GenExpression parentStruct = null;
 	
+	// ignore all the filters
+	public boolean ignoreFilters = false;
+	
 	////////////////////////////////////// experimental /////////////////////////////////////////
 	
 	// this is the actual query
@@ -202,7 +205,11 @@ public abstract class AbstractQueryStruct {
 	}
 	
 	public GenRowFilters getCombinedFilters() {
+		
 		GenRowFilters combinedFilters = new GenRowFilters();
+		if(ignoreFilters)
+			return combinedFilters;
+		
 		combinedFilters.merge(this.explicitFilters.copy());
 		if(this.overrideImplicit) {
 			// if the user already filtered the column
