@@ -47,7 +47,9 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class RdbmsExternalUploadReactor extends AbstractReactor {
 
@@ -228,46 +230,45 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	
 	private void generateNewApp() throws Exception {
 		Logger logger = getLogger(CLASS_NAME);
-
+		
+		Map<String, Object> connectionDetails = getConDetails();
+		if(connectionDetails != null) {
+			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
+			if(host != null) {
+				String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
+				File f = new File(testUpdatedHost);
+				if (f.exists()) {
+					// move the file
+					// and then update the host value
+					String newLocation = this.appFolder.getAbsolutePath() + DIR_SEPARATOR
+							+ FilenameUtils.getName(f.getAbsolutePath());
+					try {
+						Files.move(f, new File(newLocation));
+					} catch (IOException e) {
+						throw new IOException("Unable to relocate database to correct app folder");
+					}
+					host = newLocation;
+					connectionDetails.put(AbstractSqlQueryUtil.HOSTNAME, host);
+				}
+			}
+		}
+		
+		String driver = (String) connectionDetails.get(AbstractSqlQueryUtil.DRIVER_NAME);
+		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(driverEnum);
+		
+		String connectionUrl = null;
+		try {
+			connectionUrl = queryUtil.buildConnectionString(connectionDetails);
+		} catch (RuntimeException e) {
+			throw new SemossPixelException(new NounMetadata("Unable to generation connection url with message " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
+		
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(this.appId, this.appName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-
-		// information for connection details
-		String dbType = this.keyValue.get(this.keysToGet[0]);
-		String connectionUrl = this.keyValue.get(this.keysToGet[1]);
-		String host = this.keyValue.get(this.keysToGet[2]);
-		String port = this.keyValue.get(this.keysToGet[3]);
-		String username = this.keyValue.get(this.keysToGet[4]);
-		String password = this.keyValue.get(this.keysToGet[5]);
-		String schema = this.keyValue.get(this.keysToGet[6]);
-		String additionalProperties = this.keyValue.get(this.keysToGet[7]);
-
-		// TODO: consolidate with below if statement
-		if (host != null) {
-			String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
-			if (new File(testUpdatedHost).exists()) {
-				host = testUpdatedHost;
-			}
-		}
-
-		// if the host is a file
-		// we should move it into the appFolder directory
-		File f = new File(host);
-		if (f.exists()) {
-			// move the file
-			// and then update the host value
-			String newLocation = this.appFolder.getAbsolutePath() + DIR_SEPARATOR
-					+ FilenameUtils.getName(f.getAbsolutePath());
-			try {
-				Files.move(f, new File(newLocation));
-			} catch (IOException e) {
-				throw new IOException("Unable to relocate database to correct app folder");
-			}
-			host = newLocation;
-		}
 
 		// the logical metamodel for the upload
 		Map<String, Object> newMetamodel = UploadInputUtility.getMetamodel(this.store);
@@ -280,17 +281,12 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		// Create default RDBMS engine or Impala
 		String engineClassName = RDBMSNativeEngine.class.getName();
 		this.engine = new RDBMSNativeEngine();
-		if (dbType.toUpperCase().equals(RdbmsTypeEnum.IMPALA.getLabel())) {
+		if (driverEnum == RdbmsTypeEnum.IMPALA) {
 			engineClassName = ImpalaEngine.class.getName();
 			engine = new ImpalaEngine();
 		}
-		if (connectionUrl == null || connectionUrl.trim().isEmpty()) {
-			this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile,
-					engineClassName, dbType, host, port, schema, username, password, additionalProperties);
-		} else {
-			this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile,
-					engineClassName, dbType, connectionUrl, username, password);
-		}
+		this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile,
+				engineClassName, driverEnum, connectionUrl, connectionDetails);
 		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
@@ -300,8 +296,6 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		engine.setEngineName(this.appName);
 		Properties prop = Utility.loadProperties(tempSmss.getAbsolutePath());
 		prop.put("TEMP", "TRUE");
-		// schema comes from existing db (connect to external db(schema))
-		prop.put("SCHEMA", schema);
 		((AbstractEngine) engine).setProp(prop);
 		engine.openDB(null);
 		if (!engine.isConnected()) {
@@ -564,22 +558,20 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		}
 	}
 
-	/**
-	 * Simple method to get string input
-	 * 
-	 * @param index
-	 * @return
-	 */
-	public String getStringInput(int index) {
-		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[index]);
-		if (valueGrs != null) {
-			return valueGrs.get(0).toString();
+	private Map<String, Object> getConDetails() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
+			if(mapInput != null && !mapInput.isEmpty()) {
+				return (Map<String, Object>) mapInput.get(0);
+			}
 		}
-
-		if (this.curRow.size() > index) {
-			return this.curRow.get(index).toString();
+		
+		List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
+		if(mapInput != null && !mapInput.isEmpty()) {
+			return (Map<String, Object>) mapInput.get(0);
 		}
-
+		
 		return null;
 	}
 }

@@ -15,7 +15,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.insight.InsightUtility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class SQLiteFrame extends AbstractRdbmsFrame {
 
@@ -38,7 +38,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 	}
 	
 	protected void initConnAndBuilder() throws Exception {
-		this.util = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.SQLITE);
+		this.util = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.SQLITE);
 
 		String sessionId = ThreadStore.getSessionId();
 		String insightId = ThreadStore.getInsightId();

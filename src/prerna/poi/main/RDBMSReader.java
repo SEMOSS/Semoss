@@ -34,7 +34,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class RDBMSReader extends AbstractCSVFileReader {
 
@@ -102,7 +102,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		long start = System.currentTimeMillis();
 
 		boolean error = false;
-		queryUtil = SqlQueryUtilFactor.initialize(dbType);
+		queryUtil = SqlQueryUtilFactory.initialize(dbType);
 		String[] files = prepareCsvReader(fileNames, customBase, owlFile, smssLocation, propertyFiles);
 
 		try {
@@ -199,7 +199,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		String propertyFiles = options.getPropertyFiles();
 		boolean allowDuplicates = options.isAllowDuplicates();
 
-		queryUtil = SqlQueryUtilFactor.initialize(dbType);
+		queryUtil = SqlQueryUtilFactory.initialize(dbType);
 		String[] files = prepareCsvReader(fileNames, customBase, owlFile, engineName, propertyFiles);
 
 		Configurator.setLevel(logger.getName(), Level.WARN);

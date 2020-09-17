@@ -69,7 +69,7 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class RDBMSNativeEngine extends AbstractEngine {
 
@@ -142,6 +142,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			
 			// grab the values from the prop file 
 			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
+			if(dbTypeString == null) {
+				dbTypeString = prop.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
+			}
 			this.connectionURL = prop.getProperty(Constants.CONNECTION_URL);
 			this.userName = prop.getProperty(Constants.USERNAME);
 			
@@ -160,7 +163,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 			this.useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
 
-			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.H2_DB;
+			// get the dbType from the input or from the driver itself
+			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
 			if(this.dbType == null) {
 				this.dbType = RdbmsTypeEnum.H2_DB;
 			}
@@ -238,7 +242,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			init(connBuilder);
 			
 			try {
-				this.queryUtil = SqlQueryUtilFactor.initialize(this.dbType, this.connectionURL, this.userName, this.password);
+				this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType, this.connectionURL, this.userName, this.password);
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {
 					this.dataSource = connBuilder.getDataSource();
@@ -317,7 +321,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 			this.engineConnected = true;
 			this.autoCommit = this.engineConn.getAutoCommit();
-			this.queryUtil = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL, this.userName, this.password);
+			this.queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL, this.userName, this.password);
 		} catch (ClassNotFoundException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} catch (SQLException e) {

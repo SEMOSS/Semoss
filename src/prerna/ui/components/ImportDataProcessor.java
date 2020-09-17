@@ -69,7 +69,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ImportDataProcessor {
 	private static final Logger logger = LogManager.getLogger(ImportDataProcessor.class.getName());
@@ -806,7 +806,7 @@ public class ImportDataProcessor {
 				String username = options.getUsername();
 				String password = options.getPassword();
 
-				AbstractSqlQueryUtil sqlQueryUtil = SqlQueryUtilFactor.initialize(dbDriverType, host, port, schema,
+				AbstractSqlQueryUtil sqlQueryUtil = SqlQueryUtilFactory.initialize(dbDriverType, host, port, schema,
 						username, password);
 				propWriter.setSQLQueryUtil(sqlQueryUtil);
 			}
