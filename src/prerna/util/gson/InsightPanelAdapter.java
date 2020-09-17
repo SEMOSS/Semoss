@@ -213,9 +213,9 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 					in.nextName();
 					String serializedObject = in.nextString();
 					IQuerySort thisSort = null;
-					if(className == QueryColumnOrderBySelector.class.getName()) {
+					if(className.equals(QueryColumnOrderBySelector.class.getName())) {
 						thisSort = GSON.fromJson(serializedObject, QueryColumnOrderBySelector.class);
-					} else if(className == QueryCustomOrderBy.class.getName()) {
+					} else if(className.equals(QueryCustomOrderBy.class.getName())) {
 						thisSort = GSON.fromJson(serializedObject, QueryCustomOrderBy.class);
 					}
 					orders.add(thisSort);

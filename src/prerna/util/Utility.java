@@ -3146,6 +3146,21 @@ public class Utility {
 		}
 		return retProp;
 	}
+	
+	/**
+	 * Determine if on the applicaiton we should cahce insights or not
+	 * @return
+	 */
+	public static boolean getCacheInsightSettings() {
+		String cacheSetting = DIHelper.getInstance().getProperty(Constants.CACHE_SETTING);
+		if(cacheSetting == null) {
+			// default cache is true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(cacheSetting);
+	}
+	
 
 	public static void copyURLtoFile(String urlString, String filePath) {
 		try {
