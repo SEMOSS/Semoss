@@ -517,6 +517,9 @@ public class Constants {
 	// keywords 
 	public static final String KEYWORDS_SUFFIX = "_KEYWORDS";
 
+	// cache enabled by default
+	public static final String CACHE_SETTING = "CACHE_SETTING";
+	
 	// all frame limit
 	public static final String FRAME_SIZE_LIMIT = "FRAME_SIZE_LIMIT";
 	// default frame type for the application
