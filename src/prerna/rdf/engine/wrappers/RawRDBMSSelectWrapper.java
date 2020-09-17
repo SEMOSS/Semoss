@@ -295,14 +295,16 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	public long getNumRows() {
 		if(this.numRows == 0) {
 			// since we pass via the engine object
-			if(this.dataSource == null) {
-				this.dataSource = ((RDBMSNativeEngine) this.engine).getDataSource();
-			}
-			if(this.dataSource == null && this.conn == null) {
-				try {
-					this.conn = ((RDBMSNativeEngine) this.engine).getConnection();
-				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+			if(this.engine != null) {
+				if(this.dataSource == null) {
+					this.dataSource = ((RDBMSNativeEngine) this.engine).getDataSource();
+				}
+				if(this.dataSource == null && this.conn == null) {
+					try {
+						this.conn = ((RDBMSNativeEngine) this.engine).getConnection();
+					} catch (SQLException e) {
+						logger.error(STACKTRACE, e);
+					}
 				}
 			}
 			

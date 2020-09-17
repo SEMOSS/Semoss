@@ -41,7 +41,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 
@@ -81,7 +81,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 	// store the joins in the object for easy use
 	private SqlJoinStructList joinStructList = new SqlJoinStructList();
 
-	private AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.IMPALA);
+	private AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.IMPALA);
 
 	public ImpalaSqlInterpreter() {
 
@@ -89,7 +89,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 
 	public ImpalaSqlInterpreter(IEngine engine) {
 		this.engine = engine;
-		this.queryUtil = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.IMPALA);
+		this.queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.IMPALA);
 	}
 
 	public ImpalaSqlInterpreter(ITableDataFrame frame) {

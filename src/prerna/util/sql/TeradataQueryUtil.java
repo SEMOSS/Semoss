@@ -1,6 +1,5 @@
 package prerna.util.sql;
 
-import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
 
@@ -35,7 +34,77 @@ public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 		return new TeradataSqlInterpreter(frame);
 	}
 	
-	
+	@Override
+	public String buildConnectionString(Map<String, Object> configMap) throws RuntimeException {
+		if(configMap.isEmpty()){
+			throw new RuntimeException("Configuration map is empty");
+		}
+
+		String connectionString = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_STRING);
+		if(connectionString != null && !connectionString.isEmpty()) {
+			return connectionString;
+		}
+		
+		String urlPrefix = this.dbType.getUrlPrefix();
+		String hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
+		if(hostname == null || hostname.isEmpty()) {
+			throw new RuntimeException("Must pass in a hostname");
+		}
+		
+		String schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
+		if(schema == null || schema.isEmpty()) {
+			throw new RuntimeException("Must pass in schema name");
+		}
+		
+		connectionString = urlPrefix+"://"+hostname+"/DATABASE="+schema;
+		
+		String additonalProperties = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		if(additonalProperties != null && !additonalProperties.isEmpty()) {
+			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
+				connectionString += ";" + additonalProperties;
+			} else {
+				connectionString += additonalProperties;
+			}
+		}
+		
+		return connectionString;
+	}
+
+	@Override
+	public String buildConnectionString(Properties prop) throws RuntimeException {
+		if(prop == null){
+			throw new RuntimeException("Properties ojbect is null");
+		}
+
+		String connectionString = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_STRING);
+		if(connectionString != null && !connectionString.isEmpty()) {
+			return connectionString;
+		}
+		
+		String urlPrefix = this.dbType.getUrlPrefix();
+		String hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
+		if(hostname == null || hostname.isEmpty()) {
+			throw new RuntimeException("Must pass in a hostname");
+		}
+		
+		String schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
+		if(schema == null || schema.isEmpty()) {
+			throw new RuntimeException("Must pass in schema name");
+		}
+		
+		connectionString = urlPrefix+"://"+hostname+"/DATABASE="+schema;
+		
+		String additonalProperties = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		if(additonalProperties != null && !additonalProperties.isEmpty()) {
+			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
+				connectionString += ";" + additonalProperties;
+			} else {
+				connectionString += additonalProperties;
+			}
+		}
+		
+		return connectionString;
+	}
 	
 	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset) {
 
@@ -67,46 +136,6 @@ public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 //			query = query.append(" OFFSET "+offset);
 //		}
 		return query;
-	}
-	
-	@Override
-	public String buildConnectionString(Map<String, Object> configMap) throws SQLException, RuntimeException {
-		if(configMap.isEmpty()){
-			throw new RuntimeException("Configuration Map is Empty.");
-		}
-		String urlPrefix = ((String) RdbmsTypeEnum.ASTER.getUrlPrefix()).toUpperCase();
-		String hostname = ((String) configMap.get(AbstractSqlQueryUtil.HOSTNAME)).toUpperCase();
-		String port = ((String) configMap.get(AbstractSqlQueryUtil.PORT)).toUpperCase();
-		String schema = ((String) configMap.get(AbstractSqlQueryUtil.SCHEMA)).toUpperCase();
-		String username = ((String) configMap.get(AbstractSqlQueryUtil.USERNAME)).toUpperCase();
-		if (port != null && !port.isEmpty()) {
-			port = "DBS+PORT=" + port;
-		} else {
-			port = "";
-		}
-		String connectionString = urlPrefix+"://"+hostname+"/DATABASE="+schema +","+port; 
-		
-		return connectionString;
-	}
-
-	@Override
-	public String buildConnectionString(Properties prop) {
-		if(prop == null){
-			throw new RuntimeException("Properties ojbect is null");
-		}
-		String urlPrefix = ((String) RdbmsTypeEnum.ASTER.getUrlPrefix()).toUpperCase();
-		String hostname = ((String) prop.getProperty(AbstractSqlQueryUtil.HOSTNAME)).toUpperCase();
-		String port = ((String) prop.getProperty(AbstractSqlQueryUtil.PORT)).toUpperCase();
-		String schema = ((String) prop.getProperty(AbstractSqlQueryUtil.SCHEMA)).toUpperCase();
-		String username = ((String) prop.getProperty(AbstractSqlQueryUtil.USERNAME)).toUpperCase();
-		if (port != null && !port.isEmpty()) {
-			port = "DBS+PORT=" + port;
-		} else {
-			port = "";
-		}
-		String connectionString = urlPrefix+"://"+hostname+"/DATABASE="+schema + ","+port; 
-		
-		return connectionString;
 	}
 
 }

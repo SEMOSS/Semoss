@@ -37,7 +37,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
@@ -125,7 +125,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 			String[] headers = (String[]) headerTypesArr[0];
 			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-			queryUtil = SqlQueryUtilFactor.initialize(((RDBMSNativeEngine) this.engine).getDbType());
+			queryUtil = SqlQueryUtilFactory.initialize(((RDBMSNativeEngine) this.engine).getDbType());
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 
@@ -197,7 +197,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		if (!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
-		queryUtil = SqlQueryUtilFactor.initialize(((RDBMSNativeEngine) this.engine).getDbType());
+		queryUtil = SqlQueryUtilFactory.initialize(((RDBMSNativeEngine) this.engine).getDbType());
 		
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get app upload input...");
