@@ -69,11 +69,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	protected transient boolean error = false;
 
 	public RdbmsExternalUploadReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(),
-				ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), ReactorKeysEnum.HOST.getKey(),
-				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
-				ReactorKeysEnum.SCHEMA.getKey(), ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey(),
-				UploadInputUtility.APP, UploadInputUtility.METAMODEL, ReactorKeysEnum.EXISTING.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_DETAILS.getKey(), UploadInputUtility.APP, 
+				UploadInputUtility.METAMODEL, ReactorKeysEnum.EXISTING.getKey() };
 	}
 
 	@Override
