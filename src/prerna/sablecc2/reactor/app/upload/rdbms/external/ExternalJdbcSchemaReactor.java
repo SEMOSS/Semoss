@@ -37,11 +37,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	public static final String RELATIONS_KEY = "relationships";
 	
 	public ExternalJdbcSchemaReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), 
-				ReactorKeysEnum.HOST.getKey(), ReactorKeysEnum.PORT.getKey(), 
-				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
-				ReactorKeysEnum.SCHEMA.getKey(), ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey(),
-				ReactorKeysEnum.FILTERS.getKey()};
+		this.keysToGet = new String[]{ ReactorKeysEnum.CONNECTION_DETAILS.getKey(), ReactorKeysEnum.FILTERS.getKey()};
 	}
 
 	@Override
