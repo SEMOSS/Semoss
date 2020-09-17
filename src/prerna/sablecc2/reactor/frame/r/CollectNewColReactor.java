@@ -60,10 +60,16 @@ public class CollectNewColReactor extends TaskBuilderReactor {
 		
 		// get the query struct
 		SelectQueryStruct sqs = ((BasicIteratorTask)task).getQueryStruct();
+		String warning = null;
 		
 
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
 		SelectQueryStruct pqs = QSAliasToPhysicalConverter.getPhysicalQs(sqs, metadata);
+		if(pqs.getCombinedFilters().getFilters() != null && pqs.getCombinedFilters().getFilters().size() > 0 )
+		{
+			warning = "You are applying a calculation while there are filters, this is not recommended and can lead to unpredictable results";
+			pqs.ignoreFilters = true;
+		}
 		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(pqs);
 		interp.setDataTableName(frame.getName());
@@ -72,7 +78,7 @@ public class CollectNewColReactor extends TaskBuilderReactor {
 		interp.setLogger(this.getLogger(this.getClass().getName()));
 		String query = interp.composeQuery();
 		
-		
+		sqs.ignoreFilters = false;
 		// query comes to this
 		//tempaqBZQYvZoVE <- unique(mv[ , { V0=(RevenueInternational * 2) ; list(new_col=V0) }]);
 
@@ -86,7 +92,7 @@ public class CollectNewColReactor extends TaskBuilderReactor {
 		// there should be only one selector
 		List <IQuerySelector> allSelectors = sqs.getSelectors();
 
-		List<NounMetadata> outputs = new Vector<NounMetadata>(2);
+		List<NounMetadata> outputs = new Vector<NounMetadata>();
 		
 		if(allSelectors.size() > 0)
 		{
@@ -102,6 +108,8 @@ public class CollectNewColReactor extends TaskBuilderReactor {
 			((RDataTable)this.insight.getCurFrame()).setMetaData(meta);
 			outputs.add(new NounMetadata("Added Col " + alias, PixelDataType.CONST_STRING));
 			outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
+			if(warning != null)
+				outputs.add(getWarning(warning));
 		}	
 		else
 			outputs.add(new NounMetadata("No New Columns to add", PixelDataType.CONST_STRING));
