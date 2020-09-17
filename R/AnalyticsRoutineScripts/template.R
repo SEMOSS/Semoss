@@ -84,7 +84,8 @@ get_element_alternatves<-function(db,df,nbr){
 		}
 	}else if(component=='position'){
 		if(element=='column'){
-			out<-db$Column
+			aggr_cols<-get_aliases(df)
+			out<-append(db$Column,aggr_cols)
 		}else{
 			out<-MISSING_VALUE
 		}
@@ -122,7 +123,7 @@ get_component_alternatives<-function(df){
 		ind<-which(df$Component=='position')
 		ind2<-which(df$Component=='based on')
 		if(length(ind)>0 & length(ind2)==0){
-			out<-append(out,COMPONENTS[6])
+			out<-append(out,COMPONENTS[8])
 		}
 		# if aggregate element present and there is no group or based on components
 		# we can add group component
