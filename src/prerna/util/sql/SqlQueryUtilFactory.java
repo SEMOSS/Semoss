@@ -19,7 +19,7 @@ import static prerna.util.sql.RdbmsTypeEnum.SAP_HANA;
 import static prerna.util.sql.RdbmsTypeEnum.SNOWFLAKE;
 import static prerna.util.sql.RdbmsTypeEnum.SPARK;
 import static prerna.util.sql.RdbmsTypeEnum.SQLITE;
-import static prerna.util.sql.RdbmsTypeEnum.SQLSERVER;
+import static prerna.util.sql.RdbmsTypeEnum.SQL_SERVER;
 import static prerna.util.sql.RdbmsTypeEnum.TERADATA;
 import static prerna.util.sql.RdbmsTypeEnum.TIBCO;
 
@@ -31,7 +31,7 @@ import java.util.Vector;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class SqlQueryUtilFactor {
+public class SqlQueryUtilFactory {
 
 	/**
 	 * List of keywords based on what has been pushed into DIHelper
@@ -83,7 +83,7 @@ public class SqlQueryUtilFactor {
 			queryUtil = new SparkQueryUtil();
 		} else if(dbType == SNOWFLAKE) {
 			queryUtil = new SnowFlakeQueryUtil();
-		} else if(dbType == SQLSERVER) {
+		} else if(dbType == SQL_SERVER) {
 			queryUtil = new MicrosoftSqlServerUtil();
 		} else if(dbType == TERADATA) {
 			queryUtil = new TeradataQueryUtil();
@@ -137,7 +137,7 @@ public class SqlQueryUtilFactor {
 			queryUtil = new SparkQueryUtil(connectionUrl, username, password);
 		} else if(dbType == SNOWFLAKE) {
 			queryUtil = new SnowFlakeQueryUtil(connectionUrl, username, password);
-		} else if(dbType == SQLSERVER) {
+		} else if(dbType == SQL_SERVER) {
 			queryUtil = new MicrosoftSqlServerUtil(connectionUrl, username, password);
 		} else if(dbType == TERADATA) {
 			queryUtil = new TeradataQueryUtil(connectionUrl, username, password);
@@ -192,7 +192,7 @@ public class SqlQueryUtilFactor {
 			queryUtil = new SparkQueryUtil(dbType, hostname, port, schema, username, password);
 		} else if(dbType == SNOWFLAKE) {
 			queryUtil = new SnowFlakeQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == SQLSERVER) {
+		} else if(dbType == SQL_SERVER) {
 			queryUtil = new MicrosoftSqlServerUtil(dbType, hostname, port, schema, username, password);
 		} else if(dbType == TERADATA) {
 			queryUtil = new TeradataQueryUtil(dbType, hostname, port, schema, username, password);

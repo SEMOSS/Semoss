@@ -16,7 +16,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class PostgresFrame extends AbstractRdbmsFrame {
 	
@@ -46,7 +46,7 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 
 	@Override
 	protected void initConnAndBuilder() throws Exception {
-		this.util = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.POSTGRES);
+		this.util = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.POSTGRES);
 		
 		try(InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + CONFIGURATION_FILE)) {
 			Properties prop = new Properties();

@@ -25,7 +25,9 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	
@@ -46,34 +48,37 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		
-		organizeKeys();
-		String driver = getStringInput(0);
-		String connectionUrl = getStringInput(1);
-		String host = getStringInput(2);
-		String port = getStringInput(3);
-		String username = getStringInput(4);
-		String password = getStringInput(5);
-		String schema = getStringInput(6);
-		String additionalProperties = getStringInput(7);
-	
-		List<String> tableAndViewFilters = getFilters();
-		boolean hasFilters = !tableAndViewFilters.isEmpty();
-		
-		if(host != null) {
-			String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
-			if(new File(testUpdatedHost).exists()) {
-				host = testUpdatedHost;
+		Map<String, Object> connectionDetails = getConDetails();
+		if(connectionDetails != null) {
+			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
+			if(host != null) {
+				String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
+				if(new File(testUpdatedHost).exists()) {
+					host = testUpdatedHost;
+					connectionDetails.put(AbstractSqlQueryUtil.HOSTNAME, host);
+				}
 			}
 		}
 		
+		String driver = (String) connectionDetails.get(AbstractSqlQueryUtil.DRIVER_NAME);
+		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(driverEnum);
+		
+		List<String> tableAndViewFilters = getFilters();
+		boolean hasFilters = !tableAndViewFilters.isEmpty();
+		
 		Connection con = null;
+		String connectionUrl = null;
 		try {
-			// user did not input the full url but the portions for us to construct it
-			// user has passed in the portions for us to construct the URL
-			if(connectionUrl == null || connectionUrl.trim().isEmpty()) {
-				connectionUrl = RdbmsConnectionHelper.getConnectionUrl(driver, host, port, schema, additionalProperties);
-			}
-			con = RdbmsConnectionHelper.buildConnection(connectionUrl, username, password, driver);
+			connectionUrl = queryUtil.buildConnectionString(connectionDetails);
+		} catch (RuntimeException e) {
+			throw new SemossPixelException(new NounMetadata("Unable to generation connection url with message " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
+		
+		try {
+			con = AbstractSqlQueryUtil.makeConnection(driverEnum, connectionUrl, 
+					(String) connectionDetails.get(AbstractSqlQueryUtil.USERNAME), 
+					(String) connectionDetails.get(AbstractSqlQueryUtil.PASSWORD));
 		} catch (SQLException e) {
 			e.printStackTrace();
 			String driverError = e.getMessage();
@@ -102,7 +107,6 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 		
-		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
 		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
 
 		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, driverEnum, tableAndViewFilters); 
@@ -273,19 +277,18 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Simple method to get string input
-	 * @param index
-	 * @return
-	 */
-	public String getStringInput(int index) {
-		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[index]);
-		if(valueGrs != null) {
-			return valueGrs.get(0).toString();
+	private Map<String, Object> getConDetails() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
+			if(mapInput != null && !mapInput.isEmpty()) {
+				return (Map<String, Object>) mapInput.get(0);
+			}
 		}
 		
-		if(this.curRow.size() > index) {
-			return this.curRow.get(index).toString();
+		List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
+		if(mapInput != null && !mapInput.isEmpty()) {
+			return (Map<String, Object>) mapInput.get(0);
 		}
 		
 		return null;

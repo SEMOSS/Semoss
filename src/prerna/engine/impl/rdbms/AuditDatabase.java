@@ -28,7 +28,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class AuditDatabase {
 	
@@ -118,7 +118,7 @@ public class AuditDatabase {
 
 		try {
 			this.conn = builder.build();
-			this.queryUtil = SqlQueryUtilFactor.initialize(rdbmsType, connectionUrl, "sa", "");
+			this.queryUtil = SqlQueryUtilFactory.initialize(rdbmsType, connectionUrl, "sa", "");
 		} catch (SQLException e) {
 			logger.error(STACKTRACE, e);
 		}

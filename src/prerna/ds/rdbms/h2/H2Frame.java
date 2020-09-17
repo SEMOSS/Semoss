@@ -45,7 +45,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class H2Frame extends AbstractRdbmsFrame {
 
@@ -72,7 +72,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	}
 	
 	protected void initConnAndBuilder() throws Exception {
-		this.util = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB);
+		this.util = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
 
 		String sessionId = ThreadStore.getSessionId();
 		String insightId = ThreadStore.getInsightId();

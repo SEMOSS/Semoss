@@ -46,7 +46,7 @@ import prerna.util.DIHelper;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 /**
  * Creates a folder in user.dir/db that contains the files required for the engine The custom map, smss, and question sheet are all named based on the
@@ -203,7 +203,7 @@ public class PropFileWriter {
 			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
 			if (dbType == ImportOptions.DB_TYPE.RDBMS) {
 				if(this.queryUtil == null) {
-					this.queryUtil = SqlQueryUtilFactor.initialize(dbDriverType);
+					this.queryUtil = SqlQueryUtilFactory.initialize(dbDriverType);
 				}
 
 				if(queryUtil.getDbType() == RdbmsTypeEnum.IMPALA) {
