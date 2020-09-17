@@ -151,61 +151,6 @@ public class SqlQueryUtilFactory {
 		return queryUtil;
 	}
 	
-	@Deprecated
-	public static AbstractSqlQueryUtil initialize(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		AbstractSqlQueryUtil queryUtil = null;
-		if(dbType == ASTER) {
-			queryUtil = new AsterQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == ATHENA) {
-			queryUtil = new AthenaQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == CASSANDRA) {
-			queryUtil = new CassandraQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == CLICKHOUSE) {
-			queryUtil = new ClickhouseQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == DB2) {
-			queryUtil = new DB2QueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == DERBY) {
-			queryUtil = new DerbyQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == H2_DB) {
-			queryUtil = new H2QueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == SQLITE) {
-			queryUtil = new SQLiteQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == HIVE) {
-			queryUtil = new HiveQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == IMPALA) {
-			queryUtil = new ImpalaQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == REDSHIFT) {
-			queryUtil = new RedshiftQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == MARIADB) {
-			queryUtil = new MariaDbQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == MYSQL) {
-			queryUtil = new MySQLQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == ORACLE) {
-			queryUtil = new OracleQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == PHOENIX) {
-			queryUtil = new PhoenixQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == POSTGRES) {
-			queryUtil = new PostgresQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == SAP_HANA) {
-			queryUtil = new SAPHanaQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == SPARK) {
-			queryUtil = new SparkQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == SNOWFLAKE) {
-			queryUtil = new SnowFlakeQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == SQL_SERVER) {
-			queryUtil = new MicrosoftSqlServerUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == TERADATA) {
-			queryUtil = new TeradataQueryUtil(dbType, hostname, port, schema, username, password);
-		} else if(dbType == TIBCO) {
-			queryUtil = new TibcoQueryUtil(dbType, hostname, port, schema, username, password);
-		} else {
-			throw new IllegalArgumentException("Unknown DB Type. Please define a query util for the DB Type " + dbType);
-		}
-			
-		queryUtil.setReservedWords(loadReservedWords(dbType));
-		return queryUtil;
-	}
-	
 	/**
 	 * Load the reserved words from DIHelper (static - only load once per type)
 	 * @param type

@@ -20,10 +20,6 @@ public class ImpalaQueryUtil extends AnsiSqlQueryUtil {
 		setDbType(RdbmsTypeEnum.IMPALA);
 	}
 	
-	ImpalaQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		super(dbType, hostname, port, schema, username, password);
-	}
-	
 	@Override
 	public IQueryInterpreter getInterpreter(IEngine engine) {
 		return new ImpalaSqlInterpreter(engine);

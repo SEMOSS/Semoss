@@ -15,10 +15,6 @@ public class DB2QueryUtil extends AnsiSqlQueryUtil {
 		setDbType(RdbmsTypeEnum.DB2);
 	}
 	
-	DB2QueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		super(dbType, hostname, port, schema, username, password);
-	}
-	
 	@Override
 	public String buildConnectionString(Map<String, Object> configMap) throws RuntimeException {
 		if(configMap.isEmpty()){
