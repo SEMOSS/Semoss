@@ -24,10 +24,6 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		super(connectionString, username, password);
 	}
 	
-	AnsiSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		super(dbType, hostname, port, schema, username, password);
-	}
-	
 	@Override
 	public void enhanceConnection(Connection con) {
 		// default do nothing
