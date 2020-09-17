@@ -981,91 +981,6 @@ public class UploadUtilities {
 	 * @param owlFile
 	 * @param engineClassName
 	 * @param dbType
-	 * @param host
-	 * @param port
-	 * @param schema
-	 * @param username
-	 * @param password
-	 * @param additionalParams
-	 * @return
-	 * @throws IOException
-	 * @throws SQLException
-	 */
-	public static File createTemporaryExternalRdbmsSmss(String appId, String appName, File owlFile,
-			String engineClassName, String dbType, String host, String port, String schema, String username,
-			String password, String additionalParams) throws IOException, SQLException {
-		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
-
-		// i am okay with deleting the .temp if it exists
-		// we dont leave this around
-		// and they should be deleted after loading
-		// so ideally this would never happen...
-		File appTempSmss = new File(appTempSmssLoc);
-		if (appTempSmss.exists()) {
-			appTempSmss.delete();
-		}
-
-		final String newLine = "\n";
-		final String tab = "\t";
-
-		File f = new File(host);
-		if(f.exists()) {
-			// custom logic for files!
-			FileWriter writer = null;
-			BufferedWriter bufferedWriter = null;
-			try {
-				writer = new FileWriter(appTempSmss);
-				bufferedWriter = new BufferedWriter(writer);
-				writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
-				String dbDriver = RdbmsConnectionHelper.getDriver(dbType);
-				bufferedWriter.write(Constants.RDBMS_TYPE + "\t" + dbType + "\n");
-				bufferedWriter.write(Constants.DRIVER + "\t" + dbDriver + "\n");
-				bufferedWriter.write(Constants.USERNAME + "\t" + username + "\n");
-				bufferedWriter.write(Constants.PASSWORD + "\t" + password + "\n");
-				String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(dbType, host, port, schema, additionalParams);
-				
-				// we have a file that we want to parameterize!
-				// write a parameterized version of the connection url 
-				// when it loads this will be replaced based on the local machine and work
-				String fileBasePath = f.getParent();
-				connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
-				if(connectionUrl.contains("\\")) {
-					connectionUrl = connectionUrl.replace("\\", "\\\\");
-				}
-				bufferedWriter.write(Constants.CONNECTION_URL + "\t" + connectionUrl + "\n");
-			} catch (IOException e) {
-				e.printStackTrace();
-				throw new IOException("Could not generate temporary smss file for app");
-			} finally {
-				try {
-					if (bufferedWriter != null) {
-						bufferedWriter.close();
-					}
-					if (writer != null) {
-						writer.close();
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		} else {
-			// we have a normal JDBC url
-			// create the connection url
-			// and use the default method
-			String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(dbType, host, port, schema, additionalParams);
-			createTemporaryExternalRdbmsSmss(appId, appName, owlFile, engineClassName, dbType, connectionUrl, username, password);
-		}
-		return appTempSmss;
-	}
-	
-
-	/**
-	 * Create a temporary smss file for an external rdbms engine
-	 * @param appId
-	 * @param appName
-	 * @param owlFile
-	 * @param engineClassName
-	 * @param dbType
 	 * @param connectionUrl
 	 * @param username
 	 * @param password
@@ -1074,7 +989,8 @@ public class UploadUtilities {
 	 * @throws SQLException
 	 */
 	public static File createTemporaryExternalRdbmsSmss(String appId, String appName, File owlFile,
-			String engineClassName, String dbType, String connectionUrl, String username, String password) throws IOException, SQLException {
+			String engineClassName, RdbmsTypeEnum dbType, String connectionUrl, 
+			Map<String, Object> connectionDetails) throws IOException, SQLException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
 		// i am okay with deleting the .temp if it exists
@@ -1095,16 +1011,37 @@ public class UploadUtilities {
 			writer = new FileWriter(appTempSmss);
 			bufferedWriter = new BufferedWriter(writer);
 			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
-			String dbDriver = RdbmsConnectionHelper.getDriver(dbType);
-			bufferedWriter.write(Constants.RDBMS_TYPE + "\t" + dbType + "\n");
-			bufferedWriter.write(Constants.DRIVER + "\t" + dbDriver + "\n");
-			bufferedWriter.write(Constants.USERNAME + "\t" + username + "\n");
-			bufferedWriter.write(Constants.PASSWORD + "\t" + password + "\n");
+			// write the driver at the top
+			bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
+			bufferedWriter.write(newLine);
 
+			String customUrl = (String) connectionDetails.get(AbstractSqlQueryUtil.CONNECTION_STRING);
+			if(customUrl != null && !customUrl.isEmpty()) {
+				bufferedWriter.write(Constants.USERNAME + tab + connectionDetails.get(AbstractSqlQueryUtil.USERNAME) + newLine);
+				bufferedWriter.write(Constants.PASSWORD + tab + connectionDetails.get(AbstractSqlQueryUtil.PASSWORD) + newLine);
+			} else {
+				String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
+				if(host != null && !host.isEmpty()) {
+					File f = new File(host);
+					if(f.exists()) {
+						String fileBasePath = f.getParent();
+						connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
+					}
+				}
+				
+				for(String key : connectionDetails.keySet()) {
+					if(key.equals(Constants.CONNECTION_URL) || connectionDetails.get(key) == null || connectionDetails.get(key).toString().isEmpty()) {
+						continue;
+					}
+					bufferedWriter.write(key + tab + connectionDetails.get(key) + newLine);
+				}
+			}
+			
+			// write connection URL at the end
 			if(connectionUrl.contains("\\")) {
 				connectionUrl = connectionUrl.replace("\\", "\\\\");
 			}
-			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + connectionUrl + "\n");
+			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IOException("Could not generate temporary smss file for app");

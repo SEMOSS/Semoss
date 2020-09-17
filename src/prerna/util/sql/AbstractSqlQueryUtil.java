@@ -30,6 +30,7 @@ package prerna.util.sql;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -62,11 +63,21 @@ import prerna.util.Utility;
 public abstract class AbstractSqlQueryUtil {
 	
 	// inputs for connection string builder
+	public static final String CONNECTION_STRING = Constants.CONNECTION_URL;
+	public static final String DRIVER_NAME = "dbDriver";
+
 	public static final String HOSTNAME = "hostname";
 	public static final String PORT = "port";
+	public static final String DATABASE = "database";
 	public static final String SCHEMA = "schema";
-	public static final String USERNAME = "username";
-
+	public static final String USERNAME = Constants.USERNAME;
+	public static final String PASSWORD = Constants.PASSWORD;
+	public static final String ADDITIONAL = "additional";
+	public static final String REGION = "region";
+	public static final String ACCESS_KEY = "accessKey";
+	public static final String SECRET_KEY = "secretKey";
+	public static final String OUTPUT = "output";
+	
 	private static final Logger logger = LogManager.getLogger(AbstractSqlQueryUtil.class);
 
 	protected RdbmsTypeEnum dbType = null;
@@ -123,14 +134,50 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 * @throws SQLException 
 	 */
-	public abstract String buildConnectionString(Map<String, Object> configMap) throws SQLException;
+	public abstract String buildConnectionString(Map<String, Object> configMap) throws RuntimeException;
 	
 	/**
 	 * Build the connection string from a properties file (SMSS file)
 	 * @param prop
 	 * @return
 	 */
-	public abstract String buildConnectionString(Properties prop);
+	public abstract String buildConnectionString(Properties prop) throws RuntimeException;
+	
+	
+	/**
+	 * Method to get a connection to an existing RDBMS engine
+	 * If the username or password are null, we will assume the information is already provided within the connectionUrl
+	 * @param connectionUrl
+	 * @param userName
+	 * @param password
+	 * @param driver
+	 * @return
+	 * @throws SQLException 
+	 */
+	public static Connection makeConnection(RdbmsTypeEnum type, String connectionUrl, String userName, String password) throws SQLException {
+		try {
+			Class.forName(type.getDriver());
+		} catch (ClassNotFoundException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new SQLException("Unable to find driver for engine type");
+		}
+
+		// create the iterator
+		Connection conn;
+		try {
+			if (userName == null || password == null) {
+				conn = DriverManager.getConnection(connectionUrl);
+			} else {
+				conn = DriverManager.getConnection(connectionUrl, userName, password);
+			}
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new SQLException(e.getMessage());
+		}
+
+		return conn;
+	}
+	
 	
 	/**
 	 * Use this when we need to make any modifications to the connection object for

@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.util.sql;
 
-import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
 
@@ -67,6 +66,102 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		typeConversionMap.put("STRING", "VARCHAR(800)");
 	}
 	
+	@Override
+	public String buildConnectionString(Map<String, Object> configMap) throws RuntimeException {
+		if(configMap.isEmpty()){
+			throw new RuntimeException("Configuration map is empty");
+		}
+		
+		String connectionString = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_STRING);
+		if(connectionString != null && !connectionString.isEmpty()) {
+			return connectionString;
+		}
+		
+		String urlPrefix = this.dbType.getUrlPrefix();
+		String hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
+		if(hostname == null || hostname.isEmpty()) {
+			throw new RuntimeException("Must pass in a hostname");
+		}
+		
+		String port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
+		if (port != null && !port.isEmpty()) {
+			port = ":" + port;
+		} else {
+			port = "";
+		}
+		
+		String database = (String) configMap.get(AbstractSqlQueryUtil.DATABASE);
+		if(database == null || database.isEmpty()) {
+			throw new RuntimeException("Must pass in database name");
+		}
+		
+		String schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
+		if(schema == null || schema.isEmpty()) {
+			throw new RuntimeException("Must pass in schema name");
+		}
+		
+		connectionString = urlPrefix+"://"+hostname+port+"/"+database+"?currentSchema="+schema;
+		
+		String additonalProperties = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		if(additonalProperties != null && !additonalProperties.isEmpty()) {
+			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
+				connectionString += ";" + additonalProperties;
+			} else {
+				connectionString += additonalProperties;
+			}
+		}
+		
+		return connectionString;
+	}
+
+	@Override
+	public String buildConnectionString(Properties prop) throws RuntimeException {
+		if(prop == null){
+			throw new RuntimeException("Properties ojbect is null");
+		}
+		
+		String connectionString = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_STRING);
+		if(connectionString != null && !connectionString.isEmpty()) {
+			return connectionString;
+		}
+		
+		String urlPrefix = this.dbType.getUrlPrefix();
+		String hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
+		if(hostname == null || hostname.isEmpty()) {
+			throw new RuntimeException("Must pass in a hostname");
+		}
+		
+		String port = (String) prop.get(AbstractSqlQueryUtil.PORT);
+		if (port != null && !port.isEmpty()) {
+			port = ":" + port;
+		} else {
+			port = "";
+		}
+		
+		String database = (String) prop.get(AbstractSqlQueryUtil.DATABASE);
+		if(database == null || database.isEmpty()) {
+			throw new RuntimeException("Must pass in database name");
+		}
+		
+		String schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
+		if(schema == null || schema.isEmpty()) {
+			throw new RuntimeException("Must pass in schema name");
+		}
+		
+		connectionString = urlPrefix+"://"+hostname+port+"/"+database+"?currentSchema="+schema;
+		
+		String additonalProperties = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		if(additonalProperties != null && !additonalProperties.isEmpty()) {
+			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
+				connectionString += ";" + additonalProperties;
+			} else {
+				connectionString += additonalProperties;
+			}
+		}
+		
+		return connectionString;
+	}
+	
 	public IQueryInterpreter getInterpreter(IEngine engine) {
 		return new PostgresSqlInterpreter(engine);
 	}
@@ -83,45 +178,5 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String tableExistsQuery(String tableName, String schema) {
 		return "select table_name, table_type from information_schema.tables where table_schema='" + schema + "' and table_name='" + tableName + "'";
-	}
-	
-	@Override
-	public String buildConnectionString(Map<String, Object> configMap) throws SQLException, RuntimeException {
-		if(configMap.isEmpty()){
-			throw new RuntimeException("Configuration Map is Empty.");
-		}
-		String urlPrefix = ((String) RdbmsTypeEnum.POSTGRES.getUrlPrefix()).toUpperCase();
-		String hostname = ((String) configMap.get(AbstractSqlQueryUtil.HOSTNAME)).toUpperCase();
-		String port = ((String) configMap.get(AbstractSqlQueryUtil.PORT)).toUpperCase();
-		String schema = ((String) configMap.get(AbstractSqlQueryUtil.SCHEMA)).toUpperCase();
-		String username = ((String) configMap.get(AbstractSqlQueryUtil.USERNAME)).toUpperCase();
-		if (port != null && !port.isEmpty()) {
-			port = ":" + port;
-		} else {
-			port = "";
-		}
-		String connectionString = urlPrefix+"://"+hostname+port+"/"+schema; 
-		
-		return connectionString;
-	}
-
-	@Override
-	public String buildConnectionString(Properties prop) {
-		if(prop == null){
-			throw new RuntimeException("Properties ojbect is null");
-		}
-		String urlPrefix = ((String) RdbmsTypeEnum.POSTGRES.getUrlPrefix()).toUpperCase();
-		String hostname = ((String) prop.getProperty(AbstractSqlQueryUtil.HOSTNAME)).toUpperCase();
-		String port = ((String) prop.getProperty(AbstractSqlQueryUtil.PORT)).toUpperCase();
-		String schema = ((String) prop.getProperty(AbstractSqlQueryUtil.SCHEMA)).toUpperCase();
-		String username = ((String) prop.getProperty(AbstractSqlQueryUtil.USERNAME)).toUpperCase();
-		if (port != null && !port.isEmpty()) {
-			port = ":" + port;
-		} else {
-			port = "";
-		}
-		String connectionString = urlPrefix+"://"+hostname+port+"/"+schema; 
-		
-		return connectionString;
 	}
 }

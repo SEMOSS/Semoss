@@ -43,7 +43,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class SqlInterpreter extends AbstractQueryInterpreter {
 	
@@ -64,7 +64,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	// but everything needs to be the physical schema
 	protected transient IEngine engine; 
 	protected transient ITableDataFrame frame;
-	protected AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB);
+	protected AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
 
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator

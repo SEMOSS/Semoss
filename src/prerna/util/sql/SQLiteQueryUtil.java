@@ -33,6 +33,72 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String buildConnectionString(Map<String, Object> configMap) throws RuntimeException {
+		if(configMap.isEmpty()){
+			throw new RuntimeException("Configuration map is empty");
+		}
+		
+		String connectionString = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_STRING);
+		if(connectionString != null && !connectionString.isEmpty()) {
+			return connectionString;
+		}
+		
+		String urlPrefix = this.dbType.getUrlPrefix();
+		String hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
+		if(hostname == null || hostname.isEmpty()) {
+			throw new RuntimeException("Must pass in a hostname");
+		}
+		//... just in case
+		hostname = hostname.replace(".mv.db", "");
+
+		connectionString = urlPrefix+":"+hostname;
+		
+		String additonalProperties = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		if(additonalProperties != null && !additonalProperties.isEmpty()) {
+			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
+				connectionString += ";" + additonalProperties;
+			} else {
+				connectionString += additonalProperties;
+			}
+		}
+		
+		return connectionString;
+	}
+
+	@Override
+	public String buildConnectionString(Properties prop) throws RuntimeException {
+		if(prop == null){
+			throw new RuntimeException("Properties ojbect is null");
+		}
+		
+		String connectionString = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_STRING);
+		if(connectionString != null && !connectionString.isEmpty()) {
+			return connectionString;
+		}
+		
+		String urlPrefix = this.dbType.getUrlPrefix();
+		String hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
+		if(hostname == null || hostname.isEmpty()) {
+			throw new RuntimeException("Must pass in a hostname");
+		}
+		//... just in case
+		hostname = hostname.replace(".mv.db", "");
+
+		connectionString = urlPrefix+":"+hostname;
+		
+		String additonalProperties = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		if(additonalProperties != null && !additonalProperties.isEmpty()) {
+			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
+				connectionString += ";" + additonalProperties;
+			} else {
+				connectionString += additonalProperties;
+			}
+		}
+		
+		return connectionString;
+	}
+	
+	@Override
 	public void enhanceConnection(Connection con) {
 		SQLiteConfig sqLiteConfig = new SQLiteConfig();
 		Properties properties = sqLiteConfig.toProperties();
@@ -346,37 +412,5 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 		// do not need to use the schema
 		// sadly, sqlite does not provide the columns for the index
 		return "SELECT NAME, null AS COLUMN FROM SQLITE_MASTER WHERE TYPE='index' AND TBL_NAME='" + tableName + "';";
-	}
-	
-	@Override
-	public String buildConnectionString(Map<String, Object> configMap) throws SQLException, RuntimeException {
-		if(configMap.isEmpty()){
-			throw new RuntimeException("Configuration Map is Empty.");
-		}
-		String urlPrefix = ((String) RdbmsTypeEnum.SQLITE.getUrlPrefix()).toUpperCase();
-		String hostname = ((String) configMap.get(AbstractSqlQueryUtil.HOSTNAME)).toUpperCase();
-		String port = ((String) configMap.get(AbstractSqlQueryUtil.PORT)).toUpperCase();
-		String schema = ((String) configMap.get(AbstractSqlQueryUtil.SCHEMA)).toUpperCase();
-		String username = ((String) configMap.get(AbstractSqlQueryUtil.USERNAME)).toUpperCase();
-		hostname = hostname.replace(".mv.db", "");
-		String connectionString = urlPrefix+":"+hostname; 
-		
-		return connectionString;
-	}
-
-	@Override
-	public String buildConnectionString(Properties prop) {
-		if(prop == null){
-			throw new RuntimeException("Properties ojbect is null");
-		}
-		String urlPrefix = ((String) RdbmsTypeEnum.SQLITE.getUrlPrefix()).toUpperCase();
-		String hostname = ((String) prop.getProperty(AbstractSqlQueryUtil.HOSTNAME)).toUpperCase();
-		String port = ((String) prop.getProperty(AbstractSqlQueryUtil.PORT)).toUpperCase();
-		String schema = ((String) prop.getProperty(AbstractSqlQueryUtil.SCHEMA)).toUpperCase();
-		String username = ((String) prop.getProperty(AbstractSqlQueryUtil.USERNAME)).toUpperCase();
-		hostname = hostname.replace(".mv.db", "");
-		String connectionString = urlPrefix+":"+hostname; 
-		
-		return connectionString;
 	}
 }

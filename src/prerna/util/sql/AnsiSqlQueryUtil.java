@@ -1,14 +1,12 @@
 package prerna.util.sql;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
@@ -28,18 +26,6 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	
 	AnsiSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
 		super(dbType, hostname, port, schema, username, password);
-	}
-	
-//	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
-	@Override
-	public String buildConnectionString(Map<String, Object> configMap) throws SQLException, RuntimeException {
-		return null;
-	}
-	
-	//TODO: BUILD THIS OUT WITHIN THE IMPLEMENTATION CLASSES
-	@Override
-	public String buildConnectionString(Properties prop) {
-		return null;
 	}
 	
 	@Override
