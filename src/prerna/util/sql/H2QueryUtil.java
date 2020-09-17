@@ -54,10 +54,6 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 		setDbType(RdbmsTypeEnum.H2_DB);
 	}
 	
-	H2QueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		super(dbType, hostname, port, schema, username, password);
-	}
-	
 	@Override
 	public IQueryInterpreter getInterpreter(IEngine engine) {
 		return new H2SqlInterpreter(engine);
