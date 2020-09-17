@@ -69,6 +69,109 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String buildConnectionString(Map<String, Object> configMap) throws RuntimeException {
+		if(configMap.isEmpty()){
+			throw new RuntimeException("Configuration map is empty");
+		}
+		
+		String connectionString = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_STRING);
+		if(connectionString != null && !connectionString.isEmpty()) {
+			return connectionString;
+		}
+		
+		connectionString = this.dbType.getUrlPrefix();
+		String hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
+		if(hostname == null || hostname.isEmpty()) {
+			throw new RuntimeException("Must pass in a hostname");
+		}
+		
+		File f = new File(Utility.normalizePath(hostname));
+		if(f.exists()) {
+			hostname = hostname.replace(".mv.db", "");
+			connectionString += ":nio:" + hostname;
+		} else {
+			String port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
+			if (port != null && !port.isEmpty()) {
+				port = ":" + port;
+			} else {
+				port = "";
+			}
+			
+			if(port!=null && !port.isEmpty()) {
+				connectionString += ":tcp://"+hostname+":"+port;
+			}		
+		}
+
+		String schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
+		if(schema != null && !schema.isEmpty()) {
+			connectionString+="/"+schema;
+		}
+		
+		String additonalProperties = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		if(additonalProperties != null && !additonalProperties.isEmpty()) {
+			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
+				connectionString += ";" + additonalProperties;
+			} else {
+				connectionString += additonalProperties;
+			}
+		}
+		
+		return connectionString;
+	}
+
+	@Override
+	public String buildConnectionString(Properties prop) throws RuntimeException {
+		if(prop == null){
+			throw new RuntimeException("Properties ojbect is null");
+		}
+
+		String connectionString = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_STRING);
+		if(connectionString != null && !connectionString.isEmpty()) {
+			return connectionString;
+		}
+		
+		connectionString = this.dbType.getUrlPrefix();
+		String hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
+		if(hostname == null || hostname.isEmpty()) {
+			throw new RuntimeException("Must pass in a hostname");
+		}
+		
+		File f = new File(Utility.normalizePath(hostname));
+		if(f.exists()) {
+			hostname = hostname.replace(".mv.db", "");
+			connectionString += ":nio:" + hostname;
+		} else {
+			String port = (String) prop.get(AbstractSqlQueryUtil.PORT);
+			if (port != null && !port.isEmpty()) {
+				port = ":" + port;
+			} else {
+				port = "";
+			}
+			
+			if(port!=null && !port.isEmpty()) {
+				connectionString += ":tcp://"+hostname+":"+port;
+			}		
+		}
+
+		String schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
+		if(schema != null && !schema.isEmpty()) {
+			connectionString+="/"+schema;
+		}
+		
+		String additonalProperties = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		if(additonalProperties != null && !additonalProperties.isEmpty()) {
+			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
+				connectionString += ";" + additonalProperties;
+			} else {
+				connectionString += additonalProperties;
+			}
+		}
+		
+		return connectionString;
+	}
+	
+	
+	@Override
 	public void enhanceConnection(Connection con) {
 		try {
 			Statement stmt = con.createStatement();
@@ -150,57 +253,4 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 		builder.append(String.join(",",Stream.of(columns).map(c -> c + " = HASH('SHA256', STRINGTOUTF8(" + c + "), 1000)").collect(Collectors.toList())));
 		return builder.toString();
 	}
-	
-	@Override
-	public String buildConnectionString(Map<String, Object> configMap) throws SQLException, RuntimeException {
-		if(configMap.isEmpty()){
-			throw new RuntimeException("Configuration Map is Empty.");
-		}
-		String urlPrefix = ((String) RdbmsTypeEnum.H2_DB.getUrlPrefix()).toUpperCase();
-		String hostname = ((String) configMap.get(AbstractSqlQueryUtil.HOSTNAME)).toUpperCase();
-		String port = ((String) configMap.get(AbstractSqlQueryUtil.PORT)).toUpperCase();
-		String schema = ((String) configMap.get(AbstractSqlQueryUtil.SCHEMA)).toUpperCase();
-		String username = ((String) configMap.get(AbstractSqlQueryUtil.USERNAME)).toUpperCase();
-		File f = new File(Utility.normalizePath(hostname));
-		String connectionString = urlPrefix;
-		if(f.exists()) {
-			hostname = hostname.replace(".mv.db", "");
-			connectionString += ":nio:" + hostname;
-		} else {
-			if(port!=null && !port.isEmpty()) {
-				connectionString += ":tcp://"+hostname+":"+port;
-			}		
-		}
-		if(schema != null || !schema.isEmpty()) {
-			connectionString+="/"+schema;
-		}
-		return connectionString;
-	}
-
-	@Override
-	public String buildConnectionString(Properties prop) {
-		if(prop == null){
-			throw new RuntimeException("Properties ojbect is null");
-		}
-		String urlPrefix = ((String) RdbmsTypeEnum.H2_DB.getUrlPrefix()).toUpperCase();
-		String hostname = ((String) prop.getProperty(AbstractSqlQueryUtil.HOSTNAME)).toUpperCase();
-		String port = ((String) prop.getProperty(AbstractSqlQueryUtil.PORT)).toUpperCase();
-		String schema = ((String) prop.getProperty(AbstractSqlQueryUtil.SCHEMA)).toUpperCase();
-		String username = ((String) prop.getProperty(AbstractSqlQueryUtil.USERNAME)).toUpperCase();
-		File f = new File(Utility.normalizePath(hostname));
-		String connectionString = urlPrefix;
-		if(f.exists()) {
-			hostname = hostname.replace(".mv.db", "");
-			connectionString += ":nio:" + hostname;
-		} else {
-			if(port!=null && !port.isEmpty()) {
-				connectionString += ":tcp://"+hostname+":"+port;
-			}		
-		}
-		if(schema != null || !schema.isEmpty()) {
-			connectionString+="/"+schema;
-		}
-		return connectionString;
-	}
-	
 }

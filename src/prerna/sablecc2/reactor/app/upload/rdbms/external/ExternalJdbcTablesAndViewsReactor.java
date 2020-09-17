@@ -13,6 +13,7 @@ import java.util.Map;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -20,46 +21,50 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = ExternalJdbcTablesAndViewsReactor.class.getName();
 	
 	public ExternalJdbcTablesAndViewsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), 
-				ReactorKeysEnum.HOST.getKey(), ReactorKeysEnum.PORT.getKey(), 
-				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
-				ReactorKeysEnum.SCHEMA.getKey(), ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey()};
+		this.keysToGet = new String[]{ ReactorKeysEnum.CONNECTION_DETAILS.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		
-		organizeKeys();
-		String driver = this.keyValue.get(this.keysToGet[0]);
-		String connectionUrl = this.keyValue.get(this.keysToGet[1]);
-		String host = this.keyValue.get(this.keysToGet[2]);
-		String port = this.keyValue.get(this.keysToGet[3]);
-		String username = this.keyValue.get(this.keysToGet[4]);
-		String password = this.keyValue.get(this.keysToGet[5]);
-		String schema = this.keyValue.get(this.keysToGet[6]);
-		String additionalProperties = this.keyValue.get(this.keysToGet[7]);
-
-		if(host != null) {
-			String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
-			if(new File(testUpdatedHost).exists()) {
-				host = testUpdatedHost;
+		Map<String, Object> connectionDetails = getConDetails();
+		if(connectionDetails != null) {
+			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
+			if(host != null) {
+				String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
+				if(new File(testUpdatedHost).exists()) {
+					host = testUpdatedHost;
+					connectionDetails.put(AbstractSqlQueryUtil.HOSTNAME, host);
+				}
 			}
 		}
 		
+		String driver = (String) connectionDetails.get(AbstractSqlQueryUtil.DRIVER_NAME);
+		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(driverEnum);
+		
 		Connection con = null;
+		String connectionUrl = null;
 		try {
-			if(connectionUrl == null || connectionUrl.trim().isEmpty()) {
-				connectionUrl = RdbmsConnectionHelper.getConnectionUrl(driver, host, port, schema, additionalProperties);
-			}
-			con = RdbmsConnectionHelper.buildConnection(connectionUrl, username, password, driver);
+			connectionUrl = queryUtil.buildConnectionString(connectionDetails);
+		} catch (RuntimeException e) {
+			throw new SemossPixelException(new NounMetadata("Unable to generation connection url with message " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
+		
+		try {
+			con = AbstractSqlQueryUtil.makeConnection(driverEnum, connectionUrl, 
+					(String) connectionDetails.get(AbstractSqlQueryUtil.USERNAME), 
+					(String) connectionDetails.get(AbstractSqlQueryUtil.PASSWORD));
 		} catch (SQLException e) {
 			e.printStackTrace();
 			String driverError = e.getMessage();
@@ -88,7 +93,6 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 		
-		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
 		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
 		ResultSet tablesRs;
 		try {
@@ -148,6 +152,23 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	private Map<String, Object> getConDetails() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
+			if(mapInput != null && !mapInput.isEmpty()) {
+				return (Map<String, Object>) mapInput.get(0);
+			}
+		}
+		
+		List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
+		if(mapInput != null && !mapInput.isEmpty()) {
+			return (Map<String, Object>) mapInput.get(0);
+		}
+		
+		return null;
 	}
 
 }
