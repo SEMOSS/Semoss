@@ -20,10 +20,6 @@ public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 		setDbType(RdbmsTypeEnum.TERADATA);
 	}
 	
-	TeradataQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		super(dbType, hostname, port, schema, username, password);
-	}
-	
 	@Override
 	public IQueryInterpreter getInterpreter(IEngine engine) {
 		return new TeradataSqlInterpreter(engine);

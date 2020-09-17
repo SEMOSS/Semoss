@@ -15,10 +15,6 @@ public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
 		setDbType(RdbmsTypeEnum.REDSHIFT);
 	}
 	
-	RedshiftQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		super(dbType, hostname, port, schema, username, password);
-	}
-	
 	@Override
 	public String buildConnectionString(Map<String, Object> configMap) throws RuntimeException {
 		if(configMap.isEmpty()){

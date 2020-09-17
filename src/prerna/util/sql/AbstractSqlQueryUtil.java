@@ -51,7 +51,6 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -109,22 +108,6 @@ public abstract class AbstractSqlQueryUtil {
 		this.connectionUrl = connectionURL;
 		this.username = username;
 		this.password = password;
-		initTypeConverstionMap();
-	}
-
-	AbstractSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username,
-			String password) {
-		this.dbType = dbType;
-		this.hostname = hostname;
-		this.port = port;
-		this.schema = schema;
-		this.username = username;
-		this.password = password;
-		try {
-			this.connectionUrl = RdbmsConnectionHelper.getConnectionUrl(dbType.name(), hostname, port, schema, "");
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
 		initTypeConverstionMap();
 	}
 
