@@ -458,10 +458,11 @@ public class PixelStreamUtility {
 							if(task instanceof BasicIteratorTask) {
 								IRawSelectWrapper iterator = ((BasicIteratorTask) task).getIterator();
 								if( (flushable = iterator.flushable()) ) {
+									String flushedOutput = iterator.flush();
 									ps.print("\"output\":{");
 									ps.print("\"data\":{" );
 									ps.print("\"values\":");
-									ps.print(iterator.flush());
+									ps.print(flushedOutput);
 									ps.flush();
 									// logic around sending an empty data map in proper structure
 									first = false;
