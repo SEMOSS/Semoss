@@ -64,7 +64,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 /**
  * Loading data into SEMOSS using Microsoft Excel Loading Sheet files
@@ -313,7 +313,7 @@ public class FormulaExtractor extends AbstractFileReader {
 		RdbmsTypeEnum dbType = options.getRDBMSDriverType();
 		boolean allowDuplicates = options.isAllowDuplicates();
 		boolean error = false;
-		queryUtil = SqlQueryUtilFactor.initialize(dbType);
+		queryUtil = SqlQueryUtilFactory.initialize(dbType);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		String appID = options.getEngineID();
 		try {

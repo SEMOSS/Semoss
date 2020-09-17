@@ -153,7 +153,7 @@ public class RdbmsConnectionHelper {
 		else if (rdbmsType == RdbmsTypeEnum.SNOWFLAKE) {
 			connectionUrl += "://HOST:PORT/?db=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
-		else if (rdbmsType == RdbmsTypeEnum.SQLSERVER) {
+		else if (rdbmsType == RdbmsTypeEnum.SQL_SERVER) {
 			connectionUrl += "://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.TERADATA) {
@@ -405,7 +405,7 @@ public class RdbmsConnectionHelper {
 			tablesRs = con.createStatement().executeQuery(query);
 		} else if (driver == RdbmsTypeEnum.ATHENA){
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL_TABLE", "VIEW" });
-		} else if (driver == RdbmsTypeEnum.SQLSERVER) {
+		} else if (driver == RdbmsTypeEnum.SQL_SERVER) {
 			// do not pass in the schema...
 			tablesRs = meta.getTables(catalogFilter, null, null, new String[] { "TABLE", "VIEW"});
 		} else if(driver == RdbmsTypeEnum.MYSQL){
@@ -455,7 +455,7 @@ public class RdbmsConnectionHelper {
 	 */
 	public static ResultSet getColumns(DatabaseMetaData meta, String tableOrView, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) throws SQLException {
 		ResultSet columnsRs;
-		if (driver == RdbmsTypeEnum.ORACLE || driver == RdbmsTypeEnum.SQLSERVER) {
+		if (driver == RdbmsTypeEnum.ORACLE || driver == RdbmsTypeEnum.SQL_SERVER) {
 			// do not pass in schema
 			columnsRs = meta.getColumns(catalogFilter, null, tableOrView, null);
 		} else if(driver == RdbmsTypeEnum.SNOWFLAKE) {

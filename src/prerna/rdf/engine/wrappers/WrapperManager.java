@@ -202,16 +202,17 @@ public class WrapperManager {
 				interpreter.setQueryStruct(qs);
 				query = interpreter.composeQuery();
 				String appId = engine.getEngineId();
-				if(Constants.LOCAL_MASTER_DB_NAME.equals(appId) || Constants.SECURITY_DB.equals(appId)) {
+				if(Constants.LOCAL_MASTER_DB_NAME.equals(appId) || Constants.SECURITY_DB.equals(appId) 
+						|| Constants.SCHEDULER_DB.equals(appId) || Constants.THEMING_DB.equals(appId)) {
 					returnWrapper.setEngine(engine);
 					returnWrapper.setQuery(query);
 					if(!delayExecIfPossible) {
-						logger.info("Executing query on engine " + engine.getEngineId());
+						logger.debug("Executing query on engine " + engine.getEngineId());
 						returnWrapper.execute();
 						long end = System.currentTimeMillis();
-						logger.info("Engine execution time = " + (end-start) + "ms");
+						logger.debug("Engine execution time = " + (end-start) + "ms");
 					} else {
-						logger.info("Delaying query execution");
+						logger.debug("Delaying query execution");
 					}
 				} else {
 					returnWrapper.setEngine(engine);
