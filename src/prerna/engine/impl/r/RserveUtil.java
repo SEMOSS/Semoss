@@ -35,16 +35,17 @@ public class RserveUtil {
 	// R binary location
 	private static String rBin;
 	static {
-		String rHome = System.getenv("R_HOME").replace("\\", FS);
-		if (rHome == null || rHome.isEmpty()) {
-			rBin = "R"; // Just hope its in the path
-		} else {
+		String rHomeEnv = System.getenv("R_HOME");
+		if(rHomeEnv != null && !rHomeEnv.isEmpty()) {
+			String rHome = rHomeEnv.replace("\\", FS);
 			Path rHomePath = Paths.get(rHome);
 			if (!Files.isDirectory(rHomePath)) {
-				throw new IllegalArgumentException("rHome does not exist or is not a directory");
+				throw new IllegalArgumentException("R_HOME does not exist or is not a directory");
 			}
 			rBin = rHome + FS + "bin" + FS + "R";
 			if (SystemUtils.IS_OS_WINDOWS) rBin = rBin.replace(FS, "\\\\");
+		} else {
+			rBin = "R"; // Just hope its in the path
 		}
 	}
 	
