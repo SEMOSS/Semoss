@@ -137,12 +137,27 @@ public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 			port = "";
 		}
 		
+		String warehouse = (String) prop.get(AbstractSqlQueryUtil.WAREHOUSE);
+		if(warehouse == null || warehouse.isEmpty()) {
+			throw new RuntimeException("Must pass in the warehouse to compute the queries");
+		}
+		
+		String role = (String) prop.get(AbstractSqlQueryUtil.ROLE);
+		if(role == null || role.isEmpty()) {
+			role = "PUBLIC";
+		}
+		
+		String database = (String) prop.get(AbstractSqlQueryUtil.DATABASE);
+		if(database == null || database.isEmpty()) {
+			throw new RuntimeException("Must pass in the database");
+		}
+		
 		String schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
 		if(schema == null || schema.isEmpty()) {
 			throw new RuntimeException("Must pass in schema name");
 		}
 		
-		connectionString = urlPrefix+"://"+hostname+port+"/?db="+schema;
+		connectionString = urlPrefix+"://"+hostname+port+"/?warehouse="+warehouse+"&role="+role+"&db="+database+"&schema="+schema;
 		
 		String additonalProperties = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
 		if(additonalProperties != null && !additonalProperties.isEmpty()) {
