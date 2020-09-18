@@ -79,17 +79,32 @@ public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 			port = "";
 		}
 		
+		String warehouse = (String) configMap.get(AbstractSqlQueryUtil.WAREHOUSE);
+		if(warehouse == null || warehouse.isEmpty()) {
+			throw new RuntimeException("Must pass in the warehouse to compute the queries");
+		}
+		
+		String role = (String) configMap.get(AbstractSqlQueryUtil.ROLE);
+		if(role == null || role.isEmpty()) {
+			role = "PUBLIC";
+		}
+		
+		String database = (String) configMap.get(AbstractSqlQueryUtil.DATABASE);
+		if(database == null || database.isEmpty()) {
+			throw new RuntimeException("Must pass in the database");
+		}
+		
 		String schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
 		if(schema == null || schema.isEmpty()) {
 			throw new RuntimeException("Must pass in schema name");
 		}
 		
-		connectionString = urlPrefix+"://"+hostname+port+"/?db="+schema;
+		connectionString = urlPrefix+"://"+hostname+port+"/?warehouse="+warehouse+"&role="+role+"&db="+database+"&schema="+schema;
 		
 		String additonalProperties = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
 		if(additonalProperties != null && !additonalProperties.isEmpty()) {
-			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
-				connectionString += ";" + additonalProperties;
+			if(!additonalProperties.startsWith("&")) {
+				connectionString += "&" + additonalProperties;
 			} else {
 				connectionString += additonalProperties;
 			}
