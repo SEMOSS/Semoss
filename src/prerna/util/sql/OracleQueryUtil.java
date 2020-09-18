@@ -39,12 +39,12 @@ public class OracleQueryUtil extends AnsiSqlQueryUtil {
 			port = "";
 		}
 		
-		String schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
-		if(schema == null || schema.isEmpty()) {
-			throw new RuntimeException("Must pass in schema name");
+		String service = (String) configMap.get(AbstractSqlQueryUtil.SERVICE);
+		if(service == null || service.isEmpty()) {
+			throw new RuntimeException("Must pass in a sid / service name");
 		}
 		
-		connectionString = urlPrefix+":@"+hostname+port+"/"+schema;
+		connectionString = urlPrefix+":@"+hostname+port+"/"+service;
 		
 		String additonalProperties = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
 		if(additonalProperties != null && !additonalProperties.isEmpty()) {
@@ -82,12 +82,12 @@ public class OracleQueryUtil extends AnsiSqlQueryUtil {
 			port = "";
 		}
 		
-		String schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
-		if(schema == null || schema.isEmpty()) {
-			throw new RuntimeException("Must pass in schema name");
+		String service = (String) prop.get(AbstractSqlQueryUtil.SERVICE);
+		if(service == null || service.isEmpty()) {
+			throw new RuntimeException("Must pass in a sid / service name");
 		}
 		
-		connectionString = urlPrefix+":@"+hostname+port+"/"+schema; 
+		connectionString = urlPrefix+":@"+hostname+port+"/"+service; 
 		return connectionString;
 	}
 	
