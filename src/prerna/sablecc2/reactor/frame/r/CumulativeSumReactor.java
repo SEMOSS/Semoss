@@ -86,7 +86,10 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 			
 		}
 		// add sort by
-		String sortBy = " %>% arrange( " + implicitSort;
+		String sortBy = " %>% arrange( ";
+		if (!groupCols.isEmpty()) {
+			sortBy += implicitSort;
+		}
 		for(int i = 0; i < sortColumns.size(); i++){
 			String col = sortColumns.get(i);
 			sortBy += col;
