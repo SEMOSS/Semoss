@@ -74,6 +74,7 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String ADDITIONAL = "additional";
 	
 	// relatively specific inputs
+	public static final String SERVICE = "service";
 	public static final String REGION = "region";
 	public static final String ACCESS_KEY = "accessKey";
 	public static final String SECRET_KEY = "secretKey";
