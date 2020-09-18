@@ -72,10 +72,14 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String USERNAME = Constants.USERNAME;
 	public static final String PASSWORD = Constants.PASSWORD;
 	public static final String ADDITIONAL = "additional";
+	
+	// relatively specific inputs
 	public static final String REGION = "region";
 	public static final String ACCESS_KEY = "accessKey";
 	public static final String SECRET_KEY = "secretKey";
 	public static final String OUTPUT = "output";
+	public static final String WAREHOUSE = "warehouse";
+	public static final String ROLE = "role";
 	
 	private static final Logger logger = LogManager.getLogger(AbstractSqlQueryUtil.class);
 
