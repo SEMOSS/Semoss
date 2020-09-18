@@ -33,7 +33,8 @@ public class EncodeURIReactor extends AbstractRFrameReactor {
 
 		// get table name
 		String table = frame.getName();
-
+		String[] packages = new String[] { "urltools" };
+		this.rJavaTranslator.checkPackages(packages);
 		// get inputs
 		List<String> columns = getColumns();
 		StringBuilder builder = new StringBuilder();
