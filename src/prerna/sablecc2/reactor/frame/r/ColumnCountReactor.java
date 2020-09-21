@@ -51,6 +51,9 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 		String table = frame.getName();
 
 		String colType = this.rJavaTranslator.getColumnType(table, column);
+		if(colType == null)
+			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+
 		if(colType.equals("int") || colType.equals("num") || colType.equals("numeric")) {
 			//this accounts for the case that the values are numeric - just make a histogram using the histogram reactor
 			//without this section we get errors because the column values are not string or factors

@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -29,6 +30,7 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
 		// get table name
 		String table = frame.getName();
@@ -48,6 +50,11 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 		if (sortDir == null) {
 			sortDir = getSortDirection();
 		}
+
+		// if not column throw warning
+		String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
+		if(dataType == null)
+			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
 
 		// define the scripts based on the sort direction
 		String script = null;
