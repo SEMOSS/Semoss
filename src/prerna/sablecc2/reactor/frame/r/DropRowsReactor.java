@@ -40,7 +40,13 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 
 		// use RInterpreter to create filter syntax
 		OwlTemporalEngineMeta frameMetadata = frame.getMetaData();
-		grf = QSAliasToPhysicalConverter.convertGenRowFilters(grf, frameMetadata, null);
+		try
+		{
+			grf = QSAliasToPhysicalConverter.convertGenRowFilters(grf, frameMetadata, null);
+		}catch(Exception ex)
+		{
+			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+		}
 		StringBuilder rFilterBuilder = new StringBuilder();
 		RInterpreter ri = new RInterpreter();
 		ri.setColDataTypes(frameMetadata.getHeaderToTypeMap());

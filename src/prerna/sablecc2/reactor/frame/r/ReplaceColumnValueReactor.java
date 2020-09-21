@@ -59,6 +59,10 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 			// use method to retrieve a single column type
 			String columnSelect = table + "$" + column;
 			String colDataType = getColumnType(table, column);
+
+			if(colDataType == null)
+				return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+
 			SemossDataType sType = SemossDataType.convertStringToDataType(colDataType);
 			
 			if(sType == SemossDataType.INT || sType == SemossDataType.DOUBLE) {

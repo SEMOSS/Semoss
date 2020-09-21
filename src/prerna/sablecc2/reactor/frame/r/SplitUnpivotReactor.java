@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.r;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -33,6 +34,7 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
 		// get table name
 		String table = frame.getName();
@@ -72,6 +74,10 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 			} else {
 				delimiter = delimiters.get(i);
 			}
+
+			String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
+			if(dataType == null)
+				return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
 
 			// build the script to execute
 			String script = tempName + " <- cSplit(" + table + ", " + "\"" + column + "\", \"" + delimiter
