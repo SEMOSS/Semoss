@@ -44,6 +44,9 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
+				if(dataType == null)
+					return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+
 				if (Utility.isStringType(dataType.toString())) {
 					String script = table + "$" + column + " <- gsub('[^\\\\.0-9]', '', " + table + "$" + column + ");";
 					try {
