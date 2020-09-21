@@ -20,8 +20,10 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.sablecc.ReactorSecurityManager;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
@@ -101,6 +103,26 @@ public final class RReactor extends AbstractRFrameReactor {
 			tempDir.mkdir();
 
 		ITableDataFrame frame = insight.getCurFrame();
+		NounMetadata newFrameVar = null;
+		if(frame == null)
+		{
+			// user is coming in for the first time
+			// create the variable here
+			// ggplot(framename, ... )
+			String frameName = ggplotCommand.replace("ggplot(", "");
+			frameName = frameName.split(",")[0].trim();
+			GenRowStruct grs = new GenRowStruct();
+			grs.add(frameName, PixelDataType.CONST_STRING);
+			this.store.addNoun(ReactorKeysEnum.VARIABLE.getKey(), grs);
+			
+			GenerateFrameFromRVariableReactor gfrv = new GenerateFrameFromRVariableReactor();
+			gfrv.setInsight(insight);
+			gfrv.setNounStore(this.store);
+			gfrv.In();
+			newFrameVar = gfrv.execute();
+			
+			frame = insight.getCurFrame();
+		}
 		String [] headers = frame.getColumnHeaders();
 		
 		StringBuilder ggplotter = new StringBuilder("{library(\"ggplot2\");"); // library(\"RCurl\");");
@@ -262,6 +284,8 @@ public final class RReactor extends AbstractRFrameReactor {
 				NounMetadata noun = new NounMetadata(daPanel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN);
 				retList.add(noun);
 				retList.add( new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE));
+				if(newFrameVar != null)
+					retList.add(newFrameVar);
 				
 				return new NounMetadata(retList, PixelDataType.VECTOR, PixelOperationType.VECTOR);
 					
