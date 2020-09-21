@@ -39,6 +39,9 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 
 		// make sure its a string
 		String dataType = this.getColumnType(tableName, column);
+		if(dataType == null)
+			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+
 		if (SemossDataType.convertStringToDataType(dataType) != SemossDataType.STRING) {
 			throw new IllegalArgumentException("The column type must be a String.");
 		}

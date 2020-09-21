@@ -35,19 +35,7 @@ public class CollectNewColReactor extends TaskBuilderReactor {
 
 	AbstractRJavaTranslator rJavaTranslator = null;
 	
-	private static Map<String, String> mathMap = new HashMap<String, String>();
-	static {
-		mathMap.put("Sum", "sum");
-		mathMap.put("Average", "mean");
-		mathMap.put("Min", "min");
-		mathMap.put("Max", "max");
-		mathMap.put("Median", "median");
-		mathMap.put("StandardDeviation", "sd");
-		mathMap.put("Count", "N");
-	};
-
 	public CollectNewColReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey() };
 	}
 
 	public NounMetadata execute() {
@@ -64,7 +52,17 @@ public class CollectNewColReactor extends TaskBuilderReactor {
 		
 
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
-		SelectQueryStruct pqs = QSAliasToPhysicalConverter.getPhysicalQs(sqs, metadata);
+		SelectQueryStruct pqs = null;
+		
+		try
+		{
+			// if the columns are not there. 
+			pqs = QSAliasToPhysicalConverter.getPhysicalQs(sqs, metadata);
+		}catch(Exception ex)
+		{
+			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+		}
+		
 		if(pqs.getCombinedFilters().getFilters() != null && pqs.getCombinedFilters().getFilters().size() > 0 )
 		{
 			warning = "You are applying a calculation while there are filters, this is not recommended and can lead to unpredictable results";
