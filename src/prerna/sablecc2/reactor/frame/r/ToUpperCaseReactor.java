@@ -47,6 +47,9 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 				table = split[0];
 			}
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
+			if(dataType == null)
+				return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+			
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// define the script to be executed
 				builder.append(table + "$" + col + " <- toupper(" + table + "$" + col + ");");
