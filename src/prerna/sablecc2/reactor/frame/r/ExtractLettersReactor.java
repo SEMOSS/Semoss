@@ -45,6 +45,9 @@ public class ExtractLettersReactor extends AbstractRFrameReactor {
 				String column = columns.get(i);
 				// check data type this is only valid on non numeric values
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
+				if(dataType == null)
+					return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+
 				if (Utility.isStringType(dataType.toString())) {
 					String update = table + "$" + column + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ")";
 					try {

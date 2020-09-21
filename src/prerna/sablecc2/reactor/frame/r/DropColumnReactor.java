@@ -53,6 +53,10 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 			builder.append(table + " <- " + table + "[," + col + ":=NULL];");
 			remCols.add(col);
 
+			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
+			if(dataType == null)
+				return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+			
 			metaData.dropProperty(table + "__" + col, table);
 			// drop filters with this column
 			frame.getFrameFilters().removeColumnFilter(col);
