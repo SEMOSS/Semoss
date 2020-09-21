@@ -51,6 +51,9 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 
 		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
 		String dataType = metadata.getHeaderTypeAsString(table + "__" + column);
+		if(dataType == null)
+			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+
 		
 		//check if there is a new dataType
 		if (!dataType.equals(newType)) {

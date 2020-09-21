@@ -33,12 +33,17 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
+		String table = frame.getName();
 
 		// get inputs
 		String originalColName = keyValue.get(this.keysToGet[0]);
+		String dataType = metadata.getHeaderTypeAsString(table + "__" + originalColName);
+		if(dataType == null)
+			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+
 		String updatedColName = keyValue.get(this.keysToGet[1]);
 		// check that the frame isn't null
-		String table = frame.getName();
 		// check if new colName is valid
 		updatedColName = getCleanNewColName(frame, updatedColName);
 		if (originalColName.contains("__")) {
@@ -65,7 +70,6 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		// FE passes the column name
 		// but meta will still be table __ column
 		// update the metadata because column names have changed
-		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
 		metadata.modifyPropertyName(table + "__" + originalColName, table, table + "__" + validNewHeader);
 		metadata.setAliasToProperty(table + "__" + validNewHeader, validNewHeader);
 		this.getFrame().syncHeaders();
