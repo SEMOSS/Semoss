@@ -19,6 +19,7 @@ DuplicateColumn,clean-duplicate-col
 EncodeURI,clean-encode-uri
 ExtractLetters,clean-extract-numbers-letters
 ExtractNumbers,clean-extract-numbers-letters
+ImputeNullValues,clean-impute
 Concatenate,clean-join
 ToLowerCase,clean-lower-case
 Pivot,clean-pivot
@@ -51,6 +52,7 @@ RunLOF,analytics-lof
 SemanticDescription,analytics-explore-localmaster
 StringExtractor,clean-string-extractor
 MetaSemanticSimilarity,analytics-explore-localmaster
+SemanticDescription,analytics-explore-localmaster-descriptions
 RunDocSimilarity,analytics-document-similarity
 RunDescriptionGenerator,analytics-description-generator
 RunClassification,analytics-classification
