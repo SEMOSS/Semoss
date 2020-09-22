@@ -14,6 +14,7 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -109,7 +110,8 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		
 		final String TABLE_KEY = "table";
 		final String COLUMNS_KEY = "columns";
-		final String TYPES_KEY = "type";
+		final String TYPES_KEY = "raw_type";
+		final String CLEAN_TYPES_KEY = "type";
 		final String PRIM_KEY = "isPrimKey";
 		
 		final String TO_TABLE_KEY = "toTable";
@@ -166,6 +168,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				
 				List<String> columnNames = new ArrayList<String>();
 				List<String> columnTypes = new ArrayList<String>();
+				List<String> cleanColumnTypes = new ArrayList<String>();
 				List<Boolean> isPrimKeys = new ArrayList<Boolean>();
 
 				ResultSet columnsRs = null;
@@ -178,6 +181,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 						String cName = columnsRs.getString(COLUMN_NAME_STR);
 						columnNames.add(cName);
 						columnTypes.add(columnsRs.getString(COLUMN_TYPE_STR));
+						cleanColumnTypes.add(SemossDataType.convertStringToDataType(columnsRs.getString(COLUMN_TYPE_STR)).toString());
 						if(primaryKeys.contains(cName)) {
 							isPrimKeys.add(true);
 						} else {
@@ -188,6 +192,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 					// add the data into the table details
 					tableDetails.put(COLUMNS_KEY, columnNames);
 					tableDetails.put(TYPES_KEY, columnTypes);
+					tableDetails.put(CLEAN_TYPES_KEY, cleanColumnTypes);
 					tableDetails.put(PRIM_KEY, isPrimKeys);
 
 				} catch (SQLException e) {
