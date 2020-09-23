@@ -34,8 +34,6 @@ public class InsightPanel {
 	private String viewOptions;
 	// panel configuration - opacity, etc.
 	private Map<String, Object> config;
-	// this is to track if filtering all values
-	protected Map<String, Object> selectAll = new HashMap<>();
 	// view options on the current view
 	private transient Map<String, Map<String, String>> viewOptionsMap;
 	// state held for UI options on the panel
@@ -601,20 +599,4 @@ public class InsightPanel {
 			}
 		}
 	}
-	
-	public void setSelectAllFilter(String column, boolean selectAll) {
-		this.selectAll.put(column, selectAll);
-	}
-
-	public boolean getSelectAllFilter(String column) {
-		boolean selectAll = false;
-		if (this.selectAll.containsKey(column)) {
-			selectAll = (boolean) this.selectAll.get(column);
-		} else {
-			// if value is not defined add it to map
-			this.selectAll.put(column, false);
-		}
-		return selectAll;
-	}
-
 }
