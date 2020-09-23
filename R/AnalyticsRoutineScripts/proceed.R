@@ -19,7 +19,15 @@ proceed<-function(input,model_size="small",total_tokens=NULL,temperature=1,top_k
 		model<-""
 	}
 	if(model!=""){
-		t<-gpt2(prompt = input, model, seed = NULL, batch_size = 1, total_tokens,temperature, top_k, top_p)
+		#t<-gpt2(prompt = input, model, seed = NULL, batch_size = 1, total_tokens,temperature, top_k, top_p)
+		t <- tryCatch(
+			{
+				gpt2(prompt = input, model, seed = NULL, batch_size = 1, total_tokens,temperature, top_k, top_p)
+			},
+			error = function(e){
+				gpt2(prompt = input, model, seed = NULL, batch_size = 1, total_tokens,temperature, top_k, top_p)
+			}
+		)
 		txt<-gsub("\n|\"","",t)
 		names(txt)<-NULL
 		if(!is.null(total_tokens)){
@@ -40,28 +48,19 @@ proceed<-function(input,model_size="small",total_tokens=NULL,temperature=1,top_k
 	return(txt)
 }
 
-infer_tbl_desc<-function(cols,model_size,total_tokens=100,temperature=1,top_k=2,top_p=1,limit=0){
-	CONTEXT<-"repository table contains the following columns: "
-	PURPOSE<-". The table purpose is"
-	input<-paste0(CONTEXT,paste(cols,collapse=", "),PURPOSE,collapse="")
-	desc<-proceed(input,model_size,total_tokens,temperature,top_k,top_p,limit)
-	gc()
-	return(desc)
-}
-
 infer_viz_desc<-function(chart,src,cols,model_size,total_tokens=100,temperature=1,top_k=2,top_p=1,limit=0){
 	if(chart!="" & src!="" & length(cols)!=0){
 		CONTEXT1<-"A chart is a graphical representation of data. The data usually reside in columns of database tables. The "
 		CONTEXT2<-" below shows how the "
-		PURPOSE<-". The purpose of this chart is"
+		PURPOSE<-"The purpose of this chart is"
 		if(length(cols)>1){
 			mycols<-paste0(paste0(cols,collapse=" and ")," depend on ")
 		}else{
 			mycols<-paste0(cols," depends on ")
 		}
 		mychart<-paste(chart,"chart",sep=" ")
-		input<-paste0(CONTEXT1,mychart,CONTEXT2,mycols,src,PURPOSE,collapse="")
-		desc<-proceed(input,model_size,total_tokens,temperature,top_k,top_p,limit)
+		input<-paste0(CONTEXT1,mychart,CONTEXT2,mycols,src,'. ',PURPOSE,collapse="")
+		desc<-paste0(PURPOSE,proceed(input,model_size,total_tokens,temperature,top_k,top_p,limit))
 	}else{
 		desc<-"Please provide correct arguments: chart name, dependent variable, independent variable"
 	}
@@ -69,7 +68,19 @@ infer_viz_desc<-function(chart,src,cols,model_size,total_tokens=100,temperature=
 	return(desc)
 }
 
-infer_db_desc<-function(cur_db,model_size,total_tokens=100,temperature=1,top_k=2,top_p=1,limit=0){
+infer_tbl_desc<-function(cols,model_size='small',total_tokens=100,temperature=1,top_k=2,top_p=1,limit=1,qty=1){
+	CONTEXT<-"repository table contains the following columns: "
+	PURPOSE<-"The table purpose is"
+	input<-paste0(CONTEXT,paste(cols,collapse=", "),'. ',PURPOSE,collapse="")
+	desc<-vector()
+	for(j in 1:qty){
+		desc<-append(desc,paste0(PURPOSE,proceed(input,model_size,total_tokens,temperature,top_k,top_p,limit)))
+	}
+	gc()
+	return(desc)
+}
+
+infer_db_desc<-function(cur_db,model_size='small',total_tokens=100,temperature=1,top_k=2,top_p=1,limit=1,qty=1){
 	# db is a dataframe containing Column, Table
 	CONTEXT<-"Database consists of the following tables: " 
 	PURPOSE<-"The purpose of this database is"
@@ -83,7 +94,10 @@ infer_db_desc<-function(cur_db,model_size,total_tokens=100,temperature=1,top_k=2
 			input<-paste0(input,tbl_desc)
 		}
 		input<-paste0(input,PURPOSE)
-		desc<-proceed(input,model_size,total_tokens,temperature,top_k,top_p,limit)
+		desc<-vector()
+		for(j in 1:qty){
+			desc<-append(desc,paste0(PURPOSE,proceed(input,model_size,total_tokens,temperature,top_k,top_p,limit)))
+		}
 	}else{
 		desc<-"Please provide correct argument - a dataframe containing tables and columns of the database"
 	}
@@ -91,15 +105,19 @@ infer_db_desc<-function(cur_db,model_size,total_tokens=100,temperature=1,top_k=2
 	return(desc)
 }
 
+
 infer_db_desc_alt<-function(cur_db,model_size,total_tokens=100,temperature=1,top_k=2,top_p=1,limit=0){
+	CONTEXT<-"Database consists of the following tables. " 
+	PURPOSE<-"The purpose of this database is"
 	tbls<-unique(cur_db$Table)
 	n<-length(tbls)
-	input<-""
+	input<-"CONTEXT"
 	if(n>0){
 		for(i in 1:n){
 			cols<-cur_db[cur_db$Table==tbls[i],]$Column
 			input<-paste0(input,infer_tbl_desc(cols,model_size,total_tokens,temperature,top_k,top_p,limit)," ")
 		}
+		input<-paste0(input,'. ',PURPOSE)
 		desc<-proceed(input,model_size,total_tokens,temperature,top_k,top_p,limit)
 	}
 	gc()
