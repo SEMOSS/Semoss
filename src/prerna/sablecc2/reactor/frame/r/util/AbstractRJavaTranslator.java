@@ -120,8 +120,9 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				+ "Sys.getpid<-getenv;Sys.glob<-getenv;Sys.info<-getenv;Sys.localeconv<-getenv;"
 				+ "sys.on.exit<-getenv;sys.parent<-getenv;Sys.readlink<-getenv;Sys.setenv<-getenv;"
 				+ "Sys.setlocale<-getenv;Sys.sleep<-getenv;sys.source<-getenv;sys.status<-getenv;"
-				+ "Sys.time<-getenv;Sys.timezone<-getenv;Sys.umask<-getenv;Sys.unsetenv<-getenv;"
+				+ "Sys.timezone<-getenv;Sys.umask<-getenv;Sys.unsetenv<-getenv;"
 				+ "Sys.which<-getenv;Sys<-getenv;sys<-getenv;install<-getenv;install.packages<-getenv;";
+		// Sys.time<-getenv; <- used in TimestampDataReactor
 		this.runR(rScript);
 	}
 	
