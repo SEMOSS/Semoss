@@ -370,19 +370,37 @@ public class PixelStreamUtility {
 			ps.print(gson.toJson(noun.getOpType()));
 
 		} else if(nounT == PixelDataType.VECTOR) {
-			List<Object> codeOutputs = (List<Object>) noun.getValue();
-			int numOutputs = codeOutputs.size();
-			ps.print("\"output\":[");
-			for(int i = 0; i < numOutputs; i++) {
-				if(i > 0) {
-					ps.print(",");
+			Object multiValue = noun.getValue();
+			if(multiValue instanceof List) {
+				List<Object> listOutputs = (List<Object>) multiValue;
+				int numOutputs = listOutputs.size();
+				ps.print("\"output\":[");
+				for(int i = 0; i < numOutputs; i++) {
+					if(i > 0) {
+						ps.print(",");
+					}
+					if(listOutputs.get(i) instanceof NounMetadata) {
+						processNounMetadata(in, ps, gson, (NounMetadata) listOutputs.get(i), null, null);
+					} else {
+						ps.print(gson.toJson(listOutputs.get(i)));
+					}
 				}
-				if(codeOutputs.get(i) instanceof NounMetadata) {
-					processNounMetadata(in, ps, gson, (NounMetadata) codeOutputs.get(i), null, null);
-				} else {
-					ps.print(gson.toJson(codeOutputs.get(i)));
+			} else if(multiValue instanceof Object[]) {
+				Object[] listOutputs = (Object[]) multiValue;
+				int numOutputs = listOutputs.length;
+				ps.print("\"output\":[");
+				for(int i = 0; i < numOutputs; i++) {
+					if(i > 0) {
+						ps.print(",");
+					}
+					if(listOutputs[i] instanceof NounMetadata) {
+						processNounMetadata(in, ps, gson, (NounMetadata) listOutputs[i], null, null);
+					} else {
+						ps.print(gson.toJson(listOutputs[i]));
+					}
 				}
 			}
+			
 			ps.print("]");
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(noun.getOpType()));
