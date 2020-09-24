@@ -3,19 +3,30 @@ package prerna.sablecc2.reactor.panel;
 import java.io.IOException;
 import java.util.List;
 
-import net.snowflake.client.jdbc.internal.google.gson.Gson;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import prerna.date.SemossDate;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.gson.InsightPanelAdapter;
+import prerna.util.gson.NumberAdapter;
+import prerna.util.gson.SemossDateAdapter;
 
 public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 
 	/*
 	 * This class is complimentary to GetPanelStateReactor
 	 */
+	
+	private static final Gson GSON =  new GsonBuilder()
+			.disableHtmlEscaping()
+			.registerTypeAdapter(Double.class, new NumberAdapter())
+			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+			.create();
 	
 	private static final String STATE = "state";
 	
@@ -62,8 +73,7 @@ public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 			}
 			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
 			if(mapInput != null && !mapInput.isEmpty()) {
-				Gson gson = new Gson();
-				return gson.toJson(mapInput.get(0));
+				return GSON.toJson(mapInput.get(0));
 			}
 		}
 		
@@ -74,8 +84,7 @@ public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 			}
 			List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
 			if(mapInput != null && !mapInput.isEmpty()) {
-				Gson gson = new Gson();
-				return gson.toJson(mapInput.get(0));
+				return GSON.toJson(mapInput.get(0));
 			}
 		}
 		
