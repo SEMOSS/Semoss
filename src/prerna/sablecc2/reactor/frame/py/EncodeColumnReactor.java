@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import prerna.algorithm.api.SemossDataType;
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -15,7 +17,6 @@ public class EncodeColumnReactor extends AbstractPyFrameReactor {
 
     @Override
     public NounMetadata execute() {
-
         organizeKeys();
         PandasFrame frame = (PandasFrame) getFrame();
         String frameName = frame.getName();
@@ -33,6 +34,13 @@ public class EncodeColumnReactor extends AbstractPyFrameReactor {
         scripts.toArray(scriptArray);
         insight.getPyTranslator().runPyAndReturnOutput(scriptArray);
 
+		// upon successful execution
+		OwlTemporalEngineMeta metadata = frame.getMetaData();
+		for(String col : columns) {
+			// set the type for all the columns to be string
+			metadata.modifyDataTypeToProperty(frameName + "__" + col, frameName, SemossDataType.STRING.toString());
+		}
+        
         // NEW TRACKING
         UserTrackerFactory.getInstance().trackAnalyticsWidget(
                 this.insight,
