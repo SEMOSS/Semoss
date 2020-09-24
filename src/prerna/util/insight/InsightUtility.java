@@ -1,18 +1,26 @@
 package prerna.util.insight;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.date.SemossDate;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.om.InsightSheet;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.InMemStore;
@@ -27,11 +35,25 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.util.gson.FrameCacheHelper;
+import prerna.util.gson.InsightPanelAdapter;
+import prerna.util.gson.InsightSheetAdapter;
+import prerna.util.gson.NumberAdapter;
+import prerna.util.gson.SemossDateAdapter;
 
 public class InsightUtility {
 
+	private static final Gson GSON =  new GsonBuilder()
+			.disableHtmlEscaping()
+			.registerTypeAdapter(Double.class, new NumberAdapter())
+			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+			.create();
+	
 	protected static final Logger LOGGER = LogManager.getLogger(InsightUtility.class.getName());
 	public static final String PANEL_VIEW_VISUALIZATION = "visualization";
+	
+	public static final String OUTPUT_TYPE = "output";
+	public static final String MAP_OUTPUT = "map";
+	public static final String STRING_OUTPUT = "string";
 	
 	private InsightUtility() {
 		
@@ -339,4 +361,111 @@ public class InsightUtility {
 			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DROP_INSIGHT);
 		}
 	}
+	
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	// Insight State Methods
+	
+	/**
+	 * Get the recipe to generate the end state of the FE UI
+	 * @param insight
+	 * @param outputType
+	 * @return
+	 */
+	public static List<String> getInsightUIStateSteps(Insight insight, String outputType) {
+		outputType = outputType.toLowerCase();
+		List<String> pixelSteps = new Vector<String>();
+
+		// we will be doing this for every sheet and every panel
+		for(String sheetId : insight.getInsightSheets().keySet()) {
+			pixelSteps.add("AddSheet(" + sheetId + ");");
+		}
+		for(String sheetId : insight.getInsightSheets().keySet()) {
+			// we will just serialize the insight sheet
+			InsightSheet sheet = insight.getInsightSheet(sheetId);
+			NounMetadata noun = getSheetState(sheet, outputType);
+			
+			// turn the serialization into a Map object
+			Object serialization = noun.getValue();
+			if(MAP_OUTPUT.equals(outputType)) {
+				pixelSteps.add("SetSheetState(" + GSON.toJson(serialization) + ");");
+			} else {
+				pixelSteps.add("SetSheetState(\"" + serialization + "\");");
+			}
+		}
+		
+		// repeat for each panel
+		for(String panelId : insight.getInsightPanels().keySet()) {
+			pixelSteps.add("AddPanel(" + panelId + ");");
+		}
+		for(String panelId : insight.getInsightPanels().keySet()) {
+			InsightPanel panel = insight.getInsightPanel(panelId);
+			NounMetadata noun = getPanelState(panel, outputType);
+
+			// turn the serialization into a Map object
+			Object serialization = noun.getValue();
+			if(MAP_OUTPUT.equals(outputType)) {
+				pixelSteps.add("SetPanelState(" + GSON.toJson(serialization) + ");");
+			} else {
+				pixelSteps.add("SetPanelState(\"" + serialization + "\");");
+			}
+		}
+		
+		return pixelSteps;
+	}
+	
+	/**
+	 * Get the sheet state as a JSON or String
+	 * @param sheet
+	 * @param outputType
+	 * @return
+	 */
+	public static NounMetadata getSheetState(InsightSheet sheet, String outputType) {
+		// we will just serialize the insight sheet
+		InsightSheetAdapter adapter = new InsightSheetAdapter();
+		String serialization = null;
+		try {
+			serialization = adapter.toJson(sheet);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Exeption occured generate the sheet state with error: " + e.getMessage());
+		}
+		
+		// turn the serialization into a Map object
+		if(MAP_OUTPUT.equals(outputType.toLowerCase())) {
+			HashMap<String, Object> json = GSON.fromJson(serialization, HashMap.class);
+			return new NounMetadata(json, PixelDataType.MAP);
+		}
+		return new NounMetadata(serialization, PixelDataType.CONST_STRING);
+	}
+	
+	/**
+	 * Get the map state as a JSON or String
+	 * @param panel
+	 * @param outputType
+	 * @return
+	 */
+	public static NounMetadata getPanelState(InsightPanel panel, String outputType) {
+		// we will just serialize the insight panel
+		InsightPanelAdapter adapter = new InsightPanelAdapter();
+		String serialization = null;
+		try {
+			serialization = adapter.toJson(panel);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Exeption occured generate the panel state with error: " + e.getMessage());
+		}
+		
+		// turn the serialization into a Map object
+		if(MAP_OUTPUT.equals(outputType)) {
+			HashMap<String, Object> json = GSON.fromJson(serialization, HashMap.class);
+			return new NounMetadata(json, PixelDataType.MAP);
+		}
+		return new NounMetadata(serialization, PixelDataType.CONST_STRING);
+	}
+	
 }
