@@ -682,6 +682,33 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		return retMap;
 	}
 	
+	/**
+	 * Check if the user has access to the app
+	 * @param engineId
+	 * @param userId
+	 * @return
+	 * @throws Exception
+	 */
+	public static boolean checkUserHasAccessToApp(String engineId, String userId) throws Exception {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw e;
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
