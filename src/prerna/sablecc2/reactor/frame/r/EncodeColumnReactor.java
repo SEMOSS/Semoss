@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.List;
 
+import prerna.algorithm.api.SemossDataType;
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -42,6 +44,13 @@ public class EncodeColumnReactor extends AbstractRFrameReactor {
 		}
 
 		this.rJavaTranslator.executeEmptyR(script.toString());
+		
+		// upon successful execution
+		OwlTemporalEngineMeta metadata = frame.getMetaData();
+		for(String col : columns) {
+			// set the type for all the columns to be string
+			metadata.modifyDataTypeToProperty(frameName + "__" + col, frameName, SemossDataType.STRING.toString());
+		}
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
