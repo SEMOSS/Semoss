@@ -34,7 +34,7 @@ public class GetSheetStateReactor extends AbstractSheetReactor {
 		}
 		String outputType = getOutput();
 		
-		// we will just serialize the insight panel
+		// we will just serialize the insight sheet
 		InsightSheetAdapter adapter = new InsightSheetAdapter();
 		String serialization = null;
 		try {
@@ -46,7 +46,6 @@ public class GetSheetStateReactor extends AbstractSheetReactor {
 		
 		// turn the serialization into a Map object
 		if(MAP.equals(outputType)) {
-			// hashmap for nulls
 			HashMap<String, Object> json = new Gson().fromJson(serialization, HashMap.class);
 			return new NounMetadata(json, PixelDataType.MAP);
 		}

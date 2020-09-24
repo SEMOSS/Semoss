@@ -31,7 +31,7 @@ public class SetSheetStateReactor extends AbstractInsightPanelReactor {
 		if(serialized == null) {
 			throw new NullPointerException("Serialization of the sheet state is null");
 		}
-		// we will just read the serialization of the insight panel
+		// we will just read the serialization of the insight sheet
 		InsightSheetAdapter adapter = new InsightSheetAdapter();
 		InsightSheet insightSheet = null;
 		try {

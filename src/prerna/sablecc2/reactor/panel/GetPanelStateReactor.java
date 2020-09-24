@@ -46,7 +46,6 @@ public class GetPanelStateReactor extends AbstractInsightPanelReactor {
 		
 		// turn the serialization into a Map object
 		if(MAP.equals(outputType)) {
-			// hashmap for nulls
 			HashMap<String, Object> json = new Gson().fromJson(serialization, HashMap.class);
 			return new NounMetadata(json, PixelDataType.MAP);
 		}
