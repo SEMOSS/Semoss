@@ -38,7 +38,7 @@ public class EncodeColumnReactor extends AbstractRFrameReactor {
 
 		for(String col : columns) {
 			String select = frameName + "$" + col;
-			script.append(select).append(" <- lapply(").append(select).append(", encode);");
+			script.append(select).append(" <- sapply(").append(select).append(", encode);");
 		}
 
 		this.rJavaTranslator.executeEmptyR(script.toString());
