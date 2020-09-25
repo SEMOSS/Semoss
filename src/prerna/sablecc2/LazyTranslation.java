@@ -733,12 +733,18 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
     
     @Override
-    public void inAProp(AProp node)
-    {
+    public void inAProp(AProp node) {
     	defaultIn(node);
-    	String key = node.getId().toString().trim();
-    	String propValue = node.getScalar().toString().trim();
-    	curReactor.getNounStore().makeNoun(key).addLiteral(propValue);
+    	IReactor genReactor = new GenericReactor();
+        genReactor.setPixel("PKSL", (node + "").trim());
+        genReactor.getNounStore().makeNoun("KEY").addLiteral(node.getId().toString().trim());
+        initReactor(genReactor);
+    }
+    
+    @Override
+    public void outAProp(AProp node) {
+    	defaultOut(node);
+    	deInitReactor();
     }
 
     // you definitely need the other party to be in a relationship :)
