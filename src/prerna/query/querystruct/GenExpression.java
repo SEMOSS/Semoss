@@ -10,6 +10,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector {
 	// if composite is set then you basically have 2 sides
 	// if not just one side
 	boolean composite = false;
+	GenExpression parent = null;
 	
 	public boolean recursive = false; // ((a+b)+c)*d) - 2 values - tree out of the expression
 	public boolean telescope = false; // join - <- within it join join (select a, b,c from d) a - GenExpression1(telescope = true, alias=a).body(GenExpression2(select a, b,c from d))
@@ -36,11 +37,15 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector {
 	public void setRightExpresion(Object rightItem)
 	{
 		this.rightItem = rightItem;
+		if(rightItem instanceof GenExpression)
+			((GenExpression)rightItem).parent = this;
 	}
 	
 	public void setLeftExpresion(Object leftItem)
 	{
 		this.leftItem = leftItem;
+		if(leftItem instanceof GenExpression)
+			((GenExpression)leftItem).parent = this;
 	}
 	
 
@@ -152,6 +157,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector {
 	{
 		// if the type is join.. you need to do other things
 		//System.err.println("Processing  " + qs.aQuery + " <>" + qs.expression + "<>" + qs.operation);
+		String newLine = "\n";
 		if(buf == null)
 			buf = new StringBuffer();
 		boolean processed = false;
@@ -159,7 +165,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector {
 		{
 			if(qs.operation.equalsIgnoreCase("select") || qs.operation.equalsIgnoreCase("querystruct"))
 			{
-				buf.append("\n");
+				buf.append(newLine);
 				buf.append("SELECT  ");
 				for(int selIndex = 0;selIndex < qs.nselectors.size();selIndex++)
 				{
@@ -317,7 +323,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector {
 			//if(qs.from.operation != null && qs.from.operation.equalsIgnoreCase("querystruct"))
 			{
 				//System.err.println("From operation is set to " + qs.from.operation + " composite ?" + qs.from.composite );
-				buf.append("\n");
+				buf.append(newLine);
 				buf.append("  FROM " );
 				if(qs.from.composite)
 					buf.append("( ");
@@ -355,7 +361,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector {
 			String close = "";
 			// I also need to pick the from here
 			// this is is the inner join on <from>
-			buf.append("\n");
+			buf.append(newLine);
 			buf.append(sqs.on);
 			buf.append("  ");
 			// how to tell if a join is a subjoin ?
@@ -381,7 +387,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector {
 		// add the where
 		if(qs.filter != null)
 		{
-			buf.append("\n");
+			buf.append(newLine);
 			buf.append("  WHERE " );
 			printQS(qs.filter, buf);
 		}
@@ -452,7 +458,8 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector {
 			
 			StringBuffer leftBuf = printQS((GenExpression)leftItem, new StringBuffer());
 			
-			if((childLeftItem != null && ((GenExpression)childLeftItem).composite) && (childRightItem != null && ((GenExpression)childRightItem).composite))
+			if((childLeftItem != null && childLeftItem instanceof GenExpression && ((GenExpression)childLeftItem).composite) 
+					&& (childRightItem != null && childRightItem instanceof GenExpression && ((GenExpression)childRightItem).composite))
 			{
 				buf.append("(");
 				buf.append(leftBuf);
