@@ -50,6 +50,7 @@ import prerna.query.querystruct.OrderByExpression;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.WhenExpression;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.sablecc2.om.PixelDataType;
 
 
 /*
@@ -90,38 +91,23 @@ public class SqlParser2 {
 	// to determine type of the expression
 	private static enum EXPR_TYPE {LEFT, RIGHT, INNER};
 
-	// keep table alias
-	private Map<String, String> tableAlias = null;
-	// keep column alias
-	private Map<String, String> columnAlias = null;
-	// used to keep track of every table and column set used
-	private Map<String, Set<String>> schema = null;
-	
-	
-	
-	// keeps track of column to select
-	private Map <String, List<GenExpression>> columnSelect = new Hashtable<String, List<GenExpression>>();
-	
-	// keep track of table to select
-	private Map <String, List<GenExpression>> tableSelect = new Hashtable<String, List<GenExpression>>();
-	
-	// keep a list of selects as well
-	// to the columns
-	private Map <GenExpression, List<String>> selectColumns = new Hashtable<GenExpression, List<String>>();
-	
-	// alias to columns
-	private Map <String, List<GenExpression>> aliasColumns = new Hashtable<String, List<GenExpression>>();
+	GenExpression qs = null;
+	GenExpressionWrapper wrapper = new GenExpressionWrapper();
+	boolean binary = false;
+	boolean column = false;
+	String columnName = null;
 	
 
 	public SqlParser2() {
-		this.tableAlias = new Hashtable <String, String>();
-		this.columnAlias = new Hashtable <String, String>();
-		this.schema = new Hashtable<String, Set<String>>();
+		this.wrapper.tableAlias = new Hashtable <String, String>();
+		this.wrapper.columnAlias = new Hashtable <String, String>();
+		this.wrapper.schema = new Hashtable<String, Set<String>>();
 	}
 
-	public SelectQueryStruct processQuery(String query) throws Exception 
+	public GenExpressionWrapper processQuery(String query) throws Exception 
 	{
 
+		wrapper = new GenExpressionWrapper();
 		// this is the main query struct
 		GenExpression qs = new GenExpression();
 		// parse the sql
@@ -139,8 +125,10 @@ public class SqlParser2 {
 		}
 				
 			
+		this.qs = qs;
+		wrapper.root = qs;
 		
-		return qs;
+		return wrapper;
 	}
 	
 	public void printOutput(SelectQueryStruct qs) throws Exception
@@ -155,132 +143,6 @@ public class SqlParser2 {
 		System.err.println("Success ");
 	}
 	
-	
-	// the key is the table name and the value is the GenExpression that should be used
-	public void addRowFilter(Map <String, GenExpression> filterValues)
-	{
-		// I still need to account for if the user already comes with this
-		
-		Iterator <String> cols = filterValues.keySet().iterator();
-		while(cols.hasNext())
-		{
-			// get the col
-			String thisCol = cols.next();
-			GenExpression userFilter = filterValues.get(thisCol);
-			
-			// see if a select with that table exists
-			if(tableSelect.containsKey(thisCol))
-			{
-				// get the expression and see what is the where clause
-				List <GenExpression> selects = tableSelect.get(thisCol);
-				for(int selectIndex = 0;selectIndex < selects.size();selectIndex++)
-				{
-					SelectQueryStruct select = selects.get(selectIndex);
-					GenExpression filter = select.filter;
-					
-					System.out.println("Filter is set to  " + filter);
-					if(filter != null)
-					{
-						GenExpression thisFilter = new GenExpression();
-						thisFilter.setOperation(" AND ");
-						((GenExpression)filter).paranthesis = true;
-						thisFilter.setLeftExpresion(filter);
-						// forcing a random opaque one
-						userFilter.paranthesis = true;
-						thisFilter.setRightExpresion(userFilter);
-						// replace with the new filter
-						select.filter = thisFilter;
-					}
-					// add a new filter otherwise
-					else
-					{
-						select.filter = userFilter;						
-					}
-					
-				}
-			}
-		}
-	}
-	
-	// get the query for a given column in the select
-	public String getFilterQuery(String columnName)
-	{
-		String retQuery = null;
-		
-		
-		return retQuery;
-		
-	}
-	
-	// the key is the table name and the value is the GenExpression that should be used
-	// I have a query with a few parameters
-	// if the parameters are not there then drop it from groupby ?
-	// if there are then add it
-	// I have a query with multiple groupby, if the groupby is not 
-	// the parameter i.e. the column can be - drop
-	// 2 blocks
-	// columns to be removed
-	// columns to be parameterized
-	
-	public void appendParameter(List <String> columnsToRemove, Map <String, GenExpression> paramValues)
-	{
-		// I still need to account for if the user already comes with this
-		// get the selects for the param columns
-		// add them 
-		
-		// this whole caching strategy is not working
-		// I have to just go off every select and do it
-		
-		// first is the remove
-		for(int colIndex = 0;colIndex < columnsToRemove.size();colIndex++)
-		{
-			// find the alias
-			// find the column
-			// remove from the select and also from the group by
-			
-			// this is probably coming through with the alias name
-			// get all of the selects and run through it
-			Iterator <GenExpression> allSelects = selectColumns.keySet().iterator();
-			
-			while(allSelects.hasNext())
-			{
-				
-					GenExpression thisSelect = allSelects.next();	
-					// remove from the selector
-					thisSelect.removeSelect(columnsToRemove.get(colIndex));
-					thisSelect.removeGroup(columnsToRemove.get(colIndex));
-					
-					StringBuffer buff = thisSelect.printQS((GenExpression)thisSelect, new StringBuffer());
-				
-				// go through every select and replace it 
-				// there is a possibility where there are 2 different aliases refering to the same column name ?
-				// and this can lead to issues
-			}
-		}
-
-		// second is add
-		// need a way to get to the appropriate selector
-		Iterator <String> cols = paramValues.keySet().iterator();
-		while(cols.hasNext())
-		{
-			// get the col
-			String thisCol = cols.next();
-			GenExpression userFilter = paramValues.get(thisCol);
-			
-			// see if a select with that table exists
-			if(columnSelect.containsKey(thisCol))
-			{
-				// get the expression and see what is the where clause
-				List <GenExpression> selects = columnSelect.get(thisCol);
-				for(int selectIndex = 0;selectIndex < selects.size();selectIndex++)
-				{
-					SelectQueryStruct select = selects.get(selectIndex);
-					select.parameterizeColumn(thisCol, userFilter);
-				}
-			}
-		}
-	}
-
 	
 	
 	public GenExpression processSelect(GenExpression qs, PlainSelect sb)
@@ -337,9 +199,9 @@ public class SqlParser2 {
 				fromTableName = fromTable.getName();
 				Alias fromTableAliasObj = fromTable.getAlias();
 				if(fromTableAliasObj != null) {
-					tableAlias.put(fromTable.getAlias().getName(), fromTable.getName());
+					this.wrapper.tableAlias.put(fromTable.getAlias().getName(), fromTable.getName());
 				} else {
-					tableAlias.put(fromTableName, fromTableName);
+					this.wrapper.tableAlias.put(fromTableName, fromTableName);
 				}
 				thisQs.currentTable = fromTableName;
 				GenExpression fromExpr = new GenExpression();
@@ -352,15 +214,15 @@ public class SqlParser2 {
 				
 				// tracking tables
 				List <GenExpression>selectList = null;
-				if(tableSelect.containsKey(fromTableName))
-					selectList = tableSelect.get(fromTableName);
+				if(this.wrapper.tableSelect.containsKey(fromTableName))
+					selectList = this.wrapper.tableSelect.get(fromTableName);
 				else
 					selectList = new Vector<GenExpression>();
 				if(!selectList.contains(qs))
 					selectList.add(qs);
 				
 				
-				tableSelect.put(fromTableName, selectList);
+				this.wrapper.tableSelect.put(fromTableName, selectList);
 			}
 			else if(fi instanceof PlainSelect)
 			{
@@ -442,11 +304,11 @@ public class SqlParser2 {
 				qs.nselectors.add(gep);
 				
 				// process for colum cleanup
-				if(seiAlias != null && columnSelect.containsKey(seiAlias.getName()))
+				if(seiAlias != null && this.wrapper.columnSelect.containsKey(seiAlias.getName()))
 				{
 					// remove it / add it as the actual one
 					// it is already accomodated for some other place
-					columnSelect.remove(seiAlias.getName());					
+					this.wrapper.columnSelect.remove(seiAlias.getName());					
 				}
 				
 			}
@@ -632,6 +494,7 @@ public class SqlParser2 {
 		// only the binary expression has 2 sides
 		else if(joinExpr instanceof BinaryExpression)
 		{
+			    this.binary = true;
 			// do the regular stuff.. I need to accomodate for other pieces but
 			//if(!simple) 
 			//{
@@ -651,12 +514,65 @@ public class SqlParser2 {
 				GenExpression sqs = processExpression(qs,  joinExpr2.getLeftExpression(), eqExpr);
 				GenExpression sqs2 = processExpression(qs,  joinExpr2.getRightExpression(), eqExpr);
 				
+				Object constantValue = null;
+				String constantType = null;
+				GenExpression exprToTrack = null;
+				
 				if(((GenExpression)sqs).getOperation().equalsIgnoreCase("column"))
+				{
 					full_from = ((GenExpression)sqs).getLeftExpr();
+					column = true;
+					columnName = full_from;
+				}
+				else if( (((GenExpression)sqs).getOperation().equalsIgnoreCase("string")) 
+						|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("double")) 
+						|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("date")) 
+						|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("time")) 
+						|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("long")) )
+				{
+					// we got our target
+					constantValue = ((GenExpression)sqs).leftItem;
+					constantType = ((GenExpression)sqs).getOperation();
+					if(columnName != null)
+					{
+						((GenExpression)sqs).setLeftExpresion("'<" + eqExpr.getOperation() + columnName + ">'");
+					}
+					exprToTrack = sqs;
+				}
+
 
 				if(((GenExpression)sqs2).getOperation().equalsIgnoreCase("column"))
+				{
+					// who knows you could be a sadist after all
 					full_To = ((GenExpression)sqs2).getLeftExpr();
-
+					column = true;
+					columnName = full_from;
+				}
+				else if( (((GenExpression)sqs2).getOperation().equalsIgnoreCase("string")) 
+						|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("double")) 
+						|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("date")) 
+						|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("time")) 
+						|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("long")) )
+				{
+					// we got our target
+					constantValue = ((GenExpression)sqs2).leftItem;
+					constantType = ((GenExpression)sqs2).getOperation();
+					
+					if(columnName != null)
+					{
+						((GenExpression)sqs2).setLeftExpresion("'<" + eqExpr.getOperation() +  columnName + ">'");
+					}
+					exprToTrack = sqs2;
+				}
+				
+				if(binary && column && constantValue != null)
+					this.wrapper.makeParameters(columnName, constantValue, eqExpr, constantType, exprToTrack);
+				
+				binary = false;
+				column = false;
+				columnName = null;
+				
+				
 				
 //				// keep track of column and table in schema
 //				// from 
@@ -759,25 +675,25 @@ public class SqlParser2 {
 			String columnName = thisCol.getColumnName();
 			
 			List <GenExpression>selectList = null;
-			if(columnSelect.containsKey(tableName + "." + columnName))
-				selectList = columnSelect.get(tableName + "." + columnName);
+			if(this.wrapper.columnSelect.containsKey(tableName + "." + columnName))
+				selectList = this.wrapper.columnSelect.get(tableName + "." + columnName);
 			else
 				selectList = new Vector<GenExpression>();
 			if(!selectList.contains(qs))
 				selectList.add((GenExpression) qs);
 
-			columnSelect.put(tableName + "." + columnName, selectList);
+			this.wrapper.columnSelect.put(tableName + "." + columnName, selectList);
 			
 			// track based on select too
 			List <String> columnList = null;
-			if(selectColumns.containsKey(qs))
-				columnList = selectColumns.get(qs);
+			if(this.wrapper.selectColumns.containsKey(qs))
+				columnList = this.wrapper.selectColumns.get(qs);
 			else
 				columnList = new Vector<String>();
 			if(!columnList.contains(tableName + "." + columnName))
 				columnList.add(tableName + "." + columnName);
 			
-			selectColumns.put((GenExpression) qs, columnList);
+			this.wrapper.selectColumns.put((GenExpression) qs, columnList);
 			
 			return retExpr;
 		}
@@ -818,11 +734,24 @@ public class SqlParser2 {
 			{
 				WhenClause wc = whens.get(whenIndex);
 				Expression we = wc.getWhenExpression();
+				// process this expression
+				GenExpression when = processExpression(qs, we, wep);
+
 				Expression te = wc.getThenExpression();
+				GenExpression then = processExpression(qs, te, wep);
 				
-				wep.addWhenThen(we.toString(), te.toString());				
+				StringBuffer whenBuf = new StringBuffer();
+				whenBuf = when.printQS(when, whenBuf);
+				StringBuffer thenBuf = new StringBuffer();
+				thenBuf = when.printQS(then, thenBuf);
+				wep.addWhenThen(whenBuf.toString(), thenBuf.toString());				
+				wep.addWhenThenE(when , then);
 			}
+			// I wonder if we should orient else as well
+			GenExpression elseE = processExpression(qs, cep.getElseExpression(), wep);
+
 			wep.setElse(cep.getElseExpression().toString());
+			wep.setElseE(elseE);
 			
 			return wep;
 		}
@@ -881,7 +810,7 @@ public class SqlParser2 {
 			gep.aQuery = joinExpr.toString();
 			Long value = ((LongValue)joinExpr).getValue();
 			gep.setOperation("long");
-			gep.setExpression("date");
+			gep.setExpression("long");
 			gep.setLeftExpresion(value);
 			return gep;
 		}
@@ -1074,16 +1003,9 @@ public class SqlParser2 {
 			qs.ngroupBy.add(gep);
 		}
 	}
-
-	public Map<String, String> getTableAlias() {
-		return this.tableAlias;
-	}
-	public Map<String, String> getColumnAlias() {
-		return this.columnAlias;
-	}
-	public Map<String, Set<String>> getSchema() {
-		return this.schema;
-	}
+	
+	
+	
 
 
 	public static void main(String [] args) throws Exception {
@@ -2139,8 +2061,26 @@ public class SqlParser2 {
 		
 		String query8 = "Select a.abc a1 from table a";
 		
-		SelectQueryStruct qs = test.processQuery(query7);
+		GenExpressionWrapper wrapper = test.processQuery(query7);
+		test.printOutput(wrapper.root);
+
+		// get the param map and modify the value
+		// =CII_FACT_MBRSHP.ACCT_ID
+		/*
+		ParamStruct replaceStruct = test.operatorTableColumnParamIndex.get("=CII_FACT_MBRSHP.ACCT_ID");
+		replaceStruct.setCurrentValue("DA_REPLACEMENTS");
+		List <ParamStruct> paramList = new Vector<ParamStruct>();
+		paramList.add(replaceStruct);
+		*/
+		wrapper.replaceColumn("ACCT_ID", "'Hello World !!!!'");
+		wrapper.replaceColumn("YEAR_ID", "123");
+		//wrapper.replaceColumn("YER_ID", "123456");
+
+		wrapper.fillParameters();
+		test.printOutput(wrapper.root);
+
 		
+		/*
 		Map <String, GenExpression> filterMap = new HashMap<String, GenExpression>();
 		
 		// remove the groupby on cii_fact_mbrshp.acct_id
@@ -2158,6 +2098,7 @@ public class SqlParser2 {
 		//test.addRowFilter(filterMap);
 		test.appendParameter(columnsToRemove, filterMap);
 		test.printOutput(qs);
+		*/
 	}
 }
 

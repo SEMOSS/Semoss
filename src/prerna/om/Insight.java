@@ -1421,13 +1421,15 @@ public class Insight {
 	public Object getVar(String varName)
 	{
 		Object retObject = this.varStore.get(varName);
-		return ((NounMetadata)retObject).getValue();
+		if(retObject != null)
+			return ((NounMetadata)retObject).getValue();
+		return null;
 	}
 	
 	public String getProperty(String propName)
 	{
 		String retOutput = DIHelper.getInstance().getProperty(propName);
-		if(retOutput == null)
+		//if(retOutput == null)
 		{
 			Object retObject = this.varStore.get(propName);
 			if(retObject != null)
