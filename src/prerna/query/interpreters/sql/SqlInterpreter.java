@@ -142,29 +142,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			query.append(distinct).append(selectors).append(" FROM (").append(customFrom).append(" ) AS " + this.customFromAliasName);
 		} else {
 			// logic for adding the selectors + the from statement + the joins
-			
-			if(this.engine != null && !engine.isBasic() && joinStructList.isEmpty()) {
-				// if there are no joins, we know we are querying from a single table
-				// the vast majority of the time, there shouldn't be any duplicates if
-				// we are selecting all the columns
-				String table = froms.get(0)[0];
-				if(engine != null && !engine.isBasic()) {
-					String physicalUri = engine.getPhysicalUriFromPixelSelector(table);
-					if( (engine.getPhysicalConcepts().size() == 1) && (engine.getPropertyUris4PhysicalUri(physicalUri).size() + 1) == selectorList.size()) {
-						// plus one is for the concept itself
-						// no distinct needed
-						query.append(selectors);
-					} else {
-						query.append(distinct).append(selectors);
-					}
-				} else {
-					// need a distinct
-					query.append(distinct).append(selectors).append(" FROM ");
-				}
-			} else {
-				// default is to use a distinct
-				query.append(distinct).append(selectors);
-			}
+			query.append(distinct).append(selectors);
 			
 			// if there is a join
 			// can only have one table in from in general sql case 
@@ -1094,12 +1072,31 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 						thisOrderBy.append(queryUtil.escapeReferencedAlias(tableConceptualName));
 					}
 				}
-				// we need to make sure the sort is a valid one!
-				// if it is not already processed, there is no way to sort it...
+				// account for custom from + sort is a valid column being returned
+				else if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
+					String orderByTable = this.customFromAliasName;
+					String orderByColumn = queryUtil.escapeReferencedAlias(columnConceptualName);
+
+					if(this.retTableToCols.get(orderByTable).contains(orderByColumn)) {
+						thisOrderBy.append(orderByTable).append(".").append(orderByColumn);
+					} else {
+						continue;
+					}
+				}
+				// account for sort being on table/column being returned
 				else if(this.retTableToCols.containsKey(tableConceptualName)){
 					if(this.retTableToCols.get(tableConceptualName).contains(columnConceptualName)) {
-						String orderByTable = getAlias(tableConceptualName);
-						String orderByColumn = columnConceptualName;
+						// these are the physical names
+						
+						String orderByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
+						String orderByColumn = null;
+
+						if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+							orderByColumn = getPrimKey4Table(tableConceptualName);
+						} else {
+							orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+						}
+						
 						if(queryUtil.isSelectorKeyword(orderByTable)) {
 							orderByTable = queryUtil.getEscapeKeyword(orderByTable);
 						}
@@ -1110,8 +1107,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					} else {
 						continue;
 					}
-				} 
-				
+				}
 				// well, this is not a valid order by to add
 				else {
 					continue;
@@ -1153,18 +1149,24 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			String tableConceptualName = groupBySelector.getTable();
 			String columnConceptualName = groupBySelector.getColumn();
 			
+			// these are the physical names
+			String groupByTable = null;
+			String groupByColumn = null;
+
+			// account for custom from
 			if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
-				columnConceptualName = queryUtil.escapeReferencedAlias(columnConceptualName);
+				groupByTable = this.customFromAliasName;
+				groupByColumn = queryUtil.escapeReferencedAlias(columnConceptualName);
 			} else {
+				groupByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
 				if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-					columnConceptualName = getPrimKey4Table(tableConceptualName);
+					groupByColumn = getPrimKey4Table(tableConceptualName);
 				} else {
-					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+					groupByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
 				}
 			}
 			
-			String groupByTable = getAlias(tableConceptualName);
-			String groupByColumn = columnConceptualName;
+			// escape reserved words
 			if(queryUtil.isSelectorKeyword(groupByTable)) {
 				groupByTable = queryUtil.getEscapeKeyword(groupByTable);
 			}
