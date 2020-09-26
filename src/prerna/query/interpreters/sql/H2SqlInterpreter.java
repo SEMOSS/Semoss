@@ -55,18 +55,24 @@ public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 				String tableConceptualName = groupBySelector.getTable();
 				String columnConceptualName = groupBySelector.getColumn();
 				
+				// these are the physical names
+				String groupByTable = null;
+				String groupByColumn = null;
+
+				// account for custom from
 				if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
-					columnConceptualName = queryUtil.escapeReferencedAlias(columnConceptualName);
+					groupByTable = this.customFromAliasName;
+					groupByColumn = queryUtil.escapeReferencedAlias(columnConceptualName);
 				} else {
+					groupByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
 					if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-						columnConceptualName = getPrimKey4Table(tableConceptualName);
+						groupByColumn = getPrimKey4Table(tableConceptualName);
 					} else {
-						columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+						groupByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
 					}
 				}
 				
-				String groupByTable = getAlias(tableConceptualName);
-				String groupByColumn = columnConceptualName;
+				// escape reserved words
 				if(queryUtil.isSelectorKeyword(groupByTable)) {
 					groupByTable = queryUtil.getEscapeKeyword(groupByTable);
 				}
