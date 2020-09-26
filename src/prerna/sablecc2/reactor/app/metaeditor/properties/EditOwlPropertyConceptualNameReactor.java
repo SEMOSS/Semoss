@@ -38,18 +38,18 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 			throw new IllegalArgumentException("Must define the property being modified in the app metadata");
 		}
 		
-		String newConceptualName = this.keyValue.get(this.keysToGet[3]);
-		if (newConceptualName == null || newConceptualName.isEmpty()) {
+		String newPixelName = this.keyValue.get(this.keysToGet[3]);
+		if (newPixelName == null || newPixelName.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new conceptual name");
 		}
 		// make sure it conforms
-		newConceptualName = newConceptualName.trim();
-		if (!newConceptualName.matches("^[a-zA-Z0-9-_]+$")) {
+		newPixelName = newPixelName.trim();
+		if (!newPixelName.matches("^[a-zA-Z0-9-_]+$")) {
 			throw new IllegalArgumentException("Conceptual name must contain only letters, numbers, and underscores");
 		}
-		newConceptualName = newConceptualName.replaceAll("_{2,}", "_");
+		newPixelName = newPixelName.replaceAll("_{2,}", "_");
 		
-		String newPixelURI = "http://semoss.org/ontologies/Relation/Contains/" + newConceptualName + "/" + concept;
+		String newPixelURI = "http://semoss.org/ontologies/Relation/Contains/" + newPixelName + "/" + concept;
 
 		IEngine engine = Utility.getEngine(appId);
 		ClusterUtil.reactorPullOwl(appId);
@@ -88,7 +88,7 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		ClusterUtil.reactorPushOwl(appId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully edited concept name from " + property + " to " + newConceptualName, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(new NounMetadata("Successfully edited concept name from " + property + " to " + newPixelName, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 
