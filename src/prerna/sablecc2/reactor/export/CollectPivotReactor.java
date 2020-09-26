@@ -18,8 +18,9 @@ public class CollectPivotReactor extends AbstractReactor {
 		// try in R
 		// default is R
 		String frameType = "R";
-		if(store.getNoun(keysToGet[3]) != null)
+		if(store.getNoun(keysToGet[3]) != null) {
 			frameType = keyValue.get(keysToGet[3]);
+		}
 		
 		TaskBuilderReactor reactor = null;
 		if(frameType.equalsIgnoreCase("Py") && PyUtils.pyEnabled()) {
