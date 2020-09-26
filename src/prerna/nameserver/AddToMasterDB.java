@@ -321,7 +321,7 @@ public class AddToMasterDB {
             String propertyPhysicalUri = properties.get(propIndex);
             logger.debug("For concept = " + conceptPhysicalUri + ", adding property ::: " + propertyPhysicalUri);
             masterProperty(engineName, conceptPhysicalUri, propertyPhysicalUri, engineConceptGuid,
-                    conceptPhysicalInstance, conceptGuid, conceptualName, helper, engineType);
+                    conceptPhysicalInstance, conceptGuid, semossName, helper, engineType);
         }
     }
 
