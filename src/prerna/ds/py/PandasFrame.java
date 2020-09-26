@@ -694,7 +694,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		HeadersException headerChecker = HeadersException.getInstance();
 		colNames = headerChecker.getCleanHeaders(colNames);
 	
-
 		// grab the existing metadata from the frame
 		Map<String, String> additionalDataTypes = this.metaData.getHeaderToAdtlTypeMap();
 		Map<String, List<String>> sources = this.metaData.getHeaderToSources();
