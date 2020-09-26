@@ -30,7 +30,6 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -280,13 +279,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// TODO: account for double aggregation on other DB types...
 		boolean doubleAggregation = false;
 		if(engine instanceof RDBMSNativeEngine) {
-			boolean hasFunctionSelector = false;
-			for(IQuerySelector selector : qs.getSelectors()) {
-				if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-					hasFunctionSelector = true;
-				}
-			}
-			if(hasFunctionSelector && this.qs.getGroupBy() != null && !this.qs.getGroupBy().isEmpty()) {
+			if(this.qs.getGroupBy() != null && !this.qs.getGroupBy().isEmpty()) {
 				// we have a double aggregation
 				// need to properly account for this
 				// get the current this.QS and flush it to a query
