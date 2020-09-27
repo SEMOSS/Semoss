@@ -4,24 +4,29 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.h2.H2Frame;
-import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ExternalDatabaseProfileReactor extends AbstractReactor {
+	
 	private static final Logger logger = LogManager.getLogger(ExternalDatabaseProfileReactor.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	public ExternalDatabaseProfileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(),
@@ -50,7 +55,20 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 		}
 		
 		Connection con = null;
-		String dbDriver = this.keyValue.get(this.keysToGet[0]);
+		String driver = this.keyValue.get(this.keysToGet[0]);
+		if(driver == null) {
+			throw new IllegalArgumentException("Must pass in the rdbms type");
+		}
+		RdbmsTypeEnum dbType = RdbmsTypeEnum.getEnumFromString(driver);
+		if(dbType == null) {
+			// try one more time
+			dbType =  RdbmsTypeEnum.getEnumFromDriver(driver);
+			if(dbType == null) {
+				throw new IllegalArgumentException("Unable to find driver for rdbms type = " + driver);
+			}
+		}
+		AbstractSqlQueryUtil util = SqlQueryUtilFactory.initialize(dbType);
+		
 		String host = this.keyValue.get(this.keysToGet[1]);
 		String port = this.keyValue.get(this.keysToGet[2]);
 		String username = this.keyValue.get(this.keysToGet[3]);
@@ -58,9 +76,13 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 		String schema = this.keyValue.get(this.keysToGet[5]);
 		ResultSet tables = null;
 		ResultSet columns = null;
-		ResultSet rs = null;
 		try {
-			con = RdbmsConnectionHelper.buildConnection(dbDriver, host, port, username, password, schema, null);
+			Map<String, Object> conDetails = new HashMap<>();
+			conDetails.put(AbstractSqlQueryUtil.HOSTNAME, host);
+			conDetails.put(AbstractSqlQueryUtil.PORT, port);
+			conDetails.put(AbstractSqlQueryUtil.SCHEMA, schema);
+			String connectionUrl = util.buildConnectionString(conDetails);
+			con = AbstractSqlQueryUtil.makeConnection(dbType, connectionUrl, username, password);
 			DatabaseMetaData meta = con.getMetaData();
 			tables = meta.getTables(null, null, null, new String[] { "TABLE" });
 			while (tables.next()) {
@@ -78,46 +100,32 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 						cells[1] = colName;
 						// # of blanks
 						String query = "SELECT COUNT(*) FROM " + table + " WHERE " + colName + " in('');";
-						rs = con.createStatement().executeQuery(query);
-						rs.next();
-						long count = rs.getLong(1);
+						long count = execAndClose(con, query);
 						cells[2] = count + "";
 						// # of unique values
 						query = "SELECT DISTINCT COUNT(" + colName + ") FROM " + table + ";";
-						rs = con.createStatement().executeQuery(query);
-						rs.next();
-						long uniqueNRow = rs.getLong(1);
+						long uniqueNRow = execAndClose(con, query);
 						cells[3] = uniqueNRow + "";
 						// min
 						query = "SELECT MIN(" + colName + ") FROM " + table + ";";
-						rs = con.createStatement().executeQuery(query);
-						rs.next();
-						long min = rs.getLong(1);
+						long min = execAndClose(con, query);
 						cells[4] = min + "";
 						// average
 						query = "SELECT AVG(" + colName + ") FROM " + table + ";";
-						rs = con.createStatement().executeQuery(query);
-						rs.next();
-						long avg = rs.getLong(1);
+						long avg = execAndClose(con, query);
 						cells[5] = avg + "";
 						// max
 						query = "SELECT MAX(" + colName + ") FROM " + table + ";";
-						rs = con.createStatement().executeQuery(query);
-						rs.next();
-						long max = rs.getLong(1);
+						long max = execAndClose(con, query);
 						cells[6] = max + "";
 						// sum
 						query = "SELECT SUM(" + colName + ") FROM " + table + ";";
-						rs = con.createStatement().executeQuery(query);
-						rs.next();
-						long sum = rs.getLong(1);
+						long sum = execAndClose(con, query);
 						cells[7] = sum + "";
 						// # of null values
 						query = "SELECT COUNT(*) FROM " + table + " WHERE " + colName + " is null;";
-						rs = con.createStatement().executeQuery(query);
-						rs.next();
-						count = rs.getLong(1);
-						cells[8] = count + "";
+						long countNull = execAndClose(con, query);
+						cells[8] = countNull + "";
 						// add data to frame
 						frame.addRow(tableName, headers,  cells, dataTypes);
 					} else {
@@ -129,22 +137,16 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 							// column name
 							cells[1] = colName;
 							String query = "SELECT COUNT(*) FROM " + table + " WHERE " + colName + " in('');";
-							rs = con.createStatement().executeQuery(query);
-							rs.next();
-							long count = rs.getLong(1);
+							long count = execAndClose(con, query);
 							cells[2] = count + "";
 							// # of unique values
 							query = "SELECT DISTINCT COUNT(" + colName + ") FROM " + table + ";";
-							rs = con.createStatement().executeQuery(query);
-							rs.next();
-							long uniqueNRow = rs.getLong(1);
+							long uniqueNRow = execAndClose(con, query);
 							cells[3] = uniqueNRow + "";
 							// # of null values
 							query = "SELECT COUNT(*) FROM " + table + " WHERE " + colName + " is null;";
-							rs = con.createStatement().executeQuery(query);
-							rs.next();
-							count = rs.getLong(1);
-							cells[8] = count + "";
+							long countNull = execAndClose(con, query);
+							cells[8] = countNull + "";
 							// add data to frame
 							frame.addRow(tableName, headers,  cells, dataTypes);
 						}
@@ -153,37 +155,67 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 			}
 
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if (con != null) {
 					con.close();
 				}
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 			try {
 				if (tables != null) {
 					tables.close();
 				}
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 			try {
 				if (columns != null) {
 					columns.close();
 				}
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
-			}
-			try {
-				if (rs != null) {
-					rs.close();
-				}
-			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
+	
+	/**
+	 * Closing the opened statemnts/result sets
+	 * @param con
+	 * @param query
+	 * @return
+	 * @throws SQLException
+	 */
+	private long execAndClose(Connection con, String query) throws SQLException {
+		Statement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			stmt = con.createStatement();
+			rs = stmt.executeQuery(query);
+			rs.next();
+			return rs.getLong(1);
+		} finally {
+			if(rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
 }
