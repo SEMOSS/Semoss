@@ -187,22 +187,6 @@ public class RdbmsConnectionHelper {
 	}
 
 	/**
-	 * Get the driver for a specific db type
-	 * @param driver
-	 * @return
-	 */
-	public static String getDriver(String driver) {
-		String driverType = driver.toUpperCase();
-		String predictedDriver = RdbmsTypeEnum.getDriverFromString(driverType);
-		if(predictedDriver != null) {
-			return predictedDriver;
-		} else {
-			// assume input is already a jdbc driver path
-			return driver;
-		}
-	}
-
-	/**
 	 * Try to construct the connection URL based on inputs
 	 * @param driver
 	 * @param host
@@ -216,22 +200,6 @@ public class RdbmsConnectionHelper {
 	 */
 	public static Connection buildConnection(String driver, String host, String port, String userName, String password, String schema, String additonalProperties) throws SQLException {
 		String connectionUrl = getConnectionUrl(driver, host, port, schema, additonalProperties);
-		return getConnection(connectionUrl, userName, password, driver);
-	}
-
-	/**
-	 * Try to construct the connection URL based on inputs
-	 * @param driver
-	 * @param host
-	 * @param port
-	 * @param userName
-	 * @param password
-	 * @param schema
-	 * @param additonalProperties
-	 * @return
-	 * @throws SQLException 
-	 */
-	public static Connection buildConnection(String connectionUrl, String userName, String password, String driver) throws SQLException {
 		return getConnection(connectionUrl, userName, password, driver);
 	}
 

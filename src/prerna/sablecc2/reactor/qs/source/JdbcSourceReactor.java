@@ -7,12 +7,13 @@ import java.util.Map;
 
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class JdbcSourceReactor extends AbstractQueryStructReactor {
 	
@@ -36,9 +37,21 @@ public class JdbcSourceReactor extends AbstractQueryStructReactor {
 		config.put(this.keysToGet[2], userName);
 		config.put(this.keysToGet[3], password);
 
+		if(driver == null) {
+			throw new IllegalArgumentException("Must pass in the rdbms type");
+		}
+		RdbmsTypeEnum dbType = RdbmsTypeEnum.getEnumFromString(driver);
+		if(dbType == null) {
+			// try one more time
+			dbType =  RdbmsTypeEnum.getEnumFromDriver(driver);
+			if(dbType == null) {
+				throw new IllegalArgumentException("Unable to find driver for rdbms type = " + driver);
+			}
+		}
+		
 		Connection con = null;
 		try {
-			con = RdbmsConnectionHelper.getConnection(connectionUrl, userName, password, driver);
+			con = AbstractSqlQueryUtil.makeConnection(dbType, connectionUrl, userName, password);
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 			throw new IllegalArgumentException(e1.getMessage());
