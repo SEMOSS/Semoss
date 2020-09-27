@@ -3,6 +3,8 @@ package prerna.ds.rdbms.postgres;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -11,10 +13,10 @@ import org.apache.logging.log4j.Logger;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
-import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
@@ -60,9 +62,14 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 			String password = prop.getProperty(POSTGRES_PASSWORD);
 
 			// build the connection url
-			String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(RdbmsTypeEnum.POSTGRES.getLabel(), host, port, this.schema, null);
+			Map<String, Object> connDetails = new HashMap<>();
+			connDetails.put(AbstractSqlQueryUtil.HOSTNAME, host);
+			connDetails.put(AbstractSqlQueryUtil.PORT, port);
+			connDetails.put(AbstractSqlQueryUtil.SCHEMA, this.schema);
+			String connectionUrl = this.util.buildConnectionString(connDetails);
 			// get the connection
-			this.conn = RdbmsConnectionHelper.getConnection(connectionUrl, username, password, RdbmsTypeEnum.POSTGRES.getLabel());
+			this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.POSTGRES, connectionUrl,  username, password);
+			
 			// set the builder
 			this.builder = new RdbmsFrameBuilder(this.conn, this.schema, this.util);
 		} catch (IOException ex) {

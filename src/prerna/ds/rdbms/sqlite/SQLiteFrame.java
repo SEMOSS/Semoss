@@ -4,16 +4,18 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
-import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.om.ThreadStore;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.insight.InsightUtility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
@@ -69,9 +71,13 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		}
 		
 		// build the connection url
-		String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(RdbmsTypeEnum.SQLITE.getLabel(), fileLocation, null, null, null);
+		// build the connection url
+		Map<String, Object> connDetails = new HashMap<>();
+		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, fileLocation);
+		String connectionUrl = this.util.buildConnectionString(connDetails);
 		// get the connection
-		this.conn = RdbmsConnectionHelper.getConnection(connectionUrl, "", "", RdbmsTypeEnum.SQLITE.getLabel());
+		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.SQLITE, connectionUrl,  "", "");
+		
 		// set the builder
 		this.builder = new RdbmsFrameBuilder(this.conn, this.schema, this.util);
 		this.util.enhanceConnection(this.conn);
