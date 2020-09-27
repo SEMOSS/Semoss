@@ -28,7 +28,6 @@ import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.QueryStruct;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
-import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.om.ThreadStore;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -44,6 +43,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
@@ -104,9 +104,12 @@ public class H2Frame extends AbstractRdbmsFrame {
 		}
 		
 		// build the connection url
-		String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(RdbmsTypeEnum.H2_DB.getLabel(), fileLocation, null, null, "LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0");
+		Map<String, Object> connDetails = new HashMap<>();
+		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, fileLocation);
+		connDetails.put(AbstractSqlQueryUtil.ADDITIONAL, "LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0");
+		String connectionUrl = this.util.buildConnectionString(connDetails);
 		// get the connection
-		this.conn = RdbmsConnectionHelper.getConnection(connectionUrl, "sa", "", RdbmsTypeEnum.H2_DB.getLabel());
+		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.H2_DB, connectionUrl,  "sa", "");
 		// set the builder
 		this.builder = new RdbmsFrameBuilder(this.conn, this.schema, this.util);
 		this.util.enhanceConnection(this.conn);

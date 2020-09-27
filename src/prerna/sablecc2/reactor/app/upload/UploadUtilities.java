@@ -43,7 +43,6 @@ import prerna.engine.impl.neo4j.Neo4jEngine;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.engine.impl.tinker.JanusEngine;
@@ -329,7 +328,7 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryRdbmsSmss(String appId, String appName, File owlFile, String rdbmsType, String file) throws IOException {
+	public static File createTemporaryRdbmsSmss(String appId, String appName, File owlFile, RdbmsTypeEnum rdbmsType, String file) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 		
 		// i am okay with deleting the .temp if it exists
@@ -351,7 +350,7 @@ public class UploadUtilities {
 			bufferedWriter = new BufferedWriter(writer);
 			
 			String engineClassName = "";
-			if(rdbmsType.equals(RdbmsTypeEnum.IMPALA.getLabel())) {
+			if(rdbmsType == RdbmsTypeEnum.IMPALA) {
 				engineClassName = ImpalaEngine.class.getName();
 			} else {
 				engineClassName = RDBMSNativeEngine.class.getName();
@@ -361,7 +360,7 @@ public class UploadUtilities {
 			// write the rdbms type
 			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
 			// write the driver
-			bufferedWriter.write(Constants.DRIVER + tab + RdbmsConnectionHelper.getDriver(rdbmsType) + "\n");
+			bufferedWriter.write(Constants.DRIVER + tab + rdbmsType.getDriver() + "\n");
 			// write the username
 			bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
 			// write the password
