@@ -82,8 +82,8 @@ public class WhenExpression extends GenExpression {
 				StringBuffer thenBuf = new StringBuffer();
 				thenBuf = thisThen.printQS(thisThen, thenBuf);
 
-				System.err.println("When ...  " + whenBuf);
-				System.err.println("Then ...  " + thenBuf);
+				//System.err.println("When ...  " + whenBuf);
+				//System.err.println("Then ...  " + thenBuf);
 
 				output.append("when " ).append(whenBuf).append(" then ").append(thenBuf).append(" ");
 			}
