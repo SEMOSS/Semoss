@@ -36,7 +36,7 @@ public class RegenSQLReactor extends AbstractReactor
 				e.printStackTrace();
 			}
 		}
-		return new NounMetadata(sqs, PixelDataType.QUERY_STRUCT);
+		return new NounMetadata(query, PixelDataType.CONST_STRING);
 	}
 	
 	
