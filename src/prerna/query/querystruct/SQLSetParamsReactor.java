@@ -1,5 +1,7 @@
 package prerna.query.querystruct;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.SqlParser2;
 import prerna.sablecc2.om.PixelDataType;
@@ -30,16 +32,19 @@ public class SQLSetParamsReactor extends AbstractReactor
 		
 		Object obj = insight.getVar(SQLGetParamsReactor.QS_WRAPPER);
 		String query = "No such id found";
+		ITableDataFrame frame = insight.getCurFrame();
+		SelectQueryStruct sqs = null;
+		if(frame != null && frame instanceof NativeFrame)
+			sqs = ((NativeFrame)frame).getQueryStruct(); //this.insight.getLastQS(insight.getLastPanelId());
 
-		if(obj == null)
+		if(obj == null && sqs != null)
 		{
 			// may be the user is doing for first time create it
-			SelectQueryStruct sqs = this.insight.getLastQS(insight.getLastPanelId());
 			String curQuery = sqs.getCustomFrom();
 
 			SqlParser2 sqp2 = new SqlParser2();
 			try {
-				GenExpressionWrapper wrapper = sqp2.processQuery(query);
+				GenExpressionWrapper wrapper = sqp2.processQuery(curQuery);
 				Object [] allColumns = wrapper.columnTableIndex.keySet().toArray();
 				insight.getVarStore().put(SQLGetParamsReactor.QS_WRAPPER, new NounMetadata(wrapper, PixelDataType.CUSTOM_DATA_STRUCTURE));
 				obj = wrapper;
@@ -58,7 +63,7 @@ public class SQLSetParamsReactor extends AbstractReactor
 			else if(type.equalsIgnoreCase("column_table"))
 				wrapper.replaceTableColumn(id, value);
 			if(type.equalsIgnoreCase("column_table_operator"))
-				wrapper.replaceColumn(id, value);
+				wrapper.replaceTableColumnOperator(id, value);
 			query = "Parameters have been set";
 		}
 		return new NounMetadata(query, PixelDataType.CONST_STRING);
