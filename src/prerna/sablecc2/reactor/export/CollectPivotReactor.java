@@ -23,7 +23,8 @@ public class CollectPivotReactor extends AbstractReactor {
 		}
 		
 		TaskBuilderReactor reactor = null;
-		if(frameType.equalsIgnoreCase("Py") && PyUtils.pyEnabled()) {
+		//frameType.equalsIgnoreCase("Py") && 
+		if(PyUtils.pyEnabled()) {
 			reactor = new prerna.sablecc2.reactor.frame.py.CollectPivotReactor();
 		} else {
 			reactor = new prerna.sablecc2.reactor.frame.r.CollectPivotReactor();
