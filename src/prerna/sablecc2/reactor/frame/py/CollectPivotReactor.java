@@ -200,9 +200,12 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			HashMap nameToList = (HashMap) pyt.runScript(sectionNames);
 			//makeFrame = ""; // null the make frame it has been made now
 			Object objList = nameToList.get(sectionColumnName);
-			List <String> allSections = null;
+			List <String> allSections = new Vector<String>();
 			if(objList instanceof List)
-				allSections = (List <String>)objList;
+			{
+				for(int itemIndex = 0;itemIndex < ((List)objList).size();itemIndex++)
+					allSections.add(((List) objList).get(itemIndex) + "");
+			}
 			else if(objList instanceof String)
 			{
 				allSections = new ArrayList<String>();
@@ -331,7 +334,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					deleteSectionFrames.append(", ");
 					sectionBlock.append(", ");
 				}
-				String thisSectionValue = sections.get(sectionIndex);
+				Object thisSectionValue = sections.get(sectionIndex).toString();
 				String sectionSpecificFrame = Utility.getRandomString(5);
 				allSections.append(sectionSpecificFrame).append(" = ").append(frameName).append("[").append(frameName).append("['").append(sectionName).append("'] == ").append(quote).append(thisSectionValue).append(quote).append("]").append("\n");
 				allSections.append(genPivot(sectionSpecificFrame, rows, columns, subtotalColumns, values, functions, dropNA, fill_value, json, margins)).append("\n");		
