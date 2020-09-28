@@ -157,7 +157,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector {
 	{
 		// if the type is join.. you need to do other things
 		//System.err.println("Processing  " + qs.aQuery + " <>" + qs.expression + "<>" + qs.operation);
-		String newLine = "\n";
+		String newLine = "";
 		if(buf == null)
 			buf = new StringBuffer();
 		boolean processed = false;
