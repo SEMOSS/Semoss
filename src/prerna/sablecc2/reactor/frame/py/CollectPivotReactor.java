@@ -11,7 +11,6 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
-import oracle.net.aso.a;
 import prerna.ds.py.PyTranslator;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -22,6 +21,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
 
@@ -269,6 +269,11 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		}
 		
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+	}
+	
+	public void setTask(ITask task)
+	{
+		this.task = task;
 	}
 	
 	// based on data type suggests if we need to add the ' or not
