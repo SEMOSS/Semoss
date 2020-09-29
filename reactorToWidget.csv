@@ -59,4 +59,5 @@ RunClassification,analytics-classification
 R,pipeline-codeblock
 Py,pipeline-codeblock
 Java,pipeline-codeblock
-RunDataQuality,quality-report
+RunDataQuality,quality-report,
+ReplaceFrameFilter,filter
