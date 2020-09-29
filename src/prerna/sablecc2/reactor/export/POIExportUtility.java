@@ -183,6 +183,7 @@ public class POIExportUtility {
                 break;
             case "M/d/yy hh:mm a":
                 format = "M/dd/yy hh:mm AM/PM";
+                break;
             case "M/d/yy HH:mm":
                 format = "M/dd/yy HH:mm";
                 break;
