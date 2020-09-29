@@ -49,6 +49,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			// move this guy to py
 			prerna.sablecc2.reactor.frame.py.CollectPivotReactor pyCollect = new prerna.sablecc2.reactor.frame.py.CollectPivotReactor();
 			pyCollect.In();
+			this.task = getTask();
+			pyCollect.setTask(this.task);
 			pyCollect.setInsight(insight);
 			pyCollect.setNounStore(this.getNounStore());
 			
