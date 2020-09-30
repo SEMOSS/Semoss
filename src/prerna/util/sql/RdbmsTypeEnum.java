@@ -4,7 +4,7 @@ public enum RdbmsTypeEnum {
 
 	ASTER("ASTER_DB", "com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver", "jdbc:ncluster"),
 	ATHENA("ATHENA","com.simba.athena.jdbc.Driver", "jdbc:awsathena"),
-	CASSANDRA("CASSANDRA", "com.github.cassandra.jdbc.CassandraDriver", "jdbc:cassandra"),
+	CASSANDRA("CASSANDRA", "com.simba.cassandra.jdbc42.Driver", "jdbc:cassandra"),
 	CLICKHOUSE("CLICKHOUSE", "ru.yandex.clickhouse.ClickHouseDriver", "jdbc:clickhouse"),
 	DB2("DB2", "com.ibm.db2.jcc.DB2Driver", "jdbc:db2"),
 	DERBY("DERBY", "org.apache.derby.jdbc.EmbeddedDriver", "jdbc:derby"),
