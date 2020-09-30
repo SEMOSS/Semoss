@@ -1,5 +1,6 @@
 package prerna.rdf.engine.wrappers;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.Date;
@@ -179,7 +180,15 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					if(arrVal != null) {
 						val = arrVal.getArray();
 					}
-				} else if(type == Types.BOOLEAN || type == Types.BIT) {
+				} else if(type == Types.VARBINARY) {
+					byte[] bytes = rs.getBytes(colNum);
+					try {
+						val = new String(bytes, "UTF-8");
+					} catch (UnsupportedEncodingException e) {
+						logger.error(STACKTRACE, e);
+					}
+				}
+				else if(type == Types.BOOLEAN || type == Types.BIT) {
 					val = rs.getBoolean(colNum);
 				}
 				else {
