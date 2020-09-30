@@ -379,7 +379,14 @@ public class RdbmsConnectionHelper {
 		} else if(driver == RdbmsTypeEnum.MYSQL){
 			// these take the schema as a proper regex search
 			tablesRs = meta.getTables(catalogFilter, "^" + schemaFilter + "$", null, new String[] { "TABLE", "VIEW" });
-		} else {
+		} else if (driver == RdbmsTypeEnum.CASSANDRA){
+			if(catalogFilter.isEmpty()) {
+			tablesRs = meta.getTables("cassandra", schemaFilter, null, new String[] { "TABLE", "VIEW" });
+			} else {
+				tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
+			}
+		}
+		else {
 			// these do not take in the schema as a proper regex search
 			// i know POSTGRES is an example
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
@@ -395,7 +402,7 @@ public class RdbmsConnectionHelper {
 	 */
 	public static String[] getTableKeys(RdbmsTypeEnum driver) {
 		String[] arr = new String[3];
-		if(driver == RdbmsTypeEnum.SNOWFLAKE|| driver == RdbmsTypeEnum.CLICKHOUSE ||driver == RdbmsTypeEnum.ATHENA) {
+		if(driver == RdbmsTypeEnum.SNOWFLAKE|| driver == RdbmsTypeEnum.CLICKHOUSE ||driver == RdbmsTypeEnum.ATHENA || driver == RdbmsTypeEnum.CASSANDRA) {
 			arr[0] = "TABLE_NAME";
 			arr[1] = "TABLE_TYPE";
 			arr[2] = "TABLE_SCHEM";
@@ -434,7 +441,13 @@ public class RdbmsConnectionHelper {
 				tableOrView = tableOrView.replace("_", "\\_");
 			}
 			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
-		} else {
+		} else if (driver == RdbmsTypeEnum.CASSANDRA){
+			if(catalogFilter.isEmpty()) {
+				catalogFilter="cassandra";
+			}
+				columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);	
+		}
+		else {
 			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
 		}
 		return columnsRs;
@@ -448,7 +461,7 @@ public class RdbmsConnectionHelper {
 	 */
 	public static String[] getColumnKeys(RdbmsTypeEnum driver) {
 		String[] arr = new String[2];
-		if(driver == RdbmsTypeEnum.SNOWFLAKE || driver == RdbmsTypeEnum.CLICKHOUSE) {
+		if(driver == RdbmsTypeEnum.SNOWFLAKE || driver == RdbmsTypeEnum.CLICKHOUSE || driver == RdbmsTypeEnum.CASSANDRA) {
 			arr[0] = "COLUMN_NAME";
 			arr[1] = "TYPE_NAME";
 		} else {
