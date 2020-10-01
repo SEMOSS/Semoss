@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.export;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -19,13 +17,16 @@ import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTPlotArea;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.STDLblPos;
+import org.python.google.common.base.Strings;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 
 public class POIExportUtility {
 
+	private static final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+	
 	private POIExportUtility() {
 		
 	}
@@ -120,120 +121,196 @@ public class POIExportUtility {
         }
     }
 
-    public static CellStyle getCurrentStyle(Workbook workbook, String additionalDataType, Map<String,String> formatDataValues) {
-    	if(additionalDataType == null) {
-    		return null;
-    	}
-    	Map<String, String> dataTypeMap = new HashMap<String, String>();
-        CellStyle curStyle = workbook.createCellStyle();
-        DataFormat df = workbook.createDataFormat();
-        boolean isValid = true;
-        
-        if(additionalDataType instanceof String && !additionalDataType.isEmpty()) {
-        	try{
-        		  JsonNode jsonNode = new ObjectMapper().readTree(additionalDataType);
-        		} catch(JsonProcessingException e){
-        			isValid = false;
-        		}
-        	if(isValid) {
-        		try {
-            		dataTypeMap = new ObjectMapper().readValue(additionalDataType, Map.class);
-            		additionalDataType = !dataTypeMap.isEmpty() && dataTypeMap.containsKey("type") ? dataTypeMap.get("type").toLowerCase() : additionalDataType;
-    			} catch (IOException e) {
-    				e.printStackTrace();
-    			}
-        	}
-        }
+    /**
+     * Get the cell style from either the panel formatting or the metamodel formatting
+     * @param workbook
+     * @param metamodelAdditionalDataType
+     * @param panelFormatting
+     * @return
+     */
+    public static CellStyle getCurrentStyle(Workbook workbook, String metamodelAdditionalDataType, Map<String,String> panelFormatting) {
+    	CellStyle curStyle = workbook.createCellStyle();
+    	DataFormat df = workbook.createDataFormat();
+    	// panel formatting goes first
+    	// then formatting at the additional type level
+    	String format = null;
+    	
+    	String prepend = null;
+    	String append = null;
+    	Object round = null;
+    	
+    	if(panelFormatting != null && panelFormatting.containsKey("type")) {
+    		String panelAdditionalDataType = panelFormatting.get("type").toLowerCase();
+    		format = getBaseExcelFormat(panelAdditionalDataType);
 
-        String format;
-        switch (additionalDataType) {
-            case "int_comma":
-                format = "#,###";
-                break;
-            case "int_currency":
-                format = "$#";
-                break;
-            case "int_currency_comma":
-                format = "$#,###";
-                break;
-            case "int_percent":
-                format = "#%";
-                break;
-            case "double_round1":
-                format = "0.0";
-                break;
-            case "double_round2":
-                format = "0.00";
-                break;
-            case "double_round3":
-                format = "0.000";
-                break;
-            case "double_comma_round1":
-                format = "#,###.0";
-                break;
-            case "double_comma_round2":
-                format = "#,###.00";
-                break;
-            case "double_currency_round2":
-                format = "$#,###.00";
-                break;
-            case "double_percent_round1":
-                format = ".0\"%\"";
-                break;
-            case "double_percent_round2":
-                format = ".00\"%\"";
-                break;
-            case "thousand":
-                format = ".00,\"K\"";
-                break;
-            case "million":
-                format = ".00,,\"M\"";
-                break;
-            case "billion":
-                format = ".00,,,\"B\"";
-                break;
-            case "trillion":
-                format = ".00,,,,\"T\"";
-                break;
-            case "accounting":
-                format = "_($* #,##0.0_);_($* (#,##0.0);_($* \"-\"?_);_(@_)";
-                break;
-            case "scientific":
-                format = "0.00E+00";
-                break;
-            case "MMMMM d, yyyy":
-                format = "MMMM d, yyyy";
-                break;
-            case "EEEEE, MMMMM d, yyyy":
-                format = "dddd, MMMM d, yyyy";
-                break;
-            case "M/d/yy hh:mm a":
-                format = "M/dd/yy hh:mm AM/PM";
-                break;
-            case "M/d/yy HH:mm":
-                format = "M/dd/yy HH:mm";
-                break;
-            default:
-                format = null;
-        }
-        // if not defined
-        // return null
-        if(format == null) {
-        	format = "General";
-        }
-        if (null != dataTypeMap && dataTypeMap.containsKey("prepend") && !(dataTypeMap.get("prepend").toString().isEmpty())) {
-        	format = "\"" +dataTypeMap.get("prepend")+ "\"" + format;
-        } else if (null != formatDataValues && formatDataValues.containsKey("prepend")) {
-        	format = "\"" +formatDataValues.get("prepend")+ "\"" + format;
-        }
-        if (null != dataTypeMap && dataTypeMap.containsKey("append") && !(dataTypeMap.get("append").toString().isEmpty())) {
-        	format = format + "\"" +dataTypeMap.get("append")+ "\"";
-        } else if (null != formatDataValues && formatDataValues.containsKey("append")) {
-        	format = format + "\"" +formatDataValues.get("append")+ "\"";
-        }
-        
-        curStyle.setDataFormat(df.getFormat(format));
-        return curStyle;
+    		prepend = panelFormatting.get("prepend");
+    		append = panelFormatting.get("append");
+    		round = panelFormatting.get("round");
+    		
+    		boolean hasPrepend = prepend != null && !prepend.isEmpty();
+    		boolean hasAppend = append != null && !append .isEmpty();
+
+    		// special cases
+    		try {
+	    		if(format == null && round != null) {
+	    			format = "#." + Strings.repeat("0", Integer.parseInt(round + ""));
+	    		}
+    		} catch(Exception e) {
+    			// ignore
+    		}
+    		if(format == null && (hasPrepend || hasAppend) ) {
+    			format = "General";
+    		}
+
+    		// apply prepend/append
+    		if (prepend != null && !prepend.isEmpty()) {
+    			format = "\"" + prepend + "\"" + format;
+    		} 
+    		if (append != null && !append.isEmpty()) {
+    			format = format + "\"" + append + "\"";
+    		}
+
+    		// return the panel format if not null
+    		if(format != null) {
+    			curStyle.setDataFormat(df.getFormat(format));
+    			return curStyle;
+    		}
+    	}
+
+    	// now try the metamodel additional type
+    	if(metamodelAdditionalDataType != null) {
+    		// first check if this is a map
+    		Map<String, String> customDataFormat = null;
+    		try {
+    			customDataFormat = gson.fromJson(metamodelAdditionalDataType, Map.class);
+    			if(customDataFormat != null && !customDataFormat.isEmpty()) {
+    				metamodelAdditionalDataType = customDataFormat.get("type").toLowerCase();
+    			}
+    		} catch(JsonSyntaxException e) {
+    			// ignore
+    		} catch(Exception e) {
+    			e.printStackTrace();
+    		}
+
+    		format = getBaseExcelFormat(metamodelAdditionalDataType);
+    		if(customDataFormat != null) {
+    			prepend = customDataFormat.get("prepend");
+    			append = customDataFormat.get("append");
+        		round = customDataFormat.get("round");
+    		}
+
+    		boolean hasPrepend = prepend != null && !prepend.isEmpty();
+    		boolean hasAppend = append != null && !append .isEmpty();
+
+    		// special cases
+    		try {
+	    		if(format == null && round != null) {
+	    			format = "#." + Strings.repeat("0", Integer.parseInt(round + ""));
+	    		}
+    		} catch(Exception e) {
+    			// ignore
+    		}
+    		if(format == null && (hasPrepend || hasAppend) ) {
+    			format = "General";
+    		}
+
+    		// apply prepend/append
+    		if (prepend != null && !prepend.isEmpty()) {
+    			format = "\"" + prepend + "\"" + format;
+    		} 
+    		if (append != null && !append.isEmpty()) {
+    			format = format + "\"" + append + "\"";
+    		}
+
+    		if(format != null) {
+    			curStyle.setDataFormat(df.getFormat(format));
+    			return curStyle;
+    		}
+    	}
+
+    	// nothing worked
+    	return null;
+    }
+    
+    /**
+     * Convert to get the base format
+     * @param additionalDataType
+     * @return
+     */
+    private static String getBaseExcelFormat(String additionalDataType) {
+    	  String format;
+          switch (additionalDataType) {
+              case "int_comma":
+                  format = "#,###";
+                  break;
+              case "int_currency":
+                  format = "$#";
+                  break;
+              case "int_currency_comma":
+                  format = "$#,###";
+                  break;
+              case "int_percent":
+                  format = "#%";
+                  break;
+              case "double_round1":
+                  format = "0.0";
+                  break;
+              case "double_round2":
+                  format = "0.00";
+                  break;
+              case "double_round3":
+                  format = "0.000";
+                  break;
+              case "double_comma_round1":
+                  format = "#,###.0";
+                  break;
+              case "double_comma_round2":
+                  format = "#,###.00";
+                  break;
+              case "double_currency_round2":
+                  format = "$#,###.00";
+                  break;
+              case "double_percent_round1":
+                  format = "0.0\"%\"";
+                  break;
+              case "double_percent_round2":
+                  format = "0.00\"%\"";
+                  break;
+              case "thousand":
+                  format = "0.00,\"K\"";
+                  break;
+              case "million":
+                  format = "0.00,,\"M\"";
+                  break;
+              case "billion":
+                  format = "0.00,,,\"B\"";
+                  break;
+              case "trillion":
+                  format = "0.00,,,,\"T\"";
+                  break;
+              case "accounting":
+                  format = "_($* #,##0.0_);_($* (#,##0.0);_($* \"-\"?_);_(@_)";
+                  break;
+              case "scientific":
+                  format = "0.00E+00";
+                  break;
+              case "MMMMM d, yyyy":
+                  format = "MMMM d, yyyy";
+                  break;
+              case "EEEEE, MMMMM d, yyyy":
+                  format = "dddd, MMMM d, yyyy";
+                  break;
+              case "M/d/yy hh:mm a":
+                  format = "M/dd/yy hh:mm AM/PM";
+                  break;
+              case "M/d/yy HH:mm":
+                  format = "M/dd/yy HH:mm";
+                  break;
+              default:
+                  format = null;
+          }
+          
+          return format;
     }
     
     /**

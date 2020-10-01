@@ -255,11 +255,11 @@ public class InsightPanel {
 	public Map<String , Map<String,String>> getFormatTypeValues() {
 		Map<String , Map<String,String>> res = new HashMap<String , Map<String,String>>();
 		Object formatDataValues = getMapInput(this.ornaments, "tools.shared.formatDataValues.formats");
-		if (formatDataValues != null && !(formatDataValues instanceof Map)) {
-			Object[] arr = ((Collection<String>) formatDataValues).toArray();
-			for (int j = 0; j < arr.length; j++) {
-				if (arr[j] instanceof Map) {
-					Map innerMap = (Map) arr[j];
+		if (formatDataValues != null && formatDataValues instanceof List) {
+			List<Object> arr = (List<Object>) formatDataValues;
+			for (int i = 0; i < arr.size(); i++) {
+				if (arr.get(i) instanceof Map) {
+					Map innerMap = (Map) arr.get(i);
 					if(innerMap.containsKey("dimension")) {
 						Map<String,String> resultMap = new HashMap<String, String>();
 						if (innerMap.containsKey("type")) {
@@ -270,6 +270,12 @@ public class InsightPanel {
 						}
 						if (innerMap.containsKey("append") && !(innerMap.get("append").toString().isEmpty())) {
 							resultMap.put("append", innerMap.get("append").toString());
+						}
+						if (innerMap.containsKey("round") && !(innerMap.get("round").toString().isEmpty())) {
+							resultMap.put("round", innerMap.get("round").toString());
+						}
+						if (innerMap.containsKey("delimiter") && !(innerMap.get("delimiter").toString().isEmpty())) {
+							resultMap.put("delimiter", innerMap.get("delimiter").toString());
 						}
 						// only add is result map is not empty
 						if(!resultMap.isEmpty()) {
