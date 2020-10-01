@@ -60,4 +60,5 @@ R,pipeline-codeblock
 Py,pipeline-codeblock
 Java,pipeline-codeblock
 RunDataQuality,quality-report,
-ReplaceFrameFilter,filter
+ReplaceFrameFilter,filter,
+CollectNewCol,add
