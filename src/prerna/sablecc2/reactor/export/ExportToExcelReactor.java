@@ -344,7 +344,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 	}
 
-	private void writeData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId, Map<String , Map<String, String>> formatValuesMap) {
+	private void writeData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId, Map<String , Map<String, String>> panelFormatting) {
 		CreationHelper createHelper = workbook.getCreationHelper();
 		XSSFSheet sheet = workbook.getSheet(sheetId);
 		if (sheet == null) {
@@ -415,11 +415,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
 				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
 				try {
-					if( formatValuesMap != null && (formatValuesMap.containsKey(headers[i])) ) {
-						stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, formatValuesMap.get(headers[i]).get("type"), formatValuesMap.get(headers[i]));
-					} else {
-						stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], null); 
-					}
+					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], panelFormatting.get(headers[i])); 
 				} catch(Exception e) {
 					// ignore
 				}
