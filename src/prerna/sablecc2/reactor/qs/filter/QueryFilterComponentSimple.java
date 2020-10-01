@@ -97,5 +97,14 @@ public class QueryFilterComponentSimple extends FilterReactor {
 		return noun;
 	}
 	
-
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		if(parentReactor != null) {
+			// filters are added to curRow
+			NounMetadata data = new NounMetadata(generateFilterObject(), PixelDataType.FILTER);
+			parentReactor.getCurRow().add(data);
+		}
+	}
+	
 }

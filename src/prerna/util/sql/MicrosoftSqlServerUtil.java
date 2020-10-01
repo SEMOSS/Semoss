@@ -155,6 +155,11 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getCurrentDate() {
+		return "GETDATE()";
+	}
+	
+	@Override
 	public boolean allowBlobDataType() {
 		return false;
 	}

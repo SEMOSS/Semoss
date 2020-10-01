@@ -32,7 +32,6 @@ import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.TemporalEngineHardQueryStruct;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelUtility;
@@ -58,6 +57,7 @@ import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.source.RDFFileSourceReactor;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -65,9 +65,9 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 
-public class PipelineTranslation extends LazyTranslation {
+public class PipelineTranslation2 extends LazyTranslation {
 
-	private static final Logger logger = LogManager.getLogger(PipelineTranslation.class);
+	private static final Logger logger = LogManager.getLogger(PipelineTranslation2.class);
 	private static Map<String, String> reactorToId = null;
 	
 	private static Map<AbstractQueryStruct.QUERY_STRUCT_TYPE, String> qsToWidget = new HashMap<>();
@@ -79,9 +79,7 @@ public class PipelineTranslation extends LazyTranslation {
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, "pipeline-app");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE, "pipeline-file");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME, "pipeline-frame");
-//		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.LAMBDA, value);
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, "pipeline-query");
-//		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY, "pipeline-query");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY, "pipeline-external");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY, "pipeline-rdf-file");
 
@@ -105,7 +103,7 @@ public class PipelineTranslation extends LazyTranslation {
 	private List<List<PipelineOperation>> allRoutines = new Vector<>();
 	private List<PipelineOperation> curRoutine;
 	
-	public PipelineTranslation(Insight insight) {
+	public PipelineTranslation2(Insight insight) {
 		super();
 		this.insight = insight;
 		if(this.insight != null) {
@@ -298,6 +296,7 @@ public class PipelineTranslation extends LazyTranslation {
     			logger.error(Constants.STACKTRACE, e);
     			throw new IllegalArgumentException(e.getMessage());
     		}
+    		
     		// get the parent
     		Object parent = curReactor.Out();
     		// set the parent as the curReactor if it is present
@@ -307,6 +306,13 @@ public class PipelineTranslation extends LazyTranslation {
     		} else {
     			curReactor = null;
     		}
+
+    		// account for moving qs
+    		if(curReactor == null && prevReactor instanceof AbstractQueryStructReactor) {
+    			AbstractQueryStruct qs = ((AbstractQueryStructReactor) prevReactor).getQs();
+	    		this.planner.addVariable(this.resultKey, new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
+    		}
+    		
     	}
     }
     
@@ -330,8 +336,8 @@ public class PipelineTranslation extends LazyTranslation {
     	String reactorId = reactorInputs[0];
 		PipelineOperation op = new PipelineOperation(reactorId, reactorInputs[1]);
 		
-		if(PipelineTranslation.qsReactors.contains(reactorId) 
-				|| PipelineTranslation.fileReactors.contains(reactorId)) {
+		if(PipelineTranslation2.qsReactors.contains(reactorId) 
+				|| PipelineTranslation2.fileReactors.contains(reactorId)) {
 			// we need to merge the previous QS portions into this reactor
 			combineQSComponents(op);
 		} 
@@ -339,11 +345,11 @@ public class PipelineTranslation extends LazyTranslation {
 		// the structure doesn't care about the qs source at the moment...
 		// so will set it here if reactor to id has the stuff
 		// the import/merge are not defined here
-		if(PipelineTranslation.reactorToId != null && PipelineTranslation.reactorToId.containsKey(reactorId)) {
-			op.setWidgetId(PipelineTranslation.reactorToId.get(reactorId));
+		if(PipelineTranslation2.reactorToId != null && PipelineTranslation2.reactorToId.containsKey(reactorId)) {
+			op.setWidgetId(PipelineTranslation2.reactorToId.get(reactorId));
 		}
 		
-		if(PipelineTranslation.codeBlocks.contains(reactorId)) {
+		if(PipelineTranslation2.codeBlocks.contains(reactorId)) {
 			// we need to process codeblock a bit different
 			// we want to decode what we input
 			NounStore store = reactor.getNounStore();
@@ -391,6 +397,12 @@ public class PipelineTranslation extends LazyTranslation {
     	// we will add the qs at the end
     	// since we could reassign the qs object
     	SelectQueryStruct qs = new SelectQueryStruct();
+
+    	// grab the QS being passed in if present
+    	GenRowStruct qsInput = this.curReactor.getNounStore().removeNoun(PixelDataType.QUERY_STRUCT.toString());
+    	if(qsInput != null && !qsInput.isEmpty()) {
+    		qs = (SelectQueryStruct) qsInput.get(0);
+    	}
     	
     	// combine all the existing noun portions
     	// thankfully the QS is already a builder construct
@@ -399,40 +411,43 @@ public class PipelineTranslation extends LazyTranslation {
     		// as it is the reactor name
     		
     		String opName = routine.getOpName();
-    		if(opName.equals("Database")) {
-    			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-    			
-    			// grab the database id from the  input
-    			String dbId = getStringOpNounInput("database", routine.getNounInputs());
-    			if(dbId == null) {
-    				dbId = getStringOpRowInput(0, routine.getRowInputs());
-    			}
-    			qs.setEngineId(dbId);
-    			
-    		} else if(opName.equals("Frame")) {
-    			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
-    			
-    			// grab the database id from the  input
-    			String frameName = getFrameNameOpNounInput("frame", routine.getNounInputs());
-    			if(frameName == null) {
-    				frameName = getFrameNameOpRowInput(0, routine.getRowInputs());
-    			}
-    			qs.setFrameName(frameName);
-    			
-    		} else if(opName.equals("Select")) {
-    			List<Map> rowInputs = routine.getRowInputs();
-    			int size = rowInputs.size();
-    			
-    			for(int i = 0; i < size; i++) {
-    				// the value should already be a query column selector
-    				Map<String, Object> rowMap = rowInputs.get(i);
-    				Object rowValue = rowMap.get("value");
-    				if(rowValue instanceof IQuerySelector) {
-    					qs.addSelector( (IQuerySelector) rowValue);
-    				}
-    			}
-    			
-    		} else if(opName.equals("Query")) {
+//    		if(opName.equals("Database")) {
+//    			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+//    			
+//    			// grab the database id from the  input
+//    			String dbId = getStringOpNounInput("database", routine.getNounInputs());
+//    			if(dbId == null) {
+//    				dbId = getStringOpRowInput(0, routine.getRowInputs());
+//    			}
+//    			qs.setEngineId(dbId);
+//    			
+//    		} else if(opName.equals("Frame")) {
+//    			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
+//    			
+//    			// grab the database id from the  input
+//    			String frameName = getFrameNameOpNounInput("frame", routine.getNounInputs());
+//    			if(frameName == null) {
+//    				frameName = getFrameNameOpRowInput(0, routine.getRowInputs());
+//    			}
+//    			qs.setFrameName(frameName);
+//    			
+//    		} 
+//    		else if(opName.equals("Select")) {
+//    			List<Map> rowInputs = routine.getRowInputs();
+//    			int size = rowInputs.size();
+//    			
+//    			for(int i = 0; i < size; i++) {
+//    				// the value should already be a query column selector
+//    				Map<String, Object> rowMap = rowInputs.get(i);
+//    				Object rowValue = rowMap.get("value");
+//    				if(rowValue instanceof IQuerySelector) {
+//    					qs.addSelector( (IQuerySelector) rowValue);
+//    				}
+//    			}
+//    			
+//    		} 
+//    		else 
+    		if(opName.equals("Query")) {
     			// make sure we have the correct type of raw query
     			// if it is run on an engine or a frame
     			HardSelectQueryStruct newQs = new HardSelectQueryStruct();
@@ -561,8 +576,8 @@ public class PipelineTranslation extends LazyTranslation {
     	// since we could reassign the qs object
     	qsMap.put("value", qs);
     	op.addNounInputs("qs", qsMap);
-    	if(PipelineTranslation.qsReactors.contains(op.getOpName())) {
-    		op.setWidgetId(PipelineTranslation.qsToWidget.get(qs.getQsType()));
+    	if(PipelineTranslation2.qsReactors.contains(op.getOpName())) {
+    		op.setWidgetId(PipelineTranslation2.qsToWidget.get(qs.getQsType()));
     	}
 	}
     
@@ -701,7 +716,7 @@ public class PipelineTranslation extends LazyTranslation {
     	} catch(Exception e) {
     		// error finding reactor
     		// just return a generic reactor placeholder
-    		logger.error("Error finding reactor " + reactorId);
+    		logger.error("Error finding reactor " + reactorId, e);
     	}
     	
     	UndeterminedPipelineReactor reactor = new UndeterminedPipelineReactor();
@@ -710,18 +725,18 @@ public class PipelineTranslation extends LazyTranslation {
     }
     
 	private static synchronized void init() {
-		if(PipelineTranslation.reactorToId == null) {
+		if(PipelineTranslation2.reactorToId == null) {
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			File reactorWidgetFile = new File(baseFolder + "/reactorToWidget.csv");
 			if(reactorWidgetFile.exists()) {
 				CSVFileHelper helper = new CSVFileHelper();
 				helper.parse(reactorWidgetFile.getAbsolutePath());
 				
-				PipelineTranslation.reactorToId = new HashMap<>();
+				PipelineTranslation2.reactorToId = new HashMap<>();
 				
 				String[] row = null;
 				while( (row = helper.getNextRow()) != null ) {
-					PipelineTranslation.reactorToId.put(row[0], row[1]);
+					PipelineTranslation2.reactorToId.put(row[0], row[1]);
 				}
 			}
 		}
@@ -750,14 +765,26 @@ public class PipelineTranslation extends LazyTranslation {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		
 		String pixel = "" 
-				+ "AddPanel ( 0 ) ;" 
-				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;" 
-				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;"
-				+ "Panel ( 0 ) | RetrievePanelEvents ( ) ;" 
-				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;" 
-				+ "Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" ) ;" 
-//				+ "CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME238470' ] ) ;" 
-//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Select ( MOVIE_DATES , MOVIE_DATES__Cast_Formed , MOVIE_DATES__DVD_Release , MOVIE_DATES__Director , MOVIE_DATES__Genre , MOVIE_DATES__MovieBudget , MOVIE_DATES__Nominated , MOVIE_DATES__Production_End , MOVIE_DATES__Production_Start , MOVIE_DATES__Revenue_Domestic , MOVIE_DATES__Revenue_International , MOVIE_DATES__RottenTomatoes_Audience , MOVIE_DATES__RottenTomatoes_Critics , MOVIE_DATES__Studio , MOVIE_DATES__Theatre_Release_Date , MOVIE_DATES__Title ) .as ( [ MOVIE_DATES , Cast_Formed , DVD_Release , Director , Genre , MovieBudget , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ] ) | Import ( frame = [ FRAME238470 ] ) ;" 
+//				+ "AddPanel ( 0 ) ;" 
+//				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;" 
+//				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;"
+//				+ "Panel ( 0 ) | RetrievePanelEvents ( ) ;" 
+//				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;" 
+//				+ "Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" ) ;" 
+				+ "CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME238470' ] ) ;" 
+				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) "
+					+ "| Select ( Min(MOVIE_DATES__Cast_Formed), MOVIE_DATES__GENRE).as(['CAST_FORMED', 'GENRE']) "
+					+ "| Filter( "
+//							+ "("
+							+ "MOVIE_DATES__NOMINATED == ['NO'] "
+//							+ "AND "
+//							+ "MOVIE_DATES__NOMINATED == ['YES'] "
+//							+ ") "
+//							+ "AND "
+//							+ "MOVIE_DATES__NOMINATED == (Database(\"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\") | Select(MOVIE_DATES__NOMINATED) | Collect(-1) ) "
+					+ ") "
+					+ "| Group(MOVIE_DATES__GENRE) | Import ( frame = [ FRAME238470 ] ) ;" 
+
 //				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Query(\"<encode> select * from movie_dates </encode>\") | Import ( frame = [ FRAME238470 ] ) ;" 
 //				+ "FileRead( filePath=[\"$IF\\diabetes_____UNIQUE2019_08_14_15_20_44_0226.csv\" ], dataTypeMap=[{\"patient\":\"INT\",\"chol\":\"INT\",\"stab_glu\":\"INT\",\"hdl\":\"INT\",\"ratio\":\"DOUBLE\",\"glyhb\":\"DOUBLE\",\"location\":\"STRING\",\"age\":\"INT\",\"gender\":\"STRING\",\"height\":\"INT\",\"weight\":\"INT\",\"frame\":\"STRING\",\"bp_1s\":\"INT\",\"bp_1d\":\"INT\",\"bp_2s\":\"INT\",\"bp_2d\":\"INT\",\"waist\":\"INT\",\"hip\":\"INT\",\"time_ppn\":\"INT\",\"Drug\":\"STRING\",\"start_date\":\"DATE\",\"end_date\":\"DATE\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"diabetes.csv\"], additionalDataTypes=[{\"start_date\":\"M/d/yyyy\",\"end_date\":\"M/d/yyyy\"}])|Select(DND__patient, DND__chol, DND__stab_glu, DND__hdl, DND__ratio, DND__glyhb, DND__location, DND__age, DND__gender, DND__height, DND__weight, DND__frame, DND__bp_1s, DND__bp_1d, DND__bp_2s, DND__bp_2d, DND__waist, DND__hip, DND__time_ppn, DND__Drug, DND__start_date, DND__end_date).as([patient, chol, stab_glu, hdl, ratio, glyhb, location, age, gender, height, weight, frame, bp_1s, bp_1d, bp_2s, bp_2d, waist, hip, time_ppn, Drug, start_date, end_date])|Import( frame=[FRAME238470] );"
 //				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;" 
@@ -770,20 +797,21 @@ public class PipelineTranslation extends LazyTranslation {
 //				+ "Frame(FRAME238470) | QueryAll() | ToCsv();"
 //				+ "RunSimilarity(instance=[\"Title\"], attributes=[\"Cast_Formed\",\"DVD_Release\"]);"
 //				+ "DirectJDBCConnection(query = [\"<encode>select * from city</encode>\"], dbDriver = [\"MYSQL\"], connectionString = [\"jdbc:mysql://localhost:3306/world?user=root&password=password\"], username = [\"root\"], password = [\"password\"])|Import( frame=[FRAME238470] );"
-				+ "R(\"<encode>2+2</encode>\");"
+
+//				+ "R(\"<encode>2+2</encode>\");"
 				//				+ "if(true, 5+5, 6+6);" 
 //				+ "ifError ( ( Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;"
 				;
 
 		Insight in = new Insight();
 		in.getVarStore().put("FRAME238470", new NounMetadata(new H2Frame("FRAME238470"), PixelDataType.FRAME));
-		PipelineTranslation translation = null;
+		PipelineTranslation2 translation = null;
 		List<String> encodingList = new Vector<>();
 		Map<String, String> encodedTextToOriginal = new HashMap<>();
 		try {
 			pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodingList, encodedTextToOriginal);
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
-			translation = new PipelineTranslation(in);
+			translation = new PipelineTranslation2(in);
 
 			// parsing the pixel - this process also determines if expression is syntactically correct
 			Start tree = p.parse();
@@ -811,21 +839,9 @@ public class PipelineTranslation extends LazyTranslation {
 			logger.info(eMessage);
 		}
 		
-//		PixelPlanner thisPlanner = translation.getPlanner();
-//		GraphTraversal<Edge, Edge> it = thisPlanner.g.traversal().E();
-//		while(it.hasNext()) {
-//			Edge e = it.next();
-//			Vertex inV = e.inVertex();
-//			Vertex outV = e.outVertex();
-//			System.out.println(e.property("TYPE").value()
-//					+ " ::: " 
-//					+ outV.property(PixelPlanner.TINKER_ID).value() 
-//					+ " ::: " 
-//					+ inV.property(PixelPlanner.TINKER_ID).value());
-//		}
-		
 		Gson gson = GsonUtility.getDefaultGson(true);
 		if (translation != null) {
+			System.out.println(gson.toJson(translation.allRoutines));
 			logger.info(gson.toJson(translation.allRoutines));
 		}
 	}

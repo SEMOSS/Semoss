@@ -10,7 +10,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 
-public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticSelector> implements IQueryTypeAdapter {
+public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticSelector> implements IQuerySelectorAdapterHelper {
 	
 	@Override
 	public QueryArithmeticSelector read(JsonReader in) throws IOException {

@@ -19,4 +19,15 @@ public class EmbeddedScriptReactor extends AbstractReactor {
 		}
 		return n;
 	}
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		if(parentReactor != null) {
+			int size = this.curRow.size();
+			NounMetadata n = this.curRow.getNoun(size-1);
+			this.parentReactor.getCurRow().add(n);
+		}
+	}
+	
 }

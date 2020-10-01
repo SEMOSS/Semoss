@@ -48,7 +48,7 @@ public class InsightUtility {
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.create();
 	
-	protected static final Logger LOGGER = LogManager.getLogger(InsightUtility.class.getName());
+	protected static final Logger logger = LogManager.getLogger(InsightUtility.class.getName());
 	public static final String PANEL_VIEW_VISUALIZATION = "visualization";
 	
 	public static final String OUTPUT_TYPE = "output";
@@ -78,7 +78,7 @@ public class InsightUtility {
 		newInsight.setTupleSpace(origInsight.getTupleSpace());
 		newInsight.setUser(origInsight.getUser());
 		if(origInsight.rInstantiated()) {
-			newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(LOGGER));
+			newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(logger));
 		}
 		newInsight.setTupleSpace(origInsight.getTupleSpace());
 	}
@@ -106,6 +106,10 @@ public class InsightUtility {
 	 * @return
 	 */
 	public static String getFolderDirSessionId(String sessionId) {
+		if(sessionId == null) {
+			logger.warn("SESSION ID is null");
+			return "null";
+		}
 		if(sessionId.length() > 32) {
 			return sessionId.substring(0, 32);
 		}
@@ -243,12 +247,12 @@ public class InsightUtility {
 	 */
 	public static NounMetadata clearInsight(Insight insight, boolean noOpType) {
 		synchronized(insight) {
-			LOGGER.info("Start clearning insight " + insight.getInsightId());
+			logger.info("Start clearning insight " + insight.getInsightId());
 
 			// drop all the tasks that are currently running
 			TaskStore taskStore = insight.getTaskStore();
 			taskStore.clearAllTasks();
-			LOGGER.debug("Successfully cleared all stored tasks for the insight");
+			logger.debug("Successfully cleared all stored tasks for the insight");
 	
 			// drop all the frame connections
 			VarStore varStore = insight.getVarStore();
@@ -263,18 +267,18 @@ public class InsightUtility {
 					dm.close();
 				}
 			}
-			LOGGER.debug("Successfully removed all frames from insight");
+			logger.debug("Successfully removed all frames from insight");
 			
 			// clear insight
 			insight.getVarStore().clear();
-			LOGGER.debug("Successfully removed all variables from varstore");
+			logger.debug("Successfully removed all variables from varstore");
 	
 			Map<String, String> fileExports = insight.getExportFiles();
 			if (fileExports != null && !fileExports.isEmpty()) {
 				for (String fileKey : fileExports.keySet()){
 					File f = new File(fileExports.get(fileKey));
 					f.delete();
-					LOGGER.debug("Successfully deleted export file used in insight " + f.getName());
+					logger.debug("Successfully deleted export file used in insight " + f.getName());
 				}
 			}
 			
@@ -283,14 +287,14 @@ public class InsightUtility {
 			// this will happen in your environment
 			if(insight.rInstantiated() && insight.isDeleteREnvOnDropInsight()) {
 				try {
-					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(LOGGER);
+					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(logger);
 					rJava.runR("rm(list=ls())");
 				} catch(Exception e) {
 					e.printStackTrace();
 				}
 			}
 			
-			LOGGER.info("Successfully cleared insight " + insight.getInsightId());
+			logger.info("Successfully cleared insight " + insight.getInsightId());
 			if(noOpType) {
 				return new NounMetadata(true, PixelDataType.BOOLEAN);
 			}
@@ -300,7 +304,7 @@ public class InsightUtility {
 	
 	public static NounMetadata dropInsight(Insight insight) {
 		synchronized(insight) {
-			LOGGER.info("Droping insight " + insight.getInsightId());
+			logger.info("Droping insight " + insight.getInsightId());
 	
 			// i will first grab all the files used then delete them
 			// only if this is not a saved insight + not a copied insight used for preview
@@ -311,16 +315,16 @@ public class InsightUtility {
 						FileMeta file = fileData.get(fileIdx);
 						File f = new File(file.getFileLoc());
 						f.delete();
-						LOGGER.debug("Successfully deleted File used in insight " + file.getFileLoc());
+						logger.debug("Successfully deleted File used in insight " + file.getFileLoc());
 					}
 				}
 			}
 			
 			// now i will clear
-			LOGGER.info("Clear insight for drop");
+			logger.info("Clear insight for drop");
 			clearInsight(insight, true);
 	
-			LOGGER.debug("Removing from insight store");
+			logger.debug("Removing from insight store");
 			String insightId = insight.getInsightId();
 			InsightStore.getInstance().remove(insightId);
 	
@@ -336,7 +340,7 @@ public class InsightUtility {
 			// remove the environment
 			if(insight.rInstantiated() && insight.isDeleteREnvOnDropInsight()) {
 				try {
-					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(LOGGER);
+					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(logger);
 					rJava.removeEnv();
 				} catch(Exception e) {
 					e.printStackTrace();
@@ -357,7 +361,7 @@ public class InsightUtility {
 //				}
 //			}
 			
-			LOGGER.info("Successfully dropped insight " + insight.getInsightId());
+			logger.info("Successfully dropped insight " + insight.getInsightId());
 			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DROP_INSIGHT);
 		}
 	}

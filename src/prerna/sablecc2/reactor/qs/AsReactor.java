@@ -32,4 +32,11 @@ public class AsReactor extends AbstractQueryStructReactor {
 		
 		return qs;
 	}
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		init();
+		createQueryStruct();
+	}
 }
