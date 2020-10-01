@@ -12,6 +12,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
+import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 
 /**
  * This is the base class for any reactor responsible for building a querystruct
@@ -59,7 +61,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 	}
 	
 	//initialize the reactor with its necessary inputs
-	private void init() {
+	protected void init() {
 		// this will happen when we have an explicit querystruct
 		// or one result piped a query struct to the current reactor
 		GenRowStruct qsInputParams = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
@@ -147,5 +149,33 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 			outputs.add(output);
 		}
 		return outputs;
+	}
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		init();
+		createQueryStruct();
+		setAlias(qs.getSelectors(), selectorAlias, existingSelectors);
+		if(parentReactor != null) {
+			// this is only called lazy
+			// have to init to set the qs
+			// to them add to the parent
+			NounMetadata data = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
+	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor) {
+	    		parentReactor.getCurRow().add(data);
+	    	} else {
+	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+				parentQSInput.add(data);
+	    	}
+		}
+	}
+	
+	/**
+	 * Return the QS
+	 * @return
+	 */
+	public AbstractQueryStruct getQs() {
+		return qs;
 	}
 }

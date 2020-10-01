@@ -6,7 +6,7 @@ import com.google.gson.stream.JsonReader;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
 
-public interface IQueryTypeAdapter {
+public interface IQuerySelectorAdapterHelper {
 
 	IQuerySelector readContent(JsonReader in) throws IOException;
 }

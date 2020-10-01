@@ -11,7 +11,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 
-public class AndQueryFilterAdapter extends TypeAdapter<AndQueryFilter> {
+public class AndQueryFilterAdapter extends TypeAdapter<AndQueryFilter> implements IQueryFilterAdapterHelper {
 
 	@Override
 	public AndQueryFilter read(JsonReader in) throws IOException {
@@ -20,13 +20,21 @@ public class AndQueryFilterAdapter extends TypeAdapter<AndQueryFilter> {
 			return null;
 		}
 		
-		// might start with the type of the filter
-		if(in.peek() == JsonToken.STRING) {
-			in.nextString();
-		}
+		// remove the beginning objects
+		in.beginObject();
+		in.nextName();
+		in.nextString();
+		in.nextName();
 		
+		// now we read the actual content
+		AndQueryFilter value = readContent(in);
+		in.endObject();
+		return value;
+	}
+	
+	@Override
+	public AndQueryFilter readContent(JsonReader in) throws IOException {
 		AndQueryFilter filters = new AndQueryFilter();
-		
 		in.beginArray();
 		while(in.hasNext()) {
 			IQueryFilterAdapter adapter = new IQueryFilterAdapter();
@@ -45,8 +53,9 @@ public class AndQueryFilterAdapter extends TypeAdapter<AndQueryFilter> {
 			return;
 		}
 		
-		out.value(IQueryFilter.QUERY_FILTER_TYPE.AND.toString());
-				
+		out.beginObject();
+		out.name("type").value(IQueryFilter.QUERY_FILTER_TYPE.AND.toString());
+		out.name("content");
 		out.beginArray();
 		List<IQueryFilter> filters = value.getFilterList();
 		for(IQueryFilter f : filters) {
@@ -54,7 +63,7 @@ public class AndQueryFilterAdapter extends TypeAdapter<AndQueryFilter> {
 			adapter.write(out, f);
 		}
 		out.endArray();
+		out.endObject();
 	}
-
 
 }

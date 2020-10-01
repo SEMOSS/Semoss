@@ -9,7 +9,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.POtherOpInput;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -286,25 +285,6 @@ public class GreedyTranslation extends LazyTranslation {
     	}
     }
     
-    /**
-     * This is greedy because we get the variable value (which means if its an embedded reactor we call execute)
-     * instead of just passing the noun which points to a lambda
-     */
-    @Override
-    protected void syncResult() {
-    	// after we init the new reactor
-        // we will add the result of the last reactor 
-        // into the noun store of this new reactor
-    	NounMetadata prevResult = this.planner.getVariableValue(this.resultKey);
-    	if(prevResult != null) {
-    		PixelDataType nounName = prevResult.getNounType();
-    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
-    		genRow.add(prevResult);
-    		// then we will remove the result from the planner
-        	this.planner.removeVariable(this.resultKey);
-    	}
-    }
-	
 	protected void postProcess(String pixelExpression) {
 		super.postProcess(pixelExpression);
 		// get the noun meta result
