@@ -2,6 +2,7 @@ package prerna.om;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -235,7 +236,8 @@ public class InsightPanel {
 					// just return empty
 					return new HashMap<String, Object>();
 				}
-			} else {
+			} 
+			else {
 				// well, can't find this...
 				// just return empty
 				return new HashMap<String, Object>();
@@ -243,6 +245,41 @@ public class InsightPanel {
 		}
 		
 		return innerObj;
+	}
+	
+	/**
+	 * Return the map of additional formatting stored on the panel for export functionality
+	 * @param formatDatavalues
+	 * @return
+	 */
+	public Map<String , Map<String,String>> getFormatTypeValues() {
+		Map<String , Map<String,String>> res = new HashMap<String , Map<String,String>>();
+		Object formatDataValues = getMapInput(this.ornaments, "tools.shared.formatDataValues.formats");
+		if (formatDataValues != null && !(formatDataValues instanceof Map)) {
+			Object[] arr = ((Collection<String>) formatDataValues).toArray();
+			for (int j = 0; j < arr.length; j++) {
+				if (arr[j] instanceof Map) {
+					Map innerMap = (Map) arr[j];
+					if(innerMap.containsKey("dimension")) {
+						Map<String,String> resultMap = new HashMap<String, String>();
+						if (innerMap.containsKey("type")) {
+							resultMap.put("type", innerMap.get("type").toString().toLowerCase());
+						}
+						if (innerMap.containsKey("prepend") && !(innerMap.get("prepend").toString().isEmpty())) {
+							resultMap.put("prepend", innerMap.get("prepend").toString());
+						}
+						if (innerMap.containsKey("append") && !(innerMap.get("append").toString().isEmpty())) {
+							resultMap.put("append", innerMap.get("append").toString());
+						}
+						// only add is result map is not empty
+						if(!resultMap.isEmpty()) {
+							res.put(innerMap.get("dimension").toString(), resultMap);
+						}
+					}
+				}
+			}
+		}
+		return res;
 	}
 	
 	/**

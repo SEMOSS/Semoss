@@ -1,5 +1,9 @@
 package prerna.sablecc2.reactor.export;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DataConsolidateFunction;
 import org.apache.poi.ss.usermodel.DataFormat;
@@ -15,6 +19,10 @@ import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTPlotArea;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.STDLblPos;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class POIExportUtility {
 
@@ -112,12 +120,30 @@ public class POIExportUtility {
         }
     }
 
-    public static CellStyle getCurrentStyle(Workbook workbook, String additionalDataType) {
+    public static CellStyle getCurrentStyle(Workbook workbook, String additionalDataType, Map<String,String> formatDataValues) {
     	if(additionalDataType == null) {
     		return null;
     	}
+    	Map<String, String> dataTypeMap = new HashMap<String, String>();
         CellStyle curStyle = workbook.createCellStyle();
         DataFormat df = workbook.createDataFormat();
+        boolean isValid = true;
+        
+        if(additionalDataType instanceof String && !additionalDataType.isEmpty()) {
+        	try{
+        		  JsonNode jsonNode = new ObjectMapper().readTree(additionalDataType);
+        		} catch(JsonProcessingException e){
+        			isValid = false;
+        		}
+        	if(isValid) {
+        		try {
+            		dataTypeMap = new ObjectMapper().readValue(additionalDataType, Map.class);
+            		additionalDataType = !dataTypeMap.isEmpty() && dataTypeMap.containsKey("type") ? dataTypeMap.get("type").toLowerCase() : additionalDataType;
+    			} catch (IOException e) {
+    				e.printStackTrace();
+    			}
+        	}
+        }
 
         String format;
         switch (additionalDataType) {
@@ -193,7 +219,17 @@ public class POIExportUtility {
         // if not defined
         // return null
         if(format == null) {
-        	return null;
+        	format = "General";
+        }
+        if (null != dataTypeMap && dataTypeMap.containsKey("prepend") && !(dataTypeMap.get("prepend").toString().isEmpty())) {
+        	format = "\"" +dataTypeMap.get("prepend")+ "\"" + format;
+        } else if (null != formatDataValues && formatDataValues.containsKey("prepend")) {
+        	format = "\"" +formatDataValues.get("prepend")+ "\"" + format;
+        }
+        if (null != dataTypeMap && dataTypeMap.containsKey("append") && !(dataTypeMap.get("append").toString().isEmpty())) {
+        	format = format + "\"" +dataTypeMap.get("append")+ "\"";
+        } else if (null != formatDataValues && formatDataValues.containsKey("append")) {
+        	format = format + "\"" +formatDataValues.get("append")+ "\"";
         }
         
         curStyle.setDataFormat(df.getFormat(format));

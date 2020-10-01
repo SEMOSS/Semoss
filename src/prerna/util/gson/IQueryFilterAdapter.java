@@ -19,11 +19,24 @@ public class IQueryFilterAdapter extends TypeAdapter<IQueryFilter> {
 		}
 		
 		// should start with the type
+		in.beginObject();
+		in.nextName();
 		String filterTypeString = in.nextString();
-		IQueryFilter.QUERY_FILTER_TYPE filterType = IQueryFilter.convertStringToFilterType(filterTypeString);
 		
+		// get the correct adapter
+		IQueryFilter.QUERY_FILTER_TYPE filterType = IQueryFilter.convertStringToFilterType(filterTypeString);
 		TypeAdapter reader = IQueryFilter.getAdapterForFilter(filterType);
-		return (IQueryFilter) reader.read(in);
+		if(reader instanceof IQueryFilterAdapterHelper) {
+			// now we should have the content object
+			in.nextName();
+			IQueryFilter filter = ((IQueryFilterAdapterHelper) reader).readContent(in);
+			in.endObject();
+			
+			return filter;
+		} else {
+			// this is the case of a subquery as a filter
+			return (IQueryFilter) reader.read(in);
+		}
 	}
 
 	@Override

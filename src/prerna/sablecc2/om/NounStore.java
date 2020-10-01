@@ -93,6 +93,10 @@ public class NounStore {
 		return nounByNumber.get(nounName + "_" + number);
 	}
 	
+	public GenRowStruct removeNoun(String nounName) {
+		return nounRow.remove(nounName);
+	}
+	
 /*	// make a child nounstore
 	// pattern is the node that is coming in
 	public NounStore makeChildStore(String operation)

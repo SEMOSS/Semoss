@@ -11,7 +11,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class SimpleQueryFilterAdapter extends TypeAdapter<SimpleQueryFilter> {
+public class SimpleQueryFilterAdapter extends TypeAdapter<SimpleQueryFilter> implements IQueryFilterAdapterHelper {
 	
 	@Override
 	public SimpleQueryFilter read(JsonReader in) throws IOException {
@@ -20,11 +20,20 @@ public class SimpleQueryFilterAdapter extends TypeAdapter<SimpleQueryFilter> {
 			return null;
 		}
 		
-		// might start with the type of the filter
-		if(in.peek() == JsonToken.STRING) {
-			in.nextString();
-		}
+		// remove the beginning objects
+		in.beginObject();
+		in.nextName();
+		in.nextString();
+		in.nextName();
 		
+		// now we read the actual content
+		SimpleQueryFilter value = readContent(in);
+		in.endObject();
+		return value;
+	}
+	
+	@Override
+	public SimpleQueryFilter readContent(JsonReader in) throws IOException {
 		NounMetadataAdapter adapter = new NounMetadataAdapter();
 
 		NounMetadata left = null;
@@ -54,8 +63,6 @@ public class SimpleQueryFilterAdapter extends TypeAdapter<SimpleQueryFilter> {
 			return;
 		}
 		
-		out.value(IQueryFilter.QUERY_FILTER_TYPE.SIMPLE.toString());
-		
 		NounMetadata left = value.getLComparison();
 		NounMetadata right = value.getRComparison();
 		String comp = value.getComparator();
@@ -63,15 +70,17 @@ public class SimpleQueryFilterAdapter extends TypeAdapter<SimpleQueryFilter> {
 		NounMetadataAdapter adapter = new NounMetadataAdapter();
 		
 		out.beginObject();
-		out.name("left");
-		adapter.write(out, left);
-		out.name("comparator").value(comp);
-		out.name("right");
-		adapter.write(out, right);
+		out.name("type").value(IQueryFilter.QUERY_FILTER_TYPE.SIMPLE.toString());
+		out.name("content");
+			// content object
+			out.beginObject();
+				out.name("left");
+				adapter.write(out, left);
+				out.name("comparator").value(comp);
+				out.name("right");
+				adapter.write(out, right);
+			out.endObject();
 		out.endObject();
 	}
 
-	
-	
-	
 }

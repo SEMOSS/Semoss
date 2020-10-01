@@ -109,6 +109,14 @@ public abstract class AbstractListFilter implements IQueryFilter {
 		this.filterList.add(f);
 	}
 	
+	/**
+	 * Add filters to the list
+	 * @param f
+	 */
+	public void addFilter(List<IQueryFilter> f) {
+		this.filterList.addAll(f);
+	}
+	
 	public void setFilterList(List<IQueryFilter> filterList) {
 		this.filterList = filterList;
 	}
