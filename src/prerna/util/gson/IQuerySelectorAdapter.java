@@ -25,7 +25,7 @@ public class IQuerySelectorAdapter extends TypeAdapter<IQuerySelector> {
 		
 		// get the correct adapter
 		IQuerySelector.SELECTOR_TYPE selectorType = IQuerySelector.convertStringToSelectorType(selectorTypeString);
-		IQueryTypeAdapter reader = (IQueryTypeAdapter) IQuerySelector.getAdapterForSelector(selectorType);
+		IQuerySelectorAdapterHelper reader = (IQuerySelectorAdapterHelper) IQuerySelector.getAdapterForSelector(selectorType);
 
 		// now we should have the content object
 		in.nextName();
