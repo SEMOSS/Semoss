@@ -19,6 +19,8 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
+import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 
 public abstract class TaskBuilderReactor extends AbstractReactor {
 
@@ -174,15 +176,47 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		// the idea is this needs to be passed into querystruct and later iterator
 		// unless we start keeping a reference of querystruct in the iterator
 		// adds it to the qs
-		if(qs.getPragmap() != null && insight.getPragmap() != null)
+		if(qs.getPragmap() != null && insight.getPragmap() != null) {
 			qs.getPragmap().putAll(insight.getPragmap());
-		else if(insight.getPragmap() != null)
+		} else if(insight.getPragmap() != null) {
 			qs.setPragmap(insight.getPragmap());
-		
+		}
 		
 		ITask task = new BasicIteratorTask(qs);
 		// add the task to the store
 		this.insight.getTaskStore().addTask(task);
 		return task;
 	}
+	
+	@Override
+	public void mergeUp() {
+		// if this has a QS
+		// merge it back up
+		if(parentReactor != null) {
+			SelectQueryStruct qs = null;
+			GenRowStruct grsQs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
+			//if we don't have tasks in the curRow, check if it exists in genrow under the qs key
+			if(grsQs != null && !grsQs.isEmpty()) {
+				NounMetadata noun = grsQs.getNoun(0);
+				qs = (SelectQueryStruct) noun.getValue();
+			} else {
+				List<NounMetadata> qsList = this.curRow.getNounsOfType(PixelDataType.QUERY_STRUCT);
+				if(qsList != null && !qsList.isEmpty()) {
+					NounMetadata noun = qsList.get(0);
+					qs = (SelectQueryStruct) noun.getValue();
+				}
+			}
+			
+			if(qs != null) {
+				NounMetadata data = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
+		    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor) {
+		    		parentReactor.getCurRow().add(data);
+		    	} else {
+		    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+					parentQSInput.add(data);
+		    	}
+			}
+		}
+	}
+	
 }

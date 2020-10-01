@@ -123,8 +123,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				throw new IllegalArgumentException("An error occured trying to parameterize the insight recipe. The source error message is: " + e.getMessage(), e);
 			}
 		}
-
-
 		
 		int stepCounter = 1;
 		// add the recipe to the insights database

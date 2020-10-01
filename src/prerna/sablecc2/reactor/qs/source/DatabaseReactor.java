@@ -6,7 +6,12 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
+import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -48,6 +53,40 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 				 this.qs.setBigDataEngine(true);
 			 }
 		}
+		// need to account if this is a hard query struct
+		if(this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || 
+				this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		} else {
+			this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+		}
+		return this.qs;
+	}
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		init();
+		createQueryStructPlan();
+		if(parentReactor != null) {
+			// this is only called lazy
+			// have to init to set the qs
+			// to them add to the parent
+			NounMetadata data = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
+	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor) {
+	    		parentReactor.getCurRow().add(data);
+	    	} else {
+	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+				parentQSInput.add(data);
+	    	}
+		}
+	}
+	
+	private AbstractQueryStruct createQueryStructPlan() {
+		this.organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		this.qs.setEngineId(engineId);
+
 		// need to account if this is a hard query struct
 		if(this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || 
 				this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {

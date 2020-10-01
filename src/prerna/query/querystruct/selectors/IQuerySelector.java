@@ -84,7 +84,6 @@ public interface IQuerySelector {
 		return null;
 	}
 	
-	
 	/**
 	 * Convert string to SELECTOR_TYPE
 	 * @param s
