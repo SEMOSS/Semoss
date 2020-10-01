@@ -10,7 +10,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 
-public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelector> implements IQueryTypeAdapter {
+public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelector> implements IQuerySelectorAdapterHelper {
 
 	@Override 
 	public QueryConstantSelector read(JsonReader in) throws IOException {
@@ -25,7 +25,7 @@ public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelec
 		in.nextString();
 		in.nextName();
 		
-		// now we read the actual context
+		// now we read the actual content
 		QueryConstantSelector value = readContent(in);
 		in.endObject();
 		return value;

@@ -10,7 +10,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 
-public class QueryColumnSelectorAdapter extends TypeAdapter<QueryColumnSelector> implements IQueryTypeAdapter {
+public class QueryColumnSelectorAdapter extends TypeAdapter<QueryColumnSelector> implements IQuerySelectorAdapterHelper {
 
 	@Override 
 	public QueryColumnSelector read(JsonReader in) throws IOException {
@@ -19,18 +19,13 @@ public class QueryColumnSelectorAdapter extends TypeAdapter<QueryColumnSelector>
 			return null;
 		}
 
-		// might start with the type of the query selector
-		if(in.peek() == JsonToken.STRING) {
-			in.nextString();
-		}
-		
 		// remove the beginning objects
 		in.beginObject();
 		in.nextName();
 		in.nextString();
 		in.nextName();
 		
-		// now we read the actual context
+		// now we read the actual content
 		QueryColumnSelector value = readContent(in);
 		in.endObject();
 		return value;

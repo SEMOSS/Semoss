@@ -27,4 +27,18 @@ public class EmbeddedRoutineReactor extends AbstractReactor {
 		}
 		return new NounMetadata(nList, PixelDataType.VECTOR, PixelOperationType.SUB_SCRIPT);
 	}
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		if(parentReactor != null) {
+			for(String key : this.store.getNounKeys()) {
+				if(key.equals(ALL_NOUN_STORE)) {
+					continue;
+				}
+				GenRowStruct grs = this.store.getNoun(key);
+				this.parentReactor.getCurRow().add(grs.getNoun(0));
+			}
+		}
+	}
 }

@@ -185,7 +185,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 			Map<String, Object> panelChartMap = new HashMap<>();
 			setChartLayout(panelChartMap, taskOptions, panelId);
 			this.chartPanelLayout.get(sheetId).put(panelId, panelChartMap);
-			writeData(workbook, task, sheetId, panelId);
+			writeData(workbook, task, sheetId, panelId, panel.getFormatTypeValues());
 		}
 
 		// now build charts
@@ -344,7 +344,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 	}
 
-	private void writeData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId) {
+	private void writeData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId, Map<String , Map<String, String>> formatValuesMap) {
 		CreationHelper createHelper = workbook.getCreationHelper();
 		XSSFSheet sheet = workbook.getSheet(sheetId);
 		if (sheet == null) {
@@ -375,6 +375,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		int curSheetCol = i + excelColStart;
 		int endRow = (int) sheetMap.get("rowIndex");
 		int excelRowCounter = 0;
+				
 
 		// we need to iterate and write the headers during the first time
 		if (task.hasNext()) {
@@ -414,7 +415,11 @@ public class ExportToExcelReactor extends AbstractReactor {
 				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
 				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
 				try {
-					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i]);
+					if( formatValuesMap != null && (formatValuesMap.containsKey(headers[i])) ) {
+						stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, formatValuesMap.get(headers[i]).get("type"), formatValuesMap.get(headers[i]));
+					} else {
+						stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], null); 
+					}
 				} catch(Exception e) {
 					// ignore
 				}
@@ -460,6 +465,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 					if(stylingArr[i] != null) {
 						cell.setCellStyle(stylingArr[i]);
 					}
+						
 				}
 			}
 		}
