@@ -131,6 +131,20 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract String buildConnectionString(Properties prop) throws RuntimeException;
 	
+	/**
+	 * Method to get a connection to an existing RDBMS engine
+	 * @param driverEnum
+	 * @param connectionUrl
+	 * @param connectionDetails
+	 * @return
+	 * @throws SQLException 
+	 */
+	public static Connection makeConnection(AbstractSqlQueryUtil util, String connectionUrl, Map<String, Object> connectionDetails) throws SQLException {
+		return AbstractSqlQueryUtil.makeConnection(util.getDbType(), 
+				connectionUrl, 
+				(String) connectionDetails.get(util.getConnectionUserKey()), 
+				(String) connectionDetails.get(util.getConnectionPasswordKey()));
+	}
 	
 	/**
 	 * Method to get a connection to an existing RDBMS engine
@@ -225,6 +239,26 @@ public abstract class AbstractSqlQueryUtil {
 
 	public String getConnectionUrl() {
 		return connectionUrl;
+	}
+	
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	
+	public void setPassword(String password) {
+		this.password = password;
+	}
+	
+	public void setConnectionUrl(String connectionUrl) {
+		this.connectionUrl = connectionUrl;
+	}
+	
+	public String getConnectionUserKey() {
+		return AbstractSqlQueryUtil.USERNAME;
+	}
+	
+	public String getConnectionPasswordKey() {
+		return AbstractSqlQueryUtil.PASSWORD;
 	}
 
 	public IQueryInterpreter getInterpreter(IEngine engine) {

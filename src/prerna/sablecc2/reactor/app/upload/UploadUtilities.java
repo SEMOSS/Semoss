@@ -63,6 +63,7 @@ import prerna.util.gson.GsonUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class UploadUtilities {
 
@@ -992,6 +993,8 @@ public class UploadUtilities {
 			Map<String, Object> connectionDetails) throws IOException, SQLException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(dbType);
+		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
 		// and they should be deleted after loading
@@ -1016,8 +1019,21 @@ public class UploadUtilities {
 
 			String customUrl = (String) connectionDetails.get(AbstractSqlQueryUtil.CONNECTION_STRING);
 			if(customUrl != null && !customUrl.isEmpty()) {
-				bufferedWriter.write(Constants.USERNAME + tab + connectionDetails.get(AbstractSqlQueryUtil.USERNAME) + newLine);
-				bufferedWriter.write(Constants.PASSWORD + tab + connectionDetails.get(AbstractSqlQueryUtil.PASSWORD) + newLine);
+				// keys can be username/password
+				// but some will have it as accessKey/secretKey
+				// so accounting for that here
+				String usernameKey = queryUtil.getConnectionUserKey();
+				String passwordKey = queryUtil.getConnectionPasswordKey();
+				if(connectionDetails.containsKey(usernameKey)) {
+					bufferedWriter.write(usernameKey + tab + connectionDetails.get(usernameKey) + newLine);
+				} else {
+					bufferedWriter.write(usernameKey + tab + newLine);
+				}
+				if(connectionDetails.containsKey(passwordKey)) {
+					bufferedWriter.write(passwordKey + tab + connectionDetails.get(passwordKey) + newLine);
+				} else {
+					bufferedWriter.write(passwordKey + tab + newLine);
+				}
 			} else {
 				String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
 				if(host != null && !host.isEmpty()) {
