@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
-import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -17,13 +16,9 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 
 public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
-
-	private static final Gson SIMPLE_GSON = new Gson();
 
 	@Override
 	public SelectQueryStruct read(JsonReader in) throws IOException {
@@ -64,6 +59,18 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 				in.endArray();
 				qs.setSelectors(selectors);
 			}
+			// explicit filters
+			else if(name.equals("explicitFilters")) {
+				qs.setExplicitFilters(readGrf(in));
+			}
+			// explicit filters
+			else if(name.equals("implicitFilters")) {
+				qs.setImplicitFilters(readGrf(in));
+			}
+			// explicit filters
+			else if(name.equals("havingFilters")) {
+				qs.setHavingFilters(readGrf(in));
+			}
 			// group bys
 			else if(name.equals("groups")) {
 				in.beginArray();
@@ -82,22 +89,9 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 				in.beginArray();
 				orders = new Vector<IQuerySort>();
 				while(in.hasNext()) {
-					// we have 2 values
-					// first is the class
-					// second is the object itself
-					in.beginObject();
-					in.nextName();
-					String className = in.nextString();
-					in.nextName();
-					String serializedObject = in.nextString();
-					IQuerySort thisSort = null;
-					if(className.equals(QueryColumnOrderBySelector.class.getName())) {
-						thisSort = SIMPLE_GSON.fromJson(serializedObject, QueryColumnOrderBySelector.class);
-					} else if(className.equals(QueryCustomOrderBy.class.getName())) {
-						thisSort = SIMPLE_GSON.fromJson(serializedObject, QueryCustomOrderBy.class);
-					}
-					orders.add(thisSort);
-					in.endObject();
+					IQuerySortAdapter sortAdapter = new IQuerySortAdapter();
+					IQuerySort orderBy = sortAdapter.read(in);
+					orders.add(orderBy);
 				}
 				in.endArray();
 				qs.setOrderBy(orders);
@@ -119,19 +113,6 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 				}
 				qs.setRelations(relations);
 			}
-			// explicit filters
-			else if(name.equals("explicitFilters")) {
-				qs.setExplicitFilters(readGrf(in));
-			}
-			// explicit filters
-			else if(name.equals("implicitFilters")) {
-				qs.setImplicitFilters(readGrf(in));
-			}
-			// explicit filters
-			else if(name.equals("havingFilters")) {
-				qs.setHavingFilters(readGrf(in));
-			}
-
 		}
 		in.endObject();
 
@@ -239,12 +220,8 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			out.beginArray();
 			for(int i = 0; i < orders.size(); i++) {
 				IQuerySort orderBy = orders.get(i);
-				out.beginObject();
-				out.name("class");
-				out.value(orderBy.getClass().getName());
-				out.name("object");
-				out.value(SIMPLE_GSON.toJson(orderBy));
-				out.endObject();
+				TypeAdapter adapter = IQuerySort.getAdapterForSort(orderBy.getQuerySortType());
+				adapter.write(out, orderBy);
 			}
 			out.endArray();
 		}
