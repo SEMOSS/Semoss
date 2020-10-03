@@ -47,7 +47,14 @@ public class AthenaQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Must pass in an S3 bucket location for query outputs to be stored");
 		}
 		
-		connectionString = urlPrefix+"://AwsRegion="+region+";User="+accessKey+";Password="+secretKey+";S3OutputLocation="+output;
+		String schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
+		if(schema == null || schema.isEmpty()) {
+			schema = "default";
+		}
+		
+		connectionString = urlPrefix+"://AwsRegion="+region
+				+";User="+accessKey+";Password="+secretKey
+				+";S3OutputLocation="+output+";Schema="+schema;
 		
 		String additonalProperties = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
 		if(additonalProperties != null && !additonalProperties.isEmpty()) {
@@ -93,7 +100,14 @@ public class AthenaQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Must pass in an S3 bucket location for query outputs to be stored");
 		}
 		
-		connectionString = urlPrefix+"://AwsRegion="+region+";User="+accessKey+";Password="+secretKey+";S3OutputLocation="+output;
+		String schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
+		if(schema == null || schema.isEmpty()) {
+			schema = "default";
+		}
+		
+		connectionString = urlPrefix+"://AwsRegion="+region
+				+";User="+accessKey+";Password="+secretKey
+				+";S3OutputLocation="+output+";Schema="+schema;
 		
 		String additonalProperties = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
 		if(additonalProperties != null && !additonalProperties.isEmpty()) {
@@ -105,6 +119,16 @@ public class AthenaQueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		return connectionString;
+	}
+	
+	@Override
+	public String getConnectionUserKey() {
+		return AbstractSqlQueryUtil.ACCESS_KEY;
+	}
+	
+	@Override
+	public String getConnectionPasswordKey() {
+		return AbstractSqlQueryUtil.SECRET_KEY;
 	}
 	
 }
