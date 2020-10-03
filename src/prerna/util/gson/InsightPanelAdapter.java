@@ -19,12 +19,9 @@ import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySort;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
-import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 
 public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	
-	private static final Gson GSON = GsonUtility.getDefaultGson();
 	private static final Gson SIMPLE_GSON =  new GsonBuilder()
 			.disableHtmlEscaping()
 			.registerTypeAdapter(Double.class, new NumberAdapter())
@@ -102,12 +99,8 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		List<IQuerySort> orders = value.getPanelOrderBys();
 		for(int i = 0; i < orders.size(); i++) {
 			IQuerySort orderBy = orders.get(i);
-			out.beginObject();
-			out.name("class");
-			out.value(orderBy.getClass().getName());
-			out.name("object");
-			out.value(GSON.toJson(orders.get(i)));
-			out.endObject();
+			TypeAdapter sortAdapter = IQuerySort.getAdapterForSort(orderBy.getQuerySortType());
+			sortAdapter.write(out, orderBy);
 		}
 		out.endArray();
 		
@@ -201,28 +194,15 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				grf = adapter.read(in);
 				
 			} else if(key.equals("order")) {
-				in.beginArray();
 				orders = new Vector<IQuerySort>();
+				in.beginArray();
 				while(in.hasNext()) {
-					// we have 2 values
-					// first is the class
-					// second is the object itself
-					in.beginObject();
-					in.nextName();
-					String className = in.nextString();
-					in.nextName();
-					String serializedObject = in.nextString();
-					IQuerySort thisSort = null;
-					if(className.equals(QueryColumnOrderBySelector.class.getName())) {
-						thisSort = GSON.fromJson(serializedObject, QueryColumnOrderBySelector.class);
-					} else if(className.equals(QueryCustomOrderBy.class.getName())) {
-						thisSort = GSON.fromJson(serializedObject, QueryCustomOrderBy.class);
-					}
-					orders.add(thisSort);
-					in.endObject();
+					IQuerySortAdapter sortAdapter = new IQuerySortAdapter();
+					IQuerySort orderBy = sortAdapter.read(in);
+					orders.add(orderBy);
 				}
 				in.endArray();
-			
+
 			} else if(key.equals("cbv")) {
 				cbvList = new ArrayList<ColorByValueRule>();
 				in.beginArray();
