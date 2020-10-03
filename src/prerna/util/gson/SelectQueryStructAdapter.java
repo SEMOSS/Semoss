@@ -1,11 +1,11 @@
 package prerna.util.gson;
 
 import java.io.IOException;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
@@ -52,19 +52,26 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			} else if(name.equals("offset")) {
 				qs.setOffSet(in.nextLong());
 			} 
-			else if(name.equals("relations")) {
-				String str = in.nextString();
-				Set<String[]> relations = SIMPLE_GSON.fromJson(str, new TypeToken<Set<String[]>>() {}.getType());
-				qs.setRelations(relations);
+			// selectors
+			else if(name.equals("selectors")) {
+				in.beginArray();
+				List<IQuerySelector> selectors = new Vector<IQuerySelector>();
+				while(in.hasNext()) {
+					IQuerySelectorAdapter selectorAdapter = new IQuerySelectorAdapter();
+					IQuerySelector selector = selectorAdapter.read(in);
+					selectors.add(selector);
+				}
+				in.endArray();
+				qs.setSelectors(selectors);
 			}
 			// group bys
 			else if(name.equals("groups")) {
 				in.beginArray();
 				List<QueryColumnSelector> groupBy = new Vector<QueryColumnSelector>();
 				while(in.hasNext()) {
-					String str = in.nextString();
-					QueryColumnSelector s = SIMPLE_GSON.fromJson(str, QueryColumnSelector.class);
-					groupBy.add(s);
+					IQuerySelectorAdapter selectorAdapter = new IQuerySelectorAdapter();
+					IQuerySelector selector = selectorAdapter.read(in);
+					groupBy.add((QueryColumnSelector) selector);
 				}
 				in.endArray();
 				qs.setGroupBy(groupBy);
@@ -95,17 +102,22 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 				in.endArray();
 				qs.setOrderBy(orders);
 			}
-			// selectors
-			else if(name.equals("selectors")) {
-				in.beginArray();
-				List<IQuerySelector> selectors = new Vector<IQuerySelector>();
-				while(in.hasNext()) {
-					IQuerySelectorAdapter selectorAdapter = new IQuerySelectorAdapter();
-					IQuerySelector selector = selectorAdapter.read(in);
-					selectors.add(selector);
+			else if(name.equals("relations")) {
+				Set<String[]> relations = new LinkedHashSet<>();
+				if(relations != null && !relations.isEmpty()) {
+					in.beginArray();
+					while(in.hasNext()) {
+						in.beginArray();
+						List<String> rel = new Vector<>();
+						while(in.hasNext()) {
+							rel.add(in.nextString());
+						}
+						relations.add(rel.toArray(new String[] {}));
+						in.endArray();
+					}
+					in.endArray();
 				}
-				in.endArray();
-				qs.setSelectors(selectors);
+				qs.setRelations(relations);
 			}
 			// explicit filters
 			else if(name.equals("explicitFilters")) {
@@ -166,38 +178,10 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		out.name("overrideImplicit").value(value.isOverrideImplicit());
 		out.name("limit").value(value.getLimit());
 		out.name("offset").value(value.getOffset());
-		out.name("relations").value(SIMPLE_GSON.toJson(value.getRelations()));
 
 		// now the fun stuff
-
-		List<QueryColumnSelector> groups = value.getGroupBy();
-		int numGroups = groups.size();
-		if(numGroups > 0) {
-			out.name("groups");
-			out.beginArray();
-			for(int i = 0; i < numGroups; i++) {
-				out.value(SIMPLE_GSON.toJson(groups.get(i)));
-			}
-			out.endArray();
-		}
-
-		List<IQuerySort> orders = value.getOrderBy();
-		int numOrders = orders.size();
-		if(numOrders > 0) {
-			out.name("orders");
-			out.beginArray();
-			for(int i = 0; i < orders.size(); i++) {
-				IQuerySort orderBy = orders.get(i);
-				out.beginObject();
-				out.name("class");
-				out.value(orderBy.getClass().getName());
-				out.name("object");
-				out.value(SIMPLE_GSON.toJson(orderBy));
-				out.endObject();
-			}
-			out.endArray();
-		}
-
+		
+		// selectors
 		List<IQuerySelector> selectors = value.getSelectors();
 		int numSelectors = selectors.size();
 		if(numSelectors > 0) {
@@ -210,7 +194,8 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			}
 			out.endArray();
 		}
-
+		
+		// filters
 		GenRowFilters explicitFilters = value.getExplicitFilters();
 		int numExplicitFilters = explicitFilters.size();
 		if(numExplicitFilters > 0) {
@@ -230,6 +215,53 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		if(numHavingFilters > 0) {
 			out.name("havingFilters");
 			writeGrf(out, havingFilters);
+		}
+
+		// groups
+		List<QueryColumnSelector> groups = value.getGroupBy();
+		int numGroups = groups.size();
+		if(numGroups > 0) {
+			out.name("groups");
+			out.beginArray();
+			for(int i = 0; i < numGroups; i++) {
+				IQuerySelector s = groups.get(i);
+				TypeAdapter adapter = IQuerySelector.getAdapterForSelector(s.getSelectorType());
+				adapter.write(out, s);
+			}
+			out.endArray();
+		}
+
+		// orders
+		List<IQuerySort> orders = value.getOrderBy();
+		int numOrders = orders.size();
+		if(numOrders > 0) {
+			out.name("orders");
+			out.beginArray();
+			for(int i = 0; i < orders.size(); i++) {
+				IQuerySort orderBy = orders.get(i);
+				out.beginObject();
+				out.name("class");
+				out.value(orderBy.getClass().getName());
+				out.name("object");
+				out.value(SIMPLE_GSON.toJson(orderBy));
+				out.endObject();
+			}
+			out.endArray();
+		}
+		
+		// relationships
+		Set<String[]> relationships = value.getRelations();
+		if(relationships != null && !relationships.isEmpty()) {
+			out.name("relations");
+			out.beginArray();
+			for(String[] rel : relationships) {
+				out.beginArray();
+				for(String r : rel) {
+					out.value(r);
+				}
+				out.endArray();
+			}
+			out.endArray();
 		}
 
 		out.endObject();
