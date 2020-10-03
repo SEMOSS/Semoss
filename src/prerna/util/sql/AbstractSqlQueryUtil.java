@@ -61,6 +61,9 @@ import prerna.util.Utility;
 
 public abstract class AbstractSqlQueryUtil {
 	
+	// special key when not required
+	public static final String NO_KEY_REQUIRED = "NO_KEY_REQUIRED";
+	
 	// inputs for connection string builder
 	public static final String CONNECTION_STRING = Constants.CONNECTION_URL;
 	public static final String DRIVER_NAME = "dbDriver";
@@ -74,11 +77,24 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String ADDITIONAL = "additional";
 	
 	// relatively specific inputs
+	// athena
 	public static final String SERVICE = "service";
 	public static final String REGION = "region";
 	public static final String ACCESS_KEY = "accessKey";
 	public static final String SECRET_KEY = "secretKey";
 	public static final String OUTPUT = "output";
+	// bigquery
+	public static final String PROJECT_ID = "projectId";
+	public static final String OAUTH_TYPE = "oauthType";
+	public static final String OAUTH_SERVICE_ACCT_EMAIL = "oauthServiceAcctEmail";
+	public static final String OAUTH_PRIVATE_KEY_PATH = "oauthPvtKeyPath";
+	public static final String OAUTH_ACCESS_TOKEN = "oauthAccessToken";
+	public static final String OAUTH_REFRESH_TOKEN = "oauthRefreshToken";
+	public static final String OAUTH_CLIENT_ID = "oauthClientId";
+	public static final String OAUTH_CLIENT_SECRET = "oauthClientSecret";
+
+	public static final String DEFAULT_DATASET = "defaultDataSet";
+	// snowflake
 	public static final String WAREHOUSE = "warehouse";
 	public static final String ROLE = "role";
 	
