@@ -145,33 +145,42 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			if(dbTypeString == null) {
 				dbTypeString = prop.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
 			}
-			this.connectionURL = prop.getProperty(Constants.CONNECTION_URL);
-			this.userName = prop.getProperty(Constants.USERNAME);
-			
+			this.driver = prop.getProperty(Constants.DRIVER);
+			// get the dbType from the input or from the driver itself
+			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(this.driver);
+			if(this.dbType == null) {
+				this.dbType = RdbmsTypeEnum.H2_DB;
+			}
+			// make the query util first
+			// since this will help with getting the correct keys for the connection
+			this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType);
+
+			// grab the username/password
+			// keys can be username/password
+			// but some will have it as accessKey/secretKey
+			// so accounting for that here
+			this.userName = prop.getProperty(queryUtil.getConnectionUserKey());
 			if(propFile != null) {
 				this.password = decryptPass(propFile, false);
 			} 
 			if(this.password == null) {
-				this.password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
+				this.password = prop.containsKey(queryUtil.getConnectionPasswordKey()) ? prop.getProperty(queryUtil.getConnectionPasswordKey()) : "";
 			}
-			this.driver = prop.getProperty(Constants.DRIVER);
 			
+			// grab the connection url
+			this.connectionURL = prop.getProperty(Constants.CONNECTION_URL);
+			if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
+				this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
+			}
+			// see if connection pooling
+			this.useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
+
 			// make a check to see if it is asking to use file
 			boolean useFile = false;
 			if(prop.containsKey(USE_FILE)) {
 				useFile = Boolean.valueOf(prop.getProperty(USE_FILE));
 			}
-			this.useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
 
-			// get the dbType from the input or from the driver itself
-			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
-			if(this.dbType == null) {
-				this.dbType = RdbmsTypeEnum.H2_DB;
-			}
-			if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
-				this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
-			}
-			
 			// fetch size
 			if(prop.getProperty(Constants.FETCH_SIZE) != null) {
 				String strFetchSize = prop.getProperty(Constants.FETCH_SIZE);
@@ -242,7 +251,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			init(connBuilder);
 			
 			try {
-				this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType, this.connectionURL, this.userName, this.password);
+				// update the query utility values
+				this.queryUtil.setConnectionUrl(this.connectionURL);
+				this.queryUtil.setUsername(this.userName);
+				this.queryUtil.setPassword(this.password);
+				
+				// build the connection
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {
 					this.dataSource = connBuilder.getDataSource();
