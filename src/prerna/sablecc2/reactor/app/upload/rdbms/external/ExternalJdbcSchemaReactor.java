@@ -73,9 +73,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		}
 		
 		try {
-			con = AbstractSqlQueryUtil.makeConnection(driverEnum, connectionUrl, 
-					(String) connectionDetails.get(AbstractSqlQueryUtil.USERNAME), 
-					(String) connectionDetails.get(AbstractSqlQueryUtil.PASSWORD));
+			con = AbstractSqlQueryUtil.makeConnection(queryUtil, connectionUrl, connectionDetails);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			String driverError = e.getMessage();
