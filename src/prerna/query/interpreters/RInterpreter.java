@@ -657,10 +657,21 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		// need to account for null inputs
-		boolean addNullCheck = objects.contains(null);
+		boolean addNullCheck = false;
 		boolean nullCheckWithEquals = true;
-		if(addNullCheck) {
-			objects.remove(null);
+		if(objects.remove(null)) {
+			addNullCheck = true;
+		}
+		if(leftDataType != null && leftDataType != SemossDataType.STRING) {
+			if(objects.remove("null")) {
+				addNullCheck = true;
+			}
+			if(objects.remove("nan")) {
+				addNullCheck = true;
+			}
+			if(objects.remove("")) {
+				addNullCheck = true;
+			}
 		}
 		if(SemossDataType.isNotString(leftDataType) && !thisComparator.equals(SEARCH_COMPARATOR) && !thisComparator.equals(NOT_SEARCH_COMPARATOR) && objects.contains("")) {
 			addNullCheck = true;
