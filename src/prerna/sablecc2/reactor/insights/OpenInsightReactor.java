@@ -36,6 +36,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -97,6 +98,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		} catch (ArrayIndexOutOfBoundsException e) {
 			logger.info("Pulling app from cloud storage, appid=" + appId);
 			ClusterUtil.reactorPullInsightsDB(appId);
+			ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
 			try {
 				List<Insight> in = engine.getInsight(rdbmsId + "");
 				newInsight = in.get(0);
