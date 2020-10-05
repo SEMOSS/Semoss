@@ -98,6 +98,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		} catch (ArrayIndexOutOfBoundsException e) {
 			logger.info("Pulling app from cloud storage, appid=" + appId);
 			ClusterUtil.reactorPullInsightsDB(appId);
+			// this is needed for the pipeline json
 			ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
 			try {
 				List<Insight> in = engine.getInsight(rdbmsId + "");
