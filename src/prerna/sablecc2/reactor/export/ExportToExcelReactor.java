@@ -185,7 +185,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 			Map<String, Object> panelChartMap = new HashMap<>();
 			setChartLayout(panelChartMap, taskOptions, panelId);
 			this.chartPanelLayout.get(sheetId).put(panelId, panelChartMap);
-			writeData(workbook, task, sheetId, panelId, panel.getFormatTypeValues());
+			writeData(workbook, task, sheetId, panelId, panel.getPanelFormatValues());
 		}
 
 		// now build charts
