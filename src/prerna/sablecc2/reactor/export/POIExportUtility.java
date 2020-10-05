@@ -153,7 +153,12 @@ public class POIExportUtility {
     		// special cases
     		try {
 	    		if(format == null && round != null) {
-	    			format = "#." + Strings.repeat("0", Integer.parseInt(round + ""));
+	    			String rep = Strings.repeat("0", Integer.parseInt(round + ""));
+	    			if(rep != null && !rep.isEmpty()) {
+	    				format = "#." + rep;
+	    			} else {
+	    				format = "#";
+	    			}
 	    		}
     		} catch(Exception e) {
     			// ignore
@@ -205,7 +210,12 @@ public class POIExportUtility {
     		// special cases
     		try {
 	    		if(format == null && round != null) {
-	    			format = "#." + Strings.repeat("0", Integer.parseInt(round + ""));
+	    			String rep = Strings.repeat("0", Integer.parseInt(round + ""));
+	    			if(rep != null && !rep.isEmpty()) {
+	    				format = "#." + rep;
+	    			} else {
+	    				format = "#";
+	    			}
 	    		}
     		} catch(Exception e) {
     			// ignore
