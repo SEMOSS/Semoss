@@ -584,4 +584,35 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occured setting this insight global");
 		}
 	}
+	
+	/**
+	 * Returns List of users that have no access credentials to a given App.
+	 * @param appID
+	 * @return 
+	 */
+	public List<Map<String, Object>> getAppUsersNoCredentials(User user, String appId) throws IllegalAccessException {
+		/*
+		 * String Query = 
+		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL  FROM USER WHERE ID NOT IN 
+		 * (SELECT e.USERID FROM ENGINEPERMISSION e WHERE e.ENGINEID = '"+ appID + "' e.PERMISSION IS NOT NULL);"
+		 */
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID"));
+		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
+		qs.addSelector(new QueryColumnSelector("USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
+		//Filter for sub-query
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("USER__ID", "!=", subQs));
+			//Sub-query itself
+			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",appId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
+		}
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
 }
