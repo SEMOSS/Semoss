@@ -213,7 +213,7 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 					task.setTaskOptions(taskOptions);
 
 					// I dont know if this can deal with older excel formats ?
-					Map <String, Object> columnMap = writeData((XSSFWorkbook)wb, (XSSFSheet)sheet, task, pivotPanel.getFormatTypeValues());
+					Map <String, Object> columnMap = writeData((XSSFWorkbook)wb, (XSSFSheet)sheet, task, pivotPanel.getPanelFormatValues());
 
 					// get other data now
 					Map <String, Object> pivotMakerOptions = taskOptions.getAlignmentMap(pivotPanel.getPanelId());
@@ -378,7 +378,7 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
 				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
 				try {
-					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], panelFormatting.get(headers[i])); 
+					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], panelFormatting.get(headers[i]));
 				} catch(Exception e) {
 					// ignore
 				}

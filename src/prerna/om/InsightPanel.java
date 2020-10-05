@@ -252,7 +252,7 @@ public class InsightPanel {
 	 * @param formatDatavalues
 	 * @return
 	 */
-	public Map<String , Map<String,String>> getFormatTypeValues() {
+	public Map<String , Map<String,String>> getPanelFormatValues() {
 		Map<String , Map<String,String>> res = new HashMap<String , Map<String,String>>();
 		Object formatDataValues = getMapInput(this.ornaments, "tools.shared.formatDataValues.formats");
 		if (formatDataValues != null && formatDataValues instanceof List) {
