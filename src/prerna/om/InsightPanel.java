@@ -2,7 +2,6 @@ package prerna.om;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -260,21 +259,21 @@ public class InsightPanel {
 			for (int i = 0; i < arr.size(); i++) {
 				if (arr.get(i) instanceof Map) {
 					Map innerMap = (Map) arr.get(i);
-					if(innerMap.containsKey("dimension")) {
+					if(innerMap.get("dimension") != null) {
 						Map<String,String> resultMap = new HashMap<String, String>();
-						if (innerMap.containsKey("type")) {
+						if (innerMap.get("type") != null) {
 							resultMap.put("type", innerMap.get("type").toString().toLowerCase());
 						}
-						if (innerMap.containsKey("prepend") && !(innerMap.get("prepend").toString().isEmpty())) {
+						if (innerMap.get("prepend") != null && !(innerMap.get("prepend").toString().isEmpty())) {
 							resultMap.put("prepend", innerMap.get("prepend").toString());
 						}
-						if (innerMap.containsKey("append") && !(innerMap.get("append").toString().isEmpty())) {
+						if (innerMap.get("append") != null && !(innerMap.get("append").toString().isEmpty())) {
 							resultMap.put("append", innerMap.get("append").toString());
 						}
-						if (innerMap.containsKey("round") && !(innerMap.get("round").toString().isEmpty())) {
+						if (innerMap.get("round") != null && !(innerMap.get("round").toString().isEmpty())) {
 							resultMap.put("round", innerMap.get("round").toString());
 						}
-						if (innerMap.containsKey("delimiter") && !(innerMap.get("delimiter").toString().isEmpty())) {
+						if (innerMap.get("delimiter") != null && !(innerMap.get("delimiter").toString().isEmpty())) {
 							resultMap.put("delimiter", innerMap.get("delimiter").toString());
 						}
 						// only add is result map is not empty
