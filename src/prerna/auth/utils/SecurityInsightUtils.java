@@ -1622,4 +1622,42 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// execute the query
 		insertTargetAppInsightPermissionStatement.executeBatch();
 	}
+	
+	/**
+	 * Returns List of users that have no access credentials to a given insight 
+	 * @param insightID
+	 * @return 
+	 */
+	public static List<Map<String, Object>> getInsightUsersNoCredentials(User user, String appId, String insightId) throws IllegalAccessException {
+		/*
+		 * Security check to ensure the user can access the insight provided. 
+		 */
+		if(!userCanViewInsight(user, appId, insightId)) {
+			throw new IllegalAccessException("The user does not have access to view this insight");
+		}
+		
+		/*
+		 * String Query = 
+		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL FROM USER WHERE USER.ID NOT IN 
+		 * (SELECT u.USERID FROM USERINSIGHTPERMISSION u WHERE u.ENGINEID == '" + appID + "' AND u.INSIGHTID == '"+insightID +"'AND u.PERMISSION IS NOT NULL);"
+		 */
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID"));
+		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
+		qs.addSelector(new QueryColumnSelector("USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
+		//Filter for sub-query
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("USER__ID", "!=", subQs));
+			//Sub-query itself
+			subQs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION","!=",null,PixelDataType.NULL_VALUE));
+		}
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
 }
