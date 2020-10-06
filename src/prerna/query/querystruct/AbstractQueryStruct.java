@@ -74,6 +74,9 @@ public abstract class AbstractQueryStruct {
 	// map of pragmas
 	protected transient Map pragmap = new HashMap();
 	
+	// just keeping a boolean if QueryAll was used
+	// to populate the selectors
+	protected boolean queryAll = false;
 	
 	/////////////////////////////////////// experimental ////////////////////////////////////////
 	
@@ -451,6 +454,13 @@ public abstract class AbstractQueryStruct {
 		this.pragmap.clear();
 	}
 	
+	public void setQueryAll(boolean queryAll) {
+		this.queryAll = queryAll;
+	}
+	
+	public boolean getQueryAll() {
+		return this.queryAll;
+	}
 	
 	/////////////////////////////////////// experimental ////////////////////////////////////////
 	
