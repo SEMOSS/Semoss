@@ -21,6 +21,7 @@ public class QueryAllReactor extends AbstractQueryStructReactor {
 				}
 				throw new IllegalArgumentException("Frame metadata is empty and does not contain any selectors to query");
 			}
+			this.qs.setQueryAll(true);
 			this.qs.merge(frameQs);
 			this.qs.setImplicitFilters(frame.getFrameFilters());
 		}
