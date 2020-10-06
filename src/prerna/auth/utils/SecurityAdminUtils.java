@@ -476,6 +476,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__ID", "pvalue"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addRelation("USER", "USERINSIGHTPERMISSION", "inner.join");
@@ -598,10 +599,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		 */
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID"));
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("USER__USERNAME", "username"));
+		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
 		//Filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
@@ -628,10 +629,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		 */
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID"));
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("USER__USERNAME", "username"));
+		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
 		//Filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
