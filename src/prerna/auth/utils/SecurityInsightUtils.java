@@ -1643,10 +1643,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		 */
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID"));
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("USER__USERNAME", "username"));
+		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
 		//Filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
