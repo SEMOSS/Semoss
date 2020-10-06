@@ -46,7 +46,9 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 				qs.setLimit(in.nextLong());
 			} else if(name.equals("offset")) {
 				qs.setOffSet(in.nextLong());
-			} 
+			} else if(name.equals("queryAll")) {
+				qs.setQueryAll(in.nextBoolean());
+			}
 			// selectors
 			else if(name.equals("selectors")) {
 				in.beginArray();
@@ -159,6 +161,7 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		out.name("overrideImplicit").value(value.isOverrideImplicit());
 		out.name("limit").value(value.getLimit());
 		out.name("offset").value(value.getOffset());
+		out.name("queryAll").value(value.getQueryAll());
 
 		// now the fun stuff
 		
