@@ -586,11 +586,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Returns List of users that have no access credentials to a given App.
+	 * Returns List of users that have no access credentials to a given app
 	 * @param appID
 	 * @return 
 	 */
-	public List<Map<String, Object>> getAppUsersNoCredentials(User user, String appId) throws IllegalAccessException {
+	public List<Map<String, Object>> getAppUsersNoCredentials(String appId) throws IllegalAccessException {
 		/*
 		 * String Query = 
 		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL  FROM USER WHERE ID NOT IN 
@@ -610,6 +610,37 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",appId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
+		}
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Returns List of users that have no access credentials to a given insight 
+	 * @param insightID
+	 * @return 
+	 */
+	public static List<Map<String, Object>> getInsightUsersNoCredentials(String appId, String insightId) throws IllegalAccessException {
+		/*
+		 * String Query = 
+		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL FROM USER WHERE USER.ID NOT IN 
+		 * (SELECT u.USERID FROM USERINSIGHTPERMISSION u WHERE u.ENGINEID == '" + appID + "' AND u.INSIGHTID == '"+insightID +"'AND u.PERMISSION IS NOT NULL);"
+		 */
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID"));
+		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
+		qs.addSelector(new QueryColumnSelector("USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
+		//Filter for sub-query
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("USER__ID", "!=", subQs));
+			//Sub-query itself
+			subQs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION","!=",null,PixelDataType.NULL_VALUE));
 		}
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
