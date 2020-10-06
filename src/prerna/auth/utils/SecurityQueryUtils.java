@@ -664,6 +664,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addRelation("USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
