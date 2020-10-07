@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -39,6 +40,12 @@ public class InsertReactor extends AbstractReactor {
 
 	private static final String STACKTRACE = "StackTrace: ";
 	private NounMetadata qStruct = null;
+	
+	/*
+	 * Pixel can contain a <UUID> value which 
+	 * will be replaced with UUID.randomUUID() 
+	 * upon inserting into the database
+	 */
 	
 	@Override
 	public NounMetadata execute() {
@@ -136,7 +143,11 @@ public class InsertReactor extends AbstractReactor {
 			for(int i = 0; i < values.length; i++) {
 				if(i == values.length - 1) {
 					if(values[i] instanceof String) {
-						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
+						if(values[i].equals("<UUID>")) {
+							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+						} else {
+							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
+						}
 					}
 					else if(values[i] instanceof SemossDate) {
 						valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
@@ -210,7 +221,11 @@ public class InsertReactor extends AbstractReactor {
 				for(int i = 0; i < values.length; i++) {
 					if(i == values.length - 1) {
 						if(values[i] instanceof String) {
-							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
+							if(values[i].equals("<UUID>")) {
+								valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+							} else {
+								valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
+							}
 						}
 						else if(values[i] instanceof SemossDate) {
 							valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
