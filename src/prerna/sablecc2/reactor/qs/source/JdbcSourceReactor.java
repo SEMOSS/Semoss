@@ -10,7 +10,12 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.TemporalEngineHardQueryStruct;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
+import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -72,6 +77,59 @@ public class JdbcSourceReactor extends AbstractQueryStructReactor {
 		qs.setConfig(config);
 		qs.setEngine(temporalEngine);
 		return qs;
+	}
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		init();
+		createQueryStructPlan();
+		if(parentReactor != null) {
+			// this is only called lazy
+			// have to init to set the qs
+			// to them add to the parent
+			NounMetadata data = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
+	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor) {
+	    		parentReactor.getCurRow().add(data);
+	    	} else {
+	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+				parentQSInput.add(data);
+	    	}
+		}
+	}
+	
+	private AbstractQueryStruct createQueryStructPlan() {
+		organizeKeys();
+		String connectionUrl = this.keyValue.get(this.keysToGet[0]);
+		String driver = this.keyValue.get(this.keysToGet[1]);
+		String userName = this.keyValue.get(this.keysToGet[2]);
+		String password = this.keyValue.get(this.keysToGet[3]);
+
+		// need to maintain what the FE passed to create this 
+		Map<String, Object> config = new HashMap<String, Object>();
+		config.put(this.keysToGet[0], connectionUrl);
+		config.put(this.keysToGet[1], driver);
+		config.put(this.keysToGet[2], userName);
+		config.put(this.keysToGet[3], password);
+
+		if(driver == null) {
+			throw new IllegalArgumentException("Must pass in the rdbms type");
+		}
+		RdbmsTypeEnum dbType = RdbmsTypeEnum.getEnumFromString(driver);
+		if(dbType == null) {
+			// try one more time
+			dbType =  RdbmsTypeEnum.getEnumFromDriver(driver);
+			if(dbType == null) {
+				throw new IllegalArgumentException("Unable to find driver for rdbms type = " + driver);
+			}
+		}
+		
+		TemporalEngineHardQueryStruct qs = new TemporalEngineHardQueryStruct();
+		qs.setQsType(QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
+		qs.setConfig(config);
+		qs.setEngineId("FAKE_ENGINE");
+		this.qs = qs;
+		return this.qs;
 	}
 	
 }
