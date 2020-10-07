@@ -4,12 +4,16 @@ import java.io.File;
 import java.util.Map;
 
 import prerna.query.querystruct.AbstractFileQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
+import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
@@ -197,6 +201,75 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		} else {
 			return super.getDescriptionForKey(key);
 		}
+	}
+	
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		init();
+		createQueryStructPlan();
+		if(parentReactor != null) {
+			// this is only called lazy
+			// have to init to set the qs
+			// to them add to the parent
+			NounMetadata data = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
+	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor) {
+	    		parentReactor.getCurRow().add(data);
+	    	} else {
+	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+				parentQSInput.add(data);
+	    	}
+		}
+	}
+	
+	private AbstractQueryStruct createQueryStructPlan() {
+		AbstractFileQueryStruct qs = null;
+
+		// get inputs
+		Map<String, String> newHeaders = getHeaders(); 
+		Map<String, String> dataTypes = getDataTypes();
+		Map<String, String> additionalDataTypes = getAdditionalDataTypes();
+		String fileLocation = getPlanFileUpload();
+		String fileExtension = "";
+
+		// get file extension to determine qs
+		boolean isExcel = false;
+		if (fileLocation.contains(".")) {
+			fileExtension = fileLocation.substring(fileLocation.indexOf('.'), fileLocation.length());
+			if(fileExtension.equals(".xls") || fileExtension.equals(".xlsx") || fileExtension.equals(".xlsm")) {
+				isExcel = true;
+			}
+		}
+		if(isExcel) { // set excelQS
+			// get excel inputs
+			String sheetName = getSheetName();
+			String sheetRange = getRange();
+			qs = new ExcelQueryStruct();
+			((ExcelQueryStruct) qs).setSheetName(sheetName);
+			((ExcelQueryStruct) qs).setSheetRange(sheetRange);
+		} else { // set csv qs
+			char delimiter = getDelimiter();
+			qs = new CsvQueryStruct();
+			((CsvQueryStruct) qs).setDelimiter(delimiter);
+		}
+		// general inputs
+		qs.setFilePath(fileLocation);
+		qs.setNewHeaderNames(newHeaders);
+		qs.setColumnTypes(dataTypes);
+		qs.setAdditionalTypes(additionalDataTypes);
+		qs.merge(this.qs);
+		return qs;
+	}
+	
+	private String getPlanFileUpload() {
+		GenRowStruct fileGrs = store.getNoun(FILEPATH);
+		if(fileGrs == null || fileGrs.isEmpty()) {
+			throw new IllegalArgumentException("Must pass in the relative file path as " + FILEPATH + "=[\"input_path\"]");
+		}
+		
+		String fileLocation = fileGrs.get(0).toString();
+		return fileLocation;
 	}
 	
 	/////////////////////////////////////////////////////////////////////
