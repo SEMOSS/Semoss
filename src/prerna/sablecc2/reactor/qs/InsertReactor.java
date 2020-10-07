@@ -31,6 +31,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class InsertReactor extends AbstractReactor {
 	
@@ -114,8 +115,21 @@ public class InsertReactor extends AbstractReactor {
 		prefixSb.append(") VALUES (");
 		
 		String initial = prefixSb.toString();
-		
 		List<Object[]> valueCombinations = flattenCombinations(valGrs);
+		
+		// h2/sqlite is file based
+		// so need to do the whole sync across engines
+		// only need for cloud
+		if(ClusterUtil.IS_CLUSTER && engine != null) {
+			RdbmsTypeEnum eType = ((RDBMSNativeEngine) engine).getQueryUtil().getDbType();
+			if(eType == RdbmsTypeEnum.H2_DB || eType == RdbmsTypeEnum.SQLITE) {
+				insertFileEngine(engine, initial, valueCombinations, selectors, userId);
+				return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
+			}
+		}
+		
+		// we are a frame
+		// or a "normal" rdbms type
 		for(Object[] values : valueCombinations) {
 			StringBuilder valuesSb = new StringBuilder();
 			// Insert values
@@ -176,11 +190,64 @@ public class InsertReactor extends AbstractReactor {
 			}
 		}
 
-		if (engine != null) {
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
+	}
+	
+	/**
+	 * Insert into the engine
+	 * @param engine
+	 * @param initial
+	 * @param valueCombinations
+	 * @param selectors
+	 * @param userId
+	 */
+	private void insertFileEngine(IEngine engine, String initial, List<Object[]> valueCombinations, List<IQuerySelector> selectors, String userId) {
+		synchronized(engine) {
+			ClusterUtil.reactorPullApp(engine.getEngineId());
+			for(Object[] values : valueCombinations) {
+				StringBuilder valuesSb = new StringBuilder();
+				// insert values
+				for(int i = 0; i < values.length; i++) {
+					if(i == values.length - 1) {
+						if(values[i] instanceof String) {
+							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
+						}
+						else if(values[i] instanceof SemossDate) {
+							valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
+						}
+						else {
+							valuesSb.append(values[i]);
+						}
+					}
+					else {
+						if(values[i] instanceof String) {
+							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "', ");
+						}
+						else if(values[i] instanceof SemossDate) {
+							valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "', ");
+						}
+						else {
+							valuesSb.append(values[i] + ", ");
+						}
+					}
+				}
+				valuesSb.append(")");
+				// generate the query
+				String query = initial + valuesSb.toString();
+
+				try {
+					engine.insertData(query);
+					AuditDatabase audit = engine.generateAudit();
+					audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
+				} catch (Exception e) {
+					logger.error(STACKTRACE, e);
+					throw new SemossPixelException(
+							new NounMetadata("An error occured trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				}
+			}
+			// push back to the cluster
 			ClusterUtil.reactorPushApp(engine.getEngineId());
 		}
-
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
 	
 	private NounMetadata getQueryStruct() {
