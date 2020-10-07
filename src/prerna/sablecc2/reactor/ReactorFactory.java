@@ -752,9 +752,6 @@ public class ReactorFactory {
 		reactorHash.put("Update", UpdateReactor.class);
 		reactorHash.put("ExecQuery", ExecQueryReactor.class);
 		
-		// If is in its own category
-		reactorHash.put("if", IfReactor.class);
-
 		// Data Source Reactors
 		// specifies that our pixel operations after this point are dealing with the specified database
 		reactorHash.put("Database", DatabaseReactor.class);
@@ -1335,6 +1332,8 @@ public class ReactorFactory {
 		expressionHash.put("CONCAT", OpConcat.class);
 		
 		// none excel functions
+		// If is in its own category
+		expressionHash.put("IF", IfReactor.class);
 		expressionHash.put("LIST", OpList.class);
 		expressionHash.put("PASTE0", OpPaste0.class);
 		expressionHash.put("PASTE", OpPaste.class);
@@ -1367,7 +1366,6 @@ public class ReactorFactory {
 	 */
 	public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor) {
 		IReactor reactor = null;
-		//writeReacFile();
 
 		try {
 			// is this an expression?
@@ -1384,55 +1382,31 @@ public class ReactorFactory {
 			}
 			
 			// see if it is a frame specific reactor
-			String frameName = "";
 			if (frame != null) {
 				// identify the correct hash to use
 				if (frame instanceof AbstractRdbmsFrame) {
 					// see if the hash contains the reactor id
 					if (h2FrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) h2FrameHash.get(reactorId).newInstance();
-						frameName ="rdbms_";
 					}
 				} else if (frame instanceof RDataTable) {
 					if (rFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) rFrameHash.get(reactorId).newInstance();
-						frameName ="r_";
 					}
 				} else if (frame instanceof TinkerFrame) {
 					if (tinkerFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) tinkerFrameHash.get(reactorId).newInstance();
-						frameName ="graph_";
 					}
 				} else if (frame instanceof NativeFrame) {
 					if (nativeFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) nativeFrameHash.get(reactorId).newInstance();
-						frameName ="rdbms_";
 					}
 				} else if(frame instanceof PandasFrame) {
 					if (pandasFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) pandasFrameHash.get(reactorId).newInstance();
-						frameName ="py_";
 					}
 				}
 				
-				// TODO:
-				// i do not see what getFReactor does???
-				// i do not see what getFReactor does???
-				// i do not see what getFReactor does???
-
-//				// try the new method
-//				IReactor freactor = getFReactor(frameName + reactorId);
-//				if(freactor != null && reactor != null && reactor.getClass().toString().equalsIgnoreCase(freactor.getClass().toString()))
-//				{
-//					if(reactor != null)
-//						reactor = freactor;
-//				}
-//				// should I also search the non frame ? would it help ?
-//				else if(reactor != null)
-//				{
-//					System.err.println("Failed " + reactor + "<>" + freactor);
-//					System.err.println("Tried with id " + reactorId + "in frame" + frameName);
-//				}
 				// if we have retrieved a reactor from a frame hash
 				if (reactor != null) {
 					reactor.setPixel(reactorId, nodeString);
@@ -1448,22 +1422,6 @@ public class ReactorFactory {
 				reactor = (IReactor) reactorHash.get(reactorId).newInstance();
 				reactor.setPixel(reactorId, nodeString);
 				return reactor;
-				
-				// idk what this is ...
-				// but its breaking things
-				// seems unneeded
-				// the above has logic for frames
-				// so dont think we need this and all tests pass without it
-//				IReactor freactor = getFReactor(reactorId);
-//				if(freactor != null && reactor != null && reactor.getClass().toString().equalsIgnoreCase(freactor.getClass().toString())) {
-//					if(reactor != null) {
-//						reactor = freactor;
-//					}
-//				}
-//				else if(reactor != null) {
-//					System.err.println("Failed " + reactor + "<>" + freactor);
-//				}
-//				return reactor;
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();
@@ -1485,57 +1443,6 @@ public class ReactorFactory {
 		// ughhh... idk what you are trying to do
 		// reactor = new SamplReactor();
 		throw new IllegalArgumentException("Cannot find reactor for keyword = " + reactorId);
-	}
-	
-	public static IReactor getFReactor(String reactorName)
-	{
-		IReactor retReactor = null;
-		Class retClass = null;
-		try {
-			//BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-			
-			//String data = null;
-			//while((data = br.readLine()) != null)
-			//System.err.println(" reactor >> " + reactorName);
-			//System.err.println("reactors " + reactors.size());
-			
-			if(reactors.containsKey(reactorName.toUpperCase()))
-			{
-				retClass = reactors.get(reactorName.toUpperCase());
-				retReactor = (IReactor)retClass.newInstance();
-			}
-			
-			
-/*			else
-			{
-				System.err.println("Finding Fuzzy.. ");
-				//List <ExtractedResult> resList = FuzzySearch.extractTop(data, list, 3);
-				// run reduction loop
-				int weight = 100;
-				List <ExtractedResult> resList = null;
-				do
-				{
-					resList = FuzzySearch.extractAll(reactorName, nmList, weight);
-					weight = weight -1;
-					System.out.print(weight);
-				}while (resList.size() == 0 && weight > 50);
-				
-				for(int listIndex = 0;listIndex < resList.size() && retReactor == null;listIndex++)
-				{
-					ExtractedResult thisRes = resList.get(listIndex);
-					int index = thisRes.getIndex();
-					retClass = classList.get(index);
-					System.out.println(thisRes.getString() + "<>" + thisRes.getScore());
-					System.out.println("Class >>  " + retClass);
-					if(!Modifier.isAbstract( retClass.getModifiers() ))
-						retReactor = (IReactor)retClass.newInstance();
-				}
-			}
-*/		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return retReactor;
 	}
 	
 	public static List recommend(String reactorName)
