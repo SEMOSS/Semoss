@@ -6,19 +6,26 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
+	
+	private static final Logger logger = LogManager.getLogger(SelectQueryStructAdapter.class.getName());
 
 	@Override
 	public SelectQueryStruct read(JsonReader in) throws IOException {
@@ -76,11 +83,24 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			// group bys
 			else if(name.equals("groups")) {
 				in.beginArray();
-				List<QueryColumnSelector> groupBy = new Vector<QueryColumnSelector>();
+				List<IQuerySelector> groupBy = new Vector<>();
+				
 				while(in.hasNext()) {
 					IQuerySelectorAdapter selectorAdapter = new IQuerySelectorAdapter();
 					IQuerySelector selector = selectorAdapter.read(in);
-					groupBy.add((QueryColumnSelector) selector);
+					
+					if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+						groupBy.add((QueryColumnSelector) selector);
+					}
+					else if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+						groupBy.add((QueryFunctionSelector) selector);
+					}
+					else {
+						String errorMessage = "Error: Cannot group by non QueryColumnSelector and QueryFunctionSelector types yet...";
+						logger.error(errorMessage);
+						throw new IllegalArgumentException(errorMessage);
+					}
+						
 				}
 				in.endArray();
 				qs.setGroupBy(groupBy);
@@ -202,7 +222,7 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		}
 
 		// groups
-		List<QueryColumnSelector> groups = value.getGroupBy();
+		List<IQuerySelector> groups = value.getGroupBy();
 		int numGroups = groups.size();
 		if(numGroups > 0) {
 			out.name("groups");

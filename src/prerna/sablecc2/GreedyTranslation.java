@@ -20,6 +20,7 @@ import prerna.sablecc2.reactor.IfReactor;
 import prerna.sablecc2.reactor.expression.IfError;
 import prerna.sablecc2.reactor.imports.ImportSizeRetrictions;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.sablecc2.reactor.qs.GroupReactor;
 import prerna.sablecc2.reactor.qs.filter.FilterReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
 import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
@@ -55,6 +56,7 @@ public class GreedyTranslation extends LazyTranslation {
     			// we will do just a little bit of value validation
     			// so that we only push in basic data types
     			else if(curReactor instanceof SelectReactor 
+    					|| curReactor instanceof GroupReactor 
     					|| curReactor instanceof QuerySelectorExpressionAssimilator 
     					|| curReactor instanceof FilterReactor) {
     				if(varType == PixelDataType.CONST_STRING || varType == PixelDataType.CONST_INT || varType == PixelDataType.CONST_DECIMAL
@@ -97,6 +99,7 @@ public class GreedyTranslation extends LazyTranslation {
     	} else {
     		if(curReactor != null) {
     			if(curReactor instanceof SelectReactor 
+    					|| curReactor instanceof GroupReactor 
     					|| curReactor instanceof QuerySelectorExpressionAssimilator 
     					|| curReactor instanceof FilterReactor) {
     				// this is part of a query 

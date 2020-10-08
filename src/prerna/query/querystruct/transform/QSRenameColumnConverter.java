@@ -6,6 +6,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -26,6 +29,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class QSRenameColumnConverter {
 	
+	private static final Logger logger = LogManager.getLogger(QSRenameColumnConverter.class.getName());
+	
 	private QSRenameColumnConverter() {
 
 	}
@@ -42,7 +47,7 @@ public class QSRenameColumnConverter {
 		// grab all the selectors
 		// and need to recursively modify the column ones
 		List<IQuerySelector> origSelectors = qs.getSelectors();
-		List<IQuerySelector> convertedSelectors = new Vector<IQuerySelector>();
+		List<IQuerySelector> convertedSelectors = new Vector<>();
 		for(int i = 0; i < origSelectors.size(); i++) {
 			IQuerySelector origS = origSelectors.get(i);
 			IQuerySelector convertedS = convertSelector(origS, transformationMap, keepOrigAlias);
@@ -59,12 +64,14 @@ public class QSRenameColumnConverter {
 		convertedQs.setRelations(convertJoins(qs.getRelations(), transformationMap));
 		
 		// now go through the group by
-		List<QueryColumnSelector> origGroups = qs.getGroupBy();
+		List<IQuerySelector> origGroups = qs.getGroupBy();
+		
 		if(origGroups != null && !origGroups.isEmpty()) {
-			List<QueryColumnSelector> convertedGroups =  new Vector<QueryColumnSelector>();
+			List<IQuerySelector> convertedGroups =  new Vector<>();
+			
 			for(int i = 0; i < origGroups.size(); i++) {
 				IQuerySelector origGroupS = origGroups.get(i);
-				QueryColumnSelector convertedGroupS = (QueryColumnSelector) convertSelector(origGroupS, transformationMap, keepOrigAlias);
+				IQuerySelector convertedGroupS = convertSelector(origGroupS, transformationMap, keepOrigAlias);
 				convertedGroups.add(convertedGroupS);
 			}
 			convertedQs.setGroupBy(convertedGroups);
