@@ -198,7 +198,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	public void addSelectors(List<String> selectorList) {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		// group bys to sort selectors by
-		List<QueryColumnSelector> groupByList = ((SelectQueryStruct) this.qs).getGroupBy();
+		List<IQuerySelector> groupByList = ((SelectQueryStruct) this.qs).getGroupBy();
 
 		// if GROUP BY exists, sort selector criteria for implicit Cypher GROUP
 		// BY
@@ -207,14 +207,21 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 			List<String> gbSelectors = new ArrayList<>();
 
 			// convert to string for comparison/sorting
-			for (IQuerySelector selector : selectors) {
+			for (IQuerySelector selector : selectors) {	
 				String selectorString = selector.toString();
-				qcsSelectors.add(selectorString);
+				qcsSelectors.add(selectorString);	
 			}
 
 			for (IQuerySelector groupBy : groupByList) {
-				String gbString = groupBy.toString();
-				gbSelectors.add(gbString);
+				if(groupBy.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+					QueryColumnSelector queryColumnSelector = (QueryColumnSelector) groupBy;
+				    String gbString = queryColumnSelector.toString();
+				    gbSelectors.add(gbString);
+				} else {
+					String errorMessage = "Cannot group by non QueryColumnSelector type yet...";
+					logger.error(errorMessage);
+					throw new IllegalArgumentException(errorMessage);
+				}
 			}
 
 			// sort

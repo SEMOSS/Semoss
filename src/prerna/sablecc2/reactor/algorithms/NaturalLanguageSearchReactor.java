@@ -1268,7 +1268,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		psb.append(aliasStringBuilder);
 
 		// bring in the group bys
-		List<QueryColumnSelector> groupList = qs.getGroupBy();
+		List<IQuerySelector> groupList = qs.getGroupBy();
 		// loop through the groups and store their name and alias
 		if (!groupList.isEmpty()) {
 			psb.append("Group ( ");
@@ -1276,7 +1276,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			for (IQuerySelector group : groupList) {
 				psb.append(separator);
 				separator = " , ";
-				psb.append(group.toString());
+			    psb.append(group.toString());
 			}
 			psb.append(" ) | ");
 		}

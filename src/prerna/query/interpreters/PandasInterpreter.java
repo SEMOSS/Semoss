@@ -6,9 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.py.PyTranslator;
@@ -34,8 +31,6 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PandasInterpreter extends AbstractQueryInterpreter {
-
-	private static final Logger logger = LogManager.getLogger(PandasInterpreter.class);
 
 	private String frameName = null;
 	private String wrapperFrameName = null;
@@ -755,12 +750,21 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 	
 	private void processGroupSelectors() {
-		List <QueryColumnSelector> groupSelectors = ((SelectQueryStruct) this.qs).getGroupBy();
+		List <IQuerySelector> groupSelectors = ((SelectQueryStruct) this.qs).getGroupBy();
+		
+		QueryColumnSelector queryColumnSelector = null;
 		for(int sIndex = 0;sIndex < groupSelectors.size();sIndex++) {
-			QueryColumnSelector qcs = groupSelectors.get(sIndex);
-			processGroupSelector(qcs);
-
-			String colName = qcs.getColumn();
+			IQuerySelector groupBySelector = groupSelectors.get(sIndex);
+			if(groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				queryColumnSelector = (QueryColumnSelector) groupSelectors.get(sIndex);
+				processGroupSelector(queryColumnSelector);
+			} else {
+				String errorMessage = "Cannot group by non QueryColumnSelector type yet...";
+				logger.error(errorMessage);
+				throw new IllegalArgumentException(errorMessage);
+			}
+			
+			String colName = queryColumnSelector.getColumn();
 			// EXPERIMENTAL BLOCK
 			this.groupColList.add(colName);
 		}

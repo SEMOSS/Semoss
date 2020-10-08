@@ -5,7 +5,9 @@ import java.util.List;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 
@@ -26,16 +28,34 @@ public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 	@Override
 	public StringBuilder appendGroupBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
-		List<QueryColumnSelector> groupBy = ((SelectQueryStruct) this.qs).getGroupBy();
+		List<IQuerySelector> groupBy = ((SelectQueryStruct) this.qs).getGroupBy();
 		int numGroups = groupBy.size();
-
-		StringBuilder groupByName = new StringBuilder();;
+		
+		StringBuilder groupByName = new StringBuilder();
 		if(this.outerJoinsRequested) {
 			boolean first = true;
+			
 			for(int i = 0; i < numGroups; i++) {
-				QueryColumnSelector groupBySelector = groupBy.get(i);
-				String colAlias = groupBySelector.getAlias();
-
+				IQuerySelector groupBySelector = groupBy.get(i);
+				
+				QueryColumnSelector queryColumnSelector = null;
+				QueryFunctionSelector queryFunctionSelector = null;
+				
+				String colAlias = null;
+				
+				if(groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+					queryColumnSelector = (QueryColumnSelector) groupBySelector;
+					colAlias = queryColumnSelector.getAlias();
+				} else if (groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+					queryFunctionSelector = (QueryFunctionSelector) groupBySelector;
+					colAlias = queryFunctionSelector.getAlias();
+				}
+				else {
+					String errorMessage = "Cannot group by non QueryColumnSelector and QueryFunctionSelector types yet...";
+					logger.error(errorMessage);
+					throw new IllegalArgumentException(errorMessage);
+				}
+				
 				//if the groupBy selector is not among the user-requested selectors, then 
 				//cannot be used as a groupBy selector
 				if (selectorAliases.contains(colAlias)){
@@ -50,16 +70,37 @@ public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 				}
 			}
 		} else {
+			
 			for(int i = 0; i < numGroups; i++) {
-				QueryColumnSelector groupBySelector = groupBy.get(i);
-				String tableConceptualName = groupBySelector.getTable();
-				String columnConceptualName = groupBySelector.getColumn();
+				IQuerySelector groupBySelector = groupBy.get(i);
+				
+				QueryColumnSelector queryColumnSelector = null;
+				QueryFunctionSelector queryFunctionSelector = null;
+				
+				String tableConceptualName = null;
+				String columnConceptualName = null;
+				
+				if(groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+					queryColumnSelector = (QueryColumnSelector) groupBySelector;
+					tableConceptualName = queryColumnSelector.getTable();
+					columnConceptualName = queryColumnSelector.getColumn();
+				} else if (groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+					queryFunctionSelector = (QueryFunctionSelector) groupBySelector;
+					groupByName.append(processFunctionSelector(queryFunctionSelector));
+					continue;
+				}
+				else {
+					String errorMessage = "Error: Cannot group by non QueryColumnSelector and QueryFunctionSelector types yet...";
+					logger.error(errorMessage);
+					throw new IllegalArgumentException(errorMessage);
+				}
 				
 				// these are the physical names
 				String groupByTable = null;
 				String groupByColumn = null;
 
 				// account for custom from
+				
 				if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
 					groupByTable = this.customFromAliasName;
 					groupByColumn = queryUtil.escapeReferencedAlias(columnConceptualName);
@@ -85,6 +126,7 @@ public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 				}
 				
 				groupByName.append(groupByTable).append(".").append(groupByColumn);
+				
 			}
 		}
 		

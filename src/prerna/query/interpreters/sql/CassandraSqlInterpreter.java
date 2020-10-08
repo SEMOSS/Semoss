@@ -72,7 +72,7 @@ public class CassandraSqlInterpreter extends SqlInterpreter {
 					IQuerySelector selector = ((SelectQueryStruct) this.qs).getSelectors().get(0);
 					if(selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.COLUMN){
 						((SelectQueryStruct) this.qs).addGroupBy((QueryColumnSelector)selector);
-					}
+					} 
 				}
 			}
 		}
@@ -82,7 +82,6 @@ public class CassandraSqlInterpreter extends SqlInterpreter {
 		if(((SelectQueryStruct) this.qs).isDistinct()) {
 			distinct = "DISTINCT ";
 		}
-
 
 		// do we have a custom from?
 		if(customFrom != null && !customFrom.isEmpty()) {

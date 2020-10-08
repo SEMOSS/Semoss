@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.RawGemlinSelectWrapper;
 import prerna.engine.api.IEngine;
@@ -32,6 +35,8 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	 * 
 	 * So if there is math or something else that needs to be done, we are doing it programmatically through Java
 	 */
+	
+	private static final Logger logger = LogManager.getLogger(QueryStructExpressionIterator.class.getName());
 	
 	private List<IHeadersDataRow> processedData;
 	private int processedDataSize;
@@ -68,11 +73,11 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 			headers[i] = selector.getAlias();
 		}
 
-		List<QueryColumnSelector> groups = this.qs.getGroupBy();
+		List<IQuerySelector> groups = this.qs.getGroupBy();
 		int numGroups = groups.size();
 		for(int i = 0; i < numGroups; i++) {
-			QueryColumnSelector gSelector = groups.get(i);
-			groupByIndex.add(uniqueSelectorNames.indexOf(gSelector.getQueryStructName()));
+			IQuerySelector gSelector = groups.get(i);
+		    groupByIndex.add(uniqueSelectorNames.indexOf(gSelector.getQueryStructName()));
 		}
 
 		if(!mathIndex.isEmpty()) {

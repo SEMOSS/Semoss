@@ -21,7 +21,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	protected boolean isDistinct = true;
 	
 	protected List<IQuerySort> orderByOperations = new ArrayList<>();
-	protected List<QueryColumnSelector> groupBy = new ArrayList<>();
+	protected List<IQuerySelector> groupBy = new ArrayList<>();
 
 	protected long limit = -1;
 	protected long offset = -1;
@@ -75,11 +75,11 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	///////////////////// GROUP BY /////////////////////
 	////////////////////////////////////////////////////
 	
-	public void setGroupBy(List<QueryColumnSelector> groupBy) {
+	public void setGroupBy(List<IQuerySelector> groupBy) {
 		this.groupBy = groupBy;
 	}
 	
-	public void addGroupBy(QueryColumnSelector selector) {
+	public void addGroupBy(IQuerySelector selector) {
 		this.groupBy.add(selector);
 	}
 	
@@ -88,12 +88,13 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 			property = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER; 
 		}
 		QueryColumnSelector selector = new QueryColumnSelector();
+		
 		selector.setTable(concept);
 		selector.setColumn(property);
 		this.groupBy.add(selector);
 	}
 	
-	public List<QueryColumnSelector> getGroupBy() {
+	public List<IQuerySelector> getGroupBy() {
 		return this.groupBy;
 	}
 	
@@ -204,8 +205,8 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	 * @param groupBys
 	 * Merge the group by selectors
 	 */
-	public void mergeGroupBy(List<QueryColumnSelector> groupBys) {
-		for(QueryColumnSelector selector : groupBys) {
+	public void mergeGroupBy(List<IQuerySelector> groupBys) {
+		for(IQuerySelector selector : groupBys) {
 			if(!this.groupBy.contains(selector)) {
 				this.groupBy.add(selector);
 			}
@@ -255,7 +256,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 			} else {
 				selectorMap.put("derived", true);
 				List<String> groupBy = new ArrayList<String>();
-				for(QueryColumnSelector groupBySelector : this.groupBy) {
+				for(IQuerySelector groupBySelector : this.groupBy) {
 					String groupQs = groupBySelector.getQueryStructName();
 					groupBy.add(groupQs);
 				}
@@ -280,7 +281,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 				}
 				
 				List<String> groupBy = new ArrayList<String>();
-				for(QueryColumnSelector groupBySelector : this.groupBy) {
+				for(IQuerySelector groupBySelector : this.groupBy) {
 					String groupQs = groupBySelector.getQueryStructName();
 					groupBy.add(groupQs);
 				}

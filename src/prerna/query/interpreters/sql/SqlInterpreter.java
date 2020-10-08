@@ -371,6 +371,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	
 	protected String processFunctionSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
+		
 		String function = selector.getFunction();
 		
 		StringBuilder expression = new StringBuilder();
@@ -403,6 +404,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 		expression.append(")");
+		
 		return expression.toString();
 	}
 	
@@ -1185,14 +1187,33 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	
 	public StringBuilder appendGroupBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
-		List<QueryColumnSelector> groupBy = ((SelectQueryStruct) this.qs).getGroupBy();
+		List<IQuerySelector> groupBy = ((SelectQueryStruct) this.qs).getGroupBy();
 		StringBuilder groupByName = new StringBuilder();
 		int numGroups = groupBy.size();
+		
+		QueryColumnSelector queryColumnSelector = null;
+		QueryFunctionSelector queryFunctionSelector = null;
+		
 		for(int i = 0; i < numGroups; i++) {
-			QueryColumnSelector groupBySelector = groupBy.get(i);
-			String tableConceptualName = groupBySelector.getTable();
-			String columnConceptualName = groupBySelector.getColumn();
+			IQuerySelector groupBySelector = groupBy.get(i);
 			
+			String tableConceptualName = null;
+			String columnConceptualName = null;
+			
+			if(groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				queryColumnSelector = (QueryColumnSelector) groupBySelector;
+				tableConceptualName = queryColumnSelector.getTable();
+				columnConceptualName = queryColumnSelector.getColumn();
+			}
+			else if (groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+				queryFunctionSelector = (QueryFunctionSelector) groupBySelector;
+			}
+			else {
+				String errorMessage = "Cannot group by non QueryColumnSelector and QueryFunctionSelector types yet...";
+				logger.error(errorMessage);
+				throw new IllegalArgumentException(errorMessage);
+			}
+				
 			// these are the physical names
 			String groupByTable = null;
 			String groupByColumn = null;
