@@ -1085,11 +1085,12 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 
 		List<IQuerySelector> selectorTest = qs.getSelectors();
 		String groupByName = null;
+		
 		//all columns must be grouped by, This is because if there is a aggregate function, all columns need to be grouped to that aggregate
 		for(IQuerySelector iterate : selectorTest){
 			SELECTOR_TYPE type = iterate.getSelectorType();
 			//System.out.println(type.toString());
-			if(type.toString().equals("COLUMN")){
+			if(type == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 				QueryColumnSelector groupBySelector = (QueryColumnSelector) iterate;
 				String tableConceptualName = groupBySelector.getTable();
 				String columnConceptualName = groupBySelector.getColumn();
@@ -1105,10 +1106,15 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 				} else {
 					groupByName += ", "+ getAlias(tableConceptualName) + "." + columnConceptualName;
 				}
+			} else if (type == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+				QueryFunctionSelector queryFunctionSelector = (QueryFunctionSelector) iterate;
+				groupByName += ", " + processFunctionSelector(queryFunctionSelector);
+			} else {
+				String errorMessage = "Cannot group by non QueryColumnSelector and QueryFunctionSelector types yet...";
+				logger.error(errorMessage);
+				throw new IllegalArgumentException(errorMessage);
 			}
-
 		}
-
 
 		if(groupByName != null) {
 			query.append(" GROUP BY ").append(groupByName);

@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -20,6 +23,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class QsToPixelConverter {
+	
+	private static final Logger logger = LogManager.getLogger(QsToPixelConverter.class.getName());
 	
 	private QsToPixelConverter() {
 
@@ -87,7 +92,7 @@ public class QsToPixelConverter {
 		// now go through group bys
 		boolean hasGroups = false;
 		StringBuilder groupBuilder = new StringBuilder();
-		List<QueryColumnSelector> origGroups = qs.getGroupBy();
+		List<IQuerySelector> origGroups = qs.getGroupBy();
 		if(!origGroups.isEmpty()) {
 			hasGroups = true;
 			groupBuilder.append("Group(");
@@ -178,6 +183,7 @@ public class QsToPixelConverter {
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return convertArithmeticSelector((QueryArithmeticSelector) selector);
 		}
+		
 		return null;
 	}
 

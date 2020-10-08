@@ -39,7 +39,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class SparqlInterpreter extends AbstractQueryInterpreter {
-
+	
 	// string containing the return variable section of the query
 	private StringBuilder selectors;
 	// keep track of the selectors that are added
@@ -113,7 +113,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		
 		// add the group bys
 		addGroupClause(((SelectQueryStruct) this.qs).getGroupBy());
-
+		
 		// add sort bys
 		addOrderByClause(((SelectQueryStruct) this.qs).getOrderBy());
 		
@@ -756,7 +756,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	 * Generate the group by clause
 	 * @param groupBy
 	 */
-	private void addGroupClause(List<QueryColumnSelector> groupBy) {
+	private void addGroupClause(List<IQuerySelector> groupBy) {
 		this.groupByClause = new StringBuilder();
 		int numGroups = groupBy.size();
 		if(numGroups == 0) {
@@ -765,15 +765,23 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		
 		this.groupByClause.append(" GROUP BY");
 		for(int i = 0; i < numGroups; i++) {
-			QueryColumnSelector gSelect = groupBy.get(i);
-			String tableName = gSelect.getTable();
-			String columnName = gSelect.getColumn();
+			IQuerySelector groupBySelector = groupBy.get(i);
+			
+			if(groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				QueryColumnSelector gSelect = (QueryColumnSelector) groupBySelector;
+				String tableName = gSelect.getTable();
+				String columnName = gSelect.getColumn();
 
-			String varName = Utility.cleanVariableString(tableName);
-			if(!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-				varName += "__" + Utility.cleanVariableString(columnName);
+				String varName = Utility.cleanVariableString(tableName);
+				if(!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					varName += "__" + Utility.cleanVariableString(columnName);
+				}
+				this.groupByClause.append(" ?").append(varName);
+			} else {
+				String errorMessage = "Error: Cannot group by non QueryColumnSelector type yet...";
+				logger.error(errorMessage);
+				throw new IllegalArgumentException(errorMessage);
 			}
-			this.groupByClause.append(" ?").append(varName);
 		}
 	}
 	
