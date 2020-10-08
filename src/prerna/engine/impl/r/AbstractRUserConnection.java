@@ -257,7 +257,8 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 							return null;
 						}
 					});
-					future.get(3L, TimeUnit.SECONDS);
+					// sometimes this is slow on startup
+					future.get(15L, TimeUnit.SECONDS);
 				}
 			} finally {
 				executor.shutdownNow();
