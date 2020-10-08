@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import com.google.gson.TypeAdapter;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -13,6 +15,9 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Utility;
+import prerna.util.gson.HardSelectQueryStructAdapter;
+import prerna.util.gson.SelectQueryStructAdapter;
+import prerna.util.gson.TemporalEngineHardSelectQueryStructAdapter;
 
 public abstract class AbstractQueryStruct {
 	
@@ -461,6 +466,59 @@ public abstract class AbstractQueryStruct {
 	public boolean getQueryAll() {
 		return this.queryAll;
 	}
+	
+	/**
+	 * Get the adapter for the query struct type
+	 * @param type
+	 * @return
+	 */
+	static TypeAdapter getAdapterForQueryStruct(QUERY_STRUCT_TYPE type) {
+		if(type == QUERY_STRUCT_TYPE.ENGINE || type == QUERY_STRUCT_TYPE.FRAME) {
+			return new SelectQueryStructAdapter();
+		} else if(type == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || type == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			return new HardSelectQueryStructAdapter();
+		} else if(type == QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY || type == QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY) {
+			return new TemporalEngineHardSelectQueryStructAdapter();
+		} else if(type == QUERY_STRUCT_TYPE.CSV_FILE) {
+			
+		} else if(type == QUERY_STRUCT_TYPE.EXCEL_FILE) {
+			
+		} else if(type == QUERY_STRUCT_TYPE.LAMBDA) {
+			
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Convert string to QUERY_STRUCT_TYPE
+	 * @param s
+	 * @return
+	 */
+	static QUERY_STRUCT_TYPE convertStringToQueryStructType(String s) {
+		if(s.equals(QUERY_STRUCT_TYPE.ENGINE.toString())) {
+			return QUERY_STRUCT_TYPE.ENGINE;
+		} else if(s.equals(QUERY_STRUCT_TYPE.FRAME.toString())) {
+			return QUERY_STRUCT_TYPE.FRAME;
+		} else if(s.equals(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY.toString())) {
+			return QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY;
+		} else if(s.equals(QUERY_STRUCT_TYPE.RAW_FRAME_QUERY.toString())) {
+			return QUERY_STRUCT_TYPE.RAW_FRAME_QUERY;
+		} else if(s.equals(QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY.toString())) {
+			return QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY;
+		} else if(s.equals(QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY.toString())) {
+			return QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY;
+		} else if(s.equals(QUERY_STRUCT_TYPE.CSV_FILE.toString())) {
+			return QUERY_STRUCT_TYPE.CSV_FILE;
+		} else if(s.equals(QUERY_STRUCT_TYPE.EXCEL_FILE.toString())) {
+			return QUERY_STRUCT_TYPE.EXCEL_FILE;
+		} else if(s.equals(QUERY_STRUCT_TYPE.LAMBDA.toString())) {
+			return QUERY_STRUCT_TYPE.LAMBDA;
+		}
+		
+		return null;
+	}
+	
 	
 	/////////////////////////////////////// experimental ////////////////////////////////////////
 	
