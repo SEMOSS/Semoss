@@ -10,6 +10,8 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
+import prerna.query.querystruct.CsvQueryStruct;
+import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.TemporalEngineHardQueryStruct;
@@ -20,9 +22,12 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.sablecc2.om.VarStore;
@@ -48,6 +53,8 @@ public class GsonUtility {
 				.registerTypeAdapter(TemporalEngineHardQueryStruct.class, new TemporalEngineHardSelectQueryStructAdapter())
 				.registerTypeAdapter(HardSelectQueryStruct.class, new HardSelectQueryStructAdapter())
 				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
+				.registerTypeAdapter(CsvQueryStruct.class, new CsvQueryStructAdapter())
+				.registerTypeAdapter(ExcelQueryStruct.class, new ExcelQueryStructAdapter())
 
 				// selectors
 				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
@@ -65,6 +72,11 @@ public class GsonUtility {
 				.registerTypeAdapter(AndQueryFilter.class, new AndQueryFilterAdapter())
 				.registerTypeAdapter(FunctionQueryFilter.class, new FunctionQueryFilterAdapter())
 				
+				// sorts
+				.registerTypeAdapter(IQuerySort.class, new IQuerySortAdapter())
+				.registerTypeAdapter(QueryColumnOrderBySelector.class, new QueryColumnOrderBySelectorAdapter())
+				.registerTypeAdapter(QueryCustomOrderBy.class, new QueryCustomOrderByAdapter())
+
 				// noun meta
 				.registerTypeAdapter(NounMetadata.class, new NounMetadataAdapter())
 				.registerTypeAdapter(VarStore.class, new VarStoreAdapter())
