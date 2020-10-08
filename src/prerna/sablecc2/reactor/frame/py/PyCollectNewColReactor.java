@@ -6,12 +6,15 @@ import java.util.Vector;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PyTranslator;
+import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -64,6 +67,13 @@ public class PyCollectNewColReactor extends TaskBuilderReactor {
 		List <IQuerySelector> allSelectors = sqs.getSelectors();
 		if(allSelectors.size() > 0) {
 			IQuerySelector onlySelector = allSelectors.get(0);
+			PandasInterpreter interp = new PandasInterpreter();
+			interp.setDataTableName(frame.getName(), frame.getName() + "w.cache['data']");
+			interp.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
+			// I should also possibly set up pytranslator so I can run command for creating filter
+			interp.setPyTranslator(pyt);
+			String interpOutput = interp.processSelector(onlySelector, frame.getName(), false, false);
+
 			String mainQuery = processSelector(onlySelector, frame.getName()).toString();
 			
 			String alias = onlySelector.getAlias();
@@ -110,10 +120,10 @@ public class PyCollectNewColReactor extends TaskBuilderReactor {
 			return processConstantSelector((QueryConstantSelector) selector);
 		} 
 		/*
-		 * sorry no functions allowed
+		 * sorry no functions allowed*/
 		else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-			return processAggSelector((QueryFunctionSelector) selector);
-		}*/
+			return processFunctionSelector((QueryFunctionSelector) selector, tableName);
+		}
 		// arithmetic selector is not implemented
 		else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector, tableName);
@@ -145,6 +155,33 @@ public class PyCollectNewColReactor extends TaskBuilderReactor {
 		IQuerySelector rightSelector = selector.getRightSelector();
 		String mathExpr = selector.getMathExpr();
 		return new StringBuffer("(" + processSelector(leftSelector, tableName) + " " + mathExpr + " " + processSelector(rightSelector, tableName) + ")");
+	}
+	
+	private StringBuffer processFunctionSelector(QueryFunctionSelector selector, String tableName)
+	{
+		//Sum(MovieBudget)
+		StringBuffer retBuffer = new StringBuffer();
+		// get the name of the column
+		String functionName = selector.getFunction();
+		List <IQuerySelector> paramSelectors = selector.getInnerSelector();
+		// usually this is a single parameter, if it is more, I dont know what to do
+		if(paramSelectors != null)
+		{
+			IQuerySelector curSelector = paramSelectors.get(0);
+			if(curSelector instanceof QueryColumnSelector)
+			{
+				QueryColumnSelector cs = (QueryColumnSelector)curSelector;
+				String columnName = cs.getAlias();
+				functionName = QueryFunctionHelper.convertFunctionToPandasSyntax(functionName);
+				retBuffer.append(tableName).append("['").append(columnName).append("'].").append(functionName).append("()");
+			}
+		}
+		
+		
+		//System.err.println("Selector..  " + selector);
+		
+		
+		return retBuffer;
 	}
 
 	@Override

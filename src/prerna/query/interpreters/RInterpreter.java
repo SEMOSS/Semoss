@@ -28,6 +28,8 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryIfSelector;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -353,8 +355,42 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector, tableName, includeTableName, useAlias);
 		}
+		else if(selectorType == IQuerySelector.SELECTOR_TYPE.IF_ELSE)
+		{
+			return processIfElseSelector((QueryIfSelector)selector, tableName, includeTableName, useAlias);
+		}
 		return null;
 	}
+	
+	private String processIfElseSelector(QueryIfSelector selector,  String tableName, boolean includeTableName, boolean useAlias)
+	{
+		// get the condition first
+		IQueryFilter condition = selector.getCondition();
+		StringBuffer buf = new StringBuffer("ifelse(");
+		
+		StringBuilder filterBuilder = new StringBuilder();
+
+		filterBuilder = this.processFilter(condition, tableName, useAlias, false);
+
+		// builder shoudl have what we need at this point
+		buf.append(filterBuilder.toString());
+		buf.append(",");
+		
+		// get the precedent
+		IQuerySelector precedent = selector.getPrecedent();
+		buf.append(processSelector(precedent, tableName, includeTableName, useAlias));
+
+		IQuerySelector antecedent = selector.getAntecedent();
+		if(antecedent != null)
+		{
+			buf.append(", ");
+			buf.append(processSelector(antecedent, tableName, includeTableName, useAlias));
+		}
+		buf.append(")");
+		
+		return buf.toString();
+	}
+
 	
 	private String processConstantSelector(QueryConstantSelector selector) {
 		Object constant = selector.getConstant();
@@ -514,6 +550,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 	
+	
 	private StringBuilder processFilter(IQueryFilter filter, String tableName, boolean useAlias, boolean captureColumns) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
 		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
@@ -564,6 +601,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		String thisComparator = filter.getComparator();
 		
 		FILTER_TYPE fType = filter.getSimpleFilterType();
+		
+		// let us see if it is getting us the right result first
+		
 		if(fType == FILTER_TYPE.COL_TO_COL) {
 			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator, tableName, useAlias, captureColumns);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
@@ -576,6 +616,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 		return null;
 	}
+	
 	
 	/**
 	 * Add filter for column to column

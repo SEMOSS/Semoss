@@ -28,6 +28,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -257,6 +258,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				.append(addLimitOffset(start, end))
 				//.append(orderBy2)
 				.append(normalizer);
+				//.append(".fillna('')");
 				// TODO: NEED TO DISTINCT THE LIST RETURNED
 //				if(!scalar && !aggCriteria2.toString().isEmpty()) {
 //					query.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()));
@@ -655,11 +657,15 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return typeArray;
 	}
 
-	private String processSelector(IQuerySelector selector, String tableName, boolean includeTableName, boolean useAlias) {
+	public String processSelector(IQuerySelector selector, String tableName, boolean includeTableName, boolean useAlias, boolean...useTable) {
 		SELECTOR_TYPE selectorType = selector.getSelectorType();
+		String tableNameForCol = null;
+		
+		if(useTable != null && useTable.length > 0 &&  useTable[0])
+			tableNameForCol = tableName;
 		
 		if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-			return processColumnSelector( (QueryColumnSelector) selector);
+			return processColumnSelector( (QueryColumnSelector) selector, tableNameForCol);
 		}
 		// constan is not touched yet
 		else if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
@@ -669,18 +675,55 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 		// arithmetic selector is not implemented
 		else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
-			return processArithmeticSelector((QueryArithmeticSelector) selector, tableName, includeTableName, useAlias);
-		} else {
+			return processArithmeticSelector((QueryArithmeticSelector) selector, tableName, includeTableName, useAlias, useTable);
+		}
+		else if(selectorType == IQuerySelector.SELECTOR_TYPE.IF_ELSE) {
+			return processIfElseSelector((QueryIfSelector) selector, tableName, includeTableName, useAlias, useTable);
+		} 
+		else {
 			return null;
 		}
 	}
 	
-	private String processColumnSelector(QueryColumnSelector selector) {
+	private String processIfElseSelector(QueryIfSelector selector,  String tableName, boolean includeTableName, boolean useAlias, boolean...useTable)
+	{
+		// get the condition first
+		IQueryFilter condition = selector.getCondition();
+		StringBuffer buf = new StringBuffer("np.where(");
+		
+		StringBuilder filterBuilder = new StringBuilder();
+
+		filterBuilder = this.processFilter(condition, tableName, useAlias, useTable);
+
+		// builder shoudl have what we need at this point
+		buf.append(filterBuilder.toString());
+		buf.append(",");
+		
+		// get the precedent
+		IQuerySelector precedent = selector.getPrecedent();
+		buf.append(processSelector(precedent, tableName, includeTableName, useAlias, useTable));
+
+		IQuerySelector antecedent = selector.getAntecedent();
+		if(antecedent != null)
+		{
+			buf.append(", ");
+			buf.append(processSelector(antecedent, tableName, includeTableName, useAlias, useTable));
+		}
+		buf.append(")");
+		
+		return buf.toString();
+	}
+
+	
+	private String processColumnSelector(QueryColumnSelector selector, String tableName) {
 		String columnName = selector.getColumn();
 		String alias = selector.getAlias();
 		
 		// just return the column name
-		return "'" + alias + "'";
+		if(tableName != null)
+			return new StringBuffer(tableName).append("['").append(alias).append("']") + "";
+		else
+			return "'" + alias + "'";
 	}
 	
 	public void setDataTableName(String frameName, String wrapperFrameName) {
@@ -876,11 +919,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 
 	
 	
-	private String processArithmeticSelector(QueryArithmeticSelector selector, String tableName, boolean includeTableName, boolean useAlias) {
+	private String processArithmeticSelector(QueryArithmeticSelector selector, String tableName, boolean includeTableName, boolean useAlias, boolean...useTable) {
 		IQuerySelector leftSelector = selector.getLeftSelector();
 		IQuerySelector rightSelector = selector.getRightSelector();
 		String mathExpr = selector.getMathExpr();
-		return "(" + processSelector(leftSelector, tableName, includeTableName, useAlias) + " " + mathExpr + " " + processSelector(rightSelector, tableName, includeTableName, useAlias) + ")";
+		return "(" + processSelector(leftSelector, tableName, includeTableName, useAlias, useTable) + " " + mathExpr + " " + processSelector(rightSelector, tableName, includeTableName, useAlias, useTable) + ")";
 	}
 	
 	//////////////////////////////////// end adding selectors /////////////////////////////////////
@@ -902,19 +945,19 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 	
-	private StringBuilder processFilter(IQueryFilter filter, String tableName, boolean useAlias) {
+	private StringBuilder processFilter(IQueryFilter filter, String tableName, boolean useAlias, boolean...useTable) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
 		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-			return processSimpleQueryFilter((SimpleQueryFilter) filter, tableName, useAlias);
+			return processSimpleQueryFilter((SimpleQueryFilter) filter, tableName, useAlias, useTable);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-			return processAndQueryFilter((AndQueryFilter) filter, tableName, useAlias);
+			return processAndQueryFilter((AndQueryFilter) filter, tableName, useAlias, useTable);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-			return processOrQueryFilter((OrQueryFilter) filter, tableName, useAlias);
+			return processOrQueryFilter((OrQueryFilter) filter, tableName, useAlias, useTable);
 		}
 		return null;
 	}
 	
-	private StringBuilder processOrQueryFilter(OrQueryFilter filter, String tableName, boolean useAlias) {
+	private StringBuilder processOrQueryFilter(OrQueryFilter filter, String tableName, boolean useAlias, boolean...useTable) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
 		int numAnds = filterList.size();
@@ -922,15 +965,15 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			if(i == 0) {
 				filterBuilder.append("(");
 			} else {
-				filterBuilder.append(" | ");
+				filterBuilder.append(" ) | ( ");
 			}
-			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias));
+			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias, useTable));
 		}
 		filterBuilder.append(")");
 		return filterBuilder;
 	}
 
-	private StringBuilder processAndQueryFilter(AndQueryFilter filter, String tableName, boolean useAlias) {
+	private StringBuilder processAndQueryFilter(AndQueryFilter filter, String tableName, boolean useAlias, boolean...useTable) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
 		int numAnds = filterList.size();
@@ -938,27 +981,27 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			if(i == 0) {
 				filterBuilder.append("(");
 			} else {
-				filterBuilder.append(" & ");
+				filterBuilder.append(") & (");
 			}
-			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias));
+			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias, useTable));
 		}
 		filterBuilder.append(")");
 		return filterBuilder;
 	}
 	
-	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String tableName, boolean useAlias) {
+	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String tableName, boolean useAlias, boolean...useTable) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
 		String thisComparator = filter.getComparator();
 		
 		FILTER_TYPE fType = filter.getSimpleFilterType();
 		if(fType == FILTER_TYPE.COL_TO_COL) {
-			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator, tableName, useAlias);
+			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator, tableName, useAlias, useTable);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToValuesFilter2(leftComp, rightComp, thisComparator, tableName, useAlias);
+			return addSelectorToValuesFilter2(leftComp, rightComp, thisComparator, tableName, useAlias, useTable);
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
-			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias);
+			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias, useTable);
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 		}
@@ -971,7 +1014,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias) {
+	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean...useTable) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
@@ -980,8 +1023,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		 * Add the filter syntax here once we have the correct physical names
 		 */
 		
-		String lSelector = processSelector(leftSelector, tableName, true, useAlias);
-		String rSelector = processSelector(rightSelector, tableName, true, useAlias);
+		String lSelector = processSelector(leftSelector, tableName, true, useAlias, useTable);
+		String rSelector = processSelector(rightSelector, tableName, true, useAlias, useTable);
 		
 		StringBuilder filterBuilder = new StringBuilder();
 		if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
@@ -1015,10 +1058,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	// tx2.loc[tx2['Sales Fact Number'].map(lambda x: x < 10000000) & tx2['Fiscal Year'].map(lambda x: x < 2011)].groupby('Fiscal Year').agg(Max_Sales_Fact= ('Sales Fact Number', 'max'))
 	// this needs to be all map operation to start with
 	
-	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias) {
+	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean...useTable) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
-		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias);
+		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias, useTable);
 		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
 		
 		// if it is null, then we know we have a column
@@ -1165,11 +1208,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return filterBuilder.append(")");
 	}
 
-	private StringBuilder addSelectorToValuesFilter2(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias) {
+	private StringBuilder addSelectorToValuesFilter2(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean...useTable) 
+	{
 		//swifter = "";
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
-		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias);
+		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias, useTable);
 		
 		// always index the column if it is string
 		
@@ -1313,7 +1357,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 
 		if(addNullCheck && !objects.isEmpty()) {
 			// close due to wrapping
-			filterBuilder.append(") ");
+			retBuilder.append(") ");
 		}
 		
 		return retBuilder;
