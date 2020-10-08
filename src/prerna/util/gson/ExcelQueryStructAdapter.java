@@ -94,7 +94,7 @@ public class ExcelQueryStructAdapter  extends TypeAdapter<ExcelQueryStruct> {
 			// group bys
 			else if(name.equals("groups")) {
 				in.beginArray();
-				List<QueryColumnSelector> groupBy = new Vector<QueryColumnSelector>();
+				List<IQuerySelector> groupBy = new Vector<>();
 				while(in.hasNext()) {
 					IQuerySelectorAdapter selectorAdapter = new IQuerySelectorAdapter();
 					IQuerySelector selector = selectorAdapter.read(in);
@@ -226,7 +226,7 @@ public class ExcelQueryStructAdapter  extends TypeAdapter<ExcelQueryStruct> {
 		}
 
 		// groups
-		List<QueryColumnSelector> groups = value.getGroupBy();
+		List<IQuerySelector> groups = value.getGroupBy();
 		int numGroups = groups.size();
 		if(numGroups > 0) {
 			out.name("groups");

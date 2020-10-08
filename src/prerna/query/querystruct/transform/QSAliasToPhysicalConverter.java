@@ -106,12 +106,14 @@ public class QSAliasToPhysicalConverter {
 		convertedQs.setRelations(convertJoins(qs.getRelations(), meta));
 
 		// now go through the group by
-		List<QueryColumnSelector> origGroups = qs.getGroupBy();
+		List<IQuerySelector> origGroups = qs.getGroupBy();
+		
 		if(origGroups != null && !origGroups.isEmpty()) {
-			List<QueryColumnSelector> convertedGroups =  new Vector<QueryColumnSelector>();
+			List<IQuerySelector> convertedGroups =  new Vector<>();
+			
 			for(int i = 0; i < origGroups.size(); i++) {
 				IQuerySelector origGroupS = origGroups.get(i);
-				QueryColumnSelector convertedGroupS = (QueryColumnSelector) convertSelector(origGroupS, meta, customTableName);
+				IQuerySelector convertedGroupS = convertSelector(origGroupS, meta, customTableName);
 				convertedGroups.add(convertedGroupS);
 			}
 			convertedQs.setGroupBy(convertedGroups);

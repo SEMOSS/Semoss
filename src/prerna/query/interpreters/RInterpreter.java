@@ -10,6 +10,9 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -29,12 +32,13 @@ import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class RInterpreter extends AbstractQueryInterpreter {
 
+	private static final Logger logger = LogManager.getLogger(RInterpreter.class.getName());
+	
 	private String dataTableName = null;
 	private Map<String, SemossDataType> colDataTypes;
 
@@ -48,6 +52,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	
 	// keep track of group bys
 	private StringBuilder groupBys = new StringBuilder();
+	
 	// keep track of order bys
 	private StringBuilder orderBys = new StringBuilder();
 	
@@ -74,6 +79,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		boolean isDistinct = ((SelectQueryStruct) this.qs).isDistinct();
+		
 		// note, that the join info in the QS has no meaning for a R frame as 
 		// we cannot connect across data tables
 		addFilters(qs.getCombinedFilters().getFilters(), this.dataTableName, this.filterCriteria, false, false);
@@ -97,7 +103,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			.append(this.selectorCriteria.toString())
 			.append(this.groupBys)
 			.append("]");
-
+		
 		mainQuery.append(cachedFrame)
 		//mainQuery.append(this.dataTableName)
 		.append("[ ")
@@ -165,7 +171,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		} else {
 			logger.debug("R QUERY....  " + query);
 		}
-
+		
 		return query.toString();
 	}
 	
@@ -349,7 +355,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
 			return processConstantSelector((QueryConstantSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-			return processColumnSelector((QueryColumnSelector) selector, tableName, includeTableName, useAlias);
+			return processColumnSelector((QueryColumnSelector) selector, tableName, includeTableName, useAlias);	
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 			return processFunctionSelector((QueryFunctionSelector) selector, tableName, includeTableName, useAlias);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
@@ -868,8 +874,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	
 	//////////////////////////////////// end adding filters /////////////////////////////////////
 	
+	
 	private void addGroupBy() {
-		List<QueryColumnSelector> groups = ((SelectQueryStruct) this.qs).getGroupBy();
+		List<IQuerySelector> groups = ((SelectQueryStruct) this.qs).getGroupBy();
 		if(groups == null || groups.isEmpty()) {
 			return;
 		}
@@ -877,15 +884,15 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		int numGroups = groups.size();
 		this.groupBys.append(" , by = list(");
 		for(int i = 0; i < numGroups; i++) {
+			IQuerySelector groupBySelector = groups.get(i);
 			if(i >= 1) {
 				groupBys.append(",");
 			}
-			groupBys.append(groups.get(i).getColumn());
+			groupBys.append(processSelector(groupBySelector, this.dataTableName, false, true));
 		}
 		this.groupBys.append(")");
  	}
 
-	
 	private void addOrderBy(String tempTableName) {
 		//grab the order by and get the corresponding display name for that order by column
 		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getOrderBy();
@@ -1110,6 +1117,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	}
 	
 	public String getMainQuery() {
+		
 		return this.mainQuery.toString();
 	}
 }
