@@ -28,4 +28,15 @@ public abstract class AbstractMapReactor extends AbstractReactor {
 			return noun.getValue();
 		}
 	}
+	
+	@Override
+	public void mergeUp() {
+		// while this is a reactor
+		// it is basically a scalar that we will merge up
+		if(parentReactor != null) {
+			NounMetadata data = execute();
+			this.parentReactor.getCurRow().add(data);
+		}
+	}
+	
 }
