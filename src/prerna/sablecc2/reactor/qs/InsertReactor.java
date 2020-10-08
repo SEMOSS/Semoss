@@ -158,7 +158,11 @@ public class InsertReactor extends AbstractReactor {
 				}
 				else {
 					if(values[i] instanceof String) {
-						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "', ");
+						if(values[i].equals("<UUID>")) {
+							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "', ");
+						} else {
+							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "', ");
+						}
 					}
 					else if(values[i] instanceof SemossDate) {
 						valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "', ");
@@ -236,7 +240,11 @@ public class InsertReactor extends AbstractReactor {
 					}
 					else {
 						if(values[i] instanceof String) {
-							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "', ");
+							if(values[i].equals("<UUID>")) {
+								valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "', ");
+							} else {
+								valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "', ");
+							}
 						}
 						else if(values[i] instanceof SemossDate) {
 							valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "', ");
