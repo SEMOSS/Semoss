@@ -792,7 +792,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getOrComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor != null && this.curReactor instanceof FilterReactor || this.curReactor instanceof AbstractFilterReactor) {
+    	if(this.curReactor != null && this.curReactor instanceof AbstractQueryStructReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentOr();
     	} else {
     		newReactor = new OpOr();
@@ -804,7 +804,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getAndComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor != null && this.curReactor instanceof FilterReactor || this.curReactor instanceof AbstractFilterReactor) {
+    	if(this.curReactor != null && this.curReactor instanceof AbstractQueryStructReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentAnd();
     	} else {
     		newReactor = new OpAnd();
@@ -865,7 +865,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inABaseSimpleComparison(ABaseSimpleComparison node) {
     	IReactor newReactor = null;
-    	if(this.curReactor instanceof FilterReactor || this.curReactor instanceof AbstractFilterReactor) {
+    	if(this.curReactor instanceof AbstractQueryStructReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentSimple();
     	} else {
     		newReactor = new OpFilter();
