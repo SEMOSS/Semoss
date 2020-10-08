@@ -89,6 +89,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		qs.setColumnTypes(dataTypes);
 		qs.setAdditionalTypes(additionalDataTypes);
 		qs.merge(this.qs);
+		this.qs = qs;
 		return qs;
 	}
 
@@ -259,6 +260,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		qs.setColumnTypes(dataTypes);
 		qs.setAdditionalTypes(additionalDataTypes);
 		qs.merge(this.qs);
+		this.qs = qs;
 		return qs;
 	}
 	

@@ -76,6 +76,7 @@ public class JdbcSourceReactor extends AbstractQueryStructReactor {
 		qs.setQsType(QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
 		qs.setConfig(config);
 		qs.setEngine(temporalEngine);
+		this.qs = qs;
 		return qs;
 	}
 	

@@ -25,13 +25,8 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.om.Insight;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.query.querystruct.AbstractFileQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelUtility;
@@ -49,7 +44,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -58,7 +52,6 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
-import prerna.sablecc2.reactor.qs.source.RDFFileSourceReactor;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -404,174 +397,6 @@ public class PipelineTranslation2 extends LazyTranslation {
     		qs = (SelectQueryStruct) qsInput.get(0);
     	}
     	
-    	// combine all the existing noun portions
-    	// thankfully the QS is already a builder construct
-    	for(PipelineOperation routine : this.curRoutine) {
-    		// we will do a lot of stuff based on the routine name
-    		// as it is the reactor name
-    		
-    		String opName = routine.getOpName();
-//    		if(opName.equals("Database")) {
-//    			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-//    			
-//    			// grab the database id from the  input
-//    			String dbId = getStringOpNounInput("database", routine.getNounInputs());
-//    			if(dbId == null) {
-//    				dbId = getStringOpRowInput(0, routine.getRowInputs());
-//    			}
-//    			qs.setEngineId(dbId);
-//    			
-//    		} else if(opName.equals("Frame")) {
-//    			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
-//    			
-//    			// grab the database id from the  input
-//    			String frameName = getFrameNameOpNounInput("frame", routine.getNounInputs());
-//    			if(frameName == null) {
-//    				frameName = getFrameNameOpRowInput(0, routine.getRowInputs());
-//    			}
-//    			qs.setFrameName(frameName);
-//    			
-//    		} 
-//    		else if(opName.equals("Select")) {
-//    			List<Map> rowInputs = routine.getRowInputs();
-//    			int size = rowInputs.size();
-//    			
-//    			for(int i = 0; i < size; i++) {
-//    				// the value should already be a query column selector
-//    				Map<String, Object> rowMap = rowInputs.get(i);
-//    				Object rowValue = rowMap.get("value");
-//    				if(rowValue instanceof IQuerySelector) {
-//    					qs.addSelector( (IQuerySelector) rowValue);
-//    				}
-//    			}
-//    			
-//    		} 
-//    		else 
-    		if(opName.equals("Query")) {
-    			// make sure we have the correct type of raw query
-    			// if it is run on an engine or a frame
-    			HardSelectQueryStruct newQs = new HardSelectQueryStruct();
-    			if(qs instanceof HardSelectQueryStruct) {
-    				newQs = (HardSelectQueryStruct) qs;
-    			} else {
-	    			if(qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
-	    				newQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-	        			newQs.setEngineId(qs.getEngineId());
-	    			} else {
-	    				newQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY);
-	    			}
-    			}    			
-    			// set the query directly
-    			String query = getStringOpRowInput(0, routine.getRowInputs());
-       			query = Utility.decodeURIComponent(query);
-       			newQs.setQuery(query);
-    			
-    			// reset reference of qs to the new hard qs after merging the inputs
-    			qs = newQs;
-    		
-    		} else if(opName.equals("FileRead")) {
-    			
-    			// first grab the specific componenets for excel vs. csv/text file
-    			Map<String, List<Map>> nounInputs = routine.getNounInputs();
-				String filepath = getStringOpNounInput("filePath", nounInputs);
-    			String sheetName = getStringOpNounInput("sheetName", nounInputs);
-    			String sheetRange = getStringOpNounInput("sheetRange", nounInputs);
-				String delimiter = getStringOpNounInput("delimiter", nounInputs);
-
-    			boolean isExcel = sheetName != null && sheetRange != null;
-    			
-    			AbstractFileQueryStruct newQs = null;
-    			if(isExcel) {
-    				newQs = new ExcelQueryStruct();
-    				// get the sheet name
-    				((ExcelQueryStruct) newQs).setSheetName(sheetName);
-    				// get the sheet range
-    				((ExcelQueryStruct) newQs).setSheetName(sheetRange);
-    			} else {
-    				newQs = new CsvQueryStruct();
-    				((CsvQueryStruct) newQs).setDelimiter(delimiter.charAt(0));
-    			}
-    			
-    			// now grab the shared parts
-    			Map<String, String> dataTypeMap = parseMapReactor("dataTypeMap", nounInputs);
-    			Map<String, String> additionalDataTypes = parseMapReactor("additionalDataTypes", nounInputs);
-    			Map<String, String> newHeaders = parseMapReactor("newHeaders", nounInputs);
-
-    			newQs.setFilePath(filepath);
-    			newQs.setColumnTypes(dataTypeMap);
-    			newQs.setAdditionalTypes(additionalDataTypes);
-    			newQs.setNewHeaderNames(newHeaders);
-    			
-    			qs = newQs;
-    		
-    		} else if(opName.equals("RDFFileSource")) {
-    			
-    			/*
-    			 * This is the same as the Query 
-    			 * But will need to add some additional parts after
-    			 */
-    			
-    			TemporalEngineHardQueryStruct newQs = new TemporalEngineHardQueryStruct();
-
-    			// get all the inputs
-    			Map<String, List<Map>> nounInputs = routine.getNounInputs();
-
-    			String query = getStringOpNounInput(ReactorKeysEnum.QUERY_KEY.getKey(), nounInputs);
-    			if(query != null) {
-	    			query = Utility.decodeURIComponent(query);
-	       			newQs.setQuery(query);
-    			}
-    			
-    			String filePath = getStringOpNounInput(ReactorKeysEnum.FILE_PATH.getKey(), nounInputs);
-    			String rdfType = getStringOpNounInput(RDFFileSourceReactor.RDF_TYPE, nounInputs);
-				String baseUri = getStringOpNounInput(RDFFileSourceReactor.BASE_URI, nounInputs);
-    			
-    			Map<String, Object> config = new HashMap<>();
-    			config.put(ReactorKeysEnum.FILE_PATH.getKey(), filePath);
-    			config.put(RDFFileSourceReactor.RDF_TYPE, rdfType);
-    			config.put(RDFFileSourceReactor.BASE_URI, baseUri);
-
-    			newQs.setConfig(config);
-    			
-    			// reset reference of qs to the new hard qs after merging the inputs
-    			qs = newQs;
-    			
-    		} else if(opName.equals("DirectJDBCConnection") || opName.equals("JdbcSource")) {
-    			
-    			/*
-    			 * This is the same as the Query 
-    			 * But will need to add some additional parts after
-    			 */
-    			
-    			TemporalEngineHardQueryStruct newQs = new TemporalEngineHardQueryStruct();
-
-    			// get all the inputs
-    			Map<String, List<Map>> nounInputs = routine.getNounInputs();
-
-    			String query = getStringOpNounInput(ReactorKeysEnum.QUERY_KEY.getKey(), nounInputs);
-    			if(query != null) {
-	    			query = Utility.decodeURIComponent(query);
-	       			newQs.setQuery(query);
-    			}
-    			
-    			String driver = getStringOpNounInput(ReactorKeysEnum.DB_DRIVER_KEY.getKey(), nounInputs);
-    			String username = getStringOpNounInput(ReactorKeysEnum.PASSWORD.getKey(), nounInputs);
-				String password = getStringOpNounInput(ReactorKeysEnum.USERNAME.getKey(), nounInputs);
-    			String connectionUrl = getStringOpNounInput(ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), nounInputs);
-    			
-    			Map<String, Object> config = new HashMap<>();
-    			config.put(ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), connectionUrl);
-    			config.put(ReactorKeysEnum.DB_DRIVER_KEY.getKey(), driver);
-    			config.put(ReactorKeysEnum.USERNAME.getKey(), username);
-    			config.put(ReactorKeysEnum.PASSWORD.getKey(), password);
-
-    			newQs.setConfig(config);
-    			
-    			// reset reference of qs to the new hard qs after merging the inputs
-    			qs = newQs;
-    		}
-    	}
-    	
     	// we will add the qs at the end
     	// since we could reassign the qs object
     	qsMap.put("value", qs);
@@ -580,78 +405,6 @@ public class PipelineTranslation2 extends LazyTranslation {
     		op.setWidgetId(PipelineTranslation2.qsToWidget.get(qs.getQsType()));
     	}
 	}
-    
-    /**
-     * Get map from input as it gets pushed into a reactor structure / pipeline operation
-     * @param key
-     * @param nounInputs
-     * @return
-     */
-    private Map<String, String> parseMapReactor(String key, Map<String, List<Map>> nounInputs) {
-    	Map<String, String> output = null;
-    	if(nounInputs.containsKey(key)) {
-			List<Map> nounMapList = nounInputs.get(key);
-			if(nounMapList != null && !nounMapList.isEmpty()) {
-				Map<String, Object> nounMap = nounMapList.get(0);
-				PipelineOperation nounMapVal = (PipelineOperation) nounMap.get("value");
-				// we can reconstruct the map looking at each pair of obj/val that is passed in
-				List<Map> inputs = nounMapVal.getRowInputs();
-				
-				output = new HashMap<>();
-				for(int i = 0; i < inputs.size(); i=i+2) {
-					Map<String, Object> keyMap = inputs.get(i);
-					Map<String, Object> valMap = inputs.get(i+1);
-					
-					output.put(keyMap.get("value").toString(), valMap.get("value").toString());
-				}
-			}
-		}
-    	return output;
-    }
-
-    private String getStringOpNounInput(String key, Map<String, List<Map>> nounInputs) {
-    	String output = null;
-    	if(nounInputs.containsKey(key)) {
-			List<Map> nounMap = nounInputs.get(key);
-			if(nounMap != null) {
-				output = (String) nounMap.get(0).get("value");
-			}
-		}
-    	return output;
-    }
-    
-    private String getStringOpRowInput(int index, List<Map> nounInputs) {
-    	String output = null;
-    	if(nounInputs.size() > index) {
-			Map<String, Object> nounMap = nounInputs.get(index);
-			if(nounMap != null) {
-				output = (String) nounMap.get("value");
-			}
-		}
-    	return output;
-    }
-    
-    private String getFrameNameOpNounInput(String key, Map<String, List<Map>> nounInputs) {
-    	String output = null;
-    	if(nounInputs.containsKey(key)) {
-			List<Map> nounMap = nounInputs.get(key);
-			if(nounMap != null) {
-				output = (String) nounMap.get(0).get("name");
-			}
-		}
-    	return output;
-    }
-    
-    private String getFrameNameOpRowInput(int index, List<Map> nounInputs) {
-    	String output = null;
-    	if(nounInputs.size() > index) {
-			Map<String, Object> nounMap = nounInputs.get(index);
-			if(nounMap != null) {
-				output = (String) nounMap.get("name");
-			}
-		}
-    	return output;
-    }
     
 	////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////
@@ -771,21 +524,21 @@ public class PipelineTranslation2 extends LazyTranslation {
 //				+ "Panel ( 0 ) | RetrievePanelEvents ( ) ;" 
 //				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;" 
 //				+ "Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" ) ;" 
-				+ "CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME238470' ] ) ;" 
-				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) "
-					+ "| Select ( Min(MOVIE_DATES__Cast_Formed), MOVIE_DATES__GENRE).as(['CAST_FORMED', 'GENRE']) "
-					+ "| Filter( "
+//				+ "CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME238470' ] ) ;" 
+//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) "
+//					+ "| Select ( Min(MOVIE_DATES__Cast_Formed), MOVIE_DATES__GENRE).as(['CAST_FORMED', 'GENRE']) "
+//					+ "| Filter( "
 //							+ "("
-							+ "MOVIE_DATES__NOMINATED == ['NO'] "
+//							+ "MOVIE_DATES__NOMINATED == ['NO'] "
 //							+ "AND "
 //							+ "MOVIE_DATES__NOMINATED == ['YES'] "
 //							+ ") "
 //							+ "AND "
 //							+ "MOVIE_DATES__NOMINATED == (Database(\"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\") | Select(MOVIE_DATES__NOMINATED) | Collect(-1) ) "
-					+ ") "
-					+ "| Group(MOVIE_DATES__GENRE) | Import ( frame = [ FRAME238470 ] ) ;" 
+//					+ ") "
+//					+ "| Group(MOVIE_DATES__GENRE) | Import ( frame = [ FRAME238470 ] ) ;" 
 
-//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Query(\"<encode> select * from movie_dates </encode>\") | Import ( frame = [ FRAME238470 ] ) ;" 
+				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Query(\"<encode> select * from movie_dates </encode>\") | Import ( frame = [ FRAME238470 ] ) ;" 
 //				+ "FileRead( filePath=[\"$IF\\diabetes_____UNIQUE2019_08_14_15_20_44_0226.csv\" ], dataTypeMap=[{\"patient\":\"INT\",\"chol\":\"INT\",\"stab_glu\":\"INT\",\"hdl\":\"INT\",\"ratio\":\"DOUBLE\",\"glyhb\":\"DOUBLE\",\"location\":\"STRING\",\"age\":\"INT\",\"gender\":\"STRING\",\"height\":\"INT\",\"weight\":\"INT\",\"frame\":\"STRING\",\"bp_1s\":\"INT\",\"bp_1d\":\"INT\",\"bp_2s\":\"INT\",\"bp_2d\":\"INT\",\"waist\":\"INT\",\"hip\":\"INT\",\"time_ppn\":\"INT\",\"Drug\":\"STRING\",\"start_date\":\"DATE\",\"end_date\":\"DATE\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"diabetes.csv\"], additionalDataTypes=[{\"start_date\":\"M/d/yyyy\",\"end_date\":\"M/d/yyyy\"}])|Select(DND__patient, DND__chol, DND__stab_glu, DND__hdl, DND__ratio, DND__glyhb, DND__location, DND__age, DND__gender, DND__height, DND__weight, DND__frame, DND__bp_1s, DND__bp_1d, DND__bp_2s, DND__bp_2d, DND__waist, DND__hip, DND__time_ppn, DND__Drug, DND__start_date, DND__end_date).as([patient, chol, stab_glu, hdl, ratio, glyhb, location, age, gender, height, weight, frame, bp_1s, bp_1d, bp_2s, bp_2d, waist, hip, time_ppn, Drug, start_date, end_date])|Import( frame=[FRAME238470] );"
 //				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;" 
 //				+ "Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ;" 
