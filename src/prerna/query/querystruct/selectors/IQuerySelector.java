@@ -14,7 +14,7 @@ public interface IQuerySelector {
 
 	String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 
-	enum SELECTOR_TYPE {OPAQUE, COLUMN, FUNCTION, ARITHMETIC, CONSTANT}
+	enum SELECTOR_TYPE {OPAQUE, COLUMN, FUNCTION, ARITHMETIC, CONSTANT, IF_ELSE}
 	
 	/**
 	 * Determine the type of the selector
