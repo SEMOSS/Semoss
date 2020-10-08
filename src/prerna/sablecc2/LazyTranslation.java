@@ -90,6 +90,7 @@ import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.sablecc2.reactor.qs.GroupReactor;
 import prerna.sablecc2.reactor.qs.filter.FilterReactor;
 import prerna.sablecc2.reactor.qs.filter.IfQueryFilterComponentAnd;
 import prerna.sablecc2.reactor.qs.filter.IfQueryFilterComponentOr;
@@ -543,6 +544,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     			// we will do just a little bit of value validation
     			// so that we only push in basic data types
     			if(curReactor instanceof SelectReactor 
+    					|| curReactor instanceof GroupReactor
     					|| curReactor instanceof QuerySelectorExpressionAssimilator 
     					|| curReactor instanceof FilterReactor) {
     				if(varType == PixelDataType.CONST_STRING || varType == PixelDataType.CONST_INT || varType == PixelDataType.CONST_DECIMAL
@@ -585,6 +587,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	} else {
     		if(curReactor != null) {
     			if(curReactor instanceof SelectReactor 
+    					|| curReactor instanceof GroupReactor  
     					|| curReactor instanceof QuerySelectorExpressionAssimilator 
     					|| curReactor instanceof FilterReactor) {
     				// this is part of a query 
