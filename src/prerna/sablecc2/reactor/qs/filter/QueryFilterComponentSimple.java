@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskUtility;
+import prerna.sablecc2.reactor.qs.selectors.IfReactor;
 
 public class QueryFilterComponentSimple extends FilterReactor {
 
@@ -40,7 +42,14 @@ public class QueryFilterComponentSimple extends FilterReactor {
 				foundComparator = true;
 				continue;
 			}
-			
+
+			// If I do this logic.. both of them become selectors and then we are all set
+			// need to do special processing here
+			// this is a special case where we need to turn the rset into the selector of the query struct
+			// if I adjust this everything else gets adjusted
+			if((this.parentReactor instanceof IfReactor || this.parentReactor instanceof IfQueryFilterComponentAnd || this.parentReactor instanceof IfQueryFilterComponentOr) && noun.getNounType() == PixelDataType.QUERY_STRUCT)
+				noun = new NounMetadata(((SelectQueryStruct)noun.getValue()).getSelectors().get(0), PixelDataType.COLUMN);	
+
 			// if we have the comparator
 			// everything from this point on gets added to the rSet
 			if(foundComparator) {
