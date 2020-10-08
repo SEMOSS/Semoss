@@ -91,6 +91,8 @@ import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.filter.FilterReactor;
+import prerna.sablecc2.reactor.qs.filter.IfQueryFilterComponentAnd;
+import prerna.sablecc2.reactor.qs.filter.IfQueryFilterComponentOr;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentAnd;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentOr;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentSimple;
@@ -792,9 +794,16 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getOrComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor != null && this.curReactor instanceof AbstractQueryStructReactor || this.curReactor instanceof AbstractFilterReactor) {
+    	if(this.curReactor instanceof prerna.sablecc2.reactor.qs.selectors.IfReactor)
+      	{
+      		newReactor = new IfQueryFilterComponentOr(); // this is primarily a marker class
+      	}
+    	else if(this.curReactor != null && this.curReactor instanceof AbstractQueryStructReactor || this.curReactor instanceof AbstractFilterReactor) 
+    	{
     		newReactor = new QueryFilterComponentOr();
-    	} else {
+    	}  
+    	else 
+    	{
     		newReactor = new OpOr();
     	}
     	
@@ -804,9 +813,16 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getAndComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor != null && this.curReactor instanceof AbstractQueryStructReactor || this.curReactor instanceof AbstractFilterReactor) {
+    	if(this.curReactor instanceof prerna.sablecc2.reactor.qs.selectors.IfReactor)
+      	{
+      		newReactor = new IfQueryFilterComponentAnd(); // this is primarily a marker class
+      	}
+    	else if(this.curReactor != null && this.curReactor instanceof AbstractQueryStructReactor || this.curReactor instanceof AbstractFilterReactor) 
+    	{
     		newReactor = new QueryFilterComponentAnd();
-    	} else {
+    	}
+    	else 
+    	{
     		newReactor = new OpAnd();
     	}
     	
@@ -867,9 +883,15 @@ public class LazyTranslation extends DepthFirstAdapter {
     	IReactor newReactor = null;
     	if(this.curReactor instanceof AbstractQueryStructReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentSimple();
-    	} else {
+    	} else if(this.curReactor instanceof prerna.sablecc2.reactor.qs.selectors.IfReactor)
+    	{
+    		newReactor = new QueryFilterComponentSimple();
+    	}
+    	else
+    	{
     		newReactor = new OpFilter();
     	}
+    	
     	
     	initReactor(newReactor);
     	syncResult();
@@ -1091,6 +1113,14 @@ public class LazyTranslation extends DepthFirstAdapter {
     	// if the parent is a filter
     	// we need to aggregate this side of the column expression
     	else if(curReactor != null && curReactor.getParentReactor() instanceof FilterReactor) {
+        	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
+        	qAssm.setMathExpr(math);
+        	qAssm.setPixel("EXPR", nodeExpr);
+    		initReactor(qAssm);	
+        	return false;
+        }
+      	else if(curReactor != null && ((curReactor instanceof prerna.sablecc2.reactor.qs.selectors.IfReactor) || (curReactor.getParentReactor() instanceof prerna.sablecc2.reactor.qs.selectors.IfReactor))) 
+      			{
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr(math);
         	qAssm.setPixel("EXPR", nodeExpr);

@@ -34,6 +34,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DI
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.PixelDataType;
@@ -244,9 +245,52 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.OPAQUE) {
 			return processOpaqueSelector((QueryOpaqueSelector) selector);
+		}else if(selectorType == IQuerySelector.SELECTOR_TYPE.IF_ELSE) {
+			return processIfElseSelector((QueryIfSelector) selector, addProcessedColumn);
 		}
 		return null;
 	}
+	
+	private String processIfElseSelector(QueryIfSelector selector, boolean addProcessedColumn)
+	{
+		// get the condition first
+		IQueryFilter condition = selector.getCondition();
+		StringBuffer buf = new StringBuffer("CASE WHEN ");
+		
+		StringBuilder filterBuilder = new StringBuilder();
+
+		filterBuilder = this.processFilter(condition);
+
+		// builder shoudl have what we need at this point
+		buf.append(filterBuilder.toString());
+		buf.append("  THEN  ");
+		
+		// get the precedent
+		IQuerySelector precedent = selector.getPrecedent();
+		buf.append(processSelector(precedent, addProcessedColumn));
+
+		IQuerySelector antecedent = selector.getAntecedent();
+		if(antecedent != null)
+		{
+			// if the antecedent is another if reactor.. we need to pull this and then continue
+			// if queryifselector - then start with another case
+			// otherwise go with else
+			if(antecedent instanceof QueryIfSelector) 
+			{
+				buf.append("    ");
+				buf.append(processSelector(antecedent, addProcessedColumn));
+			}
+			else
+			{
+				buf.append("  ELSE  ");
+				buf.append(processSelector(antecedent, addProcessedColumn));
+			}			
+		}
+		buf.append("  END ");
+		
+		return buf.toString();
+	}
+
 
 	protected String processConstantSelector(QueryConstantSelector selector) {
 		Object constant = selector.getConstant();

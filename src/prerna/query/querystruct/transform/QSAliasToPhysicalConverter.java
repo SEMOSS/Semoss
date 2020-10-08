@@ -24,6 +24,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -168,9 +169,31 @@ public class QSAliasToPhysicalConverter {
 			return convertFunctionSelector((QueryFunctionSelector) selector, meta, customTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return convertArithmeticSelector((QueryArithmeticSelector) selector, meta, customTableName);
+		}else if(selectorType == IQuerySelector.SELECTOR_TYPE.IF_ELSE)
+		{
+			return convertIfElseSelector((QueryIfSelector)selector, meta, customTableName);
 		}
 		return null;
 	}
+	
+	
+	private static IQuerySelector convertIfElseSelector(QueryIfSelector selector, OwlTemporalEngineMeta meta, String customTableName)
+	{
+		// get the condition first
+		IQueryFilter condition = selector.getCondition();
+		selector.setCondition(convertFilter(condition, meta, customTableName));
+		
+		// get the precedent
+		IQuerySelector precedent = selector.getPrecedent();
+		selector.setPrecedent(convertSelector(precedent, meta, customTableName));
+
+		IQuerySelector antecedent = selector.getAntecedent();
+		if(antecedent != null)
+			selector.setAntecedent(convertSelector(antecedent, meta, customTableName));
+		
+		return selector;
+	}
+	
 
 	private static IQuerySelector convertColumnSelector(QueryColumnSelector selector, OwlTemporalEngineMeta meta, String customTableName) {
 		String qsName = selector.getQueryStructName();
