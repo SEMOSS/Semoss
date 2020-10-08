@@ -517,7 +517,20 @@ public class PipelineTranslation2 extends LazyTranslation {
 
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		
-		String pixel = "" 
+		String pixel = "AddPanel ( panel = [ 0 ] , sheet = [ \"0\" ] ) ; "
+				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ; "
+				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; "
+				+ "Panel ( 0 ) | RetrievePanelEvents ( ) ;"
+				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;"
+				+ "Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ; "
+				+ "FileRead ( filePath = [ \"INSIGHT_FOLDER\\diabetes.csv\" ] , dataTypeMap = [ { \"patient\" : \"INT\" , \"chol\" : \"INT\" , \"stab_glu\" : \"INT\" , \"hdl\" : \"INT\" , \"ratio\" : \"DOUBLE\" , \"glyhb\" : \"DOUBLE\" , \"location\" : \"STRING\" , \"age\" : \"INT\" , \"gender\" : \"STRING\" , \"height\" : \"INT\" , \"weight\" : \"INT\" , \"frame\" : \"STRING\" , \"bp_1s\" : \"INT\" , \"bp_1d\" : \"INT\" , \"bp_2s\" : \"INT\" , \"bp_2d\" : \"INT\" , \"waist\" : \"INT\" , \"hip\" : \"INT\" , \"time_ppn\" : \"INT\" , \"Drug\" : \"STRING\" , \"start_date\" : \"DATE\" , \"end_date\" : \"DATE\" } ] , delimiter = [ \",\" ] , newHeaders = [ { } ] , fileName = [ \"diabetes.csv\" ] , additionalDataTypes = [ { \"start_date\" : \"M/d/yyyy\" , \"end_date\" : \"M/d/yyyy\" } ] ) | Select ( DND__patient , DND__chol , DND__stab_glu , DND__hdl , DND__ratio , DND__glyhb , DND__location , DND__age , DND__gender , DND__height , DND__weight , DND__frame , DND__bp_1s , DND__bp_1d , DND__bp_2s , DND__bp_2d , DND__waist , DND__hip , DND__time_ppn , DND__Drug , DND__start_date , DND__end_date ) .as ( [ patient , chol , stab_glu , hdl , ratio , glyhb , location , age , gender , height , weight , frame , bp_1s , bp_1d , bp_2s , bp_2d , waist , hip , time_ppn , Drug , start_date , end_date ] ) | Import ( frame = [ CreateFrame ( frameType = [ GRID ] , override = [ true ] ) .as ( [ \"diabetes_csv_FRAME954152\" ] ) ] ) ; "
+				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ; "
+				+ "Frame ( frame = [ diabetes_csv_FRAME954152 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ;"
+				+ "Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ;"
+				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ; "
+				+ "Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ;"
+				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ; "
+				+ "Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ;" 
 //				+ "AddPanel ( 0 ) ;" 
 //				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;" 
 //				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;"
@@ -538,7 +551,7 @@ public class PipelineTranslation2 extends LazyTranslation {
 //					+ ") "
 //					+ "| Group(MOVIE_DATES__GENRE) | Import ( frame = [ FRAME238470 ] ) ;" 
 
-				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Query(\"<encode> select * from movie_dates </encode>\") | Import ( frame = [ FRAME238470 ] ) ;" 
+//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Query(\"<encode> select * from movie_dates </encode>\") | Import ( frame = [ FRAME238470 ] ) ;" 
 //				+ "FileRead( filePath=[\"$IF\\diabetes_____UNIQUE2019_08_14_15_20_44_0226.csv\" ], dataTypeMap=[{\"patient\":\"INT\",\"chol\":\"INT\",\"stab_glu\":\"INT\",\"hdl\":\"INT\",\"ratio\":\"DOUBLE\",\"glyhb\":\"DOUBLE\",\"location\":\"STRING\",\"age\":\"INT\",\"gender\":\"STRING\",\"height\":\"INT\",\"weight\":\"INT\",\"frame\":\"STRING\",\"bp_1s\":\"INT\",\"bp_1d\":\"INT\",\"bp_2s\":\"INT\",\"bp_2d\":\"INT\",\"waist\":\"INT\",\"hip\":\"INT\",\"time_ppn\":\"INT\",\"Drug\":\"STRING\",\"start_date\":\"DATE\",\"end_date\":\"DATE\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"diabetes.csv\"], additionalDataTypes=[{\"start_date\":\"M/d/yyyy\",\"end_date\":\"M/d/yyyy\"}])|Select(DND__patient, DND__chol, DND__stab_glu, DND__hdl, DND__ratio, DND__glyhb, DND__location, DND__age, DND__gender, DND__height, DND__weight, DND__frame, DND__bp_1s, DND__bp_1d, DND__bp_2s, DND__bp_2d, DND__waist, DND__hip, DND__time_ppn, DND__Drug, DND__start_date, DND__end_date).as([patient, chol, stab_glu, hdl, ratio, glyhb, location, age, gender, height, weight, frame, bp_1s, bp_1d, bp_2s, bp_2d, waist, hip, time_ppn, Drug, start_date, end_date])|Import( frame=[FRAME238470] );"
 //				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;" 
 //				+ "Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ;" 
@@ -594,7 +607,15 @@ public class PipelineTranslation2 extends LazyTranslation {
 		
 		Gson gson = GsonUtility.getDefaultGson(true);
 		if (translation != null) {
-			System.out.println(gson.toJson(translation.allRoutines));
+			for(int i = 0; i < translation.allRoutines.size(); i++) {
+				for(int j = 0; j < translation.allRoutines.get(i).size(); j++) {
+					System.out.println(i + "." + j);
+					PipelineOperation op = translation.allRoutines.get(i).get(j);
+					System.out.println(gson.toJson(op));
+					System.out.println(i + "." + j);
+				}
+			}
+			
 			logger.info(gson.toJson(translation.allRoutines));
 		}
 	}
