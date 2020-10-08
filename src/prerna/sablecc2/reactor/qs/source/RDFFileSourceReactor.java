@@ -92,6 +92,7 @@ public class RDFFileSourceReactor extends AbstractQueryStructReactor {
 			query = Utility.decodeURIComponent(query);
 			qs.setQuery(query);
 		}
+		this.qs = qs;
 		return qs;
 	}
 
