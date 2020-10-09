@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
@@ -319,7 +320,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// make sure user doesn't already exist for this app
 		if(SecurityAppUtils.getUserAppPermission(newUserId, engineId) != null) {
 			// that means there is already a value
-			throw new IllegalArgumentException("This user already has access to this insight. Please edit the existing permission level.");
+			throw new IllegalArgumentException("This user already has access to this app. Please edit the existing permission level.");
 		}
 		
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES('"
@@ -333,6 +334,83 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this app");
+		}
+	}
+	
+	/** 
+	 * give user permission for all the apps
+	 * @param userId
+	 * @param permission
+	 */
+	public void grantAllApps(String userId, String permission) {
+		// delete all previous permissions for the user
+		String query = "DELETE FROM ENGINEPERMISSION WHERE " + "USERID='"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
+		String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES('"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', ?, " + "TRUE, "
+				+ AccessPermission.getIdByPermission(permission) + ");";
+		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(insertQuery);
+		try {
+			securityDb.insertData(query);
+			// add new permission for all engines
+			List<String> appIds = SecurityQueryUtils.getEngineIds();
+			for (String appId : appIds) {
+				ps.setString(1, appId);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occured granting the user permission for all the apps");
+		} finally {
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Give the user permission for all the insights in an app
+	 * @param appId
+	 * @param userId
+	 * @param permission
+	 */
+	public void grantAllAppInsights(String appId, String userId, String permission) {
+		// delete all previous permissions for the user
+		String query = "DELETE FROM USERINSIGHTPERMISSION WHERE " + "USERID='"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "' AND ENGINEID = '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(appId) + "';";
+
+		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) VALUES('"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(appId) + "', ?, "
+				+ AccessPermission.getIdByPermission(permission) + ");";
+
+		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(insertQuery);
+		try {
+			securityDb.insertData(query);
+			// add new permission for all insights
+			List<String> insightIds = getAllInsights(appId);
+			for (String x : insightIds) {
+				ps.setString(1, x);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occured granting the user permission for all the apps");
+		} finally {
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 	
@@ -516,6 +594,45 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Add all users to an insight with permission level
+	 * @param engineId
+	 * @param insightId
+	 * @param permission
+	 * @return
+	 */
+	public void addAllInsightUsers(String engineId, String insightId, String permission) {
+		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) VALUES(?,'"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
+				+ AccessPermission.getIdByPermission(permission) + ");";
+		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
+		try {
+			if (engineId != null && permission != null) {
+				List<Map<String, Object>> users = getInsightUsersNoCredentials(engineId, insightId);
+				for (Map<String, Object> userMap : users) {
+					String userId = (String) userMap.get("id");
+					ps.setString(1, userId);
+					ps.addBatch();
+				}
+				ps.executeBatch();
+				// update existing permissions for users
+				updateInsightUserPermissions(engineId, insightId, permission);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occured adding all users for this insight");
+		} finally {
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/**
 	 * 
 	 * @param existingUserId
 	 * @param engineId
@@ -621,7 +738,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param insightID
 	 * @return 
 	 */
-	public static List<Map<String, Object>> getInsightUsersNoCredentials(String appId, String insightId) throws IllegalAccessException {
+	public List<Map<String, Object>> getInsightUsersNoCredentials(String appId, String insightId) throws IllegalAccessException {
 		/*
 		 * String Query = 
 		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL FROM USER WHERE USER.ID NOT IN 
@@ -646,5 +763,75 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
+
+	public void updateAppUserPermissions(String appId, String newPermission) {
+		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=" + newPermissionLvl 
+				+ " WHERE ENGINEID='" + RdbmsQueryBuilder.escapeForSQLStatement(appId) + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occured adding user permissions for this app");
+		}
+		
+	}
+
+	/**
+	 * Add all users to an app with the same permission
+	 * @param appId
+	 * @param permission
+	 */
+	public void addAllAppUsers(String appId, String permission) {
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?, '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(appId) + "', "
+				+ AccessPermission.getIdByPermission(permission) + ", " + "TRUE);";
+		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
+		// get users with no access to app
+		try {
+			if (appId != null && permission != null) {
+				List<Map<String, Object>> users = getAppUsersNoCredentials(appId);
+				for (Map<String, Object> userMap : users) {
+					String userId = (String) userMap.get("id");
+					ps.setString(1, userId);
+					ps.addBatch();
+				}
+				ps.executeBatch();
+				// update existing user permissions
+				updateAppUserPermissions(appId, permission);
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occured adding user permissions for this app");
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
 	
+	public void updateInsightUserPermissions(String appId, String insightId, String newPermission) {
+		String updateQuery = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = '"
+				+ AccessPermission.getIdByPermission(newPermission) + "' WHERE ENGINEID ='"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(appId) + "' AND INSIGHTID='"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
+		try {
+			securityDb.insertData(updateQuery);
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occured adding user permissions for this app");
+		}
+	}
+	
+	private List<String>  getAllInsights(String appId) {
+		String query = "SELECT INSIGHTID FROM INSIGHT WHERE ENGINEID='" + RdbmsQueryBuilder.escapeForSQLStatement(appId) + "';";
+		HardSelectQueryStruct qs = new HardSelectQueryStruct();
+		qs.setQuery(query);
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+
 }
