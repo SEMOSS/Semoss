@@ -461,7 +461,6 @@ public class ExportToExcelReactor extends AbstractReactor {
 					if(stylingArr[i] != null) {
 						cell.setCellStyle(stylingArr[i]);
 					}
-						
 				}
 			}
 		}
@@ -506,7 +505,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 
 		// Update col and row bounds for sheet
 		int endCol = curSheetCol;
-		sheetMap.put("colIndex", endCol + 1);
+		// just adding an additional one
+		sheetMap.put("colIndex", endCol + 2);
 		if (excelRowCounter > endRow) {
 			sheetMap.put("rowIndex", excelRowCounter);
 		}
