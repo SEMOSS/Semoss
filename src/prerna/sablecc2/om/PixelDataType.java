@@ -30,6 +30,10 @@ public enum PixelDataType {
 	PANEL ("PANEL"),
 	PANEL_CLONE_MAP ("PANEL_CLONE_MAP"),
 	
+	// frame
+	FRAME ("FRAME"),
+	FRAME_MAP ("FRAME_MAP"),
+	
 	// upload map
 	UPLOAD_RETURN_MAP ("UPLOAD_RETURN_MAP"),
 	
@@ -52,7 +56,6 @@ public enum PixelDataType {
 	EXPORT ("EXPORT"),
 	LAMBDA ("LAMBDA"),
 	ALIAS ("ALIAS"),
-	FRAME ("FRAME"),
 	IN_MEM_STORE ("STORE"),
 	PLANNER ("PLANNER"), 
 	CACHED_CLASS ("CACHED_CLASS"), 
