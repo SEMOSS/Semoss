@@ -250,6 +250,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 					// Get location for logo on current sheet
 					Map<String, Object> sheetChartMap = this.chartPanelLayout.get(sheetId);
 					int colIndex = (int) sheetChartMap.get("colIndex");
+					// add an additional space
+					colIndex++;
 					int chartIndex = (int) sheetChartMap.get("chartIndex");
 					// Helper returns an object that handles instantiating
 					// concrete classes
