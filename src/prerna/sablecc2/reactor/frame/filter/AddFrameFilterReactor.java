@@ -146,7 +146,10 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 			// are they any direct conflicts
 			if(IQueryFilter.comparatorsDirectlyConflicting(curFilter.getComparator(), simpleAdd.getComparator())) {
 				curFilter.subtractInstanceFilters(simpleAdd);
-				// is the filter now gone?
+				// we removed from the existing filter
+				// don't need to add to the overall filters
+				addFiltersToIgnore.add(addFilterIndex);
+				// but is the entire filter gone now?
 				if (curFilter.isEmptyFilterValues()) {
 					// grab the index
 					indicesToRemove.add(currentFilterIndex);
@@ -156,7 +159,6 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 					if(simpleAdd.getComparator().equals("!=")) {
 						// if i just removed everything from an == filter
 						// then nothing is selected
-						addFiltersToIgnore.add(addFilterIndex);
 						indicesRemovedByDirectConflict.add(currentFilterIndex);
 					}
 				}
