@@ -633,7 +633,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			List<Integer> permissionValues = new Vector<Integer>(2);
 			permissionValues.add(new Integer(1));
 			permissionValues.add(new Integer(2));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", permissionValues));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", permissionValues, PixelDataType.CONST_INT));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 			qs.addRelation("USER", "ENGINEPERMISSION", "inner.join");
 			qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
