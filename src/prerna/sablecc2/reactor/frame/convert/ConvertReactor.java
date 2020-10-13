@@ -25,7 +25,7 @@ import prerna.sablecc2.reactor.imports.ImportUtility;
 public class ConvertReactor extends AbstractFrameReactor {
 
 	public ConvertReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.FRAME_TYPE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), ReactorKeysEnum.FRAME.getKey()};
 	}
 	
 	@Override
@@ -142,7 +142,7 @@ public class ConvertReactor extends AbstractFrameReactor {
 	 * @return
 	 */
 	private String getFrameType() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
