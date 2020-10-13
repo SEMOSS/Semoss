@@ -34,6 +34,7 @@ import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.rdf.engine.wrappers.RawSesameSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
@@ -1295,7 +1296,9 @@ public class ImportUtility {
 	}
 
 	private static Map<String, SemossDataType> getMetaDataFromEngineQs(SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
-		if(it instanceof IRawSelectWrapper) {
+		// do not have a good way of grabbing the types from sesame
+		// so pull from the engine itself
+		if(it instanceof IRawSelectWrapper && !(it instanceof RawSesameSelectWrapper)) {
 			return getMetaDataFromQuery((IRawSelectWrapper)it);
 		}
 		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
@@ -1326,7 +1329,7 @@ public class ImportUtility {
 	}
 
 	private static Map<String, SemossDataType> getMetaDataFromFrameQs(SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
-		if(it instanceof IRawSelectWrapper) {
+		if(it instanceof IRawSelectWrapper && !(it instanceof RawSesameSelectWrapper)) {
 			return getMetaDataFromQuery((IRawSelectWrapper)it);
 		}
 		Map <String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
@@ -1469,8 +1472,6 @@ public class ImportUtility {
 				if(newColName.contains("__")) {
 					newColName = newColName.split("__")[1];
 				}
-				// so
-				
 				// if this is true, it means that the unique name of this selector is part of a join
 				// and we want to replace its name
 				if(qsName.equals(newColName) || alias.equals(newColName)) {
