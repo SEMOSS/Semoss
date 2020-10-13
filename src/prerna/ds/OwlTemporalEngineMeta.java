@@ -5,8 +5,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.openrdf.model.vocabulary.OWL;
@@ -417,6 +419,54 @@ public class OwlTemporalEngineMeta {
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 
+	/**
+	 * Get the list of database ids used in this frame
+	 * @return
+	 */
+	public Set<String> getDatabaseIds() {
+		Set<String> eIds = new HashSet<>();
+
+		String query = "select distinct ?qs "
+				+ "where {"
+				+ "{" 
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "MINUS{?header <" + IS_PRIM_KEY_PRED + "> false}"
+				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+				+ "MINUS{?header <" + IS_PRIM_KEY_PRED + "> false}"
+				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "}";
+		
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] values = it.next().getValues();
+				String qsString = values[0].toString();
+				
+				String[] split = qsString.split(":::");
+				
+				String eId = split[0];
+				eIds.add(eId);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+		
+		return eIds;
+	}
+	
 	/**
 	 * Get the database information for all columns in a frame
 	 * @return
