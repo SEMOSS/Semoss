@@ -1292,9 +1292,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(addNullCheck) {
 			// can only work if comparator is == or !=
 			if(thisComparator.equals("==")) {
-				filterBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
+				filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
 			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
-				filterBuilder.append("(~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
+				filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
 			}
 		}
 		else
@@ -1356,7 +1356,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		// if the null check was valid enable that too
 		if(filterBuilder != null) {
-			retBuilder = new StringBuilder(filterBuilder).append(" & ").append(retBuilder);
+			if(retBuilder.length() > 0) {
+				retBuilder = new StringBuilder("(").append(filterBuilder).append(" & ").append(retBuilder);
+			} else {
+				retBuilder = filterBuilder;
+			}
 		}
 
 		if(addNullCheck && !objects.isEmpty()) {
