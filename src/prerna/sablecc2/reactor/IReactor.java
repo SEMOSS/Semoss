@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
@@ -40,6 +41,8 @@ public interface IReactor {
 	void mergeUp();
 	
 	void updatePlan();
+	
+	Map<String, List<Map>> getStoreMap();
 	
 	// execute method - GREEDY translation
 	NounMetadata execute();

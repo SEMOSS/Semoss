@@ -295,10 +295,9 @@ public class InsightUtility {
 			}
 			
 			logger.info("Successfully cleared insight " + insight.getInsightId());
-			if(noOpType) {
-				return new NounMetadata(true, PixelDataType.BOOLEAN);
-			}
-			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put("suppress", noOpType);
+			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.CLEAR_INSIGHT);
 		}
 	}
 	

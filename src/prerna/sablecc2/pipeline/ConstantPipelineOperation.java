@@ -13,6 +13,8 @@ public class ConstantPipelineOperation extends PipelineOperation {
 	 */
 	public ConstantPipelineOperation(String opName, String opString) {
 		super(opName, opString);
+		this.rowInputs = null;
+		this.nounInputs = null;
 	}
 	
 	public void setScalarMap(Map<String, Object> scalarMap) {

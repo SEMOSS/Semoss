@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.qs.source;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
 
 import prerna.engine.api.IEngine;
@@ -9,8 +10,15 @@ import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.engine.impl.json.JsonAPIEngine2;
 import prerna.engine.impl.web.WebScrapeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.ConfigSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
+import prerna.sablecc2.reactor.EmbeddedScriptReactor;
+import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -18,23 +26,14 @@ import prerna.util.Utility;
 public class APIReactor extends AbstractQueryStructReactor {
 
 	public APIReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
+		this.keysToGet = new String[]{};
 	}
 
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		createTemporalStruct();
-		// I am hoping this is almost always engine
-		// need to account if this is a hard query struct
-		if (this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
-				|| this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
-			this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-		} else {
-			this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-		}
-
+		this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.DIRECT_API_QUERY);
 		return this.qs;
-
 	}
 
 	// this is not even create it is just modify
@@ -59,15 +58,14 @@ public class APIReactor extends AbstractQueryStructReactor {
 		// for now I will just force fit
 		IEngine engine = null;
 
-		if (apiType.equalsIgnoreCase("JSON"))
+		if (apiType.equalsIgnoreCase("JSON")) {
 			engine = new JsonAPIEngine();
-
-		else if (apiType.equalsIgnoreCase("JSON2"))
+		} else if (apiType.equalsIgnoreCase("JSON2")) {
 			engine = new JsonAPIEngine2();
-
-		else if (apiType.equalsIgnoreCase("WEB"))
+		} else if (apiType.equalsIgnoreCase("WEB")) {
 			engine = new WebScrapeEngine();
-
+		}
+		
 		// if there is alias get it
 		if (this.getNounStore().getNoun("aliasFile") != null) {
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
@@ -86,8 +84,8 @@ public class APIReactor extends AbstractQueryStructReactor {
 
 				// make up an engine name
 				String engineName = aliasProp.getProperty("engine_name");
-				qs.setEngineId(engineName);
-				qs.setEngine(engine);
+				this.qs.setEngineId(engineName);
+				this.qs.setEngine(engine);
 			}
 		} else if (this.getNounStore().getNoun("aliasMap") != null) {
 			String source = "";
@@ -96,14 +94,15 @@ public class APIReactor extends AbstractQueryStructReactor {
 			HashMap map = new HashMap();;
 
 			// also need a headersmap
-			if (this.getNounStore().getNoun("aliasMap") != null)
+			if (this.getNounStore().getNoun("aliasMap") != null) {
 				map = (HashMap) this.getNounStore().getNoun("aliasMap").getNoun(0).getValue();
-
-			if (this.getNounStore().getNoun("headersMap") != null)
+			}
+			
+			if (this.getNounStore().getNoun("headersMap") != null) {
 				map.put("HEADERS", this.getNounStore().getNoun("headersMap").getNoun(0).getValue());
-
+			}
+			
 			Properties aliasProp = getAlias(null);
-
 			Iterator keys = map.keySet().iterator();
 			while (keys.hasNext()) {
 				Object thisKey = keys.next();
@@ -111,15 +110,15 @@ public class APIReactor extends AbstractQueryStructReactor {
 			}
 
 			// mandatory input is not there set it
-			if (!aliasProp.containsKey("mandatory_input"))
+			if (!aliasProp.containsKey("mandatory_input")) {
 				aliasProp.put("mandatory_input", "");
-
+			}
+			
 			if (engine != null) {
 				engine.setProp(aliasProp);
-
 				String engineName = apiType + Utility.getRandomString(6);
-				qs.setEngineId(engineName);
-				qs.setEngine(engine);
+				this.qs.setEngineId(engineName);
+				this.qs.setEngine(engine);
 				engine.setEngineId(engineName);
 			}
 		}
@@ -131,5 +130,43 @@ public class APIReactor extends AbstractQueryStructReactor {
 			// needs to implement this later
 			retProp = Utility.loadProperties(alias);
 		return new Properties();
+	}
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		init();
+		createQueryStructPlan();
+		if(parentReactor != null) {
+			// this is only called lazy
+			// have to init to set the qs
+			// to them add to the parent
+			NounMetadata data = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
+			if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
+					|| parentReactor instanceof GenericReactor) {
+				parentReactor.getCurRow().add(data);
+			} else {
+				GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+				parentQSInput.add(data);
+			}
+		}
+	}
+
+	private AbstractQueryStruct createQueryStructPlan() {
+		// just loop through all the things
+		Map<String, Object> configMap = new HashMap<>();
+		for(String key : this.store.getNounKeys()) {
+			 GenRowStruct grs = this.store.getNoun(key);
+			 if(grs != null && !grs.isEmpty()) {
+				 configMap.put(key, grs.get(0));
+			 }
+		}
+		
+		ConfigSelectQueryStruct qs = new ConfigSelectQueryStruct();
+		qs.setQsType(QUERY_STRUCT_TYPE.DIRECT_API_QUERY);
+		qs.setConfig(configMap);
+		qs.setEngineId("FAKE_ENGINE");
+		this.qs = qs;
+		return this.qs;
 	}
 }

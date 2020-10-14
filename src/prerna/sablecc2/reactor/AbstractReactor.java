@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -14,6 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -29,6 +31,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.job.JobReactor;
 
 public abstract class AbstractReactor implements IReactor {
@@ -210,6 +213,106 @@ public abstract class AbstractReactor implements IReactor {
 			this.planner.addOutputs(this.signature, strOutputs, TYPE.FLATMAP);
 		}
 	}
+	
+	public Map<String, List<Map>> getStoreMap() {
+		Map<String, List<Map>> inputMap = new HashMap<>();
+		
+		for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
+			String key = keysToGet[keyIndex];
+			if(this.store.getNoun(key) != null) {
+				GenRowStruct grs = this.store.getNoun(key);
+				if(!grs.isEmpty()) {
+					List<Map> inputVals = new ArrayList<>();
+					for(int i = 0; i < grs.size(); i++) {
+						inputVals.add(processNounMetadata(grs.getNoun(i)));
+					}
+					inputMap.put(keysToGet[keyIndex], inputVals);
+				}
+			}
+		}
+		
+		// fill in order based on whatever is left
+		int counter = 0;
+		if(!this.curRow.isEmpty()) {
+			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
+				if(!inputMap.containsKey(keysToGet[keyIndex])) {
+					List<Map> singleObj = new ArrayList<>();
+					singleObj.add(processNounMetadata(this.curRow.getNoun(counter)));
+					inputMap.put(keysToGet[keyIndex], singleObj);
+					// increase counter index
+					counter++;
+				}
+				
+				if(counter >= this.curRow.size()) {
+					break;
+				}
+			}
+		}
+		
+		// now go through the noun store for anything else
+		// in case the keysToGet is not accurate
+		for(String nounKey : this.getNounStore().getNounKeys()) {
+			if(nounKey.equals("all")) {
+				continue;
+			}
+			if(!inputMap.containsKey(nounKey)) {
+				GenRowStruct grs = this.store.getNoun(nounKey);
+				if(!grs.isEmpty()) {
+					List<Map> inputVals = new ArrayList<>();
+					for(int i = 0; i < grs.size(); i++) {
+						inputVals.add(processNounMetadata(grs.getNoun(i)));
+					}
+					inputMap.put(nounKey, inputVals);
+				}
+			}
+		}
+		
+		return inputMap;
+	}
+	
+    private Map<String, Object> processNounMetadata(NounMetadata noun) {
+		PixelDataType type = noun.getNounType();
+		if(type == PixelDataType.LAMBDA) {
+			return processLambdaNounMap(noun);
+		} else if(type == PixelDataType.FRAME) {
+			return processFrameNounMap(noun);
+		} else {
+			return processBasicNounMap(noun);
+		}
+    }
+    
+    private Map<String, Object> processLambdaNounMap(NounMetadata noun) {
+    	Map<String, Object> lambdaMap = new HashMap<>();
+    	lambdaMap.put("type", noun.getNounType());
+    	// the value is another PixelOperation
+    	lambdaMap.put("value", ((IReactor) noun.getValue()).getStoreMap() );
+    	return lambdaMap;
+    }
+    
+    private Map<String, Object> processBasicNounMap(NounMetadata noun) {
+    	Map<String, Object> basicInput = new HashMap<>();
+		basicInput.put("type", noun.getNounType());
+		basicInput.put("value", noun.getValue());
+		return basicInput;
+    }
+    
+    private Map<String, Object> processFrameNounMap(NounMetadata noun) {
+    	if(noun.getOpType().contains(PixelOperationType.FRAME_MAP)) {
+    		return processBasicNounMap(noun);
+    	}
+    	Map<String, Object> frameMap = new HashMap<>();
+		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), FrameFactory.getFrameType(frame));
+		String name = frame.getName();
+		if(name != null) {
+			frameMap.put(PixelDataType.ALIAS.toString(), name);
+		}
+		
+		Map<String, Object> nounStructure = new HashMap<>();
+		nounStructure.put("type", PixelDataType.FRAME_MAP.toString());
+		nounStructure.put("value", frameMap);
+		return nounStructure;
+    }
 	
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
@@ -505,15 +608,31 @@ public abstract class AbstractReactor implements IReactor {
 			}
 		}
 		
-		// if we still are empty
-		// try to fill via input indices in cur row
-		if(keyValue.isEmpty()) {
-			GenRowStruct struct = this.getCurRow();
-			int structSize = struct.size();
-			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
-				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
+		// fill in order based on whatever is left
+		int counter = 0;
+		if(!this.curRow.isEmpty()) {
+			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
+				if(!keyValue.containsKey(keysToGet[keyIndex])) {
+					keyValue.put(keysToGet[keyIndex], this.curRow.get(counter) + "");
+					// increase counter index
+					counter++;
+				}
+				
+				if(counter >= this.curRow.size()) {
+					break;
+				}
 			}
 		}
+		
+//		// if we still are empty
+//		// try to fill via input indices in cur row
+//		if(keyValue.isEmpty()) {
+//			GenRowStruct struct = this.getCurRow();
+//			int structSize = struct.size();
+//			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
+//				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
+//			}
+//		}
 		
 		// check which of these are optional
 		checkOptional();

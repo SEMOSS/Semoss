@@ -21,6 +21,7 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
 import prerna.sablecc2.reactor.EmbeddedScriptReactor;
+import prerna.sablecc2.reactor.GenericReactor;
 
 public abstract class TaskBuilderReactor extends AbstractReactor {
 
@@ -209,7 +210,8 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			
 			if(qs != null) {
 				NounMetadata data = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
-		    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor) {
+		    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
+		    			|| parentReactor instanceof GenericReactor) {
 		    		parentReactor.getCurRow().add(data);
 		    	} else {
 		    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
