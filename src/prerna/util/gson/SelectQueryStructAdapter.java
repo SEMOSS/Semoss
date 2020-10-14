@@ -15,7 +15,6 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
-import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -45,6 +44,8 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 				qs.setEngineId(in.nextString());
 			} else if(name.equals("frameName")) {
 				qs.setFrameName(in.nextString());
+			} else if(name.equals("frameType")) {
+				qs.setFrameType(in.nextString());
 			} else if(name.equals("isDistinct")) {
 				qs.setDistinct(in.nextBoolean());
 			} else if(name.equals("overrideImplicit")) {
@@ -176,6 +177,7 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		}
 		if(value.getFrameName() != null) {
 			out.name("frameName").value(value.getFrameName());
+			out.name("frameType").value(value.getFrameType());
 		}
 		out.name("isDistinct").value(value.isDistinct());
 		out.name("overrideImplicit").value(value.isOverrideImplicit());

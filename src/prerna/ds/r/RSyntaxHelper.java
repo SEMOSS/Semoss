@@ -11,6 +11,8 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
@@ -20,6 +22,7 @@ import prerna.util.Utility;
 
 public class RSyntaxHelper {
 	
+	private static final Logger logger = LogManager.getLogger(RSyntaxHelper.class);
 	private static Map<String,String> javaRDatTimeTranslationMap = new HashMap<String,String>();
 	
 	static {
@@ -101,7 +104,13 @@ public class RSyntaxHelper {
 				if(decimalFormat == null) {
 					decimalFormat = new DecimalFormat("0.0000000000");
 				}
-				str.append(decimalFormat.format(row.get(i)));
+				try {
+					decimalFormat = new DecimalFormat("0.0000000000");
+					str.append(decimalFormat.format(row.get(i)));
+				} catch(Exception e1) {
+					logger.warn("Invalid object passed for numeric field", e1);
+					str.append(row.get(i) + "");
+				}
 			} else if(SemossDataType.DATE == dataType) {
 				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d')");
 			} else if(SemossDataType.TIMESTAMP == dataType) {
@@ -836,8 +845,13 @@ public class RSyntaxHelper {
 		if(SemossDataType.STRING == dataType || SemossDataType.FACTOR == dataType) {
 			return "\"" + value + "\"";
 		} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
-			decimalFormat = new DecimalFormat("0.0000000000");
-			return decimalFormat.format(value);
+			try {
+				decimalFormat = new DecimalFormat("0.0000000000");
+				return decimalFormat.format(value);
+			} catch(Exception e1) {
+				logger.warn("Invalid object passed for numeric field", e1);
+				return value + "";
+			}
 		} else if(SemossDataType.DATE == dataType) {
 			return "as.Date(\"" + value.toString() + "\", format='%Y-%m-%d')";
 		} else if(SemossDataType.TIMESTAMP == dataType) {

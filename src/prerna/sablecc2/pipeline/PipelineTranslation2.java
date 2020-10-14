@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,7 +25,6 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.om.Insight;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelUtility;
@@ -44,6 +42,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -329,11 +328,12 @@ public class PipelineTranslation2 extends LazyTranslation {
     	String reactorId = reactorInputs[0];
 		PipelineOperation op = new PipelineOperation(reactorId, reactorInputs[1]);
 		
-		if(PipelineTranslation2.qsReactors.contains(reactorId) 
-				|| PipelineTranslation2.fileReactors.contains(reactorId)) {
-			// we need to merge the previous QS portions into this reactor
-			combineQSComponents(op);
-		} 
+//		if(PipelineTranslation2.qsReactors.contains(reactorId) 
+//				|| PipelineTranslation2.fileReactors.contains(reactorId)) {
+//			// we need to merge the previous QS portions into this reactor
+//			combineQSComponents(op);
+//		} 
+		
 		// the file reactors do not set the widget id directly since 
 		// the structure doesn't care about the qs source at the moment...
 		// so will set it here if reactor to id has the stuff
@@ -355,56 +355,64 @@ public class PipelineTranslation2 extends LazyTranslation {
 				op.addRowInput(nounMapRet);
 			}
 		} else {
-			// now add all the inputs
-			NounStore store = reactor.getNounStore();
-			Set<String> nounKeys = store.nounRow.keySet();
-			for(String nounKey : nounKeys) {
-				// grab the genrowstruct for the noun
-				// and add its vector to the inputs list
-				GenRowStruct struct = store.getNoun(nounKey);
-				if(nounKey.equals("all")) {
-					// this is passed directly into the reactor
-					for(int i = 0; i < struct.size(); i++) {
-						NounMetadata noun = struct.getNoun(i);
-						// handles if lambda, frame, or basic input
-						Map<String, Object> nounMapRet = processNounMetadata(noun);
-						op.addRowInput(nounMapRet);
-					}
-				} else {
-					// this is passed based on a key
-					for(int i = 0; i < struct.size(); i++) {
-						NounMetadata noun = struct.getNoun(i);
-						// handles if lambda, frame, or basic input
-						Map<String, Object> nounMapRet = processNounMetadata(noun);
-						op.addNounInputs(nounKey, nounMapRet);
-					}
-				}
-			}
+			Map<String, List<Map>> storeMap = reactor.getStoreMap();
+			op.setNounInputs(storeMap);
 		}
+		
+//		if(reactorId.equals("CreateFrame")) {
+//			Map<String, List<Map>> storeMap = reactor.getStoreMap();
+//			op.setNounInputs(storeMap);
+//		} else {
+//			// now add all the inputs
+//			NounStore store = reactor.getNounStore();
+//			Set<String> nounKeys = store.nounRow.keySet();
+//			for(String nounKey : nounKeys) {
+//				// grab the genrowstruct for the noun
+//				// and add its vector to the inputs list
+//				GenRowStruct struct = store.getNoun(nounKey);
+//				if(nounKey.equals("all")) {
+//					// this is passed directly into the reactor
+//					for(int i = 0; i < struct.size(); i++) {
+//						NounMetadata noun = struct.getNoun(i);
+//						// handles if lambda, frame, or basic input
+//						Map<String, Object> nounMapRet = processNounMetadata(noun);
+//						op.addRowInput(nounMapRet);
+//					}
+//				} else {
+//					// this is passed based on a key
+//					for(int i = 0; i < struct.size(); i++) {
+//						NounMetadata noun = struct.getNoun(i);
+//						// handles if lambda, frame, or basic input
+//						Map<String, Object> nounMapRet = processNounMetadata(noun);
+//						op.addNounInputs(nounKey, nounMapRet);
+//					}
+//				}
+//			}
+//		}
 		
 		return op;
     }
     
-    private void combineQSComponents(PipelineOperation op) {
-    	Map<String, Object> qsMap = new HashMap<>();
-    	// we will add the qs at the end
-    	// since we could reassign the qs object
-    	SelectQueryStruct qs = new SelectQueryStruct();
-
-    	// grab the QS being passed in if present
-    	GenRowStruct qsInput = this.curReactor.getNounStore().removeNoun(PixelDataType.QUERY_STRUCT.toString());
-    	if(qsInput != null && !qsInput.isEmpty()) {
-    		qs = (SelectQueryStruct) qsInput.get(0);
-    	}
-    	
-    	// we will add the qs at the end
-    	// since we could reassign the qs object
-    	qsMap.put("value", qs);
-    	op.addNounInputs("qs", qsMap);
-    	if(PipelineTranslation2.qsReactors.contains(op.getOpName())) {
-    		op.setWidgetId(PipelineTranslation2.qsToWidget.get(qs.getQsType()));
-    	}
-	}
+//    private void combineQSComponents(PipelineOperation op) {
+//    	Map<String, Object> qsMap = new HashMap<>();
+//    	// we will add the qs at the end
+//    	// since we could reassign the qs object
+//    	SelectQueryStruct qs = new SelectQueryStruct();
+//
+//    	// grab the QS being passed in if present
+//    	GenRowStruct qsInput = this.curReactor.getNounStore().removeNoun(PixelDataType.QUERY_STRUCT.toString());
+//    	if(qsInput != null && !qsInput.isEmpty()) {
+//    		qs = (SelectQueryStruct) qsInput.get(0);
+//    	}
+//    	
+//    	// we will add the qs at the end
+//    	// since we could reassign the qs object
+//    	qsMap.put("value", qs);
+//    	op.addNounInputs("qs", qsMap);
+//    	if(PipelineTranslation2.qsReactors.contains(op.getOpName())) {
+//    		op.setWidgetId(PipelineTranslation2.qsToWidget.get(qs.getQsType()));
+//    	}
+//	}
     
 	////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////
@@ -441,14 +449,21 @@ public class PipelineTranslation2 extends LazyTranslation {
     }
     
     private Map<String, Object> processFrameNounMap(NounMetadata noun) {
+    	if(noun.getOpType().contains(PixelOperationType.FRAME_MAP)) {
+    		return processBasicNounMap(noun);
+    	}
     	Map<String, Object> frameMap = new HashMap<>();
 		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-		frameMap.put("type", FrameFactory.getFrameType(frame));
+		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), FrameFactory.getFrameType(frame));
 		String name = frame.getName();
 		if(name != null) {
-			frameMap.put("name", name);
+			frameMap.put(PixelDataType.ALIAS.toString(), name);
 		}
-		return frameMap;
+		
+		Map<String, Object> nounStructure = new HashMap<>();
+		nounStructure.put("type", PixelDataType.FRAME_MAP.toString());
+		nounStructure.put("value", frameMap);
+		return nounStructure;
     }
     
     ////////////////////////////////////////////////////////////////////////////////////////
@@ -517,20 +532,19 @@ public class PipelineTranslation2 extends LazyTranslation {
 
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		
-		String pixel = "AddPanel ( panel = [ 0 ] , sheet = [ \"0\" ] ) ; "
-				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ; "
-				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; "
-				+ "Panel ( 0 ) | RetrievePanelEvents ( ) ;"
-				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;"
-				+ "Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ; "
+		String pixel = ""
+//				+ "AddPanel ( panel = [ 0 ] , sheet = [ \"0\" ] ) ; "
+//				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ; "
+//				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; "
+//				+ "Panel ( 0 ) | RetrievePanelEvents ( ) ;"
+//				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;"
+//				+ "Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ; "
+//				+ "CreateFrame ( frameType = [ GRID ] , override = [ true ] ) .as ( [ \"diabetes_csv_FRAME954152\" ] ) ;"
+//				+ "FileRead ( filePath = [ \"INSIGHT_FOLDER\\diabetes.csv\" ] , dataTypeMap = [ { \"patient\" : \"INT\" , \"chol\" : \"INT\" , \"stab_glu\" : \"INT\" , \"hdl\" : \"INT\" , \"ratio\" : \"DOUBLE\" , \"glyhb\" : \"DOUBLE\" , \"location\" : \"STRING\" , \"age\" : \"INT\" , \"gender\" : \"STRING\" , \"height\" : \"INT\" , \"weight\" : \"INT\" , \"frame\" : \"STRING\" , \"bp_1s\" : \"INT\" , \"bp_1d\" : \"INT\" , \"bp_2s\" : \"INT\" , \"bp_2d\" : \"INT\" , \"waist\" : \"INT\" , \"hip\" : \"INT\" , \"time_ppn\" : \"INT\" , \"Drug\" : \"STRING\" , \"start_date\" : \"DATE\" , \"end_date\" : \"DATE\" } ] , delimiter = [ \",\" ] , newHeaders = [ { } ] , fileName = [ \"diabetes.csv\" ] , additionalDataTypes = [ { \"start_date\" : \"M/d/yyyy\" , \"end_date\" : \"M/d/yyyy\" } ] ) | Select ( DND__patient , DND__chol , DND__stab_glu , DND__hdl , DND__ratio , DND__glyhb , DND__location , DND__age , DND__gender , DND__height , DND__weight , DND__frame , DND__bp_1s , DND__bp_1d , DND__bp_2s , DND__bp_2d , DND__waist , DND__hip , DND__time_ppn , DND__Drug , DND__start_date , DND__end_date ) .as ( [ patient , chol , stab_glu , hdl , ratio , glyhb , location , age , gender , height , weight , frame , bp_1s , bp_1d , bp_2s , bp_2d , waist , hip , time_ppn , Drug , start_date , end_date ] ) | Import ( frame = [ diabetes_csv_FRAME954152 ] ) ; "
+				
 				+ "FileRead ( filePath = [ \"INSIGHT_FOLDER\\diabetes.csv\" ] , dataTypeMap = [ { \"patient\" : \"INT\" , \"chol\" : \"INT\" , \"stab_glu\" : \"INT\" , \"hdl\" : \"INT\" , \"ratio\" : \"DOUBLE\" , \"glyhb\" : \"DOUBLE\" , \"location\" : \"STRING\" , \"age\" : \"INT\" , \"gender\" : \"STRING\" , \"height\" : \"INT\" , \"weight\" : \"INT\" , \"frame\" : \"STRING\" , \"bp_1s\" : \"INT\" , \"bp_1d\" : \"INT\" , \"bp_2s\" : \"INT\" , \"bp_2d\" : \"INT\" , \"waist\" : \"INT\" , \"hip\" : \"INT\" , \"time_ppn\" : \"INT\" , \"Drug\" : \"STRING\" , \"start_date\" : \"DATE\" , \"end_date\" : \"DATE\" } ] , delimiter = [ \",\" ] , newHeaders = [ { } ] , fileName = [ \"diabetes.csv\" ] , additionalDataTypes = [ { \"start_date\" : \"M/d/yyyy\" , \"end_date\" : \"M/d/yyyy\" } ] ) | Select ( DND__patient , DND__chol , DND__stab_glu , DND__hdl , DND__ratio , DND__glyhb , DND__location , DND__age , DND__gender , DND__height , DND__weight , DND__frame , DND__bp_1s , DND__bp_1d , DND__bp_2s , DND__bp_2d , DND__waist , DND__hip , DND__time_ppn , DND__Drug , DND__start_date , DND__end_date ) .as ( [ patient , chol , stab_glu , hdl , ratio , glyhb , location , age , gender , height , weight , frame , bp_1s , bp_1d , bp_2s , bp_2d , waist , hip , time_ppn , Drug , start_date , end_date ] ) | Import ( frame = [ CreateFrame ( frameType = [ GRID ] , override = [ true ] ) .as ( [ \"diabetes_csv_FRAME954152\" ] ) ] ) ; "
-				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ; "
 				+ "Frame ( frame = [ diabetes_csv_FRAME954152 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ;"
-				+ "Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ;"
-				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ; "
-				+ "Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ;"
-				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ; "
-				+ "Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ;" 
+//				+ "diabetes_csv_FRAME954152 | ToUpperCase(\"location\"); "
 //				+ "AddPanel ( 0 ) ;" 
 //				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;" 
 //				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;"
@@ -571,6 +585,7 @@ public class PipelineTranslation2 extends LazyTranslation {
 
 		Insight in = new Insight();
 		in.getVarStore().put("FRAME238470", new NounMetadata(new H2Frame("FRAME238470"), PixelDataType.FRAME));
+		in.getVarStore().put("diabetes_csv_FRAME954152", new NounMetadata(new H2Frame("diabetes_csv_FRAME954152"), PixelDataType.FRAME));
 		PipelineTranslation2 translation = null;
 		List<String> encodingList = new Vector<>();
 		Map<String, String> encodedTextToOriginal = new HashMap<>();
@@ -616,7 +631,15 @@ public class PipelineTranslation2 extends LazyTranslation {
 				}
 			}
 			
-			logger.info(gson.toJson(translation.allRoutines));
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+
+			System.out.println(gson.toJson(translation.allRoutines));
 		}
 	}
 	

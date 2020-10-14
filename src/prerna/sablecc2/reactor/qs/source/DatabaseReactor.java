@@ -12,6 +12,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
 import prerna.sablecc2.reactor.EmbeddedScriptReactor;
+import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -73,7 +74,8 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 			// have to init to set the qs
 			// to them add to the parent
 			NounMetadata data = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
-	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor) {
+	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
+	    			|| parentReactor instanceof GenericReactor) {
 	    		parentReactor.getCurRow().add(data);
 	    	} else {
 	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
