@@ -14,6 +14,7 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.util.Utility;
 import prerna.util.gson.HardSelectQueryStructAdapter;
 import prerna.util.gson.SelectQueryStructAdapter;
@@ -25,7 +26,8 @@ public abstract class AbstractQueryStruct {
 	
 	public final static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 	
-	public enum QUERY_STRUCT_TYPE {ENGINE, FRAME, CSV_FILE, EXCEL_FILE, RAW_ENGINE_QUERY, RAW_JDBC_ENGINE_QUERY, RAW_RDF_FILE_ENGINE_QUERY, RAW_FRAME_QUERY, LAMBDA};
+	public enum QUERY_STRUCT_TYPE {ENGINE, FRAME, CSV_FILE, EXCEL_FILE, RAW_ENGINE_QUERY, RAW_JDBC_ENGINE_QUERY, 
+		RAW_RDF_FILE_ENGINE_QUERY, RAW_FRAME_QUERY, DIRECT_API_QUERY, LAMBDA};
 	
 	// qs type
 	public QUERY_STRUCT_TYPE qsType = QUERY_STRUCT_TYPE.FRAME;
@@ -72,6 +74,7 @@ public abstract class AbstractQueryStruct {
 	// Datasource
 	protected transient ITableDataFrame frame;
 	protected String frameName;
+	protected String frameType;
 	protected transient IEngine engine;
 	protected String engineId;
 	protected Boolean bigDataEngine = false;
@@ -304,6 +307,7 @@ public abstract class AbstractQueryStruct {
 		if(frame != null) {
 			this.frame = frame;
 			this.frameName = frame.getName();
+			this.frameType = FrameFactory.getFrameType(frame);
 		}
 	}
 	
@@ -315,6 +319,14 @@ public abstract class AbstractQueryStruct {
 		return this.frameName;
 	}
 	
+	public String getFrameType() {
+		return frameType;
+	}
+
+	public void setFrameType(String frameType) {
+		this.frameType = frameType;
+	}
+
 	public void setOverrideImplicit(boolean overrideImplicit) {
 		this.overrideImplicit = overrideImplicit;
 	}

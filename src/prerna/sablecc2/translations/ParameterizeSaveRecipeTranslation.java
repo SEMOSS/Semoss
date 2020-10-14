@@ -292,23 +292,23 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 				.setPrettyPrinting()
 				.create();
 		
-		String[] recipe = new String[]{ "AddPanel ( 0 ) ; ",
-				  "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"UnfilterFrame(%3CSelectedColumn%3E)%3B\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"if(IsEmpty(%3CSelectedValues%3E)%2C%20UnfilterFrame(%3CSelectedColumn%3E)%2C%20SetFrameFilter(%3CSelectedColumn%3E%3D%3D%3CSelectedValues%3E))%3B\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; ",
-				  "Panel ( 0 ) | RetrievePanelEvents ( ) ; ",
-				  "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"%7B%22type%22%3A%22echarts%22%7D\" ) ; ",
-				  "Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"%7B%22core_engine%22%3A%22NEWSEMOSSAPP%22%7D\" ) ; ",
-				  "CreateFrame ( Grid ) .as ( [ 'FRAME549443' ] ) ; ",
-				  "FileRead(filePath=[\"C:/workspace/Semoss_Dev/Movie_Data2018_03_27_13_08_21_0875.csv\"],dataTypeMap=[{\"Nominated\":\"STRING\",\"Title\":\"STRING\",\"Genre\":\"STRING\",\"Studio\":\"STRING\",\"Director\":\"STRING\",\"Revenue_Domestic\":\"NUMBER\",\"MovieBudget\":\"NUMBER\",\"Revenue_International\":\"NUMBER\",\"RottenTomatoes_Critics\":\"NUMBER\",\"RottenTomatoes_Audience\":\"NUMBER\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"Movie_Data\"])|Select(DND__Nominated, DND__Title, DND__Genre, DND__Studio, DND__Director, DND__Revenue_Domestic, DND__MovieBudget, DND__Revenue_International, DND__RottenTomatoes_Critics, DND__RottenTomatoes_Audience).as([Nominated, Title, Genre, Studio, Director, Revenue_Domestic, MovieBudget, Revenue_International, RottenTomatoes_Critics, RottenTomatoes_Audience]) | Filter(DND__Genre == \"Drama\") | Filter(DND__MovieBudget > 10) |Import ( ) ; ",
-				  "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ; ",
-				  "Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ; ",
-				  "if ( ( HasDuplicates ( Drug ) ) , ( Select ( Drug , Average ( id ) ) .as ( [ Drug , Averageofid ] ) | Group ( Drug ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"Averageofid\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Drug , id ) .as ( [ Drug , id ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"id\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ; ",
-				  "Panel ( 0 ) | AddPanelOrnaments ( { \"showMenu\" : true } ) ; ",
-				  "Panel ( 0 ) | RetrievePanelOrnaments ( \"showMenu\" ) ; "
+		String[] recipe = new String[]{ 
+				"AddPanel ( 0 ) ; ",
+				"Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"UnfilterFrame(%3CSelectedColumn%3E)%3B\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"if(IsEmpty(%3CSelectedValues%3E)%2C%20UnfilterFrame(%3CSelectedColumn%3E)%2C%20SetFrameFilter(%3CSelectedColumn%3E%3D%3D%3CSelectedValues%3E))%3B\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; ",
+				"Panel ( 0 ) | RetrievePanelEvents ( ) ; ",
+				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"%7B%22type%22%3A%22echarts%22%7D\" ) ; ",
+				"Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"%7B%22core_engine%22%3A%22NEWSEMOSSAPP%22%7D\" ) ; ",
+				"Database ( database = [ \"995cf169-6b44-4a42-b75c-af12f9f45c36\" ] ) "
+						+ "| Select ( DIABETES2__AGE , DIABETES2__BP_1D , DIABETES2__BP_1S , DIABETES2__BP_2D , DIABETES2__BP_2S , DIABETES2__CHOL , DIABETES2__DIABETES_UNIQUE_ROW_ID , DIABETES2__DRUG , DIABETES2__END_DATE , DIABETES2__FRAME , DIABETES2__GENDER , DIABETES2__GLYHB , DIABETES2__HDL , DIABETES2__HEIGHT , DIABETES2__HIP , DIABETES2__LOCATION , DIABETES2__PATIENT , DIABETES2__RATIO , DIABETES2__STAB_GLU , DIABETES2__START_DATE , DIABETES2__TIME_PPN , DIABETES2__WAIST , DIABETES2__WEIGHT ) .as ( [ AGE , BP_1D , BP_1S , BP_2D , BP_2S , CHOL , DIABETES_UNIQUE_ROW_ID , DRUG , END_DATE , FRAME , GENDER , GLYHB , HDL , HEIGHT , HIP , LOCATION , PATIENT , RATIO , STAB_GLU , START_DATE , TIME_PPN , WAIST , WEIGHT ] ) "
+						+ "| Filter ( ( ( DIABETES2__AGE > [ 20 ] )  OR  ( ( DIABETES2__BP_2S != [ null ] )  AND  ( DIABETES2__BP_2D != [ null ] ) ) ) ) "
+						+ "| Import ( frame = [ CreateFrame ( frameType = [ PY ] , override = [ true ] ) .as ( [ \"Diabetes_FRAME224822\" ] ) ] ) ;", 
+				"Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ; "
 		};
 		
 		List<String> params = new Vector<String>();
-		params.add("MovieBudget");
-		
+		params.add("AGE");
+		params.add("BP_2S");
+
 		Insight in = new Insight();
 		ParameterizeSaveRecipeTranslation translation = new ParameterizeSaveRecipeTranslation(in);
 		translation.setInputsToParameterize(params);
@@ -325,7 +325,6 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 			} catch (ParserException | LexerException | IOException e) {
 				e.printStackTrace();
 			}
-			
 		}
 		
 		System.out.println(gson.toJson(translation.getPixels()));

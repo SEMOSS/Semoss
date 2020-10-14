@@ -54,7 +54,8 @@ public class ImportUtility {
 	public static IRawSelectWrapper generateIterator(SelectQueryStruct qs, ITableDataFrame frame) throws Exception {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine w/ qs
-		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE
+				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.DIRECT_API_QUERY) {
 			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 		} 
 		// engine with hard coded query
@@ -100,7 +101,7 @@ public class ImportUtility {
 //			ExcelFileIterator it = new ExcelFileIterator(xlQS);
 //			return it;
 		}
-		// throw error saying i have no idea what to do with you
+ 		// throw error saying i have no idea what to do with you
 		else {
 			throw new IllegalArgumentException("Cannot currently import from this type = " + qs.getQsType() + " in ImportUtility yet...");
 		}
@@ -125,7 +126,7 @@ public class ImportUtility {
 	public static void parseQueryStructToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName, Iterator<IHeadersDataRow> it) {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine
-		if(qsType == QUERY_STRUCT_TYPE.ENGINE) {
+		if(qsType == QUERY_STRUCT_TYPE.ENGINE || qsType == QUERY_STRUCT_TYPE.DIRECT_API_QUERY) {
 			parseEngineQsToFlatTable(dataframe, qs, frameTableName);
 		}
 		// engine with raw query
