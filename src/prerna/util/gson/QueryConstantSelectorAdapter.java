@@ -40,7 +40,9 @@ public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelec
 			if(key.equals("alias")) {
 				value.setAlias(in.nextString());
 			} else if(key.equals("constant")) {
-				if(in.peek() == JsonToken.NUMBER) {
+				if(in.peek() == JsonToken.NULL) {
+					value.setConstant(null);
+				} else if(in.peek() == JsonToken.NUMBER) {
 					value.setConstant(in.nextDouble());
 				} else {
 					value.setConstant(in.nextString());
@@ -66,7 +68,9 @@ public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelec
 		out.beginObject();
 		out.name("alias").value(value.getAlias());
 		Object val = value.getConstant();
-		if(val instanceof Number) {
+		if(val == null) {
+			out.name("constant").nullValue();
+		} else if(val instanceof Number) {
 			out.name("constant").value((Number) val);
 		} else {
 			out.name("constant").value(val.toString());

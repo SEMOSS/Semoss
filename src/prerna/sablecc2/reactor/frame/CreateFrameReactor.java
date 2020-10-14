@@ -1,6 +1,8 @@
 package prerna.sablecc2.reactor.frame;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
@@ -12,6 +14,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
+import prerna.sablecc2.reactor.EmbeddedScriptReactor;
+import prerna.sablecc2.reactor.GenericReactor;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class CreateFrameReactor extends AbstractReactor {
@@ -20,15 +25,19 @@ public class CreateFrameReactor extends AbstractReactor {
 	private static final String OVERRIDE = "override";
 	
 	public CreateFrameReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), OVERRIDE};
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), OVERRIDE, PixelDataType.ALIAS.toString()};
 	}
 	
 	public NounMetadata execute() {
-		Logger logger = getLogger(CLASS_NAME);
+		organizeKeys();
 		// get the name of the frame type
-		String frameType = getFrameType();
-		// use factory to generate the new table
-		String alias = getAlias();
+		String frameType = this.keyValue.get(this.keysToGet[0]);
+		// override the default frame
+		Boolean override = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]));
+		// set the alias for the frame
+		String alias = this.keyValue.get(this.keysToGet[2]);
+
+		Logger logger = getLogger(CLASS_NAME);
 		if(alias == null) {
 			logger.info("Creating new frame of type = " + frameType + " with no alias");
 			alias = "";
@@ -47,7 +56,7 @@ public class CreateFrameReactor extends AbstractReactor {
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use
-		if(overrideFrame()) {
+		if(override) {
 			this.insight.setDataMaker(newFrame);
 		}
 		// add the alias as a noun by default
@@ -75,50 +84,35 @@ public class CreateFrameReactor extends AbstractReactor {
 		return outputs;
 	}
 	
-	/**
-	 * Get the frame type
-	 * @return
-	 */
-	private String getFrameType() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
-		if(grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		
-		return this.curRow.get(0).toString();
-	}
-	
-	/**
-	 * Get an alias for the frame
-	 * This doesn't have a meaning for all frame types
-	 * But is useful for sql frames where we need to define a table name
-	 * @return
-	 */
-	private String getAlias() {
-		List<Object> alias = this.curRow.getValuesOfType(PixelDataType.ALIAS);
-		if(alias != null && alias.size() > 0) {
-			return alias.get(0).toString();
-		}
-		return null;
-	}
-	
-	private boolean overrideFrame() {
-		GenRowStruct overrideGrs = this.store.getNoun(OVERRIDE);
-		if(overrideGrs != null && !overrideGrs.isEmpty()) {
-			return (boolean) overrideGrs.get(0);
-		}
-		// default is to override
-		return true;
-	}
-	
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(OVERRIDE)) {
 			return "Indicates if the current frame should be overridden; default value of true";
+		} else if (key.equals(PixelDataType.ALIAS.toString())) {
+			return "Use .as([\"aliasName\"]) to set the name of the frame";
 		} else {
 			return super.getDescriptionForKey(key);
+		}
+	}
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		if(parentReactor != null) {
+//			organizeKeys();
+//			this.keyValue.put("createFrame","true");
+			Map<String, List<Map>> map = getStoreMap();
+			map.put("createFrame", new ArrayList<>());
+			NounMetadata data = new NounMetadata(map, PixelDataType.FRAME, PixelOperationType.FRAME_MAP);
+	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
+	    			|| parentReactor instanceof GenericReactor) {
+	    		parentReactor.getCurRow().add(data);
+	    	} else {
+	    		GenRowStruct parentInput = parentReactor.getNounStore().makeNoun(PixelDataType.FRAME.toString());
+				parentInput.add(data);
+	    	}
 		}
 	}
 

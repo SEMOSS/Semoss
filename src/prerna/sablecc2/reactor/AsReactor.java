@@ -5,7 +5,9 @@ import java.util.Set;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.CreateFrameReactor;
 
 public class AsReactor extends AbstractReactor {
 	
@@ -42,9 +44,27 @@ public class AsReactor extends AbstractReactor {
 			// get the columns on as
 			parentReactor.setAs(asNames);
 			
-			NounMetadata asNoun = new NounMetadata(parentReactor, PixelDataType.LAMBDA);
-			this.planner.addVariable(asNames[0], asNoun);
-		}		
+			NounMetadata asNoun = null;
+			if(parentReactor instanceof CreateFrameReactor) {
+				// do not override if we already have the actual 
+				// frame in the planner
+				if(!(this.planner.hasVariable(asNames[0]) 
+						&& this.planner.getVariable(asNames[0]).getNounType() == PixelDataType.FRAME) ) {
+					asNoun = new NounMetadata(parentReactor.getStoreMap(), PixelDataType.FRAME, PixelOperationType.FRAME_MAP);
+				}
+			} else {
+				asNoun = new NounMetadata(parentReactor, PixelDataType.LAMBDA);
+				this.planner.addVariable(asNames[0], asNoun);
+			}
+		}
+	}
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		if(parentReactor != null) {
+			this.parentReactor.getCurRow().add(execute());
+		}
 	}
 	
 	@Override
