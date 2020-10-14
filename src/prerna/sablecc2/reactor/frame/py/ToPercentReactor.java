@@ -35,13 +35,17 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		int sigDigits = getValue(SIG_DIGITS);
 		boolean by100 = getBoolean(BY100);
 		String newColName = this.keyValue.get(ReactorKeysEnum.NEW_COLUMN.getKey());
-		
+		String script = null;
 		// create script
-		String script = wrapperFrameName + ".to_pct('" + srcCol + "', '" + newColName + "', " + sigDigits + ", ";
+		if (newColName != null && !newColName.equals("") && !newColName.equals("null")) {
+			script = wrapperFrameName + ".to_pct('" + srcCol + "', '" + srcCol + "', " + sigDigits + ", ";
+		} else {
+			script = wrapperFrameName + ".to_pct('" + srcCol + "', '" + newColName + "', " + sigDigits + ", ";
+		}
 		if (by100) script += "True)";
 		else script += "False)";
 
-		String by100v = by100? "True" : "False";
+		String by100v = by100 ? "True" : "False";
 		
         script = wrapperFrameName + ".cache['data']['" + newColName + "'] = " + 
                 wrapperFrameName + ".cache['data']['" + srcCol + "'].apply(lambda row: " +
@@ -59,7 +63,7 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		String frameName = frame.getName();
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		
-		if (newColName != null && !newColName.equals("")) {
+		if (newColName != null && !newColName.equals("") && !newColName.equals("null")) {
 			retNoun.addAdditionalOpTypes(PixelOperationType.FRAME_HEADERS_CHANGE);
 			String addedColumnDataType = SemossDataType.STRING.toString();
 			metaData.addProperty(frameName, frameName + "__" + newColName);
