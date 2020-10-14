@@ -390,6 +390,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
 		qs.addRelation("USER", "USERINSIGHTPERMISSION", "inner.join");
 		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
