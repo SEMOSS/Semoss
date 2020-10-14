@@ -5,11 +5,16 @@ import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 
 public class ToUpperCaseReactor extends AbstractFrameReactor {
 
+	public ToUpperCaseReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		// get frame
