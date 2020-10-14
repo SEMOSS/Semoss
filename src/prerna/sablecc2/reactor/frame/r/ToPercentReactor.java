@@ -65,7 +65,7 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 		
 		StringBuilder script = new StringBuilder();
 		script.append(rFrameName).append("$");
-		if (newColName == null || newColName.equals("")) {
+		if (newColName == null || newColName.equals("") || newColName.equals("null")) {
 			script.append(srcCol);
 		} else {
 			script.append(newColName);
