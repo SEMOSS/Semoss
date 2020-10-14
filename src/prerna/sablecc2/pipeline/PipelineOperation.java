@@ -61,4 +61,8 @@ public class PipelineOperation {
 	public Map<String, List<Map>> getNounInputs() {
 		return this.nounInputs;
 	}
+	
+	public void setNounInputs(Map<String, List<Map>> nounInputs) {
+		this.nounInputs = nounInputs;
+	}
 }
