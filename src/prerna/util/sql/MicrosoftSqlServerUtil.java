@@ -19,6 +19,13 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.SQL_SERVER);
 	}
+	
+	@Override
+	public void initTypeConverstionMap() {
+		super.initTypeConverstionMap();
+		typeConversionMap.put("TIMESTAMP", "DATETIME");
+		typeConversionMap.put("BOOLEAN", "BIT");
+	}
 
 	@Override
 	public IQueryInterpreter getInterpreter(IEngine engine) {
