@@ -344,7 +344,7 @@ public class QsToPixelConverter {
 	 * @return
 	 */
 	private static String convertSimpleQueryFilter(SimpleQueryFilter queryFilter) {
-		StringBuilder b = new StringBuilder();
+		StringBuilder b = new StringBuilder("(");
 		// add left hand side
 		NounMetadata origL = queryFilter.getLComparison();
 		if(origL.getNounType() == PixelDataType.COLUMN) {
@@ -370,7 +370,7 @@ public class QsToPixelConverter {
 			appendValuestoStringBuilder(b, values);
 		}
 
-		return b.toString();
+		return b.append(")").toString();
 	}
 	
 	/**
@@ -390,7 +390,9 @@ public class QsToPixelConverter {
 		if(valList.size() == 1) {
 			// account for numbers or for a parameter!
 			Object val = valList.get(0);
-			if(val instanceof Number) {
+			if(val == null) {
+				b.append("[null]");
+			} else if(val instanceof Number) {
 				b.append(val);
 			} else if(val.toString().startsWith("<") && val.toString().endsWith(">")){
 				b.append("[").append(values).append("]");
@@ -404,10 +406,13 @@ public class QsToPixelConverter {
 				if(i != 0) {
 					b.append(",");
 				}
-				if(values instanceof Number) {
-					b.append(values);
+				Object value = valList.get(i);
+				if(value == null) {
+					b.append("null");
+				} else if(value instanceof Number) {
+					b.append(value);
 				} else {
-					b.append("\"").append(values).append("\"");
+					b.append("\"").append(value).append("\"");
 				}
 			}
 			b.append("]");
