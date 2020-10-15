@@ -284,6 +284,10 @@ public abstract class AbstractSqlQueryUtil {
 	public IQueryInterpreter getInterpreter(ITableDataFrame frame) {
 		return new SqlInterpreter(frame);
 	}
+	
+	public Map<String, String> getTypeConversionMap() {
+		return typeConversionMap;
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
