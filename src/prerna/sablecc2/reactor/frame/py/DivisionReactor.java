@@ -17,9 +17,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class DivisionReactor extends AbstractPyFrameReactor {
 	private static final String NUMERATOR = "numerator";
 	private static final String DENOMINATOR = "denominator";
+	private static final String ROUND = "round";
 
 	public DivisionReactor() {
-		this.keysToGet = new String[] { NUMERATOR, DENOMINATOR, ReactorKeysEnum.NEW_COLUMN.getKey() };
+		this.keysToGet = new String[] { NUMERATOR, DENOMINATOR, ROUND, ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
@@ -37,6 +38,21 @@ public class DivisionReactor extends AbstractPyFrameReactor {
 		// get inputs
 		String numerator = this.keyValue.get(NUMERATOR);
 		String denominator = this.keyValue.get(DENOMINATOR);
+		String round = this.keyValue.get(ROUND);
+		if(round == null || round.isEmpty()) {
+			round = "2";
+		} else {
+			// make sure positive #
+			int num = 0;
+			try {
+				num = ((Number) Double.parseDouble(round)).intValue();
+			} catch(Exception e) {
+				throw new IllegalArgumentException("Must pass in a valid number for round");
+			}
+			if(num < 0) {
+				throw new IllegalArgumentException("Round value must be > 0");
+			}
+		}
 		String newColName = this.keyValue.get(ReactorKeysEnum.NEW_COLUMN.getKey());
 		newColName = getCleanNewColName(newColName);
 		
