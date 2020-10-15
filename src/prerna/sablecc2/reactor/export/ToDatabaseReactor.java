@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +15,6 @@ import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.impl.util.Owler;
@@ -32,6 +30,7 @@ import prerna.sablecc2.reactor.app.metaeditor.concepts.RemoveOwlConceptReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ToDatabaseReactor extends TaskBuilderReactor {
 
@@ -41,17 +40,6 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	private static final String TARGET_TABLE = "targetTable";
 	private static final String INSERT_ID_KEY = "insertId";
 
-	protected static Map<SemossDataType, String> typeConversionMap = new HashMap<SemossDataType, String>();
-	static {
-		typeConversionMap.put(SemossDataType.INT, "INT");
-		typeConversionMap.put(SemossDataType.DOUBLE, "DOUBLE");
-		typeConversionMap.put(SemossDataType.BOOLEAN, "BOOLEAN");
-		typeConversionMap.put(SemossDataType.DATE, "DATE");
-		typeConversionMap.put(SemossDataType.TIMESTAMP, "TIMESTAMP");
-		typeConversionMap.put(SemossDataType.STRING, "VARCHAR(800)");
-		typeConversionMap.put(SemossDataType.FACTOR, "VARCHAR(800)");
-	}
-	
 	private String engineId = null;
 	private String targetTable = null;
 	private boolean override = false;
@@ -118,7 +106,8 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		if(!(targetEngine instanceof RDBMSNativeEngine)) {
 			throw new SemossPixelException(new NounMetadata("Can only persist data to a relational database at the moment", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-
+		AbstractSqlQueryUtil queryUtil = ((RDBMSNativeEngine) targetEngine).getQueryUtil();
+		Map<String, String> typeConversionMap = queryUtil.getTypeConversionMap();
 		// create prepared statement of all inserts from task
 		List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();
 		
@@ -142,7 +131,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				Map<String, Object> hMap = headerInfo.get(i);
 				headers[i + 1] = (String) hMap.get("alias");
 				types[i] = SemossDataType.convertStringToDataType((String) hMap.get("dataType"));
-				sqlTypes[i + 1] = typeConversionMap.get(types[i]);
+				sqlTypes[i + 1] = typeConversionMap.get(types[i].toString());
 			}
 		} else {
 			headers = new String[size];		
@@ -153,7 +142,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				Map<String, Object> hMap = headerInfo.get(i);
 				headers[i] = (String) hMap.get("alias");
 				types[i] = SemossDataType.convertStringToDataType((String) hMap.get("dataType"));
-				sqlTypes[i] = typeConversionMap.get(types[i]);
+				sqlTypes[i] = typeConversionMap.get(types[i].toString());
 			}
 		}
 
@@ -164,14 +153,22 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			// just update the metadata in case columns have changed
 			logger.info("Deleting existing table data and creating new table");
 
-			String delete = "DROP TABLE IF EXISTS " + this.targetTable + ";";
-			String create = RdbmsQueryBuilder.makeCreate(this.targetTable, headers, sqlTypes);
 			try {
-				targetEngine.insertData(delete);
-				targetEngine.insertData(create);
+				if(queryUtil.allowsIfExistsTableSyntax()) {
+					targetEngine.insertData(queryUtil.dropTableIfExists(this.targetTable));
+				} else {
+					targetEngine.insertData(queryUtil.dropTable(this.targetTable));
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new SemossPixelException(new NounMetadata("Error occured trying to delete and create the new table", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(new NounMetadata("Error occured trying to delete the existing table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
+			
+			try {
+				targetEngine.insertData(queryUtil.createTable(this.targetTable, headers, sqlTypes));
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(new NounMetadata("Error occured trying to create the new table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			
 			logger.info("Finished deleting existing table data and creating new table");
@@ -179,12 +176,11 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		} else if(this.newTable) {
 			// create the table
 			logger.info("Creating new table ");
-			String create = RdbmsQueryBuilder.makeCreate(targetTable, headers, sqlTypes);
 			try {
-				targetEngine.insertData(create);
+				targetEngine.insertData(queryUtil.createTable(this.targetTable, headers, sqlTypes));
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new SemossPixelException(new NounMetadata("Error occured trying to create the new table", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(new NounMetadata("Error occured trying to create the new table with message = " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			logger.info("Finished creating new table");
 		} else {
@@ -287,6 +283,13 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 								ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
 							}
 						}
+					} else if (type == SemossDataType.BOOLEAN) {
+						if(nextRow[colIndex] == null) {
+							ps.setNull(colIndex + 1, java.sql.Types.BOOLEAN);
+						} else {
+							Boolean var = Boolean.parseBoolean(nextRow[colIndex] + "");
+							ps.setBoolean(colIndex + 1, var);
+						}
 					} else {
 						if(nextRow[colIndex] == null) {
 							ps.setNull(colIndex + 1, java.sql.Types.VARCHAR);
@@ -315,7 +318,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			ps.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("An error occured persisting data into the database");
+			throw new IllegalArgumentException("An error occured persisting data into the database with message = " + e.getMessage());
 		}
 		
 		
