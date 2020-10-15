@@ -539,12 +539,13 @@ public class PixelUtility {
 			Map<String, Object> modelMap = new LinkedHashMap<>();
 			Map<String, String> processedParam = processedParams.get(param);
 			String physicalQs = processedParam.get("qs");
-			String paramQ = "(infinite = " + processedParam.get("source") + " | Select(" + physicalQs 
+			String infiniteVar = "infinite"+i;
+			String paramQ = "(" + infiniteVar + " = " + processedParam.get("source") + " | Select(" + physicalQs 
 					+ ") | Filter(" + physicalQs + " ?like \"<" + param + "_Search>\") | Sort(columns=[" 
 					+ physicalQs + "], sort=[asc]) | Iterate()) | Collect(20);";  
 			modelMap.put("query", paramQ);
 			if(keepSearch) {
-				modelMap.put("infiniteQuery", "infinite | Collect(20)");
+				modelMap.put("infiniteQuery", infiniteVar + " | Collect(20)");
 				modelMap.put("searchParam", param + "_Search");
 				modelMap.put("dependsOn", new String[]{param + "_Search"});
 			}
