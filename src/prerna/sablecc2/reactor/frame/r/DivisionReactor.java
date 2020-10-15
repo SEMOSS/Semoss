@@ -16,9 +16,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class DivisionReactor extends AbstractRFrameReactor {
 	private static final String NUMERATOR = "numerator";
 	private static final String DENOMINATOR = "denominator";
-
+	private static final String ROUND = "round";
+	
 	public DivisionReactor() {
-		this.keysToGet = new String[] { NUMERATOR, DENOMINATOR, ReactorKeysEnum.NEW_COLUMN.getKey() };
+		this.keysToGet = new String[] { NUMERATOR, DENOMINATOR, ROUND, ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
@@ -31,6 +32,21 @@ public class DivisionReactor extends AbstractRFrameReactor {
 		String frameName = frame.getName();
 		String numerator = this.keyValue.get(NUMERATOR);
 		String denominator = this.keyValue.get(DENOMINATOR);
+		String round = this.keyValue.get(ROUND);
+		if(round == null || round.isEmpty()) {
+			round = "2";
+		} else {
+			// make sure positive #
+			int num = 0;
+			try {
+				num = ((Number) Double.parseDouble(round)).intValue();
+			} catch(Exception e) {
+				throw new IllegalArgumentException("Must pass in a valid number for round");
+			}
+			if(num < 0) {
+				throw new IllegalArgumentException("Round value must be > 0");
+			}
+		}
 		String newColName = this.keyValue.get(ReactorKeysEnum.NEW_COLUMN.getKey());
 		newColName = getCleanNewColName(newColName);
 
@@ -45,9 +61,10 @@ public class DivisionReactor extends AbstractRFrameReactor {
 
 		// create R script
 		StringBuilder script = new StringBuilder();
-		script.append(frameName).append("$").append(newColName).append(" <- round(");
-		script.append(frameName).append("$").append(numerator).append("/");
-		script.append(frameName).append("$").append(denominator).append(", digits = 2);");
+		script.append(frameName).append("$").append(newColName).append(" <- round(")
+			.append(frameName).append("$").append(numerator).append("/")
+			.append(frameName).append("$").append(denominator).append(", digits = ")
+			.append(round).append(");");
 
 		// run R script
 		this.rJavaTranslator.runR(script.toString());
