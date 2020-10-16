@@ -276,6 +276,13 @@ public class InsightPanel {
 						if (innerMap.get("delimiter") != null && !(innerMap.get("delimiter").toString().isEmpty())) {
 							resultMap.put("delimiter", innerMap.get("delimiter").toString());
 						}
+						if (innerMap.get("dimensionType") != null 
+								&& innerMap.get("date") != null 
+								&& innerMap.get("dimensionType").toString().equalsIgnoreCase("Date") 
+								&& !innerMap.get("date").toString().isEmpty()
+								) {
+							resultMap.put("dateType", innerMap.get("date").toString());
+						}
 						// only add is result map is not empty
 						if(!resultMap.isEmpty()) {
 							res.put(innerMap.get("dimension").toString(), resultMap);
