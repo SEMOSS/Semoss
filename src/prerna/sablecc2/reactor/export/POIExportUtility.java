@@ -141,6 +141,16 @@ public class POIExportUtility {
     	
     	if(panelFormatting != null && panelFormatting.containsKey("type")) {
     		String panelAdditionalDataType = panelFormatting.get("type").toLowerCase();
+    		// if there is a date type
+    		// we will use that as the additionalDataType
+    		if(panelAdditionalDataType.equals("Default")) {
+    			String dateAdditionalDataType = panelFormatting.get("dateType");
+    			if(dateAdditionalDataType != null && !dateAdditionalDataType.isEmpty()) {
+    				panelAdditionalDataType = dateAdditionalDataType;
+    			}
+    		}
+    		
+    		// grab the format from the additional data type
     		format = getBaseExcelFormat(panelAdditionalDataType);
 
     		prepend = panelFormatting.get("prepend");
@@ -313,8 +323,38 @@ public class POIExportUtility {
               case "M/d/yy hh:mm a":
                   format = "M/dd/yy hh:mm AM/PM";
                   break;
+              case "M/d/yy hh:mm":
+                  format = "M/d/yy hh:mm";
+                  break;
               case "M/d/yy HH:mm":
                   format = "M/dd/yy HH:mm";
+                  break;
+              case "M/d/yy HH:mm:ss":
+                  format = "M/d/yy HH:mm:ss";
+                  break;
+              case "M/d/yyyy":
+                  format = "M/dd/yyyy";
+                  break;
+              case "MM/dd/yyyy":
+                  format = "MM/dd/yyyy";
+                  break;
+              case "yyyy-MM-dd":
+                  format = "yyyy-MM-dd";
+                  break;
+              case "MM/dd":
+                  format = "MM/dd";
+                  break;
+              case "dd-MMM":
+                  format = "dd-MMM";
+                  break;
+              case "dd-MMM-yy":
+                  format = "dd-MMM-yy";
+                  break;
+              case "dd-MMM-yyyy":
+                  format = "dd-MMM-yyyy";
+                  break;
+              case "MMM-yy":
+                  format = "MMM-yy";
                   break;
               default:
                   format = null;
