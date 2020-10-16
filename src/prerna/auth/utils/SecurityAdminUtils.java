@@ -373,6 +373,33 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	/** 
+	 * give new users access to an app
+	 * @param appId
+	 * @param permission
+	 */
+	public void grantNewUsersAppAccess(String appId, String permission) {
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?, '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(appId) + "', "
+				+ AccessPermission.getIdByPermission(permission) + ", " + "TRUE);";
+		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
+		// get users with no access to app
+		List<Map<String, Object>> users;
+		try {
+			users = getAppUsersNoCredentials(appId);
+			for (Map<String, Object> userMap : users) {
+				String userId = (String) userMap.get("id");
+				ps.setString(1, userId);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+			
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occured adding user permissions for this app");
+		}
+	}
+	
 	/**
 	 * Give the user permission for all the insights in an app
 	 * @param appId
@@ -708,7 +735,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param appID
 	 * @return 
 	 */
-	public List<Map<String, Object>> getAppUsersNoCredentials(String appId) throws IllegalAccessException {
+	public List<Map<String, Object>> getAppUsersNoCredentials(String appId) {
 		/*
 		 * String Query = 
 		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL  FROM USER WHERE ID NOT IN 
@@ -738,7 +765,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param insightID
 	 * @return 
 	 */
-	public List<Map<String, Object>> getInsightUsersNoCredentials(String appId, String insightId) throws IllegalAccessException {
+	public List<Map<String, Object>> getInsightUsersNoCredentials(String appId, String insightId) {
 		/*
 		 * String Query = 
 		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL FROM USER WHERE USER.ID NOT IN 
@@ -833,5 +860,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.setQuery(query);
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
+
+
 
 }
