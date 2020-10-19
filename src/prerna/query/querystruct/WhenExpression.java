@@ -67,13 +67,16 @@ public class WhenExpression extends GenExpression {
 	public StringBuffer printOutput()
 	{
 		StringBuffer output = new StringBuffer();
+		//System.err.println(" Processing >> " + aQuery);
 		
-		if(whens.size() > 0)
+		if(whenE.size() > 0)
 		{
 			output.append("case ");
 			
 			for(int whenIndex = 0;whenIndex < whenE.size();whenIndex++)
 			{
+				//System.err.println("When ...  " + whens.get(whenIndex));
+				//System.err.println("Then ...  " + thens.get(whenIndex));
 				GenExpression thisWhen = whenE.get(whenIndex);
 				StringBuffer whenBuf = new StringBuffer();
 				whenBuf = thisWhen.printQS(thisWhen, whenBuf);
@@ -82,8 +85,6 @@ public class WhenExpression extends GenExpression {
 				StringBuffer thenBuf = new StringBuffer();
 				thenBuf = thisThen.printQS(thisThen, thenBuf);
 
-				//System.err.println("When ...  " + whenBuf);
-				//System.err.println("Then ...  " + thenBuf);
 
 				output.append("when " ).append(whenBuf).append(" then ").append(thenBuf).append(" ");
 			}
@@ -102,6 +103,57 @@ public class WhenExpression extends GenExpression {
 		
 		return output;
 	}
+	
+
+	public void replaceTableAlias2(GenExpression qs, String oldName, String newName)
+	{
+		StringBuffer output = new StringBuffer();
+		
+		if(whens.size() > 0)
+		{
+			output.append("case ");
+			
+			for(int whenIndex = 0;whenIndex < whenE.size();whenIndex++)
+			{
+				GenExpression thisWhen = whenE.get(whenIndex);
+				thisWhen.replaceTableAlias2(thisWhen, oldName, newName);
+
+				GenExpression thisThen = thenE.get(whenIndex);
+				thisWhen.replaceTableAlias2(thisThen, oldName, newName);
+			}
+			
+			if(elseE != null)
+			{
+				elseE.replaceTableAlias2(elseE, oldName, newName);
+			}
+		}		
+	}
+	
+
+	public void addQuoteToColumn(GenExpression qs, String quote)
+	{
+		StringBuffer output = new StringBuffer();
+		
+		if(whens.size() > 0)
+		{
+			output.append("case ");
+			
+			for(int whenIndex = 0;whenIndex < whenE.size();whenIndex++)
+			{
+				GenExpression thisWhen = whenE.get(whenIndex);
+				thisWhen.addQuoteToColumn(thisWhen, quote);
+
+				GenExpression thisThen = thenE.get(whenIndex);
+				thisWhen.addQuoteToColumn(thisThen, quote);
+			}
+			
+			if(elseE != null)
+			{
+				elseE.addQuoteToColumn(elseE, quote);
+			}
+		}		
+	}
+
 
 
 }

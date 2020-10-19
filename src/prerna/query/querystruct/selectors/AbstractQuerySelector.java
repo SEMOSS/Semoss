@@ -1,6 +1,8 @@
 package prerna.query.querystruct.selectors;
 
-public abstract class AbstractQuerySelector implements IQuerySelector {
+import java.io.Serializable;
+
+public abstract class AbstractQuerySelector implements IQuerySelector, Serializable {
 
 	protected String alias;
 	

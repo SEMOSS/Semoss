@@ -1,5 +1,6 @@
 package prerna.query.querystruct.filters;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,7 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-public class GenRowFilters {
+public class GenRowFilters implements Serializable {
 
 	/*
 	 * This class is used to store filters within the QueryStruct2

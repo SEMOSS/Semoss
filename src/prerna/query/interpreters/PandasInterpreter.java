@@ -11,6 +11,7 @@ import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.py.PyTranslator;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.BetweenQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -665,8 +666,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// constan is not touched yet
 		else if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
 			return processConstantSelector((QueryConstantSelector) selector);
-		}  else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-			return processAggSelector((QueryFunctionSelector) selector);
+		}  
+		else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+			if(aggHash != null) // making a dichotomy for query function
+				return processAggSelector((QueryFunctionSelector) selector);
+			else
+				return processFunctionSelector((QueryFunctionSelector)selector, tableName);
 		}
 		// arithmetic selector is not implemented
 		else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
@@ -679,6 +684,29 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			return null;
 		}
 	}
+	
+	private String  processFunctionSelector(QueryFunctionSelector selector, String tableName)
+	{
+		//Sum(MovieBudget)
+		StringBuffer retBuffer = new StringBuffer();
+		// get the name of the column
+		String functionName = selector.getFunction();
+		List <IQuerySelector> paramSelectors = selector.getInnerSelector();
+		// usually this is a single parameter, if it is more, I dont know what to do
+		if(paramSelectors != null)
+		{
+			IQuerySelector curSelector = paramSelectors.get(0);
+			if(curSelector instanceof QueryColumnSelector)
+			{
+				QueryColumnSelector cs = (QueryColumnSelector)curSelector;
+				String columnName = cs.getAlias();
+				functionName = QueryFunctionHelper.convertFunctionToPandasSyntax(functionName);
+				retBuffer.append(tableName).append("['").append(columnName).append("'].").append(functionName).append("()");
+			}
+		}		
+		return retBuffer.toString();
+	}
+
 	
 	private String processIfElseSelector(QueryIfSelector selector,  String tableName, boolean includeTableName, boolean useAlias, boolean...useTable)
 	{
@@ -957,6 +985,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			return processAndQueryFilter((AndQueryFilter) filter, tableName, useAlias, useTable);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
 			return processOrQueryFilter((OrQueryFilter) filter, tableName, useAlias, useTable);
+		}else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.BETWEEN) {
+			return processBetweenQueryFilter((BetweenQueryFilter) filter, tableName, useAlias, useTable);
 		}
 		return null;
 	}
@@ -992,6 +1022,23 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		filterBuilder.append(")");
 		return filterBuilder;
 	}
+	
+	private StringBuilder processBetweenQueryFilter(BetweenQueryFilter filter, String tableName, boolean useAlias, boolean...useTable)
+	{
+		StringBuilder retBuilder = new StringBuilder();
+		String columnName = processSelector(filter.getColumn(), tableName, true, useAlias, true); 
+		retBuilder.append("(");
+		retBuilder.append(columnName);
+		retBuilder.append("  >= ");
+		retBuilder.append(filter.getStart());
+		retBuilder.append(" ) & ( ");
+		retBuilder.append(columnName);
+		retBuilder.append("  <= ");
+		retBuilder.append(filter.getEnd());
+		retBuilder.append(")");
+		return retBuilder;
+	}
+
 	
 	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String tableName, boolean useAlias, boolean...useTable) {
 		NounMetadata leftComp = filter.getLComparison();
