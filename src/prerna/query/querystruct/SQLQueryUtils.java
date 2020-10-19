@@ -187,7 +187,9 @@ public class SQLQueryUtils {
 			// swap the aliases
 			// add it to the last join do the process above
 			Join thisJoin = joins.get(joinIndex);
-			joinExpr = makeJoin(thisJoin, joinExpr, leftAlias, rightAlias);
+			joinExpr = makeJoin(thisJoin, joinExpr, leftAlias, rightAlias, retExpression.nselectors);
+			// remove the duplicate from existing list of selectors
+			retExpression.nselectors = removeDuplicateSelectors(thisJoin, retExpression.nselectors, rightAlias);
 		}		
 		retExpression.joins.remove(lastExpression);
 		joinExpr.from = lastExpression;
@@ -197,7 +199,7 @@ public class SQLQueryUtils {
 		return retExpression;
 	}
 	
-	public static GenExpression makeJoin(Join thisJoin, GenExpression lastExpr, String leftAlias, String rightAlias)
+	public static GenExpression makeJoin(Join thisJoin, GenExpression lastExpr, String leftAlias, String rightAlias, List <GenExpression> nSelectors)
 	{
 		GenExpression joinExpr = new GenExpression();
 		String joinType = thisJoin.getJoinType();
@@ -232,6 +234,7 @@ public class SQLQueryUtils {
 		body.leftItem = leftColumn;
 		body.rightItem = rightColumn;
 		joinExpr.body = body;
+				
 		if(lastExpr != null)
 		{
 			// make it and then elevate
@@ -244,6 +247,29 @@ public class SQLQueryUtils {
 		else
 			return joinExpr;
 
+	}
+	
+	public static List <GenExpression> removeDuplicateSelectors(Join thisJoin, List <GenExpression> nSelectors, String rightAlias)
+	{
+		String rColumn = thisJoin.getRColumn(); 
+		
+		if(rColumn.indexOf("__") > 0)
+			rColumn = rColumn.substring(rColumn.indexOf("__") + 2);
+		
+		
+		for(int selectorIndex = 0;selectorIndex < nSelectors.size();selectorIndex++)
+		{
+			GenExpression thisColumn = nSelectors.get(selectorIndex);
+			String leftExpr = thisColumn.getLeftExpr();
+			if(leftExpr != null && leftExpr.startsWith("\""))
+			{
+				leftExpr = leftExpr.replace("\"","");
+				if(leftExpr.equalsIgnoreCase(rColumn) && thisColumn.tableName != null && thisColumn.tableName.equals(rightAlias))
+					nSelectors.remove(selectorIndex);
+			}
+		}		
+		
+		return nSelectors;
 	}
 	
 	
