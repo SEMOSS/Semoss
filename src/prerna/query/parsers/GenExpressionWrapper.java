@@ -28,9 +28,13 @@ public class GenExpressionWrapper {
 	// keep a list of selects as well
 	// to the columns
 	public  Map <GenExpression, List<String>> selectColumns = new Hashtable<GenExpression, List<String>>();
+	
+	// groupby hash
+	public Map <String, GenExpression> groupByHash = new HashMap<String, GenExpression>();
+	public Map <String, GenExpression> joinHash = new HashMap<String, GenExpression>();
 
 	
-	GenExpression root = null;
+	public GenExpression root = null;
 	
 	public Map<String, List <String>> columnTableIndex = new HashMap<String, List<String>>(); // this is the highest level - acctid
 	public Map<String, List <String>> columnTableOperatorIndex = new HashMap<String, List<String>>(); // this is the next highest level - clms.acctid, mbrshp.acctid
@@ -50,6 +54,16 @@ public class GenExpressionWrapper {
 	{
 		String finalQuery = root.printQS(root, new StringBuffer()).toString(); 
 		return finalQuery;
+	}
+	
+	public void addGroupBy(String columnName, GenExpression expr)
+	{
+		groupByHash.put(columnName, expr);
+	}
+	
+	public void addJoin(String columnName, GenExpression expr)
+	{
+		joinHash.put(columnName, expr);
 	}
 	
 	//////////////////////////////// METHOD FOR MANIPULATING PARAMETERS ////////////////////////////////////////////
@@ -232,7 +246,11 @@ public class GenExpressionWrapper {
 						quote = "";
 					GenExpression thisExpression = exprs.get(exprIndex);
 					finalValue.append(quote).append(daStruct.getCurrentValue()).append(quote);
-					thisExpression.setLeftExpresion(finalValue.toString());	
+					if(!thisExpression.operation.equalsIgnoreCase("opaque"))
+						thisExpression.setLeftExpresion(finalValue.toString());	
+					else
+						thisExpression.setLeftExpr(finalValue.toString());	
+						
 				}
 			}
 		}
@@ -240,14 +258,14 @@ public class GenExpressionWrapper {
 	
 	
 	
-	public void makeParameters(String columnName, Object constantValue, GenExpression eqExpr, String constantType, GenExpression exprToTrack)
+	public void makeParameters(String columnName, Object constantValue, String operationName, String constantType, GenExpression exprToTrack, String tableName)
 	{
-			String tableAliasName = columnName.substring(0, columnName.indexOf("."));
-			String tableName = tableAliasName;
+			//String tableAliasName = columnName.substring(0, columnName.indexOf("."));
+			String tableAliasName = tableName;
 			if(tableAlias.containsKey(tableAliasName))
 				tableName = tableAlias.get(tableAliasName);
 
-			columnName = columnName.replace(tableAliasName + ".", "");
+			//columnName = columnName.replace(tableAliasName + ".", "");
 			//columnName = columnName.replace(".", "");
 
 			// add it to the column index first
@@ -266,7 +284,7 @@ public class GenExpressionWrapper {
 			if(this.columnTableOperatorIndex.containsKey(tableColumnComposite))
 				operatorTableColumnList = columnTableOperatorIndex.get(tableColumnComposite);
 			
-			String tableColumnOperatorComposite = tableColumnComposite + eqExpr.getOperation();
+			String tableColumnOperatorComposite = tableColumnComposite + operationName;
 			if(!operatorTableColumnList.contains(tableColumnOperatorComposite))
 				operatorTableColumnList.add(tableColumnOperatorComposite);
 			
@@ -281,7 +299,7 @@ public class GenExpressionWrapper {
 				daStruct.tableAlias = tableAliasName;
 				daStruct.setTableName(tableName);
 				daStruct.setCurrentValue(constantValue);
-				daStruct.operator = eqExpr.getOperation();
+				daStruct.operator = operationName;
 				
 				// need to get the current select struct to add to this
 				

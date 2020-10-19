@@ -1130,6 +1130,14 @@ public class LazyTranslation extends DepthFirstAdapter {
     		initReactor(qAssm);	
         	return false;
         }
+      	else if(curReactor != null && ((curReactor instanceof prerna.sablecc2.reactor.qs.filter.BetweenReactor) || (curReactor.getParentReactor() instanceof prerna.sablecc2.reactor.qs.filter.BetweenReactor))) 
+		{
+			QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
+			qAssm.setMathExpr(math);
+			qAssm.setPixel("EXPR", nodeExpr);
+			initReactor(qAssm);	
+			return false;
+		}
     	
     	return true;
     }

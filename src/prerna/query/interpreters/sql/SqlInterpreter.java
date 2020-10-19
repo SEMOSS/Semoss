@@ -21,6 +21,7 @@ import prerna.query.interpreters.AbstractQueryInterpreter;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.BetweenQueryFilter;
 import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -109,6 +110,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		if(this.qs instanceof HardSelectQueryStruct) {
 			return ((HardSelectQueryStruct)this.qs).getQuery();
 		}
+		// if this is gen expression
+		// compose query and send it
 		/*
 		 * Need to create the query... 
 		 * This to consider:
@@ -533,6 +536,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			return processOrQueryFilter((OrQueryFilter) filter);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.FUNCTION) {
 			return processFunctionQueryFilter((FunctionQueryFilter) filter);
+		}else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.BETWEEN) {
+			return processBetweenQueryFilter((BetweenQueryFilter) filter);
 		}
 		return null;
 	}
@@ -605,6 +610,17 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		}
 		expression.append(")");
 		return expression;
+	}
+	
+	protected StringBuilder processBetweenQueryFilter(BetweenQueryFilter filter)
+	{
+		StringBuilder retBuilder = new StringBuilder();
+		retBuilder.append(processSelector(filter.getColumn(), true));
+		retBuilder.append("  BETWEEN  ");
+		retBuilder.append(filter.getStart());
+		retBuilder.append("  AND  ");
+		retBuilder.append(filter.getEnd());
+		return retBuilder;
 	}
 	
 	protected StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {

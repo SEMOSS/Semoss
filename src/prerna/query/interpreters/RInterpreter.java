@@ -17,6 +17,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.BetweenQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -565,6 +566,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			return processAndQueryFilter((AndQueryFilter) filter, tableName, useAlias, captureColumns);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
 			return processOrQueryFilter((OrQueryFilter) filter, tableName, useAlias, captureColumns);
+		}else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.BETWEEN) {
+			return processBetweenQueryFilter((BetweenQueryFilter) filter, tableName, useAlias);
 		}
 		return null;
 	}
@@ -600,7 +603,21 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		filterBuilder.append(")");
 		return filterBuilder;
 	}
-	
+
+	private StringBuilder processBetweenQueryFilter(BetweenQueryFilter filter, String tableName, boolean useAlias)
+	{
+		StringBuilder retBuilder = new StringBuilder();
+		String columnName = processSelector(filter.getColumn(), tableName, true, useAlias); 
+		retBuilder.append(columnName);
+		retBuilder.append("  >= ");
+		retBuilder.append(filter.getStart());
+		retBuilder.append("  &  ");
+		retBuilder.append(columnName);
+		retBuilder.append("  <= ");
+		retBuilder.append(filter.getEnd());
+		return retBuilder;
+	}
+
 	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String tableName, boolean useAlias, boolean captureColumns) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
