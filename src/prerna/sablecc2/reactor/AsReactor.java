@@ -19,6 +19,11 @@ public class AsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		String alias = (String) curRow.get(0);
 		NounMetadata noun = new NounMetadata(alias, PixelDataType.ALIAS);
+		// also add up to the parent like 
+		// as ALIAS type
+		if(parentReactor != null) {
+			parentReactor.getNounStore().makeNoun(PixelDataType.ALIAS.toString()).add(noun);
+		}
 		return noun;
 	}
 
