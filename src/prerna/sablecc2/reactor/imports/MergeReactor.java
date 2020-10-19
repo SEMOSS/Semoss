@@ -72,6 +72,77 @@ public class MergeReactor extends AbstractReactor {
 		// or it is a task already and we want to merge
 		// in either case, we will not return anything but just update the frame
 		
+		
+		// btw this can also be valid for HardQueryStruct any frame possibly.. 
+		ITableDataFrame mergeFrame = null;
+		
+		ITableDataFrame curFrame = this.insight.getCurFrame();
+
+		if(frame instanceof NativeFrame) {
+			try {
+				mergeFrame = mergeNative(curFrame, frame, qs, joins);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(e.getMessage());
+			}
+		} 
+		// did the merge go through on native ? if not
+		if(mergeFrame == null)
+		{
+			if(qs != null) {
+				try {
+					mergeFrame = mergeFromQs(frame, qs, joins);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(e.getMessage());
+				}
+			} else {
+				ITask task = getTask();
+				if(task != null) {
+					try {
+						mergeFrame = mergeFromTask(frame, task, joins);
+					} catch (Exception e) {
+						e.printStackTrace();
+						throw new SemossPixelException(e.getMessage());
+					}
+				} else {
+					throw new IllegalArgumentException("Could not find any data input to merge into the frame");
+				}
+			}
+		}		
+		// clear cached info after merge
+		frame.clearCachedMetrics();
+		frame.clearQueryCache();
+
+		NounMetadata noun = new NounMetadata(mergeFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		// in case we generated a new frame
+		// update existing references
+		if(mergeFrame != frame) {
+			if(frame.getName() != null) {
+				this.insight.getVarStore().put(frame.getName(), noun);
+			} 
+			if(frame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
+				this.insight.setDataMaker(mergeFrame);
+			}
+		}
+		
+		return noun;
+	}
+	
+	private ITableDataFrame mergeNative(ITableDataFrame curFrame, ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) throws Exception {
+		
+		// track GA data
+		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
+
+		
+		/*
+		/// OLD METHOD
+		IImporter importer = ImportFactory.getImporter(frame, qs);
+		// we reassign the frame because it might have changed
+		// this only happens for native frame
+		frame = importer.mergeData(joins);
+		return frame;
+		*/
 		// get the database information of the current frame
 		// get the databsase information of the second frame
 		// need a way to find if they both are referring to the same physical database.. but for now, we just match the app let us say
@@ -79,13 +150,9 @@ public class MergeReactor extends AbstractReactor {
 		// get the engine from the qs and engine id
 		// get the schema of the engine - this is important because you could have 2 apps in which case we need to make sure they are going off the same conn url / schema
 		// may be we just check the connection URL
-		
-		// btw this can also be valid for HardQueryStruct any frame possibly.. 
+
 		ITableDataFrame mergeFrame = null;
 		
-		ITableDataFrame curFrame = this.insight.getCurFrame();
-
-		// are they both native
 		if(curFrame instanceof NativeFrame && frame instanceof NativeFrame)
 		{
 			try {
@@ -124,69 +191,19 @@ public class MergeReactor extends AbstractReactor {
 					
 					
 				}
+				else
+					throw new SemossPixelException("Joining tables across databases is not possible, please consider converting to a materialized frame");
 			}
+			else
+				throw new SemossPixelException("Joining to a native frame from a materialized frame not possible, please consider swapping the join order");
 			} catch (SQLException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 		}
-				
-		else if(frame instanceof NativeFrame) {
-			try {
-				mergeFrame = mergeNative(frame, qs, joins);
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new SemossPixelException(e.getMessage());
-			}
-		} else if(qs != null) {
-			try {
-				mergeFrame = mergeFromQs(frame, qs, joins);
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new SemossPixelException(e.getMessage());
-			}
-		} else {
-			ITask task = getTask();
-			if(task != null) {
-				try {
-					mergeFrame = mergeFromTask(frame, task, joins);
-				} catch (Exception e) {
-					e.printStackTrace();
-					throw new SemossPixelException(e.getMessage());
-				}
-			} else {
-				throw new IllegalArgumentException("Could not find any data input to merge into the frame");
-			}
-		}
 		
-		// clear cached info after merge
-		frame.clearCachedMetrics();
-		frame.clearQueryCache();
-
-		NounMetadata noun = new NounMetadata(mergeFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
-		// in case we generated a new frame
-		// update existing references
-		if(mergeFrame != frame) {
-			if(frame.getName() != null) {
-				this.insight.getVarStore().put(frame.getName(), noun);
-			} 
-			if(frame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
-				this.insight.setDataMaker(mergeFrame);
-			}
-		}
+		return mergeFrame;
 		
-		return noun;
-	}
-	
-	private ITableDataFrame mergeNative(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) throws Exception {
-		// track GA data
-		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
-
-		IImporter importer = ImportFactory.getImporter(frame, qs);
-		// we reassign the frame because it might have changed
-		// this only happens for native frame
-		frame = importer.mergeData(joins);
-		return frame;
 	}
 
 	/**
