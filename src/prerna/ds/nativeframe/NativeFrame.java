@@ -28,8 +28,8 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -292,10 +292,18 @@ public class NativeFrame extends AbstractTableDataFrame {
 				qs.setCustomFrom(newFromQuery);
 				qs.setCustomFromAliasName("embed_subquery");
 				doubleAggregation = true;
+				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 			}
 		} 
 		// normal combination
 		if(!doubleAggregation) {
+			// only convert at the beginning
+			// since this.qs already has
+			// everything as the physical
+			qs.setCustomFrom(this.qs.getCustomFrom());
+			qs.setCustomFromAliasName(this.qs.getCustomFromAliasName());
+			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+
 			// we need to merge everything with the current qs
 			qs.mergeGroupBy(this.qs.getGroupBy());
 			qs.mergeOrderBy(this.qs.getOrderBy());
@@ -303,30 +311,32 @@ public class NativeFrame extends AbstractTableDataFrame {
 			// if a user is filtering in more on a specific column
 			// we do not want to merge
 			// but want to override
-			GenRowFilters qsGrs = qs.getExplicitFilters();
-			Set<String> qsFilterCols = qsGrs.getAllFilteredColumns();
+			Set<String> qsFilterCols = qs.getExplicitFilters().getAllFilteredColumns();
 			List<IQueryFilter> importFilters = this.qs.getExplicitFilters().getFilters();
 			// if the qsFilterCols doesn't have the base import filter
 			// add the filter
 			// otherwise, do nothing
 			for(IQueryFilter filter : importFilters) {
-				Set<String> importColsFilters = filter.getAllUsedColumns();
-				if(!qsFilterCols.containsAll(importColsFilters)) {
-					// the import filter is not being overridden
-					// so add it into the qs to sue
+				// we only do this for the simple filters
+				// since the get added together / combined 
+				if(filter instanceof SimpleQueryFilter) {
+					Set<String> importColsFilters = filter.getAllUsedColumns();
+					if(!qsFilterCols.containsAll(importColsFilters)) {
+						// the import filter is not being overridden
+						// so add it into the qs to sue
+						qs.addImplicitFilter(filter);
+					}
+				} else {
+					// add the filter
+					// most likely an OR
 					qs.addImplicitFilter(filter);
 				}
 			}
-			
-			qs.setCustomFrom(this.qs.getCustomFrom());
-			qs.setCustomFromAliasName(this.qs.getCustomFromAliasName());
 		}
-		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		// setters
 		qs.setEngine(this.qs.getEngine());
 		qs.setRelations(this.qs.getRelations());
 		qs.setBigDataEngine(this.qs.getBigDataEngine());
-		
 		
 		// we can cache a few different engine types
 		boolean cache = false;
