@@ -87,7 +87,9 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		String pythonDt = (String) insight.getPyTranslator().runScript(columnType);
 		SemossDataType smssDT = this.insight.getPyTranslator().convertDataType(pythonDt);
 		return smssDT.toString();
-	}	public boolean smartSync(PyTranslator pyt)
+	}	
+	
+	public boolean smartSync(PyTranslator pyt)
 	{
 		// at this point try to see if something has changed and if so
 		// trigger smart sync
@@ -100,6 +102,8 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 			script.append(this.insight.getCurFrame().getName() + "w.hasFrameChanged()");
 			String sync = pyt.runScript(script.toString()) + "";
 			frameChanged = sync.equalsIgnoreCase("true");
+			//changing this to always on
+			//frameChanged = true;
 			if(frameChanged)
 			{
 				System.err.println("sync > " + sync);

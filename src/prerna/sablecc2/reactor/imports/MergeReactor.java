@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.imports;
 
 import java.io.File;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -15,8 +16,10 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -24,10 +27,12 @@ import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.LambdaQueryStruct;
+import prerna.query.querystruct.SQLQueryUtils;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
@@ -67,8 +72,66 @@ public class MergeReactor extends AbstractReactor {
 		// or it is a task already and we want to merge
 		// in either case, we will not return anything but just update the frame
 		
+		// get the database information of the current frame
+		// get the databsase information of the second frame
+		// need a way to find if they both are referring to the same physical database.. but for now, we just match the app let us say
+		// need to get the qs from the native frame
+		// get the engine from the qs and engine id
+		// get the schema of the engine - this is important because you could have 2 apps in which case we need to make sure they are going off the same conn url / schema
+		// may be we just check the connection URL
+		
+		// btw this can also be valid for HardQueryStruct any frame possibly.. 
 		ITableDataFrame mergeFrame = null;
-		if(frame instanceof NativeFrame) {
+		
+		ITableDataFrame curFrame = this.insight.getCurFrame();
+
+		// are they both native
+		if(curFrame instanceof NativeFrame && frame instanceof NativeFrame)
+		{
+			try {
+			// get the querystruct
+			SelectQueryStruct curQS = ((NativeFrame)curFrame).getQueryStruct();
+			curQS = QSAliasToPhysicalConverter.getPhysicalQs(curQS, curFrame.getMetaData());
+
+			
+			qs = ((NativeFrame)qs.getFrame()).getQueryStruct();
+			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, qs.getFrame().getMetaData());
+			
+			IEngine curEngine = curQS.getEngine();
+			IEngine thisEngine = qs.getEngine();
+			if(thisEngine == null)
+				thisEngine = qs.retrieveQueryStructEngine();
+			
+			if(curEngine == null)
+				curEngine = curQS.retrieveQueryStructEngine();
+			
+			// check to see they are RDBMS
+			if(curEngine instanceof RDBMSNativeEngine && thisEngine instanceof RDBMSNativeEngine)
+			{
+				// get the url now
+				// we get the url because the focus area can be an app too
+				// this way we can be sure
+				String curURL = ((RDBMSNativeEngine)curEngine).getConnectionMetadata().getURL();
+				String thisURL = ((RDBMSNativeEngine)thisEngine).getConnectionMetadata().getURL();
+			
+				
+				if(curURL.equalsIgnoreCase(thisURL))
+				{
+					// ok great these are same database
+					// create the SQL Queries
+					// need to check if these are query structs also
+					mergeFrame = (NativeFrame)SQLQueryUtils.joinQueryStructs(curQS, qs, joins);
+					
+					
+				}
+			}
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+				
+		else if(frame instanceof NativeFrame) {
 			try {
 				mergeFrame = mergeNative(frame, qs, joins);
 			} catch (Exception e) {
