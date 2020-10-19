@@ -140,7 +140,7 @@ public class POIExportUtility {
     	Object round = null;
     	
     	if(panelFormatting != null && panelFormatting.containsKey("type")) {
-    		String panelAdditionalDataType = panelFormatting.get("type").toLowerCase();
+    		String panelAdditionalDataType = panelFormatting.get("type");
     		// if there is a date type
     		// we will use that as the additionalDataType
     		if(panelAdditionalDataType.equals("Default")) {
@@ -251,116 +251,116 @@ public class POIExportUtility {
     	// nothing worked
     	return null;
     }
-    
+
     /**
      * Convert to get the base format
      * @param additionalDataType
      * @return
      */
     private static String getBaseExcelFormat(String additionalDataType) {
-    	  String format;
-          switch (additionalDataType) {
-              case "int_comma":
-                  format = "#,###";
-                  break;
-              case "int_currency":
-                  format = "$#";
-                  break;
-              case "int_currency_comma":
-                  format = "$#,###";
-                  break;
-              case "int_percent":
-                  format = "#%";
-                  break;
-              case "double_round1":
-                  format = "0.0";
-                  break;
-              case "double_round2":
-                  format = "0.00";
-                  break;
-              case "double_round3":
-                  format = "0.000";
-                  break;
-              case "double_comma_round1":
-                  format = "#,###.0";
-                  break;
-              case "double_comma_round2":
-                  format = "#,###.00";
-                  break;
-              case "double_currency_round2":
-                  format = "$#,###.00";
-                  break;
-              case "double_percent_round1":
-                  format = "0.0\"%\"";
-                  break;
-              case "double_percent_round2":
-                  format = "0.00\"%\"";
-                  break;
-              case "thousand":
-                  format = "0.00,\"K\"";
-                  break;
-              case "million":
-                  format = "0.00,,\"M\"";
-                  break;
-              case "billion":
-                  format = "0.00,,,\"B\"";
-                  break;
-              case "trillion":
-                  format = "0.00,,,,\"T\"";
-                  break;
-              case "accounting":
-                  format = "_($* #,##0.0_);_($* (#,##0.0);_($* \"-\"?_);_(@_)";
-                  break;
-              case "scientific":
-                  format = "0.00E+00";
-                  break;
-              case "MMMMM d, yyyy":
-                  format = "MMMM d, yyyy";
-                  break;
-              case "EEEEE, MMMMM d, yyyy":
-                  format = "dddd, MMMM d, yyyy";
-                  break;
-              case "M/d/yy hh:mm a":
-                  format = "M/dd/yy hh:mm AM/PM";
-                  break;
-              case "M/d/yy hh:mm":
-                  format = "M/d/yy hh:mm";
-                  break;
-              case "M/d/yy HH:mm":
-                  format = "M/dd/yy HH:mm";
-                  break;
-              case "M/d/yy HH:mm:ss":
-                  format = "M/d/yy HH:mm:ss";
-                  break;
-              case "M/d/yyyy":
-                  format = "M/dd/yyyy";
-                  break;
-              case "MM/dd/yyyy":
-                  format = "MM/dd/yyyy";
-                  break;
-              case "yyyy-MM-dd":
-                  format = "yyyy-MM-dd";
-                  break;
-              case "MM/dd":
-                  format = "MM/dd";
-                  break;
-              case "dd-MMM":
-                  format = "dd-MMM";
-                  break;
-              case "dd-MMM-yy":
-                  format = "dd-MMM-yy";
-                  break;
-              case "dd-MMM-yyyy":
-                  format = "dd-MMM-yyyy";
-                  break;
-              case "MMM-yy":
-                  format = "MMM-yy";
-                  break;
-              default:
-                  format = null;
-          }
-          
-          return format;
+    	String format;
+    	switch (additionalDataType.toLowerCase()) {
+    	case "int_comma":
+    		format = "#,###";
+    		break;
+    	case "int_currency":
+    		format = "$#";
+    		break;
+    	case "int_currency_comma":
+    		format = "$#,###";
+    		break;
+    	case "int_percent":
+    		format = "#%";
+    		break;
+    	case "double_round1":
+    		format = "0.0";
+    		break;
+    	case "double_round2":
+    		format = "0.00";
+    		break;
+    	case "double_round3":
+    		format = "0.000";
+    		break;
+    	case "double_comma_round1":
+    		format = "#,###.0";
+    		break;
+    	case "double_comma_round2":
+    		format = "#,###.00";
+    		break;
+    	case "double_currency_round2":
+    		format = "$#,###.00";
+    		break;
+    	case "double_percent_round1":
+    		format = "0.0\"%\"";
+    		break;
+    	case "double_percent_round2":
+    		format = "0.00\"%\"";
+    		break;
+    	case "thousand":
+    		format = "0.00,\"K\"";
+    		break;
+    	case "million":
+    		format = "0.00,,\"M\"";
+    		break;
+    	case "billion":
+    		format = "0.00,,,\"B\"";
+    		break;
+    	case "trillion":
+    		format = "0.00,,,,\"T\"";
+    		break;
+    	case "accounting":
+    		format = "_($* #,##0.0_);_($* (#,##0.0);_($* \"-\"?_);_(@_)";
+    		break;
+    	case "scientific":
+    		format = "0.00E+00";
+    		break;
+    	case "MMMMM d, yyyy":
+    		format = "MMMM d, yyyy";
+    		break;
+    	case "EEEEE, MMMMM d, yyyy":
+    		format = "dddd, MMMM d, yyyy";
+    		break;
+    	case "M/d/yy hh:mm a":
+    		format = "M/dd/yy hh:mm AM/PM";
+    		break;
+    	case "M/d/yy hh:mm":
+    		format = "M/d/yy hh:mm";
+    		break;
+    	case "M/d/yy HH:mm":
+    		format = "M/dd/yy HH:mm";
+    		break;
+    	case "M/d/yy HH:mm:ss":
+    		format = "M/d/yy HH:mm:ss";
+    		break;
+    	case "M/d/yyyy":
+    		format = "M/dd/yyyy";
+    		break;
+    	case "MM/dd/yyyy":
+    		format = "MM/dd/yyyy";
+    		break;
+    	case "yyyy-MM-dd":
+    		format = "yyyy-MM-dd";
+    		break;
+    	case "MM/dd":
+    		format = "MM/dd";
+    		break;
+    	case "dd-MMM":
+    		format = "dd-MMM";
+    		break;
+    	case "dd-MMM-yy":
+    		format = "dd-MMM-yy";
+    		break;
+    	case "dd-MMM-yyyy":
+    		format = "dd-MMM-yyyy";
+    		break;
+    	case "MMM-yy":
+    		format = "MMM-yy";
+    		break;
+    	default:
+    		format = null;
+    	}
+
+    	return format;
     }
     
     /**
