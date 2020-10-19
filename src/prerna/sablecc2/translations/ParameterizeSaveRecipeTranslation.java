@@ -121,8 +121,8 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 					}
 					
 					List<IQueryFilter> newFilters = new Vector<>();
-
 					List<String> modifiedParams = new Vector<>();
+
 					// you can have a filter
 					// that is not a selector
 					// so lets look at filters as well
@@ -156,7 +156,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 					
 					// if no matches
 					// nothing to do
-					if(modifiedParams.isEmpty()) {
+					if(foundParams.isEmpty()) {
 						this.pixels.add(expression);
 						continue;
 					}
