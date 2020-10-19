@@ -12,9 +12,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
-import prerna.sablecc2.reactor.EmbeddedScriptReactor;
-import prerna.sablecc2.reactor.GenericReactor;
 
 /**
  * This is the base class for any reactor responsible for building a querystruct
@@ -163,13 +160,8 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 			// have to init to set the qs
 			// to them add to the parent
 			NounMetadata data = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
-	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
-	    			|| parentReactor instanceof GenericReactor) {
-	    		parentReactor.getCurRow().add(data);
-	    	} else {
-	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
-				parentQSInput.add(data);
-	    	}
+			// add to the parent reactors curRow
+			parentReactor.getCurRow().add(data);
 		}
 	}
 	
