@@ -1,0 +1,347 @@
+package prerna.query.querystruct;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.nustaq.serialization.FSTObjectInput;
+import org.nustaq.serialization.FSTObjectOutput;
+
+import prerna.ds.nativeframe.NativeFrame;
+import prerna.query.interpreters.sql.SqlInterpreter;
+import prerna.query.parsers.GenExpressionWrapper;
+import prerna.query.parsers.SqlParser2;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.sablecc2.om.Join;
+import prerna.sablecc2.reactor.imports.NativeImporter;
+import prerna.util.Utility;
+
+public class SQLQueryUtils {
+
+	public static NativeFrame joinQueryStructs(SelectQueryStruct curQS, SelectQueryStruct qs, List<Join> joins) 
+	{
+
+		// we can do this 2 ways
+		// we can do this through genexpression
+		// or do it through relationsets
+		// with gen expression we can start to move to other pieces
+
+		SqlParser2 parser2 = new SqlParser2();
+		
+		try {
+			SqlInterpreter interp = new SqlInterpreter();
+			interp.setQueryStruct(curQS);
+			String curQuery = interp.composeQuery();
+			GenExpressionWrapper curExpr = parser2.processQuery(curQuery);
+			
+			interp = new SqlInterpreter();
+			interp.setQueryStruct(qs);
+			String thisQuery = interp.composeQuery();
+			GenExpressionWrapper thisExpr = parser2.processQuery(thisQuery);
+			
+			GenExpression finalExp = new GenExpression(); // this is the one to be returned
+			
+			String firstQueryAlias = Utility.getRandomString(5);
+			String secondQueryAlias = Utility.getRandomString(5);
+			
+			List <String> sqlList = new ArrayList <String>();
+			sqlList.add(curQuery);
+			sqlList.add(thisQuery);
+			
+			GenExpression retExpression = joinSQL(sqlList, joins);
+			
+			StringBuffer finalOutput = retExpression.printQS(retExpression, null);
+
+			HardSelectQueryStruct hqs = new HardSelectQueryStruct();
+			hqs.customFrom = finalOutput.toString();
+			hqs.engineId = qs.engineId;
+			hqs.engine = qs.engine;
+			hqs.qsType = QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY;
+			hqs.setQuery(finalOutput.toString());
+			
+			NativeFrame emptyFrame = new NativeFrame();
+			emptyFrame.setName(curQS.getFrameName());
+			NativeImporter importer = new NativeImporter(emptyFrame, hqs);
+			importer.insertData();
+			
+			return emptyFrame;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
+		return null;
+	}
+	
+	public static GenExpression joinSQL(List <String> expressions,  List<Join> joins)
+	{
+		// get the expression
+		// add the selectors to the master one
+		// and then add the join
+		// first one is from
+		// and then jointypes
+		
+		Map <String, String> aliasTranslationMap = new HashMap<String, String>();
+		
+		SqlParser2 parser = new SqlParser2();
+		
+		GenExpression retExpression = new GenExpression();
+		retExpression.setOperation("select");
+		GenExpression lastExpression = null;
+		String leftAlias = null;
+		String rightAlias = null;
+		for(int expIndex = 0;expIndex < expressions.size();expIndex++)
+		{
+			String sql = expressions.get(expIndex);
+			
+			
+			GenExpression curExpr = null;
+			try {
+				curExpr = parser.processQuery(sql).root;
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			String aliasForThisExpr = Utility.getRandomString(5);
+			// get the alias
+			String curTableAlias = null;
+			if(curExpr.from  != null)
+			{
+				curTableAlias = curExpr.from.getLeftExpr();			
+				aliasForThisExpr = aliasForThisExpr + "_" + curTableAlias;
+				// add this for the joins later
+				aliasTranslationMap.put(curTableAlias, aliasForThisExpr);
+			}
+			
+			if(leftAlias == null)
+				leftAlias = aliasForThisExpr;
+			else
+				rightAlias = aliasForThisExpr;
+				
+			
+			// add these selectors to 
+			// our main selector
+			// I can add all the conditions to even the last one and it would work fine
+			if(curExpr.nselectors != null && curExpr.nselectors.size() > 0)
+			{
+				List <GenExpression> curSelectors = curExpr.nselectors;
+				
+				for(int selectorIndex = 0;selectorIndex < curSelectors.size();selectorIndex++)
+				{
+					GenExpression curSelector = curSelectors.get(selectorIndex);
+					
+					//make a copy
+					//GenExpression newSelector = makeCopy(curSelector);
+					
+					// we could jsut keep the alias instead of the entire selector
+					GenExpression newSelector = new GenExpression();
+					newSelector.setOperation("column");
+					if(curSelector.leftAlias != null && curSelector.leftAlias.length() > 0)
+						newSelector.setLeftExpr(curSelector.leftAlias);
+					else
+						newSelector.setLeftExpr(curSelector.leftExpr);
+					newSelector.tableName = aliasForThisExpr;
+					
+					// replace the alias / name of this column this needs to be 
+					//newSelector.replaceTableAlias(newSelector, curTableAlias, aliasForThisExpr);
+					newSelector.aQuery = newSelector.tableName + "." + newSelector.getLeftExpr();
+					
+					// done.. now we can add it
+					retExpression.nselectors.add(newSelector);
+				}
+				
+				// see if this is the first statement. if so make it to be from
+				// add this as a from
+				GenExpression exprCopy = makeCopy(curExpr);
+				lastExpression = exprCopy;
+				//exprCopy.paranthesis = true;
+				//exprCopy.composite = true;
+				exprCopy.leftAlias = aliasForThisExpr;
+					
+				if(expIndex == 0)
+				{
+					retExpression.from = exprCopy;
+				}
+				else
+				{
+					// add this as a join
+					retExpression.joins.add(exprCopy);	
+					exprCopy.telescope = true;
+				}
+			}
+		}
+		
+		// now process the joins
+		GenExpression joinExpr = null;
+		for(int joinIndex = 0;joinIndex < joins.size();joinIndex++)
+		{
+			// get the join
+			// get l columna and r column
+			// swap the aliases
+			// add it to the last join do the process above
+			Join thisJoin = joins.get(joinIndex);
+			joinExpr = makeJoin(thisJoin, joinExpr, leftAlias, rightAlias);
+		}		
+		retExpression.joins.remove(lastExpression);
+		joinExpr.from = lastExpression;
+		retExpression.joins.add(joinExpr);
+		
+		
+		return retExpression;
+	}
+	
+	public static GenExpression makeJoin(Join thisJoin, GenExpression lastExpr, String leftAlias, String rightAlias)
+	{
+		GenExpression joinExpr = new GenExpression();
+		String joinType = thisJoin.getJoinType();
+		
+		// need to do a better job here but.. 
+		joinType = joinType.replace(".", " ");
+		joinExpr.setOn(joinType);
+		joinExpr.telescope = true;
+		String lColumn = thisJoin.getLColumn(); // this could potentially be other things but for now for isntance this could be a full query
+		String rColumn = thisJoin.getRColumn(); 
+		
+		if(lColumn.indexOf("__") > 0)
+			lColumn = lColumn.substring(lColumn.indexOf("__") + 2);
+
+		if(rColumn.indexOf("__") > 0)
+			rColumn = rColumn.substring(rColumn.indexOf("__") + 2);
+
+		lColumn = leftAlias + ".\"" + lColumn + "\"";
+		rColumn = rightAlias + ".\"" + rColumn + "\"";
+		
+		GenExpression body = new GenExpression();
+		body.setOperation("=");
+		
+		GenExpression leftColumn = new GenExpression();
+		leftColumn.operation = "string";
+		leftColumn.leftItem = lColumn;
+
+		GenExpression rightColumn = new GenExpression();
+		rightColumn.operation = "string";
+		rightColumn.leftItem = rColumn;
+
+		body.leftItem = leftColumn;
+		body.rightItem = rightColumn;
+		joinExpr.body = body;
+		if(lastExpr != null)
+		{
+			// make it and then elevate
+			GenExpression newRoot = new GenExpression();
+			newRoot.setOperation("AND");
+			newRoot.setLeftExpresion(lastExpr);
+			newRoot.setRightExpresion(joinExpr);
+			return newRoot;
+		}
+		else
+			return joinExpr;
+
+	}
+	
+	
+	public static GenExpression makeCopy(GenExpression input)
+	{
+		GenExpression retExpression = null;
+		
+		try {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			// FST
+			FSTObjectOutput fo = new FSTObjectOutput(baos);
+			fo.writeObject(input);
+			fo.close();
+
+			byte [] bytes = baos.toByteArray();
+			ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+			/*
+			FSTObjectInput fi = new FSTObjectInput(bais);
+			Object retObject = fi.readObject();
+			*/
+			FSTObjectInput fi = new FSTObjectInput(bais);
+			Object retObject = fi.readObject();
+
+			retExpression = (GenExpression)retObject;
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return retExpression;
+	}
+	
+
+	public static NativeFrame subQuery(SelectQueryStruct subQueryStruct, SelectQueryStruct wrapperQueryStruct)
+	{
+		
+		// parse main query
+		// convert subquery into GenExpression
+		// give the main query and alias
+		// confirm the column is there
+		// replace the aliases in the subquery 
+		// push it to NativeFrame call it a day
+		NativeFrame emptyFrame = null;
+		
+		try
+		{
+			SqlInterpreter interp = new SqlInterpreter();
+			
+			SqlParser2 parser = new SqlParser2();
+			interp.setQueryStruct(subQueryStruct);
+			String subQuery = interp.composeQuery();
+			GenExpression subQueryExpression = parser.processQuery(subQuery).root;
+			
+			interp = new SqlInterpreter();
+			interp.setQueryStruct(wrapperQueryStruct);
+			String mainQuery = interp.composeQuery();
+			GenExpression mainQueryExpression = parser.processQuery(mainQuery).root;
+			
+			String mainQueryAlias = Utility.getRandomString(5);
+	
+			if(mainQueryExpression.from  != null)
+			{
+				String curAlias = subQueryExpression.from.getLeftExpr();			
+				mainQueryAlias = mainQueryAlias + "_" + curAlias;
+			}
+
+			// now replace the column aliases
+			mainQueryExpression.replaceTableAlias2(mainQueryExpression, null, mainQueryAlias);
+			mainQueryExpression.addQuoteToColumn(mainQueryExpression, "\"");
+			
+			// replace the from
+			// and give it an alias
+			mainQueryExpression.from = subQueryExpression;
+			mainQueryExpression.from.paranthesis = true;
+			mainQueryExpression.from.composite = true;
+			mainQueryExpression.from.leftAlias = mainQueryAlias;
+			
+			StringBuffer finalOutput = mainQueryExpression.printQS(mainQueryExpression, null);
+	
+			HardSelectQueryStruct hqs = new HardSelectQueryStruct();
+			hqs.customFrom = finalOutput.toString();
+			hqs.engineId = subQueryStruct.engineId;
+			hqs.engine = subQueryStruct.retrieveQueryStructEngine();
+			hqs.qsType = QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY;
+			hqs.setQuery(finalOutput.toString());
+			
+			emptyFrame = new NativeFrame();
+			emptyFrame.setName(wrapperQueryStruct.getFrameName());
+			NativeImporter importer = new NativeImporter(emptyFrame, hqs);
+			importer.insertData();
+		}catch(Exception ex)
+		{
+			
+		}
+		return emptyFrame;
+	}
+}

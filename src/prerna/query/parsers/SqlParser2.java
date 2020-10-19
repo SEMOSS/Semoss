@@ -2,11 +2,8 @@ package prerna.query.parsers;
 
 import java.sql.Time;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -25,6 +22,10 @@ import net.sf.jsqlparser.expression.TimeValue;
 import net.sf.jsqlparser.expression.WhenClause;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.relational.Between;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.InExpression;
+import net.sf.jsqlparser.expression.operators.relational.IsNullExpression;
+import net.sf.jsqlparser.expression.operators.relational.ItemsList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -44,13 +45,14 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SetOperation;
 import net.sf.jsqlparser.statement.select.SetOperationList;
 import net.sf.jsqlparser.statement.select.SubSelect;
+import prerna.query.querystruct.FunctionExpression;
 import prerna.query.querystruct.GenExpression;
+import prerna.query.querystruct.InGenExpression;
 import prerna.query.querystruct.OperationExpression;
 import prerna.query.querystruct.OrderByExpression;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.WhenExpression;
 import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.sablecc2.om.PixelDataType;
 
 
 /*
@@ -160,7 +162,7 @@ public class SqlParser2 {
 		//else
 		{
 			thisQs = new GenExpression();
-			thisQs.parentStruct = qs; // set the parent here
+			thisQs.parent = qs; // set the parent here
 			thisQs.aQuery = sb.toString();
 			thisQs.operation = "select";
 			thisQs.aliasHash = qs.aliasHash;
@@ -232,6 +234,11 @@ public class SqlParser2 {
 			{
 				thisQs.currentTable = fi.getAlias().getName();
 			}
+			else if(fi instanceof ParenthesisFromItem)
+			{
+				System.err.println("Got you here");
+				thisQs.currentTable = fi.getAlias().getName();
+			}
 
 			
 			// process the joins into the QS
@@ -256,21 +263,33 @@ public class SqlParser2 {
 			
 			//return thisQs;
 		}
+		
 		// at this point
 		// I need to capture this back and then 
 		// and then put this back as an alias
+		GenExpression substruct = processSelectFromItem(fi, thisQs);
+		if(substruct != null)
+		{
+			substruct.setLeftAlias(alias);
+			//substruct.setComposite(true);
+			
+			thisQs.setComposite(true);
+			thisQs.aliasHash.put(alias, substruct);
+			thisQs.from = substruct;
+		}
+		return thisQs;
+	}
+	
+	public GenExpression processSelectFromItem(FromItem fi, GenExpression thisQs)
+	{
 		if(fi instanceof SubSelect)
 		{
 			SelectBody sbody = ((SubSelect)fi).getSelectBody();
 			if(sbody instanceof PlainSelect)
 			{
 				GenExpression substruct =  processSelect(thisQs, (PlainSelect)sbody);
-				substruct.setLeftAlias(alias);
 				substruct.setComposite(true);
-				
-				thisQs.setComposite(true);
-				thisQs.aliasHash.put(alias, substruct);
-				thisQs.from = substruct;
+				return substruct;
 			}
 			else if(sbody instanceof SetOperationList)
 			{
@@ -279,14 +298,48 @@ public class SqlParser2 {
 		}
 		else if(fi instanceof SetOperationList)
 		{
-			System.err.println("Into the union ? " + fi);
+			System.err.println("Into the union ? To be handled" + fi);
 		}
-		else
+		else if(fi instanceof Table)
+		{
+			String fromTableName = "";
+			Table fromTable = (Table) fi;
+			fromTableName = fromTable.getName();
+			thisQs.currentTable = fromTableName;
+			GenExpression fromExpr = new GenExpression();
+			fromExpr.setOperation("from");
+			fromExpr.setComposite(false);
+			fromExpr.aQuery = fi.toString();
+			fromExpr.setLeftExpr(fromTableName);
+			//fromExpr.setLeftAlias(alias);
+			thisQs.from = fromExpr;
+			
+			// tracking tables
+			List <GenExpression>selectList = null;
+			if(this.wrapper.tableSelect.containsKey(fromTableName))
+				selectList = this.wrapper.tableSelect.get(fromTableName);
+			else
+				selectList = new Vector<GenExpression>();
+			if(!selectList.contains(qs))
+				selectList.add(qs);
+			
+			
+			this.wrapper.tableSelect.put(fromTableName, selectList);
+			return fromExpr;
+		}
+
+		else if(fi instanceof ParenthesisFromItem)
 		{
 			//System.err.println(" From Item is " + fi);
+			GenExpression gep = processSelectFromItem(((ParenthesisFromItem)fi).getFromItem(), thisQs);
+			gep.setComposite(true);
+			gep.paranthesis = true;
+			return gep;
 		}
-		return thisQs;
+		return null;
+
 	}
+	
 	/**
 	 * Add the selectors into the query struct
 	 * @param qs
@@ -371,17 +424,29 @@ public class SqlParser2 {
 	public GenExpression processJoinExpression(GenExpression qs, GenExpression expr, Join thisJoin) 
 	{
 
+		// join is a gen expression
+		// join is set with a telescope to true
+		// the base join has
+		// body - This is the on part of the overall. See the comments below. This is a AST so if I have a = b and c = d then I will have 3 gen expressions. 1. GenExpression (a = b), 2. GenExpression(c = d) 3. 1. AND 2. 
+		// the = or AND is the operation
+		// left item is the left operand and the right item is the right operand
+		// operation - set to join
+		// join type = tells you if it is inner etc. 
+		// right item is another SQL expression if there is one
+		
 		// TODO - process using columns
 		GenExpression gep = new GenExpression(); // this is the one I am processing for the actual join itself. 
-		GenExpression retExpr = processExpression(qs, thisJoin.getOnExpression(), expr);
+		GenExpression retExpr = processExpression(qs, thisJoin.getOnExpression(), expr); // this processes the on stuff i.e. on a = b. This has the a = b
 		gep.telescope = true;
 		gep.body = retExpr;
 		gep.aQuery = thisJoin.toString();
+		gep.parent = qs;
 		
 		// process the from
 		FromItem fi = thisJoin.getRightItem();
 		if(fi instanceof ParenthesisFromItem)
 			System.err.println("Found the culprint");
+		
 		GenExpression from2 = new GenExpression();
 
 		String joinType = null;
@@ -401,17 +466,27 @@ public class SqlParser2 {
 			joinType = "JOIN";
 		gep.setOperation("join");
 		gep.setOn(joinType);
-	//qs.joins.add(gep);
+		//qs.joins.add(gep);
 
-		String rightTableName = null;
-		String rightTableAlias = null;
-		
+		from2 = processJoinFromItem(fi, thisJoin, gep);
 		
 		//System.err.println("From item is " + fi);
+		// need to accomodate for paranthesis from item
 		
+		from2.parent = gep;
+		gep.from = from2;
+		
+	return gep;
+
+	}
+	
+	private GenExpression processJoinFromItem(FromItem fi, Join thisJoin, GenExpression gep)
+	{
+		String rightTableName, rightTableAlias = null;
+		GenExpression from2 = new GenExpression();
 		if(fi instanceof Table)
 		{
-			Table rightTable = (Table)thisJoin.getRightItem();
+			Table rightTable = (Table)fi;
 			// add the alias
 			rightTableName = rightTable.getName();
 			rightTableAlias = rightTableName;
@@ -422,8 +497,10 @@ public class SqlParser2 {
 			from2.setOperation("table");
 			from2.setLeftExpr(rightTableName);
 			from2.setLeftAlias(rightTableAlias);
+			from2.parent = gep;
+			return from2;
 		}
-		else
+		else if(fi instanceof SubSelect)
 		{
 			//System.out.println("Right is" + fi);
 			rightTableName = fi.getAlias().getName();
@@ -457,18 +534,27 @@ public class SqlParser2 {
 				
 				//qs.joins.add(opQS);
 			}
+			return from2;
 		}
-		gep.from = from2;
+		else if(fi instanceof ParenthesisFromItem)
+		{
+			FromItem innerFromItem = ((ParenthesisFromItem)fi).getFromItem();
+			from2 = processJoinFromItem(innerFromItem, thisJoin, gep);
+			from2.paranthesis = true;
+			from2.setComposite(true);
+			//GenExpression processedExpr = processSelect(qs, );
+			return from2;
+		}
+		return from2;
 		
-	return gep;
-
 	}
 	
 	public GenExpression processExpression(SelectQueryStruct qs, Expression joinExpr, GenExpression expr)
 	{
 		// these are either composite relations like and or etc. or simple relations
-		if(expr == null)
+		if(expr != null && qs != null)
 		{
+			//expr.parentStruct = (GenExpression)qs;
 		}
 		if(joinExpr instanceof AndExpression) // || joinExpr instanceof OrExpression)
 		{
@@ -486,8 +572,13 @@ public class SqlParser2 {
 			expr2.recursive = true;
 			
 			// process the left and right
-			expr2.setLeftExpresion(processExpression(qs, left,  expr));
-			expr2.setRightExpresion(processExpression(qs, right,  expr));
+			GenExpression leftExpr = processExpression(qs, left,  expr);
+			GenExpression rightExpr = processExpression(qs, right,  expr);
+			
+			expr2.setLeftExpresion(leftExpr);
+			expr2.setRightExpresion(rightExpr);
+			
+			expr2.parent = (GenExpression)qs;
 			return expr2;
 			//System.err.println("Expression.. " + aExpr.getStringExpression());
 		}
@@ -514,15 +605,18 @@ public class SqlParser2 {
 				GenExpression sqs = processExpression(qs,  joinExpr2.getLeftExpression(), eqExpr);
 				GenExpression sqs2 = processExpression(qs,  joinExpr2.getRightExpression(), eqExpr);
 				
+				
 				Object constantValue = null;
 				String constantType = null;
 				GenExpression exprToTrack = null;
+				String tableName = null;
 				
 				if(((GenExpression)sqs).getOperation().equalsIgnoreCase("column"))
 				{
 					full_from = ((GenExpression)sqs).getLeftExpr();
 					column = true;
 					columnName = full_from;
+					tableName = ((GenExpression)sqs).tableName;
 				}
 				else if( (((GenExpression)sqs).getOperation().equalsIgnoreCase("string")) 
 						|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("double")) 
@@ -547,6 +641,7 @@ public class SqlParser2 {
 					full_To = ((GenExpression)sqs2).getLeftExpr();
 					column = true;
 					columnName = full_from;
+					tableName = ((GenExpression)sqs2).tableName;
 				}
 				else if( (((GenExpression)sqs2).getOperation().equalsIgnoreCase("string")) 
 						|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("double")) 
@@ -566,7 +661,7 @@ public class SqlParser2 {
 				}
 				
 				if(binary && column && constantValue != null)
-					this.wrapper.makeParameters(columnName, constantValue, eqExpr, constantType, exprToTrack);
+					this.wrapper.makeParameters(columnName, constantValue, eqExpr.getOperation(), constantType, exprToTrack, tableName);
 				
 				binary = false;
 				column = false;
@@ -599,6 +694,7 @@ public class SqlParser2 {
 				eqExpr.setLeftExpr(full_from);
 				eqExpr.setRightExpr(full_To);
 				
+				eqExpr.parent = (GenExpression)qs;
 				return eqExpr;
 		}	
 		// need to handle the between join
@@ -620,6 +716,7 @@ public class SqlParser2 {
 				
 				GenExpression sqs = processSelect(ge,  (PlainSelect)ss.getSelectBody());
 				ge.body = sqs;
+				sqs.parent = (GenExpression)ge;
 				qs.aliasHash.put(alias, sqs);
 				return ge;
 			}
@@ -627,6 +724,7 @@ public class SqlParser2 {
 			{
 				//System.err.println("This is probably unin ?" + joinExpr);
 				GenExpression gep = processOperation((SetOperationList)sb);
+				gep.parent = (GenExpression)qs;
 				return gep;
 			}
 				
@@ -649,8 +747,64 @@ public class SqlParser2 {
 			Expression start = betw.getBetweenExpressionStart();
 			Expression end = betw.getBetweenExpressionEnd();
 			//System.err.println("I am missing something here " + joinExpr);
-			retExpr.setLeftExpresion(processExpression(qs, start, retExpr));
-			retExpr.setRightExpresion(processExpression(qs, end, retExpr));
+			GenExpression startExpression = processExpression(qs, start, retExpr);
+			retExpr.setLeftExpresion(startExpression);
+			GenExpression endExpression = processExpression(qs, end, retExpr);
+			retExpr.setRightExpresion(endExpression);
+			
+			retExpr.parent = (GenExpression)qs;
+			String tableName = null;
+			
+			if(retExpr.body.getOperation().equalsIgnoreCase("column"))
+			{
+				// who knows you could be a sadist after all
+				column = true;
+				columnName = retExpr.body.getLeftExpr();
+				tableName = retExpr.body.tableName;
+			}
+
+			// process the start value if it is a constant
+			if( (startExpression.getOperation().equalsIgnoreCase("string")) 
+					|| startExpression.getOperation().equalsIgnoreCase("double") 
+					|| startExpression.getOperation().equalsIgnoreCase("date") 
+					|| startExpression.getOperation().equalsIgnoreCase("time") 
+					|| startExpression.getOperation().equalsIgnoreCase("long") )
+			{
+				// we got our target
+				Object constantValue = startExpression.leftItem;
+				String constantType = startExpression.getOperation();
+				
+				if(columnName != null)
+				{
+					startExpression.setLeftExpresion("'<" + "between.start" +  columnName + ">'");
+				}
+				this.wrapper.makeParameters(columnName, constantValue, "between.start", constantType, startExpression, tableName);
+			}
+		
+			// process the end value if it is a constant
+			if( (endExpression.getOperation().equalsIgnoreCase("string")) 
+					|| endExpression.getOperation().equalsIgnoreCase("double") 
+					|| endExpression.getOperation().equalsIgnoreCase("date") 
+					|| endExpression.getOperation().equalsIgnoreCase("time") 
+					|| endExpression.getOperation().equalsIgnoreCase("long") )
+			{
+				// we got our target
+				Object constantValue = endExpression.leftItem;
+				String constantType = endExpression.getOperation();
+				
+				if(columnName != null)
+				{
+					endExpression.setLeftExpresion("'<" + "between.end" +  columnName + ">'");
+				}
+				this.wrapper.makeParameters(columnName, constantValue, "between.end", constantType, endExpression, tableName);
+			}
+			
+			binary = false;
+			column = false;
+			columnName = null;
+
+			
+			
 			return retExpr;
 		}
 		else if(joinExpr instanceof Column)
@@ -668,7 +822,9 @@ public class SqlParser2 {
 			else
 				tableName = qs.currentTable;
 			// take out __ and put .
-			retExpr.setLeftExpr(tableName + "." + thisCol.getColumnName());
+			//retExpr.setLeftExpr(tableName + "." + thisCol.getColumnName());
+			retExpr.setLeftExpr(thisCol.getColumnName());
+			retExpr.tableName = tableName;
 			
 			
 			// starts keeping track of the columns
@@ -695,28 +851,30 @@ public class SqlParser2 {
 			
 			this.wrapper.selectColumns.put((GenExpression) qs, columnList);
 			
+			retExpr.parent = (GenExpression)qs;
 			return retExpr;
 		}
 		else if(joinExpr instanceof Function)
 		{
 			//System.err.println("This is not being handled in expression " + joinExpr);
 			Function fexpr = (Function)joinExpr;
-			GenExpression gep = new GenExpression();
+			FunctionExpression gep = new FunctionExpression();
 			gep.aQuery = fexpr.toString();
 			gep.setExpression(fexpr.getName());
 			//if(fexpr.toString().contains("coalesce"))
 			//	System.err.println("Found a coalesce");
-			gep.setOperation("opaque");
+			gep.setOperation("function");
 			// going to make this opaque
 			gep.setLeftExpr(fexpr.toString());
-			/*
+			
 			List <Expression> el = fexpr.getParameters().getExpressions();
 			// will work through expression later
 			for(int exprIndex = 0;exprIndex < el.size();exprIndex++)
 			{
-				
+				GenExpression thisExpression = processExpression(qs, el.get(exprIndex), gep);
+				gep.expressions.add(thisExpression);
 			}
-			*/
+			gep.parent = (GenExpression)qs;
 			return gep;
 			
 			//gep.setLeftExpr(fexpr.getP);
@@ -727,6 +885,7 @@ public class SqlParser2 {
 			CaseExpression cep = (CaseExpression)joinExpr;
 
 			WhenExpression wep = new WhenExpression();
+			wep.aQuery = joinExpr.toString();
 			wep.setOperation("case");
 			List <WhenClause> whens = cep.getWhenClauses();
 			
@@ -753,16 +912,8 @@ public class SqlParser2 {
 			wep.setElse(cep.getElseExpression().toString());
 			wep.setElseE(elseE);
 			
+			wep.parent = (GenExpression)qs;
 			return wep;
-		}
-		else if(joinExpr instanceof DoubleValue)
-		{
-			GenExpression gep = new GenExpression();
-			gep.aQuery = joinExpr.toString();
-			Double value = ((DoubleValue)joinExpr).getValue();
-			gep.setExpression("double");
-			gep.setLeftExpresion(value);
-			
 		}
 		else if(joinExpr instanceof DoubleValue)
 		{
@@ -772,6 +923,7 @@ public class SqlParser2 {
 			gep.setOperation("double");
 			gep.setExpression("double");
 			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression)qs;
 			return gep;
 		}
 		else if(joinExpr instanceof TimeValue)
@@ -782,6 +934,7 @@ public class SqlParser2 {
 			gep.setOperation("time");
 			gep.setExpression("time");
 			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression)qs;
 			return gep;
 		}
 		else if(joinExpr instanceof StringValue)
@@ -792,6 +945,7 @@ public class SqlParser2 {
 			gep.setOperation("string");
 			gep.setExpression("string");
 			gep.setLeftExpresion("'" + value + "'");
+			gep.parent = (GenExpression)qs;
 			return gep;
 		}
 		else if(joinExpr instanceof DateValue)
@@ -802,6 +956,7 @@ public class SqlParser2 {
 			gep.setOperation("date");
 			gep.setExpression("date");
 			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression)qs;
 			return gep;
 		}
 		else if(joinExpr instanceof LongValue)
@@ -812,15 +967,19 @@ public class SqlParser2 {
 			gep.setOperation("long");
 			gep.setExpression("long");
 			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression)qs;
 			return gep;
 		}
 		else if(joinExpr instanceof CastExpression)
 		{
-			CastExpression ce = (CastExpression)joinExpr;
+			CastExpression ce = (CastExpression)joinExpr;		
 			GenExpression gep = new GenExpression();
 			gep.aQuery = ce.toString();
-			gep.setLeftExpr(ce.toString()); 
-			gep.setOperation("opaque");
+			//gep.setLeftExpr(ce.toString()); 
+			gep.setOperation("cast");
+			gep.setLeftAlias(ce.getType().toString());			
+			gep.setLeftExpresion(processExpression(qs, ce.getLeftExpression(), null));
+			gep.parent = (GenExpression)qs;
 			return gep;
 		}
 		else if(joinExpr instanceof Parenthesis)
@@ -836,11 +995,95 @@ public class SqlParser2 {
 			gep.body = body;
 			gep.setLeftExpresion(body);
 			// reset it back
+			gep.parent = (GenExpression)qs;
+			return gep;
+		}
+		else if(joinExpr instanceof IsNullExpression)
+		{
+			IsNullExpression nullExpr = (IsNullExpression)joinExpr;
+			GenExpression gep = new GenExpression();
+			gep.setOperation("isnull");
+			gep.setLeftExpresion(processExpression(qs, nullExpr.getLeftExpression(), expr));
+			return gep;
+		}
+		else if(joinExpr instanceof InExpression)
+		{
+			// need to parameterize this
+			InExpression inExpr = (InExpression)joinExpr;
+			InGenExpression gep = new InGenExpression();
+			// left expression is a gen expression
+			// rightItemsList is a list of expressions that need to be processed
+			gep.setOperation("in");
+			GenExpression colExpression = processExpression(qs, inExpr.getLeftExpression(), expr);
+			gep.setLeftExpresion(colExpression);
+			
+			String tableName = null;
+			if(colExpression.getOperation().equalsIgnoreCase("column"))
+			{
+				// who knows you could be a sadist after all
+				column = true;
+				columnName = colExpression.getLeftExpr();
+				tableName = colExpression.tableName;
+			}
+
+			ItemsList itemList = inExpr.getRightItemsList();
+			/*
+			if(itemList instanceof ExpressionList)
+			{
+				List <Expression> el = ((ExpressionList)itemList).getExpressions();
+				
+				for(int itemIndex = 0;itemIndex < el.size();itemIndex++)
+				{
+					Expression thisExpression = el.get(itemIndex);
+					GenExpression ge = processExpression(qs, thisExpression, expr);
+					gep.inList.add(ge);
+					
+					// need to put the parameter here					
+				}
+				// process the start value if it is a constant
+			}*/
+			
+			if(itemList instanceof SubSelect)
+			{
+				GenExpression ge = processExpression(qs, (SubSelect)itemList, expr);
+				gep.rightItem = ge;
+			}
+			else
+			{
+				// do this as an opaque
+				GenExpression ge = new GenExpression();
+				ge.setOperation("opaque");
+				ge.setLeftExpr(itemList.toString());
+				// make this an opaque and pump it back
+				ge.parent = (GenExpression)qs;
+				// we got our target
+
+				gep.inList.add(ge);
+				Object constantValue = ge.getLeftExpr();
+				String constantType = "string";
+				
+				if(columnName != null)
+				{
+					ge.setLeftExpr("'<" + columnName + " In" + ">'");
+				}
+				this.wrapper.makeParameters(columnName, constantValue, "in", constantType, ge, tableName);
+
+			}
+				
+			//gep.setComposite(composite);
+			//gep.setLeftExpresion(processExpression(qs, nullExpr.getLeftExpression(), expr));
 			return gep;
 		}
 		else
 		{
 			System.err.println("Unhandled expression >>>>> " + joinExpr);
+			GenExpression ge = new GenExpression();
+			ge.setOperation("opaque");
+			ge.setLeftExpr(joinExpr.toString());
+			// make this an opaque and pump it back
+			ge.parent = (GenExpression)qs;
+			
+			return ge;
 		}
 		
 		// also need to handle subselect
@@ -1000,6 +1243,11 @@ public class SqlParser2 {
 		for(int groupIndex = 0; groupIndex < groupByElement.size(); groupIndex++) {
 			Expression expr = groupByElement.get(groupIndex);
 			GenExpression gep = processExpression(qs, expr, null);
+			
+			// 
+			String tableColumnName = gep.getLeftExpr();
+			wrapper.addGroupBy(tableColumnName, (GenExpression)qs);
+			
 			qs.ngroupBy.add(gep);
 		}
 	}
@@ -2038,8 +2286,8 @@ public class SqlParser2 {
 				"WHERE A.LKUP_ID=1 \r\n" + 
 				" AND A.YEAR_ID <= 3) \r\n" + 
 				" TM_PRD_FNCTN \r\n" + 
-				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN TM_PRD_FNCTN.START_YEAR_MNTH \r\n" + 
-				"	and TM_PRD_FNCTN.END_YEAR_MNTH\r\n" + 
+				"	ON CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR BETWEEN 20 \r\n" + 
+				"	and 30\r\n" + 
 				"\r\n" + 
 				"WHERE CII_FACT_MBRSHP.ACCT_ID = 'W0016437'\r\n" + 
 				"GROUP BY acct_id, ELGBLTY_CY_MNTH_END_NBR, MCID,TM_PRD_NM\r\n" + 
@@ -2059,9 +2307,13 @@ public class SqlParser2 {
 				"		Paid_Amount,Account_Name,CBSA_Name,ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
 				"		Paid_PMPM";
 		
-		String query8 = "Select a.abc a1 from table a";
+		String query8 = "Select a.abc, b.b1,  sum(a.a1), a.a1 + 2 from a as a, (b) as b, (c) as c on a.id = b.id";
 		
-		GenExpressionWrapper wrapper = test.processQuery(query7);
+		String query9 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title ";
+
+		String query10 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR in ('a', 'b') THEN 0 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title ";
+
+		GenExpressionWrapper wrapper = test.processQuery(query10);
 		test.printOutput(wrapper.root);
 
 		// get the param map and modify the value
