@@ -40,7 +40,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.AssetUtility;
@@ -76,77 +75,16 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		boolean hasFilters = !engineFilters.isEmpty();
 		boolean global = getGlobal();
 		String panelId = getPanelId();
-
-		//pull asset app
-		//set default paths
-		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
-		if (AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			String appId = user.getAssetEngineId(user.getPrimaryLogin());
-			String appName = "Asset";
-			if (appId != null && !(appId.isEmpty())) {
-				IEngine assetApp = Utility.getEngine(appId);
-				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPullFolder(assetApp, savePath);
-			}
-		}
-		savePath = savePath.replace("\\", "/");
 		
-		// init r tables for use between methods
-		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
-		String rSessionJoinTable = "JoinTable" + this.getSessionId().substring(0, 10);
+		// start logger
+		logger.info(stepCounter + ". Performing Natural Language Search");
+		stepCounter++;
 
 		// Check Packages
-		logger.info(stepCounter + ". Checking R Packages");
 		String[] packages = new String[] { "data.table", "plyr", "udpipe", "stringdist", "igraph", "SteinerNet" };
 		this.rJavaTranslator.checkPackages(packages);
-
-		// Check to make sure that needed files exist before searching
-		File algo1 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_guide.R");
-		File algo2 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_assembly.R");
-		File algo3 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "data_inquiry_validate.R");
-		File algo4 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "template.R");		
-		File algo5 = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR + "template_assembly.R");		
-		if (!algo1.exists() || !algo2.exists() || !algo4.exists() || !algo5.exists()) {
-			String message = "Necessary files missing to generate search results.";
-			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException exception = new SemossPixelException(noun);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-
-		logger.info(stepCounter + ". Done");
-		stepCounter++;
-
-		// Generate string to initialize R console
-		StringBuilder sb = new StringBuilder();
-		logger.info(stepCounter + ". Loading R scripts to perform natural language search");
-		String wd = "wd" + Utility.getRandomString(5);
-		sb.append(wd + "<- getwd();");
-		sb.append(("setwd(\"" + savePath + "\");").replace("\\", "/"));
-		sb.append(("source(\"" + algo1.getPath() + "\");").replace("\\", "/"));
-		sb.append(("source(\"" + algo2.getPath() + "\");").replace("\\", "/"));
-		sb.append(("source(\"" + algo3.getPath() + "\");").replace("\\", "/"));
-		sb.append(("source(\"" + algo4.getPath() + "\");").replace("\\", "/"));
-		sb.append(("source(\"" + algo5.getPath() + "\");").replace("\\", "/"));
-		this.rJavaTranslator.runR(sb.toString());
-		logger.info(stepCounter + ". Done");
-		stepCounter++;
 		
-		// cluster tables if needed
-		String nldrPath1 = savePath + DIR_SEPARATOR + "nldr_membership.rds";
-		String nldrPath2 = savePath + DIR_SEPARATOR + "nldr_db.rds";
-		String nldrPath3 = savePath + DIR_SEPARATOR + "nldr_joins.rds";	
-		File nldrMembership = new File(nldrPath1);
-		File nldrDb = new File(nldrPath2);
-		File nldrJoins = new File(nldrPath3);
-		long replaceTime = System.currentTimeMillis() - ((long)1 * 24 * 60 * 60 * 1000);
-		if(!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists() || nldrMembership.lastModified() < replaceTime ) {
-			createRdsFiles();
-		}
-
 		// Collect all the apps that we will iterate through
-		logger.info(stepCounter + ". Collecting apps to iterate through");
 		if (hasFilters) {
 			// need to validate that the user has access to these ids
 			if (AbstractSecurityUtils.securityEnabled()) {
@@ -170,26 +108,65 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				engineFilters = MasterDatabaseUtility.getAllEngineIds();
 			}
 		}
-		logger.info(stepCounter + ". Done");
-		stepCounter++;
-		
-		String queryString = "";
-		if(global) {
-			// remove spaces in query if first characters
-			while(query.charAt(0) == ' ') {
-				query = query.substring(1);
+
+		//pull asset app
+		//set default paths
+		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
+		if (AbstractSecurityUtils.securityEnabled()) {
+			User user = this.insight.getUser();
+			String appId = user.getAssetEngineId(user.getPrimaryLogin());
+			String appName = "Asset";
+			if (appId != null && !(appId.isEmpty())) {
+				IEngine assetApp = Utility.getEngine(appId);
+				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPullFolder(assetApp, savePath);
 			}
-			queryString = query;
-			query = "\"" + query + "\"";
+		}
+		savePath = savePath.replace("\\", "/");
+		
+		// init r tables for use between methods
+		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
+		String rSessionJoinTable = "JoinTable" + this.getSessionId().substring(0, 10);
+
+		// source the proper script
+		StringBuilder sb = new StringBuilder();
+		String wd = "wd" + Utility.getRandomString(5);
+		String rFolderPath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR;
+		sb.append(wd + "<- getwd();");
+		sb.append(("setwd(\"" + savePath + "\");").replace("\\", "/"));
+		sb.append(("source(\"" + rFolderPath + "template_assembly.R" + "\");").replace("\\", "/"));
+		if(global) {
+			sb.append(("source(\"" + rFolderPath + "template_db.R" + "\");").replace("\\", "/"));
 		} else {
-			// query = "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"=\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"=\",\"value\":\"R\"},{\"component\":\"having sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
-			query = buildNamedArray(query);
-			queryString = getQStringFromArray(query);
+			sb.append(("source(\"" + rFolderPath + "template.R" + "\");").replace("\\", "/"));
 		}
 		
+		this.rJavaTranslator.runR(sb.toString());
+
+		// cluster tables if needed
+		String nldrPath1 = savePath + DIR_SEPARATOR + "nldr_membership.rds";
+		String nldrPath2 = savePath + DIR_SEPARATOR + "nldr_db.rds";
+		String nldrPath3 = savePath + DIR_SEPARATOR + "nldr_joins.rds";	
+		File nldrMembership = new File(nldrPath1);
+		File nldrDb = new File(nldrPath2);
+		File nldrJoins = new File(nldrPath3);
+		long replaceTime = System.currentTimeMillis() - ((long)1 * 24 * 60 * 60 * 1000);
+		if(global) {
+			if(!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists() || nldrMembership.lastModified() < replaceTime ) {
+				logger.info(stepCounter + ". Updating database metadata");
+				stepCounter++;
+				createRdsFiles();
+			}
+		}
+		
+		// query = "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"=\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"=\",\"value\":\"R\"},{\"component\":\"having sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
+		String queryString = "";
+		query = buildNamedArray(query);
+		queryString = getQStringFromArray(query);
+		
 		logger.info(stepCounter + ". Generating search results");
+		stepCounter++;
 		List<Object[]> retData = generateAndRunScript(query, engineFilters, rSessionTable, rSessionJoinTable, global);
-		logger.info(stepCounter + ". Done");
 		
 		// check for error
 		int frameColCount = retData.get(0).length;
@@ -207,8 +184,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 		
 		logger.info(stepCounter + ". Generating pixel return from results");
+		stepCounter++;
 		List<Map<String, Object>> returnPixels = generatePixels(retData, query, rSessionTable, global, panelId, queryString);
-		logger.info(stepCounter + ". Done");
 
 		// reset working directory and run garbage cleanup
 		this.rJavaTranslator.executeEmptyR("setwd(" + wd + ");");
@@ -245,6 +222,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	}
 
 	private String buildNamedArray(String query) {
+		// check for blank
+		if(query == null || query.isEmpty()) {
+			query = "[]";
+		}
+		
 		// read string into list
 		List<Map<String, Object>> optMap = new Vector<Map<String, Object>>();
 		optMap = new Gson().fromJson(query, optMap.getClass());
@@ -582,7 +564,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			rsb.append(");");
 			rsb.append(rSessionTable + " <- " + rSessionTable + "[" + rSessionTable + "$AppID %in% " + appFilters + " ,];");
 			rsb.append(rSessionJoinTable + " <- " + rSessionJoinTable + "[" + rSessionJoinTable + "$AppID %in% " + appFilters + " ,];");
-			rsb.append(tempResult + " <- build_valid_query(" + rSessionTable + "," + rSessionJoinTable + " , " + query + " );");
 
 		} else {
 			// build the dataframe of COLUMN and TYPE
@@ -619,11 +600,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 		
 		// lets run the function on the filtered apps
-		if(global) {
-			rsb.append(tempResult + " <- build_valid_query(" + rSessionTable + "," + rSessionJoinTable + " , " + query + " );");
-		} else {
-			rsb.append(tempResult + " <- exec_componentized_query(" + rSessionTable + "," + rSessionJoinTable + " , " + query + " );");
-		}		
+		rsb.append(tempResult + " <- exec_componentized_query(" + rSessionTable + "," + rSessionJoinTable + " , " + query + " );");
 		
 		// run it
 		this.rJavaTranslator.runR(rsb.toString());
