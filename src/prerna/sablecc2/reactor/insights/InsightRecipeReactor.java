@@ -47,7 +47,7 @@ public class InsightRecipeReactor extends AbstractInsightReactor {
 			return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OLD_INSIGHT);
 		}
 
-		List<String> recipeSteps = newInsight.getPixelRecipe();
+		List<String> recipeSteps = newInsight.getPixelList().getPixelRecipe();
 		
 		StringBuilder bigRecipe = new StringBuilder();
 		int size = recipeSteps.size();

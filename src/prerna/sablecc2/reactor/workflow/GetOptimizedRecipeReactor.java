@@ -29,7 +29,7 @@ public class GetOptimizedRecipeReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		// grab the full recipe
-		List<String> pixelRecipe = this.insight.getPixelRecipe();
+		List<String> pixelRecipe = this.insight.getPixelList().getPixelRecipe();
 		// return the modified recipe
 		return new NounMetadata(getModifiedRecipeString(pixelRecipe), PixelDataType.CONST_STRING, PixelOperationType.CURRENT_INSIGHT_RECIPE);
 	}

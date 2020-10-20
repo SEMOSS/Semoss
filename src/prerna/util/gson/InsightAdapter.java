@@ -59,7 +59,6 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 
 	private static final String CLASS_NAME = InsightAdapter.class.getName();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String STACKTRACE = "StackTrace: ";
 	
 	// this var is only used so we have a way
 	// to pass specific variables into a new insight we are creating from a cache
@@ -155,7 +154,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				InsightCacheUtility.addToZipFile(f1, zos);
 				InsightCacheUtility.addToZipFile(f2, zos);
 			} catch(Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		out.endArray();
@@ -194,7 +193,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		List<Map<String, String>> panelIdToTaskList = tAdapter.getPanelIdToTask();
 		
 		// write the recipe
-		List<String> recipe = value.getPixelRecipe();
+		List<String> recipe = value.getPixelList().getPixelRecipe();
 		int steps = recipe.size();
 		out.name("recipe");
 		out.beginArray();
@@ -270,7 +269,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		try {
 			InsightCacheUtility.addToZipFile(vizOutputFile, zos);
 		} catch(Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -294,7 +293,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				// reset translation.encodedToOriginal for each expression
 				translation.encodedToOriginal = new HashMap<String, String>();
 			} catch (ParserException | LexerException | IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return translation;
@@ -403,11 +402,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 					store.put(varStoreK, fNoun);
 				}
 			} catch (InstantiationException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException iae) {
-				logger.error(STACKTRACE, iae);
+				logger.error(Constants.STACKTRACE, iae);
 			} catch (ClassNotFoundException cnfe) {
-				logger.error(STACKTRACE, cnfe);
+				logger.error(Constants.STACKTRACE, cnfe);
 			}
 			
 			in.endObject();
