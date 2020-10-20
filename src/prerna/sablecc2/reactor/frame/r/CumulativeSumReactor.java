@@ -39,11 +39,17 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 		// clean the column name to ensure that it is valid
 		newColName = getCleanNewColName(frame, newColName);
 		
-		// TODO check the column types ensure the user uses numeric column for value
+		// check the column type to ensure the user uses numeric column for value
 		String value = this.keyValue.get(this.keysToGet[1]);
-		// TODO determine if the value column datatype is int or double this will define the new column datatype
+		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
+		// determine if the value column datatype is int or double this will define the new column datatype
+		SemossDataType dataType = metadata.getHeaderTypeAsEnum(dataFrame + "__" + value);
+
 		if (value == null || value.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the value to aggregate sum");
+		}
+		if(!Utility.isNumericType(dataType.toString())) {
+			throw new IllegalArgumentException("Need to aggregate on numerical column type");
 		}
 		
 		// optional value to group by
@@ -85,6 +91,7 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 		} else if (sortDir.equalsIgnoreCase("desc")) {
 			
 		}
+		
 		// add sort by
 		String sortBy = " %>% arrange( ";
 		if (!groupCols.isEmpty()) {
@@ -118,12 +125,9 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Unable to generate Cumulative Sum");
 		}
 		frame.executeRScript(RSyntaxHelper.asDataTable(dataFrame, outputFrame) + "; rm("+outputFrame+")");
-		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
-		metaData.addProperty(dataFrame, dataFrame + "__" + newColName);
-		metaData.setAliasToProperty(dataFrame + "__" + newColName, newColName);
-		
-		// TODO find the datatype for the new column
-		metaData.setDataTypeToProperty(dataFrame + "__" + newColName, SemossDataType.INT.toString());
+		metadata.addProperty(dataFrame, dataFrame + "__" + newColName);
+		metadata.setAliasToProperty(dataFrame + "__" + newColName, newColName);
+		metadata.setDataTypeToProperty(dataFrame + "__" + newColName, dataType.toString());
 
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
 				PixelOperationType.FRAME_DATA_CHANGE);
