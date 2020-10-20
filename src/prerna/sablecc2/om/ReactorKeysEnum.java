@@ -109,6 +109,7 @@ public enum ReactorKeysEnum {
 	PASSWORD("password", 									"Password used in conjunction with the username for access to a service"),
 	PIPELINE("pipeline", 									"Pipeline json for the insight"),
 	PIXEL("pixel", 											"Pixel script as string"),
+	PIXEL_ID("pixelId", 									"The pixel id for this pixel step"),
 	PORT("port",                                            "The connection port."),
 	PLANNER("planner", 										"The planner"),
 	POSITION_MAP("positionMap", 							"Map containing positions for elements"),
