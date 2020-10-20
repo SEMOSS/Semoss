@@ -49,6 +49,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		boolean helpOn = getHelpOn();
 		boolean global = getGlobal();
 
@@ -59,165 +60,179 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		}
 
 		// otherwise, proceed with the reactor
-		String[] packages = new String[] { "igraph", "SteinerNet", "data.table" };
+		String[] packages = new String[] { "igraph", "SteinerNet", "data.table" , "tools" };
 		this.rJavaTranslator.checkPackages(packages);
 		String query = this.keyValue.get(this.keysToGet[0]);
 		List<String> engineFilters = getEngineIds();
 
 		// Generate string to initialize R console
 		this.rJavaTranslator.runR(RSyntaxHelper.loadPackages(packages));
-
-		// handle differently depending on whether it is from the frame or global
-		Object[] retData = null;
-		if (!global) {
-			// convert json input into java map
-			// query =
-			// "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"==\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"==\",\"value\":\"R\"},{\"component\":\"having
-			// sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having
-			// average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
-			// query =
-			// "[{\"component\":\"select\",\"column\":[\"Title\",\"Genre\"]},{\"component\":
-			// \"sum\"}]";
-			String queryTable = getQueryTableFromJson(query);
-
-			// run R function to get the dropdown items
-			ITableDataFrame frame = this.getFrame();
-			retData = getDropdownItems(queryTable, frame);
-
-		} else {
-			// if there were no engine filters, use all engines
-			if (engineFilters.size() > 0) {
-				// need to validate that the user has access to these ids
-				if (AbstractSecurityUtils.securityEnabled()) {
-					List<String> userIds = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
-					// make sure our ids are a complete subset of the user ids
-					// user defined list must always be a subset of all the engine ids
-					if (!userIds.containsAll(engineFilters)) {
-						throw new IllegalArgumentException(
-								"Attempting to filter to app ids that user does not have access to or do not exist");
-					}
-				} else {
-					List<String> allIds = MasterDatabaseUtility.getAllEngineIds();
-					if (!allIds.containsAll(engineFilters)) {
-						throw new IllegalArgumentException("Attempting to filter to app ids that not exist");
-					}
+		
+		// need to validate that the user has access to these ids
+		if (engineFilters.size() > 0) {
+			if (AbstractSecurityUtils.securityEnabled()) {
+				List<String> userIds = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+				// make sure our ids are a complete subset of the user ids
+				// user defined list must always be a subset of all the engine ids
+				if (!userIds.containsAll(engineFilters)) {
+					throw new IllegalArgumentException(
+							"Attempting to filter to app ids that user does not have access to or do not exist");
 				}
 			} else {
-				if (AbstractSecurityUtils.securityEnabled()) {
-					engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
-				} else {
-					engineFilters = MasterDatabaseUtility.getAllEngineIds();
+				List<String> allIds = MasterDatabaseUtility.getAllEngineIds();
+				if (!allIds.containsAll(engineFilters)) {
+					throw new IllegalArgumentException("Attempting to filter to app ids that not exist");
 				}
 			}
-
-			// set default paths
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
+		} else {
 			if (AbstractSecurityUtils.securityEnabled()) {
-				User user = this.insight.getUser();
-				String appId = user.getAssetEngineId(user.getPrimaryLogin());
-				String appName = "Asset";
-				if (appId != null && !(appId.isEmpty())) {
-					IEngine assetApp = Utility.getEngine(appId);
-					savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
-					ClusterUtil.reactorPullFolder(assetApp, savePath);
-				}
+				engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			} else {
+				engineFilters = MasterDatabaseUtility.getAllEngineIds();
 			}
-			savePath = savePath.replace("\\", "/");
-
-			// set the working directly
-			String wd = "wd" + Utility.getRandomString(6);
-			StringBuilder rsb = new StringBuilder();
-			rsb.append(wd + " <- " + "getwd();");
-			rsb.append("setwd(\"" + savePath + "\");");
-			this.rJavaTranslator.runR(rsb.toString());
-
-			// cluster tables if needed
-			String nldrPath1 = savePath + DIR_SEPARATOR + "nldr_membership.rds";
-			String nldrPath2 = savePath + DIR_SEPARATOR + "nldr_db.rds";
-			String nldrPath3 = savePath + DIR_SEPARATOR + "nldr_joins.rds";
-			File nldrMembership = new File(nldrPath1);
-			File nldrDb = new File(nldrPath2);
-			File nldrJoins = new File(nldrPath3);
-			long replaceTime = System.currentTimeMillis() - ((long) 1 * 24 * 60 * 60 * 1000);
-			if (!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists()
-					|| nldrMembership.lastModified() < replaceTime) {
-				createRdsFiles();
-				if (AbstractSecurityUtils.securityEnabled()) {
-					User user = this.insight.getUser();
-					String appId = user.getAssetEngineId(user.getPrimaryLogin());
-					String appName = "Asset";
-					if (appId != null && !(appId.isEmpty())) {
-						IEngine assetApp = Utility.getEngine(appId);
-						savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
-						ClusterUtil.reactorPushFolder(assetApp, savePath);
-					}
-				}
-			}
-
-			// run script and get array in alphabetical order
-			retData = generateAndRunScript(query, engineFilters);
-			Arrays.sort(retData);
-
-			// run Garbage Cleanup
-			this.rJavaTranslator.runR("setwd(" + wd + ")");
-			this.rJavaTranslator.executeEmptyR("rm( " + wd + "); gc();");
 		}
+		
+		//pull asset app
+		//set default paths
+		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
+		if (AbstractSecurityUtils.securityEnabled()) {
+			User user = this.insight.getUser();
+			String appId = user.getAssetEngineId(user.getPrimaryLogin());
+			String appName = "Asset";
+			if (appId != null && !(appId.isEmpty())) {
+				IEngine assetApp = Utility.getEngine(appId);
+				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPullFolder(assetApp, savePath);
+			}
+		}
+		savePath = savePath.replace("\\", "/"); 
+		
+		// source the proper script
+		StringBuilder sb = new StringBuilder();
+		String wd = "wd" + Utility.getRandomString(5);
+		String rFolderPath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR;
+		sb.append(wd + "<- getwd();");
+		sb.append(("setwd(\"" + savePath + "\");").replace("\\", "/"));
+		sb.append(("source(\"" + rFolderPath + "template_assembly.R" + "\");").replace("\\", "/"));
+		if(global) {
+			sb.append(("source(\"" + rFolderPath + "template_db.R" + "\");").replace("\\", "/"));
+		} else {
+			sb.append(("source(\"" + rFolderPath + "template.R" + "\");").replace("\\", "/"));
+		}
+		
+		this.rJavaTranslator.runR(sb.toString());
+		
+		// cluster tables if needed
+		String nldrPath1 = savePath + DIR_SEPARATOR + "nldr_membership.rds";
+		String nldrPath2 = savePath + DIR_SEPARATOR + "nldr_db.rds";
+		String nldrPath3 = savePath + DIR_SEPARATOR + "nldr_joins.rds";	
+		File nldrMembership = new File(nldrPath1);
+		File nldrDb = new File(nldrPath2);
+		File nldrJoins = new File(nldrPath3);
+		long replaceTime = System.currentTimeMillis() - ((long)1 * 24 * 60 * 60 * 1000);
+		if(global) {
+			if(!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists() || nldrMembership.lastModified() < replaceTime ) {
+				createRdsFiles();
+			}
+		}
+
+		// handle differently depending on whether it is from the frame or global
+		// convert json input into java map
+		// query = "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"==\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"==\",\"value\":\"R\"},{\"component\":\"having sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
+		// query = "[{\"component\":\"select\",\"column\":[\"Title\",\"Genre\"]},{\"component\": \"sum\"}]";
+
+		String queryTable = getQueryTableFromJson(query);
+		String colHeadersAndTypesFrame = getColHeadersAndTypes(global,engineFilters);
+		Object[] retData = getDropdownItems(queryTable, colHeadersAndTypesFrame);
+		
+		// reset wd
+		this.rJavaTranslator.runR("setwd(" + wd + ")");
+		this.rJavaTranslator.executeEmptyR("rm( " + wd + "); gc();");
 
 		// error catch -- if retData is null, return empty list
 		// return error message??
 		if (retData == null) {
 			retData = new String[0];
 		}
-
-		// make sure to catch it if it is an error message
-		if (retData.length == 1 && retData[0].equals("Selected data could not be joined together")) {
-			return new NounMetadata(retData[0], PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ERROR);
+		
+		// push asset app
+		if (AbstractSecurityUtils.securityEnabled()) {
+			User user = this.insight.getUser();
+			String appId = user.getAssetEngineId(user.getPrimaryLogin());
+			String appName = "Asset";
+			if (appId != null && !(appId.isEmpty())) {
+				IEngine assetApp = Utility.getEngine(appId);
+				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPushFolder(assetApp, savePath);
+			}
 		}
 
 		// return data to the front end
 		return new NounMetadata(retData, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
-	private Object[] getDropdownItems(String queryTable, ITableDataFrame frame) {
-		// init
+	private String getColHeadersAndTypes(boolean global, List<String> engineFilters) {
 		String dbTable = "db_" + Utility.getRandomString(6);
+		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
+		
+		if(global) {
+			StringBuilder rsb = new StringBuilder();
+			rsb.append(rSessionTable + " <- readRDS(\"nldr_db.rds\");");
+			
+			// filter the rds files to the engineFilters
+			String appFilters = "appFilters" + Utility.getRandomString(8);
+			rsb.append(appFilters + " <- c(");
+			String comma = "";
+			for (String appId : engineFilters) {
+				rsb.append(comma + " \"" + appId + "\" ");
+				comma = " , ";
+			}
+			rsb.append(");");
+			rsb.append(rSessionTable + " <- " + rSessionTable + "[" + rSessionTable + "$AppID %in% " + appFilters + " ,];");
+			
+			// we only need column and type column
+			rsb.append(dbTable + " <- " + rSessionTable + ";");
+			this.rJavaTranslator.runR(rsb.toString());
+			
+			// gc
+			this.rJavaTranslator.executeEmptyR("rm(" + appFilters + "); gc();");
+		} else {
+			ITableDataFrame frame = this.getFrame();
+			// build the dataframe of COLUMN and TYPE
+			Map<String, SemossDataType> colHeadersAndTypes = frame.getMetaData().getHeaderToTypeMap();
+			List<String> columnList = new Vector<String>();
+			List<String> typeList = new Vector<String>();
+			for (Map.Entry<String, SemossDataType> entry : colHeadersAndTypes.entrySet()) {
+				String col = entry.getKey();
+				String type = entry.getValue().toString();
+				if (col.contains("__")) {
+					col = col.split("__")[1];
+				}
+				columnList.add(col);
+
+				if (type.equals("INT") || type.equals("DOUBLE")) {
+					type = "NUMBER";
+				}
+				typeList.add(type);
+			}
+			// turn into R table
+			String rColumns = RSyntaxHelper.createStringRColVec(columnList);
+			String rTypes = RSyntaxHelper.createStringRColVec(typeList);
+			this.rJavaTranslator.runR(dbTable + " <- data.frame(Column = " + rColumns + " , Datatype = " + rTypes
+					+ ", stringsAsFactors = FALSE);");
+		}
+		
+		return dbTable;
+	}
+
+	private Object[] getDropdownItems(String queryTable, String colHeadersAndTypesFrame) {
+		// init
 		String retList = "retList_" + Utility.getRandomString(6);
 		StringBuilder rsb = new StringBuilder();
 		Object[] dropdownOptions = null;
 
-		// source the files
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String filePath = (baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR)
-				.replace("\\", "/");
-		rsb.append("source(\"" + filePath + "template.R\");");
-		rsb.append("source(\"" + filePath + "template_assembly.R\");");
-
-		// build the dataframe of COLUMN and TYPE
-		Map<String, SemossDataType> colHeadersAndTypes = frame.getMetaData().getHeaderToTypeMap();
-		List<String> columnList = new Vector<String>();
-		List<String> typeList = new Vector<String>();
-		for (Map.Entry<String, SemossDataType> entry : colHeadersAndTypes.entrySet()) {
-			String col = entry.getKey();
-			String type = entry.getValue().toString();
-			if (col.contains("__")) {
-				col = col.split("__")[1];
-			}
-			columnList.add(col);
-
-			if (type.equals("INT") || type.equals("DOUBLE")) {
-				type = "NUMBER";
-			}
-			typeList.add(type);
-		}
-		// turn into R table
-		String rColumns = RSyntaxHelper.createStringRColVec(columnList);
-		String rTypes = RSyntaxHelper.createStringRColVec(typeList);
-		rsb.append(dbTable + " <- data.frame(Column = " + rColumns + " , Datatype = " + rTypes
-				+ ", stringsAsFactors = FALSE);");
-
 		// pass the query table and the new dataframe to the script
-		rsb.append(retList + " <- analyze_request(" + dbTable + "," + queryTable + ")");
+		rsb.append(retList + " <- analyze_request(" + colHeadersAndTypesFrame + "," + queryTable + ")");
 		this.rJavaTranslator.runR(rsb.toString());
 
 		// collect the array
@@ -236,18 +251,23 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		}
 
 		// garbage cleanup
-		this.rJavaTranslator.executeEmptyR("rm( " + retList + "," + dbTable + " ); gc();");
+		this.rJavaTranslator.executeEmptyR("rm( " + retList + "," + colHeadersAndTypesFrame + " ); gc();");
 
 		// return
 		return dropdownOptions;
 	}
 
-	private String getQueryTableFromJson(String sampleJSON) {
+	private String getQueryTableFromJson(String queryJSON) {
 		String retTable = "queryTable_" + Utility.getRandomString(6);
+		
+		// check for blank
+		if(queryJSON == null || queryJSON.isEmpty()) {
+			queryJSON = "[]";
+		}
 
 		// read string into list
 		List<Map<String, Object>> optMap = new Vector<Map<String, Object>>();
-		optMap = new Gson().fromJson(sampleJSON, optMap.getClass());
+		optMap = new Gson().fromJson(queryJSON, optMap.getClass());
 
 		// start building script of
 		List<String> componentList = new Vector<String>();
@@ -613,54 +633,6 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		}
 
 		return engineFilters;
-	}
-
-	/**
-	 * Generate and run the script, returning array of strings
-	 * 
-	 * @param query
-	 * @param allTableCols
-	 * @return
-	 */
-	private String[] generateAndRunScript(String query, List<String> engineFilters) {
-		StringBuilder rsb = new StringBuilder();
-		String result = "result" + Utility.getRandomString(6);
-		String rSessionTable = "db" + Utility.getRandomString(6);
-		String rSessionJoinTable = "joins" + Utility.getRandomString(6);
-
-		// source the files
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String filePath = (baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR)
-				.replace("\\", "/");
-		rsb.append("source(\"" + filePath + "data_inquiry_guide.R\");");
-		rsb.append("source(\"" + filePath + "data_inquiry_assembly.R\");");
-
-		// read in the rds files
-		rsb.append(rSessionTable + " <- readRDS(\"nldr_db.rds\");");
-		rsb.append(rSessionJoinTable + " <- readRDS(\"nldr_joins.rds\");");
-
-		// filter the rds files to the engineFilters
-		String appFilters = "appFilters" + Utility.getRandomString(8);
-		rsb.append(appFilters + " <- c(");
-		String comma = "";
-		for (String appId : engineFilters) {
-			rsb.append(comma + " \"" + appId + "\" ");
-			comma = " , ";
-		}
-		rsb.append(");");
-		rsb.append(rSessionTable + " <- " + rSessionTable + "[" + rSessionTable + "$AppID %in% " + appFilters + " ,];");
-		rsb.append(rSessionJoinTable + " <- " + rSessionJoinTable + "[" + rSessionJoinTable + "$AppID %in% "
-				+ appFilters + " ,];");
-
-		// run the function
-		rsb.append(result + " <- get_next_keyword(" + rSessionTable + ",\"" + query + "\");");
-		this.rJavaTranslator.runR(rsb.toString());
-
-		// get back the data
-		String[] list = this.rJavaTranslator.getStringArray("unique(" + result + ");");
-
-		// return list
-		return list;
 	}
 
 	private boolean getHelpOn() {
