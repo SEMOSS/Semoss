@@ -159,7 +159,7 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 			}
 
 			// get the old
-			List<String> oldRecipe = in.getPixelRecipe();
+			List<String> oldRecipe = in.getPixelList().getPixelRecipe();
 			// store the new
 			List<String> newRecipe = new Vector<String>();
 			

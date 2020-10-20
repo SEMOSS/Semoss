@@ -25,6 +25,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
 import prerna.om.Insight;
+import prerna.om.Pixel;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -635,48 +636,49 @@ public class PixelUtility {
 	 * @param pixel
 	 * @return
 	 */
-	public static List<List<PipelineOperation>> generatePipeline(Insight in, String pixel) {
-		PipelineTranslation translation = null;
+	public static Map<String, Object> generatePipeline(Insight in) {
+		PipelineTranslation translation = new PipelineTranslation(in);
 		List<String> encodingList = new Vector<>();
 		Map<String, String> encodedTextToOriginal = new HashMap<>();
-		try {
-			pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodingList, encodedTextToOriginal);
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
-			translation = new PipelineTranslation(in);
+		
+		for(Pixel pixel : in.getPixelList()) {
+			String pixelString = pixel.getPixelString();
+			translation.setPixelId(pixel.getUid());
+			try {
+				pixelString = PixelPreProcessor.preProcessPixel(pixelString, encodingList, encodedTextToOriginal);
+				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixelString.getBytes("UTF-8")), "UTF-8"), pixelString.length())));
 
-			// parsing the pixel - this process also determines if expression is syntactically correct
-			Start tree = p.parse();
-			// apply the translation.
-			tree.apply(translation);
-		} catch(SemossPixelException e) {
-			if(!e.isContinueThreadOfExecution()) {
-				throw e;
-			}
-		} catch (ParserException | LexerException | IOException e) {
-			// we only need to catch invalid syntax here
-			// other exceptions are caught in lazy translation
-			String eMessage = e.getMessage();
-			if(eMessage.startsWith("[")) {
-				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
-				Matcher matcher = pattern.matcher(eMessage);
-				if(matcher.find()) {
-					String location = matcher.group(0);
-					location = location.substring(1, location.length()-1);
-					int findIndex = Integer.parseInt(location.split(",")[1]);
-					eMessage += ". Error in syntax around " + pixel.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
+				// parsing the pixel - this process also determines if expression is syntactically correct
+				Start tree = p.parse();
+				// apply the translation.
+				tree.apply(translation);
+			} catch(SemossPixelException e) {
+				if(!e.isContinueThreadOfExecution()) {
+					throw e;
 				}
+			} catch (ParserException | LexerException | IOException e) {
+				// we only need to catch invalid syntax here
+				// other exceptions are caught in lazy translation
+				String eMessage = e.getMessage();
+				if(eMessage.startsWith("[")) {
+					Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
+					Matcher matcher = pattern.matcher(eMessage);
+					if(matcher.find()) {
+						String location = matcher.group(0);
+						location = location.substring(1, location.length()-1);
+						int findIndex = Integer.parseInt(location.split(",")[1]);
+						eMessage += ". Error in syntax around " + pixelString.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixelString.length())).trim();
+					}
+				}
+				throw new IllegalArgumentException(eMessage, e);
 			}
-			throw new IllegalArgumentException(eMessage, e);
 		}
 
-		if (translation == null) {
-			throw new NullPointerException("Pipeline translation should not be null here.");
-		}
-
-		return translation.getAllRoutines();
+		Map<String, Object> retMap = new HashMap<>();
+		retMap.put("idMapping", translation.getPixelIdToOperation());
+		retMap.put("pixelParsing", translation.getAllRoutines());
+		return retMap;
 	}
-	
-	
 	
 	/**
 	 * Get the pipeline operations for a given pixel

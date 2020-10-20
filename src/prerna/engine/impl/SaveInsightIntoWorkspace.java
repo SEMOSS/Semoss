@@ -38,18 +38,13 @@ public class SaveInsightIntoWorkspace {
 	public SaveInsightIntoWorkspace(String userWorkspaceId, String rdbmsId, String insightName, boolean created) {
 		this.userWorkspaceEngine = Utility.getEngine(userWorkspaceId);
 		this.insightAdmin = new InsightAdministrator(this.userWorkspaceEngine.getInsightDatabase());
-//		if(created) {
-//			this.workspaceSavedInsightId = rdbmsId;
-//		} else {
-			this.workspaceSavedInsightId = UUID.randomUUID().toString();
-//		}
+		this.workspaceSavedInsightId = UUID.randomUUID().toString();
 		this.queue = new ArrayBlockingQueue<List<String>>(50);
 		this.insightName = insightName;
 		
 		this.cacher = new InsightCacher(this.workspaceSavedInsightId, this.queue, 
 				this.userWorkspaceEngine, this.insightAdmin, 
 				this.insightName);
-//		this.cacher.setCreated(created);
 		
 		this.t = new Thread(this.cacher);
 		this.t.start();
@@ -143,15 +138,6 @@ class InsightCacher implements Runnable {
 
 					created = true;
 				}
-				
-				// this has been moved to be performed on user logout/session invalidation
-//				if(ClusterUtil.IS_CLUSTER) {
-//					try {
-//						CloudClient.getClient().pushApp(this.workspaceAppId);
-//					} catch (IOException e) {
-//						e.printStackTrace();
-//					}
-//				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -179,7 +165,4 @@ class InsightCacher implements Runnable {
 		}
 	}
 	
-//	public void setCreated(boolean created) {
-//		this.created = created;
-//	}
 }
