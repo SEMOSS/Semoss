@@ -101,22 +101,45 @@ get_dep_ranking<-function(dtf,dep_vars,mthd = "estevez",desc_mthd="sturges",schm
 	return(p)
 }
 
-get_frequent_itemsets<-function(df,max_cnt=ncol(df),min_cnt=2,sprt=0.1){
+get_frequent_itemsets<-function(df,min_cnt=2,sprt=0.1){
+	MIN_BREAKS=3
 	library(arules)
-
-	trans<-as(movies,"transactions")
-	itemsets <- apriori(trans, parameter = list(target = "frequent",  supp=sprt, minlen = min_cnt, maxlen=max_cnt))
-	out<-interestMeasure(itemsets, transactions = trans)
-	out$items<-labels(itemsets)
-	out<-out[out$lift>1,]
-	out<-out[order(-out$support,-out$lift),]
-	out<-out[,c(6,1,2,3,4,5)]
+	
+	y<-sapply(df,class)
+	z<-rapply(df,function(x)length(unique(x)))
+	ind<-which(y!='numeric' | z > MIN_BREAKS)
+	if(length(ind)>0){
+		df<-df[,ind]
+		max_cnt<-ncol(df)
+		trans<-as(df,"transactions")
+		itemsets <- apriori(trans, parameter = list(target = "frequent",  supp=sprt, minlen = min_cnt, maxlen=max_cnt))
+		out<-interestMeasure(itemsets, transactions = trans)
+		out$items<-labels(itemsets)
+		out<-out[out$lift>1,]
+		out<-out[order(-out$support,-out$lift),]
+		out<-out[,c(6,1,2,3,4,5)]
+	}else{
+		out<-data.frame()
+	}
 	gc()
 	return(out)	
 }
 
 select_features<-function(df,dep_var){
 	library(Boruta)
+	library(lubridate)
+	
+	# Drop Date columns
+	types<-sapply(df,class)
+	col_ind<-which(types == 'Date')
+	if(length(col_ind)>0){
+		# convert date to seconds (integer)
+		for(i in 1:length(col_ind)){
+			df[,col_ind[i]]<-time_length(interval(ymd("1970-01-01"), df[,col_ind[i]]), "second")
+		}
+	}
+	df<-impute_data(df,colnames(df))
+	
 	if(class(df[[dep_var]])=="character"){
 		df[[dep_var]]<-as.factor(df[[dep_var]])
 	}
@@ -124,7 +147,8 @@ select_features<-function(df,dep_var){
 	eval(parse(text=cmd))
 	y<-attStats(x)
 	out<-data.frame(Feature=rownames(y),Importance=y$meanImp,Selection=as.character(y$decision))
-	plot(x)
+	out<-out[order(-out$Importance),]
+	#plot(x)
 	gc()
 	return(out)
 }
@@ -189,6 +213,33 @@ get_df_scan<-function(df){
 			}
 			out[[type]]<-r
 		}
+	}
+	gc()
+	return(out)
+}
+
+detect_outliers<-function(input_df){
+	library(HDoutliers)
+	library(lubridate)
+	
+	df<-input_df
+	# Drop Date columns
+	types<-sapply(df,class)
+	col_ind<-which(types == 'Date')
+	if(length(col_ind)>0){
+		# convert date to seconds (integer)
+		for(i in 1:length(col_ind)){
+			df[,col_ind[i]]<-time_length(interval(ymd("1970-01-01"), df[,col_ind[i]]), "second")
+		}
+	}
+	# impute missing data
+	df<-impute_data(df,colnames(df))
+	# detect outliers
+	ind<-HDoutliers(df)
+	if(length(ind)>0){
+		out<-input_df[ind,]	
+	}else{
+		out<-data.frame()
 	}
 	gc()
 	return(out)
