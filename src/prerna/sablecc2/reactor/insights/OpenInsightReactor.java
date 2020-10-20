@@ -140,8 +140,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// TODO: i am cheating here
 		// we do not cache dashboards or param insights currently
 		// so adding the cacheable check before hand
-		boolean isParam = cacheable && (params != null || PixelUtility.hasParam(newInsight.getPixelRecipe()));
-		boolean isDashoard = cacheable && PixelUtility.isDashboard(newInsight.getPixelRecipe());
+		boolean isParam = cacheable && (params != null || PixelUtility.hasParam(newInsight.getPixelList().getPixelRecipe()));
+		boolean isDashoard = cacheable && PixelUtility.isDashboard(newInsight.getPixelList().getPixelRecipe());
 		
 		// if not param or dashboard, we can try to load a cache
 		// do we have a cached insight we can use
@@ -153,7 +153,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				if(cachedInsight != null) {
 					hasCache = true;
 					cachedInsight.setInsightName(newInsight.getInsightName());
-					cachedInsight.setPixelRecipe(newInsight.getPixelRecipe());
+					cachedInsight.setPixelRecipe(newInsight.getPixelList().getPixelRecipe());
 					newInsight = cachedInsight;
 				}
 			} catch (IOException | RuntimeException e) {
@@ -252,7 +252,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
 			// just add it directly to the pixel list
 			// and the reRunPiexelInsight will do its job
-			insight.getPixelRecipe().addAll(additionalPixels);
+			insight.getPixelList().addPixel(additionalPixels);
 		}
 		
 		// rerun the insight
@@ -287,7 +287,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 */
 	protected PixelRunner getCachedInsightData(Insight insight) throws IOException, JsonSyntaxException {
 		// so that I don't mess up the insight recipe
-		List<String> origRecipe = insight.getPixelRecipe();
+		List<String> origRecipe = insight.getPixelList().getPixelRecipe();
 		insight.setPixelRecipe(new Vector<String>());
 		
 		PixelRunner runner = new PixelRunner();

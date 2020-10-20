@@ -122,7 +122,7 @@ public class Insight {
 	protected String tupleSpace = null;
 	
 	// list to store the pixels that make this insight
-	private List<String> pixelList;
+	private PixelList pixelList;
 	
 	// keep a map to store various properties
 	// new variable assignments in pixel are also stored here
@@ -242,7 +242,7 @@ public class Insight {
 	 * Init the insight
 	 */
 	private void loadDefaultSettings() {
-		this.pixelList = new Vector<String>();
+		this.pixelList = new PixelList();
 		this.taskStore = new TaskStore();
 		this.insightId = UUID.randomUUID().toString();
 		
@@ -296,7 +296,7 @@ public class Insight {
 					if(this.user != null && !this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace() && AbstractSecurityUtils.securityEnabled() 
 							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
 						if(!runner.isMeta().isEmpty() && !runner.isMeta().get(runner.isMeta().size()-1)) {
-							getWorkspaceCacheThread().addToQueue(this.pixelList);
+							getWorkspaceCacheThread().addToQueue(this.pixelList.getPixelRecipe());
 						}
 					}
 				}
@@ -547,7 +547,7 @@ public class Insight {
 		return this.engineId != null && this.rdbmsId != null;
 	}
 	
-	public List<String> getPixelRecipe() {
+	public PixelList getPixelList() {
 		return this.pixelList;
 	}
 	
@@ -558,12 +558,13 @@ public class Insight {
 	 */
 	public List<String> getOptimizedPixelRecipe() {
 		GetOptimizedRecipeReactor optimizer = new GetOptimizedRecipeReactor();
-		List<String> recipe = optimizer.getOptimizedRecipe(this.pixelList);
+		List<String> recipe = optimizer.getOptimizedRecipe(this.pixelList.getPixelRecipe());
 		return recipe;
 	}
 
-	public void setPixelRecipe(List<String> pixelList) {
-		this.pixelList = pixelList;
+	public void setPixelRecipe(List<String> pixelRecipe) {
+		this.pixelList.clear();
+		this.pixelList.addPixel(pixelRecipe);
 	}
 	
 	public String getInsightId() {
@@ -928,7 +929,7 @@ public class Insight {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Error with " + pkqlString + "\n" + e.getMessage());
 		}
-		this.pixelList.add(pkqlString);
+		this.pixelList.addPixel(pkqlString);
 		return collectPkqlResults(runner);
 	}
 
@@ -952,7 +953,7 @@ public class Insight {
 				e.printStackTrace();
 				throw new IllegalArgumentException("Error with " + pkqlString + "\n" + e.getMessage());
 			}
-			this.pixelList.add(pkqlString);
+			this.pixelList.addPixel(pkqlString);
 		}
 		return collectPkqlResults(runner);
 	}
@@ -1007,7 +1008,7 @@ public class Insight {
 		// have too much in memory
 		this.varStore.clear();
 		this.insightPanels.clear();
-		return runPkql(this.pixelList);
+		return runPkql(this.pixelList.getPixelRecipe());
 	}
 	
 	/**
@@ -1057,7 +1058,7 @@ public class Insight {
 		// copy over the recipe to a new list
 		// and clear the current container
 		List<String> newList = new Vector<String>();
-		newList.addAll(this.pixelList);
+		newList.addAll(this.pixelList.getPixelRecipe());
 		this.pixelList.clear();
 		
 		// clear the panels

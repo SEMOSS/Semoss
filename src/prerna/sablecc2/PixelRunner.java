@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import cern.colt.Arrays;
 import prerna.om.Insight;
+import prerna.om.Pixel;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.ARoutineConfiguration;
@@ -127,7 +128,8 @@ public class PixelRunner {
 		// when we have an expression that is returned
 		// that is not a meta
 		if(!isMeta) {
-			this.insight.getPixelRecipe().add(origExpression);
+			Pixel pixel = this.insight.getPixelList().addPixel(origExpression);
+			// TODO: build out to add additional metadata
 		}
 	}
 	
@@ -148,7 +150,8 @@ public class PixelRunner {
 		// when we have an expression that is returned
 		// that is not a meta
 		if(!isMeta) {
-			this.insight.getPixelRecipe().add(index, origExpression);
+			Pixel pixel = this.insight.getPixelList().addPixel(origExpression);
+			// TODO: build out to add additional metadata
 		}
 	}
 	

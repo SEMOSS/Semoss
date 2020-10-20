@@ -90,7 +90,7 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
 			// just add it directly to the pixel list
 			// and the reRunPiexelInsight will do its job
-			newInsight.getPixelRecipe().addAll(additionalPixels);
+			newInsight.getPixelList().addPixel(additionalPixels);
 		}
 		// rerun the insight
 		runner = newInsight.reRunOptimizedPixelInsight();

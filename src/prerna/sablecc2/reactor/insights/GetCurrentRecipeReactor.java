@@ -11,7 +11,7 @@ public class GetCurrentRecipeReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		List<String> pixelRecipe = this.insight.getPixelRecipe();
+		List<String> pixelRecipe = this.insight.getPixelList().getPixelRecipe();
 		StringBuilder recipe = new StringBuilder();
 		
 		// Don't add GetCurrentRecipe to the end

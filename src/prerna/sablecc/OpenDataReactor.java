@@ -28,10 +28,10 @@ public class OpenDataReactor extends AbstractReactor {
 	
 	public OpenDataReactor() {
 		String [] thisReacts = {PKQLEnum.WORD_OR_NUM};
-		
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.OPEN_DATA;
 	}
+	
 	@Override
 	public Iterator process() {
 		
@@ -83,7 +83,7 @@ public class OpenDataReactor extends AbstractReactor {
 //				Map<String, Object> insightOutput = run.runWeb();//runSavedRecipe();
 				
 				Map<String, Object> webData = getWebData(insightOutput);
-				webData.put("recipe", insightObj.getPixelRecipe());
+				webData.put("recipe", insightObj.getPixelList().getPixelRecipe());
 				webData.put("core_engine", engine);
 				webData.put("core_engine_id", engine_id);
 				myStore.put("webData", webData);
