@@ -26,7 +26,7 @@ import prerna.util.Utility;
 public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 
 	public RunImpliedInsightsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PANEL.getKey() };
+		this.keysToGet = new String[] {  };
 	}
 
 	@Override
@@ -39,14 +39,13 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 		String dtName = frame.getName();
 		boolean implicitFilter = false;
 		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
-		InsightPanel panel = getInsightPanel();
 		
 		// check if the required packages are installed
-		String[] packages = new String[] { "data.table" , "arules" , "Boruta" , "rlang" , "tidyselect" ,  "skimr" };
+		String[] packages = new String[] { "data.table" , "arules" , "Boruta" , "rlang" , "tidyselect" ,  "skimr" , "HDoutliers" , "lubridate" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// check if there are filters on the frame. if so then need to run algorithm on subsetted data
-		GenRowFilters filters = panel.getPanelFilters();
+		GenRowFilters filters = frame.getFrameFilters();
 		if(!filters.isEmpty()) {
 			// create a new qs to retrieve filtered frame
 			SelectQueryStruct qs = new SelectQueryStruct();
@@ -67,35 +66,107 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 			//cleanup the temp r variable in the query var
 			this.rJavaTranslator.runR("rm(" + query.split(" <-")[0] + ");gc();");
 		}
-		
 		String targetDt = implicitFilter ? dtNameIF : dtName;
 
+		// source the r script
+		List<String> scriptFilePaths = new Vector<String>();
+		scriptFilePaths.add(getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\implied_insights.R");
+		scriptFilePaths.add(getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\ImputeData.R");
+		for(String path : scriptFilePaths) {
+			path = path.replace("\\", "/");
+			this.rJavaTranslator.runR("source(\"" + path + "\");");
+		}
+		
 		// run the summary frame functions
 		String summaryFrame = getSummaryFrame(targetDt);
-		List<Map<String,Object>> summaryRetMap = formatSummaryFrame(summaryFrame);
+		Map<String,String> allSummaryFrames = formatSummaryFrame(summaryFrame);
 		
 		// run the outlier frame functions
 		String outlierFrame = getOutlierFrame(targetDt);
-		String[] outlierColNames = this.rJavaTranslator.getColumns(outlierFrame);
-		List<Object[]> outlierData = this.rJavaTranslator.getBulkDataRow(outlierFrame, outlierColNames);
-		Map<String, Object> outlierRetMap = new HashMap<>();
-		outlierRetMap.put("headers", outlierColNames);
-		outlierRetMap.put("values", outlierData);
 		
-		// garbage cleanup
-		this.rJavaTranslator.executeEmptyR("rm(" + outlierFrame + " , " + summaryFrame + "); gc();");
+		// get the frequent itemsets
+		String frequentItemsetsFrame = getFrequentItemsetsFrame(targetDt);
+		
+		// get the frame outliers
+		String hdoutliersFrame = getHDOutliersFrame(targetDt);
+		
+		// format and return the noun
+		String[] retData = new String[6];
+		retData[0] = allSummaryFrames.get("NUMBER");
+		retData[1] = allSummaryFrames.get("STRING");
+		retData[2] = allSummaryFrames.get("DATE");
+		retData[3] = outlierFrame;
+		retData[4] = frequentItemsetsFrame;
+		retData[5] = hdoutliersFrame;
 		
 		// format and return the noun
 		List<NounMetadata> tasks = new Vector<>();
-		NounMetadata noun1 = new NounMetadata(summaryRetMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		NounMetadata noun2 = new NounMetadata(outlierRetMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		
-		tasks.add(noun1);
-		tasks.add(noun2);
-		return new NounMetadata(tasks, PixelDataType.VECTOR, PixelOperationType.VECTOR);
+		// make sure all returned frames are proper semoss frames
+		for(String newFrame : retData) {
+			NounMetadata noun = null;
+			if(newFrame != null && !newFrame.isEmpty()) {
+				this.rJavaTranslator.runR(RSyntaxHelper.asDataTable(newFrame, newFrame));
+				
+				// make sure the table is not empty
+				int rowCount = this.rJavaTranslator.getInt("nrow(" + newFrame + ")");
+				if(rowCount > 0) {
+					RDataTable newTable = createNewFrameFromVariable(newFrame);
+					noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME);
+					this.insight.getVarStore().put(newFrame, noun);
+				}
+			}
+			tasks.add(noun);
+		}
+		
+		// return as array
+		return new NounMetadata(tasks, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
-	private List<Map<String, Object>> formatSummaryFrame(String summaryFrame) {
+	private String getHDOutliersFrame(String targetDt) {
+		// the name of the results table is what we will be passing to the FE
+		String results = "HdOutliersFrame_" + Utility.getRandomString(10);
+		String cleanInput = "CleanedInput_" + Utility.getRandomString(10);
+		
+		// create a stringbuilder for our r syntax
+		StringBuilder rsb = new StringBuilder();
+		rsb.append(cleanInput + "<-"+targetDt+"[complete.cases("+targetDt+"), ];");
+
+		// run function
+		rsb.append(RSyntaxHelper.asDataFrame(cleanInput, cleanInput));
+		rsb.append(results + " <- detect_outliers(" + cleanInput + ");");
+
+		// run the script
+		this.rJavaTranslator.runR(rsb.toString());
+		
+		// garbage cleanup
+		this.rJavaTranslator.executeEmptyR("rm(" + cleanInput + "); gc();");
+
+		// return new frame
+		return results;
+	}
+
+	private String getFrequentItemsetsFrame(String targetDt) {
+		// the name of the results table is what we will be passing to the FE
+		String results = "frequentItemsetsFrame_" + Utility.getRandomString(10);
+		String targetDf = "targetDf" + Utility.getRandomString(10);
+
+		// create a stringbuilder for our r syntax
+		StringBuilder rsb = new StringBuilder();
+
+		// run function
+		rsb.append(RSyntaxHelper.asDataFrame(targetDf, targetDt));
+		rsb.append(results + " <- get_frequent_itemsets(" + targetDf + ");");
+
+		// run the script
+		this.rJavaTranslator.runR(rsb.toString());
+		this.rJavaTranslator.executeEmptyR("rm(" + targetDf + "); gc();");
+		
+		// return new frame
+		return results;
+	}
+
+	private Map<String,String> formatSummaryFrame(String summaryFrame) {
 		// get the possible types
 		String possibleTypesVar = "possibleTypesVar" + Utility.getRandomString(6);
 		this.rJavaTranslator.runR(possibleTypesVar + " <- names(" + summaryFrame + ");");
@@ -104,26 +175,19 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 		
 		// get the cleaned types for UI
 		String[] typesCleaned =  getCleanTypes(possibleTypes);
-		List<Map<String,Object>> retList = new Vector<Map<String,Object>>();
+		Map<String,String> retList = new HashMap<String,String>();
 
 		// loop through possible types and add it to the return
 		for(int i = 0; i < possibleTypes.length; i ++) {
 			// get type info
 			String tableName = summaryFrame + "$" + possibleTypes[i];
-			String type = typesCleaned[i];
 			
-			// get the data and headers
-			String[] typeSummaryColNames = this.rJavaTranslator.getColumns(tableName);
-			List<Object[]> typeSummaryData = this.rJavaTranslator.getBulkDataRow(tableName, typeSummaryColNames);
+			// put it in a name
+			String newTableName = summaryFrame + "_" + typesCleaned[i];
+			this.rJavaTranslator.runR(newTableName + " <- " + tableName + ";");
 			
-			// add it to a map
-			Map<String, Object> typeRetMap = new HashMap<>();
-			typeRetMap.put("datatype", type);
-			typeRetMap.put("headers", typeSummaryColNames);
-			typeRetMap.put("values", typeSummaryData);
-			
-			// add that to our return list
-			retList.add(typeRetMap);
+			// add it to the list
+			retList.put(typesCleaned[i],newTableName);
 		}
 		
 		return retList;
@@ -156,13 +220,7 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 		// create a stringbuilder for our r syntax
 		StringBuilder rsb = new StringBuilder();
 
-		// source the r script that will run the outlier and impute routine
-		String scriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\implied_insights.R";
-		scriptFilePath = scriptFilePath.replace("\\", "/");
-		rsb.append("source(\"" + scriptFilePath + "\");");
-
 		// run function
-		rsb.append(RSyntaxHelper.asDataTable(targetDt, targetDt));
 		rsb.append(results + " <- get_df_scan(" + targetDt + ");");
 
 		// run the script
@@ -178,11 +236,6 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 
 		// create a stringbuilder for our r syntax
 		StringBuilder rsb = new StringBuilder();
-
-		// source the r script that will run the outlier and impute routine
-		String scriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\implied_insights.R";
-		scriptFilePath = scriptFilePath.replace("\\", "/");
-		rsb.append("source(\"" + scriptFilePath + "\");");
 
 		// run function
 		rsb.append(results + " <- get_dataset_outliers(" + targetDt + ");");
