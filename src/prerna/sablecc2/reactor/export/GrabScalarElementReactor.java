@@ -28,14 +28,19 @@ public class GrabScalarElementReactor extends AbstractReactor {
 		if(task == null) {
 			throw new IllegalArgumentException("Could not find task to retrieve data from!");
 		}
-		String stringType = (String) task.getHeaderInfo().get(0).get("type");
+		String stringType = (String) task.getHeaderInfo().get(0).get("dataType");
 		
 		PixelDataType nounType = null;
-		Object nounValue = task.next().getValues()[0];
-		if(Utility.isNumericType(stringType)) {
-			nounType = PixelDataType.CONST_DECIMAL;
+		Object nounValue = null;
+		if(task.hasNext()) {
+			nounValue = task.next().getValues()[0];
+			if(Utility.isNumericType(stringType)) {
+				nounType = PixelDataType.CONST_DECIMAL;
+			} else {
+				nounType = PixelDataType.CONST_STRING;
+			}
 		} else {
-			nounType = PixelDataType.CONST_STRING;
+			nounType = PixelDataType.NULL_VALUE;
 		}
 		
 		boolean cleanUp = cleanUp();
