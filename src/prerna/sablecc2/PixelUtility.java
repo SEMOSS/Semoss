@@ -42,13 +42,12 @@ import prerna.sablecc2.pipeline.PipelineTranslation2;
 import prerna.sablecc2.translations.DatasourceTranslation;
 import prerna.sablecc2.translations.ParameterizeSaveRecipeTranslation;
 import prerna.sablecc2.translations.ReplaceDatasourceTranslation;
+import prerna.util.Constants;
 
 public class PixelUtility {
 
 	private static final Logger logger = LogManager.getLogger(PixelUtility.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
-	
 	/**
 	 * 
 	 * @param pixelExpression
@@ -140,10 +139,10 @@ public class PixelUtility {
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException ioe) {
 			logger.error("FAILED ON :::: " + pixelString);
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} catch(Exception e) {
 			logger.error("FAILED ON :::: " + pixelString);
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -232,7 +231,7 @@ public class PixelUtility {
 			tree.apply(translation);
 			return translation.hasParam();
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			String eMessage = e.getMessage();
 			if(eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -289,7 +288,7 @@ public class PixelUtility {
 			tree.apply(translation);
 			return translation.isDashboard();
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			String eMessage = e.getMessage();
 			if(eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -329,7 +328,7 @@ public class PixelUtility {
 			ret[1] =translation.getValues();
 			return ret;
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -403,7 +402,7 @@ public class PixelUtility {
 			// apply the translation.
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return translation.getDatasourcePixels();
@@ -431,7 +430,7 @@ public class PixelUtility {
 			// apply the translation.
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		return translation.getPixels();
@@ -485,7 +484,7 @@ public class PixelUtility {
 				// apply the translation.
 				tree.apply(translation);
 			} catch (ParserException | LexerException | IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 			
 		}

@@ -123,6 +123,7 @@ public class Insight {
 	
 	// list to store the pixels that make this insight
 	private PixelList pixelList;
+	private Map<String, Integer> pixelIdToIndex;
 	
 	// keep a map to store various properties
 	// new variable assignments in pixel are also stored here
@@ -243,6 +244,7 @@ public class Insight {
 	 */
 	private void loadDefaultSettings() {
 		this.pixelList = new PixelList();
+		this.pixelIdToIndex = new HashMap<>();
 		this.taskStore = new TaskStore();
 		this.insightId = UUID.randomUUID().toString();
 		
@@ -1057,8 +1059,13 @@ public class Insight {
 		
 		// copy over the recipe to a new list
 		// and clear the current container
+		// maintain the pixelIds so they are consistent
+		List<String> currentPixelIds = pixelList.getPixelIds();
+		
 		List<String> newList = new Vector<String>();
 		newList.addAll(this.pixelList.getPixelRecipe());
+		
+		// clear the current pixelList
 		this.pixelList.clear();
 		
 		// clear the panels
@@ -1066,6 +1073,9 @@ public class Insight {
 		
 		// execution
 		PixelRunner results = runPixel(newList);
+		
+		// now set the pixelIds back
+		this.pixelList.updateAllPixelIds(currentPixelIds);
 		
 		// set the mode back
 		setRunSavedInsightMode(false);
