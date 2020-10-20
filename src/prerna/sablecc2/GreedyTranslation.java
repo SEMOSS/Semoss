@@ -300,7 +300,7 @@ public class GreedyTranslation extends LazyTranslation {
 			// if there was a previous result
 			// remove it
 			this.planner.removeVariable(this.resultKey);
-		} 
+		}
 		else {
 			this.runner.addResult(pixelExpression, new NounMetadata("no output", PixelDataType.CONST_STRING), this.isMeta);
 		}

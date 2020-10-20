@@ -23,7 +23,7 @@ public class ModifyInsightDatasourceReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		List<Map<String, Object>> replacementOptions = getOptions();
 
-		List<String> recipe = this.insight.getPixelRecipe();
+		List<String> recipe = this.insight.getPixelList().getPixelRecipe();
 		StringBuilder b = new StringBuilder();
 		for(String s : recipe) {
 			b.append(s);
@@ -37,8 +37,6 @@ public class ModifyInsightDatasourceReactor extends AbstractReactor {
 		InsightUtility.transferDefaultVars(this.insight, cInsight);
 		List<String> newRecipe = PixelUtility.modifyInsightDatasource(cInsight, fullRecipe, replacementOptions);
 		
-		//TODO: added this in for testing!!!
-		this.insight.getPixelRecipe().clear();
 		return new NounMetadata(newRecipe, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 	

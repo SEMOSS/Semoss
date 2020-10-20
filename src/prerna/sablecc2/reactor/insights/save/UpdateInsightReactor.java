@@ -66,16 +66,20 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
 		String[] recipeToSave = getRecipe();
-		if(recipeToSave == null || recipeToSave.length == 0) {
-			throw new IllegalArgumentException("Need to define the recipe to save");
+		// saving an empty recipe?
+		if (recipeToSave == null || recipeToSave.length == 0) {
+			List<String> recipeList = this.insight.getPixelList().getPixelRecipe();
+			recipeToSave = recipeList.toArray(new String[recipeList.size()]);
+		} else {
+			// this is always encoded before it gets here
+			recipeToSave = decodeRecipe(recipeToSave);
 		}
+				
 		String layout = getLayout();
 		boolean hidden = getHidden();
 		List<Map<String, Object>> params = getParams();
 		Map pipeline = getPipeline();
 
-		// this is always encoded before it gets here
-		recipeToSave = decodeRecipe(recipeToSave);
 		// get an updated recipe if there are files used
 		// and save the files in the correct location
 		recipeToSave = saveFilesInInsight(recipeToSave, appId, existingId);
