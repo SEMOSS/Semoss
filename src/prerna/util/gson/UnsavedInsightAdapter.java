@@ -137,7 +137,7 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 		tAdapter.write(out, tStore);
 		
 		// write the recipe
-		List<String> recipe = value.getPixelRecipe();
+		List<String> recipe = value.getPixelList().getPixelRecipe();
 		int steps = recipe.size();
 		out.name("recipe");
 		out.beginArray();

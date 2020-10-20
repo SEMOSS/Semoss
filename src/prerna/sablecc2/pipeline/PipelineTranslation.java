@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,14 +24,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.om.Insight;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.query.querystruct.AbstractFileQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.HardSelectQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.TemporalEngineHardQueryStruct;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelUtility;
@@ -58,7 +50,7 @@ import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.frame.FrameFactory;
-import prerna.sablecc2.reactor.qs.source.RDFFileSourceReactor;
+import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -67,7 +59,7 @@ import prerna.util.gson.GsonUtility;
 
 public class PipelineTranslation extends LazyTranslation {
 
-	private static final Logger logger = LogManager.getLogger(PipelineTranslation.class);
+	private static final Logger logger = LogManager.getLogger(PipelineTranslation2.class);
 	private static Map<String, String> reactorToId = null;
 	
 	private static Map<AbstractQueryStruct.QUERY_STRUCT_TYPE, String> qsToWidget = new HashMap<>();
@@ -79,9 +71,7 @@ public class PipelineTranslation extends LazyTranslation {
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, "pipeline-app");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE, "pipeline-file");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME, "pipeline-frame");
-//		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.LAMBDA, value);
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, "pipeline-query");
-//		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY, "pipeline-query");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY, "pipeline-external");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY, "pipeline-rdf-file");
 
@@ -102,8 +92,12 @@ public class PipelineTranslation extends LazyTranslation {
 		codeBlocks.add("Java");
 	}
 	
+	
 	private List<List<PipelineOperation>> allRoutines = new Vector<>();
 	private List<PipelineOperation> curRoutine;
+	private List<String> pixelIdToOperation = new Vector<>();
+	
+	private String pixelId = null;
 	
 	public PipelineTranslation(Insight insight) {
 		super();
@@ -129,8 +123,11 @@ public class PipelineTranslation extends LazyTranslation {
         	try {
         		this.resultKey = "$RESULT_" + e.hashCode();
             	this.curRoutine = new Vector<>();
-        		this.allRoutines.add(this.curRoutine);
-
+        		// add the routine
+            	// add the pixel id
+            	this.allRoutines.add(this.curRoutine);
+        		this.pixelIdToOperation.add(this.pixelId);
+        		
         		e.apply(this);
         		// reset the state of the frame
         		this.currentFrame = null;
@@ -298,6 +295,7 @@ public class PipelineTranslation extends LazyTranslation {
     			logger.error(Constants.STACKTRACE, e);
     			throw new IllegalArgumentException(e.getMessage());
     		}
+    		
     		// get the parent
     		Object parent = curReactor.Out();
     		// set the parent as the curReactor if it is present
@@ -307,6 +305,13 @@ public class PipelineTranslation extends LazyTranslation {
     		} else {
     			curReactor = null;
     		}
+
+    		// account for moving qs
+    		if(curReactor == null && prevReactor instanceof AbstractQueryStructReactor) {
+    			AbstractQueryStruct qs = ((AbstractQueryStructReactor) prevReactor).getQs();
+	    		this.planner.addVariable(this.resultKey, new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
+    		}
+    		
     	}
     }
     
@@ -330,11 +335,6 @@ public class PipelineTranslation extends LazyTranslation {
     	String reactorId = reactorInputs[0];
 		PipelineOperation op = new PipelineOperation(reactorId, reactorInputs[1]);
 		
-		if(PipelineTranslation.qsReactors.contains(reactorId) 
-				|| PipelineTranslation.fileReactors.contains(reactorId)) {
-			// we need to merge the previous QS portions into this reactor
-			combineQSComponents(op);
-		} 
 		// the file reactors do not set the widget id directly since 
 		// the structure doesn't care about the qs source at the moment...
 		// so will set it here if reactor to id has the stuff
@@ -356,286 +356,11 @@ public class PipelineTranslation extends LazyTranslation {
 				op.addRowInput(nounMapRet);
 			}
 		} else {
-			// now add all the inputs
-			NounStore store = reactor.getNounStore();
-			Set<String> nounKeys = store.nounRow.keySet();
-			for(String nounKey : nounKeys) {
-				// grab the genrowstruct for the noun
-				// and add its vector to the inputs list
-				GenRowStruct struct = store.getNoun(nounKey);
-				if(nounKey.equals("all")) {
-					// this is passed directly into the reactor
-					for(int i = 0; i < struct.size(); i++) {
-						NounMetadata noun = struct.getNoun(i);
-						// handles if lambda, frame, or basic input
-						Map<String, Object> nounMapRet = processNounMetadata(noun);
-						op.addRowInput(nounMapRet);
-					}
-				} else {
-					// this is passed based on a key
-					for(int i = 0; i < struct.size(); i++) {
-						NounMetadata noun = struct.getNoun(i);
-						// handles if lambda, frame, or basic input
-						Map<String, Object> nounMapRet = processNounMetadata(noun);
-						op.addNounInputs(nounKey, nounMapRet);
-					}
-				}
-			}
+			Map<String, List<Map>> storeMap = reactor.getStoreMap();
+			op.setNounInputs(storeMap);
 		}
 		
 		return op;
-    }
-    
-    private void combineQSComponents(PipelineOperation op) {
-    	Map<String, Object> qsMap = new HashMap<>();
-    	// we will add the qs at the end
-    	// since we could reassign the qs object
-    	SelectQueryStruct qs = new SelectQueryStruct();
-    	
-    	// combine all the existing noun portions
-    	// thankfully the QS is already a builder construct
-    	for(PipelineOperation routine : this.curRoutine) {
-    		// we will do a lot of stuff based on the routine name
-    		// as it is the reactor name
-    		
-    		String opName = routine.getOpName();
-    		if(opName.equals("Database")) {
-    			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-    			
-    			// grab the database id from the  input
-    			String dbId = getStringOpNounInput("database", routine.getNounInputs());
-    			if(dbId == null) {
-    				dbId = getStringOpRowInput(0, routine.getRowInputs());
-    			}
-    			qs.setEngineId(dbId);
-    			
-    		} else if(opName.equals("Frame")) {
-    			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
-    			
-    			// grab the database id from the  input
-    			String frameName = getFrameNameOpNounInput("frame", routine.getNounInputs());
-    			if(frameName == null) {
-    				frameName = getFrameNameOpRowInput(0, routine.getRowInputs());
-    			}
-    			qs.setFrameName(frameName);
-    			
-    		} else if(opName.equals("Select")) {
-    			List<Map> rowInputs = routine.getRowInputs();
-    			int size = rowInputs.size();
-    			
-    			for(int i = 0; i < size; i++) {
-    				// the value should already be a query column selector
-    				Map<String, Object> rowMap = rowInputs.get(i);
-    				Object rowValue = rowMap.get("value");
-    				if(rowValue instanceof IQuerySelector) {
-    					qs.addSelector( (IQuerySelector) rowValue);
-    				}
-    			}
-    			
-    		} else if(opName.equals("Query")) {
-    			// make sure we have the correct type of raw query
-    			// if it is run on an engine or a frame
-    			HardSelectQueryStruct newQs = new HardSelectQueryStruct();
-    			if(qs instanceof HardSelectQueryStruct) {
-    				newQs = (HardSelectQueryStruct) qs;
-    			} else {
-	    			if(qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
-	    				newQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-	        			newQs.setEngineId(qs.getEngineId());
-	    			} else {
-	    				newQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY);
-	    			}
-    			}    			
-    			// set the query directly
-    			String query = getStringOpRowInput(0, routine.getRowInputs());
-       			query = Utility.decodeURIComponent(query);
-       			newQs.setQuery(query);
-    			
-    			// reset reference of qs to the new hard qs after merging the inputs
-    			qs = newQs;
-    		
-    		} else if(opName.equals("FileRead")) {
-    			
-    			// first grab the specific componenets for excel vs. csv/text file
-    			Map<String, List<Map>> nounInputs = routine.getNounInputs();
-				String filepath = getStringOpNounInput("filePath", nounInputs);
-    			String sheetName = getStringOpNounInput("sheetName", nounInputs);
-    			String sheetRange = getStringOpNounInput("sheetRange", nounInputs);
-				String delimiter = getStringOpNounInput("delimiter", nounInputs);
-
-    			boolean isExcel = sheetName != null && sheetRange != null;
-    			
-    			AbstractFileQueryStruct newQs = null;
-    			if(isExcel) {
-    				newQs = new ExcelQueryStruct();
-    				// get the sheet name
-    				((ExcelQueryStruct) newQs).setSheetName(sheetName);
-    				// get the sheet range
-    				((ExcelQueryStruct) newQs).setSheetName(sheetRange);
-    			} else {
-    				newQs = new CsvQueryStruct();
-    				((CsvQueryStruct) newQs).setDelimiter(delimiter.charAt(0));
-    			}
-    			
-    			// now grab the shared parts
-    			Map<String, String> dataTypeMap = parseMapReactor("dataTypeMap", nounInputs);
-    			Map<String, String> additionalDataTypes = parseMapReactor("additionalDataTypes", nounInputs);
-    			Map<String, String> newHeaders = parseMapReactor("newHeaders", nounInputs);
-
-    			newQs.setFilePath(filepath);
-    			newQs.setColumnTypes(dataTypeMap);
-    			newQs.setAdditionalTypes(additionalDataTypes);
-    			newQs.setNewHeaderNames(newHeaders);
-    			
-    			qs = newQs;
-    		
-    		} else if(opName.equals("RDFFileSource")) {
-    			
-    			/*
-    			 * This is the same as the Query 
-    			 * But will need to add some additional parts after
-    			 */
-    			
-    			TemporalEngineHardQueryStruct newQs = new TemporalEngineHardQueryStruct();
-
-    			// get all the inputs
-    			Map<String, List<Map>> nounInputs = routine.getNounInputs();
-
-    			String query = getStringOpNounInput(ReactorKeysEnum.QUERY_KEY.getKey(), nounInputs);
-    			if(query != null) {
-	    			query = Utility.decodeURIComponent(query);
-	       			newQs.setQuery(query);
-    			}
-    			
-    			String filePath = getStringOpNounInput(ReactorKeysEnum.FILE_PATH.getKey(), nounInputs);
-    			String rdfType = getStringOpNounInput(RDFFileSourceReactor.RDF_TYPE, nounInputs);
-				String baseUri = getStringOpNounInput(RDFFileSourceReactor.BASE_URI, nounInputs);
-    			
-    			Map<String, Object> config = new HashMap<>();
-    			config.put(ReactorKeysEnum.FILE_PATH.getKey(), filePath);
-    			config.put(RDFFileSourceReactor.RDF_TYPE, rdfType);
-    			config.put(RDFFileSourceReactor.BASE_URI, baseUri);
-
-    			newQs.setConfig(config);
-    			
-    			// reset reference of qs to the new hard qs after merging the inputs
-    			qs = newQs;
-    			
-    		} else if(opName.equals("DirectJDBCConnection") || opName.equals("JdbcSource")) {
-    			
-    			/*
-    			 * This is the same as the Query 
-    			 * But will need to add some additional parts after
-    			 */
-    			
-    			TemporalEngineHardQueryStruct newQs = new TemporalEngineHardQueryStruct();
-
-    			// get all the inputs
-    			Map<String, List<Map>> nounInputs = routine.getNounInputs();
-
-    			String query = getStringOpNounInput(ReactorKeysEnum.QUERY_KEY.getKey(), nounInputs);
-    			if(query != null) {
-	    			query = Utility.decodeURIComponent(query);
-	       			newQs.setQuery(query);
-    			}
-    			
-    			String driver = getStringOpNounInput(ReactorKeysEnum.DB_DRIVER_KEY.getKey(), nounInputs);
-    			String username = getStringOpNounInput(ReactorKeysEnum.PASSWORD.getKey(), nounInputs);
-				String password = getStringOpNounInput(ReactorKeysEnum.USERNAME.getKey(), nounInputs);
-    			String connectionUrl = getStringOpNounInput(ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), nounInputs);
-    			
-    			Map<String, Object> config = new HashMap<>();
-    			config.put(ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), connectionUrl);
-    			config.put(ReactorKeysEnum.DB_DRIVER_KEY.getKey(), driver);
-    			config.put(ReactorKeysEnum.USERNAME.getKey(), username);
-    			config.put(ReactorKeysEnum.PASSWORD.getKey(), password);
-
-    			newQs.setConfig(config);
-    			
-    			// reset reference of qs to the new hard qs after merging the inputs
-    			qs = newQs;
-    		}
-    	}
-    	
-    	// we will add the qs at the end
-    	// since we could reassign the qs object
-    	qsMap.put("value", qs);
-    	op.addNounInputs("qs", qsMap);
-    	if(PipelineTranslation.qsReactors.contains(op.getOpName())) {
-    		op.setWidgetId(PipelineTranslation.qsToWidget.get(qs.getQsType()));
-    	}
-	}
-    
-    /**
-     * Get map from input as it gets pushed into a reactor structure / pipeline operation
-     * @param key
-     * @param nounInputs
-     * @return
-     */
-    private Map<String, String> parseMapReactor(String key, Map<String, List<Map>> nounInputs) {
-    	Map<String, String> output = null;
-    	if(nounInputs.containsKey(key)) {
-			List<Map> nounMapList = nounInputs.get(key);
-			if(nounMapList != null && !nounMapList.isEmpty()) {
-				Map<String, Object> nounMap = nounMapList.get(0);
-				PipelineOperation nounMapVal = (PipelineOperation) nounMap.get("value");
-				// we can reconstruct the map looking at each pair of obj/val that is passed in
-				List<Map> inputs = nounMapVal.getRowInputs();
-				
-				output = new HashMap<>();
-				for(int i = 0; i < inputs.size(); i=i+2) {
-					Map<String, Object> keyMap = inputs.get(i);
-					Map<String, Object> valMap = inputs.get(i+1);
-					
-					output.put(keyMap.get("value").toString(), valMap.get("value").toString());
-				}
-			}
-		}
-    	return output;
-    }
-
-    private String getStringOpNounInput(String key, Map<String, List<Map>> nounInputs) {
-    	String output = null;
-    	if(nounInputs.containsKey(key)) {
-			List<Map> nounMap = nounInputs.get(key);
-			if(nounMap != null) {
-				output = (String) nounMap.get(0).get("value");
-			}
-		}
-    	return output;
-    }
-    
-    private String getStringOpRowInput(int index, List<Map> nounInputs) {
-    	String output = null;
-    	if(nounInputs.size() > index) {
-			Map<String, Object> nounMap = nounInputs.get(index);
-			if(nounMap != null) {
-				output = (String) nounMap.get("value");
-			}
-		}
-    	return output;
-    }
-    
-    private String getFrameNameOpNounInput(String key, Map<String, List<Map>> nounInputs) {
-    	String output = null;
-    	if(nounInputs.containsKey(key)) {
-			List<Map> nounMap = nounInputs.get(key);
-			if(nounMap != null) {
-				output = (String) nounMap.get(0).get("name");
-			}
-		}
-    	return output;
-    }
-    
-    private String getFrameNameOpRowInput(int index, List<Map> nounInputs) {
-    	String output = null;
-    	if(nounInputs.size() > index) {
-			Map<String, Object> nounMap = nounInputs.get(index);
-			if(nounMap != null) {
-				output = (String) nounMap.get("name");
-			}
-		}
-    	return output;
     }
     
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -673,14 +398,21 @@ public class PipelineTranslation extends LazyTranslation {
     }
     
     private Map<String, Object> processFrameNounMap(NounMetadata noun) {
+    	if(noun.getOpType().contains(PixelOperationType.FRAME_MAP)) {
+    		return processBasicNounMap(noun);
+    	}
     	Map<String, Object> frameMap = new HashMap<>();
 		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-		frameMap.put("type", FrameFactory.getFrameType(frame));
+		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), FrameFactory.getFrameType(frame));
 		String name = frame.getName();
 		if(name != null) {
-			frameMap.put("name", name);
+			frameMap.put(PixelDataType.ALIAS.toString(), name);
 		}
-		return frameMap;
+		
+		Map<String, Object> nounStructure = new HashMap<>();
+		nounStructure.put("type", PixelDataType.FRAME_MAP.toString());
+		nounStructure.put("value", frameMap);
+		return nounStructure;
     }
     
     ////////////////////////////////////////////////////////////////////////////////////////
@@ -701,7 +433,7 @@ public class PipelineTranslation extends LazyTranslation {
     	} catch(Exception e) {
     		// error finding reactor
     		// just return a generic reactor placeholder
-    		logger.error("Error finding reactor " + reactorId);
+    		logger.error("Error finding reactor " + reactorId, e);
     	}
     	
     	UndeterminedPipelineReactor reactor = new UndeterminedPipelineReactor();
@@ -727,8 +459,16 @@ public class PipelineTranslation extends LazyTranslation {
 		}
 	}
 	
+	public void setPixelId(String pixelId) {
+		this.pixelId = pixelId;
+	}
+	
 	public List<List<PipelineOperation>> getAllRoutines() {
 		return this.allRoutines;
+	}
+	
+	public List<String> getPixelIdToOperation() {
+		return pixelIdToOperation;
 	}
 	
 	////////////////////////////////////////////////////////////////////////
@@ -749,15 +489,39 @@ public class PipelineTranslation extends LazyTranslation {
 
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		
-		String pixel = "" 
-				+ "AddPanel ( 0 ) ;" 
-				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;" 
-				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;"
-				+ "Panel ( 0 ) | RetrievePanelEvents ( ) ;" 
-				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;" 
-				+ "Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" ) ;" 
+		String pixel = ""
+//				+ "AddPanel ( panel = [ 0 ] , sheet = [ \"0\" ] ) ; "
+//				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ; "
+//				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; "
+//				+ "Panel ( 0 ) | RetrievePanelEvents ( ) ;"
+//				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;"
+//				+ "Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ; "
+//				+ "CreateFrame ( frameType = [ GRID ] , override = [ true ] ) .as ( [ \"diabetes_csv_FRAME954152\" ] ) ;"
+//				+ "FileRead ( filePath = [ \"INSIGHT_FOLDER\\diabetes.csv\" ] , dataTypeMap = [ { \"patient\" : \"INT\" , \"chol\" : \"INT\" , \"stab_glu\" : \"INT\" , \"hdl\" : \"INT\" , \"ratio\" : \"DOUBLE\" , \"glyhb\" : \"DOUBLE\" , \"location\" : \"STRING\" , \"age\" : \"INT\" , \"gender\" : \"STRING\" , \"height\" : \"INT\" , \"weight\" : \"INT\" , \"frame\" : \"STRING\" , \"bp_1s\" : \"INT\" , \"bp_1d\" : \"INT\" , \"bp_2s\" : \"INT\" , \"bp_2d\" : \"INT\" , \"waist\" : \"INT\" , \"hip\" : \"INT\" , \"time_ppn\" : \"INT\" , \"Drug\" : \"STRING\" , \"start_date\" : \"DATE\" , \"end_date\" : \"DATE\" } ] , delimiter = [ \",\" ] , newHeaders = [ { } ] , fileName = [ \"diabetes.csv\" ] , additionalDataTypes = [ { \"start_date\" : \"M/d/yyyy\" , \"end_date\" : \"M/d/yyyy\" } ] ) | Select ( DND__patient , DND__chol , DND__stab_glu , DND__hdl , DND__ratio , DND__glyhb , DND__location , DND__age , DND__gender , DND__height , DND__weight , DND__frame , DND__bp_1s , DND__bp_1d , DND__bp_2s , DND__bp_2d , DND__waist , DND__hip , DND__time_ppn , DND__Drug , DND__start_date , DND__end_date ) .as ( [ patient , chol , stab_glu , hdl , ratio , glyhb , location , age , gender , height , weight , frame , bp_1s , bp_1d , bp_2s , bp_2d , waist , hip , time_ppn , Drug , start_date , end_date ] ) | Import ( frame = [ diabetes_csv_FRAME954152 ] ) ; "
+				
+				+ "FileRead ( filePath = [ \"INSIGHT_FOLDER\\diabetes.csv\" ] , dataTypeMap = [ { \"patient\" : \"INT\" , \"chol\" : \"INT\" , \"stab_glu\" : \"INT\" , \"hdl\" : \"INT\" , \"ratio\" : \"DOUBLE\" , \"glyhb\" : \"DOUBLE\" , \"location\" : \"STRING\" , \"age\" : \"INT\" , \"gender\" : \"STRING\" , \"height\" : \"INT\" , \"weight\" : \"INT\" , \"frame\" : \"STRING\" , \"bp_1s\" : \"INT\" , \"bp_1d\" : \"INT\" , \"bp_2s\" : \"INT\" , \"bp_2d\" : \"INT\" , \"waist\" : \"INT\" , \"hip\" : \"INT\" , \"time_ppn\" : \"INT\" , \"Drug\" : \"STRING\" , \"start_date\" : \"DATE\" , \"end_date\" : \"DATE\" } ] , delimiter = [ \",\" ] , newHeaders = [ { } ] , fileName = [ \"diabetes.csv\" ] , additionalDataTypes = [ { \"start_date\" : \"M/d/yyyy\" , \"end_date\" : \"M/d/yyyy\" } ] ) | Select ( DND__patient , DND__chol , DND__stab_glu , DND__hdl , DND__ratio , DND__glyhb , DND__location , DND__age , DND__gender , DND__height , DND__weight , DND__frame , DND__bp_1s , DND__bp_1d , DND__bp_2s , DND__bp_2d , DND__waist , DND__hip , DND__time_ppn , DND__Drug , DND__start_date , DND__end_date ) .as ( [ patient , chol , stab_glu , hdl , ratio , glyhb , location , age , gender , height , weight , frame , bp_1s , bp_1d , bp_2s , bp_2d , waist , hip , time_ppn , Drug , start_date , end_date ] ) | Import ( frame = [ CreateFrame ( frameType = [ GRID ] , override = [ true ] ) .as ( [ \"diabetes_csv_FRAME954152\" ] ) ] ) ; "
+				+ "Frame ( frame = [ diabetes_csv_FRAME954152 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ;"
+//				+ "diabetes_csv_FRAME954152 | ToUpperCase(\"location\"); "
+//				+ "AddPanel ( 0 ) ;" 
+//				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;" 
+//				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;"
+//				+ "Panel ( 0 ) | RetrievePanelEvents ( ) ;" 
+//				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;" 
+//				+ "Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" ) ;" 
 //				+ "CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME238470' ] ) ;" 
-//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Select ( MOVIE_DATES , MOVIE_DATES__Cast_Formed , MOVIE_DATES__DVD_Release , MOVIE_DATES__Director , MOVIE_DATES__Genre , MOVIE_DATES__MovieBudget , MOVIE_DATES__Nominated , MOVIE_DATES__Production_End , MOVIE_DATES__Production_Start , MOVIE_DATES__Revenue_Domestic , MOVIE_DATES__Revenue_International , MOVIE_DATES__RottenTomatoes_Audience , MOVIE_DATES__RottenTomatoes_Critics , MOVIE_DATES__Studio , MOVIE_DATES__Theatre_Release_Date , MOVIE_DATES__Title ) .as ( [ MOVIE_DATES , Cast_Formed , DVD_Release , Director , Genre , MovieBudget , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ] ) | Import ( frame = [ FRAME238470 ] ) ;" 
+//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) "
+//					+ "| Select ( Min(MOVIE_DATES__Cast_Formed), MOVIE_DATES__GENRE).as(['CAST_FORMED', 'GENRE']) "
+//					+ "| Filter( "
+//							+ "("
+//							+ "MOVIE_DATES__NOMINATED == ['NO'] "
+//							+ "AND "
+//							+ "MOVIE_DATES__NOMINATED == ['YES'] "
+//							+ ") "
+//							+ "AND "
+//							+ "MOVIE_DATES__NOMINATED == (Database(\"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\") | Select(MOVIE_DATES__NOMINATED) | Collect(-1) ) "
+//					+ ") "
+//					+ "| Group(MOVIE_DATES__GENRE) | Import ( frame = [ FRAME238470 ] ) ;" 
+
 //				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Query(\"<encode> select * from movie_dates </encode>\") | Import ( frame = [ FRAME238470 ] ) ;" 
 //				+ "FileRead( filePath=[\"$IF\\diabetes_____UNIQUE2019_08_14_15_20_44_0226.csv\" ], dataTypeMap=[{\"patient\":\"INT\",\"chol\":\"INT\",\"stab_glu\":\"INT\",\"hdl\":\"INT\",\"ratio\":\"DOUBLE\",\"glyhb\":\"DOUBLE\",\"location\":\"STRING\",\"age\":\"INT\",\"gender\":\"STRING\",\"height\":\"INT\",\"weight\":\"INT\",\"frame\":\"STRING\",\"bp_1s\":\"INT\",\"bp_1d\":\"INT\",\"bp_2s\":\"INT\",\"bp_2d\":\"INT\",\"waist\":\"INT\",\"hip\":\"INT\",\"time_ppn\":\"INT\",\"Drug\":\"STRING\",\"start_date\":\"DATE\",\"end_date\":\"DATE\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"diabetes.csv\"], additionalDataTypes=[{\"start_date\":\"M/d/yyyy\",\"end_date\":\"M/d/yyyy\"}])|Select(DND__patient, DND__chol, DND__stab_glu, DND__hdl, DND__ratio, DND__glyhb, DND__location, DND__age, DND__gender, DND__height, DND__weight, DND__frame, DND__bp_1s, DND__bp_1d, DND__bp_2s, DND__bp_2d, DND__waist, DND__hip, DND__time_ppn, DND__Drug, DND__start_date, DND__end_date).as([patient, chol, stab_glu, hdl, ratio, glyhb, location, age, gender, height, weight, frame, bp_1s, bp_1d, bp_2s, bp_2d, waist, hip, time_ppn, Drug, start_date, end_date])|Import( frame=[FRAME238470] );"
 //				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;" 
@@ -770,13 +534,15 @@ public class PipelineTranslation extends LazyTranslation {
 //				+ "Frame(FRAME238470) | QueryAll() | ToCsv();"
 //				+ "RunSimilarity(instance=[\"Title\"], attributes=[\"Cast_Formed\",\"DVD_Release\"]);"
 //				+ "DirectJDBCConnection(query = [\"<encode>select * from city</encode>\"], dbDriver = [\"MYSQL\"], connectionString = [\"jdbc:mysql://localhost:3306/world?user=root&password=password\"], username = [\"root\"], password = [\"password\"])|Import( frame=[FRAME238470] );"
-				+ "R(\"<encode>2+2</encode>\");"
+
+//				+ "R(\"<encode>2+2</encode>\");"
 				//				+ "if(true, 5+5, 6+6);" 
 //				+ "ifError ( ( Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;"
 				;
 
 		Insight in = new Insight();
 		in.getVarStore().put("FRAME238470", new NounMetadata(new H2Frame("FRAME238470"), PixelDataType.FRAME));
+		in.getVarStore().put("diabetes_csv_FRAME954152", new NounMetadata(new H2Frame("diabetes_csv_FRAME954152"), PixelDataType.FRAME));
 		PipelineTranslation translation = null;
 		List<String> encodingList = new Vector<>();
 		Map<String, String> encodedTextToOriginal = new HashMap<>();
@@ -811,24 +577,27 @@ public class PipelineTranslation extends LazyTranslation {
 			logger.info(eMessage);
 		}
 		
-//		PixelPlanner thisPlanner = translation.getPlanner();
-//		GraphTraversal<Edge, Edge> it = thisPlanner.g.traversal().E();
-//		while(it.hasNext()) {
-//			Edge e = it.next();
-//			Vertex inV = e.inVertex();
-//			Vertex outV = e.outVertex();
-//			System.out.println(e.property("TYPE").value()
-//					+ " ::: " 
-//					+ outV.property(PixelPlanner.TINKER_ID).value() 
-//					+ " ::: " 
-//					+ inV.property(PixelPlanner.TINKER_ID).value());
-//		}
-		
 		Gson gson = GsonUtility.getDefaultGson(true);
 		if (translation != null) {
-			logger.info(gson.toJson(translation.allRoutines));
+			for(int i = 0; i < translation.allRoutines.size(); i++) {
+				for(int j = 0; j < translation.allRoutines.get(i).size(); j++) {
+					System.out.println(i + "." + j);
+					PipelineOperation op = translation.allRoutines.get(i).get(j);
+					System.out.println(gson.toJson(op));
+					System.out.println(i + "." + j);
+				}
+			}
+			
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+			System.out.println(">>>>>>>>>>>>>");
+
+			System.out.println(gson.toJson(translation.allRoutines));
 		}
 	}
-	
 }
 

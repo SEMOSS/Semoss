@@ -71,7 +71,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			newInsight.setEngineName(insight.getEngineName());
 			newInsight.setRdbmsId(insight.getRdbmsId());
 			newInsight.setInsightName(insight.getInsightName());
-			newInsight.setPixelRecipe(insight.getPixelRecipe());
+			newInsight.setPixelRecipe(insight.getPixelList().getPixelRecipe());
 			
 			InsightUtility.transferDefaultVars(this.insight, newInsight);
 			if(sharedR == null) {
@@ -110,19 +110,6 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 		}
 		Insight insight = in.get(0);
 		return insight;
-	}
-	
-	private String getInsightRecipe(Insight insight) {
-		List<String> recipeSteps = insight.getPixelRecipe();
-		
-		StringBuilder bigRecipe = new StringBuilder();
-		int size = recipeSteps.size();
-		int i = 0;
-		for(; i < size; i++) {
-			bigRecipe.append(recipeSteps.get(i));
-		}
-		
-		return bigRecipe.toString();
 	}
 	
 	private String deEncodeString(String s) {

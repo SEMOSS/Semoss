@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.insights.dashboard;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,12 +17,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.OpenInsightReactor;
+import prerna.util.Constants;
 
+@Deprecated
 public class ReloadInsightReactor extends OpenInsightReactor {
 
 	private static final Logger logger = LogManager.getLogger(ReloadInsightReactor.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	@Override
 	public NounMetadata execute() {
@@ -33,8 +34,9 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		// TODO: i am cheating here
 		// we do not cache dashboards or param insights currently
 		// so adding the cacheable check before hand
-		boolean isParam = cacheable && PixelUtility.hasParam(this.insight.getPixelRecipe());
-		boolean isDashoard = cacheable && PixelUtility.isDashboard(this.insight.getPixelRecipe());
+		List<String> pixelRecipe = this.insight.getPixelList().getPixelRecipe();
+		boolean isParam = cacheable && PixelUtility.hasParam(pixelRecipe);
+		boolean isDashoard = cacheable && PixelUtility.isDashboard(pixelRecipe);
 		
 		// if not param or dashboard, we can try to load a cache
 		// do we have a cached insight we can use
@@ -50,7 +52,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 				}
 			} catch (IOException | RuntimeException e) {
 				hasCache = true;
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -68,7 +70,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 			} catch (IOException | RuntimeException e) {
 				InsightCacheUtility.deleteCache(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId(), true);
 				additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -79,7 +81,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 				try {
 					InsightCacheUtility.cacheInsight(this.insight, getCachedRecipeVariableExclusion(runner));
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		} else {
