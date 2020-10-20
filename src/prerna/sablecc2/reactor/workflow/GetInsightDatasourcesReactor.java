@@ -12,7 +12,7 @@ public class GetInsightDatasourcesReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		List<String> recipe = this.insight.getPixelRecipe();
+		List<String> recipe = this.insight.getPixelList().getPixelRecipe();
 		StringBuilder b = new StringBuilder();
 		for(String s : recipe) {
 			b.append(s);
