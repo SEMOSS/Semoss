@@ -92,7 +92,57 @@ public class PixelList implements Iterable<Pixel> {
 		}
 		return pixelRecipe;
 	}
+	
+	public List<String> getPixelIds() {
+		List<String> pixelIds = new Vector<>(pixelList.size());
+		for(Pixel p : pixelList) {
+			pixelIds.add(p.getUid());
+		}
+		return pixelIds;
+	}
+	
+	/**
+	 * Set the pixel id for each step in the recipe
+	 * @param pixelIds
+	 */
+	public void updateAllPixelIds(List<String> pixelIds) {
+		if(pixelIds.size() != this.pixelList.size()) {
+			throw new IllegalArgumentException("Array size must match current recipe size");
+		}
+		for(int i = 0; i < pixelIds.size(); i++) {
+			pixelList.get(i).setUid(pixelIds.get(i));
+		}
+	}
 
+	/**
+	 * Get the Pixel object if found in the list
+	 * @param pixelId
+	 * @return
+	 */
+	public Pixel getPixel(String pixelId) {
+		for(int i = 0; i < pixelList.size(); i++) {
+			Pixel p = pixelList.get(i);
+			if(p.getUid().equals(pixelId)) {
+				return p;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Find the index for the pixel id
+	 * @param pixelId
+	 * @return
+	 */
+	public int findIndex(String pixelId) {
+		for(int i = 0; i < pixelList.size(); i++) {
+			if(pixelList.get(i).getUid().equals(pixelId)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
 	/**
 	 * Wrapper method for the List<Pixel> contained in the object
 	 * @return
@@ -121,4 +171,5 @@ public class PixelList implements Iterable<Pixel> {
 	public Iterator<Pixel> iterator() {
 		return this.pixelList.iterator();
 	}
+
 }
