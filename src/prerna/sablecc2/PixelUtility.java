@@ -26,6 +26,7 @@ import com.google.gson.GsonBuilder;
 import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.Pixel;
+import prerna.om.PixelList;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -648,9 +649,9 @@ public class PixelUtility {
 		List<String> encodingList = new Vector<>();
 		Map<String, String> encodedTextToOriginal = new HashMap<>();
 		
-		for(Pixel pixel : in.getPixelList()) {
+		PixelList pixelList = in.getPixelList();
+		for(Pixel pixel : pixelList) {
 			String pixelString = pixel.getPixelString();
-			translation.setPixelId(pixel.getUid());
 			try {
 				pixelString = PixelPreProcessor.preProcessPixel(pixelString, encodingList, encodedTextToOriginal);
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixelString.getBytes("UTF-8")), "UTF-8"), pixelString.length())));
@@ -682,7 +683,7 @@ public class PixelUtility {
 		}
 
 		Map<String, Object> retMap = new HashMap<>();
-		retMap.put("idMapping", translation.getPixelIdToOperation());
+		retMap.put("idMapping", pixelList);
 		retMap.put("pixelParsing", translation.getAllRoutines());
 		return retMap;
 	}

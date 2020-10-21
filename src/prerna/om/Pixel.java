@@ -6,24 +6,26 @@ import prerna.algorithm.api.ITableDataFrame;
 
 public class Pixel {
 
-	private String uid = null;
+	private String id = null;
 	private String pixelString = null;
 	
 	// some state management when editing the recipe
 	private boolean hasChanged = false;
 
 	// some additional metadata to maintain on the Pixel
+	private Map<String, Map<String, Object>> startingFrameHeaders;
+	private Map<String, Map<String, Object>> endingFrameHeaders;
+
 	private transient ITableDataFrame primaryFrame;
-	private Map<String, Object> frameHeaders;
 	private boolean isParamSelection = false;
 
 	/**
-	 * Pixel component requires a uid and the pixel string
-	 * @param uid
+	 * Pixel component requires a id and the pixel string
+	 * @param id
 	 * @param pixelString
 	 */
-	public Pixel(String uid, String pixelString) {
-		this.uid = uid;
+	public Pixel(String id, String pixelString) {
+		this.id = id;
 		this.pixelString = pixelString;
 	}
 	
@@ -36,19 +38,19 @@ public class Pixel {
 	}
 	
 	/**
-	 * Set the UID for the pixel step
-	 * @param uid
+	 * Set the id for the pixel step
+	 * @param id
 	 */
-	public void setUid(String uid) {
-		this.uid = uid;
+	public void setId(String id) {
+		this.id = id;
 	}
 	
 	/**
-	 * Grab the UID
+	 * Grab the id
 	 * @return
 	 */
-	public String getUid() {
-		return this.uid;
+	public String getId() {
+		return this.id;
 	}
 	
 	/**
@@ -60,6 +62,26 @@ public class Pixel {
 		this.hasChanged = true;
 	}
 	
+	public Map<String, Map<String, Object>> getStartingFrameHeaders() {
+		return startingFrameHeaders;
+	}
+
+	public void setStartingFrameHeaders(Map<String, Map<String, Object>> startingFrameHeaders) {
+		this.startingFrameHeaders = startingFrameHeaders;
+	}
+	
+	public Map<String, Map<String, Object>> getEndingFrameHeaders() {
+		return endingFrameHeaders;
+	}
+
+	public void setEndingFrameHeaders(Map<String, Map<String, Object>> endingFrameHeaders) {
+		this.endingFrameHeaders = endingFrameHeaders;
+	}
+	
+	//////////////////////////////////////////
+	
+	// currently unused - just thinking of things to store
+
 	public boolean isHasChanged() {
 		return hasChanged;
 	}
@@ -76,13 +98,6 @@ public class Pixel {
 		this.primaryFrame = primaryFrame;
 	}
 
-	public Map<String, Object> getFrameHeaders() {
-		return frameHeaders;
-	}
-
-	public void setFrameHeaders(Map<String, Object> frameHeaders) {
-		this.frameHeaders = frameHeaders;
-	}
 
 	public boolean isParamSelection() {
 		return isParamSelection;

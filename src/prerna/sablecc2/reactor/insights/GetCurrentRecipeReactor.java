@@ -23,7 +23,7 @@ public class GetCurrentRecipeReactor extends AbstractReactor {
 		for (int i = 0; i < pixelList.size() - 1; i++) {
 			Pixel p = pixelList.get(i);
 			Map<String, String> innerMap = new HashMap<>();
-			innerMap.put("id", p.getUid());
+			innerMap.put("id", p.getId());
 			innerMap.put("expression", p.getPixelString());
 			retList.add(innerMap);
 		}
