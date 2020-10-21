@@ -1,7 +1,11 @@
 package prerna.om;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -10,6 +14,7 @@ public class PixelList implements Iterable<Pixel> {
 
 	private AtomicInteger counter = new AtomicInteger(0);
 	private List<Pixel> pixelList = new Vector<>();
+	private Map<String, Integer> idToIndexHash = new HashMap<>();
 	
 	public PixelList() {
 		
@@ -144,6 +149,72 @@ public class PixelList implements Iterable<Pixel> {
 	}
 	
 	/**
+	 * 
+	 * @param pixelIds
+	 */
+	public void removeIds(List<String> pixelIds) {
+		Map<String, Integer> idToIndex = getIdToIndexHash();
+		List<Integer> indices = new Vector<Integer>(pixelIds.size());
+		for(String pId : pixelIds) {
+			Integer index = idToIndex.remove(pId);
+			if(index == null) {
+				// error
+				// recalculate the hash
+				recalculateIdToIndexHash();
+				throw new IllegalArgumentException("Cannot find pixel step with id = " + index);
+			}
+			indices.add(index);
+		}
+		
+		// sort the index list from largest to smallest
+		Collections.sort(indices, new Comparator<Integer>() {
+			@Override
+			public int compare(Integer o1, Integer o2) {
+			    return o2.intValue()-o1.intValue();
+			}
+		});
+		
+		// now just remove those indices
+		for(int i = 0; i < indices.size(); i++) {
+			this.pixelList.remove(indices.get(i).intValue());
+		}
+				
+		// recalculate the hash
+		recalculateIdToIndexHash();
+	}
+	
+	/**
+	 * Get the id to index hash
+	 * @return
+	 */
+	private Map<String, Integer> getIdToIndexHash() {
+		if(idToIndexHash == null || idToIndexHash.isEmpty()) {
+			recalculateIdToIndexHash();
+		}
+		return idToIndexHash;
+	}
+	
+	/**
+	 * Recalculate the index hash
+	 */
+	private void recalculateIdToIndexHash() {
+		if(idToIndexHash == null) {
+			idToIndexHash = new HashMap<>();
+		} else {
+			idToIndexHash.clear();
+		}
+		for(int i = 0; i < pixelList.size(); i++) {
+			idToIndexHash.put(pixelList.get(i).getUid(), i);
+		}
+	}
+	
+	////////////////////////////////////////////////////////////
+	
+	/*
+	 * General methods
+	 */
+	
+	/**
 	 * Wrapper method for the List<Pixel> contained in the object
 	 * @return
 	 */
@@ -171,5 +242,5 @@ public class PixelList implements Iterable<Pixel> {
 	public Iterator<Pixel> iterator() {
 		return this.pixelList.iterator();
 	}
-
+	
 }
