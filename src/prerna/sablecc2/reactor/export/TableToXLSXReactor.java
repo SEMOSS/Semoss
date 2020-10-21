@@ -75,7 +75,7 @@ public class TableToXLSXReactor	extends AbstractReactor
 			getMap(insight.getInsightId());
 
 			if(keyValue.containsKey(keysToGet[1]))
-				html = keyValue.get(keysToGet[1]);
+				html = Utility.decodeURIComponent(keyValue.get(keysToGet[1]));
 			if(keyValue.containsKey(keysToGet[0]))
 				sheetName = keyValue.get(keysToGet[0]);
 			if(keyValue.containsKey(keysToGet[2]))
