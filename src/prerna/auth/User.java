@@ -622,7 +622,11 @@ public class User extends AbstractValueObject implements Serializable {
 																							// started it for debug
 							if (port == null) {
 								port = Utility.findOpenPort();
+								if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
+									pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
+								} else {
 								pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+								}
 								pyTupleSpace = PyUtils.getInstance().startPyServe(this, pyTupleSpace, port);
 								NettyClient nc = new NettyClient();
 								nc.connect("127.0.0.1", Integer.parseInt(port), false);
