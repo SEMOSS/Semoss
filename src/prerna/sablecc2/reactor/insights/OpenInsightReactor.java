@@ -103,6 +103,11 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			try {
 				List<Insight> in = engine.getInsight(rdbmsId + "");
 				newInsight = in.get(0);
+			} catch(IllegalArgumentException e2) {
+				NounMetadata noun = new NounMetadata(e2.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
 			} catch (ArrayIndexOutOfBoundsException e2) {
 				NounMetadata noun = new NounMetadata("Insight does not exist", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);

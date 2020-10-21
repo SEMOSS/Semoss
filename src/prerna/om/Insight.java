@@ -1073,12 +1073,8 @@ public class Insight {
 		PixelRunner results = runPixel(newList);
 		
 		// now set the pixelIds back
-		try {
-			this.pixelList.updateAllPixelIds(currentPixelIds);
-		} catch(Exception e) {
-			logger.info("ERROR HAPPENING ON PIPELINE IDS!!!!");
-			logger.error(Constants.STACKTRACE,  e);
-		}
+		this.pixelList.updateAllPixelIds(currentPixelIds);
+		
 		// set the mode back
 		setRunSavedInsightMode(false);
 		return results;

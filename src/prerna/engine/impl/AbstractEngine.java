@@ -80,6 +80,9 @@ import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.PixelUtility;
+import prerna.sablecc2.lexer.LexerException;
+import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
@@ -107,7 +110,7 @@ public abstract class AbstractEngine implements IEngine {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	private static final Logger LOGGER = LogManager.getLogger(AbstractEngine.class);
+	private static final Logger logger = LogManager.getLogger(AbstractEngine.class);
 	
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
@@ -188,7 +191,7 @@ public abstract class AbstractEngine implements IEngine {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			if(propFile != null) {
 				this.propFile = propFile;
-				LOGGER.info("Opening DB - " + Utility.cleanLogString(engineName));
+				logger.info("Opening DB - " + Utility.cleanLogString(engineName));
 				this.prop = Utility.loadProperties(propFile);
 			}
 			if(this.prop != null) {
@@ -236,7 +239,7 @@ public abstract class AbstractEngine implements IEngine {
 					// set the owl file
 					if(owlFile != null) {
 						owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
-						LOGGER.info("Loading OWL: " + Utility.cleanLogString(owlFile));
+						logger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
 						setOWL(owlFile);
 					}
 				}
@@ -277,11 +280,11 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public void closeDB() {
 		if(this.baseDataEngine != null) {
-			LOGGER.debug("closing its owl engine ");
+			logger.debug("closing its owl engine ");
 			this.baseDataEngine.closeDB();
 		}
 		if(this.insightRdbms != null) {
-			LOGGER.debug("closing its insight engine ");
+			logger.debug("closing its insight engine ");
 			this.insightRdbms.closeDB();
 		}
 		if (auditDatabase != null) {
@@ -312,7 +315,7 @@ public abstract class AbstractEngine implements IEngine {
 	public String getProperty(String key) {
 		String retProp = null;
 
-		LOGGER.debug("Property is " + key + "]");
+		logger.debug("Property is " + key + "]");
 		if (generalEngineProp != null && generalEngineProp.containsKey(key))
 			retProp = generalEngineProp.getProperty(key);
 		if (retProp == null && ontoProp != null && ontoProp.containsKey(key))
@@ -369,7 +372,7 @@ public abstract class AbstractEngine implements IEngine {
 	public void saveConfiguration() {
 		FileOutputStream fileOut = null;
 		try {
-			LOGGER.debug("Writing to file " + propFile);
+			logger.debug("Writing to file " + propFile);
 			fileOut = new FileOutputStream(propFile);
 			prop.store(fileOut, null);
 		} catch (IOException e) {
@@ -418,7 +421,7 @@ public abstract class AbstractEngine implements IEngine {
 		// if it is not defined directly in the smss
 		// we will not create an insights database
 		if(insightDatabaseLoc != null) {
-			this.insightRdbms = EngineInsightsHelper.loadInsightsEngine(this.prop, LOGGER);
+			this.insightRdbms = EngineInsightsHelper.loadInsightsEngine(this.prop, logger);
 		}
 		
 		// yay! even more updates
@@ -449,7 +452,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * @param h		Hashtable - The base data hash that this is being set to
 	 */
 	public void setBaseHash(Hashtable h) {
-		LOGGER.debug(this.engineId + " Set the Base Data Hash ");
+		logger.debug(this.engineId + " Set the Base Data Hash ");
 		this.baseDataHash = h;
 	}
 
@@ -553,7 +556,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * Commits the base data engine
 	 */
 	public void commitOWL() {
-		LOGGER.debug("Committing base data engine of " + this.engineId);
+		logger.debug("Committing base data engine of " + this.engineId);
 		this.baseDataEngine.commit();
 	}
 
@@ -568,8 +571,8 @@ public abstract class AbstractEngine implements IEngine {
 	 * Runs a select query on the base data engine of this engine
 	 */
 	public Object execOntoSelectQuery(String query) {
-		LOGGER.debug("Running select query on base data engine of " + this.engineId);
-		LOGGER.debug("Query is " + query);
+		logger.debug("Running select query on base data engine of " + this.engineId);
+		logger.debug("Query is " + query);
 		return this.baseDataEngine.execQuery(query);
 	}
 
@@ -621,21 +624,21 @@ public abstract class AbstractEngine implements IEngine {
 			method = this.getClass().getMethod(methodName, args.getClass());
 			ret = method.invoke(this, params);
 		} catch (SecurityException e) {
-			LOGGER.error(e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (NoSuchMethodException e) {
-			LOGGER.error(e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IllegalArgumentException e) {
-			LOGGER.error(e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			LOGGER.error(e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (InvocationTargetException e) {
-			LOGGER.error(e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return ret;
 	}
 
 	public void deleteDB() {
-		LOGGER.debug("closing " + this.engineName);
+		logger.debug("closing " + this.engineName);
 		this.closeDB();
 
 		File insightFile = SmssUtilities.getInsightsRdbmsFile(this.prop);
@@ -660,9 +663,9 @@ public abstract class AbstractEngine implements IEngine {
 		}
 
 		//this check is to ensure we are deleting the right folder.
-		LOGGER.debug("checking folder name is matching up : " + folderName + " against " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		logger.debug("checking folder name is matching up : " + folderName + " against " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		if(folderName.equals(SmssUtilities.getUniqueName(this.engineName, this.engineId))) {
-			LOGGER.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
+			logger.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
 			try {
 				FileUtils.deleteDirectory(engineFolder);
 			} catch (IOException e) {
@@ -670,7 +673,7 @@ public abstract class AbstractEngine implements IEngine {
 			}
 		}
 
-		LOGGER.debug("Deleting smss " + this.propFile);
+		logger.debug("Deleting smss " + this.propFile);
 		File smssFile = new File(this.propFile);
 		try {
 			FileUtils.forceDelete(smssFile);
@@ -755,7 +758,7 @@ public abstract class AbstractEngine implements IEngine {
 		
 		if(!idString.isEmpty()) {
 			String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
-			LOGGER.info("Running insights query " + Utility.cleanLogString(query));
+			logger.info("Running insights query " + Utility.cleanLogString(query));
 			
 			IRawSelectWrapper wrap = null;
 			try {
@@ -823,16 +826,26 @@ public abstract class AbstractEngine implements IEngine {
 						in.setInsightName(insightName);
 						List<String> pixelList = new Vector<String>();
 						for(int i = 0; i < pixel.length; i++) {
-							pixelList.add(pixel[i].toString().trim());
+							String pixelString = pixel[i].toString();
+							List<String> breakdown;
+							try {
+								breakdown = PixelUtility.parsePixel(pixelString);
+								pixelList.addAll(breakdown);
+							} catch (ParserException | LexerException | IOException e) {
+								logger.error(Constants.STACKTRACE, e);
+								throw new IllegalArgumentException("Error occured parsing the pixel expression");
+							}
 						}
 						in.setPixelRecipe(pixelList);
-						// I need this for dashboard
 					}
 					insightV.insertElementAt(in, counts.remove(0));
 				}
+			} catch(IllegalArgumentException e1) {
+				throw e1;
 			} catch (Exception e1) {
-				e1.printStackTrace();
-			} finally {
+				logger.error(Constants.STACKTRACE, e1);
+			} 
+			finally {
 				if(wrap != null) {
 					wrap.cleanUp();
 				}
@@ -883,11 +896,11 @@ public abstract class AbstractEngine implements IEngine {
 				if(wrap.hasNext()) {
 					IHeadersDataRow data = wrap.next();
 					baseUri = data.getRawValues()[0] + "";
-					LOGGER.info("Got base uri from owl " + this.baseUri + " for engine " + getEngineId() + " : " + getEngineName());
+					logger.info("Got base uri from owl " + this.baseUri + " for engine " + getEngineId() + " : " + getEngineName());
 				}
 				if(baseUri == null){
 					baseUri = Constants.CONCEPT_URI;
-					LOGGER.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine " + getEngineId() + " : " + getEngineName());
+					logger.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine " + getEngineId() + " : " + getEngineName());
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
