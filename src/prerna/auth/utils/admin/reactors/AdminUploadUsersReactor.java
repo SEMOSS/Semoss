@@ -241,7 +241,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 			if(email == null) {
 				ps.setNull(psIndex.get(EMAIL), java.sql.Types.VARCHAR);
 			} else {
-				ps.setString(psIndex.get(EMAIL), email.trim());
+				ps.setString(psIndex.get(EMAIL), email.trim().toLowerCase());
 			}
 			
 			if(username == null) {
