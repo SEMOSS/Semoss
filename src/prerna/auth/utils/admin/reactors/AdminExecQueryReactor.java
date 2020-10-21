@@ -1,15 +1,11 @@
-package prerna.sablecc2.reactor.qs;
+package prerna.auth.utils.admin.reactors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -19,7 +15,6 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.delete.DeleteSqlInterpreter;
-import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.sablecc2.om.GenRowStruct;
@@ -31,13 +26,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 
-public class ExecQueryReactor extends AbstractReactor {
+public class AdminExecQueryReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ExecQueryReactor.class);
+	private static final Logger logger = LogManager.getLogger(AdminExecQueryReactor.class);
 
 	private NounMetadata qStruct = null;
 
-	public ExecQueryReactor() {
+	public AdminExecQueryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey() };
 	}
 
@@ -48,9 +43,15 @@ public class ExecQueryReactor extends AbstractReactor {
 		}
 
 		IEngine engine = null;
-		ITableDataFrame frame = null;
 		AbstractQueryStruct qs = null;
-		String userId = "user not defined";
+		
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if(adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
+		
+		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
 
 		if (qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
@@ -59,26 +60,8 @@ public class ExecQueryReactor extends AbstractReactor {
 				if (!(engine instanceof BigDataEngine || engine instanceof RDBMSNativeEngine)) {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
 				}
-
-				// If an engine and the user is defined, then grab it for the audit log
-				User user = this.insight.getUser();
-				if (user != null) {
-					userId = user.getAccessToken(user.getLogins().get(0)).getId();
-				}
-
-				// If security is enabled, then check that the user can edit the engine
-				if (AbstractSecurityUtils.securityEnabled()) {
-					if (!SecurityAppUtils.userCanEditEngine(user, engine.getEngineId())) {
-						throw new IllegalArgumentException("User does not have permission to exec query for this app");
-					}
-				}
-			} else if (qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
-				frame = qs.getFrame();
-				if (!(frame instanceof AbstractRdbmsFrame)) {
-					throw new IllegalArgumentException("Query update/deletes only works for sql frames");
-				}
-				// convert any aliases the FE is using from the frame
-				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, frame.getMetaData());
+			} else {
+				throw new IllegalArgumentException("Input to admin exec query requires a query struct on an engine");
 			}
 		} else {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
@@ -102,47 +85,33 @@ public class ExecQueryReactor extends AbstractReactor {
 		}
 
 		logger.info("EXEC QUERY.... " + query);
-		if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			if(engine == null) {
-				throw new NullPointerException("No engine passed in to execute the query");
+		if(engine == null) {
+			throw new NullPointerException("No engine passed in to execute the query");
+		}
+		
+		try {
+			engine.insertData(query);
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			String errorMessage = "An error occured trying to execute the query in the database";
+			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				errorMessage += ": " + e.getMessage();
 			}
-			try {
-				engine.insertData(query);
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				String errorMessage = "An error occured trying to execute the query in the database";
-				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
-					errorMessage += ": " + e.getMessage();
-				}
-				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
-			}
-			// store query in audit db
-			AuditDatabase audit = engine.generateAudit();
-			if (custom) {
-				audit.storeQuery(userId, query);
-			} else {
-				if (update) {
-					audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
-				} else {
-					audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
-				}
-			}
-
-			ClusterUtil.reactorPushApp(engine.getEngineId());
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
+		}
+		// store query in audit db
+		AuditDatabase audit = engine.generateAudit();
+		if (custom) {
+			audit.storeQuery(userId, query);
 		} else {
-			try {
-				if (frame != null) {
-					((H2Frame) frame).getBuilder().runQuery(query);
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-				String errorMessage = "An error occured trying to update the frame";
-				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
-					errorMessage += ": " + e.getMessage();
-				}
-				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
+			if (update) {
+				audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
+			} else {
+				audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
 			}
 		}
+
+		ClusterUtil.reactorPushApp(engine.getEngineId());
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
