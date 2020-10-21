@@ -123,7 +123,6 @@ public class Insight {
 	
 	// list to store the pixels that make this insight
 	private PixelList pixelList;
-	private Map<String, Integer> pixelIdToIndex;
 	
 	// keep a map to store various properties
 	// new variable assignments in pixel are also stored here
@@ -244,7 +243,6 @@ public class Insight {
 	 */
 	private void loadDefaultSettings() {
 		this.pixelList = new PixelList();
-		this.pixelIdToIndex = new HashMap<>();
 		this.taskStore = new TaskStore();
 		this.insightId = UUID.randomUUID().toString();
 		
