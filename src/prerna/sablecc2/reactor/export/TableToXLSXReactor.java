@@ -58,6 +58,9 @@ public class TableToXLSXReactor	extends AbstractReactor
 		
 		public static final String ROW_COUNT = "ROW_COUNT";
 		public static final String COLUMN_COUNT = "COLUMN_COUNT";
+		
+		Map <Integer, Integer> columnToWidth = new HashMap<Integer, Integer>();
+		
 		public TableToXLSXReactor() {
 			// keep open specifies whether to keep this open or close it. if kept open then this will return open as noun metadata
 			this.keysToGet = new String[] { ReactorKeysEnum.SHEET.getKey(), ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_NAME.getKey()};
@@ -503,6 +506,14 @@ public class TableToXLSXReactor	extends AbstractReactor
 						width = Integer.parseInt(w);
 					}
 			 }
+			if(columnToWidth.containsKey(cellNum))
+			{
+				int savedWidth = columnToWidth.get(cellNum);
+				if(savedWidth > width)
+					width = savedWidth;
+			}
+			columnToWidth.put(cellNum, width);
+			
 			inputSheet.setColumnWidth(cellNum, width *256);
 		}
 
