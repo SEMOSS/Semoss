@@ -513,11 +513,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
 		IRawSelectWrapper wrapper = null;
 		try {
+			// lower case the emails coming in
+			if(newUser.getEmail() != null) {
+				newUser.setEmail(newUser.getEmail().toLowerCase());
+			}
+			
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 			if(wrapper.hasNext()) {
 				// this was the old id that was added when the admin 
 				String oldId = RdbmsQueryBuilder.escapeForSQLStatement(wrapper.next().getValues()[0].toString());
-				
 				String newId = RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId());
 				// this user was added by the user
 				// and we need to update
@@ -568,6 +572,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					// need to prevent 2 threads attempting to add the same user
 					userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 					if(!userExists) {
+						
 						query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER) VALUES ('" + 
 								RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '" + 
 								RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '" + 
