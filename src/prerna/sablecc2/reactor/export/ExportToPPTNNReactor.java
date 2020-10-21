@@ -65,7 +65,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		int height = 800;
 		int width = 600;
 		String slideLayout = null;
-		int shapeIndex = 0;
+		int shapeIndex = -1;
 		
 
 		
@@ -159,7 +159,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 				   blankSlide = hslfSlideShow.createSlide(targetLayout);
 				   // apply this layout
 			   }
-			   else if(targetLayout == null)
+			   else if(templateSlide != null)
 			   {
 				   blankSlide = hslfSlideShow.createSlide();
 				   blankSlide.importContent(templateSlide);
