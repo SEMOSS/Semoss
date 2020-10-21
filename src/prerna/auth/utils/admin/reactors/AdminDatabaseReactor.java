@@ -23,6 +23,9 @@ public class AdminDatabaseReactor extends AbstractQueryStructReactor {
 		// get the selectors
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if(engineId == null || engineId.isEmpty()) {
+			throw new NullPointerException("The engine id cannot be null for this operation");
+		}
 		this.qs.setEngineId(engineId);
 		
 		// need to account if this is a hard query struct
