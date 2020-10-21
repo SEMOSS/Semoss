@@ -562,6 +562,10 @@ public class Insight {
 		return recipe;
 	}
 
+	public void setPixelList(PixelList pixelList) {
+		this.pixelList = pixelList;
+	}
+	
 	public void setPixelRecipe(List<String> pixelRecipe) {
 		this.pixelList.clear();
 		this.pixelList.addPixel(pixelRecipe);
