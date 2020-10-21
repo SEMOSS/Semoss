@@ -471,4 +471,24 @@ public class InsightUtility {
 		return new NounMetadata(serialization, PixelDataType.CONST_STRING);
 	}
 	
+	/**
+	 * Get all the frames to their current set of headers
+	 * @param varStore
+	 * @return
+	 */
+	public static Map<String, Map<String, Object>> getAllFrameHeaders(VarStore varStore) {
+		Map<String, Map<String, Object>> retMap = new HashMap<>();
+		Set<String> frameKeys = varStore.getFrameKeys();
+		for(String fKey : frameKeys) {
+			NounMetadata noun = varStore.get(fKey);
+			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+			if(!retMap.containsKey(frame.getName())) {
+				Map<String, Object> headers = frame.getFrameHeadersObject();
+				retMap.put(frame.getName(), headers);
+			}
+		}
+		
+		return retMap;
+	}
+	
 }

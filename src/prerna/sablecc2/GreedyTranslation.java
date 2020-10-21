@@ -198,6 +198,7 @@ public class GreedyTranslation extends LazyTranslation {
         outAOperation(node);
 	}
 
+	@Override
     protected void deInitReactor()
     {
     	// couple of things I need to do here
@@ -288,6 +289,7 @@ public class GreedyTranslation extends LazyTranslation {
     	}
     }
     
+    @Override
 	protected void postProcess(String pixelExpression) {
 		super.postProcess(pixelExpression);
 		// get the noun meta result
