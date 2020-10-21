@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.Logger;
+
 import prerna.om.PixelList;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.GenRowStruct;
@@ -16,6 +18,8 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class DeleteInsightRecipeStep extends AbstractReactor {
 
+	private static final String CLASS_NAME = DeleteInsightRecipeStep.class.getName();
+
 	public DeleteInsightRecipeStep() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PIXEL_ID.getKey()};
 	}
@@ -26,6 +30,7 @@ public class DeleteInsightRecipeStep extends AbstractReactor {
 		if(pixelIds == null || pixelIds.isEmpty()) {
 			throw new NullPointerException("Pixel ids to remove cannot be null or empty");
 		}
+		Logger logger = getLogger(CLASS_NAME);
 
 		// TODO: TAKE INTO CONSIDERATION DOWNSTREAM EFFECTS ON THE RECIPE!!!
 		
@@ -37,6 +42,7 @@ public class DeleteInsightRecipeStep extends AbstractReactor {
 		// now i need to rerun the insight recipe
 		// clear the insight
 		// and re-run it
+		logger.info("Re-executing the insight recipe... please wait as this operation may take some time");
 		PixelRunner runner = this.insight.reRunPixelInsight();
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
