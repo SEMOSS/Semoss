@@ -95,9 +95,7 @@ public class PipelineTranslation extends LazyTranslation {
 	
 	private List<List<PipelineOperation>> allRoutines = new Vector<>();
 	private List<PipelineOperation> curRoutine;
-	private List<String> pixelIdToOperation = new Vector<>();
-	
-	private String pixelId = null;
+	private List<Map<String, Object>> pixelIdToOperation = new Vector<>();
 	
 	public PipelineTranslation(Insight insight) {
 		super();
@@ -124,10 +122,8 @@ public class PipelineTranslation extends LazyTranslation {
         		this.resultKey = "$RESULT_" + e.hashCode();
             	this.curRoutine = new Vector<>();
         		// add the routine
-            	// add the pixel id
             	this.allRoutines.add(this.curRoutine);
-        		this.pixelIdToOperation.add(this.pixelId);
-        		
+            	
         		e.apply(this);
         		// reset the state of the frame
         		this.currentFrame = null;
@@ -459,15 +455,11 @@ public class PipelineTranslation extends LazyTranslation {
 		}
 	}
 	
-	public void setPixelId(String pixelId) {
-		this.pixelId = pixelId;
-	}
-	
 	public List<List<PipelineOperation>> getAllRoutines() {
 		return this.allRoutines;
 	}
 	
-	public List<String> getPixelIdToOperation() {
+	public List<Map<String, Object>> getPixelIdToOperation() {
 		return pixelIdToOperation;
 	}
 	
@@ -489,7 +481,7 @@ public class PipelineTranslation extends LazyTranslation {
 
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		
-		String pixel = ""
+		String expression = ""
 //				+ "AddPanel ( panel = [ 0 ] , sheet = [ \"0\" ] ) ; "
 //				+ "Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ; "
 //				+ "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; "
@@ -543,38 +535,42 @@ public class PipelineTranslation extends LazyTranslation {
 		Insight in = new Insight();
 		in.getVarStore().put("FRAME238470", new NounMetadata(new H2Frame("FRAME238470"), PixelDataType.FRAME));
 		in.getVarStore().put("diabetes_csv_FRAME954152", new NounMetadata(new H2Frame("diabetes_csv_FRAME954152"), PixelDataType.FRAME));
-		PipelineTranslation translation = null;
 		List<String> encodingList = new Vector<>();
 		Map<String, String> encodedTextToOriginal = new HashMap<>();
-		try {
-			pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodingList, encodedTextToOriginal);
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
-			translation = new PipelineTranslation(in);
-
-			// parsing the pixel - this process also determines if expression is syntactically correct
-			Start tree = p.parse();
-			// apply the translation.
-			tree.apply(translation);
-		} catch(SemossPixelException e) {
-			if(!e.isContinueThreadOfExecution()) {
-				throw e;
-			}
-		} catch (ParserException | LexerException | IOException e) {
-			// we only need to catch invalid syntax here
-			// other exceptions are caught in lazy translation
-			logger.error(Constants.STACKTRACE, e);
-			String eMessage = e.getMessage();
-			if(eMessage.startsWith("[")) {
-				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
-				Matcher matcher = pattern.matcher(eMessage);
-				if(matcher.find()) {
-					String location = matcher.group(0);
-					location = location.substring(1, location.length()-1);
-					int findIndex = Integer.parseInt(location.split(",")[1]);
-					eMessage += ". Error in syntax around " + pixel.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
+		
+		PipelineTranslation translation = new PipelineTranslation(in);
+		
+		List<String> breakdown = PixelUtility.parsePixel(expression);
+		for(String pixel : breakdown) {
+			try {
+				pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodingList, encodedTextToOriginal);
+				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
+	
+				// parsing the pixel - this process also determines if expression is syntactically correct
+				Start tree = p.parse();
+				// apply the translation.
+				tree.apply(translation);
+			} catch(SemossPixelException e) {
+				if(!e.isContinueThreadOfExecution()) {
+					throw e;
 				}
+			} catch (ParserException | LexerException | IOException e) {
+				// we only need to catch invalid syntax here
+				// other exceptions are caught in lazy translation
+				logger.error(Constants.STACKTRACE, e);
+				String eMessage = e.getMessage();
+				if(eMessage.startsWith("[")) {
+					Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
+					Matcher matcher = pattern.matcher(eMessage);
+					if(matcher.find()) {
+						String location = matcher.group(0);
+						location = location.substring(1, location.length()-1);
+						int findIndex = Integer.parseInt(location.split(",")[1]);
+						eMessage += ". Error in syntax around " + pixel.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
+					}
+				}
+				logger.info(eMessage);
 			}
-			logger.info(eMessage);
 		}
 		
 		Gson gson = GsonUtility.getDefaultGson(true);

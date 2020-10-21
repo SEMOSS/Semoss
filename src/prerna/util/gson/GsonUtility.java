@@ -8,6 +8,8 @@ import com.google.gson.GsonBuilder;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
+import prerna.om.Pixel;
+import prerna.om.PixelList;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -91,6 +93,10 @@ public class GsonUtility {
 				// cluster
 				.registerTypeAdapter(IHeadersDataRow.class, new IHeadersDataRowAdapter())
 				.registerTypeAdapter(HeadersDataRow.class, new HeadersDataRowAdapter())
+				
+				// pixel objects
+				.registerTypeAdapter(Pixel.class, new PixelAdapter())
+				.registerTypeAdapter(PixelList.class, new PixelListAdapter())
 				;
 		
 		if(pretty) {
