@@ -14,10 +14,16 @@ import prerna.sablecc2.reactor.storage.MapHeaderDataRowIterator;
 
 public class VarStore implements InMemStore<String, NounMetadata> {
 
+	// the main object where all the nouns are stored
 	private Map<String, NounMetadata> varMap;
+	
+	// for quick searching
+	// storing the varNames for all frames
+	private Set<String> frameSet;
 	
 	public VarStore() {
 		varMap = new HashMap<>();
+		frameSet = new HashSet<>();
 	}
 	
 	@Override
@@ -29,10 +35,15 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 			}
 		}
 		varMap.put(varName, variable);
+		// keep quick reference to frames
+		if(variable.getNounType() == PixelDataType.FRAME) {
+			frameSet.add(varName);
+		}
 	}
 	
 	public void putAll(VarStore otherStore) {
 		varMap.putAll(otherStore.varMap);
+		frameSet.addAll(otherStore.frameSet);
 	}
 	
 	@Override
@@ -73,6 +84,8 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	@Override
 	public NounMetadata remove(String varName) {
+		// also try to remove from frameSet if its a frame
+		frameSet.remove(varName);
 		return varMap.remove(varName);
 	}
 	
@@ -81,11 +94,14 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	 * @param keys
 	 */
 	public void removeAll(Collection<String> keys) {
+		// also try to remove from frameSet if its a frame
+		this.frameSet.removeAll(keys);
 		this.varMap.keySet().removeAll(keys);
 	}
 	
 	@Override
 	public void clear() {
+		this.frameSet.clear();
 		this.varMap.clear();
 	}
 	
@@ -103,6 +119,10 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	@Override
 	public Set<String> getKeys() {
 		return varMap.keySet();
+	}
+	
+	public Set<String> getFrameKeys() {
+		return frameSet;
 	}
 	
 	/**
