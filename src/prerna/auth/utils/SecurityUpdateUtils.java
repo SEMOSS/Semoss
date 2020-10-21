@@ -613,7 +613,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			String query = "INSERT INTO USER (ID, NAME, EMAIL, TYPE, ADMIN, PUBLISHER) VALUES "
 					+ "('" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', " 
 					+ "'" + ADMIN_ADDED_USER + "',"
-					+ (email == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(email) + "'") + ","
+					+ (email == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(email.toLowerCase()) + "'") + ","
 					+ (type == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(type) + "'") + ", "
 					+ admin + ", " + "" + publisher + ");";
 			try {
