@@ -14,7 +14,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.sablecc2.om.CodeBlock;
-import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -39,7 +38,7 @@ public class PixelPlanner {
 	// I need some way to have roots
 	private Vector roots = new Vector();
 	// and i need to keep track of the vars
-	private InMemStore<String, NounMetadata> varStore = new VarStore();
+	private VarStore varStore = new VarStore();
 	
 	public PixelPlanner() {
 		this.g = TinkerGraph.open();
@@ -97,11 +96,11 @@ public class PixelPlanner {
 		return varStore.getKeys();
 	}
 	
-	public void setVarStore(InMemStore<String, NounMetadata> varStore) {
+	public void setVarStore(VarStore varStore) {
 		this.varStore = varStore;
 	}
 	
-	public InMemStore<String, NounMetadata> getVarStore() {
+	public VarStore getVarStore() {
 		return this.varStore;
 	}
 	

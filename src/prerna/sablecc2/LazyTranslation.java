@@ -103,6 +103,7 @@ import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
+import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -128,6 +129,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	protected TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
 	
 	protected ITableDataFrame currentFrame = null;
+	protected Map<String, Map<String, Object>> startingFrameHeaders = null;
 	
 	public static String envClassPath = null;
 	
@@ -143,10 +145,14 @@ public class LazyTranslation extends DepthFirstAdapter {
 		}
 	}
 	
+	/**
+	 * Do nothing - just to override in other translations
+	 * @param pixelExpression
+	 */
 	protected void postProcess(String pixelExpression) {
 		// need to account for META variables
 		// that were defined
-		if(this.isMeta) {
+//		if(this.isMeta) {
 //			for(String var : this.metaVariables) {
 //				this.planner.removeVariable(var);
 //			}
@@ -155,7 +161,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 //			for(String var : this.prevVariables.keySet()) {
 //				this.planner.addVariable(var, this.prevVariables.get(var));
 //			}
-		}
+//		}
 	}
 	
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, List<String> unexecutedPixels) {
@@ -179,8 +185,14 @@ public class LazyTranslation extends DepthFirstAdapter {
         {
         	PRoutine e = copy.get(pixelstep);
         	try {
+        		// we will start to keep track of some metadata
+        		// at the start of each pixel being processed
+        		this.startingFrameHeaders = InsightUtility.getAllFrameHeaders(this.planner.getVarStore());
         		this.resultKey = "$RESULT_" + e.hashCode();
+        		
+        		// actually run the operation
         		e.apply(this);
+        		
         		// reset the state of the frame
         		this.currentFrame = null;
         	} catch(SemossPixelException ex) {

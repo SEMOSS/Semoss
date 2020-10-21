@@ -21,6 +21,14 @@ public class PixelList implements Iterable<Pixel> {
 	}
 	
 	/**
+	 * Add a pixel directly to the list
+	 * @param p
+	 */
+	public void addPixel(Pixel p) {
+		pixelList.add(p);
+	}
+	
+	/**
 	 * Add a pixel step to the recipe
 	 * @param pixelString
 	 * @return
@@ -101,7 +109,7 @@ public class PixelList implements Iterable<Pixel> {
 	public List<String> getPixelIds() {
 		List<String> pixelIds = new Vector<>(pixelList.size());
 		for(Pixel p : pixelList) {
-			pixelIds.add(p.getUid());
+			pixelIds.add(p.getId());
 		}
 		return pixelIds;
 	}
@@ -115,7 +123,7 @@ public class PixelList implements Iterable<Pixel> {
 			throw new IllegalArgumentException("Array size must match current recipe size");
 		}
 		for(int i = 0; i < pixelIds.size(); i++) {
-			pixelList.get(i).setUid(pixelIds.get(i));
+			pixelList.get(i).setId(pixelIds.get(i));
 		}
 	}
 
@@ -127,7 +135,7 @@ public class PixelList implements Iterable<Pixel> {
 	public Pixel getPixel(String pixelId) {
 		for(int i = 0; i < pixelList.size(); i++) {
 			Pixel p = pixelList.get(i);
-			if(p.getUid().equals(pixelId)) {
+			if(p.getId().equals(pixelId)) {
 				return p;
 			}
 		}
@@ -141,7 +149,7 @@ public class PixelList implements Iterable<Pixel> {
 	 */
 	public int findIndex(String pixelId) {
 		for(int i = 0; i < pixelList.size(); i++) {
-			if(pixelList.get(i).getUid().equals(pixelId)) {
+			if(pixelList.get(i).getId().equals(pixelId)) {
 				return i;
 			}
 		}
@@ -204,7 +212,7 @@ public class PixelList implements Iterable<Pixel> {
 			idToIndexHash.clear();
 		}
 		for(int i = 0; i < pixelList.size(); i++) {
-			idToIndexHash.put(pixelList.get(i).getUid(), i);
+			idToIndexHash.put(pixelList.get(i).getId(), i);
 		}
 	}
 	

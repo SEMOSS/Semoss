@@ -32,6 +32,7 @@ import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -46,7 +47,9 @@ public class PixelRunner {
 	 * @param frame					The data maker to run the pixel expression on
 	 */
 	
+	protected transient GreedyTranslation translation = null;
 	protected Insight insight = null;
+	
 	protected List<NounMetadata> results = new Vector<>();
 	protected List<String> pixelExpression = new Vector<>();
 	protected List<Boolean> isMeta = new Vector<>();
@@ -57,7 +60,7 @@ public class PixelRunner {
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
 		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodingList, this.encodedTextToOriginal);
-		GreedyTranslation translation = null;
+		
 		try {
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
 			translation = new GreedyTranslation(this, insight);
@@ -129,7 +132,8 @@ public class PixelRunner {
 		// that is not a meta
 		if(!isMeta) {
 			Pixel pixel = this.insight.getPixelList().addPixel(origExpression);
-			// TODO: build out to add additional metadata
+			pixel.setStartingFrameHeaders(translation.startingFrameHeaders);
+			pixel.setEndingFrameHeaders(InsightUtility.getAllFrameHeaders(this.insight.getVarStore()));
 		}
 	}
 	
