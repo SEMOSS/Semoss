@@ -33,6 +33,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
+import prerna.om.PixelList;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
@@ -193,22 +194,22 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		List<Map<String, String>> panelIdToTaskList = tAdapter.getPanelIdToTask();
 		
 		// write the recipe
-		List<String> recipe = value.getPixelList().getPixelRecipe();
-		int steps = recipe.size();
+		PixelList pixelList = value.getPixelList();
 		out.name("recipe");
-		out.beginArray();
-		for(int i = 0; i < steps; i++) {
-			out.value(recipe.get(i));
-		}
-		out.endArray();
+		PixelListAdapter pAdapter = new PixelListAdapter();
+		pAdapter.write(out, pixelList);
 		
 		// end insight object
 		out.endObject();
-				
+		
+		// this is no longer part of the actual 
+		// insight serialization
+		// but writing things to disk
+		
 		// write the json for the viz
 		// this doesn't actually add anything to the insight object
 		File vizOutputFile = new File(Utility.normalizePath(folderDir) + DIR_SEPARATOR + InsightCacheUtility.VIEW_JSON);
-		OptimizeRecipeTranslation opTrans = getOptimizedRecipe(recipe);
+		OptimizeRecipeTranslation opTrans = getOptimizedRecipe(pixelList.getPixelRecipe());
 		Insight rerunInsight = new Insight();
 		rerunInsight.setVarStore(value.getVarStore());
 		rerunInsight.setUser(value.getUser());
@@ -454,13 +455,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		
 		// this will be the recipe
 		in.nextName();
-		List<String> recipe = new Vector<>();
-		in.beginArray();
-		while(in.hasNext()) {
-			recipe.add(in.nextString());
-		}
-		in.endArray();
-		insight.setPixelRecipe(recipe);
+		PixelListAdapter pAdapter = new PixelListAdapter();
+		PixelList pixelList = pAdapter.read(in);
+		insight.setPixelList(pixelList);
 		
 		in.endObject();
 		return insight;
