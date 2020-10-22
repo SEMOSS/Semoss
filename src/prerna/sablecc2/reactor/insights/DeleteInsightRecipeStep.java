@@ -20,8 +20,10 @@ public class DeleteInsightRecipeStep extends AbstractReactor {
 
 	private static final String CLASS_NAME = DeleteInsightRecipeStep.class.getName();
 
+	private static final String PROPAGATE = "propagate";
+	
 	public DeleteInsightRecipeStep() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PIXEL_ID.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.PIXEL_ID.getKey(), PROPAGATE};
 	}
 	
 	@Override
@@ -30,14 +32,14 @@ public class DeleteInsightRecipeStep extends AbstractReactor {
 		if(pixelIds == null || pixelIds.isEmpty()) {
 			throw new NullPointerException("Pixel ids to remove cannot be null or empty");
 		}
+		// takes into consideration deleting downstream recipe steps
+		boolean propagate = propagate();
 		Logger logger = getLogger(CLASS_NAME);
 
-		// TODO: TAKE INTO CONSIDERATION DOWNSTREAM EFFECTS ON THE RECIPE!!!
-		
 		// grab the pixel list
 		// and remove the ids
 		PixelList pixelList = this.insight.getPixelList();
-		pixelList.removeIds(pixelIds);
+		pixelList.removeIds(pixelIds, propagate);
 		
 		// now i need to rerun the insight recipe
 		// clear the insight
@@ -72,6 +74,15 @@ public class DeleteInsightRecipeStep extends AbstractReactor {
 		}
 		
 		return pixelIds;
+	}
+	
+	/**
+	 * Propagate the deletion
+	 * @return
+	 */
+	private boolean propagate() {
+		// default is true
+		return true;
 	}
 	
 }

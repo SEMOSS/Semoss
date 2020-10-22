@@ -105,7 +105,6 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 	@Override
 	public void mergeUp() {
 		super.mergeUp();
-//		System.out.println(getJavaSignature());
 	}
 	
 	/**
@@ -160,10 +159,4 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 
 		return inputs;
 	}
-	
-//	@Override
-//	public void updatePlan() {
-//		super.updatePlan();
-//		this.planner.addProperty(signature, "JAVA_SIGNATURE", getJavaSignature());
-//	}
 }
