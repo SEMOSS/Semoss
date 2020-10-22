@@ -14,6 +14,7 @@ import prerna.cache.ICache;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -318,6 +319,12 @@ public class RiGraph extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public IQueryInterpreter getQueryInterpreter() {
 		// TODO Auto-generated method stub
 		return null;
 	}

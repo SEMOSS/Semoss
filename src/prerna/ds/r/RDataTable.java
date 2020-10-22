@@ -22,6 +22,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -198,6 +199,14 @@ public class RDataTable extends AbstractTableDataFrame {
 			retWrapper = rcw;
 		}
 		return retWrapper;
+	}
+	
+	@Override
+	public IQueryInterpreter getQueryInterpreter() {
+		RInterpreter interp = new RInterpreter();
+		interp.setDataTableName(this.getName());
+		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
+		return interp;
 	}
 	
 	@Override
