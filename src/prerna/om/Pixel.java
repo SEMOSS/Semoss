@@ -1,5 +1,6 @@
 package prerna.om;
 
+import java.util.List;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -15,7 +16,10 @@ public class Pixel {
 	// some additional metadata to maintain on the Pixel
 	private Map<String, Map<String, Object>> startingFrameHeaders;
 	private Map<String, Map<String, Object>> endingFrameHeaders;
-
+	private Map<String, List<Map>> reactorInput;
+	
+	
+	// currently unused - just thinking of things to store
 	private transient ITableDataFrame primaryFrame;
 	private boolean isParamSelection = false;
 
@@ -76,6 +80,14 @@ public class Pixel {
 
 	public void setEndingFrameHeaders(Map<String, Map<String, Object>> endingFrameHeaders) {
 		this.endingFrameHeaders = endingFrameHeaders;
+	}
+	
+	public Map<String, List<Map>> getReactorInput() {
+		return reactorInput;
+	}
+
+	public void setReactorInput(Map<String, List<Map>> reactorInput) {
+		this.reactorInput = reactorInput;
 	}
 	
 	//////////////////////////////////////////

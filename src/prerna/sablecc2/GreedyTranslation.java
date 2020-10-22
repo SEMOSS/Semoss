@@ -2,6 +2,7 @@ package prerna.sablecc2;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
@@ -296,15 +297,19 @@ public class GreedyTranslation extends LazyTranslation {
 		// set that in the runner for later retrieval
 		// if it is a frame
 		// set it as the frame for the runner
+		Map<String, List<Map>> reactorInput = null;
+		if(this.prevReactor != null) {
+			reactorInput = this.prevReactor.getStoreMap();
+		}
 		NounMetadata noun = planner.getVariableValue(this.resultKey);
 		if(noun != null) {
-			this.runner.addResult(pixelExpression, noun, this.isMeta);
+			this.runner.addResult(pixelExpression, noun, this.isMeta, reactorInput);
 			// if there was a previous result
 			// remove it
 			this.planner.removeVariable(this.resultKey);
 		}
 		else {
-			this.runner.addResult(pixelExpression, new NounMetadata("no output", PixelDataType.CONST_STRING), this.isMeta);
+			this.runner.addResult(pixelExpression, new NounMetadata("no output", PixelDataType.CONST_STRING), this.isMeta, reactorInput);
 		}
 		this.curReactor = null;
 		this.prevReactor = null;
@@ -313,14 +318,14 @@ public class GreedyTranslation extends LazyTranslation {
 	
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, List<String> unexecutedPixels) {
 		errorNoun.addAdditionalReturn(new NounMetadata(unexecutedPixels, PixelDataType.CONST_STRING, PixelOperationType.UNEXECUTED_PIXELS));
-		this.runner.addResult(pixelExpression, errorNoun, this.isMeta);
+		this.runner.addResult(pixelExpression, errorNoun, this.isMeta, null);
 		this.curReactor = null;
 		this.prevReactor = null;
 		this.isMeta = false;
 	}
 	
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, boolean isMeta) {
-		this.runner.addResult(pixelExpression, errorNoun, this.isMeta);
+		this.runner.addResult(pixelExpression, errorNoun, this.isMeta, null);
 		this.curReactor = null;
 		this.prevReactor = null;
 		this.isMeta = false;
