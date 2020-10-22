@@ -611,14 +611,17 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		boolean isNewUser = SecurityQueryUtils.checkUserExist(id);
 		if(!isNewUser) {	
 			String userName = ADMIN_ADDED_USER;
-			boolean isNative = type.toLowerCase().equals("native");
+			boolean isNative = false;
 			String salt = null;
 			String hashedPassword = null;
-			if(isNative) {
-				if(name != null && !name.isEmpty()) {
-					userName = name;
-					salt = SecurityQueryUtils.generateSalt();
-					hashedPassword = (SecurityQueryUtils.hash(password, salt));
+			if (type != null) {
+				isNative = type.toLowerCase().equals("native");
+				if (isNative) {
+					if (name != null && !name.isEmpty()) {
+						userName = name;
+						salt = SecurityQueryUtils.generateSalt();
+						hashedPassword = (SecurityQueryUtils.hash(password, salt));
+					}
 				}
 			}
 			String query = "INSERT INTO USER (ID, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES "
