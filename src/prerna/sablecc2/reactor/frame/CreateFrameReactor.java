@@ -33,7 +33,11 @@ public class CreateFrameReactor extends AbstractReactor {
 		// get the name of the frame type
 		String frameType = this.keyValue.get(this.keysToGet[0]);
 		// override the default frame
-		Boolean override = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]));
+		Boolean override = true;
+		String overrideStr = this.keyValue.get(this.keysToGet[1]);
+		if(overrideStr != null && !overrideStr.isEmpty()) {
+			override = Boolean.parseBoolean(overrideStr);
+		}
 		// set the alias for the frame
 		String alias = this.keyValue.get(this.keysToGet[2]);
 
