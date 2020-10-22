@@ -15,6 +15,10 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 
 	private boolean caseEvaluation = false;
 	
+	public IfReactor() {
+		this.keysToGet = new String[] {"condition", "true", "false"};
+	}
+	
 	@Override
 	public NounMetadata execute()
 	{

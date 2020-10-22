@@ -121,7 +121,7 @@ public class PixelRunner {
 	 * @param result
 	 * @param isMeta
 	 */
-	public void addResult(String pixelExpression, NounMetadata result, boolean isMeta) {
+	public void addResult(String pixelExpression, NounMetadata result, boolean isMeta, Map<String, List<Map>> reactorInput) {
 		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList, this.encodedTextToOriginal);
 		this.pixelExpression.add(origExpression);
 		this.results.add(result);
@@ -134,6 +134,7 @@ public class PixelRunner {
 			Pixel pixel = this.insight.getPixelList().addPixel(origExpression);
 			pixel.setStartingFrameHeaders(translation.startingFrameHeaders);
 			pixel.setEndingFrameHeaders(InsightUtility.getAllFrameHeaders(this.insight.getVarStore()));
+			pixel.setReactorInput(reactorInput);
 		}
 	}
 	
