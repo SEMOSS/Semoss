@@ -163,35 +163,37 @@ public class PixelList implements Iterable<Pixel> {
 	 * @param pixelIds
 	 */
 	public List<Integer> removeIds(List<String> pixelIds, boolean propogate) {
-		Map<String, Integer> idToIndex = getIdToIndexHash();
-		List<Integer> indices = new Vector<Integer>(pixelIds.size());
-		for(String pId : pixelIds) {
-			Integer index = idToIndex.remove(pId);
-			if(index == null) {
-				// error
-				// recalculate the hash
-				recalculateIdToIndexHash();
-				throw new IllegalArgumentException("Cannot find pixel step with id = " + pId);
+		synchronized(this.pixelList) {
+			Map<String, Integer> idToIndex = getIdToIndexHash();
+			List<Integer> indices = new Vector<Integer>(pixelIds.size());
+			for(String pId : pixelIds) {
+				Integer index = idToIndex.remove(pId);
+				if(index == null) {
+					// error
+					// recalculate the hash
+					recalculateIdToIndexHash();
+					throw new IllegalArgumentException("Cannot find pixel step with id = " + pId);
+				}
+				indices.add(index);
 			}
-			indices.add(index);
-		}
-		
-		// sort the index list from largest to smallest
-		Collections.sort(indices, new Comparator<Integer>() {
-			@Override
-			public int compare(Integer o1, Integer o2) {
-			    return o2.intValue()-o1.intValue();
+			
+			// sort the index list from largest to smallest
+			Collections.sort(indices, new Comparator<Integer>() {
+				@Override
+				public int compare(Integer o1, Integer o2) {
+				    return o2.intValue()-o1.intValue();
+				}
+			});
+			
+			// now just remove those indices
+			for(int i = 0; i < indices.size(); i++) {
+				this.pixelList.remove(indices.get(i).intValue());
 			}
-		});
-		
-		// now just remove those indices
-		for(int i = 0; i < indices.size(); i++) {
-			this.pixelList.remove(indices.get(i).intValue());
+					
+			// recalculate the hash
+			recalculateIdToIndexHash();
+			return indices;
 		}
-				
-		// recalculate the hash
-		recalculateIdToIndexHash();
-		return indices;
 	}
 	
 	/**
