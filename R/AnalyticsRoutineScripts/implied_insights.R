@@ -109,7 +109,7 @@ get_frequent_itemsets<-function(df,min_cnt=2,sprt=0.1){
 	z<-rapply(df,function(x)length(unique(x)))
 	ind<-which(y!='numeric' | z > MIN_BREAKS)
 	if(length(ind)>0){
-		df<-df[,ind]
+		df<-df[,unname(ind)]
 		max_cnt<-ncol(df)
 		trans<-as(df,"transactions")
 		itemsets <- apriori(trans, parameter = list(target = "frequent",  supp=sprt, minlen = min_cnt, maxlen=max_cnt))
@@ -126,7 +126,7 @@ get_frequent_itemsets<-function(df,min_cnt=2,sprt=0.1){
 }
 
 select_features<-function(df,dep_var){
-	library(Boruta)
+	library(FSelector)
 	library(lubridate)
 	
 	# Drop Date columns
@@ -139,14 +139,12 @@ select_features<-function(df,dep_var){
 		}
 	}
 	df<-impute_data(df,colnames(df))
-	
 	if(class(df[[dep_var]])=="character"){
 		df[[dep_var]]<-as.factor(df[[dep_var]])
 	}
-	cmd<-paste0("x<-Boruta(",dep_var,"~.,data=df,doTrace=0)")
+	cmd<-paste0("x<-gain.ratio(",dep_var,"~.,data=df)")
 	eval(parse(text=cmd))
-	y<-attStats(x)
-	out<-data.frame(Feature=rownames(y),Importance=y$meanImp,Selection=as.character(y$decision))
+	out<-data.frame(Feature=rownames(x),Importance=round(x$attr_importance,4))
 	out<-out[order(-out$Importance),]
 	#plot(x)
 	gc()

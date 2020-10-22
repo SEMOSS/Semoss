@@ -1018,9 +1018,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				}
 				
 				boolean isPK = checkForPK(rankTable, rankCol, rSessionTable, currAppId, global);
+				boolean isDerived = checkForDerived(rankTable, rankCol, rSessionTable, currAppId, global);
 				QueryColumnOrderBySelector orderBy = null;
 				if (isPK) {
 					orderBy = new QueryColumnOrderBySelector(rankTable);
+				} else if(isDerived){
+					orderBy = new QueryColumnOrderBySelector(rankCol);
 				} else {
 					orderBy = new QueryColumnOrderBySelector(rankTable + "__" + rankCol);
 				}
@@ -1047,9 +1050,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				}
 				
 				boolean isPK = checkForPK(sortTable, sortCol, rSessionTable, currAppId, global);
+				boolean isDerived = checkForDerived(sortTable, sortCol, rSessionTable, currAppId, global);
 				QueryColumnOrderBySelector orderBy = null;
 				if (isPK) {
 					orderBy = new QueryColumnOrderBySelector(sortTable);
+				} else if(isDerived){
+					orderBy = new QueryColumnOrderBySelector(sortCol);
 				} else {
 					orderBy = new QueryColumnOrderBySelector(sortTable + "__" + sortCol);
 				}
@@ -1198,6 +1204,50 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String key = this.rJavaTranslator.getString(rsb.toString());
 
 		return Boolean.parseBoolean(key);
+	}
+	
+	/**
+	 * Check the existing R table to determine if a column is a primary key in the
+	 * particular table and app
+	 * 
+	 * @param concept
+	 * @param property
+	 * @param rSessionTable
+	 * @param appId
+	 * @return true or false
+	 */
+
+	private boolean checkForDerived(String concept, String property, String rSessionTable, String appId, boolean global) {
+		if(!global) {
+			return false;
+		}
+		
+		String splitProperty = "";
+		
+		String[] types = {"Average","Count","Max","Min","UniqueCount","Stdev"};
+		boolean noMatches = true;
+		for(String type : types) {
+			if(property.startsWith(type)) {
+				noMatches = false;
+				splitProperty = property.substring(type.length() + 1);
+			}
+		}
+		
+		if(noMatches) {
+			return false;
+		}
+		
+		StringBuilder rsb = new StringBuilder();
+		String alteredTable = appId + "._." + concept;
+		rsb.append("nrow(" + rSessionTable + "[");
+		rsb.append(rSessionTable + "$AppID == \"" + appId + "\" & ");
+		rsb.append(rSessionTable + "$Table == \"" + alteredTable + "\" & ");
+		rsb.append(rSessionTable + "$Column == \"" + splitProperty + "\"");
+		rsb.append(",]);");
+		
+		int numRows = this.rJavaTranslator.getInt(rsb.toString());
+
+		return numRows > 0;
 	}
 
 	/**
