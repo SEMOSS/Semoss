@@ -11,11 +11,6 @@ import prerna.sablecc2.reactor.frame.CreateFrameReactor;
 
 public class AsReactor extends AbstractReactor {
 	
-	public Object Out()
-	{
-		return parentReactor;
-	}
-	
 	public NounMetadata execute() {
 		String alias = (String) curRow.get(0);
 		NounMetadata noun = new NounMetadata(alias, PixelDataType.ALIAS);
@@ -24,7 +19,10 @@ public class AsReactor extends AbstractReactor {
 		if(parentReactor != null) {
 			parentReactor.getNounStore().makeNoun(PixelDataType.ALIAS.toString()).add(noun);
 		}
-		return noun;
+		// return null - we dont want to merge this twice
+		// and the syntax is always .as()
+		// which means there should always be a parent reactor
+		return null;
 	}
 
 	public void updatePlan()
@@ -68,7 +66,8 @@ public class AsReactor extends AbstractReactor {
 	public void mergeUp() {
 		// merge this reactor into the parent reactor
 		if(parentReactor != null) {
-			this.parentReactor.getCurRow().add(execute());
+			// this adds to the parent directly
+			execute();
 		}
 	}
 	
