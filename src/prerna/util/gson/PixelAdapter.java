@@ -1,6 +1,7 @@
 package prerna.util.gson;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
@@ -26,7 +27,10 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		String pixelString = null;
 		Map<String, Map<String, Object>> startingFrameHeaders = null;
 		Map<String, Map<String, Object>> endingFrameHeaders = null;
+		Map<String, List<Map>> reactorInput = null;
 		
+		TypeAdapter mapAdapter = GSON.getAdapter(Map.class);
+
 		in.beginObject();
 		while(in.hasNext()) {
 			String key = in.nextName();
@@ -40,11 +44,11 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 			} else if(key.equals("pixelString")) {
 				pixelString = in.nextString();
 			} else if(key.equals("startingFrameHeaders")) {
-				TypeAdapter adapter = GSON.getAdapter(Map.class);
-				startingFrameHeaders = (Map<String, Map<String, Object>>) adapter.read(in);
+				startingFrameHeaders = (Map<String, Map<String, Object>>) mapAdapter.read(in);
 			} else if(key.equals("endingFrameHeaders")) {
-				TypeAdapter adapter = GSON.getAdapter(Map.class);
-				endingFrameHeaders = (Map<String, Map<String, Object>>) adapter.read(in);
+				endingFrameHeaders = (Map<String, Map<String, Object>>) mapAdapter.read(in);
+			} else if(key.equals("reactorInput")) {
+				reactorInput = (Map<String, List<Map>>) mapAdapter.read(in);
 			}
 		}
 		in.endObject();
@@ -52,6 +56,7 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		Pixel pixel = new Pixel(id, pixelString);
 		pixel.setStartingFrameHeaders(startingFrameHeaders);
 		pixel.setEndingFrameHeaders(endingFrameHeaders);
+		pixel.setReactorInput(reactorInput);
 		return pixel;
 	}
 	
@@ -78,6 +83,13 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		if(value.getEndingFrameHeaders() != null) {
 			TypeAdapter adapter = GSON.getAdapter(value.getEndingFrameHeaders().getClass());
 			adapter.write(out, value.getEndingFrameHeaders());
+		} else {
+			out.nullValue();
+		}
+		out.name("reactorInput");
+		if(value.getReactorInput() != null) {
+			TypeAdapter adapter = GSON.getAdapter(value.getReactorInput().getClass());
+			adapter.write(out, value.getReactorInput());
 		} else {
 			out.nullValue();
 		}

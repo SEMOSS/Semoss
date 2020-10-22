@@ -130,10 +130,8 @@ public class MergeReactor extends AbstractReactor {
 	}
 	
 	private ITableDataFrame mergeNative(ITableDataFrame curFrame, ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) throws Exception {
-		
 		// track GA data
 		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
-
 		
 		/*
 		/// OLD METHOD
@@ -456,7 +454,9 @@ public class MergeReactor extends AbstractReactor {
 			return (ITableDataFrame) frameCur.get(0).getValue();
 		}
 		
-		return (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+		this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+		return defaultFrame;
 	}
 	
 	protected SelectQueryStruct getQueryStruct() {
