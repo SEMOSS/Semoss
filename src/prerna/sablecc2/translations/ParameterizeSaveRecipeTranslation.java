@@ -20,6 +20,7 @@ import com.google.gson.GsonBuilder;
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -161,6 +162,12 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 						continue;
 					}
 					
+					// FE prefers a single AND block
+					// so adding all the current filters
+					// note - this maybe 0 or more
+					AndQueryFilter andFilter = new AndQueryFilter();
+					andFilter.addFilter(newFilters);
+					
 					int numParams = foundParams.size();
 					for(int paramColIndex = 0; paramColIndex < numParams; paramColIndex++) {
 						String colToParam = foundParams.get(paramColIndex);
@@ -173,14 +180,21 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 									"==", 
 									new NounMetadata("<" + paramName + ">", PixelDataType.CONST_STRING)
 									);
-
-							newFilters.add(paramF);
+							
+							// add these filtes into the AND
+							andFilter.addFilter(paramF);
 						}
 					}
 					
 					// swap the filter lists
 					currentImportFilters.clear();
-					currentImportFilters.addAll(newFilters);
+					// if only 1 value in the AND block
+					// just grab it and send that filter
+					if(andFilter.getFilterList().size() == 1) {
+						currentImportFilters.add(andFilter.getFilterList().get(0));
+					} else {
+						currentImportFilters.add(andFilter);
+					}
 					
 					String newExpr = sourceStr + "|" + QsToPixelConverter.getPixel(this.importQs) + " | " + this.importStr + " ;";
 					this.pixels.add(newExpr);
