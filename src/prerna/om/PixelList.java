@@ -160,7 +160,7 @@ public class PixelList implements Iterable<Pixel> {
 	 * 
 	 * @param pixelIds
 	 */
-	public void removeIds(List<String> pixelIds) {
+	public List<Integer> removeIds(List<String> pixelIds, boolean propogate) {
 		Map<String, Integer> idToIndex = getIdToIndexHash();
 		List<Integer> indices = new Vector<Integer>(pixelIds.size());
 		for(String pId : pixelIds) {
@@ -169,7 +169,7 @@ public class PixelList implements Iterable<Pixel> {
 				// error
 				// recalculate the hash
 				recalculateIdToIndexHash();
-				throw new IllegalArgumentException("Cannot find pixel step with id = " + index);
+				throw new IllegalArgumentException("Cannot find pixel step with id = " + pId);
 			}
 			indices.add(index);
 		}
@@ -189,6 +189,7 @@ public class PixelList implements Iterable<Pixel> {
 				
 		// recalculate the hash
 		recalculateIdToIndexHash();
+		return indices;
 	}
 	
 	/**
