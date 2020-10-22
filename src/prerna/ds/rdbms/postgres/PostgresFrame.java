@@ -13,6 +13,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.PostgresSqlInterpreter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -85,6 +87,11 @@ public class PostgresFrame extends AbstractRdbmsFrame {
 	@Override
 	public void open(CachePropFileFrameObject cf) throws IOException {
 		throw new IllegalArgumentException("tbd");
+	}
+	
+	@Override
+	public IQueryInterpreter getQueryInterpreter() {
+		return new PostgresSqlInterpreter(this);
 	}
 	
 	@Override
