@@ -489,7 +489,7 @@ public class TableToXLSXReactor	extends AbstractReactor
 				return; 
 			}
 			
-			int width = 10;
+			int width = 200;
 			if(names.contains("width"))
 			 {
 					int wIndex = names.indexOf("width");
@@ -512,9 +512,24 @@ public class TableToXLSXReactor	extends AbstractReactor
 				if(savedWidth > width)
 					width = savedWidth;
 			}
-			columnToWidth.put(cellNum, width);
 			
-			inputSheet.setColumnWidth(cellNum, width *256);
+			// save it
+			columnToWidth.put(cellNum, width);
+
+			// convert the width from px to characters. Approx 1 character is 8px.
+			width = width/8;
+			
+			// bound it between 0 and 255
+			if(width < 0) {
+				width = 0;
+			}
+			
+			if(255 <= width) {
+				width = 255;
+			}
+			
+	
+			inputSheet.setColumnWidth(cellNum, width * 256);
 		}
 
 
