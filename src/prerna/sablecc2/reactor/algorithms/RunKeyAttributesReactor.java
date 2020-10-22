@@ -42,7 +42,7 @@ public class RunKeyAttributesReactor extends AbstractRFrameReactor {
 		String col = getInputString(ReactorKeysEnum.COLUMN.getKey());
 		
 		// check if the required packages are installed
-		String[] packages = new String[] { "data.table" , "Boruta" , "lubridate" };
+		String[] packages = new String[] { "data.table" , "FSelector" , "lubridate" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// check if there are filters on the frame. if so then need to run algorithm on subsetted data

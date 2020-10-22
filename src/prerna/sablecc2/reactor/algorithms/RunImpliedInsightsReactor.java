@@ -41,7 +41,7 @@ public class RunImpliedInsightsReactor extends AbstractRFrameReactor {
 		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
 		
 		// check if the required packages are installed
-		String[] packages = new String[] { "data.table" , "arules" , "Boruta" , "rlang" , "tidyselect" ,  "skimr" , "HDoutliers" , "lubridate" };
+		String[] packages = new String[] { "data.table" , "arules" , "FSelector" , "rlang" , "tidyselect" ,  "skimr" , "HDoutliers" , "lubridate" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// check if there are filters on the frame. if so then need to run algorithm on subsetted data
