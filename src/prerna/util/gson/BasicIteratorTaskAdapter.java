@@ -23,7 +23,6 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 	public BasicIteratorTask read(JsonReader in) throws IOException {
 		String taskId = null;
 		int numCollected = 0;
-//		long numRows = 0;
 		long internalOffset = 0;
 		TaskOptions tOptions = null;
 		SelectQueryStruct qs = null;
@@ -44,13 +43,11 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 			} else if(key.equals("numCollected")) {
 				numCollected = (int) in.nextLong();
 			}
-//			else if(key.equals("numRows")) {
-//				numRows = in.nextLong();
-//			} 
 			else if(key.equals("internalOffset")) {
 				internalOffset = in.nextLong();
 			} else if(key.equals("taskOptions")) {
-				tOptions = GSON.fromJson(in.nextString(), TaskOptions.class);
+				TypeAdapter adapter = GSON.getAdapter(TaskOptions.class);
+				tOptions = (TaskOptions) adapter.read(in);
 			} else if(key.equals("qs")) {
 				SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 				qs = adapter.read(in);
@@ -62,7 +59,6 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 		task.setId(taskId);
 		task.setTaskOptions(tOptions);
 		task.setNumCollect(numCollected);
-//		task.setNumRows(numRows);
 		task.setInternalOffset(internalOffset);
 		if(curMode == MODE.CONTINUE_PREVIOUS_ITERATING) {
 			task.setInternalOffset(internalOffset + numCollected);
@@ -77,9 +73,14 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 		out.name("taskType").value("basic");
 		out.name("id").value(value.getId());
 		out.name("numCollected").value(value.getNumCollect());
-//		out.name("numRows").value(value.getNumRows());
 		out.name("internalOffset").value(value.getInternalOffset());
-		out.name("taskOptions").value(GSON.toJson(value.getTaskOptions()));
+		out.name("taskOptions");
+		if(value.getTaskOptions() != null) {
+			TypeAdapter adapter = GSON.getAdapter(value.getTaskOptions().getClass());
+			adapter.write(out, value.getTaskOptions());
+		} else {
+			out.nullValue();
+		}
 		out.name("qs");
 		SelectQueryStruct qs = value.getQueryStruct();
 		SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
