@@ -11,6 +11,7 @@ import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.CachedIterator;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -170,6 +171,8 @@ public interface ITableDataFrame extends IDataMaker {
 	IRawSelectWrapper query(String query) throws Exception;
 	
 	IRawSelectWrapper query(SelectQueryStruct qs) throws Exception;
+	
+	IQueryInterpreter getQueryInterpreter();
 	
 	/**
 	 * Get the name of the frame

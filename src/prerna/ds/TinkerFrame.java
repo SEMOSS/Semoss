@@ -14,8 +14,6 @@ import java.util.UUID;
 import javax.script.ScriptContext;
 import javax.script.ScriptException;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -37,6 +35,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.interpreters.GremlinInterpreter;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.RelationSet;
@@ -55,14 +54,11 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.MyGraphIoMappingBuilder;
 import prerna.util.Utility;
 
 public class TinkerFrame extends AbstractTableDataFrame {
-
-	private static final Logger logger = LogManager.getLogger(TinkerFrame.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	public static final String DATA_MAKER_NAME = "TinkerFrame";
 
@@ -667,7 +663,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		                    	  gt = (GraphTraversal)mengine.eval(end);
 //		                    	  logger.info("compiled gremlin :: " + gt);
 //		                      } catch (ScriptException e) {
-//		                    	  logger.error(STACKTRACE, e);
+//		                    	  logger.error(Constants.STACKTRACE, e);
 //		                      }
 //		                      if (gt != null) {
 //			                      while(gt.hasNext())
@@ -709,9 +705,9 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //	                    	  end = "end";
 //	                      }
 //                      } catch (RuntimeException e) {
-//                            logger.error(STACKTRACE, e);
+//                            logger.error(Constants.STACKTRACE, e);
 //                      } catch (IOException ioe) {
-//                             logger.error(STACKTRACE, ioe);
+//                             logger.error(Constants.STACKTRACE, ioe);
 //                      }
 //                }
 //    }
@@ -730,7 +726,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 					gt = (GraphTraversal)mengine.eval(gremlinQuery);
 					logger.info("compiled gremlin :: " + gt);
 				} catch (ScriptException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 //				if(gt.hasNext()) {
 //					Object data = gt.next();
@@ -769,7 +765,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //			}
 			
 		}} catch (RuntimeException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return gt;
 		
@@ -942,7 +938,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		try {
 			writer.writeGraph(frameFileName);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new IOException("Error occured attempting to cache graph frame");
 		}
 		cf.setFrameCacheLocation(frameFileName);
@@ -962,7 +958,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			GryoIo reader = builder.create();
 			reader.readGraph(cf.getFrameCacheLocation());
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// open the meta details
@@ -1119,6 +1115,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		qsd.execute();
 		logger.info("Done executing query");
 		return qsd;
+	}
+	
+	@Override
+	public IQueryInterpreter getQueryInterpreter() {
+		return new GremlinInterpreter(this.g.traversal(), this.metaData);
 	}
 	
 	private Map<String, Map<String, List>> flushRelationships(List<String[]> rels) {
@@ -1322,14 +1323,14 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			try {
 				importer.insertData();
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		} else {
 			try {
 				importer.mergeData(joins);
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		}
@@ -1869,7 +1870,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //
 //		} catch (Exception e) {
 //			// TODO Auto-generated catch block
-//			logger.error(STACKTRACE, e);
+//			logger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //	}
@@ -1899,10 +1900,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //			g.close();
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
-//			logger.error(STACKTRACE, e);
+//			logger.error(Constants.STACKTRACE, e);
 //		} catch (Exception e) {
 //			// TODO Auto-generated catch block
-//			logger.error(STACKTRACE, e);
+//			logger.error(Constants.STACKTRACE, e);
 //		}
 //
 //	}
@@ -2208,9 +2209,9 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //			poiReader = new FileInputStream(fileName);
 //			workbook = new XSSFWorkbook(poiReader);
 //		} catch (FileNotFoundException e) {
-//			logger.error(STACKTRACE, e);
+//			logger.error(Constants.STACKTRACE, e);
 //		} catch (IOException e) {
-//			logger.error(STACKTRACE, e);
+//			logger.error(Constants.STACKTRACE, e);
 //		}
 //		
 //		XSSFSheet lSheet = workbook.getSheet("Sheet1");

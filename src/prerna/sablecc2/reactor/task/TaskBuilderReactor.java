@@ -22,6 +22,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
 import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.GenericReactor;
+import prerna.util.Constants;
 
 public abstract class TaskBuilderReactor extends AbstractReactor {
 
@@ -39,7 +40,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		try {
 			buildTask();
 		} catch (Exception e) {
-			logger.error("StackTrace: ", e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		} 
 		// append onto the task
