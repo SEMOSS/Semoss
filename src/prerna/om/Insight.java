@@ -1048,16 +1048,14 @@ public class Insight {
 
 		// clear the varStore
 		// but need to close the frames for memory / files
-		Iterator<String> keys = this.varStore.getKeys().iterator();
+		Iterator<String> keys = this.varStore.getFrameKeys().iterator();
 		while(keys.hasNext()) {
 			String key = keys.next();
 			NounMetadata noun = this.varStore.get(key);
-			if(noun.getValue() instanceof ITableDataFrame) {
-				((ITableDataFrame) noun.getValue()).close();
-			}
-			// now remove the key
-			keys.remove();
+			((ITableDataFrame) noun.getValue()).close();
 		}
+		// now clear everything inside
+		this.varStore.clear();
 		
 		// copy over the recipe to a new list
 		// and clear the current container
