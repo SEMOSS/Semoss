@@ -181,7 +181,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 									new NounMetadata("<" + paramName + ">", PixelDataType.CONST_STRING)
 									);
 							
-							// add these filtes into the AND
+							// add these filters into the AND
 							andFilter.addFilter(paramF);
 						}
 					}
