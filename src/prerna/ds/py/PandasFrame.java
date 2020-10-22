@@ -22,6 +22,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
@@ -95,7 +96,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 			this.wrapperFrameName = createFrameWrapperName(name);
 		}
 	}
-	
 	
 	/**
 	 * Get the name of the frame wrapper object
@@ -519,6 +519,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 			}
 		}
 		return newHeaders;
+	}
+	
+	@Override
+	public IQueryInterpreter getQueryInterpreter() {
+		PandasInterpreter interp = new PandasInterpreter();
+		interp.setDataTableName(this.getName(), this.wrapperFrameName);
+		interp.setDataTypeMap(this.metaData.getHeaderToTypeMap());
+		return interp;
 	}
 	
 	/**
