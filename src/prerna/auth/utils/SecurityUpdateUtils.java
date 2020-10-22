@@ -606,14 +606,28 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * Adds a new user to the database. Does not create any relations, simply the node.
 	 * @param userName	String representing the name of the user to add
 	 */
-	public static boolean registerUser(String id, String name, String email, String type, boolean admin,
+	public static boolean registerUser(String id, String name, String email, String password, String type, boolean admin,
 			boolean publisher) throws IllegalArgumentException {
 		boolean isNewUser = SecurityQueryUtils.checkUserExist(id);
-		if(!isNewUser) {			
-			String query = "INSERT INTO USER (ID, NAME, EMAIL, TYPE, ADMIN, PUBLISHER) VALUES "
+		if(!isNewUser) {	
+			String userName = ADMIN_ADDED_USER;
+			boolean isNative = type.toLowerCase().equals("native");
+			String salt = null;
+			String hashedPassword = null;
+			if(isNative) {
+				if(name != null && !name.isEmpty()) {
+					userName = name;
+					salt = SecurityQueryUtils.generateSalt();
+					hashedPassword = (SecurityQueryUtils.hash(password, salt));
+				}
+			}
+			String query = "INSERT INTO USER (ID, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES "
 					+ "('" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', " 
-					+ "'" + ADMIN_ADDED_USER + "',"
+					+ "'" + userName + "',"
 					+ (email == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(email.toLowerCase()) + "'") + ","
+					// add password and salt for native user
+					+ ( hashedPassword != null  ?  "'" + hashedPassword + "'": "null") + ","
+					+ ( salt != null  ?  "'" + salt + "'": "null") + ","
 					+ (type == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(type) + "'") + ", "
 					+ admin + ", " + "" + publisher + ");";
 			try {
