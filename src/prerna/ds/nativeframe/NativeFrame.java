@@ -373,6 +373,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 		return it;
 	}
+	
+	@Override
+	public IQueryInterpreter getQueryInterpreter() {
+		return this.qs.retrieveQueryStructEngine().getQueryInterpreter();
+	}
 
 	public boolean engineQueryCacheable() {
 		return NativeFrame.cacheEngines.contains(this.qs.retrieveQueryStructEngine().getEngineType());

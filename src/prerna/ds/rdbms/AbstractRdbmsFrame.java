@@ -11,7 +11,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.interpreters.sql.H2SqlInterpreter;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
@@ -197,7 +197,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		logger.info("Generating SQL query...");
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		H2SqlInterpreter interp = new H2SqlInterpreter(this);
+		IQueryInterpreter interp = getQueryInterpreter();
 		interp.setQueryStruct(qs);
 		interp.setLogger(this.logger);
 		String iteratorQuery = interp.composeQuery();
