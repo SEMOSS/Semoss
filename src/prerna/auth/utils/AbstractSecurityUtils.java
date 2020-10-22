@@ -869,14 +869,14 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 
-	static String validEmail(String email){
+	public static String validEmail(String email){
 		if(email == null || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
 			return  email + " is not a valid email address. ";
 		}
 		return "";
 	}
 	
-	static String validPassword(String password){
+	public static String validPassword(String password){
 		if(password == null || password.isEmpty()) {
 			return "Password cannot be empty.";
 		}
