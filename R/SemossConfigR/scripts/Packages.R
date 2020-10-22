@@ -235,6 +235,7 @@ install.packages("http://cran.r-project.org/src/contrib/Archive/SteinerNet/Stein
 
 # Implied insights
 install.packages("Boruta", dependencies=TRUE)
+install.packages("FSelector", dependencies=TRUE)
 install.packages("skimr", dependencies=TRUE)
 #install.packages("rlang", dependencies=TRUE)
 #install.packages("tidyselect", dependencies=TRUE)
