@@ -481,10 +481,14 @@ public class InsightUtility {
 		Set<String> frameKeys = varStore.getFrameKeys();
 		for(String fKey : frameKeys) {
 			NounMetadata noun = varStore.get(fKey);
-			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-			if(!retMap.containsKey(frame.getName())) {
-				Map<String, Object> headers = frame.getFrameHeadersObject();
-				retMap.put(frame.getName(), headers);
+			if(noun == null) {
+				logger.info("why is the varstore not synced up???");
+			} else {
+				ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+				if(!retMap.containsKey(frame.getName())) {
+					Map<String, Object> headers = frame.getFrameHeadersObject();
+					retMap.put(frame.getName(), headers);
+				}
 			}
 		}
 		
