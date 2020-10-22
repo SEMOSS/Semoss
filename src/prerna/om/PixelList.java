@@ -26,6 +26,7 @@ public class PixelList implements Iterable<Pixel> {
 	 */
 	public void addPixel(Pixel p) {
 		pixelList.add(p);
+		idToIndexHash.put(p.getId(), this.pixelList.size()-1);
 	}
 	
 	/**
@@ -66,6 +67,7 @@ public class PixelList implements Iterable<Pixel> {
 				String uid = intVal + "__" + UUID.randomUUID().toString();
 				Pixel pixel = new Pixel(uid, pixelRecipe.get(i));
 				this.pixelList.add(pixel);
+				idToIndexHash.put(uid, this.pixelList.size()-1);
 				// return the pixel object that was added
 				subset.add(pixel);
 			}
