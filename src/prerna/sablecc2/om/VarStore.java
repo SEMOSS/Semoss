@@ -1,10 +1,12 @@
 package prerna.sablecc2.om;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.eclipse.jetty.util.ConcurrentHashSet;
 
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -22,8 +24,8 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	private Set<String> frameSet;
 	
 	public VarStore() {
-		varMap = new HashMap<>();
-		frameSet = new HashSet<>();
+		varMap = new ConcurrentHashMap<>();
+		frameSet = new ConcurrentHashSet<>();
 	}
 	
 	@Override
