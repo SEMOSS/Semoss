@@ -1,9 +1,13 @@
 package prerna.sablecc2.reactor.export;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -18,6 +22,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
@@ -54,16 +59,21 @@ public class TableToXLSXReactor	extends AbstractReactor
 		int lastRow = startRow;
 		int lastColumn = startColumn;
 		boolean keepOpen = true;
-		Map exportMap = null;
+		boolean mergeCells = true; // should we merge the cells or not. 
+		Map exportMap = new HashMap<String, Object>();
 		
 		public static final String ROW_COUNT = "ROW_COUNT";
 		public static final String COLUMN_COUNT = "COLUMN_COUNT";
+		
+		Map colspanMatrix = new HashMap();
+		Map rowspanMatrix = new HashMap();
+		Map <Sheet, List<CellRangeAddress>> mergeAreas = new HashMap<Sheet, List <CellRangeAddress>>();
 		
 		Map <Integer, Integer> columnToWidth = new HashMap<Integer, Integer>();
 		
 		public TableToXLSXReactor() {
 			// keep open specifies whether to keep this open or close it. if kept open then this will return open as noun metadata
-			this.keysToGet = new String[] { ReactorKeysEnum.SHEET.getKey(), ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_NAME.getKey()};
+			this.keysToGet = new String[] { ReactorKeysEnum.SHEET.getKey(), ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), "merge-cells"};
 		}
 
 		public NounMetadata execute()
@@ -86,12 +96,19 @@ public class TableToXLSXReactor	extends AbstractReactor
 			else if(exportMap.containsKey("FILE_NAME"))
 				fileName = (String)exportMap.get("FILE_NAME");
 
+			if(keyValue.containsKey(keysToGet[3]))
+				mergeCells = keyValue.get(keysToGet[3]).equalsIgnoreCase("true");
 
 			// process the table
 			// set in insight so FE can download the file
 			String fileLocation = processTable(sheetName, html,  fileName);
 			NounMetadata retNoun = null;
 			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
+			insight.getVarStore().put(insight.getInsightId(), new NounMetadata(exportMap, PixelDataType.CUSTOM_DATA_STRUCTURE));
+
+			// merge the cells
+			if(mergeCells)
+				mergeAreas();
 			
 			return retNoun;
 		}
@@ -102,8 +119,6 @@ public class TableToXLSXReactor	extends AbstractReactor
 			{
 				exportMap = (Map)insight.getVar(fileName);
 			}
-			else
-				exportMap = new HashMap<String, Object>();
 		}
 
 		public String processTable(String sheetName, String html, String fileName) 
@@ -162,7 +177,6 @@ public class TableToXLSXReactor	extends AbstractReactor
 				}
 				exportMap.put(sheetName + "ROW_COUNT", lastRow);
 				exportMap.put("FILE_NAME", fileName);
-				insight.getVarStore().put(insight.getInsightId(), new NounMetadata(exportMap, PixelDataType.CUSTOM_DATA_STRUCTURE));
 			    return "Waiting for next command";
 			}catch (Exception ex)
 			{
@@ -177,43 +191,77 @@ public class TableToXLSXReactor	extends AbstractReactor
 			Elements tds = tr.children();
 			int offset = startColumn + columnOffset;
 			lastColumn = offset;
-			for(int tdIndex = 0;tdIndex < tds.size();tdIndex++)
+			int tdIndex = 0;
+			int cellIndex = 0;
+			while(tdIndex < tds.size())
 			{
-				Cell cell = row.createCell(tdIndex + offset);
-				Element td = tds.get(tdIndex);
-				String value = td.text();
-				cell.setCellValue(value);
-				String style = td.attr("Style");
-				List [] nameProps = null;
-				if(style == null)
+				Cell cell = row.createCell(cellIndex + offset);
+				int rowIndex = cell.getRowIndex();
+				int colIndex = cell.getColumnIndex();
+				if(!colspanMatrix.containsKey(rowIndex + ":" + colIndex) && !(rowspanMatrix.containsKey(rowIndex + ":" + colIndex)))
 				{
-					style = td.attr("style");
+					// find if the cell already has a value assigned
+					// if not see if t
+					Element td = tds.get(tdIndex);
+					
+					String value = td.text();
+					String rowSpan = td.attr("rowspan");
+					String colSpan = td.attr("colspan");
+					
+					cell.setCellValue(value);
+					String style = td.attr("Style");
+					List [] nameProps = null;
+					if(style == null)
+					{
+						style = td.attr("style");
+					}
+					//System.err.println("Value is " + value + " Style is " + style);
+					if(style != null)
+					{
+						nameProps = mapCSS(style);
+	
+						CellStyle input = wb.createCellStyle();
+						// process border
+						input = processBorders(input, nameProps[0], nameProps[1]);
+						
+						// process font
+						input = processFont(input, nameProps[0], nameProps[1], wb);
+	
+						// process alignment
+						input = processAlign(input, nameProps[0], nameProps[1]);
+						
+						// process background
+						input = processBackground(input, nameProps[0], nameProps[1]);
+						
+						cell.setCellStyle(input);
+	
+						// process background
+						processWidth(cell.getSheet(), cell.getColumnIndex(), nameProps[0], nameProps[1]); 
+	
+					}
+					if(rowSpan != null || colSpan != null)
+						processSpan(cell, rowSpan, colSpan, value);
+			
+					tdIndex++;
+					cellIndex++;
+					lastColumn++;
 				}
-				//System.err.println("Value is " + value + " Style is " + style);
-				if(style != null)
+				else if(!colspanMatrix.containsKey(rowIndex + ":" + colIndex))
 				{
-					nameProps = mapCSS(style);
-
-					CellStyle input = wb.createCellStyle();
-					// process border
-					input = processBorders(input, nameProps[0], nameProps[1]);
-					
-					// process font
-					input = processFont(input, nameProps[0], nameProps[1], wb);
-
-					// process alignment
-					input = processAlign(input, nameProps[0], nameProps[1]);
-					
-					// process background
-					input = processBackground(input, nameProps[0], nameProps[1]);
-					
-					cell.setCellStyle(input);
-
-					// process background
-					processWidth(cell.getSheet(), cell.getColumnIndex(), nameProps[0], nameProps[1]); 
-
+					Cell prevCell = (Cell)rowspanMatrix.get(rowIndex + ":" + colIndex);
+					cell.setCellStyle(prevCell.getCellStyle());
+					cellIndex++;
+					//tdIndex++;
+				}else //if(!(rowspanMatrix.containsKey(rowIndex + ":" + colIndex)))
+				{
+					// I have to do something here..
+					// I need to paint the same style for this cell also
+					Cell prevCell = (Cell)colspanMatrix.get(rowIndex + ":" + colIndex);
+					cell.setCellStyle(prevCell.getCellStyle());
+					cellIndex++;
 				}
-				lastColumn++;
+
+				
 			}
 		}
 		
@@ -506,6 +554,7 @@ public class TableToXLSXReactor	extends AbstractReactor
 						width = Integer.parseInt(w);
 					}
 			 }
+			// process to keep the greatest width for this column
 			if(columnToWidth.containsKey(cellNum))
 			{
 				int savedWidth = columnToWidth.get(cellNum);
@@ -532,5 +581,150 @@ public class TableToXLSXReactor	extends AbstractReactor
 			inputSheet.setColumnWidth(cellNum, width * 256);
 		}
 
+		public void processSpan(Cell cell, String rowSpan, String colSpan, String value)
+		{
+			// get the curren cell row and column
+			int colIndex = cell.getColumnIndex();
+			int rowIndex = cell.getRowIndex();
+			
+			Sheet sh = cell.getSheet();
+			List mergeCells = new Vector();
+			if(mergeAreas.containsKey(sh))
+				mergeCells = mergeAreas.get(sh);
+			
+	
+			if(colSpan != null && colSpan.length() > 0 && (rowSpan == null || rowSpan.length() == 0))
+			{
+				int numCols = Integer.parseInt(colSpan);
+				for(int colSpanIndex = 0;colSpanIndex < numCols;colSpanIndex++)
+					colspanMatrix.put(rowIndex + ":" + (colIndex + colSpanIndex), cell);
+				
+				// put the merge
+				//CellReference.convertNumToColString(cell.getColumnIndex());
+				CellRangeAddress cra = new CellRangeAddress(rowIndex, rowIndex, colIndex, (colIndex + numCols - 1));
+				mergeCells.add(cra);
+				mergeAreas.put(sh, mergeCells);
+			}
 
+			if((colSpan == null || colSpan.length() == 0) && rowSpan != null && rowSpan.length() > 0)
+			{
+				int numRows = Integer.parseInt(rowSpan);
+				for(int rowSpanIndex = 0;rowSpanIndex < numRows;rowSpanIndex++)
+					rowspanMatrix.put((rowIndex + rowSpanIndex) + ":" + colIndex, cell);
+				
+				// put the merge
+				CellRangeAddress cra = new CellRangeAddress(rowIndex, (rowIndex+numRows-1), colIndex, colIndex);
+				mergeCells.add(cra);
+				mergeAreas.put(sh, mergeCells);
+			}
+			
+			if(colSpan != null && rowSpan != null && rowSpan.length() > 0 && colSpan.length() > 0)
+			{
+				int numRows = Integer.parseInt(colSpan);
+				int numCols = Integer.parseInt(colSpan);
+				for(int rowSpanIndex = 0;rowSpanIndex < numCols;rowSpanIndex++)
+				{
+					for(int colSpanIndex = 0;colSpanIndex < numCols;colSpanIndex++)
+					{
+						colspanMatrix.put((rowIndex + rowSpanIndex) + ":" + (colIndex + colSpanIndex), cell);						
+						rowspanMatrix.put((rowIndex + rowSpanIndex) + ":" + (colIndex + colSpanIndex), cell);						
+					}
+					
+				}
+				
+				// put the merge area
+				CellRangeAddress cra = new CellRangeAddress(rowIndex, rowIndex+numRows, colIndex, colIndex + numCols);
+				mergeCells.add(cra);				
+				mergeAreas.put(sh, mergeCells);
+			}
+			
+
+		}
+		
+		public void mergeAreas()
+		{
+			Iterator<Sheet> sheets = mergeAreas.keySet().iterator();
+			while(sheets.hasNext())
+			{
+				Sheet sheet = sheets.next();
+				List <CellRangeAddress> mergeCells = mergeAreas.get(sheet);
+				for(int mergeIndex = 0;mergeIndex < mergeCells.size();mergeIndex++)
+					sheet.addMergedRegion(mergeCells.get(mergeIndex));
+			}
+		}
+		
+		public void writeWorkbook(String fileName)
+		{
+			try {
+				Workbook wb = (Workbook) exportMap.get(fileName);
+
+				String exportName = AbstractExportTxtReactor.getExportFileName(fileName, "xlsx");
+				String fileLocation = "c:/temp" + DIR_SEPARATOR + exportName;
+
+				FileOutputStream fileOut = new FileOutputStream(fileLocation);
+				wb.write(fileOut);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		}
+		
+		
+		
+		public static void main(String [] args)
+		{
+			TableToXLSXReactor tx = new TableToXLSXReactor();
+			String html = "</head><body><table style=\"border-collapse:collapse; margin:50px auto; width:750px\" width=\"750\">\r\n" + 
+					"  <thead>\r\n" + 
+					"    <tr>\r\n" + 
+					"      <th style=\"background-color:#3498db; color:white; font-weight:bold; border:1px solid #ccc; font-size:18px; padding:10px; text-align:left; width:80px\" align=\"left\">First Name</th>  <th style=\"background-color:#3498db; color:white; font-weight:bold; border:1px solid #ccc; font-size:18px; padding:10px; text-align:left; width:20px\" align=\"left\">Last Name</th>\r\n" + 
+					"      <th style=\"background-color:#3498db; color:white; font-weight:bold; border:1px solid #ccc; font-size:18px; padding:10px; text-align:left; width:20px\" align=\"left\">Job Title</th>\r\n" + 
+					"      <th style=\"background-color:#3498db; color:white; font-weight:bold; border:1px solid #ccc; font-size:18px; padding:10px; text-align:left; width:20px\" align=\"left\">Twitter</th>\r\n" + 
+					"    </tr>\r\n" + 
+					"  </thead>\r\n" + 
+					"  <tbody>\r\n" + 
+					"    <tr>\r\n" + 
+					"      <td data-column=\"First Name\"  style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\", colspan=\"2\">James</td>\r\n" + 
+					"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Matman</td>\r\n" + 
+					"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Chief Sandwich Eater</td>\r\n" + 
+					"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@james</td>\r\n" + 
+					"    </tr>\r\n" + 
+					"    <tr>\r\n" + 
+					"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Andor</td>\r\n" + 
+					"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Nagy</td>\r\n" + 
+					"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Designer</td>\r\n" + 
+					"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@andornagy</td>\r\n" + 
+					"    </tr>\r\n" + 
+					"    <tr>\r\n" + 
+					"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Tamas</td>\r\n" + 
+					"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Biro</td>\r\n" + 
+					"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Game Tester</td>\r\n" + 
+					"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@tamas</td>\r\n" + 
+					"    </tr>\r\n" + 
+					"    <tr>\r\n" + 
+					"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Zoli</td>\r\n" + 
+					"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Mastah</td>\r\n" + 
+					"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Developer</td>\r\n" + 
+					"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@zoli</td>\r\n" + 
+					"    </tr>\r\n" + 
+					"    <tr>\r\n" + 
+					"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Szabi</td>\r\n" + 
+					"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Nagy</td>\r\n" + 
+					"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Chief Sandwich Eater</td>\r\n" + 
+					"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@szabi</td>\r\n" + 
+					"    </tr>\r\n" + 
+					"  </tbody>\r\n" + 
+					"</table></body></html>";
+			tx.processTable("sh", html, "hello");
+			tx.mergeAreas();
+			tx.writeWorkbook("hello");
+			
+			
+		}
+		
+		
 }
