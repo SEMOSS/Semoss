@@ -139,6 +139,8 @@ public class PixelRunner {
 	
 	/**
 	 * Store the terminal output of the pixel statement
+	 * This is used when trying to modify the pixel directly outside
+	 * of the normal pixel execution flow
 	 * @param index
 	 * @param pixelExpression
 	 * @param result
@@ -154,8 +156,7 @@ public class PixelRunner {
 		// when we have an expression that is returned
 		// that is not a meta
 		if(!isMeta) {
-			Pixel pixel = this.insight.getPixelList().addPixel(origExpression);
-			// TODO: build out to add additional metadata
+			this.insight.getPixelList().addPixel(origExpression);
 		}
 	}
 	
