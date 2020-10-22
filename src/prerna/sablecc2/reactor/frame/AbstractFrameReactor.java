@@ -33,8 +33,12 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 		}
 		
 		// else, grab the default frame from the insight
-		if (this.insight.getDataMaker() != null) {
-			return (ITableDataFrame) this.insight.getDataMaker();
+		// put this into the noun store
+		// so that we can pull it for other pipeline
+		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+		if (defaultFrame != null) {
+			this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+			return defaultFrame;
 		}
 
 		throw new NullPointerException("No frame found");

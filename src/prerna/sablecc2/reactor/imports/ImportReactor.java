@@ -129,7 +129,11 @@ public class ImportReactor extends AbstractReactor {
 			return (ITableDataFrame) frameCur.get(0).getValue();
 		}
 		
-		return (ITableDataFrame) this.insight.getDataMaker();
+		// put this into the noun store
+		// so that we can pull it for other pipeline
+		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+		this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+		return defaultFrame;
 	}
 
 	private void storeCsvFileMeta(CsvQueryStruct qs) {
