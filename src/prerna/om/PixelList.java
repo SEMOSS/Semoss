@@ -2,19 +2,19 @@ package prerna.om;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PixelList implements Iterable<Pixel> {
 
 	private AtomicInteger counter = new AtomicInteger(0);
 	private List<Pixel> pixelList = new Vector<>();
-	private Map<String, Integer> idToIndexHash = new HashMap<>();
+	private Map<String, Integer> idToIndexHash = new ConcurrentHashMap<>();
 	
 	public PixelList() {
 		
@@ -210,7 +210,7 @@ public class PixelList implements Iterable<Pixel> {
 	 */
 	private void recalculateIdToIndexHash() {
 		if(idToIndexHash == null) {
-			idToIndexHash = new HashMap<>();
+			idToIndexHash = new ConcurrentHashMap<>();
 		} else {
 			idToIndexHash.clear();
 		}
