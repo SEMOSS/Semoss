@@ -16,6 +16,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.gson.GsonUtility;
+import prerna.util.gson.PixelAdapter;
+
 public class PixelList implements Iterable<Pixel> {
 
 	private static final Logger logger = LogManager.getLogger(PixelList.class);
@@ -312,6 +318,13 @@ public class PixelList implements Iterable<Pixel> {
 		for(int i = 0; i < pixelList.size(); i++) {
 			idToIndexHash.put(pixelList.get(i).getId(), i);
 		}
+	}
+	
+	public PixelList copy() {
+		Gson gson = GsonUtility.getDefaultGson();
+		String strCopy = gson.toJson(this);
+		PixelList copy = gson.fromJson(strCopy, PixelList.class);
+		return copy;
 	}
 	
 	////////////////////////////////////////////////////////////
