@@ -27,6 +27,7 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
+import prerna.om.PixelList;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -158,7 +159,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				if(cachedInsight != null) {
 					hasCache = true;
 					cachedInsight.setInsightName(newInsight.getInsightName());
-					cachedInsight.setPixelRecipe(newInsight.getPixelList().getPixelRecipe());
 					newInsight = cachedInsight;
 				}
 			} catch (IOException | RuntimeException e) {
@@ -292,7 +292,10 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 */
 	protected PixelRunner getCachedInsightData(Insight insight) throws IOException, JsonSyntaxException {
 		// so that I don't mess up the insight recipe
-		List<String> origRecipe = insight.getPixelList().getPixelRecipe();
+		// use the object as it contains a ton of metadata
+		// around the pixel step
+		PixelList orig = insight.getPixelList().copy();
+		// clear the current insight recipe
 		insight.setPixelRecipe(new Vector<String>());
 		
 		PixelRunner runner = new PixelRunner();
@@ -328,7 +331,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			}
 		} finally {
 			// we need to reset the recipe
-			insight.setPixelRecipe(origRecipe);
+			insight.setPixelList(orig);
 		}
 		
 		return runner;
