@@ -458,8 +458,12 @@ public class LazyTranslation extends DepthFirstAdapter {
         	this.planner.removeVariable(this.resultKey);
         	
         	// store the frame as an input
-        	if(prevResult.getNounType() == PixelDataType.FRAME) {
-				this.pixelObj.addFrameInput(((ITableDataFrame) prevResult.getValue()).getName());
+        	if(this.pixelObj != null && prevResult.getNounType() == PixelDataType.FRAME) {
+        		try {
+        			this.pixelObj.addFrameInput(((ITableDataFrame) prevResult.getValue()).getName());
+        		} catch(Exception e) {
+        			e.printStackTrace();
+        		}
         	}
     	}
     }
@@ -1261,7 +1265,9 @@ public class LazyTranslation extends DepthFirstAdapter {
     		} else {
     			curReactor = null;
     			// store the noun map in the pixel
-    			this.pixelObj.addReactorInput(prevReactor.getStoreMap());
+    			if(this.pixelObj != null) {
+    				this.pixelObj.addReactorInput(prevReactor.getStoreMap());
+    			}
     		}
     	}
     }
