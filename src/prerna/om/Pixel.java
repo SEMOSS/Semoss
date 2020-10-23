@@ -21,8 +21,10 @@ public class Pixel {
 	private Map<String, Map<String, Object>> endingFrameHeaders;
 	// the list of reactor inputs
 	private List<Map<String, List<Map>>> reactorInputs = new Vector<>();
+	// store the list of frame inputs
+	private Set<String> frameInputs = new HashSet<>();
 	// store the list of frame outputs from the reactor
-	private Set<String> frameOutput = new HashSet<>();
+	private Set<String> frameOutputs = new HashSet<>();
 	
 	// currently unused - just thinking of things to store
 	private transient ITableDataFrame primaryFrame;
@@ -128,27 +130,51 @@ public class Pixel {
 	}
 	
 	/**
-	 * Get the frame outputs from the pixel
+	 * Add the frame output from the pixel
 	 * @param frameName
 	 */
 	public void addFrameOutput(String frameName) {
-		this.frameOutput.add(frameName);
+		this.frameOutputs.add(frameName);
 	}
 	
 	/**
 	 * Get the frame outputs
 	 * @return
 	 */
-	public Set<String> getFrameOutput() {
-		return frameOutput;
+	public Set<String> getFrameOutputs() {
+		return frameOutputs;
 	}
 	
 	/**
 	 * Set the frame outputs
-	 * @param frameOutput
+	 * @param frameOutputs
 	 */
-	public void setFrameOutput(Set<String> frameOutput) {
-		this.frameOutput = frameOutput;
+	public void setFrameOutputs(Set<String> frameOutputs) {
+		this.frameOutputs = frameOutputs;
+	}
+	
+	/**
+	 * Add the frame input from the pixel
+	 * @param frameName
+	 */
+	public void addFrameInput(String frameName) {
+		this.frameInputs.add(frameName);
+	}
+	
+	/**
+	 * Get the frame inputs
+	 * @return
+	 */
+	public Set<String> getFrameInputs() {
+		return frameInputs;
+	}
+	
+	/**
+	 * Set the frame inputs
+	 * @param frameInputs
+	 */
+	public void setFrameInputs(Set<String> frameInputs) {
+		this.frameInputs = frameInputs;
 	}
 	
 	/**
@@ -180,7 +206,8 @@ public class Pixel {
 		if(mergePixel != null) {
 			pixelObj.setStartingFrameHeaders(mergePixel.getStartingFrameHeaders());
 			pixelObj.setReactorInputs(mergePixel.getReactorInputs());
-			pixelObj.setFrameOutput(mergePixel.getFrameOutput());
+			pixelObj.setFrameInputs(mergePixel.getFrameInputs());
+			pixelObj.setFrameOutputs(mergePixel.getFrameOutputs());
 		}
 	}
 	
