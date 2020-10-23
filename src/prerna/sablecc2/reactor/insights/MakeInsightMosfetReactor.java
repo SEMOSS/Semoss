@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,8 +39,6 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 
 	private static final Logger logger = LogManager.getLogger(MakeInsightMosfetReactor.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	public MakeInsightMosfetReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
@@ -109,7 +108,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 					mosfet.write(mosfetPath, true);
 					numUpdated++;
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 					numError++;
 				}
 				
@@ -138,7 +137,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 			try {
 				mosfet = generateMosfetFromInsight(app, rdbmsId);
 			} catch(IllegalArgumentException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 			
@@ -152,7 +151,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				mosfet.write(mosfetPath, true);
 				numUpdated++;
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				numError++;
 			}
 			
@@ -198,7 +197,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				mosfet.setLayout(values[2].toString());
 				if(insightRdbms.getQueryUtil().allowArrayDatatype()) {
 					Object[] pixel = (Object[]) values[4];
-					mosfet.setRecipe(Arrays.stream(pixel).toArray(String[]::new));
+					mosfet.setRecipe(Arrays.stream(pixel).map(o -> o + "").collect(Collectors.toList()));
 				} else {
 					Clob pixelArray = (Clob) values[4];
 					InputStream pixelArrayIs = null;
@@ -206,25 +205,25 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 						try {
 							pixelArrayIs = pixelArray.getAsciiStream();
 						} catch (SQLException e) {
-							logger.error(STACKTRACE, e);
+							logger.error(Constants.STACKTRACE, e);
 						}
 					}
 					// flush input stream to string
 					Gson gson = new Gson();
 					InputStreamReader reader = new InputStreamReader(pixelArrayIs);
-					String[] pixel = gson.fromJson(reader, String[].class);
+					List<String> pixel = gson.fromJson(reader, List.class);
 					mosfet.setRecipe(pixel);
 				}
 			}
 		} catch (Exception e1) {
-			logger.error(STACKTRACE, e1);
+			logger.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
 			}
 		}
 		
-		if(mosfet.getRecipe() == null || mosfet.getRecipe().length == 0) {
+		if(mosfet.getRecipe() == null || mosfet.getRecipe().size() == 0) {
 			throw new IllegalArgumentException("Cannot create a mosfet for an empty insight");
 		}
 		
@@ -247,7 +246,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
