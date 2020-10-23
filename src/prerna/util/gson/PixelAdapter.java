@@ -1,8 +1,10 @@
 package prerna.util.gson;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
@@ -27,9 +29,11 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		String pixelString = null;
 		Map<String, Map<String, Object>> startingFrameHeaders = null;
 		Map<String, Map<String, Object>> endingFrameHeaders = null;
-		Map<String, List<Map>> reactorInput = null;
+		List<Map<String, List<Map>>> reactorInputs = null;
+		Set<String> frameOutputs = new HashSet<>();
 		
 		TypeAdapter mapAdapter = GSON.getAdapter(Map.class);
+		TypeAdapter listAdapter = GSON.getAdapter(List.class);
 
 		in.beginObject();
 		while(in.hasNext()) {
@@ -47,8 +51,14 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 				startingFrameHeaders = (Map<String, Map<String, Object>>) mapAdapter.read(in);
 			} else if(key.equals("endingFrameHeaders")) {
 				endingFrameHeaders = (Map<String, Map<String, Object>>) mapAdapter.read(in);
-			} else if(key.equals("reactorInput")) {
-				reactorInput = (Map<String, List<Map>>) mapAdapter.read(in);
+			} else if(key.equals("reactorInputs")) {
+				reactorInputs = (List<Map<String, List<Map>>>) listAdapter.read(in);
+			} else if(key.equals("frameName")) {
+				in.beginArray();
+				while(in.hasNext()) {
+					frameOutputs.add(in.nextString());
+				}
+				in.endArray();
 			}
 		}
 		in.endObject();
@@ -56,7 +66,8 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		Pixel pixel = new Pixel(id, pixelString);
 		pixel.setStartingFrameHeaders(startingFrameHeaders);
 		pixel.setEndingFrameHeaders(endingFrameHeaders);
-		pixel.setReactorInput(reactorInput);
+		pixel.setReactorInputs(reactorInputs);
+		pixel.setFrameOutput(frameOutputs);
 		return pixel;
 	}
 	
@@ -86,13 +97,19 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		} else {
 			out.nullValue();
 		}
-		out.name("reactorInput");
-		if(value.getReactorInput() != null) {
-			TypeAdapter adapter = GSON.getAdapter(value.getReactorInput().getClass());
-			adapter.write(out, value.getReactorInput());
+		out.name("reactorInputs");
+		if(value.getReactorInputs() != null) {
+			TypeAdapter adapter = GSON.getAdapter(value.getReactorInputs().getClass());
+			adapter.write(out, value.getReactorInputs());
 		} else {
 			out.nullValue();
 		}
+		out.name("frameOutputs");
+		out.beginArray();
+		for(String frameName : value.getFrameOutput()) {
+			out.value(frameName);
+		}
+		out.endArray();
 		
 		out.endObject();
 	}

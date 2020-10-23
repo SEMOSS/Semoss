@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import cern.colt.Arrays;
 import prerna.om.Insight;
 import prerna.om.Pixel;
+import prerna.om.PixelList;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.ARoutineConfiguration;
@@ -121,7 +122,7 @@ public class PixelRunner {
 	 * @param result
 	 * @param isMeta
 	 */
-	public void addResult(String pixelExpression, NounMetadata result, boolean isMeta, Map<String, List<Map>> reactorInput) {
+	public void addResult(String pixelExpression, NounMetadata result, boolean isMeta) {
 		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList, this.encodedTextToOriginal);
 		this.pixelExpression.add(origExpression);
 		this.results.add(result);
@@ -131,10 +132,11 @@ public class PixelRunner {
 		// when we have an expression that is returned
 		// that is not a meta
 		if(!isMeta) {
-			Pixel pixel = this.insight.getPixelList().addPixel(origExpression);
-			pixel.setStartingFrameHeaders(translation.startingFrameHeaders);
+			PixelList pixelList = this.insight.getPixelList();
+			Pixel pixel = pixelList.addPixel(origExpression);
 			pixel.setEndingFrameHeaders(InsightUtility.getAllFrameHeaders(this.insight.getVarStore()));
-			pixel.setReactorInput(reactorInput);
+			Pixel.translationMerge(pixel, translation.pixelObj);
+			pixelList.syncLastPixel();
 		}
 	}
 	
