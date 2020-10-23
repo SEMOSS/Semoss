@@ -42,7 +42,7 @@ public class PixelList implements Iterable<Pixel> {
 	public void syncLastPixel() {
 		// now store the frame dependency
 		Pixel p = pixelList.get(pixelList.size()-1);
-		Set<String> frameOutputs = p.getFrameOutput();
+		Set<String> frameOutputs = p.getFrameOutputs();
 		for(String frameName : frameOutputs) {
 			if(frameDependency.containsKey(frameName)) {
 				frameDependency.get(frameName).addLast(p);
@@ -50,6 +50,21 @@ public class PixelList implements Iterable<Pixel> {
 				LinkedList<Pixel> dll = new LinkedList<>();
 				dll.addFirst(p);
 				frameDependency.put(frameName, dll);
+			}
+		}
+		// now we also want to keep track of querying / filtering
+		Set<String> frameInputs = p.getFrameInputs();
+		for(String frameName : frameInputs) {
+			// do not double count..
+			if(!frameOutputs.contains(frameName)) {
+				if(frameDependency.containsKey(frameName)) {
+					frameDependency.get(frameName).addLast(p);
+				} else {
+					logger.info("Super weird... this is a frame input for pixel but doesn't exist as a previous frame output");
+					LinkedList<Pixel> dll = new LinkedList<>();
+					dll.addFirst(p);
+					frameDependency.put(frameName, dll);
+				}
 			}
 		}
 	}
@@ -221,7 +236,7 @@ public class PixelList implements Iterable<Pixel> {
 			if(propogate) {
 				for(int i = 0; i < indices.size(); i++) {
 					Pixel p = this.pixelList.get(indices.get(i).intValue());
-					for(String frameName : p.getFrameOutput()) {
+					for(String frameName : p.getFrameOutputs()) {
 						LinkedList<Pixel> dll = frameDependency.get(frameName);
 						Pixel lastP = dll.removeLast();
 						while( lastP != null ) {
