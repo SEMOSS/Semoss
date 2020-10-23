@@ -34,19 +34,19 @@ public class RDFEngineCreationHelper {
 		
 		//determine the # where the new questions should start
 		String insightName = ""; 
-		String[] recipeArray = null;
+		List<String> recipeArray = null;
 		String layout = ""; 
 
 		try {
 			for(String pixelName : pixelNames) {
 				insightName = "Show first 500 records from " + pixelName;
 				layout = "Grid";
-				recipeArray = new String[5];
-				recipeArray[0] = "AddPanel(0);";
-				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
-				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
-				recipeArray[3] = "Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();"; 
-				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
+				recipeArray = new Vector<>(5);
+				recipeArray.add("AddPanel(0);");
+				recipeArray.add("Panel(0)|SetPanelView(\"visualization\");");
+				recipeArray.add("CreateFrame(grid).as([FRAME]);");
+				recipeArray.add("Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();"); 
+				recipeArray.add("Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);");
 				
 				List<String> tags = new Vector<String>();
 				tags.add("default");
@@ -95,7 +95,7 @@ public class RDFEngineCreationHelper {
 		
 		//determine the # where the new questions should start
 		String insightName = ""; 
-		String[] recipeArray = null;
+		List<String> recipeArray = null;
 		String layout = "";
 
 		String query = null;
@@ -123,12 +123,12 @@ public class RDFEngineCreationHelper {
 				}
 				
 				layout = "Grid";
-				recipeArray = new String[5];
-				recipeArray[0] = "AddPanel(0);";
-				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
-				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
-				recipeArray[3] = "Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();"; 
-				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
+				recipeArray = new Vector<>(5);
+				recipeArray.add("AddPanel(0);");
+				recipeArray.add("Panel(0)|SetPanelView(\"visualization\");");
+				recipeArray.add("CreateFrame(grid).as([FRAME]);");
+				recipeArray.add("Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();");
+				recipeArray.add("Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);");
 				
 				List<String> tags = new Vector<String>();
 				tags.add("default");

@@ -131,7 +131,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		logger.info(step + ") Add insight " + Utility.cleanLogString(insightName) + " to rdbms store...");
 		String newInsightId = mosfet.getRdbmsId();
 		String layout = mosfet.getLayout();
-		String[] pixelRecipeToSave = mosfet.getRecipe();
+		List<String> pixelRecipeToSave = mosfet.getRecipe();
 		boolean hidden = false;
 		boolean cacheable = true;
 		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, pixelRecipeToSave, hidden, cacheable);
