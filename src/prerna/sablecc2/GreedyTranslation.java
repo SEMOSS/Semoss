@@ -79,6 +79,8 @@ public class GreedyTranslation extends LazyTranslation {
     			} else if(curReactor instanceof FrameReactor && varType == PixelDataType.FRAME) {
     				// add the frame based on the variable
     				curReactor.getCurRow().add(varValue);
+    				// store the frame as an input
+    				this.pixelObj.addFrameInput(((ITableDataFrame) varValue.getValue()).getName());
     			} else if(curReactor instanceof AbstractQueryStructReactor) {
     				// if it is a join or an as 
 					curReactor.getCurRow().addColumn(idInput);
@@ -88,11 +90,17 @@ public class GreedyTranslation extends LazyTranslation {
         				curReactor.getCurRow().addColumn(idInput);
     				} else {
         				curReactor.getCurRow().add(varValue);
+        				if(varType == PixelDataType.FRAME) {
+            				// store the frame as an input
+            				this.pixelObj.addFrameInput(((ITableDataFrame) varValue.getValue()).getName());
+            			}
     				}
     			}
     		} else {
     			if(varType == PixelDataType.FRAME) {
     				this.currentFrame = (ITableDataFrame) varValue.getValue();
+    				// store the frame as an input
+    				this.pixelObj.addFrameInput(this.currentFrame.getName());
     			}
     			this.planner.addVariable(this.resultKey, varValue);
     		}

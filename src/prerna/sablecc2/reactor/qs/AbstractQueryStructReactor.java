@@ -39,11 +39,6 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 	protected int existingSelectors = 0;
 	
 	@Override
-	public Object Out() {
-		return this.parentReactor;
-	}
-
-	@Override
 	public NounMetadata execute() {
 		init();
 		//build the query struct
