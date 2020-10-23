@@ -197,13 +197,13 @@ public class JsonTranslation extends LazyJsonTranslation {
 		// set it as the frame for the runner
 		NounMetadata noun = planner.getVariableValue("$RESULT");
 		if(noun != null) {
-			this.runner.addResult(pkslExpression, noun, this.isMeta, null);
+			this.runner.addResult(pkslExpression, noun, this.isMeta);
 			// if there was a previous result
 			// remove it
 			this.planner.removeVariable("$RESULT");
 		} 
 		else {
-			this.runner.addResult(pkslExpression, new NounMetadata("no output", PixelDataType.CONST_STRING), this.isMeta, null);
+			this.runner.addResult(pkslExpression, new NounMetadata("no output", PixelDataType.CONST_STRING), this.isMeta);
 		}
 		curReactor = null;
 		prevReactor = null;

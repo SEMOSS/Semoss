@@ -2,7 +2,6 @@ package prerna.sablecc2;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
@@ -253,6 +252,8 @@ public class GreedyTranslation extends LazyTranslation {
 	    		this.curReactor = (IReactor) parent;
 	    	} else {
 	    		this.curReactor = null;
+	    		// store the noun map in the pixel
+    			this.pixelObj.addReactorInput(prevReactor.getStoreMap());
 	    	}
 	    	
 	    	// we will merge up to the parent if one is present
@@ -275,6 +276,8 @@ public class GreedyTranslation extends LazyTranslation {
 		    				exception.setContinueThreadOfExecution(false);
 		    				throw exception;
 	    			}
+	    			// store the frame output in the pixel
+	    			this.pixelObj.addFrameOutput(frame.getName());
 	    		}
 	    		
 	    		if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
@@ -297,19 +300,15 @@ public class GreedyTranslation extends LazyTranslation {
 		// set that in the runner for later retrieval
 		// if it is a frame
 		// set it as the frame for the runner
-		Map<String, List<Map>> reactorInput = null;
-		if(this.prevReactor != null) {
-			reactorInput = this.prevReactor.getStoreMap();
-		}
 		NounMetadata noun = planner.getVariableValue(this.resultKey);
 		if(noun != null) {
-			this.runner.addResult(pixelExpression, noun, this.isMeta, reactorInput);
+			this.runner.addResult(pixelExpression, noun, this.isMeta);
 			// if there was a previous result
 			// remove it
 			this.planner.removeVariable(this.resultKey);
 		}
 		else {
-			this.runner.addResult(pixelExpression, new NounMetadata("no output", PixelDataType.CONST_STRING), this.isMeta, reactorInput);
+			this.runner.addResult(pixelExpression, new NounMetadata("no output", PixelDataType.CONST_STRING), this.isMeta);
 		}
 		this.curReactor = null;
 		this.prevReactor = null;
@@ -318,14 +317,14 @@ public class GreedyTranslation extends LazyTranslation {
 	
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, List<String> unexecutedPixels) {
 		errorNoun.addAdditionalReturn(new NounMetadata(unexecutedPixels, PixelDataType.CONST_STRING, PixelOperationType.UNEXECUTED_PIXELS));
-		this.runner.addResult(pixelExpression, errorNoun, this.isMeta, null);
+		this.runner.addResult(pixelExpression, errorNoun, this.isMeta);
 		this.curReactor = null;
 		this.prevReactor = null;
 		this.isMeta = false;
 	}
 	
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, boolean isMeta) {
-		this.runner.addResult(pixelExpression, errorNoun, this.isMeta, null);
+		this.runner.addResult(pixelExpression, errorNoun, this.isMeta);
 		this.curReactor = null;
 		this.prevReactor = null;
 		this.isMeta = false;
