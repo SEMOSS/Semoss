@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -184,9 +183,9 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 
 			List<String> recipe = new ArrayList<String>();
 			try {
-				String[] recipeToRun = getRecipe();
+				List<String> recipeToRun = getRecipe();
 				recipeToRun = decodeRecipe(recipeToRun);
-				recipe.addAll(Arrays.asList(recipeToRun));
+				recipe.addAll(recipeToRun);
 			} catch(IllegalArgumentException e) {
 				// ignore
 			}

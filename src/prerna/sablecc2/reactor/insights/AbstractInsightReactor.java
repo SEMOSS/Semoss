@@ -149,20 +149,20 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		return null;
 	}
 	
-	protected String[] getRecipe() {
+	protected List<String> getRecipe() {
 		// it must be passed directly into its own grs
 		GenRowStruct genericRecipeGrs = this.store.getNoun(ReactorKeysEnum.RECIPE.getKey());
 		if(genericRecipeGrs != null && !genericRecipeGrs.isEmpty()) {
 			int size = genericRecipeGrs.size();
-			String[] recipe = new String[size];
+			List<String> recipe = new Vector<>(size);
 			for(int i = 0; i < size; i++) {
-				recipe[i] = genericRecipeGrs.get(i).toString();
+				recipe.add(genericRecipeGrs.get(i).toString());
 			}
 			return recipe;
 		}
 		
 		// well, you are out of luck
-		throw new IllegalArgumentException("Must pass a recipe to save");
+		return null;
 	}
 	
 	protected Map getPipeline() {
@@ -238,11 +238,11 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		return params;
 	}
 	
-	protected String[] decodeRecipe(String[] recipe) {
-		int size = recipe.length;
-		String[] decodedRecipe = new String[size];
+	protected List<String> decodeRecipe(List<String> recipe) {
+		int size = recipe.size();
+		List<String> decodedRecipe = new Vector<>(size);
 		for (int i = 0; i < size; i++) {
-			decodedRecipe[i] = Utility.decodeURIComponent(recipe[i]);
+			decodedRecipe.add(Utility.decodeURIComponent(recipe.get(i)));
 		}
 		return decodedRecipe;
 	}
@@ -310,7 +310,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @param newInsightId
 	 * @return
 	 */
-	protected String[] saveFilesInInsight(String[] recipeToSave, String appId, String newInsightId) {
+	protected List<String> saveFilesInInsight(List<String> recipeToSave, String appId, String newInsightId) {
 		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		
@@ -320,8 +320,8 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		List<Map<String, Object>> modificationList = new Vector<Map<String, Object>>();
 		// need to go through and find the files so we can save them in the right location
 		StringBuilder sb = new StringBuilder();
-		for(int i = 0; i< recipeToSave.length; i++) {
-			sb.append(recipeToSave[i]);
+		for(int i = 0; i< recipeToSave.size(); i++) {
+			sb.append(recipeToSave.get(i));
 		}
 		String fullRecipe = sb.toString();
 		// shift any csv files to be moved into the insight folder for the new insight
@@ -407,15 +407,17 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			Insight cInsight = new Insight();
 			cInsight.setInsightId(this.insight.getInsightId());
 			InsightUtility.transferDefaultVars(this.insight, cInsight);
-			recipeToSave = PixelUtility.modifyInsightDatasource(cInsight, fullRecipe, modificationList).toArray(new String[]{});
+			recipeToSave = PixelUtility.modifyInsightDatasource(cInsight, fullRecipe, modificationList);
 		}
 		
 		return recipeToSave;
 	}
 	
-	protected String[] getParamRecipe(String[] recipe, List<Map<String, Object>> params, String insightName) {
+	protected List<String> getParamRecipe(List<String> recipe, List<Map<String, Object>> params, String insightName) {
 		String paramRecipe = PixelUtility.getParameterizedRecipe(this.insight.getUser(), recipe, params, insightName);
-		return new String[]{paramRecipe};
+		List<String> paramRecipeList = new Vector<>();
+		paramRecipeList.add(paramRecipe);
+		return paramRecipeList;
 	}
 	
 	/**

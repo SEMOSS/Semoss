@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.List;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -24,7 +25,7 @@ public class MosfetFile {
 	private boolean hidden = false;
 	
 	// actual recipe
-	private String[] recipe;
+	private List<String> recipe;
 	
 	// insight metadata
 	private String[] tags;
@@ -146,11 +147,11 @@ public class MosfetFile {
 		this.hidden = hidden;
 	}
 
-	public String[] getRecipe() {
+	public List<String> getRecipe() {
 		return recipe;
 	}
 
-	public void setRecipe(String[] recipe) {
+	public void setRecipe(List<String> recipe) {
 		this.recipe = recipe;
 	}
 

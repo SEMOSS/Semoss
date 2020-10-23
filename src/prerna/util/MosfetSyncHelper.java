@@ -48,7 +48,7 @@ public class MosfetSyncHelper {
 	/*
 	 * This section for synchronizing files
 	 */
-	
+
 	public static void synchronizeInsightChanges(Map<String, List<String>> filesChanged, Logger logger) {
 		// process add
 		if(filesChanged.containsKey(ADD)) {
@@ -80,7 +80,7 @@ public class MosfetSyncHelper {
 			processAddedFile(mosfetFile, logger);
 		}
 	}
-	
+
 	private static void processAddedFile(MosfetFile mosfet, Logger logger) {
 		String appId = mosfet.getEngineId();
 		String id = mosfet.getRdbmsId();
@@ -134,21 +134,21 @@ public class MosfetSyncHelper {
 			logger.info("Done deleting mosfet file");
 		}
 	}
-	
+
 	private static void addInsightToEngineRdbms(IEngine engine, MosfetFile mosfet) {
 		String appId = mosfet.getEngineId();
 		String id = mosfet.getRdbmsId();
 		String insightName = mosfet.getInsightName();
 		String layout = mosfet.getLayout();
-		String[] recipe = mosfet.getRecipe();
+		List<String> recipe = mosfet.getRecipe();
 		boolean hidden = mosfet.isHidden();
 		boolean cacheable = true;
-		
+
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
 		admin.addInsight(id, insightName, layout, recipe, hidden, cacheable);
 		SecurityInsightUtils.addInsight(appId, id, insightName, false, layout);
-		
+
 		// also sync the metadata
 		String description = mosfet.getDescription();
 		if(description != null) {
@@ -167,16 +167,16 @@ public class MosfetSyncHelper {
 		String id = mosfet.getRdbmsId();
 		String insightName = mosfet.getInsightName();
 		String layout = mosfet.getLayout();
-		String[] recipe = mosfet.getRecipe();
+		List<String> recipe = mosfet.getRecipe();
 		boolean hidden = mosfet.isHidden();
 
 		IEngine engine = Utility.getEngine(appId);
-		
+
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
 		admin.updateInsight(id, insightName, layout, recipe, hidden);
 		SecurityInsightUtils.updateInsight(appId, id, insightName, false, layout);
-		
+
 		// also sync the metadata
 		String description = mosfet.getDescription();
 		if(description != null) {
@@ -193,11 +193,11 @@ public class MosfetSyncHelper {
 	private static void deleteInsightFromEngineRdbms(MosfetFile mosfet) {
 		String appId = mosfet.getEngineId();
 		String id = mosfet.getRdbmsId();
-		
+
 		IEngine engine = Utility.getEngine(appId);
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		admin.dropInsight(id);
-		
+
 		SecurityInsightUtils.deleteInsight(appId, id);
 	}
 
@@ -215,7 +215,7 @@ public class MosfetSyncHelper {
 	/*
 	 * These methods only update the mosfet file itself and not the metadata (security db or insights db)
 	 */
-	
+
 	/**
 	 * Get the insight name for the input mosfet file
 	 * @param mosfetFile
@@ -240,7 +240,7 @@ public class MosfetSyncHelper {
 	 * @throws IOException 
 	 */
 	public static File makeMosfitFile(String appId, String appName, String rdbmsId, String insightName, 
-			String layout, String[] recipe, boolean hidden) throws IOException {
+			String layout, List<String> recipe, boolean hidden) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
 		mosfet.setEngineId(appId);
 		mosfet.setRdbmsId(rdbmsId);
@@ -254,12 +254,12 @@ public class MosfetSyncHelper {
 				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
 				+ DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsId;
-		
+
 		mosfet.write(mosfetPath, false);
 
 		return new File(Utility.normalizePath(mosfetPath) + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
 	}
-	
+
 	/**
 	 * Only generate the mosfet file
 	 * @param appId
@@ -275,7 +275,7 @@ public class MosfetSyncHelper {
 	 * @throws IOException 
 	 */
 	public static File makeMosfitFile(String appId, String appName, String rdbmsId, String insightName, 
-			String layout, String[] recipe, boolean hidden, String description, List<String> tags) throws IOException {
+			String layout, List<String> recipe, boolean hidden, String description, List<String> tags) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
 		mosfet.setEngineId(appId);
 		mosfet.setRdbmsId(rdbmsId);
@@ -289,17 +289,17 @@ public class MosfetSyncHelper {
 		if(tags != null && !tags.isEmpty()) {
 			mosfet.setTags(tags.toArray(new String[tags.size()]));
 		}
-		
+
 		String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 				+ DIR_SEPARATOR + "db"
 				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
 				+ DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsId;
-		
+
 		mosfet.write(mosfetPath, false);
 		return new File(mosfetPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
 	}
-	
+
 	/**
 	 * Only update the mosfet file
 	 * @param mosfetFile
@@ -315,7 +315,7 @@ public class MosfetSyncHelper {
 	 * @throws IOException 
 	 */
 	public static File updateMosfitFile(File mosfetFile, String appId, String appName, String rdbmsId, String insightName, 
-			String layout, String imageFileName, String[] recipe, boolean hidden) throws IOException {
+			String layout, String imageFileName, List<String> recipe, boolean hidden) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
 		mosfet.setEngineId(appId);
 		mosfet.setRdbmsId(rdbmsId);
@@ -327,7 +327,7 @@ public class MosfetSyncHelper {
 		mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
 		return mosfetFile;
 	}
-	
+
 	/**
 	 * Only update the mosfet file
 	 * @param mosfetFile
@@ -345,7 +345,7 @@ public class MosfetSyncHelper {
 	 * @throws IOException 
 	 */
 	public static File updateMosfitFile(File mosfetFile, String appId, String appName, String rdbmsId, String insightName,
-			String layout, String imageFileName, String[] recipe, boolean hidden, String description, List<String> tags) throws IOException {
+			String layout, String imageFileName, List<String> recipe, boolean hidden, String description, List<String> tags) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
 		mosfet.setEngineId(appId);
 		mosfet.setRdbmsId(rdbmsId);
@@ -359,11 +359,11 @@ public class MosfetSyncHelper {
 		if(tags != null && !tags.isEmpty()) {
 			mosfet.setTags(tags.toArray(new String[tags.size()]));
 		}
-		
+
 		mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
 		return mosfetFile;
 	}
-	
+
 	/**
 	 * Only update the mosfet file insight name
 	 * @param mosfetFile
@@ -377,5 +377,5 @@ public class MosfetSyncHelper {
 		mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);
 		return mosfetFile;
 	}
-	
+
 }
