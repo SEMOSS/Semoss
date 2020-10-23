@@ -188,7 +188,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         	try {
         		// we will start to keep track of some metadata
         		// at the start of each pixel being processed
-        		pixelObj = new Pixel(null, null);
+        		pixelObj = new Pixel("tempStorage", e.toString());
         		pixelObj.setStartingFrameHeaders(InsightUtility.getAllFrameHeaders(this.planner.getVarStore()));
         		this.resultKey = "$RESULT_" + e.hashCode();
         		
@@ -456,6 +456,11 @@ public class LazyTranslation extends DepthFirstAdapter {
     		genRow.add(prevResult);
     		// then we will remove the result from the planner
         	this.planner.removeVariable(this.resultKey);
+        	
+        	// store the frame as an input
+        	if(prevResult.getNounType() == PixelDataType.FRAME) {
+				this.pixelObj.addFrameInput(((ITableDataFrame) prevResult.getValue()).getName());
+        	}
     	}
     }
 	
