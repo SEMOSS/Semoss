@@ -81,8 +81,20 @@ public class DeleteInsightRecipeStep extends AbstractReactor {
 	 * @return
 	 */
 	private boolean propagate() {
+		GenRowStruct grs = this.store.getNoun(PROPAGATE);
+		if(grs != null && grs.isEmpty()) {
+			return Boolean.parseBoolean(grs.get(0).toString());
+		}
 		// default is true
 		return true;
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(PROPAGATE)) {
+			return "Propagate the deletion to all child steps that utilize the frames for this step";
+		}
+		return super.getDescriptionForKey(key);
 	}
 	
 }
