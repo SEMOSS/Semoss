@@ -16,13 +16,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-public class DeleteInsightRecipeStep extends AbstractReactor {
+public class DeleteInsightRecipeStepReactor extends AbstractReactor {
 
-	private static final String CLASS_NAME = DeleteInsightRecipeStep.class.getName();
+	private static final String CLASS_NAME = DeleteInsightRecipeStepReactor.class.getName();
 
 	private static final String PROPAGATE = "propagate";
 	
-	public DeleteInsightRecipeStep() {
+	public DeleteInsightRecipeStepReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PIXEL_ID.getKey(), PROPAGATE};
 	}
 	

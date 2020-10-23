@@ -32,7 +32,8 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		List<Map<String, List<Map>>> reactorInputs = null;
 		Set<String> frameOutputs = new HashSet<>();
 		Set<String> frameInputs = new HashSet<>();
-
+		Map<String, Object> positionMap = null;
+		
 		TypeAdapter mapAdapter = GSON.getAdapter(Map.class);
 		TypeAdapter listAdapter = GSON.getAdapter(List.class);
 
@@ -66,6 +67,8 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 					frameOutputs.add(in.nextString());
 				}
 				in.endArray();
+			} else if(key.equals("positionMap")) {
+				positionMap = (Map<String, Object>) mapAdapter.read(in);
 			}
 		}
 		in.endObject();
@@ -76,6 +79,7 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		pixel.setReactorInputs(reactorInputs);
 		pixel.setFrameInputs(frameInputs);
 		pixel.setFrameOutputs(frameOutputs);
+		pixel.setPositionMap(positionMap);
 		return pixel;
 	}
 	
@@ -124,6 +128,13 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 			out.value(frameName);
 		}
 		out.endArray();
+		out.name("positionMap");
+		if(value.getPositionMap() != null) {
+			TypeAdapter adapter = GSON.getAdapter(value.getPositionMap().getClass());
+			adapter.write(out, value.getPositionMap());
+		} else {
+			out.nullValue();
+		}
 		out.endObject();
 	}
 	
