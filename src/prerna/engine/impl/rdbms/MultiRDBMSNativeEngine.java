@@ -60,6 +60,9 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 
 	private static final Logger logger = LogManager.getLogger(MultiRDBMSNativeEngine.class);
 
+	// schema1 : connectionurl1/schema1 - snowflake
+	// schema2 : connectionurl1/schema2 - teradata
+	// schema3 : connectionurl2/schema3 - mysql
 	private Map<String, RDBMSNativeEngine> contextToConnectionMap = new HashMap<String, RDBMSNativeEngine>();
 	
 	boolean engineConnected = false;
@@ -89,6 +92,13 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public void openDB(String propFile)
 	{
+		/*
+		 * contextToConnectionMap needs to be built
+		 * and the keys need to be stored
+		 * we will grab all the connection urls
+		 * and populate the map
+		 */
+		
 		if(propFile == null && prop == null){
 			if(dataSource!= null){
 				try{
@@ -232,13 +242,29 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 		}
 	}	
 	
+	/**
+	 * For this user in the thread
+	 * get the correct engine
+	 * @return
+	 */
 	public RDBMSNativeEngine getContext() {
 		User user = ThreadStore.getUser();
 		return lookUpContext(user);
 	}
 	
+	/**
+	 * Needs to be parameterized
+	 * Such that we can perform a lookup based on different queries
+	 * @param user
+	 * @return
+	 */
 	public RDBMSNativeEngine lookUpContext(User user) {
 		// TODO
+		// execute query against base connection url
+		// get back a single valued string
+		// go to contextToConnectionMap with the string
+		// to get the correct rdbms native engine
+		
 		return null;
 	}
 
