@@ -59,7 +59,7 @@ public class RDBMSEngineCreationHelper {
 		
 		//determine the # where the new questions should start
 		String insightName = ""; 
-		String[] recipeArray = null;
+		List<String> recipeArray = null;
 		String layout = ""; 
 
 		try {
@@ -67,12 +67,12 @@ public class RDBMSEngineCreationHelper {
 				String cleanTableName = cleanTableName(newTable);
 				insightName = "Show first 500 records from " + cleanTableName;
 				layout = "Grid";
-				recipeArray = new String[5];
-				recipeArray[0] = "AddPanel(0);";
-				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
-				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
-				recipeArray[3] = "Database(\"" + appId + "\") | SelectTable(" + newTable + ") | Limit(500) | Import();"; 
-				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
+				recipeArray = new Vector<String>(5);
+				recipeArray.add("AddPanel(0);");
+				recipeArray.add("Panel(0)|SetPanelView(\"visualization\");");
+				recipeArray.add("CreateFrame(grid).as([FRAME]);");
+				recipeArray.add("Database(\"" + appId + "\") | SelectTable(" + newTable + ") | Limit(500) | Import();");
+				recipeArray.add("Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);");
 
 				// insight metadata
 				List<String> tags = new Vector<String>();
