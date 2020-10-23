@@ -59,7 +59,7 @@ import prerna.util.gson.GsonUtility;
 
 public class PipelineTranslation extends LazyTranslation {
 
-	private static final Logger logger = LogManager.getLogger(PipelineTranslation2.class);
+	private static final Logger logger = LogManager.getLogger(PipelineTranslation.class);
 	private static Map<String, String> reactorToId = null;
 	
 	private static Map<AbstractQueryStruct.QUERY_STRUCT_TYPE, String> qsToWidget = new HashMap<>();
