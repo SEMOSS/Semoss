@@ -25,6 +25,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -76,7 +77,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		if(insightName == null || insightName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
-		String[] recipeToSave = getRecipe();
+		List<String> recipeToSave = getRecipe();
 		String layout = getLayout();
 		boolean hidden = getHidden();
 		Boolean cacheable = getUserDefinedCacheable();
@@ -87,9 +88,9 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		Map pipeline = getPipeline();
 
 		// saving an empty recipe?
-		if (recipeToSave == null || recipeToSave.length == 0) {
-			List<String> recipeList = this.insight.getPixelList().getPixelRecipe();
-			recipeToSave = recipeList.toArray(new String[recipeList.size()]);
+		if (recipeToSave == null || recipeToSave.size() == 0) {
+			recipeToSave = this.insight.getPixelList().getPixelRecipe();
+			recipeToSave.addAll(PixelUtility.getMetaInsightRecipeSteps(this.insight));
 		} else {
 			// this is always encoded before it gets here
 			recipeToSave = decodeRecipe(recipeToSave);
