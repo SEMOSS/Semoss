@@ -271,6 +271,7 @@ public class PixelUtility {
 	 * @param pixels
 	 * @return
 	 */
+	@Deprecated
 	public static boolean isDashboard(List<String> pixels) {
 		String recipe = String.join("", pixels);
 		return PixelUtility.isDashboard(recipe);
@@ -281,6 +282,7 @@ public class PixelUtility {
 	 * @param pixel
 	 * @return
 	 */
+	@Deprecated
 	public static boolean isDashboard(String pixel) {
 		pixel = PixelPreProcessor.preProcessPixel(pixel, new ArrayList<String>(), new HashMap<String, String>());
 		try {
@@ -462,7 +464,7 @@ public class PixelUtility {
 	 * @param params
 	 * @return
 	 */
-	public static String getParameterizedRecipe(User user, String[] recipe, List<Map<String, Object>> paramsMap, String insightName) {
+	public static String getParameterizedRecipe(User user, List<String> recipe, List<Map<String, Object>> paramsMap, String insightName) {
 		int numParams = paramsMap.size();
 		List<String> params = new ArrayList<>(numParams);
 		for(Map<String, Object> pMap : paramsMap) {
@@ -632,6 +634,41 @@ public class PixelUtility {
 		}
 		
 		return true;
+	}
+	
+	/**
+	 * Get additional insight meta recipe steps for maintaining additional
+	 * metadata in the insight 
+	 * @param in
+	 * @return
+	 */
+	public static List<String> getMetaInsightRecipeSteps(Insight in) {
+		List<String> additionalSteps = new Vector<>();
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		// right now we only have the recipe positions
+		
+		PixelList pixelList = in.getPixelList();
+		{
+			StringBuilder builder = new StringBuilder("META | PositionInsightRecipe(");
+			int size = pixelList.size();
+			for(int i = 0; i < size; i++) {
+				Pixel pixel = pixelList.get(i);
+				Map<String, Object> position = pixel.getPositionMap();
+				if(position == null) {
+					builder.append("null");
+				} else {
+					builder.append(gson.toJson(position));
+				}
+				
+				if(i+1 != size) {
+					builder.append(" , ");
+				}
+			}
+			additionalSteps.add(builder.toString());
+		}
+		
+		return additionalSteps;
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////

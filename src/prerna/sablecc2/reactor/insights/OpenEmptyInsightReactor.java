@@ -33,7 +33,7 @@ public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 
 		List<String> newRecipe = new Vector<String>();
 		try {
-			String[] recipe = getRecipe();
+			List<String> recipe = getRecipe();
 			for(String r : recipe) {
 				newRecipe.add(Utility.decodeURIComponent(r));
 			}

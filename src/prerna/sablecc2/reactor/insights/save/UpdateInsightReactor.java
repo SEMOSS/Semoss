@@ -18,6 +18,7 @@ import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.MosfetFile;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -65,16 +66,16 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(insightName == null || insightName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
-		String[] recipeToSave = getRecipe();
+		List<String> recipeToSave = getRecipe();
 		// saving an empty recipe?
-		if (recipeToSave == null || recipeToSave.length == 0) {
-			List<String> recipeList = this.insight.getPixelList().getPixelRecipe();
-			recipeToSave = recipeList.toArray(new String[recipeList.size()]);
+		if (recipeToSave == null || recipeToSave.size() == 0) {
+			recipeToSave = this.insight.getPixelList().getPixelRecipe();
+			recipeToSave.addAll(PixelUtility.getMetaInsightRecipeSteps(this.insight));
 		} else {
 			// this is always encoded before it gets here
 			recipeToSave = decodeRecipe(recipeToSave);
 		}
-				
+		
 		String layout = getLayout();
 		boolean hidden = getHidden();
 		List<Map<String, Object>> params = getParams();
@@ -183,7 +184,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param recipeToSave
 	 */
 	protected void updateRecipeFile(String appId, String appName, String rdbmsID, String insightName, 
-			String layout, String imageName, String[] recipeToSave, boolean hidden, String description, List<String> tags) {
+			String layout, String imageName, List<String> recipeToSave, boolean hidden, String description, List<String> tags) {
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;

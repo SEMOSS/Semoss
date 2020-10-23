@@ -13,13 +13,13 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-public class PositionInsightRecipe extends AbstractReactor {
+public class PositionInsightRecipeReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(PositionInsightRecipe.class);
+	private static final Logger logger = LogManager.getLogger(PositionInsightRecipeReactor.class);
 
 	private static final String POSITION = "positionMap";
 	
-	public PositionInsightRecipe() {
+	public PositionInsightRecipeReactor() {
 		this.keysToGet = new String[] {POSITION};
 	}
 	
