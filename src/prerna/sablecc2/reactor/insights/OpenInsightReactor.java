@@ -303,7 +303,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(insight);
 			List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
 			if(!pixelReturn.isEmpty()) {
-				runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true, null);
+				runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
 			}
 			// logic to get all the frame headers
 			{

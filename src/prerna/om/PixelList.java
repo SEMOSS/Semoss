@@ -2,19 +2,28 @@ package prerna.om;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class PixelList implements Iterable<Pixel> {
+
+	private static final Logger logger = LogManager.getLogger(PixelList.class);
 
 	private AtomicInteger counter = new AtomicInteger(0);
 	private List<Pixel> pixelList = new Vector<>();
 	private Map<String, Integer> idToIndexHash = new ConcurrentHashMap<>();
+	private Map<String, LinkedList<Pixel>> frameDependency = new ConcurrentHashMap<>();
 	
 	public PixelList() {
 		
@@ -27,6 +36,22 @@ public class PixelList implements Iterable<Pixel> {
 	public void addPixel(Pixel p) {
 		pixelList.add(p);
 		idToIndexHash.put(p.getId(), this.pixelList.size()-1);
+		syncLastPixel();
+	}
+	
+	public void syncLastPixel() {
+		// now store the frame dependency
+		Pixel p = pixelList.get(pixelList.size()-1);
+		Set<String> frameOutputs = p.getFrameOutput();
+		for(String frameName : frameOutputs) {
+			if(frameDependency.containsKey(frameName)) {
+				frameDependency.get(frameName).addLast(p);
+			} else {
+				LinkedList<Pixel> dll = new LinkedList<>();
+				dll.addFirst(p);
+				frameDependency.put(frameName, dll);
+			}
+		}
 	}
 	
 	/**
@@ -92,6 +117,9 @@ public class PixelList implements Iterable<Pixel> {
 				// return the pixel object that was added
 				subset.add(pixel);
 			}
+			// modifying the order here
+			// need to reset the index
+			recalculateIdToIndexHash();
 			return subset;
 		}
 	}
@@ -159,7 +187,7 @@ public class PixelList implements Iterable<Pixel> {
 	}
 	
 	/**
-	 * 
+	 * Delete the pixel ids and propagate the deletion of frame dependencies
 	 * @param pixelIds
 	 */
 	public List<Integer> removeIds(List<String> pixelIds, boolean propogate) {
@@ -167,7 +195,7 @@ public class PixelList implements Iterable<Pixel> {
 			Map<String, Integer> idToIndex = getIdToIndexHash();
 			List<Integer> indices = new Vector<Integer>(pixelIds.size());
 			for(String pId : pixelIds) {
-				Integer index = idToIndex.remove(pId);
+				Integer index = idToIndex.get(pId);
 				if(index == null) {
 					// error
 					// recalculate the hash
@@ -185,11 +213,61 @@ public class PixelList implements Iterable<Pixel> {
 				}
 			});
 			
-			// now just remove those indices
-			for(int i = 0; i < indices.size(); i++) {
-				this.pixelList.remove(indices.get(i).intValue());
+			// now find all the downstream indices
+			// that are affected by this deletion
+			// from a frame perspective
+			
+			Set<Integer> downstreamIndex = new HashSet<>();
+			if(propogate) {
+				for(int i = 0; i < indices.size(); i++) {
+					Pixel p = this.pixelList.get(indices.get(i).intValue());
+					for(String frameName : p.getFrameOutput()) {
+						LinkedList<Pixel> dll = frameDependency.get(frameName);
+						Pixel lastP = dll.removeLast();
+						while( lastP != null ) {
+							// grab the index of last P
+							// we will have to delete this guy
+							downstreamIndex.add(idToIndex.get(lastP.getId()));
+							
+							// condition on when to stop
+							// either we hit the pixel p
+							// or p is the creator of this frame
+							if(lastP.equals(p)
+									|| dll.isEmpty()) {
+								lastP = null;
+							} else {
+								lastP = dll.removeLast();
+							}
+						}
+						
+						// remove the frame index entirely
+						if(dll.isEmpty()) {
+							frameDependency.remove(frameName);
+						}
+					}
+				}
 			}
-					
+			
+			// now merge the lists into the set
+			// so it is all distinct values
+			downstreamIndex.addAll(indices);
+			// and now remove all 
+			// but need to remove from largest index
+			// to smallest index
+			List<Integer> finalList = new Vector<>();
+			finalList.addAll(downstreamIndex);
+			Collections.sort(finalList, new Comparator<Integer>() {
+				@Override
+				public int compare(Integer o1, Integer o2) {
+				    return o2.intValue()-o1.intValue();
+				}
+			});
+			
+			for(Integer index : finalList) {
+				Pixel p = this.pixelList.remove(index.intValue());
+				logger.info("Dropping from recipe " + p);
+			}
+			
 			// recalculate the hash
 			recalculateIdToIndexHash();
 			return indices;
