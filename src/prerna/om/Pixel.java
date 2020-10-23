@@ -26,6 +26,9 @@ public class Pixel {
 	// store the list of frame outputs from the reactor
 	private Set<String> frameOutputs = new HashSet<>();
 	
+	// for the FE view
+	private Map<String, Object> positionMap = null;
+	
 	// currently unused - just thinking of things to store
 	private transient ITableDataFrame primaryFrame;
 	private boolean isParamSelection = false;
@@ -177,6 +180,22 @@ public class Pixel {
 		this.frameInputs = frameInputs;
 	}
 	
+	/**
+	 * Get the position map
+	 * @return
+	 */
+	public Map<String, Object> getPositionMap() {
+		return positionMap;
+	}
+
+	/**
+	 * Set the position map
+	 * @param positionMap
+	 */
+	public void setPositionMap(Map<String, Object> positionMap) {
+		this.positionMap = positionMap;
+	}
+
 	/**
 	 * To help w/ debugging
 	 */
