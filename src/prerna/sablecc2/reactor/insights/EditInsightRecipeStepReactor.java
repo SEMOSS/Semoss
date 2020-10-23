@@ -14,11 +14,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
-public class EditInsightRecipeStep extends AbstractReactor {
+public class EditInsightRecipeStepReactor extends AbstractReactor {
 
-	private static final String CLASS_NAME = EditInsightRecipeStep.class.getName();
+	private static final String CLASS_NAME = EditInsightRecipeStepReactor.class.getName();
 	
-	public EditInsightRecipeStep() {
+	public EditInsightRecipeStepReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PIXEL_ID.getKey(), ReactorKeysEnum.PIXEL.getKey()};
 	}
 	
