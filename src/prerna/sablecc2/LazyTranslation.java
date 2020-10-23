@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
+import prerna.om.Pixel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
@@ -129,7 +130,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	protected TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
 	
 	protected ITableDataFrame currentFrame = null;
-	protected Map<String, Map<String, Object>> startingFrameHeaders = null;
+	Pixel pixelObj = null;
 	
 	public static String envClassPath = null;
 	
@@ -187,7 +188,8 @@ public class LazyTranslation extends DepthFirstAdapter {
         	try {
         		// we will start to keep track of some metadata
         		// at the start of each pixel being processed
-        		this.startingFrameHeaders = InsightUtility.getAllFrameHeaders(this.planner.getVarStore());
+        		pixelObj = new Pixel(null, null);
+        		pixelObj.setStartingFrameHeaders(InsightUtility.getAllFrameHeaders(this.planner.getVarStore()));
         		this.resultKey = "$RESULT_" + e.hashCode();
         		
         		// actually run the operation
@@ -1253,6 +1255,8 @@ public class LazyTranslation extends DepthFirstAdapter {
     			curReactor = (IReactor) parent;
     		} else {
     			curReactor = null;
+    			// store the noun map in the pixel
+    			this.pixelObj.addReactorInput(prevReactor.getStoreMap());
     		}
     	}
     }
