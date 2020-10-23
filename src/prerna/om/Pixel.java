@@ -1,5 +1,6 @@
 package prerna.om;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -17,8 +18,8 @@ public class Pixel {
 	private boolean hasChanged = false;
 
 	// some additional metadata to maintain on the Pixel
-	private Map<String, Map<String, Object>> startingFrameHeaders;
-	private Map<String, Map<String, Object>> endingFrameHeaders;
+	private Map<String, Map<String, Object>> startingFrameHeaders = new HashMap<>();
+	private Map<String, Map<String, Object>> endingFrameHeaders = new HashMap<>();
 	// the list of reactor inputs
 	private List<Map<String, List<Map>>> reactorInputs = new Vector<>();
 	// store the list of frame inputs
@@ -27,7 +28,7 @@ public class Pixel {
 	private Set<String> frameOutputs = new HashSet<>();
 	
 	// for the FE view
-	private Map<String, Object> positionMap = null;
+	private Map<String, Object> positionMap = new HashMap<>();
 	
 	// currently unused - just thinking of things to store
 	private transient ITableDataFrame primaryFrame;
