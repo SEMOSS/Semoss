@@ -42,6 +42,7 @@ public interface IQueryInterpreter {
 	}
 }
 
+// TODO :::: SHOULDN'T THIS BE MERGED WITH IQueryFilter SINCE IT HAS A LOT OF STATIC METHODS ALREADY???
 class QuerySideEffect {
 	
 	static List<String> searchComparators = new Vector<>();

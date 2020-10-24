@@ -61,6 +61,40 @@ public interface IQueryFilter {
 	////////////////////////////////////////////////////////////////
 
 	/**
+	 * Get a simple name for each comparator
+	 * @param comparator
+	 * @return
+	 */
+	public static String getSimpleNameForComparator(String comparator) {
+		if(comparator.equals("==")) {
+			return "eq";
+		} else if(comparator.equals("!=") || comparator.equals("<>")) {
+			return "neq";
+		} else if(comparator.equals(">")) {
+			return "gt";
+		} else if(comparator.equals(">=")) {
+			return "gtw";
+		} else if(comparator.equals("<")) {
+			return "lt";
+		} else if(comparator.equals("<=")) {
+			return "lte";
+		} else if(comparator.equals("?like")) {
+			return "nlike";
+		} else if(comparator.equals("?nlike")) {
+			return "like";
+		} else if(comparator.equals("?begins")) {
+			return "nbegins";
+		} else if(comparator.equals("?nbegins")) {
+			return "begins";
+		} else if(comparator.equals("?ends")) {
+			return "nends";
+		} else if(comparator.equals("?nends")) {
+			return "ends";
+		}
+		return null;
+	}
+	
+	/**
 	 * Method to provide the reverse of a given comparator
 	 * @param comparator
 	 * @return
