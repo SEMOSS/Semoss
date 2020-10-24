@@ -40,8 +40,9 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 		
 		String frameType = getFrameType();
 		ITableDataFrame newFrame = null;
+		String origFrameName = frame.getName();
 		try {
-			String alias = frame.getName() + "_OLD";
+			String alias = origFrameName + "_OLD";
 			newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
 			NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 			this.insight.getVarStore().put(alias, noun);
@@ -55,9 +56,13 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 		cache.newFrame = newFrame;
 		cache.logger = logger;
 		if(inThread() || this.insight.isSavedInsightMode()) {
+			logger.info("Running cache in thread");
 			cache.run();
-			return new NounMetadata(true, PixelDataType.BOOLEAN);
+			NounMetadata newFrameNoun = this.insight.getVarStore().get(origFrameName);
+			newFrameNoun.addAdditionalOpTypes(PixelOperationType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+			return newFrameNoun;
 		} else {
+			logger.info("Start running cache in background");
 			java.lang.Thread t = new Thread(cache);
 			t.start();
 			return new NounMetadata("Swapping frame in parallel thread", PixelDataType.CONST_STRING, PixelOperationType.FRAME_SWAP);
