@@ -148,4 +148,17 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 		newSelector.setMathExpr(mathExpression);
 		return newSelector;
 	}
+	
+	@Override
+	public void mergeUp() {
+		// merge this reactor into the parent reactor
+		if(parentReactor != null) {
+			// this is only called lazy
+			// have to init to set the qs
+			// to them add to the parent
+			NounMetadata data = execute();
+			// add to the parent reactors curRow
+			parentReactor.getCurRow().add(data);
+		}
+	}
 }
