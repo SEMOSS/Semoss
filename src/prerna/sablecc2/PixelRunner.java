@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,17 @@ public class PixelRunner {
 
 	private static final Logger logger = LogManager.getLogger(PixelRunner.class);
 
+	private static List<PixelOperationType> errorOpTypes = new Vector<>();
+	static {
+		errorOpTypes.add(PixelOperationType.ERROR);
+		errorOpTypes.add(PixelOperationType.UNEXECUTED_PIXELS);
+		errorOpTypes.add(PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED);
+		errorOpTypes.add(PixelOperationType.USER_INPUT_REQUIRED);
+		errorOpTypes.add(PixelOperationType.LOGGIN_REQUIRED_ERROR);
+		errorOpTypes.add(PixelOperationType.ANONYMOUS_USER_ERROR);
+		errorOpTypes.add(PixelOperationType.INVALID_SYNTAX);
+	}
+	
 	/**
 	 * Runs a given pixel expression (can be multiple if semicolon delimited) on a provided data maker 
 	 * @param expression			The sequence of semicolon delimited pixel expressions.
@@ -129,9 +141,10 @@ public class PixelRunner {
 		// when we have an expression that is returned
 		// create the pixel via the correct id
 		// or if meta - assign random one
+		Pixel pixel = null;
 		if(!isMeta) {
 			PixelList pixelList = this.insight.getPixelList();
-			Pixel pixel = pixelList.addPixel(origExpression);
+			pixel = pixelList.addPixel(origExpression);
 			pixel.setEndingFrameHeaders(InsightUtility.getAllFrameHeaders(this.insight.getVarStore()));
 			Pixel.translationMerge(pixel, translation.pixelObj);
 			pixelList.syncLastPixel();
@@ -141,9 +154,11 @@ public class PixelRunner {
 		} else {
 			// store this pixel
 			// in the return pixel list
-			Pixel pixel = new Pixel("meta_unstored", origExpression);
+			pixel = new Pixel("meta_unstored", origExpression);
 			this.returnPixelList.add(pixel);
 		}
+		// add if there is an error or warning
+		determineErrorOrWarning(pixel, result);
 	}
 	
 	/**
@@ -172,9 +187,41 @@ public class PixelRunner {
 	private void addInvalidSyntaxResult(String pixelExpression, NounMetadata result, boolean isMeta) {
 		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList, this.encodedTextToOriginal);
 		Pixel pixel = new Pixel("meta_unstored", origExpression);
+		pixel.setReturnedError(true);
 		pixel.setMeta(true);
 		this.returnPixelList.add(pixel);
 		this.results.add(result);
+	}
+	
+	private void determineErrorOrWarning(Pixel pixel, NounMetadata result) {
+		// if the result is a direct error
+		if(!Collections.disjoint(errorOpTypes, result.getOpType())) {
+			pixel.setReturnedError(true);
+			return;
+		}
+		
+		// if the result is a direct warning
+		if(result.getOpType().contains(PixelOperationType.WARNING)) {
+			pixel.setReturnedWarning(true);
+			return;
+		}
+		
+		// if the result has an additional type
+		if(result.getAdditionalReturn() != null) {
+			for(NounMetadata addReturn : result.getAdditionalReturn()) {
+				// check if add return is an error
+				if(!Collections.disjoint(errorOpTypes, addReturn.getOpType())) {
+					pixel.setReturnedError(true);
+					return;
+				}
+				
+				// check if add return is a warning
+				if(addReturn.getOpType().contains(PixelOperationType.WARNING)) {
+					pixel.setReturnedWarning(true);
+					return;
+				}
+			}
+		}
 	}
 	
 	public List<NounMetadata> getResults() {

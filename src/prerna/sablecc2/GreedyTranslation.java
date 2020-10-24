@@ -337,10 +337,4 @@ public class GreedyTranslation extends LazyTranslation {
 		this.isMeta = false;
 	}
 	
-	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, boolean isMeta) {
-		this.runner.addResult(pixelExpression, errorNoun, this.isMeta);
-		this.curReactor = null;
-		this.prevReactor = null;
-		this.isMeta = false;
-	}
 }
