@@ -559,7 +559,6 @@ public class PixelStreamUtility {
 					} catch(Exception e) {
 						// on no, this is not good
 						logger.error(Constants.STACKTRACE, e);
-
 						// let us send back an error
 						ps.print("\"output\":");
 						ps.print(gson.toJson(e.getMessage()));
@@ -568,6 +567,9 @@ public class PixelStreamUtility {
 						// close the map
 						ps.print("}");
 						ps.flush();
+						
+						// set this as an error in the pixel object
+						pixelObj.setReturnedError(true);
 						return;
 					}
 

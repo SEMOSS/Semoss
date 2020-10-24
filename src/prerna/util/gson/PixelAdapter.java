@@ -27,6 +27,9 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 
 		String id = null;
 		String pixelString = null;
+		boolean meta = false;
+		boolean error = false;
+		boolean warning = false;
 		Map<String, Map<String, Object>> startingFrameHeaders = null;
 		Map<String, Map<String, Object>> endingFrameHeaders = null;
 		List<Map<String, List<Map>>> reactorInputs = null;
@@ -49,6 +52,12 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 				id = in.nextString();
 			} else if(key.equals("pixelString")) {
 				pixelString = in.nextString();
+			} else if(key.equals("meta")) {
+				error = in.nextBoolean();
+			} else if(key.equals("errorReturned")) {
+				error = in.nextBoolean();
+			} else if(key.equals("warningReturned")) {
+				warning = in.nextBoolean();
 			} else if(key.equals("startingFrameHeaders")) {
 				startingFrameHeaders = (Map<String, Map<String, Object>>) mapAdapter.read(in);
 			} else if(key.equals("endingFrameHeaders")) {
@@ -74,6 +83,8 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		in.endObject();
 
 		Pixel pixel = new Pixel(id, pixelString);
+		pixel.setReturnedError(error);
+		pixel.setReturnedWarning(warning);
 		pixel.setStartingFrameHeaders(startingFrameHeaders);
 		pixel.setEndingFrameHeaders(endingFrameHeaders);
 		pixel.setReactorInputs(reactorInputs);
@@ -95,6 +106,12 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		out.value(value.getId());
 		out.name("pixelString");
 		out.value(value.getPixelString());
+		out.name("meta");
+		out.value(value.isMeta());
+		out.name("errorReturned");
+		out.value(value.isReturnedError());
+		out.name("warningReturned");
+		out.value(value.isReturnedWarning());
 		out.name("startingFrameHeaders");
 		if(value.getStartingFrameHeaders() != null) {
 			TypeAdapter adapter = GSON.getAdapter(value.getStartingFrameHeaders().getClass());
