@@ -737,7 +737,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			if(objects.remove("nan")) {
 				addNullCheck = true;
 			}
-			if(objects.remove("")) {
+			if(thisComparator.equals("==") && objects.remove("")) {
 				addNullCheck = true;
 			}
 		}
