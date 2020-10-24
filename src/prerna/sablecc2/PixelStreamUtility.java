@@ -28,6 +28,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
+import prerna.om.Pixel;
 import prerna.om.ThreadStore;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -40,6 +41,8 @@ import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.export.GraphFormatter;
 import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.util.Constants;
+import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.InsightSheetAdapter;
@@ -51,12 +54,6 @@ public class PixelStreamUtility {
 
 	private static final Logger logger = LogManager.getLogger(PixelStreamUtility.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
-
-	private static Gson getDefaultGson() {
-		return GsonUtility.getDefaultGson();
-	}
-	
 	private static Gson getPanelGson() {
 		 return new GsonBuilder()
 			.disableHtmlEscaping()
@@ -75,7 +72,7 @@ public class PixelStreamUtility {
 	 */
 	public static StreamingOutput collectPixelData(PixelRunner runner) {
 		// get the default gson object
-		Gson gson = getDefaultGson();
+		Gson gson = GsonUtility.getDefaultGson();
 
 		// now process everything
 		try {
@@ -92,7 +89,7 @@ public class PixelStreamUtility {
 						long end = System.currentTimeMillis();
 						logger.debug("Time to generate json response = " + (end-start) + "ms");
 					} catch(Exception e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(ps != null) {
 							ps.close();
@@ -113,7 +110,7 @@ public class PixelStreamUtility {
 	 */
 	public static File writePixelData(PixelRunner runner, File fileToWrite) {
 		// get the default gson object
-		Gson gson = getDefaultGson();
+		Gson gson = GsonUtility.getDefaultGson();
 
 		// now process everything
 		FileOutputStream fos = null;
@@ -127,7 +124,7 @@ public class PixelStreamUtility {
 						// we want to ignore the first index since it will be a job
 						processPixelRunner(ps, gson, runner);
 					} catch(Exception e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 						// ugh... this is unfortunate
 					} finally {
 						if(ps != null) {
@@ -146,7 +143,7 @@ public class PixelStreamUtility {
 					fos.close();
 				}
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -157,7 +154,7 @@ public class PixelStreamUtility {
 	 * Made for testing generation purposes, uncomment if you'd like to generate test output
 	 */
 	public static File writePixelDataForTest(PixelRunner runner, File fileToWrite) {
-		Gson gson = getDefaultGson();
+		Gson gson = GsonUtility.getDefaultGson();
 		FileOutputStream fos = null;
 		try {
 			StreamingOutput output = new StreamingOutput() {
@@ -168,7 +165,7 @@ public class PixelStreamUtility {
 						ps = new PrintStream(outputStream, true, "UTF-8");
 						processPixelRunnerForTest(ps,gson,runner);
 					} catch(Exception e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					} finally {
 						if(ps != null) {
 							ps.close();
@@ -186,7 +183,7 @@ public class PixelStreamUtility {
 					fos.close();
 				}
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -199,8 +196,7 @@ public class PixelStreamUtility {
 		List<NounMetadata> resultList = runner.getResults();
 		// get the expression which created the return
 		// this matches with the above by index
-		List<String> pixelStrings = runner.getPixelExpressions();
-		List<Boolean> isMeta = runner.isMeta();
+		List<Pixel> pixelList = runner.getReturnPixelList();
 
 		// start of the map
 		// and the insight id
@@ -209,7 +205,7 @@ public class PixelStreamUtility {
 
 		// now flush array of pixel returns
 		ps.print("\"pixelReturn\":[");
-		int size = pixelStrings.size();
+		int size = pixelList.size();
 		// this can be empty when we open an empty insight
 		// from an insight
 		if(size > 0) {
@@ -229,9 +225,8 @@ public class PixelStreamUtility {
 			}
 			for (int i = startIndex; i < size; i++) {
 				NounMetadata noun = resultList.get(i);
-				String expression = pixelStrings.get(i);
-				boolean meta = isMeta.get(i);
-				processNounMetadata(in, ps, gson, noun, expression, meta);
+				Pixel pixelObj = pixelList.get(i);
+				processNounMetadata(in, ps, gson, noun, pixelObj);
 
 				// add a comma for the next item in the list
 				if( (i+1) != size) {
@@ -246,7 +241,9 @@ public class PixelStreamUtility {
 				ps.flush();
 				// we want to display these messages
 				// so meta is always false
-				processNounMetadata(in, ps, gson, delayedMessages.get(i), "\"delayed message\";", false);
+				Pixel pixelObj = new Pixel("thread_execution_" + Utility.getRandomString(6), "\"delayed message\";");
+				pixelObj.setMeta(false);
+				processNounMetadata(in, ps, gson, delayedMessages.get(i), pixelObj);
 			}
 		}
 
@@ -256,9 +253,9 @@ public class PixelStreamUtility {
 		
 		// help java do garbage cleaning
 		resultList.clear();
-		pixelStrings.clear();
+		pixelList.clear();
 		resultList = null;
-		pixelStrings = null;
+		pixelList = null;
 		runner = null;
 	}
 	/** 
@@ -267,24 +264,21 @@ public class PixelStreamUtility {
 	private static void processPixelRunnerForTest(PrintStream ps, Gson gson, PixelRunner runner) {
 		Insight in = runner.getInsight();
 		List<NounMetadata> resultList = runner.getResults();
-		
-		List<String> pixelStrings = runner.getPixelExpressions();
-		List<Boolean> isMeta = runner.isMeta();
+		List<Pixel> pixelList = runner.getReturnPixelList();
 
-		int size = pixelStrings.size();
+		int size = pixelList.size();
 		
 		if(size > 0) {
 			int lastItem = size-1;
 			NounMetadata noun = resultList.get(lastItem);
-			String expression = pixelStrings.get(lastItem);
-			boolean meta = isMeta.get(lastItem);
-			processNounMetadata(in, ps, gson, noun, expression, meta);
+			Pixel pixelObj = pixelList.get(lastItem);
+			processNounMetadata(in, ps, gson, noun, pixelObj);
 		}
 
 		resultList.clear();
-		pixelStrings.clear();
+		pixelList.clear();
 		resultList = null;
-		pixelStrings = null;
+		pixelList = null;
 		runner = null;
 	}
 	/**
@@ -292,7 +286,7 @@ public class PixelStreamUtility {
 	 * @param noun
 	 * @return
 	 */
-	private static void processNounMetadata(Insight in, PrintStream ps, Gson gson, NounMetadata noun, String expression, Boolean isMeta) {
+	private static void processNounMetadata(Insight in, PrintStream ps, Gson gson, NounMetadata noun, Pixel pixelObj) {
 		PixelDataType nounT = noun.getNounType();
 
 		// returning a cached insight
@@ -309,17 +303,19 @@ public class PixelStreamUtility {
 		
 		ps.print("{");
 
-		// add expression if there
-		if(expression != null) {
-			expression = expression.trim();
-			while(expression.endsWith("; ;")) {
-				expression = expression.substring(0, expression.length()-2);
+		if(pixelObj != null) {
+			ps.print("\"pixelId\":\"" + pixelObj.getId() + "\",");
+			String expression = pixelObj.getPixelString();
+			// add expression if there
+			if(expression != null) {
+				expression = expression.trim();
+				while(expression.endsWith("; ;")) {
+					expression = expression.substring(0, expression.length()-2);
+				}
+				ps.print("\"pixelExpression\":" + gson.toJson(expression) + ",");
 			}
-			ps.print("\"pixelExpression\":" + gson.toJson(expression) + ",");
-		}
-		// add is meta if there
-		if(isMeta != null) {
-			ps.print("\"isMeta\":" + isMeta + ",");
+			// add is meta 
+			ps.print("\"isMeta\":" + pixelObj.isMeta() + ",");
 		}
 
 		if(nounT == PixelDataType.FRAME) {
@@ -363,7 +359,7 @@ public class PixelStreamUtility {
 				if(i > 0) {
 					ps.print(",");
 				}
-				processNounMetadata(in, ps, gson, codeOutputs.get(i), null, null);
+				processNounMetadata(in, ps, gson, codeOutputs.get(i), null);
 			}
 			ps.print("]");
 			ps.print(",\"operationType\":");
@@ -380,7 +376,7 @@ public class PixelStreamUtility {
 						ps.print(",");
 					}
 					if(listOutputs.get(i) instanceof NounMetadata) {
-						processNounMetadata(in, ps, gson, (NounMetadata) listOutputs.get(i), null, null);
+						processNounMetadata(in, ps, gson, (NounMetadata) listOutputs.get(i), null);
 					} else {
 						ps.print(gson.toJson(listOutputs.get(i)));
 					}
@@ -394,7 +390,7 @@ public class PixelStreamUtility {
 						ps.print(",");
 					}
 					if(listOutputs[i] instanceof NounMetadata) {
-						processNounMetadata(in, ps, gson, (NounMetadata) listOutputs[i], null, null);
+						processNounMetadata(in, ps, gson, (NounMetadata) listOutputs[i], null);
 					} else {
 						ps.print(gson.toJson(listOutputs[i]));
 					}
@@ -562,7 +558,7 @@ public class PixelStreamUtility {
 						}
 					} catch(Exception e) {
 						// on no, this is not good
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 
 						// let us send back an error
 						ps.print("\"output\":");
@@ -769,7 +765,7 @@ public class PixelStreamUtility {
 				if(i > 0) {
 					ps.print(",");
 				}
-				processNounMetadata(in, ps, gson, addReturns.get(i), null, null);
+				processNounMetadata(in, ps, gson, addReturns.get(i), null);
 			}
 			ps.print("]");
 		}

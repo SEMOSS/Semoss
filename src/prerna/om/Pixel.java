@@ -13,8 +13,9 @@ public class Pixel {
 
 	private String id = null;
 	private String pixelString = null;
-	
+
 	// some state management when editing the recipe
+	private boolean isMeta = false;
 	private boolean hasChanged = false;
 
 	// some additional metadata to maintain on the Pixel
@@ -195,6 +196,22 @@ public class Pixel {
 	 */
 	public void setPositionMap(Map<String, Object> positionMap) {
 		this.positionMap = positionMap;
+	}
+	
+	/**
+	 * Get if this is meta or not
+	 * @return
+	 */
+	public boolean isMeta() {
+		return isMeta;
+	}
+
+	/**
+	 * Set if the pixel is meta or not
+	 * @param isMeta
+	 */
+	public void setMeta(boolean isMeta) {
+		this.isMeta = isMeta;
 	}
 
 	/**
