@@ -1325,28 +1325,34 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		// if it is null, then we know we have a column
 		// need to account for null inputs
-		boolean addNullCheck = objects.contains(null);
-		if(addNullCheck) {
-			objects.remove(null);
+		boolean addNullCheck = objects.remove(null);
+		if(leftDataType != null && SemossDataType.isNotString(leftDataType)) {
+			if(objects.remove("null")) {
+				addNullCheck = true;
+			}
+			if(objects.remove("nan")) {
+				addNullCheck = true;
+			}
+			if(objects.remove("")) {
+				addNullCheck = true;
+			}
 		}
-		if(SemossDataType.isNotString(leftDataType) && !thisComparator.equals(SEARCH_COMPARATOR) && !thisComparator.equals(NOT_SEARCH_COMPARATOR) && objects.contains("")) {
-			addNullCheck = true;
-			objects.remove("");
+		if(!addNullCheck) {
+			// are we searching for null?
+			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && objects.contains("null");
 		}
 		
 		StringBuilder filterBuilder = new StringBuilder("(");
 		// add the null check now
 		if(addNullCheck) {
-			// can only work if comparator is == or !=
-			if(thisComparator.equals("==")) {
+			if(thisComparator.equals("==") || IQueryInterpreter.getPosSearchComparators().contains(thisComparator)) {
 				filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
-			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+			} else if(thisComparator.equals("!=") || thisComparator.equals("<>") || IQueryInterpreter.getNegSearchComparators().contains(thisComparator)) {
 				filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
 			}
-		}
-		else
+		} else {
 			filterBuilder = null;
-		
+		}
 		
 		// need to grab from metadata
 		if(leftDataType == null) {
