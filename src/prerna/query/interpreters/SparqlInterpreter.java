@@ -568,13 +568,18 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			PixelDataType nounType, boolean isProp, String baseUri, boolean isSimple) {
 		
 		// need to account for null inputs
-		boolean addNullCheck = false;
-		boolean hasMoreValuesThanNull = true;
-		if(rightObjects.contains(null)) {
-			addNullCheck = true;
-			rightObjects.remove(null);
-			if(rightObjects.isEmpty()) {
-				hasMoreValuesThanNull = false;
+		// need to account for null inputs
+		boolean addNullCheck = rightObjects.remove(null);
+		boolean nullCheckWithEquals = true;
+		if(!addNullCheck) {
+			// are we searching for null?
+			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && rightObjects.contains("null");
+		}
+		boolean hasMoreValuesThanNull = !rightObjects.isEmpty();
+		if(addNullCheck) {
+			// can only work if comparator is == or !=
+			if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+				nullCheckWithEquals = false;
 			}
 		}
 		
@@ -630,9 +635,10 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			}
 			
 			if(addNullCheck) {
-				if(thisComparator.equals("=")) {
+				// can only work if comparator is == or !=
+				if(thisComparator.equals("==") || IQueryInterpreter.getPosSearchComparators().contains(thisComparator)) {
 					filterBuilder.append("!BOUND(?").append(leftCleanVarName).append(")");
-				} else {
+				} else if(thisComparator.equals("!=") || thisComparator.equals("<>") || IQueryInterpreter.getNegSearchComparators().contains(thisComparator)) {
 					filterBuilder.append("BOUND(?").append(leftCleanVarName).append(")");
 				}
 			}
@@ -642,7 +648,11 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 				// if we added a null check
 				// we need to add and or to the rest of everything
 				if(addNullCheck) {
-					filterBuilder.append(" || (");
+					if(nullCheckWithEquals) {
+						filterBuilder.append(" || (");
+					} else {
+						filterBuilder.append(" && (");
+					}
 				}
 				
 				// based on the input, set the filter information

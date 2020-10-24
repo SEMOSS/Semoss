@@ -12,7 +12,6 @@ public abstract class AbstractQueryInterpreter implements IQueryInterpreter {
 	protected int performCount;
 	protected AbstractQueryStruct qs;
 	protected boolean isDistinct;
-//	protected Map<String, String> additionalTypes;
 
 	public AbstractQueryInterpreter() {
 		logger = LogManager.getLogger(this.getClass().getName());
@@ -39,10 +38,5 @@ public abstract class AbstractQueryInterpreter implements IQueryInterpreter {
 			this.logger = logger;
 		}
 	}
-	
-//	@Override
-//	public void setAdditionalTypes(Map<String, String> additionalTypes){
-//		this.additionalTypes = additionalTypes;
-//	}
 	
 }

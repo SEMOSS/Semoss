@@ -18,6 +18,7 @@ import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.AbstractQueryInterpreter;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -727,20 +728,31 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		// need to account for null inputs
-		boolean addNullCheck = objects.contains(null);
-		if(addNullCheck) {
-			objects.remove(null);
+		boolean addNullCheck = objects.remove(null);
+		boolean nullCheckWithEquals = true;
+		if(leftDataType != null && SemossDataType.isNotString(leftDataType)) {
+			if(objects.remove("null")) {
+				addNullCheck = true;
+			}
+			if(objects.remove("nan")) {
+				addNullCheck = true;
+			}
+			if(objects.remove("")) {
+				addNullCheck = true;
+			}
+		}
+		if(!addNullCheck) {
+			// are we searching for null?
+			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && objects.contains("null");
 		}
 		
-		boolean nullCheckWithEquals = true;
 		StringBuilder filterBuilder = null;
 		// add the null check now
 		if(addNullCheck) {
-			// can only work if comparator is == or !=
-			if(thisComparator.equals("==")) {
+			if(thisComparator.equals("==") || IQueryInterpreter.getPosSearchComparators().contains(thisComparator)) {
 				filterBuilder = new StringBuilder();
 				filterBuilder.append("( (").append(leftSelectorExpression).append(") IS NULL ");
-			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+			} else if(thisComparator.equals("!=") || thisComparator.equals("<>") || IQueryInterpreter.getNegSearchComparators().contains(thisComparator)) {
 				nullCheckWithEquals = false;
 				filterBuilder = new StringBuilder();
 				filterBuilder.append("( (").append(leftSelectorExpression).append(") IS NOT NULL ");
@@ -761,10 +773,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					filterBuilder.append("AND ");
 				}
 			}
-			boolean isSearch = thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.equals(BEGINS_COMPARATOR) 
-					|| thisComparator.equals(ENDS_COMPARATOR);
-			boolean isNotSearch = thisComparator.equals(NOT_SEARCH_COMPARATOR) || thisComparator.equals(NOT_BEGINS_COMPARATOR)
-					|| thisComparator.equals(NOT_ENDS_COMPARATOR);
+			boolean isSearch = IQueryInterpreter.getPosSearchComparators().contains(thisComparator);
+			boolean isNotSearch = IQueryInterpreter.getNegSearchComparators().contains(thisComparator);
 			if(isSearch || isNotSearch) {
 				String thisFilterSearch = " LIKE ";
 				if(isNotSearch) {
@@ -961,9 +971,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				boolean isSearch = comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR)
-						|| comparator.equalsIgnoreCase(BEGINS_COMPARATOR) || comparator.equals(NOT_BEGINS_COMPARATOR)
-						|| comparator.equalsIgnoreCase(ENDS_COMPARATOR) || comparator.equals(NOT_ENDS_COMPARATOR);
+				boolean isSearch = IQueryInterpreter.getAllSearchComparators().contains(comparator);
 				if(comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR)) {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
@@ -1038,9 +1046,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			} else {
 				String leftWrapper = null;
 				String rightWrapper = null;
-				boolean isSearch = comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR)
-						|| comparator.equalsIgnoreCase(BEGINS_COMPARATOR) || comparator.equals(NOT_BEGINS_COMPARATOR)
-						|| comparator.equalsIgnoreCase(ENDS_COMPARATOR) || comparator.equals(NOT_ENDS_COMPARATOR);
+				boolean isSearch = IQueryInterpreter.getAllSearchComparators().contains(comparator);
 				if(comparator.equalsIgnoreCase(SEARCH_COMPARATOR) || comparator.equals(NOT_SEARCH_COMPARATOR)) {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
