@@ -320,8 +320,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 						try {
 							ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 							runner.addResult(0, "CACHED_FRAME_HEADERS", 
-									new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS),
-									true);
+									new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
 						} catch(Exception e) {
 							e.printStackTrace();
 							// ignore

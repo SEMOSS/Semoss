@@ -296,7 +296,8 @@ public class Insight {
 				} finally {
 					if(this.user != null && !this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace() && AbstractSecurityUtils.securityEnabled() 
 							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
-						if(!runner.isMeta().isEmpty() && !runner.isMeta().get(runner.isMeta().size()-1)) {
+						List<Pixel> returnedPixelList = runner.getReturnPixelList();
+						if(!returnedPixelList.isEmpty() && !returnedPixelList.get(returnedPixelList.size()-1).isMeta()) {
 							getWorkspaceCacheThread().addToQueue(this.pixelList.getPixelRecipe());
 						}
 					}
@@ -312,12 +313,9 @@ public class Insight {
 	private void trackPixel(PixelRunner runner) {
 		IUserTracker tracker = UserTrackerFactory.getInstance();
 		if(tracker.isActive()) {
-			List<String> pixelStrings = runner.getPixelExpressions();
-			List<Boolean> isMeta = runner.isMeta();
-			for(int i = 0; i < pixelStrings.size(); i++) {
-				String expression = pixelStrings.get(i);
-				boolean meta = isMeta.get(i);
-				tracker.trackPixelExecution(this, expression, meta);
+			List<Pixel> returnedPixelList = runner.getReturnPixelList();
+			for(Pixel p : returnedPixelList) {
+				tracker.trackPixelExecution(this, p.getPixelString(), p.isMeta());
 			}
 		}
 	}
