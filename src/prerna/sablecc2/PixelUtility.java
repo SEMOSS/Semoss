@@ -27,6 +27,7 @@ import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -464,7 +465,7 @@ public class PixelUtility {
 	 * @param params
 	 * @return
 	 */
-	public static String getParameterizedRecipe(User user, List<String> recipe, List<Map<String, Object>> paramsMap, String insightName) {
+	public static List<String> getParameterizedRecipe(User user, List<String> recipe, List<Map<String, Object>> paramsMap, String insightName) {
 		int numParams = paramsMap.size();
 		List<String> params = new ArrayList<>(numParams);
 		for(Map<String, Object> pMap : paramsMap) {
@@ -496,9 +497,10 @@ public class PixelUtility {
 			} catch (ParserException | LexerException | IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
-			
 		}
 		
+		Map<String, Map<String, String>> processedParams = translation.getParamToSource();
+		Map<String, List<String>> colToComparators = translation.getColToComparators();
 		List<String> newRecipe = translation.getPixels();
 		// since i am already adding a AddPanel(0) at the start of this recipe
 		// if it is contained as the first index inside newRecipe
@@ -513,7 +515,6 @@ public class PixelUtility {
 		for(String s : newRecipe) {
 			fullRecipe.append(s.trim());
 		}
-		Map<String, Map<String, String>> processedParams = translation.getParamToSource();
 		
 		List<Map<String, Object>> vec = new Vector<>();
 		Map<String, Object> map = new LinkedHashMap<>();
@@ -525,57 +526,71 @@ public class PixelUtility {
 		List<Map<String, Object>> paramList = new Vector<>();
 		for(int i = 0; i < numParams; i++) {
 			Map<String, Object> pMap = paramsMap.get(i);
-			boolean keepSearch = keepSearchParameter(pMap);
 			String param = (String) pMap.get("paramName");
-			
-			// and now for the param itself
-			Map<String, Object> paramMap = new LinkedHashMap<>();
-			paramMap.put("paramName", param);
-			paramMap.put("required", true);
-			paramMap.put("useSelectedValues", true);
-			// nested map for view
-			Map<String, Object> paramViewMap = new LinkedHashMap<>();
-			paramViewMap.put("displayType", "checklist");
-			paramViewMap.put("label", "Select an Instance Of The Parameter : " + param);
-			// nested attributes map within nested view map
-			Map<String, Boolean> paramViewAttrMap = new LinkedHashMap<>();
-			paramViewAttrMap.put("searchable", true);
-			paramViewAttrMap.put("multiple", true);
-			paramViewAttrMap.put("quickselect", true);
-			paramViewMap.put("attributes", paramViewAttrMap);
-			// add view
-			paramMap.put("view", paramViewMap);
-			// nested map for model
-			Map<String, Object> modelMap = new LinkedHashMap<>();
-			Map<String, String> processedParam = processedParams.get(param);
-			String physicalQs = processedParam.get("qs");
-			String infiniteVar = "infinite"+i;
-			String paramQ = "(" + infiniteVar + " = " + processedParam.get("source") + " | Select(" + physicalQs 
-					+ ") | Filter(" + physicalQs + " ?like \"<" + param + "_Search>\") | Sort(columns=[" 
-					+ physicalQs + "], sort=[asc]) | Iterate()) | Collect(20);";  
-			modelMap.put("query", paramQ);
-			if(keepSearch) {
-				modelMap.put("infiniteQuery", infiniteVar + " | Collect(20)");
-				modelMap.put("searchParam", param + "_Search");
-				modelMap.put("dependsOn", new String[]{param + "_Search"});
+			List<String> comparators = colToComparators.get(param);
+
+			boolean keepSearch = keepSearchParameter(pMap);
+			// we will run this
+			// for every column-comparator combination
+			for(String comparator : comparators) {
+				boolean isNumeric = IQueryFilter.comparatorIsNumeric(comparator);
+				String jsonParamName = param + "__" + IQueryFilter.getSimpleNameForComparator(comparator);
+				// and now for the param itself
+				Map<String, Object> paramMap = new LinkedHashMap<>();
+				paramMap.put("paramName", jsonParamName);
+				paramMap.put("required", true);
+				paramMap.put("useSelectedValues", true);
+				// nested map for view
+				Map<String, Object> paramViewMap = new LinkedHashMap<>();
+				if(isNumeric) {
+					paramViewMap.put("label", "Enter value for parameter : " + param + " with comparator " + comparator);
+					paramViewMap.put("displayType", "number");
+				} else {
+					paramViewMap.put("label", "Select values for parameter : " + param + " with comparator " + comparator);
+					paramViewMap.put("displayType", "checklist");
+				}
+				
+				// nested attributes map within nested view map
+				Map<String, Boolean> paramViewAttrMap = new LinkedHashMap<>();
+				// if numeric - no search and single valued
+				paramViewAttrMap.put("searchable", !isNumeric);
+				paramViewAttrMap.put("multiple", !isNumeric);
+				paramViewAttrMap.put("quickselect", !isNumeric);
+				paramViewMap.put("attributes", paramViewAttrMap);
+				// add view
+				paramMap.put("view", paramViewMap);
+				// nested map for model
+				Map<String, Object> modelMap = new LinkedHashMap<>();
+				Map<String, String> processedParam = processedParams.get(param);
+				String physicalQs = processedParam.get("qs");
+				String infiniteVar = "infinite"+i;
+				String paramQ = "(" + infiniteVar + " = " + processedParam.get("source") + " | Select(" + physicalQs 
+						+ ") | Filter(" + physicalQs + " ?like \"<" + jsonParamName + "_Search>\") | Sort(columns=[" 
+						+ physicalQs + "], sort=[asc]) | Iterate()) | Collect(20);";  
+				modelMap.put("query", paramQ);
+				paramMap.put("model", modelMap);
+
+				if(keepSearch & !isNumeric) {
+					// add to model map
+					modelMap.put("infiniteQuery", infiniteVar + " | Collect(20)");
+					modelMap.put("searchParam", jsonParamName + "_Search");
+					modelMap.put("dependsOn", new String[]{jsonParamName + "_Search"});
+					
+					// create search as well
+					Map<String, Object> paramSearchMap = new LinkedHashMap<>();
+					paramSearchMap.put("paramName", jsonParamName + "_Search");
+					paramSearchMap.put("view", false);
+					Map<String, String> paramSearchModel = new LinkedHashMap<>();
+					paramSearchModel.put("defaultValue", "");
+					paramSearchMap.put("model", paramSearchModel);
+					paramList.add(paramSearchMap);
+				}
+				
+				// now merge the existing pMap into the default values
+				recursivelyMergeMaps(paramMap, pMap);
+				// add to the param list
+				paramList.add(paramMap);
 			}
-			paramMap.put("model", modelMap);
-			
-			if(keepSearch) {
-				// each param gets its own search
-				Map<String, Object> paramSearchMap = new LinkedHashMap<>();
-				paramSearchMap.put("paramName", param + "_Search");
-				paramSearchMap.put("view", false);
-				Map<String, String> paramSearchModel = new LinkedHashMap<>();
-				paramSearchModel.put("defaultValue", "");
-				paramSearchMap.put("model", paramSearchModel);
-				paramList.add(paramSearchMap);
-			}
-			
-			// now merge the existing pMap into the default values
-			recursivelyMergeMaps(paramMap, pMap);
-			// add to the param list
-			paramList.add(paramMap);
 		}
 		// add param list
 		map.put("params", paramList);
@@ -584,7 +599,10 @@ public class PixelUtility {
 		vec.add(map);
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		return "AddPanel(0); Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");";
+		List<String> paramedRecipe = new Vector<>(2);
+		paramedRecipe.add("AddPanel(0);");
+		paramedRecipe.add("Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");");
+		return paramedRecipe;
 	}
 	
 	/**
@@ -606,7 +624,12 @@ public class PixelUtility {
 					} else {
 						// both are not maps
 						// just override
-						mainMap.put(key, newMap.get(key));
+						
+						// with new changes where BE separates 
+						// the comparators out
+						if(!key.equals("paramName")) {
+							mainMap.put(key, newMap.get(key));
+						}
 					}
 				} else {
 					// brand new key
