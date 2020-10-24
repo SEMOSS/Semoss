@@ -535,6 +535,7 @@ public class PixelUtility {
 			for(String comparator : comparators) {
 				boolean isNumeric = IQueryFilter.comparatorIsNumeric(comparator);
 				String jsonParamName = param + "__" + IQueryFilter.getSimpleNameForComparator(comparator);
+				String comparatorDisplay = IQueryFilter.getDisplayNameForComparator(comparator);
 				// and now for the param itself
 				Map<String, Object> paramMap = new LinkedHashMap<>();
 				paramMap.put("paramName", jsonParamName);
@@ -543,10 +544,10 @@ public class PixelUtility {
 				// nested map for view
 				Map<String, Object> paramViewMap = new LinkedHashMap<>();
 				if(isNumeric) {
-					paramViewMap.put("label", "Enter value for parameter : " + param + " with comparator " + comparator);
+					paramViewMap.put("label", "Enter value for : " + param + "  " + comparatorDisplay); // + " [user input]");
 					paramViewMap.put("displayType", "number");
 				} else {
-					paramViewMap.put("label", "Select values for parameter : " + param + " with comparator " + comparator);
+					paramViewMap.put("label", "Select values for : " + param + "  " + comparatorDisplay); // + " [user input]");
 					paramViewMap.put("displayType", "checklist");
 				}
 				

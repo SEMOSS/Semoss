@@ -65,6 +65,40 @@ public interface IQueryFilter {
 	 * @param comparator
 	 * @return
 	 */
+	public static String getDisplayNameForComparator(String comparator) {
+		if(comparator.equals("==")) {
+			return "In";
+		} else if(comparator.equals("!=") || comparator.equals("<>")) {
+			return "Not In";
+		} else if(comparator.equals(">")) {
+			return "Greater Than ( > )";
+		} else if(comparator.equals(">=")) {
+			return "Greater Than Equal ( >= )";
+		} else if(comparator.equals("<")) {
+			return "Less Than ( < )";
+		} else if(comparator.equals("<=")) {
+			return "Less Than Equal ( <= )";
+		} else if(comparator.equals("?like")) {
+			return "Like";
+		} else if(comparator.equals("?nlike")) {
+			return "Not Like";
+		} else if(comparator.equals("?begins")) {
+			return "Begins With";
+		} else if(comparator.equals("?nbegins")) {
+			return "Not Begins With";
+		} else if(comparator.equals("?ends")) {
+			return "Ends With";
+		} else if(comparator.equals("?nends")) {
+			return "Not Ends With";
+		}
+		return null;
+	}
+	
+	/**
+	 * Get a simple name for each comparator
+	 * @param comparator
+	 * @return
+	 */
 	public static String getSimpleNameForComparator(String comparator) {
 		if(comparator.equals("==")) {
 			return "eq";
