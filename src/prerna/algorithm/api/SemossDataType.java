@@ -19,6 +19,14 @@ public enum SemossDataType {
 		return true;
 	}
 	
+	public static boolean isNotString(String typeStr) {
+		SemossDataType type = convertStringToDataType(typeStr);
+		if(type == STRING || type == FACTOR) {
+			return false;
+		}
+		return true;
+	}
+	
 	public static SemossDataType convertStringToDataType(String dataType) {
 		if(dataType == null) {
 			return null;
@@ -43,26 +51,4 @@ public enum SemossDataType {
 			return SemossDataType.STRING;
 		}
 	}
-	
-	// THIS IS JUST WRONG!
-	// 1) IF YOU NEED A STRING, JUST + "" THE ENUM
-	// 2) DIFFERENT SQL HAVE DIFFERNT TYPES
-//	public static String convertDataTypeToString(SemossDataType type) {
-//		if(SemossDataType.BOOLEAN == type) { 
-//			return "boolean";
-//		} else if(SemossDataType.INT == type) { 
-//			return "int";
-//		} else if(SemossDataType.DOUBLE == type) { 
-//			return "double";
-//		} else if(SemossDataType.DATE == type) {
-//			return "date";
-//		} else if(SemossDataType.TIMESTAMP == type) {
-//			return "timestamp";
-//		} else if (SemossDataType.FACTOR == type) {
-//			return "factor";
-//		} else {
-//			return "varchar(800)";
-//		}
-//	}
-	
 }
