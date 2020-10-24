@@ -414,10 +414,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	}
 	
 	protected List<String> getParamRecipe(List<String> recipe, List<Map<String, Object>> params, String insightName) {
-		String paramRecipe = PixelUtility.getParameterizedRecipe(this.insight.getUser(), recipe, params, insightName);
-		List<String> paramRecipeList = new Vector<>();
-		paramRecipeList.add(paramRecipe);
-		return paramRecipeList;
+		return PixelUtility.getParameterizedRecipe(this.insight.getUser(), recipe, params, insightName);
 	}
 	
 	/**
