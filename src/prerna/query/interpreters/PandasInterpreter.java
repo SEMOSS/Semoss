@@ -1131,13 +1131,21 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		// need to account for null inputs
-		boolean addNullCheck = objects.contains(null);
-		if(addNullCheck) {
-			objects.remove(null);
+		boolean addNullCheck = objects.remove(null);
+		if(leftDataType != null && SemossDataType.isNotString(leftDataType)) {
+			if(objects.remove("null")) {
+				addNullCheck = true;
+			}
+			if(objects.remove("nan")) {
+				addNullCheck = true;
+			}
+			if(objects.remove("")) {
+				addNullCheck = true;
+			}
 		}
-		if(SemossDataType.isNotString(leftDataType) && !thisComparator.equals(SEARCH_COMPARATOR) && !thisComparator.equals(NOT_SEARCH_COMPARATOR) && objects.contains("")) {
-			addNullCheck = true;
-			objects.remove("");
+		if(!addNullCheck) {
+			// are we searching for null?
+			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && objects.contains("null");
 		}
 		
 		StringBuilder filterBuilder = new StringBuilder("(");;
