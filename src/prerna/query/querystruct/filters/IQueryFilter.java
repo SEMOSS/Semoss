@@ -73,7 +73,7 @@ public interface IQueryFilter {
 		} else if(comparator.equals(">")) {
 			return "gt";
 		} else if(comparator.equals(">=")) {
-			return "gtw";
+			return "gte";
 		} else if(comparator.equals("<")) {
 			return "lt";
 		} else if(comparator.equals("<=")) {
