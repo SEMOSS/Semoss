@@ -1042,48 +1042,55 @@ public class Insight {
 	}
 	
 	public PixelRunner reRunPixelInsight() {
-		// set the mode
-		setRunSavedInsightMode(true);
-
-		// clear the varStore
-		// but need to close the frames for memory / files
-		Set<String> tNames = new HashSet<>();
-		Iterator<String> keys = this.varStore.getFrameKeys().iterator();
-		while(keys.hasNext()) {
-			String key = keys.next();
-			NounMetadata noun = this.varStore.get(key);
-			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-			if(!tNames.contains(frame.getName())) {
-				frame.close();
-				tNames.add(frame.getName());
+		synchronized(this) {
+			// set the mode
+			setRunSavedInsightMode(true);
+	
+			// clear the varStore
+			// but need to close the frames for memory / files
+			Set<String> tNames = new HashSet<>();
+			Iterator<String> keys = this.varStore.getFrameKeys().iterator();
+			while(keys.hasNext()) {
+				String key = keys.next();
+				NounMetadata noun = this.varStore.get(key);
+				ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+				if(!tNames.contains(frame.getName())) {
+					frame.close();
+					tNames.add(frame.getName());
+				}
 			}
+			// now clear everything inside
+			this.varStore.clear();
+			// clear the panels
+			this.insightPanels.clear();
+			// clear the sheets and add the default one
+			this.insightSheets.clear();
+			this.insightSheets.put(DEFAULT_SHEET_ID, new InsightSheet(DEFAULT_SHEET_ID, DEFAULT_SHEET_LABEL));
+
+			// copy over the recipe to a new list
+			// and clear the current container
+			// maintain the pixelIds so they are consistent
+			List<String> currentPixelIds = this.pixelList.getPixelIds();
+			List<String> currentRecipe = this.pixelList.getPixelRecipe();
+			int counterVal = this.pixelList.getCounter();
+			
+			// create a new pixelList
+			this.pixelList = new PixelList();
+			
+			// execution
+			PixelRunner results = runPixel(currentRecipe);
+			
+			// now update the pixel list to the new ids
+			this.pixelList.updateAllPixelIds(currentPixelIds);
+			// and set the counter properly
+			// so that way the counter doesn't exponentially
+			// increase with every rerun
+			this.pixelList.setCounter(counterVal);
+			
+			// set the mode back
+			setRunSavedInsightMode(false);
+			return results;
 		}
-		// now clear everything inside
-		this.varStore.clear();
-		
-		// copy over the recipe to a new list
-		// and clear the current container
-		// maintain the pixelIds so they are consistent
-		List<String> currentPixelIds = pixelList.getPixelIds();
-		
-		List<String> newList = new Vector<String>();
-		newList.addAll(this.pixelList.getPixelRecipe());
-		
-		// clear the current pixelList
-		this.pixelList.clear();
-		
-		// clear the panels
-		this.insightPanels.clear();
-		
-		// execution
-		PixelRunner results = runPixel(newList);
-		
-		// now set the pixelIds back
-		this.pixelList.updateAllPixelIds(currentPixelIds);
-		
-		// set the mode back
-		setRunSavedInsightMode(false);
-		return results;
 	}
 	
 	/**

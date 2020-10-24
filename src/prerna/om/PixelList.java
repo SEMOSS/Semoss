@@ -18,9 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.gson.GsonUtility;
-import prerna.util.gson.PixelAdapter;
 
 public class PixelList implements Iterable<Pixel> {
 
@@ -176,6 +174,8 @@ public class PixelList implements Iterable<Pixel> {
 		for(int i = 0; i < pixelIds.size(); i++) {
 			pixelList.get(i).setId(pixelIds.get(i));
 		}
+		// recalculate the id to index hash now
+		recalculateIdToIndexHash();
 	}
 
 	/**
@@ -325,6 +325,22 @@ public class PixelList implements Iterable<Pixel> {
 		String strCopy = gson.toJson(this);
 		PixelList copy = gson.fromJson(strCopy, PixelList.class);
 		return copy;
+	}
+	
+	/**
+	 * Get the counter value
+	 * @return
+	 */
+	public int getCounter() {
+		return counter.intValue();
+	}
+	
+	/**
+	 * Set the counter value
+	 * @param value
+	 */
+	public void setCounter(int value) {
+		this.counter = new AtomicInteger(value);
 	}
 	
 	////////////////////////////////////////////////////////////

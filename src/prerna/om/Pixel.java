@@ -7,8 +7,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.algorithm.api.ITableDataFrame;
-
 public class Pixel {
 
 	private String id = null;
@@ -16,7 +14,8 @@ public class Pixel {
 
 	// some state management when editing the recipe
 	private boolean isMeta = false;
-	private boolean hasChanged = false;
+	private boolean returnedError = false;
+	private boolean returnedWarning = false;
 
 	// some additional metadata to maintain on the Pixel
 	private Map<String, Map<String, Object>> startingFrameHeaders = new HashMap<>();
@@ -32,7 +31,6 @@ public class Pixel {
 	private Map<String, Object> positionMap = new HashMap<>();
 	
 	// currently unused - just thinking of things to store
-	private transient ITableDataFrame primaryFrame;
 	private boolean isParamSelection = false;
 
 	/**
@@ -75,7 +73,6 @@ public class Pixel {
 	 */
 	public void modifyPixelString(String pixelString) {
 		this.pixelString = pixelString;
-		this.hasChanged = true;
 	}
 	
 	/**
@@ -213,6 +210,38 @@ public class Pixel {
 	public void setMeta(boolean isMeta) {
 		this.isMeta = isMeta;
 	}
+	
+	/**
+	 * Get if this pixel returned an error during execution
+	 * @return
+	 */
+	public boolean isReturnedError() {
+		return returnedError;
+	}
+
+	/**
+	 * Set if this pixel returned an error during execution
+	 * @param returnedError
+	 */
+	public void setReturnedError(boolean returnedError) {
+		this.returnedError = returnedError;
+	}
+
+	/**
+	 * Get if this pixel returned a warning during execution
+	 * @return
+	 */
+	public boolean isReturnedWarning() {
+		return returnedWarning;
+	}
+
+	/**
+	 * Set if this pixel returned a warning during execution
+	 * @param returnedWarning
+	 */
+	public void setReturnedWarning(boolean returnedWarning) {
+		this.returnedWarning = returnedWarning;
+	}
 
 	/**
 	 * To help w/ debugging
@@ -251,23 +280,6 @@ public class Pixel {
 	//////////////////////////////////////////
 	
 	// currently unused - just thinking of things to store
-
-	public boolean isHasChanged() {
-		return hasChanged;
-	}
-
-	public void setHasChanged(boolean hasChanged) {
-		this.hasChanged = hasChanged;
-	}
-
-	public ITableDataFrame getPrimaryFrame() {
-		return primaryFrame;
-	}
-
-	public void setPrimaryFrame(ITableDataFrame primaryFrame) {
-		this.primaryFrame = primaryFrame;
-	}
-
 
 	public boolean isParamSelection() {
 		return isParamSelection;
