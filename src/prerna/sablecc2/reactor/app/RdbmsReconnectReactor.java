@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.app;
 import java.sql.SQLException;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -25,8 +26,10 @@ public class RdbmsReconnectReactor extends AbstractReactor {
 		
 		// make sure user has at least edit access
 		if (AbstractSecurityUtils.securityEnabled()) {
-			if (!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
-				throw new IllegalArgumentException("User does not have permission to exec query for this app");
+			if(!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
+				if (!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+					throw new IllegalArgumentException("User does not have permission to re-establish the connection for this app");
+				}
 			}
 		}
 		
