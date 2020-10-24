@@ -721,12 +721,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		// need to account for null inputs
-		boolean addNullCheck = false;
+		boolean addNullCheck = objects.remove(null);
 		boolean nullCheckWithEquals = true;
-		if(objects.remove(null)) {
-			addNullCheck = true;
-		}
-		if(leftDataType != null && leftDataType != SemossDataType.STRING) {
+		if(leftDataType != null && SemossDataType.isNotString(leftDataType)) {
 			if(objects.remove("null")) {
 				addNullCheck = true;
 			}
@@ -737,19 +734,20 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				addNullCheck = true;
 			}
 		}
-		if(SemossDataType.isNotString(leftDataType) && !thisComparator.equals(SEARCH_COMPARATOR) && !thisComparator.equals(NOT_SEARCH_COMPARATOR) && objects.contains("")) {
-			addNullCheck = true;
-			objects.remove("");
+		if(!addNullCheck) {
+			// are we searching for null?
+			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && objects.contains("null");
 		}
 		
 		StringBuilder filterBuilder = new StringBuilder();;
 		// add the null check now
 		if(addNullCheck) {
-			// can only work if comparator is == or !=
-			if(thisComparator.equals("==")) {
+			if(thisComparator.equals("==") || IQueryInterpreter.getPosSearchComparators().contains(thisComparator)) {
+				filterBuilder = new StringBuilder();
 				filterBuilder.append("is.na(").append(leftSelectorExpression).append(") ");
-			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+			} else if(thisComparator.equals("!=") || thisComparator.equals("<>") || IQueryInterpreter.getNegSearchComparators().contains(thisComparator)) {
 				nullCheckWithEquals = false;
+				filterBuilder = new StringBuilder();
 				filterBuilder.append("!is.na(").append(leftSelectorExpression).append(") ");
 			}
 		}
@@ -760,19 +758,18 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			boolean multi = false;
 			String myFilterFormatted = null;
 			// format the objects based on the type of the column
-			boolean useStringForType = thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.contentEquals(NOT_SEARCH_COMPARATOR)
-					|| thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.contentEquals(NOT_BEGINS_COMPARATOR)
-					|| thisComparator.equals(ENDS_COMPARATOR) || thisComparator.contentEquals(NOT_ENDS_COMPARATOR);
+			boolean useStringForType = IQueryInterpreter.getAllSearchComparators().contains(thisComparator);
+			SemossDataType formatDataType = leftDataType;
 			if(useStringForType) {
-				leftDataType = SemossDataType.STRING;
+				formatDataType = SemossDataType.STRING;
 			}
 			if(objects.size() > 1) {
 				multi = true;
-				myFilterFormatted = RSyntaxHelper.createRColVec(objects, leftDataType);
+				myFilterFormatted = RSyntaxHelper.createRColVec(objects, formatDataType);
 			} else {
 				// dont bother doing this if we have a date
 				// since we cannot use "in" with dates
-				myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), leftDataType);
+				myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), formatDataType);
 			}
 			
 			// account for bad input
@@ -794,8 +791,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			
 			if(multi) {
 				// special processing for date types
+				int size = objects.size();
 				if(SemossDataType.DATE == leftDataType) {
-					int size = objects.size();
 					if(thisComparator.equals("==")) {
 						filterBuilder.append("(");
 						for (int i = 0; i < size; i++) {
@@ -822,41 +819,93 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				} 
 				// now all the other types
 				else {
+					// use in
 					if(thisComparator.equals("==")) {
 						filterBuilder.append(leftSelectorExpression).append(" ").append(" %in% ").append(myFilterFormatted);
+					// use %in%
 					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
 						filterBuilder.append("!(").append(leftSelectorExpression).append(" ").append(" %in% ").append(myFilterFormatted).append(")");
+					// loop through the results - use |
 					} else if(thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(ENDS_COMPARATOR)){
 						String rFunction = thisComparator.equals(BEGINS_COMPARATOR) ? "startsWith" : "endsWith";
-						String expression = rFunction + "( tolower(" + leftSelectorExpression + ")," + myFilterFormatted.toLowerCase() + ")";
-						filterBuilder.append(expression);
+						
+						if(SemossDataType.STRING == leftDataType) {
+							for (int i = 0; i < size; i++) {
+								String expression = rFunction + "( tolower(" + leftSelectorExpression + ")," 
+										+ RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType) + ")";
+								filterBuilder.append(expression);
+								if ((i+1) < size) {
+									filterBuilder.append(" | ");
+								}
+							}
+						} else {
+							for (int i = 0; i < size; i++) {
+								String expression = rFunction + "( tolower(as.character(" + leftSelectorExpression + "))," 
+										+ RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType) + ")";
+								filterBuilder.append(expression);
+								if ((i+1) < size) {
+									filterBuilder.append(" | ");
+								}
+							}
+						}
+					// loop through results - use &
 					} else if(thisComparator.equals(NOT_BEGINS_COMPARATOR) || thisComparator.equals(NOT_ENDS_COMPARATOR)){
 						String rFunction = thisComparator.equals(NOT_BEGINS_COMPARATOR) ? "startsWith" : "endsWith";
-						String expression = "!" + rFunction + "( tolower(" + leftSelectorExpression + ")," + myFilterFormatted.toLowerCase() + ")";
-						filterBuilder.append(expression);
+						
+						if(SemossDataType.STRING == leftDataType) {
+							for (int i = 0; i < size; i++) {
+								String expression = "!" + rFunction + "( tolower(" + leftSelectorExpression + ")," + RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType) + ")";
+								filterBuilder.append(expression);
+								if ((i+1) < size) {
+									filterBuilder.append(" | ");
+								}
+							}
+						} else {
+							for (int i = 0; i < size; i++) {
+								String expression = "!" + rFunction + "( tolower(as.character(" + leftSelectorExpression + "))," + RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType) + ")";
+								filterBuilder.append(expression);
+								if ((i+1) < size) {
+									filterBuilder.append(" | ");
+								}
+							}
+						}
+					} 
+					// loop through results 
+					else if(thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.equals(NOT_SEARCH_COMPARATOR)){
+						String startFilter = thisComparator.equals(NOT_SEARCH_COMPARATOR) ? "!(" : "";
+						String endFilter = thisComparator.equals(NOT_SEARCH_COMPARATOR) ? ")" : "";
+						
+						if(SemossDataType.STRING == leftDataType) {
+							for (int i = 0; i < size; i++) {
+								filterBuilder.append(startFilter).append("tolower(").append(leftSelectorExpression)
+									.append(") %like% tolower(")
+									.append(RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType))
+									.append(")")
+									.append(endFilter);
+								if ((i+1) < size) {
+									filterBuilder.append(" | ");
+								}
+							}
+						} else {
+							for (int i = 0; i < size; i++) {
+								filterBuilder.append(startFilter).append("tolower(as.character(").append(leftSelectorExpression)
+									.append(")) %like% tolower(")
+									.append(RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType))
+									.append(")")
+									.append(endFilter);
+								if ((i+1) < size) {
+									filterBuilder.append(" | ");
+								}
+							}
+						}
 					}
 					else {
-						// this will probably break...
+						// not sure why you are here... this will probably break
 						filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
 					}
 				}
 			} else {
-				if(thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(ENDS_COMPARATOR)) {
-					if(myFilterFormatted.endsWith("\\\"")) {
-						myFilterFormatted = myFilterFormatted.substring(0, myFilterFormatted.length()-1) + "\\\"";
-					}
-					if(SemossDataType.STRING == leftDataType) {
-						filterBuilder.append("tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append(")");
-					} else {
-						filterBuilder.append("tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(").append(myFilterFormatted).append(")");
-					}
-				} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR) || thisComparator.equals(NOT_BEGINS_COMPARATOR) || thisComparator.equals(NOT_ENDS_COMPARATOR)) {
-					if(SemossDataType.STRING == leftDataType) {
-						filterBuilder.append("!(tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append("))");
-					} else {
-						filterBuilder.append("!(tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(").append(myFilterFormatted).append("))");
-					}
-				} else if(thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(ENDS_COMPARATOR)){
+				if(thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(ENDS_COMPARATOR)){
 					String rFunction = thisComparator.equals(BEGINS_COMPARATOR) ? "startsWith" : "endsWith";
 					String expression = null;
 					if(SemossDataType.STRING == leftDataType) {
@@ -875,7 +924,23 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					}
 					filterBuilder.append(expression);
 				}
-				else {
+				else if(IQueryInterpreter.getPosSearchComparators().contains(thisComparator)) {
+					if(myFilterFormatted.endsWith("\\\"")) {
+						myFilterFormatted = myFilterFormatted.substring(0, myFilterFormatted.length()-1) + "\\\"";
+					}
+					if(SemossDataType.STRING == leftDataType) {
+						filterBuilder.append("tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append(")");
+					} else {
+						filterBuilder.append("tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(").append(myFilterFormatted).append(")");
+					}
+				}
+				else if(IQueryInterpreter.getNegSearchComparators().contains(thisComparator)) {
+					if(SemossDataType.STRING == leftDataType) {
+						filterBuilder.append("!(tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append("))");
+					} else {
+						filterBuilder.append("!(tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(").append(myFilterFormatted).append("))");
+					}
+				} else {
 					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 				}
 			}
