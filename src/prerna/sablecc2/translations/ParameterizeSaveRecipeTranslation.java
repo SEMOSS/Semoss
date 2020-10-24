@@ -69,8 +69,9 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 	private SelectQueryStruct importQs;
 	private String sourceStr;
 	private String importStr;
-	private Map<String, Map<String, String>> paramToSource = new HashMap<String, Map<String, String>>();
-	
+	private Map<String, Map<String, String>> paramToSource = new HashMap<>();
+	private Map<String, List<String>> colToComparators = new HashMap<>();
+
 	public ParameterizeSaveRecipeTranslation(Insight insight) {
 		super(insight);
 	}
@@ -137,7 +138,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 							if(modification.containsColumn(colToParam)) {
 								modifiedParams.add(colToParam);
 								// find all the smallest parts that are using this
-								modification = QsFilterParameterizeConverter.modifyFilter(modification, colToParam);
+								modification = QsFilterParameterizeConverter.modifyFilter(modification, colToParam, colToComparators);
 								
 								// also add the param to source
 								if(!this.paramToSource.containsKey(colToParam)) {
@@ -178,11 +179,22 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 							SimpleQueryFilter paramF = new SimpleQueryFilter(
 									new NounMetadata(new QueryColumnSelector(qsColName), PixelDataType.COLUMN), 
 									"==", 
-									new NounMetadata("<" + paramName + ">", PixelDataType.CONST_STRING)
+									new NounMetadata("<" + paramName + "__eq>", PixelDataType.CONST_STRING)
 									);
 							
 							// add these filters into the AND
 							andFilter.addFilter(paramF);
+							
+							// also store this
+							List<String> colComparators = null;
+							if(colToComparators.containsKey(paramName)) {
+								colComparators = colToComparators.get(paramName);
+							} else {
+								colComparators = new Vector<>();
+								colToComparators.put(paramName, colComparators);
+							}
+							logger.info("Adding new filter for column = " + paramName);
+							colComparators.add("==");
 						}
 					}
 					
@@ -282,6 +294,10 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 	 */
 	public List<String> getPixels() {
 		return this.pixels;
+	}
+	
+	public Map<String, List<String>> getColToComparators() {
+		return colToComparators;
 	}
 	
 	public Map<String, Map<String, String>> getParamToSource() {
