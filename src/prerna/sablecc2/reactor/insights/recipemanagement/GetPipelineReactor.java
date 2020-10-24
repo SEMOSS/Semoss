@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.insights;
+package prerna.sablecc2.reactor.insights.recipemanagement;
 
 import java.util.Map;
 
