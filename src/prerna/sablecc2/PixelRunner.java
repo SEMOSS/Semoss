@@ -52,9 +52,8 @@ public class PixelRunner {
 	protected Insight insight = null;
 	
 	protected List<NounMetadata> results = new Vector<>();
-	protected List<String> pixelExpression = new Vector<>();
-	protected List<Boolean> isMeta = new Vector<>();
-	
+	protected List<Pixel> returnPixelList = new Vector<>();
+
 	protected List<String> encodingList = new Vector<>();
 	protected Map<String, String> encodedTextToOriginal = new HashMap<>();
 	
@@ -124,19 +123,26 @@ public class PixelRunner {
 	 */
 	public void addResult(String pixelExpression, NounMetadata result, boolean isMeta) {
 		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList, this.encodedTextToOriginal);
-		this.pixelExpression.add(origExpression);
 		this.results.add(result);
-		this.isMeta.add(isMeta);
 		
 		// we will start to add to the insight recipe
 		// when we have an expression that is returned
-		// that is not a meta
+		// create the pixel via the correct id
+		// or if meta - assign random one
 		if(!isMeta) {
 			PixelList pixelList = this.insight.getPixelList();
 			Pixel pixel = pixelList.addPixel(origExpression);
 			pixel.setEndingFrameHeaders(InsightUtility.getAllFrameHeaders(this.insight.getVarStore()));
 			Pixel.translationMerge(pixel, translation.pixelObj);
 			pixelList.syncLastPixel();
+			// store this pixel
+			// in the return pixel list
+			this.returnPixelList.add(pixel);
+		} else {
+			// store this pixel
+			// in the return pixel list
+			Pixel pixel = new Pixel("meta_unstored", origExpression);
+			this.returnPixelList.add(pixel);
 		}
 	}
 	
@@ -144,23 +150,17 @@ public class PixelRunner {
 	 * Store the terminal output of the pixel statement
 	 * This is used when trying to modify the pixel directly outside
 	 * of the normal pixel execution flow
+	 * THIS IS ALWAYS A META - DOESN'T ADD TO THE INSIGHT RECIPE
 	 * @param index
 	 * @param pixelExpression
 	 * @param result
-	 * @param isMeta
 	 */
-	public void addResult(int index, String pixelExpression, NounMetadata result, boolean isMeta) {
+	public void addResult(int index, String pixelExpression, NounMetadata result) {
 		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList, this.encodedTextToOriginal);
-		this.pixelExpression.add(index, origExpression);
+		Pixel pixel = new Pixel("meta_unstored", origExpression);
+		pixel.setMeta(true);
+		this.returnPixelList.add(index, pixel);
 		this.results.add(index, result);
-		this.isMeta.add(index, isMeta);
-		
-		// we will start to add to the insight recipe
-		// when we have an expression that is returned
-		// that is not a meta
-		if(!isMeta) {
-			this.insight.getPixelList().addPixel(origExpression);
-		}
 	}
 	
 	/**
@@ -171,21 +171,18 @@ public class PixelRunner {
 	 */
 	private void addInvalidSyntaxResult(String pixelExpression, NounMetadata result, boolean isMeta) {
 		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList, this.encodedTextToOriginal);
-		this.pixelExpression.add(origExpression);
+		Pixel pixel = new Pixel("meta_unstored", origExpression);
+		pixel.setMeta(true);
+		this.returnPixelList.add(pixel);
 		this.results.add(result);
-		this.isMeta.add(isMeta);
 	}
 	
 	public List<NounMetadata> getResults() {
 		return this.results;
 	}
 	
-	public List<String> getPixelExpressions() {
-		return this.pixelExpression;
-	}
-	
-	public List<Boolean> isMeta() {
-		return this.isMeta;
+	public List<Pixel> getReturnPixelList() {
+		return this.returnPixelList;
 	}
 	
 	public Insight getInsight() {
@@ -198,8 +195,7 @@ public class PixelRunner {
 	
 	public void clear() {
 		this.results.clear();
-		this.pixelExpression.clear();
-		this.isMeta.clear();
+		this.returnPixelList.clear();
 		this.encodingList.clear();
 		this.encodedTextToOriginal.clear();
 	}
