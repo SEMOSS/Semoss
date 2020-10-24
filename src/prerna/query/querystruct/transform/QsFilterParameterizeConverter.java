@@ -1,6 +1,8 @@
 package prerna.query.querystruct.transform;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,37 +23,37 @@ public class QsFilterParameterizeConverter {
 
 	}
 	
-	public static IQueryFilter modifyFilter(IQueryFilter filter, String colToParameterize) {
+	public static IQueryFilter modifyFilter(IQueryFilter filter, String colToParameterize, Map<String, List<String>> colToComparators) {
 		if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-			return convertSimpleQueryFilter((SimpleQueryFilter) filter, colToParameterize);
+			return convertSimpleQueryFilter((SimpleQueryFilter) filter, colToParameterize, colToComparators);
 		} else if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-			return convertAndQueryFilter((AndQueryFilter) filter, colToParameterize);
+			return convertAndQueryFilter((AndQueryFilter) filter, colToParameterize, colToComparators);
 		} else if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-			return convertOrQueryFilter((OrQueryFilter) filter, colToParameterize);
+			return convertOrQueryFilter((OrQueryFilter) filter, colToParameterize, colToComparators);
 		}
 		
 		return null;
 	}
 
-	public static IQueryFilter convertOrQueryFilter(OrQueryFilter filter, String colToParameterize) {
+	public static IQueryFilter convertOrQueryFilter(OrQueryFilter filter, String colToParameterize, Map<String, List<String>> colToComparators) {
 		OrQueryFilter newFilter = new OrQueryFilter();
 		for(IQueryFilter f : filter.getFilterList()) {
-			IQueryFilter newF = modifyFilter(f, colToParameterize);
+			IQueryFilter newF = modifyFilter(f, colToParameterize, colToComparators);
 			newFilter.addFilter(newF);
 		}
 		return newFilter;
 	}
 
-	public static IQueryFilter convertAndQueryFilter(AndQueryFilter filter, String colToParameterize) {
+	public static IQueryFilter convertAndQueryFilter(AndQueryFilter filter, String colToParameterize, Map<String, List<String>> colToComparators) {
 		AndQueryFilter newFilter = new AndQueryFilter();
 		for(IQueryFilter f : filter.getFilterList()) {
-			IQueryFilter newF = modifyFilter(f, colToParameterize);
+			IQueryFilter newF = modifyFilter(f, colToParameterize, colToComparators);
 			newFilter.addFilter(newF);
 		}
 		return newFilter;
 	}
 
-	public static IQueryFilter convertSimpleQueryFilter(SimpleQueryFilter filter, String colToParameterize) {
+	public static IQueryFilter convertSimpleQueryFilter(SimpleQueryFilter filter, String colToParameterize, Map<String, List<String>> colToComparators) {
 		NounMetadata newL = null;
 		NounMetadata newR = null;
 
@@ -77,13 +79,17 @@ public class QsFilterParameterizeConverter {
 			// keep the same right
 			newR = origR;
 			// create the new left hand side
-			newL = new NounMetadata("<" + colToParameterize + ">", PixelDataType.CONST_STRING);
-			
+			String comparator = filter.getComparator();
+			newL = new NounMetadata("<" + colToParameterize + "__" + IQueryFilter.getSimpleNameForComparator(comparator) + ">", PixelDataType.CONST_STRING);
+			addToColToParam(colToComparators, colToParameterize, comparator);
+
 		} else if(parameterizeRight) {
 			// keep the same left
 			newL = origL;
 			// create the new right hand side
-			newR = new NounMetadata("<" + colToParameterize + ">", PixelDataType.CONST_STRING);
+			String comparator = filter.getComparator();
+			newR = new NounMetadata("<" + colToParameterize + "__" + IQueryFilter.getSimpleNameForComparator(comparator) + ">", PixelDataType.CONST_STRING);
+			addToColToParam(colToComparators, colToParameterize, comparator);
 			
 		} else {
 			// return the original
@@ -92,6 +98,18 @@ public class QsFilterParameterizeConverter {
 
 		SimpleQueryFilter newF = new SimpleQueryFilter(newL, filter.getComparator(), newR);
 		return newF;
+	}
+	
+	private static void addToColToParam(Map<String, List<String>> colToComparators, String col, String comparator) {
+		List<String> colComparators = null;
+		if(colToComparators.containsKey(col)) {
+			colComparators = colToComparators.get(col);
+		} else {
+			colComparators = new Vector<>();
+			colToComparators.put(col, colComparators);
+		}
+		logger.info("Found filter on column = " + col + " with comparator = " + comparator);
+		colComparators.add(comparator);
 	}
 	
 	///////////////////////////////////////////////////////////
