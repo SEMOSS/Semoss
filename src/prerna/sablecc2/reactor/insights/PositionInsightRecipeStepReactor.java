@@ -23,7 +23,7 @@ public class PositionInsightRecipeStepReactor extends AbstractReactor {
 		PixelList pixelList = this.insight.getPixelList();
 		Pixel pixelObj = null;
 		String pixelId = getPixelId();
-		if(pixelId == null) {
+		if(pixelId == null || pixelId.isEmpty()) {
 			int size = pixelList.size();
 			pixelObj = this.insight.getPixelList().get(size-1);
 			pixelId = pixelObj.getId();
