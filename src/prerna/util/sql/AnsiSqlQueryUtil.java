@@ -12,6 +12,7 @@ import java.util.Set;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.Join;
 
 public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
@@ -196,6 +197,10 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		return "YEAR";
 	}
 
+	@Override
+	public void appendDefaultFunctionOptions(QueryFunctionSelector fun) {
+		// do nothing
+	}
 
 	@Override
 	public String getCurrentDate() {
