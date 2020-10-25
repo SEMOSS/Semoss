@@ -668,10 +668,9 @@ public class PixelUtility {
 	 */
 	public static List<String> getMetaInsightRecipeSteps(Insight in) {
 		List<String> additionalSteps = new Vector<>();
-		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		// right now we only have the recipe positions
 		
+		// right now we only have the recipe positions
 		PixelList pixelList = in.getPixelList();
 		{
 			StringBuilder builder = new StringBuilder("META | PositionInsightRecipe(");
@@ -689,6 +688,7 @@ public class PixelUtility {
 					builder.append(" , ");
 				}
 			}
+			builder.append(");");
 			additionalSteps.add(builder.toString());
 		}
 		
