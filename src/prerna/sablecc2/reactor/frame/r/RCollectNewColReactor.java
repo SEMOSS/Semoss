@@ -49,7 +49,7 @@ public class RCollectNewColReactor extends TaskBuilderReactor {
 			// if the columns are not there. 
 			pqs = QSAliasToPhysicalConverter.getPhysicalQs(sqs, metadata);
 		} catch(Exception ex) {
-			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+			return getWarning("Calculation is using columns that do not exist in the frame. Cannot perform this operation");
 		}
 		
 		if(pqs.getCombinedFilters().getFilters() != null && pqs.getCombinedFilters().getFilters().size() > 0 )
