@@ -53,6 +53,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
 import prerna.test.TestUtilityMethods;
@@ -485,10 +486,8 @@ public abstract class AbstractSqlQueryUtil {
 	
 	public abstract String getYearFunctionSyntax();
 	
-		// TODO Auto-generated method stub
-		
-	
-	
+	public abstract void appendDefaultFunctionOptions(QueryFunctionSelector fun);
+
 	// date functions - require more complex inputs
 	public abstract String getCurrentDate();
 	
