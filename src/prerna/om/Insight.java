@@ -1070,8 +1070,9 @@ public class Insight {
 			// copy over the recipe to a new list
 			// and clear the current container
 			// maintain the pixelIds so they are consistent
-			List<String> currentPixelIds = this.pixelList.getPixelIds();
-			List<Map<String, Object>> currentPixelPositions = this.pixelList.getPixelPositions();
+			List<String> currentPixelIds = this.pixelList.getNonMetaPixelIds();
+			List<Map<String, Object>> currentPixelPositions = this.pixelList.getNonMetaPixelPositions();
+			// grab all the pixel recipes
 			List<String> currentRecipe = this.pixelList.getPixelRecipe();
 			int counterVal = this.pixelList.getCounter();
 			
@@ -1080,9 +1081,18 @@ public class Insight {
 			
 			// execution
 			PixelRunner results = runPixel(currentRecipe);
-			
 			// now update the pixel list to the new ids
-			this.pixelList.updateAllIdsAndPositions(currentPixelIds, currentPixelPositions);
+			// realize the pixel objects are the same
+			List<Pixel> pixelReturns = results.getReturnPixelList();
+			for(int i = 0; i < pixelReturns.size(); i++) {
+				String id = currentPixelIds.get(i);
+				Map<String, Object> position = currentPixelPositions.get(i);
+				Pixel p = pixelReturns.get(i);
+				p.setId(id);
+				if(position != null && !position.isEmpty()) {
+					p.setPositionMap(position);
+				}
+			}
 			// and set the counter properly
 			// so that way the counter doesn't exponentially
 			// increase with every rerun

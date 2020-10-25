@@ -163,10 +163,30 @@ public class PixelList implements Iterable<Pixel> {
 		return pixelIds;
 	}
 	
+	public List<String> getNonMetaPixelIds() {
+		List<String> pixelIds = new Vector<>(pixelList.size());
+		for(Pixel p : pixelList) {
+			if(!p.isMeta()) {
+				pixelIds.add(p.getId());
+			}
+		}
+		return pixelIds;
+	}
+	
 	public List<Map<String, Object>> getPixelPositions() {
 		List<Map<String, Object>> pixelPositions = new Vector<>(pixelList.size());
 		for(Pixel p : pixelList) {
 			pixelPositions.add(p.getPositionMap());
+		}
+		return pixelPositions;
+	}
+	
+	public List<Map<String, Object>> getNonMetaPixelPositions() {
+		List<Map<String, Object>> pixelPositions = new Vector<>(pixelList.size());
+		for(Pixel p : pixelList) {
+			if(!p.isMeta()) {
+				pixelPositions.add(p.getPositionMap());
+			}
 		}
 		return pixelPositions;
 	}
