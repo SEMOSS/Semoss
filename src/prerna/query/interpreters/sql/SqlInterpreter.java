@@ -392,6 +392,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 		
+		// add any default function options as defined by the query util
+		this.queryUtil.appendDefaultFunctionOptions(selector);
 		List<Object[]> additionalParams = selector.getAdditionalFunctionParams();
 		for(int i = 0; i < additionalParams.size(); i++) {
 			expression.append(",");
