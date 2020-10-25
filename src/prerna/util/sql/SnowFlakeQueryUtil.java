@@ -184,10 +184,12 @@ public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public void appendDefaultFunctionOptions(QueryFunctionSelector fun) {
-		if(fun.getFunction().equals(getGroupConcatFunctionSyntax())) {
+		String function = getSqlFunctionSyntax(fun.getFunction());
+		if(function.equals(getGroupConcatFunctionSyntax())) {
 			if(fun.getAdditionalFunctionParams().isEmpty()) {
 				fun.addAdditionalParam(new Object[] {"noname", "', '"});
 			}
 		}
 	}
+	
 }
