@@ -34,6 +34,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SnowFlakeSqlInterpreter;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 	
@@ -174,5 +175,19 @@ public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String escapeReferencedAlias(String alias) {
 		return "\"" + alias + "\"";
+	}
+	
+	@Override
+	public String getGroupConcatFunctionSyntax() {
+		return "LISTAGG";
+	}
+	
+	@Override
+	public void appendDefaultFunctionOptions(QueryFunctionSelector fun) {
+		if(fun.getFunction().equals(getGroupConcatFunctionSyntax())) {
+			if(fun.getAdditionalFunctionParams().isEmpty()) {
+				fun.addAdditionalParam(new Object[] {"noname", "', '"});
+			}
+		}
 	}
 }
