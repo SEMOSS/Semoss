@@ -1424,8 +1424,6 @@ public class OwlTemporalEngineMeta {
 							SemossDataType dt = SemossDataType.convertStringToDataType(values[i].toString());
 							if(dt == SemossDataType.INT || dt == SemossDataType.DOUBLE) {
 								rowMap.put("dataType", "NUMBER");
-							} else if(dt == SemossDataType.DATE || dt == SemossDataType.TIMESTAMP) {
-								rowMap.put("dataType", "DATE");
 							} else if(dt == SemossDataType.FACTOR){
 								rowMap.put("dataType", "STRING");
 							} else {
