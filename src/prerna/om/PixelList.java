@@ -163,6 +163,14 @@ public class PixelList implements Iterable<Pixel> {
 		return pixelIds;
 	}
 	
+	public List<Map<String, Object>> getPixelPositions() {
+		List<Map<String, Object>> pixelPositions = new Vector<>(pixelList.size());
+		for(Pixel p : pixelList) {
+			pixelPositions.add(p.getPositionMap());
+		}
+		return pixelPositions;
+	}
+	
 	/**
 	 * Set the pixel id for each step in the recipe
 	 * @param pixelIds
@@ -173,6 +181,36 @@ public class PixelList implements Iterable<Pixel> {
 		}
 		for(int i = 0; i < pixelIds.size(); i++) {
 			pixelList.get(i).setId(pixelIds.get(i));
+		}
+		// recalculate the id to index hash now
+		recalculateIdToIndexHash();
+	}
+	
+	/**
+	 * Set the pixel id for each step in the recipe
+	 * @param pixelIds
+	 */
+	public void updateAllPixelPositions(List<Map<String, Object>> pixelPositions) {
+		if(pixelPositions.size() != this.pixelList.size()) {
+			throw new IllegalArgumentException("Array size must match current recipe size");
+		}
+		for(int i = 0; i < pixelPositions.size(); i++) {
+			pixelList.get(i).setPositionMap(pixelPositions.get(i));
+		}
+	}
+	
+	/**
+	 * Set both the pixelIds and pixelPositions
+	 * @param pixelIds
+	 * @param pixelPositions
+	 */
+	public void updateAllIdsAndPositions(List<String> pixelIds, List<Map<String, Object>> pixelPositions) {
+		if(pixelIds.size() != this.pixelList.size() && pixelPositions.size() != this.pixelList.size()) {
+			throw new IllegalArgumentException("Array size must match current recipe size");
+		}
+		for(int i = 0; i < pixelPositions.size(); i++) {
+			pixelList.get(i).setId(pixelIds.get(i));
+			pixelList.get(i).setPositionMap(pixelPositions.get(i));
 		}
 		// recalculate the id to index hash now
 		recalculateIdToIndexHash();
