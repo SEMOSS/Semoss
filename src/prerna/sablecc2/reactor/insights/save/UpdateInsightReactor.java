@@ -75,7 +75,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			// this is always encoded before it gets here
 			recipeToSave = decodeRecipe(recipeToSave);
 		}
-		
+
 		String layout = getLayout();
 		boolean hidden = getHidden();
 		List<Map<String, Object>> params = getParams();
