@@ -71,7 +71,7 @@ public class PositionInsightRecipeStepReactor extends AbstractReactor {
 	 */
 	private Map<String, Object> getPosition() {
 		GenRowStruct grs = this.store.getNoun(POSITION);
-		if(grs != null && grs.isEmpty()) {
+		if(grs != null && !grs.isEmpty()) {
 			return (Map<String, Object>) grs.get(0);
 		}
 		return null;
