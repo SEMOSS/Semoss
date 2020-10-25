@@ -9,12 +9,6 @@ import prerna.ds.py.PyTranslator;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
-import prerna.query.querystruct.selectors.QueryArithmeticSelector;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryFunctionHelper;
-import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -54,7 +48,7 @@ public class PyCollectNewColReactor extends TaskBuilderReactor {
 			// if the columns are not there. 
 			pqs = QSAliasToPhysicalConverter.getPhysicalQs(sqs, metadata);
 		} catch(Exception ex) {
-			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+			return getWarning("Calculation is using columns that do not exist in the frame. Cannot perform this operation");
 		}
 
 		if(pqs.getCombinedFilters().getFilters() != null && pqs.getCombinedFilters().getFilters().size() > 0 ) {
