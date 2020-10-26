@@ -39,6 +39,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.pipeline.PipelineTranslation;
+import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.translations.DatasourceTranslation;
 import prerna.sablecc2.translations.ParameterizeSaveRecipeTranslation;
 import prerna.sablecc2.translations.ReplaceDatasourceTranslation;
@@ -670,7 +671,7 @@ public class PixelUtility {
 		List<String> additionalSteps = new Vector<>();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		
-		// right now we only have the recipe positions
+		// add the pipeline positions
 		PixelList pixelList = in.getPixelList();
 		{
 			StringBuilder builder = new StringBuilder("META | PositionInsightRecipe(");
@@ -690,6 +691,16 @@ public class PixelUtility {
 			}
 			builder.append(");");
 			additionalSteps.add(builder.toString());
+		}
+		// add the insight config
+		{
+			NounMetadata noun = in.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
+			if(noun != null) {
+				StringBuilder builder = new StringBuilder("META | SetInsightConfig(");
+				builder.append(gson.toJson(noun.getValue()));
+				builder.append(");");
+				additionalSteps.add(builder.toString());
+			}
 		}
 		
 		return additionalSteps;
