@@ -504,6 +504,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param userName	String representing the name of the user to add
 	 */
 	public static boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException {
+		// lower case the emails coming in
+		if(newUser.getEmail() != null) {
+			newUser.setEmail(newUser.getEmail().toLowerCase());
+		}
+					
 		// see if the user was added by an admin
 		// this means it could be on the ID or the EMAIL
 		// but name is the admin_added_user constant
@@ -513,11 +518,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
 		IRawSelectWrapper wrapper = null;
 		try {
-			// lower case the emails coming in
-			if(newUser.getEmail() != null) {
-				newUser.setEmail(newUser.getEmail().toLowerCase());
-			}
-			
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 			if(wrapper.hasNext()) {
 				// this was the old id that was added when the admin 
