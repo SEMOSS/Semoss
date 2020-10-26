@@ -6,11 +6,15 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class SetInsightConfigReactor extends AbstractReactor {
 
+	public static final String INSIGHT_CONFIG = "$INSIGHT_CONFIG";
+	
 	@Override
 	public NounMetadata execute() {
 		NounMetadata noun = this.curRow.getNoun(0);
 		// this is just an echo, where i send it back to the FE
-		return new NounMetadata(noun.getValue(), noun.getNounType(), PixelOperationType.INSIGHT_CONFIG);
+		NounMetadata data = new NounMetadata(noun.getValue(), noun.getNounType(), PixelOperationType.INSIGHT_CONFIG);
+		this.insight.getVarStore().put(INSIGHT_CONFIG, data);
+		return data;
 	}
 
 }
