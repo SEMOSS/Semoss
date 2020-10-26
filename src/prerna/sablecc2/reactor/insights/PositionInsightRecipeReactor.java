@@ -33,10 +33,12 @@ public class PositionInsightRecipeReactor extends AbstractReactor {
 			return new NounMetadata(false, PixelDataType.BOOLEAN);
 		}
 		
-		int size = pixelList.size();
+		int size = positionMap.size();
 		for(int i = 0; i < size; i++) {
 			Map<String, Object> position = positionMap.get(i);
-			pixelList.get(i).setPositionMap(position);
+			if(position != null && !position.isEmpty()) {
+				pixelList.get(i).setPositionMap(position);
+			}
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
