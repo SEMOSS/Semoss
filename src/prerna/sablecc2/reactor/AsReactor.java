@@ -8,6 +8,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.CreateFrameReactor;
+import prerna.sablecc2.reactor.frame.convert.ConvertReactor;
 
 public class AsReactor extends AbstractReactor {
 	
@@ -48,7 +49,7 @@ public class AsReactor extends AbstractReactor {
 			parentReactor.setAs(asNames);
 			
 			NounMetadata asNoun = null;
-			if(parentReactor instanceof CreateFrameReactor) {
+			if(parentReactor instanceof CreateFrameReactor || parentReactor instanceof ConvertReactor) {
 				// do not override if we already have the actual 
 				// frame in the planner
 				if(!(this.planner.hasVariable(asNames[0]) 
