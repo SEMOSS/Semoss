@@ -88,7 +88,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		Map pipeline = getPipeline();
 
 		// saving an empty recipe?
-		if (recipeToSave == null || recipeToSave.size() == 0) {
+		if (recipeToSave == null || recipeToSave.isEmpty()) {
 			recipeToSave = this.insight.getPixelList().getPixelRecipe();
 			recipeToSave.addAll(PixelUtility.getMetaInsightRecipeSteps(this.insight));
 		} else {
