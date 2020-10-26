@@ -53,7 +53,7 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 			} else if(key.equals("pixelString")) {
 				pixelString = in.nextString();
 			} else if(key.equals("meta")) {
-				error = in.nextBoolean();
+				meta = in.nextBoolean();
 			} else if(key.equals("errorReturned")) {
 				error = in.nextBoolean();
 			} else if(key.equals("warningReturned")) {
@@ -83,6 +83,7 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		in.endObject();
 
 		Pixel pixel = new Pixel(id, pixelString);
+		pixel.setMeta(meta);
 		pixel.setReturnedError(error);
 		pixel.setReturnedWarning(warning);
 		pixel.setStartingFrameHeaders(startingFrameHeaders);
