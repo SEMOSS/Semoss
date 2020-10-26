@@ -121,19 +121,17 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			}
 			else if(name.equals("relations")) {
 				Set<String[]> relations = new LinkedHashSet<>();
-				if(relations != null && !relations.isEmpty()) {
+				in.beginArray();
+				while(in.hasNext()) {
 					in.beginArray();
+					List<String> rel = new Vector<>();
 					while(in.hasNext()) {
-						in.beginArray();
-						List<String> rel = new Vector<>();
-						while(in.hasNext()) {
-							rel.add(in.nextString());
-						}
-						relations.add(rel.toArray(new String[] {}));
-						in.endArray();
+						rel.add(in.nextString());
 					}
+					relations.add(rel.toArray(new String[] {}));
 					in.endArray();
 				}
+				in.endArray();
 				qs.setRelations(relations);
 			}
 		}

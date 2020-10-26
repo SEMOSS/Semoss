@@ -1,22 +1,17 @@
 package prerna.om;
 
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.util.gson.ColorByValueRuleAdapter;
 import prerna.util.gson.GsonUtility;
-import prerna.util.gson.NumberAdapter;
-import prerna.util.gson.SelectQueryStructAdapter;
 
 public class InsightPanel {
 
@@ -597,13 +592,7 @@ public class InsightPanel {
 	 * @param existingPanel
 	 */
 	public void clone(InsightPanel existingPanel) {
-		Gson gson =  new GsonBuilder()
-				.disableHtmlEscaping()
-				.excludeFieldsWithModifiers(Modifier.STATIC)
-				.registerTypeAdapter(Double.class, new NumberAdapter())
-				.registerTypeAdapter(ColorByValueRule.class, new ColorByValueRuleAdapter())
-				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
-				.create();
+		Gson gson =  GsonUtility.getDefaultGson();
 		this.view = existingPanel.view;
 		if(existingPanel.panelLabel != null) {
 			this.panelLabel = existingPanel.panelLabel + " Clone";
@@ -633,11 +622,13 @@ public class InsightPanel {
 			this.layerQueryStruct = new HashMap<>();
 			for(String layerId : existingPanel.layerQueryStruct.keySet()) {
 				SelectQueryStruct thisQs = existingPanel.layerQueryStruct.get(layerId);
-				SelectQueryStruct copyQs = gson.fromJson(gson.toJson(thisQs), SelectQueryStruct.class);
-				// set the data fields that are not copied over
-				copyQs.setFrame(thisQs.getFrame());
-				copyQs.setEngine(thisQs.getEngine());
-				layerQueryStruct.put(layerId, copyQs);
+				if(thisQs != null) {
+					SelectQueryStruct copyQs = gson.fromJson(gson.toJson(thisQs), SelectQueryStruct.class);
+					// set the data fields that are not copied over
+					copyQs.setFrame(thisQs.getFrame());
+					copyQs.setEngine(thisQs.getEngine());
+					layerQueryStruct.put(layerId, copyQs);
+				}
 			}
 		}
 
