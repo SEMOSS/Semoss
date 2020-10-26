@@ -16,6 +16,8 @@ public class Pixel {
 	private boolean isMeta = false;
 	private boolean returnedError = false;
 	private boolean returnedWarning = false;
+	private List<String> errorMessages = new Vector<>();
+	private List<String> warningMessages = new Vector<>();
 
 	// some additional metadata to maintain on the Pixel
 	private Map<String, Map<String, Object>> startingFrameHeaders = new HashMap<>();
@@ -241,6 +243,54 @@ public class Pixel {
 	 */
 	public void setReturnedWarning(boolean returnedWarning) {
 		this.returnedWarning = returnedWarning;
+	}
+	
+	/**
+	 * Get the error messages
+	 * @return
+	 */
+	public List<String> getErrorMessages() {
+		return errorMessages;
+	}
+
+	/**
+	 * Set the error messages
+	 * @param errorMessages
+	 */
+	public void setErrorMessages(List<String> errorMessages) {
+		this.errorMessages = errorMessages;
+	}
+	
+	/**
+	 * Add an error message to the pixel
+	 * @param errorMessage
+	 */
+	public void addErrorMessage(String errorMessage) {
+		this.errorMessages.add(errorMessage);
+	}
+
+	/**
+	 * Get the warning messages
+	 * @return
+	 */
+	public List<String> getWarningMessages() {
+		return warningMessages;
+	}
+
+	/**
+	 * Get the warning messages
+	 * @param warningMessages
+	 */
+	public void setWarningMessages(List<String> warningMessages) {
+		this.warningMessages = warningMessages;
+	}
+	
+	/**
+	 * Add a warning message to the pixel
+	 * @param warningMessage
+	 */
+	public void addWarningMessage(String warningMessage) {
+		this.warningMessages.add(warningMessage);
 	}
 
 	/**
