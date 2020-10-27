@@ -16,19 +16,20 @@ import prerna.util.Utility;
 
 public class InsightRecipeReactor extends AbstractInsightReactor {
 	
+	private static final String VECTOR_KEY = "vec";
+	
 	public InsightRecipeReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), VECTOR_KEY};
 	}
 
 	@Override
 	public NounMetadata execute() {
-		// set the existing insight to the saved insight
-		
+		organizeKeys();
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String appId = getApp();
-		String rdbmsId = getRdbmsId();
-		
+		String appId = this.keyValue.get(this.keysToGet[0]);
+		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
+		boolean vec = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
 		// get the engine so i can get the new insight
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
@@ -49,7 +50,11 @@ public class InsightRecipeReactor extends AbstractInsightReactor {
 		}
 
 		List<String> recipeSteps = newInsight.getPixelList().getPixelRecipe();
+		if(vec) {
+			return new NounMetadata(recipeSteps, PixelDataType.CONST_STRING, PixelOperationType.SAVED_INSIGHT_RECIPE);
+		}
 		
+		// combine into single string
 		StringBuilder bigRecipe = new StringBuilder();
 		int size = recipeSteps.size();
 		int i = 0;
