@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -526,9 +527,13 @@ public class PixelUtility {
 		// add params
 		List<Map<String, Object>> paramList = new Vector<>();
 		for(int i = 0; i < numParams; i++) {
+			int counter = 0;
 			Map<String, Object> pMap = paramsMap.get(i);
 			String param = (String) pMap.get("paramName");
-			List<String> comparators = colToComparators.get(param);
+			// for now
+			// we will add each comparator once
+			// based on its occurrence
+			Set<String> comparators = new HashSet<>(colToComparators.get(param));
 
 			boolean keepSearch = keepSearchParameter(pMap);
 			// we will run this
@@ -565,7 +570,7 @@ public class PixelUtility {
 				Map<String, Object> modelMap = new LinkedHashMap<>();
 				Map<String, String> processedParam = processedParams.get(param);
 				String physicalQs = processedParam.get("qs");
-				String infiniteVar = "infinite"+i;
+				String infiniteVar = "infinite"+counter++;
 				String paramQ = "(" + infiniteVar + " = " + processedParam.get("source") + " | Select(" + physicalQs 
 						+ ") | Filter(" + physicalQs + " ?like \"<" + jsonParamName + "_Search>\") | Sort(columns=[" 
 						+ physicalQs + "], sort=[asc]) | Iterate()) | Collect(20);";  
@@ -603,7 +608,7 @@ public class PixelUtility {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		List<String> paramedRecipe = new Vector<>(2);
 		paramedRecipe.add("AddPanel(0);");
-		paramedRecipe.add("Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");");
+		paramedRecipe.add("META | Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");");
 		return paramedRecipe;
 	}
 	
