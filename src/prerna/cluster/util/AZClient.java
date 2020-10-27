@@ -315,37 +315,45 @@ public class AZClient extends CloudClient {
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to pull owl");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
+
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			//close the owl
 			engine.getBaseDataEngine().closeDB();
 			owlFile = new File(engine.getProperty(Constants.OWL));
-								
+
 			logger.info("Pulling owl and postions.json for " + appFolder + " from remote=" + appId);
-			
-	
+
+
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+appId+"/"+ owlFile.getName(), appFolder);
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":"+appId+"/"+ AbstractEngine.OWL_POSITION_FILENAME, appFolder);
 
 		}  finally {
-			if (appRcloneConfig != null) {
-				deleteRcloneConfig(appRcloneConfig);
+			try {
+				if (appRcloneConfig != null) {
+					deleteRcloneConfig(appRcloneConfig);
+				}
+				//open the owl
+				if(owlFile.exists()) {
+					engine.setOWL(owlFile.getAbsolutePath());
+				} else {
+					throw new IllegalArgumentException("Pull failed. OWL for engine " + appId + " was not found");
+				}
 			}
-			//open the owl
-			if(owlFile.exists()) {
-				engine.setOWL(owlFile.getAbsolutePath());
-			} else {
-				throw new IllegalArgumentException("Pull failed. OWL for engine " + appId + " was not found");
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 		}
 	}
-	
+
 	@Override
 	public void pushOwl(String appId) throws IOException, InterruptedException{
 		IEngine engine = Utility.getEngine(appId, false, true);
@@ -357,41 +365,48 @@ public class AZClient extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-		
+
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to push owl");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			//close the owl
 			engine.getBaseDataEngine().closeDB();
 			owlFile = new File(engine.getProperty(Constants.OWL));
-								
+
 			logger.info("Pushing owl and postions.json for " + appFolder + " from remote=" + appId);
-			
-	
+
+
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
-			
+
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + owlFile.getName(), appRcloneConfig + ":");			 
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/" + AbstractEngine.OWL_POSITION_FILENAME, appRcloneConfig + ":");			 
 
 
 		}  finally {
-			if (appRcloneConfig != null) {
-				deleteRcloneConfig(appRcloneConfig);
+			try {
+				if (appRcloneConfig != null) {
+					deleteRcloneConfig(appRcloneConfig);
+				}
+				//open the owl
+				if(owlFile.exists()) {
+					engine.setOWL(owlFile.getAbsolutePath());
+				} else {
+					throw new IllegalArgumentException("Push failed. OWL for engine " + appId + " was not found");
+				}
 			}
-			//open the owl
-			if(owlFile.exists()) {
-				engine.setOWL(owlFile.getAbsolutePath());
-			} else {
-				throw new IllegalArgumentException("Push failed. OWL for engine " + appId + " was not found");
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 		}
 	}
-	
+
 
 	@Override
 	public void pullInsightsDB(String appId) throws IOException, InterruptedException{
@@ -403,33 +418,40 @@ public class AZClient extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-		
+
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to pull insights db");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			engine.getInsightDatabase().closeDB();
 			logger.info("Pulling insights database for " + alias + " from remote=" + appId);
 			String insightDB = getInsightDB(engine, appFolder);
-			
+
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig  + ":" + appId + "/" + insightDB, appFolder);
 
 		}  finally {
-			if (appRcloneConfig != null) {
-				deleteRcloneConfig(appRcloneConfig);
+			try {
+				if (appRcloneConfig != null) {
+					deleteRcloneConfig(appRcloneConfig);
+				}
+				//open the insight db
+				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(engine.getProp()).getAbsolutePath();
+				if(insightDbLoc != null) {
+					engine.setInsightDatabase( EngineInsightsHelper.loadInsightsEngine(engine.getProp(), LogManager.getLogger(AbstractEngine.class)));
+				} else {
+					throw new IllegalArgumentException("Insight database was not able to be found");
+				}
 			}
-			//open the insight db
-			String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(engine.getProp()).getAbsolutePath();
-			if(insightDbLoc != null) {
-				engine.setInsightDatabase( EngineInsightsHelper.loadInsightsEngine(engine.getProp(), LogManager.getLogger(AbstractEngine.class)));
-			} else {
-				throw new IllegalArgumentException("Insight database was not able to be found");
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 
 		}
 	}
@@ -444,10 +466,12 @@ public class AZClient extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-		
+
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to push insights db");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			engine.getInsightDatabase().closeDB();
@@ -460,18 +484,23 @@ public class AZClient extends CloudClient {
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "copy", appFolder+"/"+ insightDB, appRcloneConfig + ":" + appId);			 
 		}
 		finally {
-			if (appRcloneConfig != null) {
-				deleteRcloneConfig(appRcloneConfig);
+			try {
+				if (appRcloneConfig != null) {
+					deleteRcloneConfig(appRcloneConfig);
+				}
+				//open the insight db
+				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(engine.getProp()).getAbsolutePath();
+				if(insightDbLoc != null) {
+					engine.setInsightDatabase( EngineInsightsHelper.loadInsightsEngine(engine.getProp(), LogManager.getLogger(AbstractEngine.class)));
+				} else {
+					throw new IllegalArgumentException("Insight database was not able to be found");
+				}
 			}
-			//open the insight db
-			String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(engine.getProp()).getAbsolutePath();
-			if(insightDbLoc != null) {
-				engine.setInsightDatabase( EngineInsightsHelper.loadInsightsEngine(engine.getProp(), LogManager.getLogger(AbstractEngine.class)));
-			} else {
-				throw new IllegalArgumentException("Insight database was not able to be found");
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 
 		}
 	}
@@ -489,10 +518,12 @@ public class AZClient extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-		
+
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to push db file");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 
@@ -514,11 +545,16 @@ public class AZClient extends CloudClient {
 			//open the engine again
 			Utility.getEngine(appId, false, true);
 		} finally {
-			if (appRcloneConfig != null) {
-				deleteRcloneConfig(appRcloneConfig);
+			try {
+				if (appRcloneConfig != null) {
+					deleteRcloneConfig(appRcloneConfig);
+				}
 			}
-			// always unlock regardless of errors
-			lock.unlock();
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
+			}
 		}		
 	}
 
@@ -532,10 +568,12 @@ public class AZClient extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-		
+
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to pull db file");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			engine.closeDB();
@@ -551,11 +589,16 @@ public class AZClient extends CloudClient {
 				throw new IllegalArgumentException("Incorrect database type. Must be either sqlite or H2");
 			}
 		} finally {
-			if (appRcloneConfig != null) {
-				deleteRcloneConfig(appRcloneConfig);
+			try {
+				if (appRcloneConfig != null) {
+					deleteRcloneConfig(appRcloneConfig);
+				}
 			}
-			// always unlock regardless of errors
-			lock.unlock();
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
+			}
 		}		
 	}
 
@@ -571,27 +614,35 @@ public class AZClient extends CloudClient {
 		//String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		//String aliasAppId = alias + "__" + appId;
 		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-		
+
 		// adding a lock for now, but there may be times we don't need one and other times we do
 		// reaching h2 db from version folder vs static assets in asset app
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to pull folder " + remoteRelativePath);
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			logger.info("Pulling folder for " + remoteRelativePath + " from remote=" + appId);
 
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+  "/" + remoteRelativePath, absolutePath);
 		} finally {
-			if (appRcloneConfig != null) {
-				deleteRcloneConfig(appRcloneConfig);
+			try {
+				if (appRcloneConfig != null) {
+					deleteRcloneConfig(appRcloneConfig);
+				}
 			}
-			// always unlock regardless of errors
-			lock.unlock();
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
+
+			}
 		}
 	}
-	
-	
+
+
 
 	@Override
 	public void pushFolder(String appId, String absolutePath, String remoteRelativePath)
@@ -604,7 +655,7 @@ public class AZClient extends CloudClient {
 		//String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		//String aliasAppId = alias + "__" + appId;
 		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-		
+
 		File absoluteFolder = new File(absolutePath);
 		if(absoluteFolder.isDirectory()) {
 			//this is adding a hidden file into every sub folder to make sure there is no empty directory
@@ -613,22 +664,30 @@ public class AZClient extends CloudClient {
 		// adding a lock for now, but there may be times we don't need one and other times we do
 		// reaching h2 db from version folder vs static assets in asset app
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to push folder " + remoteRelativePath);
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
+
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			logger.info("Pushing folder for " + remoteRelativePath + " to remote=" + appId);
 
 			runRcloneTransferProcess(appRcloneConfig, "rclone", "sync", absolutePath, appRcloneConfig + ":"+appId+  "/" + remoteRelativePath);
 		} finally {
-			if (appRcloneConfig != null) {
-				deleteRcloneConfig(appRcloneConfig);
+			try {
+				if (appRcloneConfig != null) {
+					deleteRcloneConfig(appRcloneConfig);
+				}
 			}
-			// always unlock regardless of errors
-			lock.unlock();
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
+			}
 		}
 	}
-	
+
 
 	// This is the sync the whole app. It shouldn't be used yet. Only the insights DB should be sync actively 
 
@@ -691,8 +750,10 @@ public class AZClient extends CloudClient {
 		String smssRCloneConfig = null;
 
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to push app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			String smssContainer = appId + SMSS_POSTFIX;
@@ -735,14 +796,19 @@ public class AZClient extends CloudClient {
 				Utility.getEngine(appId, false, true);
 			}
 		} finally {
-			if (appRcloneConfig != null) {
-				deleteRcloneConfig(appRcloneConfig);
+			try {
+				if (appRcloneConfig != null) {
+					deleteRcloneConfig(appRcloneConfig);
+				}
+				if (smssRCloneConfig != null) {
+					deleteRcloneConfig(smssRCloneConfig);
+				}
 			}
-			if (smssRCloneConfig != null) {
-				deleteRcloneConfig(smssRCloneConfig);
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 		}
 	}
 
@@ -769,8 +835,10 @@ public class AZClient extends CloudClient {
 		String smssRcloneConfig = null;
 
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to pull app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			smssRcloneConfig = createRcloneConfig(smssContainer);
@@ -795,7 +863,10 @@ public class AZClient extends CloudClient {
 			try {
 				if (appAlreadyLoaded) {
 					DIHelper.getInstance().removeLocalProperty(appId);
+					//engine.getInsightDatabase().closeDB();
+					//engine.getBaseDataEngine().closeDB();
 					engine.closeDB();
+
 				}
 
 				// Make the app directory (if it doesn't already exist)
@@ -825,14 +896,19 @@ public class AZClient extends CloudClient {
 				}
 			}
 		} finally {
-			if (appRcloneConfig != null) {
-				deleteRcloneConfig(appRcloneConfig);
+			try {
+				if (appRcloneConfig != null) {
+					deleteRcloneConfig(appRcloneConfig);
+				}
+				if (smssRcloneConfig != null) {
+					deleteRcloneConfig(smssRcloneConfig);
+				}
 			}
-			if (smssRcloneConfig != null) {
-				deleteRcloneConfig(smssRcloneConfig);
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 		}
 	}
 
