@@ -141,7 +141,7 @@ public class S3Client extends CloudClient {
 		}
 
 	}
-	
+
 	@Override
 	public void pullOwl(String appId) throws IOException, InterruptedException{
 		IEngine engine = Utility.getEngine(appId, false, true);
@@ -155,39 +155,46 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to pull owl");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			//close the owl
 			engine.getBaseDataEngine().closeDB();
 			owlFile = new File(engine.getProperty(Constants.OWL));
-								
+
 			logger.info("Pulling owl and postions.json for " + appFolder + " from remote=" + appId);
-			
-	
+
+
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
-			
+
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":" + BUCKET + "/" + appId+"/"+ owlFile.getName(), appFolder);
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":" + BUCKET + "/" + appId+"/"+ AbstractEngine.OWL_POSITION_FILENAME, appFolder);
 
 		}  finally {
-			if (rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
+			try {
+				if (rCloneConfig != null) {
+					deleteRcloneConfig(rCloneConfig);
+				}
+				//open the owl
+				if(owlFile.exists()) {
+					engine.setOWL(owlFile.getAbsolutePath());
+				} else {
+					throw new IllegalArgumentException("Pull failed. OWL for engine " + appId + " was not found");
+				}
 			}
-			//open the owl
-			if(owlFile.exists()) {
-				engine.setOWL(owlFile.getAbsolutePath());
-			} else {
-				throw new IllegalArgumentException("Pull failed. OWL for engine " + appId + " was not found");
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 
 		}
 	}
-	
+
 	@Override
 	public void pushOwl(String appId) throws IOException, InterruptedException{
 		IEngine engine = Utility.getEngine(appId, false, true);
@@ -201,17 +208,19 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to push owl");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			//close the owl
 			engine.getBaseDataEngine().closeDB();
 			owlFile = new File(engine.getProperty(Constants.OWL));
-								
+
 			logger.info("Pushing owl and postions.json for " + appFolder + " from remote=" + appId);
-			
-	
+
+
 			//use copy. copy moves the 1 file from local to remote so we don't override all of the remote with sync.
 			//sync will delete files that are in the destination if they aren't being synced
 
@@ -220,23 +229,28 @@ public class S3Client extends CloudClient {
 
 
 		}  finally {
-			if (rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
+			try {
+				if (rCloneConfig != null) {
+					deleteRcloneConfig(rCloneConfig);
+				}
+				//open the owl
+				if(owlFile.exists()) {
+					engine.setOWL(owlFile.getAbsolutePath());
+				} else {
+					throw new IllegalArgumentException("Push failed. OWL for engine " + appId + " was not found");
+				}
 			}
-			//open the owl
-			if(owlFile.exists()) {
-				engine.setOWL(owlFile.getAbsolutePath());
-			} else {
-				throw new IllegalArgumentException("Push failed. OWL for engine " + appId + " was not found");
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 		}
 	}
 
 	@Override
 	public void pullInsightsDB(String appId) throws IOException, InterruptedException {
-		
+
 		IEngine engine = Utility.getEngine(appId, false, true);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
@@ -248,8 +262,10 @@ public class S3Client extends CloudClient {
 		String rCloneConfig = null;
 
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to pull insights db");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			engine.getInsightDatabase().closeDB();
@@ -257,21 +273,26 @@ public class S3Client extends CloudClient {
 			String insightDB = getInsightDB(engine, appFolder);
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig + ":" + BUCKET + "/" + appId + "/" + insightDB, appFolder);
 		} finally {
-			if (rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
+			try {
+				if (rCloneConfig != null) {
+					deleteRcloneConfig(rCloneConfig);
+				}
+				//open the insight db
+				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(engine.getProp()).getAbsolutePath();
+				if(insightDbLoc != null) {
+					engine.setInsightDatabase( EngineInsightsHelper.loadInsightsEngine(engine.getProp(), LogManager.getLogger(AbstractEngine.class)));
+				} else {
+					throw new IllegalArgumentException("Insight database was not able to be found");
+				}
 			}
-			//open the insight db
-			String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(engine.getProp()).getAbsolutePath();
-			if(insightDbLoc != null) {
-				engine.setInsightDatabase( EngineInsightsHelper.loadInsightsEngine(engine.getProp(), LogManager.getLogger(AbstractEngine.class)));
-			} else {
-				throw new IllegalArgumentException("Insight database was not able to be found");
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 		}
 	}
-	
+
 	@Override
 	public void pushInsightDB(String appId) throws IOException, InterruptedException {
 		IEngine engine = Utility.getEngine(appId, false, true);
@@ -282,10 +303,12 @@ public class S3Client extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-		
+
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to push insights db");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			engine.getInsightDatabase().closeDB();
@@ -296,22 +319,27 @@ public class S3Client extends CloudClient {
 			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", appFolder+"/"+ insightDB, rCloneConfig + ":" + BUCKET + "/" + appId);			 
 		}
 		finally {
-			if (rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
+			try {
+				if (rCloneConfig != null) {
+					deleteRcloneConfig(rCloneConfig);
+				}
+				//open the insight db
+				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(engine.getProp()).getAbsolutePath();
+				if(insightDbLoc != null) {
+					engine.setInsightDatabase( EngineInsightsHelper.loadInsightsEngine(engine.getProp(), LogManager.getLogger(AbstractEngine.class)));
+				} else {
+					throw new IllegalArgumentException("Insight database was not able to be found");
+				}
 			}
-			//open the insight db
-			String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(engine.getProp()).getAbsolutePath();
-			if(insightDbLoc != null) {
-				engine.setInsightDatabase( EngineInsightsHelper.loadInsightsEngine(engine.getProp(), LogManager.getLogger(AbstractEngine.class)));
-			} else {
-				throw new IllegalArgumentException("Insight database was not able to be found");
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 
 		}
 	}
-	
+
 	@Override
 	public void pullFolder(String appId, String absolutePath, String remoteRelativePath)
 			throws IOException, InterruptedException {
@@ -323,24 +351,30 @@ public class S3Client extends CloudClient {
 		//String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		//String aliasAppId = alias + "__" + appId;
 		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-		
+
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to pull folder " + remoteRelativePath);
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			logger.info("Pulling folder for " + remoteRelativePath + " from remote=" + appId);
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", rCloneConfig + ":" + BUCKET + "/" + appId + "/"  + remoteRelativePath, absolutePath);
 		} finally {
-			if (rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
+			try {
+				if (rCloneConfig != null) {
+					deleteRcloneConfig(rCloneConfig);
+				}
+			}finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
-			// always unlock regardless of errors
-			lock.unlock();
 		}
 	}
-	
+
 	@Override
 	public void pushFolder(String appId, String absolutePath, String remoteRelativePath)
 			throws IOException, InterruptedException {
@@ -352,26 +386,33 @@ public class S3Client extends CloudClient {
 		//String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		//String aliasAppId = alias + "__" + appId;
 		//String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-		
+
 		File absoluteFolder = new File(absolutePath);
 		if(absoluteFolder.isDirectory()) {
 			//this is adding a hidden file into every sub folder to make sure there is no empty directory
 			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
 		}
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to push folder " + remoteRelativePath);
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			logger.info("Pushing folder for " + remoteRelativePath + " from remote=" + appId);
 
 			runRcloneTransferProcess(rCloneConfig, "rclone", "sync", absolutePath, rCloneConfig + ":" + BUCKET + "/" + appId + "/"  + remoteRelativePath);
 		} finally {
-			if (rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
+			try {
+				if (rCloneConfig != null) {
+					deleteRcloneConfig(rCloneConfig);
+				}
 			}
-			// always unlock regardless of errors
-			lock.unlock();
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
+			}
 		}
 	}
 
@@ -400,10 +441,12 @@ public class S3Client extends CloudClient {
 		String smssFile = dbFolder + FILE_SEPARATOR + smss;
 
 		String rCloneConfig = null;
-		
+
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to push app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			String smssContainer = appId + SMSS_POSTFIX;
@@ -448,12 +491,16 @@ public class S3Client extends CloudClient {
 				Utility.getEngine(appId, false, true);
 			}
 		} finally {
-			if (rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
+			try {
+				if (rCloneConfig != null) {
+					deleteRcloneConfig(rCloneConfig);
+				}
 			}
-			
-			// always unlock regardless of errors
-			lock.unlock();
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
+			}
 		}
 	}
 
@@ -473,10 +520,12 @@ public class S3Client extends CloudClient {
 		}
 		String smssContainer = appId + SMSS_POSTFIX;
 		String rCloneConfig = null;
-		
+
 		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to pull app");
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
 		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			List<String> results = runRcloneProcess(rCloneConfig, "rclone", "lsf",
@@ -530,12 +579,16 @@ public class S3Client extends CloudClient {
 				}
 			}
 		} finally {
-			if (rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
+			try {
+				if (rCloneConfig != null) {
+					deleteRcloneConfig(rCloneConfig);
+				}
 			}
-			
-			// always unlock regardless of errors
-			lock.unlock();
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
+			}
 		}
 	}
 
@@ -688,12 +741,18 @@ public class S3Client extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		
+		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to push db file");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
+		logger.info("App "+ appId + " is locked");
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 
 			DIHelper.getInstance().removeLocalProperty(appId);
 			engine.closeDB();
-			
+
 			logger.info("Pulling database for" + appFolder + " from remote=" + appId);
 			if (e == RdbmsTypeEnum.SQLITE) {
 				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
@@ -711,8 +770,15 @@ public class S3Client extends CloudClient {
 			// open the engine again
 			Utility.getEngine(appId, false, true);
 		} finally {
+			try {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
+			}
+			}
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
@@ -727,6 +793,14 @@ public class S3Client extends CloudClient {
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		
+		// synchronize on the app id
+		logger.info("Applying lock for " + appId + " to pull db file");
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(appId);
+		lock.lock();
+		logger.info("App "+ appId + " is locked");
+
+		
 		try {
 			rCloneConfig = createRcloneConfig(appId);
 			engine.closeDB();
@@ -744,8 +818,15 @@ public class S3Client extends CloudClient {
 				throw new IllegalArgumentException("Incorrect database type. Must be either sqlite or H2");
 			}
 		} finally {
+			try {
 			if (rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
+			}
+			}
+			finally {
+				// always unlock regardless of errors
+				lock.unlock();
+				logger.info("App "+ appId + " is unlocked");
 			}
 		}
 	}
