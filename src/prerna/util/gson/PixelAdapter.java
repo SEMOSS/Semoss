@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
@@ -36,6 +37,8 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		Set<String> frameOutputs = new HashSet<>();
 		Set<String> frameInputs = new HashSet<>();
 		Map<String, Object> positionMap = null;
+		List<String> errorMessages = new Vector<>();
+		List<String> warningMessages = new Vector<>();
 		
 		TypeAdapter mapAdapter = GSON.getAdapter(Map.class);
 		TypeAdapter listAdapter = GSON.getAdapter(List.class);
@@ -78,7 +81,19 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 				in.endArray();
 			} else if(key.equals("positionMap")) {
 				positionMap = (Map<String, Object>) mapAdapter.read(in);
-			}
+			} else if(key.equals("errorMessages")) {
+				in.beginArray();
+				while(in.hasNext()) {
+					errorMessages.add(in.nextString());
+				}
+				in.endArray();
+			} else if(key.equals("warningMessages")) {
+				in.beginArray();
+				while(in.hasNext()) {
+					warningMessages.add(in.nextString());
+				}
+				in.endArray();
+			} 
 		}
 		in.endObject();
 
@@ -92,6 +107,8 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		pixel.setFrameInputs(frameInputs);
 		pixel.setFrameOutputs(frameOutputs);
 		pixel.setPositionMap(positionMap);
+		pixel.setErrorMessages(errorMessages);
+		pixel.setWarningMessages(warningMessages);
 		return pixel;
 	}
 	
@@ -150,6 +167,26 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		if(value.getPositionMap() != null) {
 			TypeAdapter adapter = GSON.getAdapter(value.getPositionMap().getClass());
 			adapter.write(out, value.getPositionMap());
+		} else {
+			out.nullValue();
+		}
+		out.name("errorMessages");
+		if(value.getErrorMessages() != null) {
+			out.beginArray();
+			for(String errorM : value.getErrorMessages()) {
+				out.value(errorM);
+			}
+			out.endArray();
+		} else {
+			out.nullValue();
+		}
+		out.name("warningMessages");
+		if(value.getWarningMessages() != null) {
+			out.beginArray();
+			for(String warningM : value.getWarningMessages()) {
+				out.value(warningM);
+			}
+			out.endArray();
 		} else {
 			out.nullValue();
 		}
