@@ -197,12 +197,14 @@ public class PixelRunner {
 		// if the result is a direct error
 		if(!Collections.disjoint(errorOpTypes, result.getOpType())) {
 			pixel.setReturnedError(true);
+			pixel.addErrorMessage(result.getValue() + "");
 			return;
 		}
 		
 		// if the result is a direct warning
 		if(result.getOpType().contains(PixelOperationType.WARNING)) {
 			pixel.setReturnedWarning(true);
+			pixel.addWarningMessage(result.getValue() + "");
 			return;
 		}
 		
@@ -212,12 +214,14 @@ public class PixelRunner {
 				// check if add return is an error
 				if(!Collections.disjoint(errorOpTypes, addReturn.getOpType())) {
 					pixel.setReturnedError(true);
+					pixel.addErrorMessage(result.getValue() + "");
 					return;
 				}
 				
 				// check if add return is a warning
 				if(addReturn.getOpType().contains(PixelOperationType.WARNING)) {
 					pixel.setReturnedWarning(true);
+					pixel.addWarningMessage(result.getValue() + "");
 					return;
 				}
 			}
