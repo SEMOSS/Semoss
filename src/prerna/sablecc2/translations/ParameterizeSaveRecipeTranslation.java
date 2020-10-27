@@ -81,7 +81,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
 		for(PRoutine e : copy) {
 			String expression = e.toString();
-			if(expression.contains("Import") || expression.contains("Merge")) {
+			if(expression.contains("Import")) {
         		this.resultKey = "$RESULT_" + e.hashCode();
 
 				logger.info("Processing " + Utility.cleanLogString(expression));
