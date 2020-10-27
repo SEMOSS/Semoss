@@ -105,16 +105,7 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 		} else {
 			// do not break on frames
 			if(obj instanceof ITableDataFrame) {
-				ITableDataFrame frame = (ITableDataFrame) obj;
-				Map<String, String> mapValue = new HashMap<String, String>();
-				mapValue.put("type", FrameFactory.getFrameType(frame));
-				String name = frame.getName();
-				if(name != null) {
-					mapValue.put("name", name);
-				}
-				
-				TypeAdapter adapter = GSON.getAdapter(mapValue.getClass());
-				adapter.write(out, mapValue);
+				writeFrame((ITableDataFrame) obj, out);
 			} else {
 				TypeAdapter adapter = GSON.getAdapter(obj.getClass());
 				adapter.write(out, obj);
@@ -131,5 +122,24 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 		out.endArray();
 		out.endObject();
 	}
+	
+	/**
+	 * Write the frame as a map
+	 * @param frame
+	 * @param out
+	 * @throws IOException
+	 */
+	private void writeFrame(ITableDataFrame frame, JsonWriter out) throws IOException {
+		Map<String, String> mapValue = new HashMap<String, String>();
+		mapValue.put("type", FrameFactory.getFrameType(frame));
+		String name = frame.getName();
+		if(name != null) {
+			mapValue.put("name", name);
+		}
+		
+		TypeAdapter adapter = GSON.getAdapter(mapValue.getClass());
+		adapter.write(out, mapValue);
+	}
+	
 
 }
