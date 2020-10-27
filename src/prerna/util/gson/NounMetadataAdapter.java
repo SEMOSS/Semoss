@@ -1,6 +1,7 @@
 package prerna.util.gson;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +30,14 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 			return null;
 		}
 		
-		String className;
-		Class c = null;
-
+		boolean isNull = false;
+		boolean isArray = false;
+		
 		// components of noun meta
-		Object obj = null;
+		List<String> classNames = new Vector<>();
+		List<Object> objList = new Vector<>();
+		
+		// data type and op types
 		PixelDataType type = null;
 		List<PixelOperationType> ops = new Vector<PixelOperationType>();
 
@@ -47,24 +51,44 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 				} else if(name.equals("class")) {
 					if(in.peek() == JsonToken.NULL) {
 						in.nextNull();
-					} else {
-						className = in.nextString();
-						// get the class
-						try {
-							c = Class.forName(className);
-						} catch (ClassNotFoundException e) {
-							e.printStackTrace();
+						isNull = true;
+					} else if(in.peek() == JsonToken.BEGIN_ARRAY) {
+						isArray = true;
+						in.beginArray();
+						while(in.hasNext()) {
+							if(in.peek() == JsonToken.NULL) {
+								classNames.add(null);
+							} else {
+								String className = in.nextString();
+								classNames.add(className);
+							}
 						}
+						in.endArray();
+					} else {
+						String className = in.nextString();
+						classNames.add(className);
 					}
 				} else if(name.equals("value")) {
 					in.beginArray();
+					int counter = 0;
 					while(in.hasNext()) {
 						if(in.peek() == JsonToken.NULL) {
 							in.nextNull();
+							objList.add(null);
 						} else {
-							TypeAdapter adapter = GSON.getAdapter(c);
-							obj = adapter.read(in);
+							String className = classNames.get(counter);
+							Class c = null;
+							// get the class
+							try {
+								c = Class.forName(className);
+								TypeAdapter adapter = GSON.getAdapter(c);
+								objList.add(adapter.read(in));
+							} catch (ClassNotFoundException e) {
+								e.printStackTrace();
+							}
 						}
+						// increase the index
+						counter++;
 					}
 					in.endArray();
 				} else if(name.equals("opType")) {
@@ -78,7 +102,13 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 		}
 		in.endObject();
 		
-		return new NounMetadata(obj, type, ops);
+		if(isNull) {
+			return new NounMetadata(null, type, ops);
+		} else if(isArray) {
+			return new NounMetadata(objList, type, ops);
+		} else {
+			return new NounMetadata(objList.get(0), type, ops);
+		}
 	}
 	
 	@Override
@@ -95,14 +125,39 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 		out.name("pixelType").value(type.toString());
 		if(obj == null) {
 			out.name("class").nullValue();
+			out.name("value");
+			out.beginArray();
+			out.nullValue();
+			out.endArray();
+		} else if(obj instanceof Collection) {
+			// first grab all the values
+			Collection<Object> collectionObj = (Collection<Object>) obj;
+			out.name("class");
+			out.beginArray();
+			for(Object o : collectionObj) {
+				if(o == null) {
+					out.nullValue();
+				} else {
+					out.value(o.getClass().getName());
+				}
+			}
+			out.endArray();
+			out.name("value");
+			out.beginArray();
+			for(Object o : collectionObj) {
+				if(o instanceof ITableDataFrame) {
+					writeFrame((ITableDataFrame) obj, out);
+				} else {
+					TypeAdapter adapter = GSON.getAdapter(o.getClass());
+					adapter.write(out, o);
+				}
+			}
+			out.endArray();
+			
 		} else {
 			out.name("class").value(obj.getClass().getName());
-		}
-		out.name("value");
-		out.beginArray();
-		if(obj == null) {
-			out.nullValue();
-		} else {
+			out.name("value");
+			out.beginArray();
 			// do not break on frames
 			if(obj instanceof ITableDataFrame) {
 				writeFrame((ITableDataFrame) obj, out);
@@ -110,9 +165,10 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 				TypeAdapter adapter = GSON.getAdapter(obj.getClass());
 				adapter.write(out, obj);
 			}
+			out.endArray();
 		}
-		out.endArray();
 		
+		// write the op types
 		out.name("opType");
 		out.beginArray();
 		List<PixelOperationType> opTypes = value.getOpType();
@@ -120,6 +176,8 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 			out.value(opType.toString());
 		}
 		out.endArray();
+		
+		// end the object
 		out.endObject();
 	}
 	
