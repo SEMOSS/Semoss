@@ -1,7 +1,6 @@
 package prerna.solr.reactor;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -19,16 +18,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
-import prerna.sablecc2.reactor.task.AudoTaskOptionsHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.insight.InsightUtility;
 
 public class InsightUsageStatisticsReactor extends AbstractReactor {
 	
@@ -78,7 +73,10 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Error occured trying to create frame of the default type", e);
 		}
-		this.insight.setDataMaker(newFrame);
+		// set as default frame if none available
+		if(this.insight.getDataMaker() == null) {
+			this.insight.setDataMaker(newFrame);
+		}
 		
 		// get results
 		SelectQueryStruct qs = null;
@@ -102,40 +100,43 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			wrapper.cleanUp();
 		}
 		
-		List<NounMetadata> retNouns = new Vector<>();
-		retNouns.add(new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE));
-		
-		String panelId = getPanelId();
-		
-		SelectQueryStruct loadedDataQs = newFrame.getMetaData().getFlatTableQs(true);
-		loadedDataQs.setFrame(newFrame);
-		IRawSelectWrapper loadedDataIterator;
-		try {
-			loadedDataIterator = newFrame.query(loadedDataQs);
-			BasicIteratorTask task = new BasicIteratorTask(loadedDataQs, loadedDataIterator);
-			
-			if(panelId != null) {
-				Map<String, Object> optMap = task.getFormatter().getOptionsMap();
-				TaskOptions tOptions = AudoTaskOptionsHelper.getAutoOptions(qs, panelId, "GRID", optMap);
-				if(tOptions != null) {
-					task.setTaskOptions(tOptions);
-					// if we use task options on a panel
-					// we automatically set the panel view to be visualization
-					InsightUtility.setPanelForVisualization(this.insight, panelId);
-				}
-			}
-			// add to the task store
-			this.insight.getTaskStore().addTask(task);
-			
-			retNouns.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("There was an error in querying the data frame with the loaded insight query statistics", e);
-		}
-		
-		NounMetadata noun = new NounMetadata(retNouns, PixelDataType.VECTOR, PixelOperationType.VECTOR);
-		noun.addAdditionalReturn(getSuccess("Successfully generated new frame with insight usage statistics"));
-		return noun;
+		return new NounMetadata(newFrame, PixelDataType.FRAME, 
+				PixelOperationType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+//
+//		List<NounMetadata> retNouns = new Vector<>();
+//		retNouns.add(new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE));
+//		
+//		String panelId = getPanelId();
+//		
+//		SelectQueryStruct loadedDataQs = newFrame.getMetaData().getFlatTableQs(true);
+//		loadedDataQs.setFrame(newFrame);
+//		IRawSelectWrapper loadedDataIterator;
+//		try {
+//			loadedDataIterator = newFrame.query(loadedDataQs);
+//			BasicIteratorTask task = new BasicIteratorTask(loadedDataQs, loadedDataIterator);
+//			
+//			if(panelId != null) {
+//				Map<String, Object> optMap = task.getFormatter().getOptionsMap();
+//				TaskOptions tOptions = AudoTaskOptionsHelper.getAutoOptions(qs, panelId, "GRID", optMap);
+//				if(tOptions != null) {
+//					task.setTaskOptions(tOptions);
+//					// if we use task options on a panel
+//					// we automatically set the panel view to be visualization
+//					InsightUtility.setPanelForVisualization(this.insight, panelId);
+//				}
+//			}
+//			// add to the task store
+//			this.insight.getTaskStore().addTask(task);
+//			
+//			retNouns.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			throw new IllegalArgumentException("There was an error in querying the data frame with the loaded insight query statistics", e);
+//		}
+//		
+//		NounMetadata noun = new NounMetadata(retNouns, PixelDataType.VECTOR, PixelOperationType.VECTOR);
+//		noun.addAdditionalReturn(getSuccess("Successfully generated new frame with insight usage statistics"));
+//		return noun;
 	}
 	
 	/**
