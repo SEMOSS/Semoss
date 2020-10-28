@@ -59,6 +59,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
@@ -3530,7 +3531,7 @@ public class Utility {
 			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
 			// pb.command(commands);
 
-			String starterFile = writeStarterFile(commands, finalDir);
+			String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
 			Process p = pb.start();
@@ -3557,16 +3558,23 @@ public class Utility {
 		return thisProcess;
 	}
 
-	public static String writeStarterFile(String[] commands, String dir) {
+	public static String[] writeStarterFile(String[] commands, String dir) {
 		// check if the os is unix and if so make it .sh
 		String osName = System.getProperty("os.name").toLowerCase();
 
-		String starter = "";
+
+		String starter = ""; 
+		String[] commandsStarter = null;
+
 		if (osName.indexOf("win") >= 0) {
-			starter = dir + "/starter.bat";
+			commandsStarter = new String[1];
+			commandsStarter[0] = dir + "/starter.bat";
 		}
 		if (osName.indexOf("win") < 0) {
+			commandsStarter =  new String[2];
+			commandsStarter[0] = "/bin/bash";
 			starter = dir + "/starter.sh";
+			commandsStarter[1] = starter;
 		}
 		try {
 			File starterFile = new File(starter);
@@ -3591,7 +3599,7 @@ public class Utility {
 			logger.error(STACKTRACE, ioe);
 		}
 
-		return starter;
+		return commandsStarter;
 	}
 
 	// compiler methods
