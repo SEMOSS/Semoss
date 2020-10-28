@@ -267,7 +267,7 @@ public class InsightCacheUtility {
 		Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId));
 		Path relative = appFolder.relativize( Paths.get(folderDir));
 		if(pullCloud) {
-			ClusterUtil.reactorPullFolder(engineId,folderDir, relative.toString());
+			ClusterUtil.reactorPullFolder(engineId, folderDir, relative.toString());
 		}
 
 		File folder = new File(Utility.normalizePath(folderDir)); 
@@ -280,7 +280,7 @@ public class InsightCacheUtility {
 			ICache.deleteFile(f);
 		}
 		if(pullCloud) {
-			ClusterUtil.reactorPushFolder(engineId,folderDir, relative.toString());
+			ClusterUtil.reactorPushFolder(engineId, folderDir, relative.toString());
 		}
 	}
 	
