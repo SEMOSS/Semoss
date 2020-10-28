@@ -1324,18 +1324,29 @@ public class OwlTemporalEngineMeta {
 				if (i != 0) {
 					filter.append(" || ");
 				}
-				// clean data types to keep consistent
-				SemossDataType type = SemossDataType.convertStringToDataType(dataTypes[i]);
-				String cleanType = type.toString();
-				filter.append("?dt = \"")
-				.append(cleanType)
-				.append("\"");
-				if(type == SemossDataType.STRING) {
-					// add factor as well
-					filter.append(" || ");
+				if(dataTypes[i].toUpperCase().equals("NUMBER")) {
+					// we will do this for int / double
 					filter.append("?dt = \"")
-					.append(SemossDataType.FACTOR.toString())
+						.append(SemossDataType.INT.toString())
+						.append("\"")
+						.append(" || ")
+						.append("?dt = \"")
+						.append(SemossDataType.DOUBLE.toString())
+						.append("\"");
+				} else {
+					// clean data types to keep consistent
+					SemossDataType type = SemossDataType.convertStringToDataType(dataTypes[i]);
+					String cleanType = type.toString();
+					filter.append("?dt = \"")
+					.append(cleanType)
 					.append("\"");
+					if(type == SemossDataType.STRING) {
+						// add factor as well
+						filter.append(" || ");
+						filter.append("?dt = \"")
+						.append(SemossDataType.FACTOR.toString())
+						.append("\"");
+					}
 				}
 			}
 			filter.append(") {?header <").append(OWL.DATATYPEPROPERTY).append("> ?dt}");
