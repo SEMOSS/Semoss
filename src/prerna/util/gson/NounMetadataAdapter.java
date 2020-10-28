@@ -57,6 +57,7 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 						in.beginArray();
 						while(in.hasNext()) {
 							if(in.peek() == JsonToken.NULL) {
+								in.nextNull();
 								classNames.add(null);
 							} else {
 								String className = in.nextString();
@@ -145,7 +146,9 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 			out.name("value");
 			out.beginArray();
 			for(Object o : collectionObj) {
-				if(o instanceof ITableDataFrame) {
+				if(o == null) {
+					out.nullValue();
+				} else if(o instanceof ITableDataFrame) {
 					writeFrame((ITableDataFrame) obj, out);
 				} else {
 					TypeAdapter adapter = GSON.getAdapter(o.getClass());
