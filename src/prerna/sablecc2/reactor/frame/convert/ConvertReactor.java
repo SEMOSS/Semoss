@@ -25,7 +25,7 @@ import prerna.sablecc2.reactor.imports.ImportUtility;
 public class ConvertReactor extends AbstractFrameReactor {
 
 	public ConvertReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), ReactorKeysEnum.FRAME.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), ReactorKeysEnum.FRAME.getKey(), PixelDataType.ALIAS.toString()};
 	}
 	
 	@Override
@@ -115,22 +115,23 @@ public class ConvertReactor extends AbstractFrameReactor {
 	 * @return
 	 */
 	private String getAlias() {
-		if(this.curRow != null)
-		{
-			List<Object> alias = this.curRow.getValuesOfType(PixelDataType.ALIAS);
-			if(alias != null && alias.size() > 0) {
-				return alias.get(0).toString();
-			}
+		GenRowStruct grs = this.store.getNoun(PixelDataType.ALIAS.toString());
+		// see if a frame is passed in
+		if (grs != null && !grs.isEmpty()) {
+			String alias = grs.getNoun(0).getValue()+"";
+			return alias;
 		}
-		else
-		{
-			GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ALIAS.getKey());
-			// see if a frame is passed in
-			if (grs != null && !grs.isEmpty()) {
-				String alias = grs.getNoun(0).getValue()+"";
-				return alias;
-			}
+		
+		grs = this.store.getNoun(ReactorKeysEnum.ALIAS.toString());
+		// see if a frame is passed in
+		if (grs != null && !grs.isEmpty()) {
+			String alias = grs.getNoun(0).getValue()+"";
+			return alias;
+		}
 
+		List<Object> alias = this.curRow.getValuesOfType(PixelDataType.ALIAS);
+		if(alias != null && alias.size() > 0) {
+			return alias.get(0).toString();
 		}
 			
 		return null;
