@@ -32,6 +32,7 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
@@ -57,6 +58,7 @@ public class GsonUtility {
 				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
 				.registerTypeAdapter(CsvQueryStruct.class, new CsvQueryStructAdapter())
 				.registerTypeAdapter(ExcelQueryStruct.class, new ExcelQueryStructAdapter())
+				.registerTypeAdapter(UpdateQueryStruct.class, new UpdateQueryStructAdapter())
 
 				// selectors
 				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
