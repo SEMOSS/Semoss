@@ -5,9 +5,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -99,19 +97,24 @@ public class AdminExecQueryReactor extends AbstractReactor {
 			}
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
 		}
-		// store query in audit db
-		AuditDatabase audit = engine.generateAudit();
-		if (custom) {
-			audit.storeQuery(userId, query);
-		} else {
-			if (update) {
-				audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
-			} else {
-				audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
-			}
-		}
-
-		ClusterUtil.reactorPushApp(engine.getEngineId());
+		
+//		// store query in audit db
+//		try {
+//			AuditDatabase audit = engine.generateAudit();
+//			if(audit != null) {
+//				if (custom) {
+//					audit.storeQuery(userId, query);
+//				} else {
+//					if (update) {
+//						audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
+//					} else {
+//						audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
+//					}
+//				}
+//			}
+//		} catch(Exception e) {
+//			logger.error(Constants.STACKTRACE, e);
+//		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
