@@ -103,11 +103,12 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 		}
 		
 		List<NounMetadata> retNouns = new Vector<>();
-		retNouns.add(new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME));
+		retNouns.add(new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE));
 		
 		String panelId = getPanelId();
 		
 		SelectQueryStruct loadedDataQs = newFrame.getMetaData().getFlatTableQs(true);
+		loadedDataQs.setFrame(newFrame);
 		IRawSelectWrapper loadedDataIterator;
 		try {
 			loadedDataIterator = newFrame.query(loadedDataQs);
