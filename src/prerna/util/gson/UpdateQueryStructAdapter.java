@@ -9,31 +9,30 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.IQuerySort;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
 
-public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
+public class UpdateQueryStructAdapter  extends TypeAdapter<UpdateQueryStruct> {
 	
-	private static final Logger logger = LogManager.getLogger(SelectQueryStructAdapter.class.getName());
+	private static final Logger logger = LogManager.getLogger(UpdateQueryStructAdapter.class.getName());
+	private static final Gson GSON = GsonUtility.getDefaultGson();
 
 	@Override
-	public SelectQueryStruct read(JsonReader in) throws IOException {
+	public UpdateQueryStruct read(JsonReader in) throws IOException {
 		if (in.peek() == JsonToken.NULL) {
 			in.nextNull();
 			return null;
 		}
 
-		SelectQueryStruct qs = new SelectQueryStruct();
+		UpdateQueryStruct qs = new UpdateQueryStruct();
 
 		in.beginObject();
 		while(in.hasNext()) {
@@ -46,16 +45,14 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 				qs.setFrameName(in.nextString());
 			} else if(name.equals("frameType")) {
 				qs.setFrameType(in.nextString());
-			} else if(name.equals("isDistinct")) {
-				qs.setDistinct(in.nextBoolean());
 			} else if(name.equals("overrideImplicit")) {
 				qs.setOverrideImplicit(in.nextBoolean());
-			} else if(name.equals("limit")) {
-				qs.setLimit(in.nextLong());
-			} else if(name.equals("offset")) {
-				qs.setOffSet(in.nextLong());
-			} else if(name.equals("queryAll")) {
-				qs.setQueryAll(in.nextBoolean());
+			} 
+			// custom to update query 
+			else if(name.equals("updateValues")) {
+				TypeAdapter adapter = GSON.getAdapter(List.class);
+				List<Object> values = (List<Object>) adapter.read(in);
+				qs.setValues(values);
 			}
 			// selectors
 			else if(name.equals("selectors")) {
@@ -80,44 +77,6 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			// explicit filters
 			else if(name.equals("havingFilters")) {
 				qs.setHavingFilters(readGrf(in));
-			}
-			// group bys
-			else if(name.equals("groups")) {
-				in.beginArray();
-				List<IQuerySelector> groupBy = new Vector<>();
-				
-				while(in.hasNext()) {
-					IQuerySelectorAdapter selectorAdapter = new IQuerySelectorAdapter();
-					IQuerySelector selector = selectorAdapter.read(in);
-					
-					if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-						groupBy.add((QueryColumnSelector) selector);
-					}
-					else if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-						groupBy.add((QueryFunctionSelector) selector);
-					}
-					else {
-						String errorMessage = "Error: Cannot group by non QueryColumnSelector and QueryFunctionSelector types yet...";
-						logger.error(errorMessage);
-						throw new IllegalArgumentException(errorMessage);
-					}
-						
-				}
-				in.endArray();
-				qs.setGroupBy(groupBy);
-			}
-			// orders
-			else if(name.equals("orders")) {
-				List<IQuerySort> orders = new Vector<IQuerySort>();
-				in.beginArray();
-				orders = new Vector<IQuerySort>();
-				while(in.hasNext()) {
-					IQuerySortAdapter sortAdapter = new IQuerySortAdapter();
-					IQuerySort orderBy = sortAdapter.read(in);
-					orders.add(orderBy);
-				}
-				in.endArray();
-				qs.setOrderBy(orders);
 			}
 			else if(name.equals("relations")) {
 				Set<String[]> relations = new LinkedHashSet<>();
@@ -156,7 +115,7 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 	}
 
 	@Override
-	public void write(JsonWriter out, SelectQueryStruct value) throws IOException {
+	public void write(JsonWriter out, UpdateQueryStruct value) throws IOException {
 		if (value == null) {
 			out.nullValue();
 			return;
@@ -177,13 +136,17 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			out.name("frameName").value(value.getFrameName());
 			out.name("frameType").value(value.getFrameType());
 		}
-		out.name("isDistinct").value(value.isDistinct());
 		out.name("overrideImplicit").value(value.isOverrideImplicit());
-		out.name("limit").value(value.getLimit());
-		out.name("offset").value(value.getOffset());
-		out.name("queryAll").value(value.getQueryAll());
 
-		// now the fun stuff
+		// custom to update query 
+		{
+			List<Object> values = value.getValues();
+			out.name("updateValues");
+			TypeAdapter adapter = GSON.getAdapter(values.getClass());
+			adapter.write(out, values);
+		}
+		
+		// base query struct
 		
 		// selectors
 		List<IQuerySelector> selectors = value.getSelectors();
@@ -221,34 +184,6 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			writeGrf(out, havingFilters);
 		}
 
-		// groups
-		List<IQuerySelector> groups = value.getGroupBy();
-		int numGroups = groups.size();
-		if(numGroups > 0) {
-			out.name("groups");
-			out.beginArray();
-			for(int i = 0; i < numGroups; i++) {
-				IQuerySelector s = groups.get(i);
-				TypeAdapter adapter = IQuerySelector.getAdapterForSelector(s.getSelectorType());
-				adapter.write(out, s);
-			}
-			out.endArray();
-		}
-
-		// orders
-		List<IQuerySort> orders = value.getOrderBy();
-		int numOrders = orders.size();
-		if(numOrders > 0) {
-			out.name("orders");
-			out.beginArray();
-			for(int i = 0; i < orders.size(); i++) {
-				IQuerySort orderBy = orders.get(i);
-				TypeAdapter adapter = IQuerySort.getAdapterForSort(orderBy.getQuerySortType());
-				adapter.write(out, orderBy);
-			}
-			out.endArray();
-		}
-		
 		// relationships
 		Set<String[]> relationships = value.getRelations();
 		if(relationships != null && !relationships.isEmpty()) {
