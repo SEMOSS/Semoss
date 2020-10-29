@@ -29,7 +29,8 @@ public class QueryIfSelector extends AbstractQuerySelector {
 	@Override
 	public String getDataType() {
 		// need to figure out if this is a string or a number
-		return null;
+		// TODO: pushing now so FE doesn't get errors - always string
+		return "STRING";
 	}
 
 	@Override
