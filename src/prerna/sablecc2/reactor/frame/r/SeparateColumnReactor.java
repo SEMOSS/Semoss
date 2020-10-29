@@ -13,7 +13,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Separates a column at the specified index creating two new columns on the
  * left and right of the index
  */
-public class SeparateColumn extends AbstractRFrameReactor {
+public class SeparateColumnReactor extends AbstractRFrameReactor {
 	
 	/**
 	 * R example 
@@ -25,7 +25,7 @@ public class SeparateColumn extends AbstractRFrameReactor {
 	private static final String LEFT_COLUMN_NAME_INPUT = "lName";
 	private static final String RIGHT_COLUMN_NAME_INPUT = "rName";
 
-	public SeparateColumn() {
+	public SeparateColumnReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.INDEX.getKey(), LEFT_COLUMN_NAME_INPUT, RIGHT_COLUMN_NAME_INPUT};
 	}
 
@@ -69,7 +69,7 @@ public class SeparateColumn extends AbstractRFrameReactor {
 		frame.executeRScript(sb.toString());
 		
 		// check if new column exists
-		String colExistsScript = "\"" + leftColumnName + "\" %in% colnames(" + rightColumnName + ")";
+		String colExistsScript = "\"" + leftColumnName + "\" %in% colnames(" + dataFrame + ")";
 		boolean colExists = this.rJavaTranslator.getBoolean(colExistsScript);
 		if (!colExists) {
 			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to separate column");
