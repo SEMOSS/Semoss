@@ -23,7 +23,8 @@ public class QueryFunctionHelper {
 	public static final String LOWER = "Lower";
 	public static final String COALESCE = "Coalesce";
 	public static final String REGEXP_LIKE = "RegexLike";
-	
+	public static final String SUBSTRING = "Substring";
+
 	// Date functions
 	public static final String MONTH_NAME = "MonthName";
 	public static final String DATE_ADD = "DateAdd";
@@ -152,6 +153,8 @@ public class QueryFunctionHelper {
 			inputFunction = "count";
 		} else if(inputFunction.equalsIgnoreCase(LOWER)) {
 			inputFunction = "str.lower";
+		} else if(inputFunction.equalsIgnoreCase(SUBSTRING)) {
+			inputFunction = "str.slice";
 		}
 		
 		return inputFunction;
@@ -208,7 +211,8 @@ public class QueryFunctionHelper {
 				|| inputFunction.equalsIgnoreCase(GROUP_CONCAT) 
 				|| inputFunction.equalsIgnoreCase(UNIQUE_GROUP_CONCAT)
 				|| inputFunction.equalsIgnoreCase(LOWER)
-				|| inputFunction.equalsIgnoreCase(COALESCE)) {
+				|| inputFunction.equalsIgnoreCase(COALESCE)
+				|| inputFunction.equalsIgnoreCase(SUBSTRING)) {
 			return "STRING";
 		} else if(inputFunction.equalsIgnoreCase(COUNT) 
 				|| inputFunction.equalsIgnoreCase(UNIQUE_COUNT) ) {
@@ -252,6 +256,8 @@ public class QueryFunctionHelper {
 			inputFunction = "Coalesce";
 		} else if(inputFunction.equalsIgnoreCase(REGEXP_LIKE)) {
 			inputFunction = "RegexLike";
+		} else if(inputFunction.equalsIgnoreCase(SUBSTRING)) {
+			inputFunction = "Substring";
 		}
 		
 		return inputFunction;
