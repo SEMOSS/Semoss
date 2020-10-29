@@ -31,6 +31,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.sablecc2.om.VarStore;
@@ -67,6 +68,7 @@ public class GsonUtility {
 				.registerTypeAdapter(QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter())
 				.registerTypeAdapter(QueryConstantSelector.class, new QueryConstantSelectorAdapter())
 				.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter())
+				.registerTypeAdapter(QueryIfSelector.class, new QueryIfSelectorAdapter())
 				
 				// filters
 				.registerTypeAdapter(GenRowFilters.class, new GenRowFiltersAdapter())
