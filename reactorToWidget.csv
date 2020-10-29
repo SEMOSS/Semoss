@@ -28,6 +28,7 @@ RemoveDuplicateRows,clean-remove-duplicate-rows
 RenameColumn,clean-rename-col
 ReplaceColumnValue,clean-replace
 RegexReplaceColumnValue,clean-replace
+SeparateColumn,clean-separate
 SplitColumns,clean-split
 SplitUnpivot,clean-split-unpivot
 TimestampData,clean-timestamp-data
@@ -59,6 +60,6 @@ RunClassification,analytics-classification
 R,pipeline-codeblock
 Py,pipeline-codeblock
 Java,pipeline-codeblock
-RunDataQuality,quality-report,
-ReplaceFrameFilter,filter,
+RunDataQuality,quality-report
+ReplaceFrameFilter,filter
 CollectNewCol,add
