@@ -210,7 +210,10 @@ public class ExportToExcelReactor extends AbstractReactor {
 		// rename sheets
 		for (String sheetId : sheetAlias.keySet()) {
 			String sheetName = sheetAlias.get(sheetId);
-			workbook.setSheetName(workbook.getSheetIndex(sheetId), sheetName);
+			int sheetIndex = workbook.getSheetIndex(sheetId);
+			if(sheetIndex > 0) {
+				workbook.setSheetName(workbook.getSheetIndex(sheetId), sheetName);
+			}
 		}
 
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
