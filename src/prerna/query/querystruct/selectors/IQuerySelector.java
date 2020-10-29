@@ -8,6 +8,7 @@ import prerna.util.gson.QueryArithmeticSelectorAdapter;
 import prerna.util.gson.QueryColumnSelectorAdapter;
 import prerna.util.gson.QueryConstantSelectorAdapter;
 import prerna.util.gson.QueryFunctionSelectorAdapter;
+import prerna.util.gson.QueryIfSelectorAdapter;
 import prerna.util.gson.QueryOpaqueSelectorAdapter;
 
 public interface IQuerySelector {
@@ -79,6 +80,8 @@ public interface IQuerySelector {
 			return new QueryArithmeticSelectorAdapter();
 		} else if(type == SELECTOR_TYPE.CONSTANT) {
 			return new QueryConstantSelectorAdapter();
+		} else if(type == SELECTOR_TYPE.IF_ELSE) {
+			return new QueryIfSelectorAdapter();
 		}
 		
 		return null;
@@ -100,6 +103,8 @@ public interface IQuerySelector {
 			return SELECTOR_TYPE.ARITHMETIC;
 		} else if(s.equals(SELECTOR_TYPE.CONSTANT.toString())) {
 			return SELECTOR_TYPE.CONSTANT;
+		} else if(s.equals(SELECTOR_TYPE.IF_ELSE.toString())) {
+			return SELECTOR_TYPE.IF_ELSE;
 		}
 		return null;
 	}
@@ -120,6 +125,8 @@ public interface IQuerySelector {
 			return QueryArithmeticSelector.class;
 		} else if(type == SELECTOR_TYPE.CONSTANT) {
 			return QueryConstantSelector.class;
+		} else if(type == SELECTOR_TYPE.CONSTANT) {
+			return QueryIfSelector.class;
 		}
 		
 		return null;
