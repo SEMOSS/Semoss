@@ -469,6 +469,8 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getConcatFunctionSyntax();
 
 	public abstract String getGroupConcatFunctionSyntax();
+	
+	public abstract String getSubstringFunctionSyntax();
 
 	public abstract String getLowerFunctionSyntax();
 
@@ -1306,4 +1308,6 @@ public abstract class AbstractSqlQueryUtil {
 			logger.debug(wrapper.next());
 		}
 	}
+
+
 }
