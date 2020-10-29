@@ -211,8 +211,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 		for (String sheetId : sheetAlias.keySet()) {
 			String sheetName = sheetAlias.get(sheetId);
 			int sheetIndex = workbook.getSheetIndex(sheetId);
-			if(sheetIndex > 0) {
-				workbook.setSheetName(workbook.getSheetIndex(sheetId), sheetName);
+			if(sheetIndex >= 0) {
+				workbook.setSheetName(sheetIndex, sheetName);
 			}
 		}
 
