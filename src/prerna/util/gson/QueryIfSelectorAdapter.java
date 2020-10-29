@@ -42,15 +42,15 @@ public class QueryIfSelectorAdapter extends TypeAdapter<QueryIfSelector> impleme
 		in.beginObject();
 		while(in.hasNext()) {
 			String key = in.nextName();
-			if(key.equals("precedent")) {
+			if(key.equals("condition")) {
+				IQueryFilter filter = filterAdapter.read(in);
+				value.setCondition(filter);
+			} else if(key.equals("precedent")) {
 				IQuerySelector selector = selectorAdapter.read(in);
 				value.setPrecedent(selector);
 			} else if(key.equals("antecedent")) {
 				IQuerySelector selector = selectorAdapter.read(in);
 				value.setAntecedent(selector);
-			} else if(key.equals("condition")) {
-				IQueryFilter filter = filterAdapter.read(in);
-				value.setCondition(filter);
 			} else if(key.equals("alias")) {
 				JsonToken peak = in.peek();
 				if(peak == JsonToken.NULL) {
@@ -79,23 +79,35 @@ public class QueryIfSelectorAdapter extends TypeAdapter<QueryIfSelector> impleme
 		out.name("content");
 		// content object
 		out.beginObject();
+		out.name("condition");
+		{
+			IQueryFilter condition = value.getCondition();
+			if(condition == null) {
+				out.nullValue();
+			} else {
+				TypeAdapter adapter = IQueryFilter.getAdapterForFilter(condition.getQueryFilterType());
+				adapter.write(out, condition);
+			}
+		}
 		out.name("precedent");
 		{
 			IQuerySelector querySelector = value.getPrecedent();
-			TypeAdapter adapter = IQuerySelector.getAdapterForSelector(querySelector.getSelectorType());
-			adapter.write(out, querySelector);
+			if(querySelector == null) {
+				out.nullValue();
+			} else {
+				TypeAdapter adapter = IQuerySelector.getAdapterForSelector(querySelector.getSelectorType());
+				adapter.write(out, querySelector);
+			}
 		}
 		out.name("antecedent");
 		{
 			IQuerySelector querySelector = value.getAntecedent();
-			TypeAdapter adapter = IQuerySelector.getAdapterForSelector(querySelector.getSelectorType());
-			adapter.write(out, querySelector);
-		}
-		out.name("condition");
-		{
-			IQueryFilter condition = value.getCondition();
-			TypeAdapter adapter = IQueryFilter.getAdapterForFilter(condition.getQueryFilterType());
-			adapter.write(out, condition);
+			if(querySelector == null) {
+				out.nullValue();
+			} else {
+				TypeAdapter adapter = IQuerySelector.getAdapterForSelector(querySelector.getSelectorType());
+				adapter.write(out, querySelector);
+			}
 		}
 		out.name("alias").value(value.getAlias());
 		out.name("pixelString").value(value.getQueryStructName());
