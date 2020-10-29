@@ -17,6 +17,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 
 public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
@@ -157,6 +158,20 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 			}
 			out.endArray();
 			
+		} else if(obj instanceof IReactor){
+			// you are probably doing something wrong here
+			// but i do not want to break serliaizing an object that we 
+			// are unable to dos
+			Map<String, Object> lambdaMap = new HashMap<>();
+	    	lambdaMap.put("reactorType", obj.getClass().getName());
+	    	lambdaMap.put("value", ((IReactor) obj).getStoreMap() );
+
+			out.name("class").value(lambdaMap.getClass().getName());
+	    	out.name("value");
+			out.beginArray();
+			TypeAdapter adapter = GSON.getAdapter(lambdaMap.getClass());
+			adapter.write(out, lambdaMap);
+			out.endArray();
 		} else {
 			out.name("class").value(obj.getClass().getName());
 			out.name("value");
