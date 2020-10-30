@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -599,6 +600,12 @@ public abstract class AbstractSecurityUtils {
 		// engine is an asset
 		if(WorkspaceAssetUtils.isAssetApp(appId)) {
 			return true;
+		}
+		// so that way all those Asset apps do not appear a bunch of times
+		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
+		if(smssFile != null) {
+			Properties prop = Utility.loadProperties(smssFile);
+			return Boolean.parseBoolean(prop.get(Constants.IS_ASSET_APP) + "");
 		}
 		
 		return false;
