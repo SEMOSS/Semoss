@@ -398,9 +398,18 @@ public abstract class AbstractQueryStruct {
 		
 		if(incomingQS.getEngine() != null) {
 			setEngine(incomingQS.getEngine());
+		} 
+		if(incomingQS.getEngineId() != null) {
+			setEngineId(incomingQS.getEngineId());
 		}
 		if(incomingQS.getFrame() != null) {
 			setFrame(incomingQS.getFrame());
+		}
+		if(incomingQS.getFrameName() != null) {
+			setFrameName(incomingQS.getFrameName());
+		}
+		if(incomingQS.getFrameType() != null) {
+			setFrameType(incomingQS.getFrameType());
 		}
 	}
 	
