@@ -111,8 +111,8 @@ public class MergeReactor extends AbstractReactor {
 			}
 		}		
 		// clear cached info after merge
-		frame.clearCachedMetrics();
-		frame.clearQueryCache();
+		mergeFrame.clearCachedMetrics();
+		mergeFrame.clearQueryCache();
 
 		NounMetadata noun = new NounMetadata(mergeFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		// in case we generated a new frame
@@ -150,58 +150,52 @@ public class MergeReactor extends AbstractReactor {
 		// may be we just check the connection URL
 
 		ITableDataFrame mergeFrame = null;
-		
-		if(curFrame instanceof NativeFrame && frame instanceof NativeFrame)
-		{
-			try {
-			// get the querystruct
-			SelectQueryStruct curQS = ((NativeFrame)curFrame).getQueryStruct();
-			curQS = QSAliasToPhysicalConverter.getPhysicalQs(curQS, curFrame.getMetaData());
 
-			
-			qs = ((NativeFrame)qs.getFrame()).getQueryStruct();
-			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, qs.getFrame().getMetaData());
-			
-			IEngine curEngine = curQS.getEngine();
-			IEngine thisEngine = qs.getEngine();
-			if(thisEngine == null)
-				thisEngine = qs.retrieveQueryStructEngine();
-			
-			if(curEngine == null)
-				curEngine = curQS.retrieveQueryStructEngine();
-			
-			// check to see they are RDBMS
-			if(curEngine instanceof RDBMSNativeEngine && thisEngine instanceof RDBMSNativeEngine)
-			{
-				// get the url now
-				// we get the url because the focus area can be an app too
-				// this way we can be sure
-				String curURL = ((RDBMSNativeEngine)curEngine).getConnectionMetadata().getURL();
-				String thisURL = ((RDBMSNativeEngine)thisEngine).getConnectionMetadata().getURL();
-			
-				
-				if(curURL.equalsIgnoreCase(thisURL))
-				{
-					// ok great these are same database
-					// create the SQL Queries
-					// need to check if these are query structs also
-					mergeFrame = (NativeFrame)SQLQueryUtils.joinQueryStructs(curQS, qs, joins);
-					
-					
+		if(curFrame instanceof NativeFrame && frame instanceof NativeFrame) {
+			try {
+				// get the querystruct
+				SelectQueryStruct curQS = ((NativeFrame)curFrame).getQueryStruct();
+				curQS = QSAliasToPhysicalConverter.getPhysicalQs(curQS, curFrame.getMetaData());
+
+				qs = ((NativeFrame)qs.getFrame()).getQueryStruct();
+				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, qs.getFrame().getMetaData());
+
+				IEngine curEngine = curQS.getEngine();
+				IEngine thisEngine = qs.getEngine();
+				if(thisEngine == null)
+					thisEngine = qs.retrieveQueryStructEngine();
+
+				if(curEngine == null)
+					curEngine = curQS.retrieveQueryStructEngine();
+
+				// check to see they are RDBMS
+				if(curEngine instanceof RDBMSNativeEngine && thisEngine instanceof RDBMSNativeEngine) {
+					// get the url now
+					// we get the url because the focus area can be an app too
+					// this way we can be sure
+					String curURL = ((RDBMSNativeEngine)curEngine).getConnectionMetadata().getURL();
+					String thisURL = ((RDBMSNativeEngine)thisEngine).getConnectionMetadata().getURL();
+
+
+					if(curURL.equalsIgnoreCase(thisURL)) {
+						// ok great these are same database
+						// create the SQL Queries
+						// need to check if these are query structs also
+						mergeFrame = (NativeFrame) SQLQueryUtils.joinQueryStructs(curQS, qs, joins);
+						mergeFrame.setName(curFrame.getName());
+					} else {
+						throw new SemossPixelException("Joining tables across databases is not possible, please consider converting to a materialized frame");
+					}
+				} else {
+					throw new SemossPixelException("Joining to a native frame from a materialized frame not possible, please consider swapping the join order");
+
 				}
-				else
-					throw new SemossPixelException("Joining tables across databases is not possible, please consider converting to a materialized frame");
-			}
-			else
-				throw new SemossPixelException("Joining to a native frame from a materialized frame not possible, please consider swapping the join order");
 			} catch (SQLException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 		}
 		
 		return mergeFrame;
-		
 	}
 
 	/**
