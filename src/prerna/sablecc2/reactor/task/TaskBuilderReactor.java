@@ -162,7 +162,14 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		if(qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			ITableDataFrame frame = qs.getFrame();
 			if(frame == null) {
-				frame = (ITableDataFrame) this.insight.getDataMaker();
+				// see if the frame name exists
+				if(qs.getFrameName() != null) {
+					frame = (ITableDataFrame) this.insight.getVar(qs.getFrameName());
+				}
+				// default to bae frame
+				if(frame == null) {
+					frame = (ITableDataFrame) this.insight.getDataMaker();
+				}
 			}
 			qs.setFrame(frame);
 			qs.mergeImplicitFilters(frame.getFrameFilters());
