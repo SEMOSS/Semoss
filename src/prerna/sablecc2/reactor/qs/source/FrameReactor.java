@@ -39,6 +39,20 @@ public class FrameReactor extends AbstractQueryStructReactor {
 				}
 			}
 		}
+		
+		frameGrs = this.store.getNoun(PixelDataType.FRAME.toString());
+		if(frameGrs != null && !frameGrs.isEmpty()) {
+			NounMetadata noun = frameGrs.getNoun(0);
+			if(noun.getNounType() == PixelDataType.FRAME) {
+				return (ITableDataFrame) noun.getValue();
+			} else if(noun.getNounType() == PixelDataType.CONST_STRING) {
+				// is it a variable?
+				NounMetadata possibleFrameNoun = this.insight.getVarStore().get(noun.getValue() + "");
+				if(possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
+					return (ITableDataFrame) possibleFrameNoun.getValue();
+				}
+			}
+		}
 
 		List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
 		if(frameCur != null && !frameCur.isEmpty()) {
