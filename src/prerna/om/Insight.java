@@ -1451,11 +1451,16 @@ public class Insight {
 		return retURL.toString();
 	}
 	
-	public Object getVar(String varName)
-	{
+	/**
+	 * Utility method to pull from VarStore
+	 * @param varName
+	 * @return
+	 */
+	public Object getVar(String varName) {
 		Object retObject = this.varStore.get(varName);
-		if(retObject != null)
+		if(retObject != null) {
 			return ((NounMetadata)retObject).getValue();
+		}
 		return null;
 	}
 	

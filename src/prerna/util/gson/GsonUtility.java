@@ -7,6 +7,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.om.ColorByValueRule;
 import prerna.om.HeadersDataRow;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
@@ -60,7 +61,8 @@ public class GsonUtility {
 				.registerTypeAdapter(CsvQueryStruct.class, new CsvQueryStructAdapter())
 				.registerTypeAdapter(ExcelQueryStruct.class, new ExcelQueryStructAdapter())
 				.registerTypeAdapter(UpdateQueryStruct.class, new UpdateQueryStructAdapter())
-
+				.registerTypeAdapter(ColorByValueRule.class, new ColorByValueRuleAdapter())
+				
 				// selectors
 				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
 				.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter())
