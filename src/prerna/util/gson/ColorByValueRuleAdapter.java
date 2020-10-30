@@ -15,7 +15,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 
 public class ColorByValueRuleAdapter extends TypeAdapter<ColorByValueRule> {
 	
-	private static final Gson GSON = GsonUtility.getDefaultGson();
 	private static final Gson SIMPLE_GSON = new Gson();
 	
 	private boolean simple = false;
