@@ -132,7 +132,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 				}
 				cleanRow[i] = date;
 			} else {
-				cleanRow[i] = Utility.cleanString(val, true, true, false);
+				cleanRow[i] = val; //Utility.cleanString(val, true, true, false);
 			}
 		}
 		
