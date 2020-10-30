@@ -396,7 +396,7 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryAppSmss(String appId, String appName) throws IOException {
+	public static File createTemporaryAppSmss(String appId, String appName, boolean isAssetApp) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 		
 		// i am okay with deleting the .temp if it exists
@@ -422,6 +422,9 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.ENGINE + tab + appId + newLine);
 			bufferedWriter.write(Constants.ENGINE_ALIAS + tab + appName + newLine);
 			bufferedWriter.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
+			if(isAssetApp) {
+				bufferedWriter.write(Constants.IS_ASSET_APP + tab + true + newLine);
+			}
 			String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 			if(rdbmsTypeStr == null) {
 				// default will be h2

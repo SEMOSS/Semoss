@@ -107,7 +107,7 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 		File tempSmss = null;
 		logger.info("Start generating temp smss");
 		try {
-			tempSmss = UploadUtilities.createTemporaryAppSmss(appId, appName);
+			tempSmss = UploadUtilities.createTemporaryAppSmss(appId, appName, false);
 			DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();

@@ -473,6 +473,7 @@ public class Constants {
 	public static final String CUSTOM_LOGOUT_URL = "custom-logout-url";
 	public static final String SESSION_USER = "semoss_user";
 	public static final String USER_WORKSPACE_IDS = "USER_WORKSPACE_IDS";
+	public static final String IS_ASSET_APP = "IS_ASSET_APP";
 	public static final String USER_ASSET_IDS = "USER_ASSET_IDS";
 
 	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
