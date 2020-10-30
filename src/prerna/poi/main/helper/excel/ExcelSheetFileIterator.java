@@ -17,7 +17,6 @@ import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Utility;
 
 public class ExcelSheetFileIterator extends AbstractFileIterator {
 
@@ -136,7 +135,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			
 			// try to get correct type
 			if(type == SemossDataType.STRING) {
-				cleanRow[i] = Utility.cleanString(val.toString(), true, true, false);
+				cleanRow[i] = val; //Utility.cleanString(val.toString(), true, true, false);
 			} else if(type == SemossDataType.INT) {
 				if(val instanceof Number) {
 					cleanRow[i] = ((Number) val).intValue();
