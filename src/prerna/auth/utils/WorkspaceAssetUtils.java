@@ -91,8 +91,15 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	}
 	
 	// TODO >>>timb: WORKSPACE - DONE - look at GenerateEmptyAppReactor, use AppEngine
+	/**
+	 * Generate 
+	 * @param token
+	 * @param appName
+	 * @param ignoreAsset
+	 * @return
+	 * @throws Exception
+	 */
 	private static String createEmptyApp(AccessToken token, String appName, boolean ignoreAsset) throws Exception {
-		
 		// Create a new app id
 		String appId = UUID.randomUUID().toString();
 
@@ -106,7 +113,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		RDBMSNativeEngine insightDb = UploadUtilities.generateInsightsDatabase(appId, appName);
 
 		// Add database into DIHelper so that the web watcher doesn't try to load as well
-		File tempSmss = UploadUtilities.createTemporaryAppSmss(appId, appName);
+		File tempSmss = UploadUtilities.createTemporaryAppSmss(appId, appName, ignoreAsset);
 		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		
 		// Add the app to security db
@@ -150,8 +157,6 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		
 		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 		DIHelper.getInstance().setLocalProperty(appId, appEng);
-		
-		
 		
 		return appId;
 	}
