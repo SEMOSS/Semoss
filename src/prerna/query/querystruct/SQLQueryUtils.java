@@ -12,6 +12,7 @@ import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import prerna.ds.nativeframe.NativeFrame;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.SqlParser2;
@@ -22,9 +23,14 @@ import prerna.util.Utility;
 
 public class SQLQueryUtils {
 
-	public static NativeFrame joinQueryStructs(SelectQueryStruct curQS, SelectQueryStruct qs, List<Join> joins) 
-	{
-
+	/**
+	 * Merge 2 native frame query structs together based on the joins defined
+	 * @param curQS
+	 * @param qs
+	 * @param joins
+	 * @return
+	 */
+	public static NativeFrame joinQueryStructs(SelectQueryStruct curQS, SelectQueryStruct qs, List<Join> joins) {
 		// we can do this 2 ways
 		// we can do this through genexpression
 		// or do it through relationsets
@@ -33,12 +39,12 @@ public class SQLQueryUtils {
 		SqlParser2 parser2 = new SqlParser2();
 		
 		try {
-			SqlInterpreter interp = new SqlInterpreter();
+			IQueryInterpreter interp = curQS.retrieveQueryStructEngine().getQueryInterpreter();
 			interp.setQueryStruct(curQS);
 			String curQuery = interp.composeQuery();
 			GenExpressionWrapper curExpr = parser2.processQuery(curQuery);
 			
-			interp = new SqlInterpreter();
+			interp = qs.retrieveQueryStructEngine().getQueryInterpreter();
 			interp.setQueryStruct(qs);
 			String thisQuery = interp.composeQuery();
 			GenExpressionWrapper thisExpr = parser2.processQuery(thisQuery);
@@ -64,17 +70,13 @@ public class SQLQueryUtils {
 			hqs.setQuery(finalOutput.toString());
 			
 			NativeFrame emptyFrame = new NativeFrame();
-			emptyFrame.setName(curQS.getFrameName());
 			NativeImporter importer = new NativeImporter(emptyFrame, hqs);
 			importer.insertData();
 			
 			return emptyFrame;
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		
 		
 		return null;
 	}
