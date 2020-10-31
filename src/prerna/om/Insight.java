@@ -1093,6 +1093,7 @@ public class Insight {
 					p.setPositionMap(position);
 				}
 			}
+			this.pixelList.recalculateIdToIndexHash();
 			// and set the counter properly
 			// so that way the counter doesn't exponentially
 			// increase with every rerun
