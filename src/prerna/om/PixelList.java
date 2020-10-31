@@ -357,7 +357,7 @@ public class PixelList implements Iterable<Pixel> {
 	 * Get the id to index hash
 	 * @return
 	 */
-	private Map<String, Integer> getIdToIndexHash() {
+	public Map<String, Integer> getIdToIndexHash() {
 		if(idToIndexHash == null || idToIndexHash.isEmpty()) {
 			recalculateIdToIndexHash();
 		}
@@ -367,7 +367,7 @@ public class PixelList implements Iterable<Pixel> {
 	/**
 	 * Recalculate the index hash
 	 */
-	private void recalculateIdToIndexHash() {
+	public void recalculateIdToIndexHash() {
 		if(idToIndexHash == null) {
 			idToIndexHash = new ConcurrentHashMap<>();
 		} else {
