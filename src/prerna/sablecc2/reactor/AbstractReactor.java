@@ -14,6 +14,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
+import org.openqa.selenium.interactions.internal.KeysRelatedAction;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -80,6 +81,8 @@ public abstract class AbstractReactor implements IReactor {
 	public String[] keysToGet = new String[]{"no keys defined"};
 	// which of these are optional : 1 means required, 0 means optional
 	public int[] keyRequired = null;
+	// single or multi if 1 multi if 0 single
+	public int[] keyMulti = null;
 	
 	// defaults if one exists
 	// this I am not so sure.. but let us try
@@ -518,6 +521,56 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		return help.toString();
 	}
+	
+	//@Override
+	// list of string array
+	// and each array has param name, required, 
+	// 
+	public Map <String, Map<String, String>> getReactorParams() {
+		Map <String, Map<String, String>> retOutput = new HashMap <String, Map<String, String>>();
+		if(keysToGet == null) {
+			return retOutput;
+		}
+		// first add the names
+		for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) 
+		{
+			String key = keysToGet[keyIndex];
+			Map <String, String> keyMap = new HashMap<String, String>();
+			if(retOutput.containsKey(key))
+				keyMap = retOutput.get(key);
+			keyMap.put("NAME", key);
+			keyMap.put("LABEL", getDescriptionForKey(key));		
+			retOutput.put(key, keyMap);
+		}
+		
+		// is it required ?
+		for(int reqIndex = 0;this.keyRequired != null && reqIndex < this.keyRequired.length;reqIndex++)
+		{
+			String key = keysToGet[reqIndex];
+			Map <String, String> keyMap = new HashMap<String, String>();
+			if(retOutput.containsKey(key))
+				keyMap = retOutput.get(key);
+						
+			keyMap.put("REQUIRED", new Boolean((keyRequired[reqIndex] == 1)).toString());
+			retOutput.put(key, keyMap);
+		}
+		
+		// is it required ?
+		// single or multi value
+		for(int multiIndex = 0;this.keyMulti != null && multiIndex < this.keyMulti.length;multiIndex++)
+		{
+			String key = keysToGet[multiIndex];
+			Map <String, String> keyMap = new HashMap<String, String>();
+			if(retOutput.containsKey(key))
+				keyMap = retOutput.get(key);
+						
+			keyMap.put("MULTI", new Boolean((keyMulti[multiIndex] == 1)).toString());
+			retOutput.put(key, keyMap);
+		}
+
+		return retOutput;
+	}
+
 	
 	/**
 	 * Default is to grab keys from our standardized set

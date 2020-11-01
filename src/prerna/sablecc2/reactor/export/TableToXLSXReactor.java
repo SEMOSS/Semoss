@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.export;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -42,6 +41,7 @@ import cz.vutbr.web.css.Term;
 import cz.vutbr.web.css.TermColor;
 import cz.vutbr.web.css.TermLength;
 import cz.vutbr.web.css.TermPercent;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -53,9 +53,10 @@ public class TableToXLSXReactor	extends AbstractReactor
 
 		List <Integer> autoWrappedColumns = new Vector<Integer>();
 		int startColumn = 0;
+		int rowGutter = 2;
 		int startRow = 0;
 		int rowOffset = 2;
-		int columnOffset = 2;
+		int columnGutter = 0;
 		int lastRow = startRow;
 		int lastColumn = startColumn;
 		boolean keepOpen = true;
@@ -68,12 +69,25 @@ public class TableToXLSXReactor	extends AbstractReactor
 		Map colspanMatrix = new HashMap();
 		Map rowspanMatrix = new HashMap();
 		Map <Sheet, List<CellRangeAddress>> mergeAreas = new HashMap<Sheet, List <CellRangeAddress>>();
+		String exportTemplate = null;
 		
 		Map <Integer, Integer> columnToWidth = new HashMap<Integer, Integer>();
 		
 		public TableToXLSXReactor() {
 			// keep open specifies whether to keep this open or close it. if kept open then this will return open as noun metadata
-			this.keysToGet = new String[] { ReactorKeysEnum.SHEET.getKey(), ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), "merge-cells"};
+			// need to add table level header and tabel level footer
+			
+			this.keysToGet = new String[] { ReactorKeysEnum.SHEET.getKey(), ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), 
+					ReactorKeysEnum.MERGE_CELLS.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey(), 
+					ReactorKeysEnum.HEADERS.getKey(), 
+					ReactorKeysEnum.ROW_GUTTER.getKey(),
+					ReactorKeysEnum.COLUMN_GUTTER.getKey(),
+					ReactorKeysEnum.TABLE_HEADER.getKey(),
+					ReactorKeysEnum.TABLE_FOOTER.getKey()
+		
+			};
+			this.keyMulti = new int[] {0,0,0,0,0,1,0,0,0,0};
+			this.keyRequired = new int[] {1,1,0,0,0,0,0,0,0,0};
 		}
 
 		public NounMetadata execute()
@@ -84,6 +98,7 @@ public class TableToXLSXReactor	extends AbstractReactor
 			String fileName = Utility.getRandomString(5);
 			String html = null;
 			String sheetName = null;
+			exportTemplate = null;
 
 			getMap(insight.getInsightId());
 
@@ -99,6 +114,29 @@ public class TableToXLSXReactor	extends AbstractReactor
 			if(keyValue.containsKey(keysToGet[3]))
 				mergeCells = keyValue.get(keysToGet[3]).equalsIgnoreCase("true");
 
+			if(keyValue.containsKey(keysToGet[4]))
+				exportTemplate = keyValue.get(keysToGet[4]);
+			else if(insight.getProperty(keysToGet[4]) != null) // may be it is a var I dont know
+				exportTemplate = insight.getProperty(keysToGet[4]);
+
+			// get the headers
+			GenRowStruct grs = this.store.getNoun(keysToGet[5]);
+			String para1 = null;
+			String para2 = null;
+			
+			if(grs != null)
+			{
+				if(grs.size() > 1)
+					para1 = grs.get(0).toString();
+				if(grs.size() > 2)
+					para2 = grs.get(1).toString();
+				
+				if(para1 != null)
+					exportMap.put("para1", para1);
+				if(para2 != null)
+					exportMap.put("para2", para2);
+			}
+			
 			// process the table
 			// set in insight so FE can download the file
 			String fileLocation = processTable(sheetName, html,  fileName);
@@ -123,7 +161,6 @@ public class TableToXLSXReactor	extends AbstractReactor
 
 		public String processTable(String sheetName, String html, String fileName) 
 		{
-			String fileLocation = null;
 			try
 			{
 				Document doc = Jsoup.parse(html, "UTF-8");
@@ -135,10 +172,6 @@ public class TableToXLSXReactor	extends AbstractReactor
 					
 					wb = (Workbook)exportMap.get(fileName);
 					
-					Object oStartRow = exportMap.get(sheetName +"ROW_COUNT");
-					
-					if(oStartRow != null)
-						startRow = (Integer)oStartRow;
 					
 					// may be this is not needed for now
 					/*
@@ -149,7 +182,26 @@ public class TableToXLSXReactor	extends AbstractReactor
 				}
 				else
 				{
-					wb = new XSSFWorkbook();
+					if(exportTemplate != null)
+					{
+						wb = new XSSFWorkbook(exportTemplate);
+						if(wb.getSheet("footer") != null)
+						{
+							Sheet aSheet = wb.getSheet("footer");
+							if(aSheet.getRow(0) != null)
+							{
+								Row row = aSheet.getRow(0);
+								if(row.getCell(0) != null)
+								{
+									String footer = row.getCell(0).getStringCellValue();
+									exportMap.put("footer", footer);
+								}
+								
+							}
+						}
+					}
+					else
+						wb = new XSSFWorkbook();
 					exportMap.put(fileName, wb);
 				}
 
@@ -160,9 +212,25 @@ public class TableToXLSXReactor	extends AbstractReactor
 			 */	{
 				 aSheet = wb.getSheet(sheetName);
 				 if(aSheet == null)
-					aSheet = wb.createSheet(sheetName);
-					//exportMap.put(sheetName, aSheet);
+				 {
+					 if(this.exportTemplate != null)
+					 {
+						 aSheet = wb.cloneSheet(wb.getSheetIndex("header"));
+						 wb.setSheetName(wb.getSheetIndex(aSheet), sheetName);
+						 startRow = 6;
+						 // need to find a way to remove disclaimer
+						 
+					 }
+					 else
+						 aSheet = wb.createSheet(sheetName);
+					
+				 }
 				}
+				Object oStartRow = exportMap.get(sheetName +"ROW_COUNT");
+				
+				if(oStartRow != null)
+					startRow = (Integer)oStartRow;
+
 		   	    int offset = startRow + rowOffset; 
 		   	    lastRow = offset;
 		   	    // this assumes a single table being there
@@ -175,7 +243,15 @@ public class TableToXLSXReactor	extends AbstractReactor
 					processRow(wb, row, tr);
 					lastRow++;
 				}
+				// add 2 new lines
 				exportMap.put(sheetName + "ROW_COUNT", lastRow);
+				if(exportMap.containsKey(sheetName + "COLUMN_COUNT"))
+				{
+					int curLastColumn = (Integer)exportMap.get(sheetName + "COLUMN_COUNT");
+					if(curLastColumn > lastColumn)
+						lastColumn = curLastColumn;
+				}
+				exportMap.put(sheetName + "COLUMN_COUNT", lastColumn);
 				exportMap.put("FILE_NAME", fileName);
 			    return "Waiting for next command";
 			}catch (Exception ex)
@@ -189,7 +265,7 @@ public class TableToXLSXReactor	extends AbstractReactor
 		{
 			// get the style for the row if one exists
 			Elements tds = tr.children();
-			int offset = startColumn + columnOffset;
+			int offset = startColumn + columnGutter;
 			lastColumn = offset;
 			int tdIndex = 0;
 			int cellIndex = 0;
@@ -393,6 +469,27 @@ public class TableToXLSXReactor	extends AbstractReactor
 					input.setBorderBottom(styleToApply);
 			}
 			
+
+			
+			if(names.contains("border-color"))
+			{
+				int borderColorIndex = names.indexOf("border-color");
+				String borderColor= cssProps.get(borderColorIndex);
+				XSSFColor color = new XSSFColor();
+				color.setARGBHex(borderColor.substring(1));
+				((XSSFCellStyle)input).setBottomBorderColor(color);;
+				((XSSFCellStyle)input).setTopBorderColor(color);;
+				((XSSFCellStyle)input).setLeftBorderColor(color);;
+				((XSSFCellStyle)input).setRightBorderColor(color);;
+			}
+			else
+			{
+				input.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+				input.setTopBorderColor(IndexedColors.BLACK.getIndex());
+				input.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+				input.setRightBorderColor(IndexedColors.BLACK.getIndex());
+			}
+			
 			return input;
 					
 		}
@@ -504,6 +601,9 @@ public class TableToXLSXReactor	extends AbstractReactor
 					if(textAlign.equalsIgnoreCase("bottom"))
 						input.setVerticalAlignment(VerticalAlignment.BOTTOM);
 			 }
+			
+			// wrap the words
+			input.setWrapText(true);
 
 			return input;
 		}
@@ -657,7 +757,9 @@ public class TableToXLSXReactor	extends AbstractReactor
 		{
 			try {
 				Workbook wb = (Workbook) exportMap.get(fileName);
-
+				if(exportMap.containsKey("footer"))
+					fillFooter(wb, exportMap, (String)exportMap.get("footer"));
+				fillHeader(wb, exportMap, "Mahers Magic Carpet", "Incurred through abc to def");
 				String exportName = AbstractExportTxtReactor.getExportFileName(fileName, "xlsx");
 				String fileLocation = "c:/temp" + DIR_SEPARATOR + exportName;
 
@@ -673,6 +775,72 @@ public class TableToXLSXReactor	extends AbstractReactor
 
 		}
 		
+		private void fillHeader(Workbook wb, Map exportMap, String para1, String para2)
+		{
+			// usually the company name is in the first row 4th column
+			for(int sheetIndex = 0;sheetIndex < wb.getNumberOfSheets();sheetIndex++)
+			{
+				Sheet aSheet = wb.getSheetAt(sheetIndex);
+				String sheetName = aSheet.getSheetName();
+
+				// should already be there but
+				Row para1Row = aSheet.getRow(0);
+				if(para1Row == null)
+					para1Row = aSheet.createRow(0);
+				Row para2Row = aSheet.getRow(1);
+				if(para2Row == null)
+					para2Row = aSheet.createRow(1);
+				
+				Cell para1Cell = para1Row.getCell(3);
+				Cell para2Cell = para2Row.getCell(3);
+				
+				if(para1Cell == null) // ok weird
+					para1Cell = para1Row.createCell(3);
+				if(para2Cell == null) // ok weird
+					para2Cell = para2Row.createCell(3);
+
+				CellStyle style = wb.createCellStyle(); //Create new style
+	            style.setWrapText(true); //Set wordwrap
+	            if(para1 != null)
+	            	para1Cell.setCellValue(para1);
+	            if(para2 != null)
+	            	para2Cell.setCellValue(para2);				
+			}
+		}
+		
+		// can neel just send it as part of the information ?
+		private void fillFooter(Workbook wb, Map exportMap, String footer)
+		{
+			
+			wb.removeSheetAt(wb.getSheetIndex("header"));		
+			wb.removeSheetAt(wb.getSheetIndex("footer"));		
+			for(int sheetIndex = 0;sheetIndex < wb.getNumberOfSheets();sheetIndex++)
+			{
+				Sheet aSheet = wb.getSheetAt(sheetIndex);
+				String sheetName = aSheet.getSheetName();
+				
+				// final row count 
+				int sheetTotalRows = 0;
+				int sheetTotalColumns = 0;
+				if(wb.getSheet("header") != null)
+					sheetTotalRows = 5; // leave space foe headers
+				if(exportMap.containsKey(sheetName + "ROW_COUNT"))
+					sheetTotalRows = (Integer)exportMap.get(sheetName + "ROW_COUNT");
+				if(exportMap.containsKey(sheetName + "COLUMN_COUNT"))
+					sheetTotalColumns = (Integer)exportMap.get(sheetName + "COLUMN_COUNT");
+				
+				Row row = aSheet.createRow(sheetTotalRows + 2);
+				Cell cell = row.createCell(0);
+				CellStyle style = wb.createCellStyle(); //Create new style
+	            style.setWrapText(true); //Set wordwrap
+	            cell.setCellStyle(style); //Apply style to cell
+				cell.setCellValue(footer);
+				
+				aSheet.addMergedRegion(new CellRangeAddress(sheetTotalRows + 2, sheetTotalRows +4, 0, sheetTotalColumns + 4));			
+			}
+			
+		}
+
 		
 		
 		public static void main(String [] args)
@@ -719,12 +887,14 @@ public class TableToXLSXReactor	extends AbstractReactor
 					"    </tr>\r\n" + 
 					"  </tbody>\r\n" + 
 					"</table></body></html>";
+			tx.exportTemplate = "c:/users/pkapaleeswaran/workspacej3/SemossDev/templates/anthem.xlsx";
 			tx.processTable("sh", html, "hello");
 			tx.mergeAreas();
 			tx.writeWorkbook("hello");
 			
 			
 		}
+		
 		
 		
 }

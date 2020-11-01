@@ -47,7 +47,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 	
 
 	public ExportToPPTNNReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.HEIGHT.getKey(), ReactorKeysEnum.WIDTH.getKey(), ReactorKeysEnum.SLIDE_LAYOUT.getKey(), ReactorKeysEnum.SHAPE_INDEX.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.HEIGHT.getKey(), ReactorKeysEnum.WIDTH.getKey(), ReactorKeysEnum.SLIDE_LAYOUT.getKey(), ReactorKeysEnum.SHAPE_INDEX.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey()};
 	}
 
 	@Override
