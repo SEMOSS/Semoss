@@ -33,6 +33,7 @@ import org.apache.poi.util.IOUtils;
 import org.apache.poi.xssf.usermodel.XSSFPivotTable;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openqa.selenium.chrome.ChromeDriver;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -57,7 +58,7 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 	public static final String exportTemplate = "EXCEL_EXPORT_TEMPLATE";
 
 	public ExportToExcelNNReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.USE_PANEL.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey()};
 	}
 
 	@Override
@@ -113,6 +114,9 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 		
 		Workbook wb = null;
 		FileOutputStream fileOut = null;
+		
+	   ChromeDriver driver = null;
+
 		try {
 			if(template != null) {
 				wb = new XSSFWorkbook(template);
@@ -161,8 +165,13 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 					String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "png");
 					String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 
+					if(driver == null)
+						driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, sessionId, 800, 600);
 					// download this file
-					ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800, 600, true);
+					ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId);
+
+					// download this file
+					//ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800, 600, true);
 					// write this to the sheet now
 
 					//1920 x 936
@@ -210,6 +219,7 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 					InsightPanel pivotPanel = pivotPanelsBySheet.get(thisKey);
 					TaskOptions taskOptions= pivotPanel.getTaskOptions();
 					ITask task = new BasicIteratorTask(pivotPanel.getLastQs());
+					task.setLogger(this.getLogger(this.getClass().getName()));
 					task.setTaskOptions(taskOptions);
 
 					// I dont know if this can deal with older excel formats ?
@@ -248,6 +258,10 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 			if(template != null) {
 				wb.removeSheetAt(wb.getSheetIndex(wb.getSheet("Template")));
 			}
+			
+			   if(driver != null)
+				   driver.quit();
+
 			
 			makeParamSheet(wb);
 			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
@@ -310,6 +324,15 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 			row.createCell(2).setCellValue(column);
 			row.createCell(3).setCellValue(values);
 		}
+		
+		// auto fit
+		/*for(int columnIndex = 0; columnIndex < 10; columnIndex++) {
+		     paramSheet.autoSizeColumn(columnIndex);
+		}*/
+		
+		// set random width
+		//paramSheet.setColumnWidth(3, 30*256);
+
 	}
 
 	private Map<String, Object> writeData(XSSFWorkbook workbook, XSSFSheet sheet, ITask task, Map<String, Map<String, String>> panelFormatting) {
@@ -574,6 +597,11 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 			pivotTable.getCTPivotTableDefinition().addNewColFields().addNewField().setX(xlHeaderIndex);
 		}
 
+		// use this for the section once the section comes in
+		// this adds a report filter
+	    //pivotTable.addReportFilter(3);
+
+		
 		//		try {
 		//		FileOutputStream fileOut = null;
 		//		   fileOut = new FileOutputStream("c:/users/pkapaleeswaran/workspacej3/temp/myTFile.xlsx");

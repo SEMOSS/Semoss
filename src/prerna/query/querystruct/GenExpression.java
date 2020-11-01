@@ -933,5 +933,35 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		
 	}
 
+	public void addSelect(GenExpression selector)
+	{
+		// if it is duplicate dont add it
+			// check the alias
+		for(int selectorIndex = 0;selectorIndex < nselectors.size();selectorIndex++)
+		{
+			GenExpression thisSelector = nselectors.get(selectorIndex);
+			if(selector.leftAlias != null)
+			{
+				// see if the alias is same
+				if(thisSelector.leftAlias != null && thisSelector.leftAlias.contentEquals(selector.leftAlias))
+					return;
+				// see if the column tablaname is same
+				else if(thisSelector.getLeftExpr() != null && thisSelector.getLeftExpr().contentEquals(selector.leftAlias))
+					return;
+			}
+			else if(selector.getLeftExpr() != null)
+			{
+				// see if the alias is same
+				if(thisSelector.leftAlias != null && thisSelector.leftAlias.contentEquals(selector.getLeftExpr()))
+					return;
+				// see if the column tablaname is same
+				else if(thisSelector.getLeftExpr() != null && thisSelector.getLeftExpr().contentEquals(selector.getLeftExpr()))
+					return;
+				
+			}
+		}
+		nselectors.add(selector);
+	}
+	
 	
 }
