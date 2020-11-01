@@ -116,7 +116,9 @@ public class SQLQueryUtils {
 			String curTableAlias = null;
 			if(curExpr.from  != null)
 			{
-				curTableAlias = curExpr.from.getLeftExpr();			
+				curTableAlias = curExpr.from.getLeftExpr();		
+				if(curTableAlias == null)
+					curTableAlias = curExpr.from.leftAlias;
 				aliasForThisExpr = aliasForThisExpr + "_" + curTableAlias;
 				// add this for the joins later
 				aliasTranslationMap.put(curTableAlias, aliasForThisExpr);
@@ -156,7 +158,9 @@ public class SQLQueryUtils {
 					newSelector.aQuery = newSelector.tableName + "." + newSelector.getLeftExpr();
 					
 					// done.. now we can add it
-					retExpression.nselectors.add(newSelector);
+					// add it thorugh method
+					retExpression.addSelect(newSelector);
+					//retExpression.nselectors.add(newSelector);
 				}
 				
 				// see if this is the first statement. if so make it to be from
@@ -166,6 +170,7 @@ public class SQLQueryUtils {
 				//exprCopy.paranthesis = true;
 				//exprCopy.composite = true;
 				exprCopy.leftAlias = aliasForThisExpr;
+				exprCopy.setLeftExpr(aliasForThisExpr);
 					
 				if(expIndex == 0)
 				{
