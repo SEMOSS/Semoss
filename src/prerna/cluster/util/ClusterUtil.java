@@ -109,28 +109,28 @@ public class ClusterUtil {
 		}
 
 	}
-	
-	  public static JSONObject readJsonFromUrl(String url) throws IOException, JSONException {
-		    InputStream is = new URL(url).openStream();
-		    try {
-		      BufferedReader rd = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")));
-		      String jsonText = readAll(rd);
-		      JSONObject json = new JSONObject(jsonText);
-		      return json;
-		    } finally {
-		      is.close();
-		    }
-		  }
-	  
-	  private static String readAll(Reader rd) throws IOException {
-		    StringBuilder sb = new StringBuilder();
-		    int cp;
-		    while ((cp = rd.read()) != -1) {
-		      sb.append((char) cp);
-		    }
-		    return sb.toString();
-		  }
-	
+
+	public static JSONObject readJsonFromUrl(String url) throws IOException, JSONException {
+		InputStream is = new URL(url).openStream();
+		try {
+			BufferedReader rd = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")));
+			String jsonText = readAll(rd);
+			JSONObject json = new JSONObject(jsonText);
+			return json;
+		} finally {
+			is.close();
+		}
+	}
+
+	private static String readAll(Reader rd) throws IOException {
+		StringBuilder sb = new StringBuilder();
+		int cp;
+		while ((cp = rd.read()) != -1) {
+			sb.append((char) cp);
+		}
+		return sb.toString();
+	}
+
 	public static boolean isSchedulerExecutor() {
 		if (ClusterUtil.IS_CLUSTER) {
 			logger.info("Checking if pod is leader");
@@ -140,16 +140,16 @@ public class ClusterUtil {
 			}
 
 			//then check env var
-		    String leader = System.getenv(SCHEDULER_EXECUTOR_KEY);
-		    if(leader != null && !leader.isEmpty()) {
-		    	return Boolean.parseBoolean(leader);
-		    }
-		    
-		    //zk
-		    return SchedulerListener.getListener().isZKLeader();
-		    
+			String leader = System.getenv(SCHEDULER_EXECUTOR_KEY);
+			if(leader != null && !leader.isEmpty()) {
+				return Boolean.parseBoolean(leader);
+			}
+
+			//zk
+			return SchedulerListener.getListener().isZKLeader();
+
 			//finally dynamic
-		    
+
 //			String hostName = System.getenv("HOSTNAME");
 //			logger.info("pod host name is " + hostName);
 //
@@ -190,7 +190,7 @@ public class ClusterUtil {
 			}
 		}
 	}
-	
+
 	public static void reactorPullApp(String appId, boolean appAlreadyLoaded) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
@@ -220,11 +220,11 @@ public class ClusterUtil {
 			}
 		}
 	}
-	
+
 	public static void reactorPullInsightsDB(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-			 CloudClient.getClient().pullInsightsDB(appId);
+				CloudClient.getClient().pullInsightsDB(appId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to check if app has been modified", PixelDataType.CONST_STRING,
@@ -236,11 +236,11 @@ public class ClusterUtil {
 		}
 		return;
 	}
-	
+
 	public static void reactorPushInsightDB(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-			 CloudClient.getClient().pushInsightDB(appId);
+				CloudClient.getClient().pushInsightDB(appId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to check if app has been modified", PixelDataType.CONST_STRING,
@@ -252,11 +252,11 @@ public class ClusterUtil {
 		}
 		return;
 	}
-	
+
 	public static void reactorPullOwl(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-			 CloudClient.getClient().pullOwl(appId);
+				CloudClient.getClient().pullOwl(appId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to pull owl for engine: " + appId, PixelDataType.CONST_STRING,
@@ -268,11 +268,11 @@ public class ClusterUtil {
 		}
 		return;
 	}
-	
+
 	public static void reactorPushOwl(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-			 CloudClient.getClient().pushOwl(appId);
+				CloudClient.getClient().pushOwl(appId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push owl for engine: " + appId, PixelDataType.CONST_STRING,
@@ -284,7 +284,7 @@ public class ClusterUtil {
 		}
 		return;
 	}
-	
+
 
 
 	public static void reactorUpdateApp(String appId) {
@@ -316,35 +316,35 @@ public class ClusterUtil {
 			}
 		}
 	}
-	
+
 	public static void  reactorPushVersionFolder(IEngine engine, String relativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
-		String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
-		Path appHomePath = Paths.get(appHome);
-		String abolsutePath = appHome + DIR_SEPARATOR + "version";
-		Path relative = appHomePath.relativize( Paths.get(abolsutePath));
-		ClusterUtil.reactorPushFolder(engine.getEngineId(),abolsutePath, relative.toString());
-		
+			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+					+ DIR_SEPARATOR + "db"
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
+			Path appHomePath = Paths.get(appHome);
+			String abolsutePath = appHome + DIR_SEPARATOR + "version";
+			Path relative = appHomePath.relativize( Paths.get(abolsutePath));
+			ClusterUtil.reactorPushFolder(engine.getEngineId(),abolsutePath, relative.toString());
+
 		}		
 	}
-	
+
 	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
 	public static void  reactorPushFolder(IEngine engine, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
-		String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
-		Path appHomePath = Paths.get(appHome);
-		Path relative = appHomePath.relativize( Paths.get(absolutePath));
-		ClusterUtil.reactorPushFolder(engine.getEngineId(),absolutePath, relative.toString());
-		
+			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+					+ DIR_SEPARATOR + "db"
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
+			Path appHomePath = Paths.get(appHome);
+			Path relative = appHomePath.relativize( Paths.get(absolutePath));
+			ClusterUtil.reactorPushFolder(engine.getEngineId(),absolutePath, relative.toString());
+
 		}		
 	}
-	
+
 	public static void reactorPushFolder(String appId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
@@ -358,21 +358,21 @@ public class ClusterUtil {
 			}
 		}		
 	}
-	
+
 	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
 	public static void  reactorPullFolder(IEngine engine, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
-		String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
-		Path appHomePath = Paths.get(appHome);
-		Path relative = appHomePath.relativize( Paths.get(absolutePath));
-		ClusterUtil.reactorPullFolder(engine.getEngineId(),absolutePath, relative.toString());
-		
+			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+					+ DIR_SEPARATOR + "db"
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
+			Path appHomePath = Paths.get(appHome);
+			Path relative = appHomePath.relativize( Paths.get(absolutePath));
+			ClusterUtil.reactorPullFolder(engine.getEngineId(),absolutePath, relative.toString());
+
 		}		
 	}
-	
+
 	//create a pull folder
 	public static void reactorPullFolder(String appId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
@@ -390,40 +390,40 @@ public class ClusterUtil {
 	}
 
 	public static File getImage(String appID) {
-		
-			File imageFile = null;
-			File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "apps");
-			String imageFilePath; 
-			imageFolder.mkdirs();
-			
-			//so i dont always know the extension, but every image should be named by the appid which means i need to search the folder for something like the file
-			  File[] images = imageFolder.listFiles(new FilenameFilter() {
-			        @Override
-			        public boolean accept(File dir, String name) {
-			            return name.contains(appID);
-			        }
-			    });
-			if(images!= null && images.length > 0){
-				//we got a file. hopefully there is only 1 file if there is more, return [0] for now
-				return images[0];
-			}	
+
+		File imageFile = null;
+		File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "apps");
+		String imageFilePath; 
+		imageFolder.mkdirs();
+
+		//so i dont always know the extension, but every image should be named by the appid which means i need to search the folder for something like the file
+		File[] images = imageFolder.listFiles(new FilenameFilter() {
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.contains(appID);
+			}
+		});
+		if(images!= null && images.length > 0){
+			//we got a file. hopefully there is only 1 file if there is more, return [0] for now
+			return images[0];
+		}	
 		else
 			try {
 				//first try to pull the images folder, Return it after the pull, or else we make the file
 				CloudClient.getClient().pullImageFolder();
 				//so i dont always know the extension, but every image should be named by the appid which means i need to search the folder for something like the file
-				 images = imageFolder.listFiles(new FilenameFilter() {
-				        @Override
-				        public boolean accept(File dir, String name) {
-				            return name.contains(appID);
-				        }
-				    });
+				images = imageFolder.listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.contains(appID);
+					}
+				});
 				if(images.length > 0){
 					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
 					return images[0];
 				} else {
 					String alias = SecurityQueryUtils.getEngineAliasForId(appID);
-					 imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "apps" + DIR_SEPARATOR + appID + ".png";
+					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "apps" + DIR_SEPARATOR + appID + ".png";
 
 					if(alias != null) {
 						TextToGraphic.makeImage(alias, imageFilePath);
@@ -433,15 +433,15 @@ public class ClusterUtil {
 					CloudClient.getClient().pushImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
-				 imageFile = new File(imageFilePath);
+				imageFile = new File(imageFilePath);
 
-					if(imageFile.exists()){
-						return imageFile;
-					} else{
+				if(imageFile.exists()){
+					return imageFile;
+				} else{
 					String stockImageDir = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "stock" + DIR_SEPARATOR + "color-logo.png";
 					imageFile = new File (stockImageDir);
-					}
-				
+				}
+
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to fetch app image", PixelDataType.CONST_STRING,
@@ -450,9 +450,9 @@ public class ClusterUtil {
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			} 
-			return imageFile;
+		return imageFile;
 	}
-	
+
 	public static List<File> getSubdirs(String path) {
 
 		File file = new File(path);
@@ -482,7 +482,7 @@ public class ClusterUtil {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	public static void validateFolder(String folderPath){
 		List<File> subdirs = getSubdirs(folderPath);
 		for (File f : subdirs){
@@ -492,17 +492,17 @@ public class ClusterUtil {
 			}
 		}
 	}
-	
+
 	public static String getAppHome(IEngine engine) {
 		return  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 				+ DIR_SEPARATOR + "db"
 				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
 	}
-	
+
 	public static String getAppHome(String engineId, String engineName) {
 		return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 				+ DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engineId, engineName);
-	}
-	
+						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engineId, engineName);
+			}
+
 }
