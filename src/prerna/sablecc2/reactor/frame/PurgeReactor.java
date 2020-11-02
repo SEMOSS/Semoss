@@ -10,9 +10,11 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -23,13 +25,20 @@ public class PurgeReactor extends AbstractFrameReactor {
 
 	private static final String CLASS_NAME = PurgeReactor.class.getName();
 	
+	public PurgeReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.FILTERS.getKey()};
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		
 		// get the frame
 		ITableDataFrame frame = getFrame();
-		GenRowFilters curFilters = frame.getFrameFilters().copy();
+		GenRowFilters curFilters = getFilters();
+		if(curFilters == null) {
+			curFilters = frame.getFrameFilters().copy();
+		}
 		SelectQueryStruct qs = frame.getMetaData().getFlatTableQs(false);
 		qs.setExplicitFilters(curFilters);
 		qs.setFrame(frame);
@@ -130,6 +139,27 @@ public class PurgeReactor extends AbstractFrameReactor {
 		
 		// return the noun
 		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
+	
+	/**
+	 * Take in user defined filters
+	 * @return
+	 */
+	protected GenRowFilters getFilters() {
+		// generate a grf with the wanted filters
+		GenRowFilters grf = new GenRowFilters();
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++) {
+			IQueryFilter nextFilter = (IQueryFilter) this.curRow.get(i);
+			if (nextFilter != null) {
+				grf.addFilters(nextFilter);
+			}
+		}
+		if(grf != null && !grf.isEmpty()) {
+			return grf;
+		}
+		
+		return null;
 	}
 
 }
