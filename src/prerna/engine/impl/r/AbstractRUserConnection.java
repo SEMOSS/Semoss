@@ -31,6 +31,10 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	private static final long HEALTH_TIMEOUT = 3L;
 	private static final TimeUnit HEALTH_TIMEOUT_UNIT = TimeUnit.SECONDS;
 	
+	// R default packages loading
+	private static final long DEFAULT_PACAKGES_TIMEOUT = 20L;
+	private static final TimeUnit DEFAULT_PACAKGES_UNIT = TimeUnit.SECONDS;
+	
 	// R timeout
 	private static final long R_TIMEOUT = 7L;
 	private static final TimeUnit R_TIMEOUT_UNIT = TimeUnit.HOURS;
@@ -258,7 +262,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 						}
 					});
 					// sometimes this is slow on startup
-					future.get(15L, TimeUnit.SECONDS);
+					future.get(DEFAULT_PACAKGES_TIMEOUT, DEFAULT_PACAKGES_UNIT);
 				}
 			} finally {
 				executor.shutdownNow();
