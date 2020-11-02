@@ -181,6 +181,7 @@ public class ClusterUtil {
 			try {
 				CloudClient.getClient().pullApp(appId);
 			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to pull app to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -195,6 +196,7 @@ public class ClusterUtil {
 			try {
 				CloudClient.getClient().pullApp(appId, appAlreadyLoaded);
 			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to pull app to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -209,6 +211,7 @@ public class ClusterUtil {
 			try {
 				CloudClient.getClient().pushApp(appId);
 			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push app to cloud storage", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -222,7 +225,8 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 			 CloudClient.getClient().pullInsightsDB(appId);
-			} catch (IOException | InterruptedException e1) {
+			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to check if app has been modified", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -237,7 +241,8 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 			 CloudClient.getClient().pushInsightDB(appId);
-			} catch (IOException | InterruptedException e1) {
+			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to check if app has been modified", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -267,7 +272,8 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 			 CloudClient.getClient().pushOwl(appId);
-			} catch (IOException | InterruptedException e1) {
+			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push owl for engine: " + appId, PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -285,6 +291,7 @@ public class ClusterUtil {
 			try {
 				CloudClient.getClient().updateApp(appId);
 			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to update app from cloud storage",
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -299,6 +306,7 @@ public class ClusterUtil {
 			try {
 				CloudClient.getClient().updateApp(appId);
 			}  catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to fetch app image", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -370,6 +378,7 @@ public class ClusterUtil {
 			try {
 				CloudClient.getClient().pullFolder(appId, absolutePath, remoteRelativePath);
 			}  catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -433,6 +442,7 @@ public class ClusterUtil {
 					}
 				
 			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to fetch app image", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
@@ -468,8 +478,7 @@ public class ClusterUtil {
 		try {
 			hiddenFile.createNewFile();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
