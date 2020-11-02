@@ -257,7 +257,8 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 			 CloudClient.getClient().pullOwl(appId);
-			} catch (IOException | InterruptedException e1) {
+			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to pull owl for engine: " + appId, PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
