@@ -75,7 +75,7 @@ public class WithReactor extends AbstractQueryStructReactor {
 	    			|| parentReactor instanceof GenericReactor) {
 	    		parentReactor.getCurRow().add(data);
 	    	} else {
-	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.getKey());
 				parentQSInput.add(data);
 	    	}
 		}

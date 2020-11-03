@@ -60,7 +60,7 @@ public class CollectMetaReactor extends AbstractReactor {
 		ITask task = null;
 
 		// look in the store
-		GenRowStruct taskGrs = this.store.getNoun(PixelDataType.TASK.toString());
+		GenRowStruct taskGrs = this.store.getNoun(PixelDataType.TASK.getKey());
 		if(taskGrs != null && !taskGrs.isEmpty()) {
 			task = (ITask) taskGrs.get(0);
 			return task;

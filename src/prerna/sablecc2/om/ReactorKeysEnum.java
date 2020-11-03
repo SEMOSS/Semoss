@@ -8,7 +8,7 @@ public enum ReactorKeysEnum {
 	ADDITIONAL_PIXELS("additionalPixels",					"Additional pixels to be executed in addition to the pixel steps saved within the insight"),
 	ALL("all",                                              "Boolean to use all the values"),
 	ALL_NUMERIC_KEY("allNumeric", 							"Indicates if only numeric headers should be returned"),
-	ALIAS("alias", 											"An alias to assign for an operation or output"),
+	ALIAS("alias", 											"An alias to assign for an operation or output - use .as([\"aliasName\"])"), 
 	APP("app", 												"Name of the app on the local SEMOSS instance"),
 	ANIMATE("animate", 										"Specifies if the ggplot needs to be animated"),
 	APP_TYPE("appType", 									"The type of app"),

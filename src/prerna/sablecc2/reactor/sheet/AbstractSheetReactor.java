@@ -26,13 +26,6 @@ public abstract class AbstractSheetReactor extends AbstractReactor {
 			}
 		}
 		
-		// look at all the ways the insight sheet could be passed
-		// look at store if it was passed in
-		genericReactorGrs = this.store.getNoun(PixelDataType.SHEET.toString());
-		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
-			return (InsightSheet) genericReactorGrs.get(0);
-		}
-		
 		// see if it is in the curRow
 		// if it was passed directly in as a variable
 		List<NounMetadata> panelNouns = this.curRow.getNounsOfType(PixelDataType.SHEET);

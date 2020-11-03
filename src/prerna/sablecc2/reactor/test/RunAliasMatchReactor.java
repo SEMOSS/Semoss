@@ -13,6 +13,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RunAliasMatchReactor extends AbstractReactor {
@@ -28,13 +29,13 @@ public class RunAliasMatchReactor extends AbstractReactor {
 		try {
 			inputIterator = getInputIterator();
 		} catch (Exception e) {
-			logger.error("StackTrace: ", e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		Iterator<IHeadersDataRow> proposalIterator = null;
 		try {
 			proposalIterator = getProposalIterator();
 		} catch (Exception e) {
-			logger.error("StackTrace: ", e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		//need to check if all aliases and all hashcodes are the same

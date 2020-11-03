@@ -121,7 +121,7 @@ public class AdminExecQueryReactor extends AbstractReactor {
 
 	private NounMetadata getQueryStruct() {
 		NounMetadata object = new NounMetadata(null, PixelDataType.QUERY_STRUCT);
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey());
 		NounMetadata f = new NounMetadata(false, PixelDataType.BOOLEAN);
 		if (allNouns != null) {
 			object = allNouns.getNoun(0);
