@@ -14,7 +14,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
-import org.openqa.selenium.interactions.internal.KeysRelatedAction;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -286,7 +285,7 @@ public abstract class AbstractReactor implements IReactor {
     
     private Map<String, Object> processLambdaNounMap(NounMetadata noun) {
     	Map<String, Object> lambdaMap = new HashMap<>();
-    	lambdaMap.put("type", noun.getNounType());
+    	lambdaMap.put("type", noun.getNounType().getKey());
     	// the value is another PixelOperation
     	lambdaMap.put("value", ((IReactor) noun.getValue()).getStoreMap() );
     	return lambdaMap;
@@ -294,7 +293,7 @@ public abstract class AbstractReactor implements IReactor {
     
     private Map<String, Object> processBasicNounMap(NounMetadata noun) {
     	Map<String, Object> basicInput = new HashMap<>();
-		basicInput.put("type", noun.getNounType());
+		basicInput.put("type", noun.getNounType().getKey());
 		basicInput.put("value", noun.getValue());
 		return basicInput;
     }
@@ -308,11 +307,11 @@ public abstract class AbstractReactor implements IReactor {
 		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), FrameFactory.getFrameType(frame));
 		String name = frame.getName();
 		if(name != null) {
-			frameMap.put(PixelDataType.ALIAS.toString(), name);
+			frameMap.put(PixelDataType.ALIAS.getKey(), name);
 		}
 		
 		Map<String, Object> nounStructure = new HashMap<>();
-		nounStructure.put("type", PixelDataType.FRAME_MAP.toString());
+		nounStructure.put("type", PixelDataType.FRAME_MAP.getKey());
 		nounStructure.put("value", frameMap);
 		return nounStructure;
     }
