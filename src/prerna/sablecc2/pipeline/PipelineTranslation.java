@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.om.Insight;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -53,7 +52,6 @@ import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.test.TestUtilityMethods;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -382,7 +380,7 @@ public class PipelineTranslation extends LazyTranslation {
     
     private Map<String, Object> processLambdaNounMap(NounMetadata noun) {
     	Map<String, Object> lambdaMap = new HashMap<>();
-    	lambdaMap.put("type", noun.getNounType());
+    	lambdaMap.put("type", noun.getNounType().getKey());
     	// the value is another PixelOperation
     	lambdaMap.put("value", generatePipelineOperation(  (IReactor) noun.getValue()));
     	return lambdaMap;
@@ -390,7 +388,7 @@ public class PipelineTranslation extends LazyTranslation {
     
     private Map<String, Object> processBasicNounMap(NounMetadata noun) {
     	Map<String, Object> basicInput = new HashMap<>();
-		basicInput.put("type", noun.getNounType());
+		basicInput.put("type", noun.getNounType().getKey());
 		basicInput.put("value", noun.getValue());
 		return basicInput;
     }
@@ -404,11 +402,11 @@ public class PipelineTranslation extends LazyTranslation {
 		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), FrameFactory.getFrameType(frame));
 		String name = frame.getName();
 		if(name != null) {
-			frameMap.put(PixelDataType.ALIAS.toString(), name);
+			frameMap.put(PixelDataType.ALIAS.getKey(), name);
 		}
 		
 		Map<String, Object> nounStructure = new HashMap<>();
-		nounStructure.put("type", PixelDataType.FRAME_MAP.toString());
+		nounStructure.put("type", PixelDataType.FRAME_MAP.getKey());
 		nounStructure.put("value", frameMap);
 		return nounStructure;
     }
