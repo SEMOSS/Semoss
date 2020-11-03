@@ -99,14 +99,14 @@ public class ImportReactor extends AbstractReactor {
 	}
 
 	protected SelectQueryStruct getQueryStruct() {
-		GenRowStruct allNouns = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
+		GenRowStruct allNouns = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
 		SelectQueryStruct queryStruct = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
 			return (SelectQueryStruct)object.getValue();
 		} else {
 			NounMetadata result = this.planner.getVariableValue("$RESULT");
-			if(result.getNounType().equals("QUERYSTRUCT")) {
+			if(result.getNounType() == PixelDataType.QUERY_STRUCT) {
 				queryStruct = (SelectQueryStruct)result.getValue();
 			}
 		}
