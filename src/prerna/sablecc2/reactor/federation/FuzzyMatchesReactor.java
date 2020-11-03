@@ -200,7 +200,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		// will check for a proper Task or a QS
 		ITask task = null;
 
-		GenRowStruct grsTasks = this.store.getNoun(PixelDataType.TASK.toString());
+		GenRowStruct grsTasks = this.store.getNoun(PixelDataType.TASK.getKey());
 		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
 		if(grsTasks != null && grsTasks.size() > index) {
 			task = (ITask) grsTasks.get(index);
@@ -226,7 +226,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		NounMetadata noun = null;
 		SelectQueryStruct qs = null;
 
-		GenRowStruct grsQs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
+		GenRowStruct grsQs = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
 		//if we don't have tasks in the curRow, check if it exists in genrow under the qs key
 		if(grsQs != null && grsQs.size() > index) {
 			noun = grsQs.getNoun(index);

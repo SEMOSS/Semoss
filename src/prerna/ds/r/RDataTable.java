@@ -41,6 +41,11 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	private RFrameBuilder builder;
 
+	// THIS CONSTRUCTOR IS USED FOR TESTING
+//	public RDataTable(String name) {
+//		this.frameName = name;
+//	}
+	
 	public RDataTable() {
 		AbstractRJavaTranslator rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(new Insight(), this.logger);
 		this.builder = new RFrameBuilder(rJavaTranslator);
@@ -85,6 +90,9 @@ public class RDataTable extends AbstractTableDataFrame {
 	 */
 	@Override
 	public String getName() {
+		if(this.builder == null) {
+			return this.frameName;
+		}
 		return this.builder.getTableName();
 	}
 	

@@ -75,7 +75,7 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 			return (SelectQueryStruct) genericReactorGrs.get(0);
 		}
 		
-		genericReactorGrs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
+		genericReactorGrs = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return (SelectQueryStruct) genericReactorGrs.get(0);
 		}
@@ -101,14 +101,14 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 			return (Map<String, Object>) genericReactorGrs.get(0);
 		}
 		
-		genericReactorGrs = this.store.getNoun(PixelDataType.MAP.toString());
+		genericReactorGrs = this.store.getNoun(PixelDataType.MAP.getKey());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return (Map<String, Object>) genericReactorGrs.get(0);
 		}
 		
 		// see if it is in the curRow
 		// if it was passed directly in as a variable
-		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.QUERY_STRUCT);
+		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(strNouns != null && !strNouns.isEmpty()) {
 			return (Map<String, Object>) strNouns.get(0).getValue();
 		}

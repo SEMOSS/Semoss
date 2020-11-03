@@ -12,7 +12,6 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 
-//	protected static final String PANEL_KEY = "panel";
 	protected static final String TRAVERSAL_KEY = ReactorKeysEnum.TRAVERSAL.getKey();
 
 	protected InsightPanel getInsightPanel() {
@@ -30,13 +29,6 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 				String panelId = noun.getValue().toString();
 				return this.insight.getInsightPanel(panelId);
 			}
-		}
-		
-		// look at all the ways the insight panel could be passed
-		// look at store if it was passed in
-		genericReactorGrs = this.store.getNoun(PixelDataType.PANEL.toString());
-		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
-			return (InsightPanel) genericReactorGrs.get(0);
 		}
 		
 		// see if it is in the curRow

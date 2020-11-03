@@ -30,6 +30,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ChromeDriverUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ToPPTReactor extends AbstractReactor {
@@ -37,7 +38,6 @@ public class ToPPTReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(ToPPTReactor.class);
 
 	private static final String CLASS_NAME = ToPPTReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
 
 	public ToPPTReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.BASE_URL.getKey(), ReactorKeysEnum.URL.getKey(),
@@ -94,9 +94,9 @@ public class ToPPTReactor extends AbstractReactor {
 			try {
 				pic = IOUtils.toByteArray(new FileInputStream(Utility.normalizePath(path)));
 			} catch (FileNotFoundException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
+				logger.error(Constants.STACKTRACE, ioe);
 			}
 			XSLFPictureData picData = slideshow.addPicture(pic, PictureType.PNG);
 			Rectangle picBounds = createStandardPowerPointImageBounds();
@@ -114,7 +114,7 @@ public class ToPPTReactor extends AbstractReactor {
 					FileUtils.forceDelete(f);
 				}
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -166,9 +166,9 @@ public class ToPPTReactor extends AbstractReactor {
 			OutputStream out = new FileOutputStream(path);
 			slideshow.write(out);
 		} catch (FileNotFoundException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		}
 	}
 }
