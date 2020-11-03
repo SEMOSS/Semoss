@@ -208,9 +208,14 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				String columnName = qs.leftExpr;
 				//if(!columnName.startsWith("\""))
 				//	columnName = "\"" + columnName + "\"";
+				if(qs.paranthesis)
+					buf.append("(");
 				buf.append(qs.tableName).append(".").append(columnName);
 				if(qs.leftAlias != null && qs.leftAlias.length() > 0)
 					buf.append(" as ").append(qs.leftAlias);
+				if(qs.paranthesis)
+					buf.append(")");
+
 				processed = true;
 			}
 			else if(qs.operation.equalsIgnoreCase("double") || qs.operation.equalsIgnoreCase("date") || qs.operation.equalsIgnoreCase("time") || qs.operation.equalsIgnoreCase("string") || qs.operation.equalsIgnoreCase("long"))
@@ -940,28 +945,44 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		for(int selectorIndex = 0;selectorIndex < nselectors.size();selectorIndex++)
 		{
 			GenExpression thisSelector = nselectors.get(selectorIndex);
-			if(selector.leftAlias != null)
-			{
-				// see if the alias is same
-				if(thisSelector.leftAlias != null && thisSelector.leftAlias.contentEquals(selector.leftAlias))
-					return;
-				// see if the column tablaname is same
-				else if(thisSelector.getLeftExpr() != null && thisSelector.getLeftExpr().contentEquals(selector.leftAlias))
-					return;
-			}
-			else if(selector.getLeftExpr() != null)
-			{
-				// see if the alias is same
-				if(thisSelector.leftAlias != null && thisSelector.leftAlias.contentEquals(selector.getLeftExpr()))
-					return;
-				// see if the column tablaname is same
-				else if(thisSelector.getLeftExpr() != null && thisSelector.getLeftExpr().contentEquals(selector.getLeftExpr()))
-					return;
-				
-			}
+			if(thisSelector.leftAlias != null && selector.leftAlias != null)
+				if(thisSelector.leftAlias.contentEquals(selector.leftAlias)) return;
+			else if(thisSelector.leftAlias != null && selector.getLeftExpr() != null)
+				if(thisSelector.leftAlias.contentEquals(selector.getLeftExpr())) return;
+			else if(thisSelector.getLeftExpr() != null && selector.leftAlias != null)
+				if(thisSelector.getLeftExpr().contentEquals(selector.leftAlias)) return;
+			else if(thisSelector.getLeftExpr() != null && selector.getLeftExpr() != null)
+				if(thisSelector.getLeftExpr().contentEquals(selector.getLeftExpr())) return;
 		}
 		nselectors.add(selector);
 	}
+	
+	public boolean compareSelectors(GenExpression inputExpression)
+	{
+		// if it is duplicate dont add it
+			// check the alias
+		boolean match = true;
+		for(int selectorIndex = 0;match && selectorIndex < inputExpression.nselectors.size();selectorIndex++)
+		{
+			GenExpression thisSelector = nselectors.get(selectorIndex);
+			boolean foundMatch = false;
+			for(int thisSelectorIndex = 0;!foundMatch  && thisSelectorIndex < this.nselectors.size();thisSelectorIndex++)
+			{
+				GenExpression selector = this.nselectors.get(thisSelectorIndex);
+				if(thisSelector.leftAlias != null && selector.leftAlias != null)
+					foundMatch = thisSelector.leftAlias.contentEquals(selector.leftAlias);
+				else if(thisSelector.leftAlias != null && selector.getLeftExpr() != null)
+					foundMatch = thisSelector.leftAlias.contentEquals(selector.getLeftExpr());
+				else if(thisSelector.getLeftExpr() != null && selector.leftAlias != null)
+					foundMatch = thisSelector.getLeftExpr().contentEquals(selector.leftAlias);
+				else if(thisSelector.getLeftExpr() != null && selector.getLeftExpr() != null)
+					foundMatch = thisSelector.getLeftExpr().contentEquals(selector.getLeftExpr());
+			}
+			match = foundMatch && match;
+		}
+		return match;
+	}
+
 	
 	
 }
