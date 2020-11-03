@@ -97,6 +97,7 @@ public class SqlParser2 {
 	GenExpressionWrapper wrapper = new GenExpressionWrapper();
 	boolean binary = false;
 	boolean column = false;
+	public boolean parameterize = true;
 	String columnName = null;
 	
 
@@ -293,12 +294,14 @@ public class SqlParser2 {
 			}
 			else if(sbody instanceof SetOperationList)
 			{
-				System.err.println("Et Tu Union ?");
+				//System.err.println("Et Tu Union ?");
+				return processOperation((SetOperationList)sbody);
 			}
 		}
 		else if(fi instanceof SetOperationList)
 		{
-			System.err.println("Into the union ? To be handled" + fi);
+			//System.err.println("Into the union ? To be handled" + fi);
+			return processOperation((SetOperationList)fi);
 		}
 		else if(fi instanceof Table)
 		{
@@ -653,7 +656,7 @@ public class SqlParser2 {
 					constantValue = ((GenExpression)sqs2).leftItem;
 					constantType = ((GenExpression)sqs2).getOperation();
 					
-					if(columnName != null)
+					if(columnName != null && parameterize)
 					{
 						((GenExpression)sqs2).setLeftExpresion("'<" + eqExpr.getOperation() +  columnName + ">'");
 					}
@@ -774,7 +777,7 @@ public class SqlParser2 {
 				Object constantValue = startExpression.leftItem;
 				String constantType = startExpression.getOperation();
 				
-				if(columnName != null)
+				if(columnName != null && parameterize)
 				{
 					startExpression.setLeftExpresion("'<" + "between.start" +  columnName + ">'");
 				}
@@ -792,7 +795,7 @@ public class SqlParser2 {
 				Object constantValue = endExpression.leftItem;
 				String constantType = endExpression.getOperation();
 				
-				if(columnName != null)
+				if(columnName != null && parameterize)
 				{
 					endExpression.setLeftExpresion("'<" + "between.end" +  columnName + ">'");
 				}
@@ -1014,16 +1017,47 @@ public class SqlParser2 {
 			// left expression is a gen expression
 			// rightItemsList is a list of expressions that need to be processed
 			gep.setOperation("in");
-			GenExpression colExpression = processExpression(qs, inExpr.getLeftExpression(), expr);
-			gep.setLeftExpresion(colExpression);
 			
 			String tableName = null;
-			if(colExpression.getOperation().equalsIgnoreCase("column"))
+			if(inExpr.getLeftExpression() != null)
 			{
-				// who knows you could be a sadist after all
-				column = true;
-				columnName = colExpression.getLeftExpr();
-				tableName = colExpression.tableName;
+				GenExpression colExpression = processExpression(qs, inExpr.getLeftExpression(), expr);
+				gep.setLeftExpresion(colExpression);
+				if(colExpression.getOperation().equalsIgnoreCase("column"))
+				{
+					// who knows you could be a sadist after all
+					column = true;
+					columnName = colExpression.getLeftExpr();
+					tableName = colExpression.tableName;
+				}
+			}
+			// sometimes the in can also be a list
+			else
+			{
+				ItemsList litemList = inExpr.getLeftItemsList();
+				//System.out.println(itemList);
+				if(litemList instanceof ExpressionList)
+				{
+					ExpressionList el = (ExpressionList)litemList;
+					if(el.getExpressions().size() == 1)
+					{				
+						GenExpression colExpression = processExpression(qs, el.getExpressions().get(0), expr);
+						colExpression.paranthesis = true;
+						gep.setLeftExpresion(colExpression);
+						if(colExpression.getOperation().equalsIgnoreCase("column"))
+						{
+							// who knows you could be a sadist after all
+							column = true;
+							columnName = colExpression.getLeftExpr();
+							tableName = colExpression.tableName;
+						}
+					}
+				}
+				else
+				{
+					// need to throw an exception here
+					System.err.println("Multiple columns in IN is not supported");
+				}
 			}
 
 			ItemsList itemList = inExpr.getRightItemsList();
@@ -1062,7 +1096,7 @@ public class SqlParser2 {
 				Object constantValue = ge.getLeftExpr();
 				String constantType = "string";
 				
-				if(columnName != null)
+				if(columnName != null && parameterize)
 				{
 					ge.setLeftExpr("'<" + columnName + " In" + ">'");
 				}
@@ -2312,8 +2346,12 @@ public class SqlParser2 {
 		String query9 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title ";
 
 		String query10 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR in ('a', 'b') THEN 0 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title ";
+		
+		String query11 = "SELECT DISTINCT Title.MovieBudget AS \"MovieBudget\" , Title.RevenueDomestic AS \"RevenueDomestic\" , Title.RevenueInternational AS \"RevenueInternational\" , Title.RottenTomatoesAudience AS \"RottenTomatoesAudience\" , Title.RottenTomatoesCritics AS \"RottenTomatoesCritics\" , Title.Title AS \"Title\" FROM Title Title  WHERE (Title.MovieBudget) IN ( 1000000 , 1700000 ) \r\n";
 
-		GenExpressionWrapper wrapper = test.processQuery(query10);
+		String query12 = "SELECT DISTINCT customquery.\"MovieBudget\" AS \"MovieBudget\" , customquery.\"RevenueDomestic\" AS \"RevenueDomestic\" , customquery.\"RevenueInternational\" AS \"RevenueInternational\" , customquery.\"RottenTomatoesAudience\" AS \"RottenTomatoesAudience\" , customquery.\"RottenTomatoesCritics\" AS \"RottenTomatoesCritics\" , customquery.\"Title\" AS \"Title\" FROM (SELECT  avqLBU.\"MovieBudget\", avqLBU.\"RevenueDomestic\", avqLBU.\"RevenueInternational\", avqLBU.\"RottenTomatoesAudience\", avqLBU.\"RottenTomatoesCritics\", avqLBU.\"Title\"  FROM ( SELECT  Title.MovieBudget as \"MovieBudget\", Title.RevenueDomestic as \"RevenueDomestic\", Title.RevenueInternational as \"RevenueInternational\", Title.RottenTomatoesAudience as \"RottenTomatoesAudience\", Title.RottenTomatoesCritics as \"RottenTomatoesCritics\", Title.Title as \"Title\"  FROM Title as Title  WHERE (Title.MovieBudget)  IN  (1000000, 1700000)  UNION ALL  SELECT  Title.MovieBudget as \"MovieBudget\", Title.RevenueDomestic as \"RevenueDomestic\", Title.RevenueInternational as \"RevenueInternational\", Title.RottenTomatoesAudience as \"RottenTomatoesAudience\", Title.RottenTomatoesCritics as \"RottenTomatoesCritics\", Title.Title as \"Title\"  FROM Title as Title  WHERE (Title.MovieBudget)  IN  (500000, 800000)) AS avqLBU ) AS customquery\r\n";
+		test.parameterize = false;
+		GenExpressionWrapper wrapper = test.processQuery(query12);
 		test.printOutput(wrapper.root);
 
 		// get the param map and modify the value
