@@ -21,6 +21,9 @@ public class TaskReactor extends AbstractReactor {
 		// this just returns the task id
 		String taskId = this.curRow.get(0).toString();
 		ITask task = this.insight.getTaskStore().getTask(taskId);
+		if(task == null) {
+			throw new NullPointerException("Could not find task with id = " + taskId);
+		}
 		return new NounMetadata(task, PixelDataType.TASK, PixelOperationType.TASK);
 	}
 
