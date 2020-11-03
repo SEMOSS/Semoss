@@ -59,7 +59,7 @@ public class GrabScalarElementReactor extends AbstractReactor {
 		List<Object> tasks = curRow.getValuesOfType(PixelDataType.TASK);
 		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
 		if(tasks == null || tasks.size() == 0) {
-			task = (ITask) getNounStore().getNoun(PixelDataType.TASK.toString()).get(0);
+			task = (ITask) getNounStore().getNoun(PixelDataType.TASK.getKey()).get(0);
 		} else {
 			task = (ITask) curRow.getValuesOfType(PixelDataType.TASK).get(0);
 		}

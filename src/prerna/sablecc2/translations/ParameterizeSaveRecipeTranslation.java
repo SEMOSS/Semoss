@@ -280,7 +280,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
     		
         	// need to find imports
         	if(prevReactor != null && (prevReactor instanceof ImportReactor || prevReactor instanceof MergeReactor)) {
-    			importQs = (SelectQueryStruct) prevReactor.getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString()).get(0);
+    			importQs = (SelectQueryStruct) prevReactor.getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey()).get(0);
     		}
     	}
     }
