@@ -42,12 +42,6 @@ public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 			panel = this.insight.getInsightPanel(panelId);
 		}
 
-		// or was passed in via a "|"
-		GenRowStruct pipedGrs = this.store.getNoun(PixelDataType.PANEL.toString());
-		if (pipedGrs != null && !pipedGrs.isEmpty()) {
-			panel = (InsightPanel) pipedGrs.get(0);
-		}
-
 		if (panel == null) {
 			// if not, see if it was passed in the grs
 			List<Object> panelNouns = this.curRow.getValuesOfType(PixelDataType.PANEL);

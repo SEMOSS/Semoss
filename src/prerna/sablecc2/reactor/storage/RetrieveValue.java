@@ -76,7 +76,7 @@ public class RetrieveValue extends AbstractReactor {
 		}
 		
 		// could be passed as a $RESULT -> as STORE
-		storeGrs = this.store.getNoun(PixelDataType.IN_MEM_STORE.toString());
+		storeGrs = this.store.getNoun(PixelDataType.IN_MEM_STORE.getKey());
 		if(storeGrs != null) {
 			return (InMemStore) storeGrs.get(0);
 		}

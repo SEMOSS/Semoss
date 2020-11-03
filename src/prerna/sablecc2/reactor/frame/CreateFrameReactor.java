@@ -25,7 +25,7 @@ public class CreateFrameReactor extends AbstractReactor {
 	private static final String OVERRIDE = "override";
 	
 	public CreateFrameReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), OVERRIDE, PixelDataType.ALIAS.toString()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), OVERRIDE, ReactorKeysEnum.ALIAS.getKey()};
 	}
 	
 	public NounMetadata execute() {
@@ -94,8 +94,6 @@ public class CreateFrameReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(OVERRIDE)) {
 			return "Indicates if the current frame should be overridden; default value of true";
-		} else if (key.equals(PixelDataType.ALIAS.toString())) {
-			return "Use .as([\"aliasName\"]) to set the name of the frame";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
@@ -114,7 +112,7 @@ public class CreateFrameReactor extends AbstractReactor {
 	    			|| parentReactor instanceof GenericReactor) {
 	    		parentReactor.getCurRow().add(data);
 	    	} else {
-	    		GenRowStruct parentInput = parentReactor.getNounStore().makeNoun(PixelDataType.FRAME.toString());
+	    		GenRowStruct parentInput = parentReactor.getNounStore().makeNoun(PixelDataType.FRAME.getKey());
 				parentInput.add(data);
 	    	}
 		}

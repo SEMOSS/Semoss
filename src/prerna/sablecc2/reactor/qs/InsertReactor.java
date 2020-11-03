@@ -274,7 +274,7 @@ public class InsertReactor extends AbstractReactor {
 	}
 	
 	private NounMetadata getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey());
 		NounMetadata queryStruct = null;
 		if(allNouns != null) {
 			return allNouns.getNoun(0);

@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 
-import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
-
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
@@ -120,12 +118,6 @@ public class RunKeyAttributesReactor extends AbstractRFrameReactor {
 		if (genericGrs != null && !genericGrs.isEmpty()) {
 			String panelId = genericGrs.get(0).toString();
 			panel = this.insight.getInsightPanel(panelId);
-		}
-
-		// or was passed in via a "|"
-		GenRowStruct pipedGrs = this.store.getNoun(PixelDataType.PANEL.toString());
-		if (pipedGrs != null && !pipedGrs.isEmpty()) {
-			panel = (InsightPanel) pipedGrs.get(0);
 		}
 
 		if (panel == null) {
