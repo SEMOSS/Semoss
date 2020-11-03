@@ -23,6 +23,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -37,7 +38,6 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 
 	private static final String CLASS_NAME = RunClassificationReactor.class.getName();
 	private static final String CLASSIFICATION_COLUMN = "classify";
-	private static final String STACKTRACE = "StackTrace: ";
 	
 	public RunClassificationReactor() {
 		this.keysToGet = new String[]{CLASSIFICATION_COLUMN, ReactorKeysEnum.ATTRIBUTES.getKey(), ReactorKeysEnum.PANEL.getKey()};
@@ -113,7 +113,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 			data = WekaReactorHelper.fillInstances(data, it, isNumeric, logger);
 			logger.info("Done converting frame into WEKA Instacnes data structure");
 		} catch (Exception e1) {
-			logger.error(STACKTRACE, e1);
+			logger.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -162,7 +162,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 			try {
 				validation = classify(model, trainingSplits[j], testingSplits[j]);
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 			if (validation != null) {
 				double newPctCorrect = validation.pctCorrect();
@@ -227,7 +227,7 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 				return ((Number) countIt.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(countIt != null) {
 				countIt.cleanUp();

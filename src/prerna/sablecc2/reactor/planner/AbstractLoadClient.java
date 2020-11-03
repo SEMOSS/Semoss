@@ -128,7 +128,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 			return task.getIterator();
 		}
 
-		BasicIteratorTask task = (BasicIteratorTask) this.store.getNoun(PixelDataType.TASK.toString()).get(0);
+		BasicIteratorTask task = (BasicIteratorTask) this.store.getNoun(PixelDataType.TASK.getKey()).get(0);
 		return task.getIterator();
 	}
 

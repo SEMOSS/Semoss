@@ -26,6 +26,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
+import prerna.util.Constants;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -37,7 +38,6 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 
 	private static final String Y_COLUMN = "yColumn";
 	private static final String X_COLUMNS = "xColumns";
-	private static final String STACKTRACE = "StackTrace: ";
 	
 	public RunMatrixRegressionReactor() {
 		this.keysToGet = new String[]{Y_COLUMN, X_COLUMNS, ReactorKeysEnum.DEFAULT_VALUE_KEY.getKey(), ReactorKeysEnum.PANEL.getKey()};
@@ -117,7 +117,7 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 			rowData = setValuesInOlsAndCorr(ols, it, numCols, numRows, missingVal, logger);
 			logger.info("Done iterating through data to determine regression");
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		if (rowData == null) {
@@ -223,7 +223,7 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 				return ((Number) countIt.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(countIt != null) {
 				countIt.cleanUp();
@@ -342,8 +342,5 @@ class OLSCalculator extends OLSMultipleLinearRegression {
 	public double[] getEstimateArray() {
 		return getX().operate(calculateBeta()).toArray();
 	}
-	
-	
-	
 	
 }

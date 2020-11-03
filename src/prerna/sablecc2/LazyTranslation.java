@@ -451,8 +451,9 @@ public class LazyTranslation extends DepthFirstAdapter {
         // into the noun store of this new reactor
     	NounMetadata prevResult = this.planner.getVariable(this.resultKey);
     	if(prevResult != null) {
-    		PixelDataType nounName = prevResult.getNounType();
-    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
+    		PixelDataType nounType = prevResult.getNounType();
+    		// grab the correct key for the noun when moving to the parent
+    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounType.getKey());
     		genRow.add(prevResult);
     		// then we will remove the result from the planner
         	this.planner.removeVariable(this.resultKey);
@@ -1230,8 +1231,8 @@ public class LazyTranslation extends DepthFirstAdapter {
     		int numInputs = parentReactor.getCurRow().size();
     		if(numInputs > 0) {
     			NounMetadata lastNoun = parentReactor.getCurRow().getNoun(numInputs-1);
-        		PixelDataType lastNounName = lastNoun.getNounType();
-        		GenRowStruct genRow = curReactor.getNounStore().makeNoun(lastNounName.toString());
+        		PixelDataType lastNounType = lastNoun.getNounType();
+        		GenRowStruct genRow = curReactor.getNounStore().makeNoun(lastNounType.getKey());
         		genRow.add(lastNoun);
     		}
     	} else if(parentReactor instanceof EmbeddedRoutineReactor) {
@@ -1240,7 +1241,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     		for(int i = 0; i < numInputs; i++) {
     			NounMetadata noun = parentReactor.getCurRow().remove(i);
         		PixelDataType nounType = noun.getNounType();
-        		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounType.toString());
+        		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounType.getKey());
         		genRow.add(noun);
     		}
     	}

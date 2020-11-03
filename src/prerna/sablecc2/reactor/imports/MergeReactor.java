@@ -462,7 +462,7 @@ public class MergeReactor extends AbstractReactor {
 			return (SelectQueryStruct)object.getValue();
 		}
 		
-		grs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
+		grs = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
 		if(grs != null) {
 			NounMetadata object = (NounMetadata) grs.getNoun(0);
 			return (SelectQueryStruct)object.getValue();
@@ -498,7 +498,7 @@ public class MergeReactor extends AbstractReactor {
 	}
 
 	private ITask getTask() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.TASK.name());
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.TASK.getKey());
 		ITask task = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);

@@ -18,7 +18,7 @@ public class AsReactor extends AbstractReactor {
 		// also add up to the parent like 
 		// as ALIAS type
 		if(parentReactor != null) {
-			parentReactor.getNounStore().makeNoun(PixelDataType.ALIAS.toString()).add(noun);
+			parentReactor.getNounStore().makeNoun(PixelDataType.ALIAS.getKey()).add(noun);
 		}
 		// return null - we dont want to merge this twice
 		// and the syntax is always .as()
