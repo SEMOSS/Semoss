@@ -89,7 +89,7 @@ public class RunPlanReactor extends AbstractPlannerReactor {
 	}
 
 	private PixelPlanner getPlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.getKey());
 		PixelPlanner planner = null;
 		if (allNouns != null) {
 			planner = (PixelPlanner) allNouns.get(0);
@@ -198,7 +198,7 @@ public class RunPlanReactor extends AbstractPlannerReactor {
 	 * @return
 	 */
 	protected PixelPlanner getBasePlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.getKey());
 		if (allNouns != null && allNouns.size() > 1) {
 			Object secondParam = allNouns.get(1);
 			if (secondParam != null) {

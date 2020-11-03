@@ -75,7 +75,7 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 	}
 
 	private PixelPlanner getPlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.getKey());
 		PixelPlanner planner = null;
 		if (allNouns != null && !allNouns.isEmpty()) {
 			planner = (PixelPlanner) allNouns.get(0);

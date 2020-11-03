@@ -289,11 +289,6 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 			return (ITableDataFrame) frameGrs.get(0);
 		}
 		
-		frameGrs = this.store.getNoun(PixelDataType.FRAME.toString());
-		if(frameGrs != null && !frameGrs.isEmpty()) {
-			return (ITableDataFrame) frameGrs.get(0);
-		}
-		
 		List<Object> frames = this.curRow.getValuesOfType(PixelDataType.FRAME);
 		if(frames != null && !frames.isEmpty()) {
 			return (ITableDataFrame) frames.get(0);

@@ -34,7 +34,7 @@ public class ResetTaskReactor extends AbstractReactor {
 	protected ITask getTask() {
 		ITask task = null;
 		
-		GenRowStruct grsTasks = this.store.getNoun(PixelDataType.TASK.toString());
+		GenRowStruct grsTasks = this.store.getNoun(PixelDataType.TASK.getKey());
 		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
 		if(grsTasks != null && !grsTasks.isEmpty()) {
 			task = (ITask) grsTasks.get(0);

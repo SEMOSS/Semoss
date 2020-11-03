@@ -225,8 +225,8 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
         // into the noun store of this new reactor
     	NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
     	if(prevResult != null) {
-    		PixelDataType nounName = prevResult.getNounType();
-    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
+    		PixelDataType nounType = prevResult.getNounType();
+    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounType.getKey());
     		genRow.add(prevResult);
     		// then we will remove the result from the planner
         	this.planner.removeVariable("$RESULT");
@@ -891,8 +891,8 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     		int numInputs = parentReactor.getCurRow().size();
     		if(numInputs > 0) {
     			NounMetadata lastNoun = parentReactor.getCurRow().getNoun(numInputs-1);
-        		PixelDataType lastNounName = lastNoun.getNounType();
-        		GenRowStruct genRow = curReactor.getNounStore().makeNoun(lastNounName.toString());
+        		PixelDataType lastNounType = lastNoun.getNounType();
+        		GenRowStruct genRow = curReactor.getNounStore().makeNoun(lastNounType.getKey());
         		genRow.add(lastNoun);
     		}
     	}
