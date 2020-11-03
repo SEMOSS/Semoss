@@ -37,6 +37,8 @@ public class SQLQueryUtils {
 		// with gen expression we can start to move to other pieces
 
 		SqlParser2 parser2 = new SqlParser2();
+		parser2.parameterize = false;
+
 		
 		try {
 			IQueryInterpreter interp = curQS.retrieveQueryStructEngine().getQueryInterpreter();
@@ -92,7 +94,8 @@ public class SQLQueryUtils {
 		Map <String, String> aliasTranslationMap = new HashMap<String, String>();
 		
 		SqlParser2 parser = new SqlParser2();
-		
+		parser.parameterize = false;
+
 		GenExpression retExpression = new GenExpression();
 		retExpression.setOperation("select");
 		GenExpression lastExpression = null;
@@ -330,6 +333,8 @@ public class SQLQueryUtils {
 			SqlInterpreter interp = new SqlInterpreter();
 			
 			SqlParser2 parser = new SqlParser2();
+			parser.parameterize = false;
+
 			interp.setQueryStruct(subQueryStruct);
 			String subQuery = interp.composeQuery();
 			GenExpression subQueryExpression = parser.processQuery(subQuery).root;
@@ -377,4 +382,170 @@ public class SQLQueryUtils {
 		}
 		return emptyFrame;
 	}
+	
+
+	/**
+	 * Merge 2 native frame query structs together based on the joins defined
+	 * @param curQS
+	 * @param qs
+	 * @param joins
+	 * @return
+	 */
+	public static NativeFrame unionQueryStructs(SelectQueryStruct curQS, SelectQueryStruct qs) {
+		// we can do this 2 ways
+		// we can do this through genexpression
+		// or do it through relationsets
+		// with gen expression we can start to move to other pieces
+
+		SqlParser2 parser2 = new SqlParser2();
+		parser2.parameterize = false;
+		
+		try {
+			IQueryInterpreter interp = curQS.retrieveQueryStructEngine().getQueryInterpreter();
+			interp.setQueryStruct(curQS);
+			String curQuery = interp.composeQuery();
+			GenExpressionWrapper curExpr = parser2.processQuery(curQuery);
+			
+			interp = qs.retrieveQueryStructEngine().getQueryInterpreter();
+			interp.setQueryStruct(qs);
+			String thisQuery = interp.composeQuery();
+			GenExpressionWrapper thisExpr = parser2.processQuery(thisQuery);
+			
+			GenExpression finalExp = new GenExpression(); // this is the one to be returned
+			
+			String firstQueryAlias = Utility.getRandomString(5);
+			String secondQueryAlias = Utility.getRandomString(5);
+			
+			List <String> sqlList = new ArrayList <String>();
+			sqlList.add(curQuery);
+			sqlList.add(thisQuery);
+			
+			GenExpression retExpression = unionSQL(sqlList);
+			
+			StringBuffer finalOutput = retExpression.printQS(retExpression, null);
+
+			HardSelectQueryStruct hqs = new HardSelectQueryStruct();
+			hqs.customFrom = finalOutput.toString();
+			hqs.engineId = qs.engineId;
+			hqs.engine = qs.engine;
+			hqs.qsType = QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY;
+			hqs.setQuery(finalOutput.toString());
+			
+			NativeFrame emptyFrame = new NativeFrame();
+			NativeImporter importer = new NativeImporter(emptyFrame, hqs);
+			importer.insertData();
+			
+			return emptyFrame;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+
+	
+	public static GenExpression unionSQL(List <String> expressions)
+	{
+		// get the expression
+		// add the selectors to the master one
+		// and then add the join
+		// first one is from
+		// and then jointypes
+		
+		Map <String, String> aliasTranslationMap = new HashMap<String, String>();
+		
+		SqlParser2 parser = new SqlParser2();
+		parser.parameterize = false;
+		
+		// need to subquery this as well
+		
+		OperationExpression retExpression = new OperationExpression();
+		retExpression.setOperation("union");
+		retExpression.setComposite(true);
+		GenExpression lastExpression = null;
+		
+		for(int expIndex = 0;expIndex < expressions.size();expIndex++)
+		{
+			String sql = expressions.get(expIndex);
+			
+			
+			GenExpression curExpr = null;
+			try {
+				curExpr = parser.processQuery(sql).root;
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			// first one is easy
+			if(expIndex == 0)
+			{
+				retExpression.operands.add(curExpr);
+				retExpression.opNames.add("UNION ALL");
+				lastExpression = curExpr;
+			}
+			else if(lastExpression.compareSelectors(curExpr))
+			{
+				retExpression.operands.add(curExpr);				
+			}
+			else
+			{
+				// throw an error this cannot be done
+			}
+		
+		}
+		GenExpression finalExpression = selfSubQuery(retExpression, lastExpression);
+		return finalExpression;
+	}
+	
+	public static GenExpression selfSubQuery(GenExpression innerQuery, GenExpression outerQuery)
+	{
+		GenExpression retExpression = new GenExpression();
+		retExpression.setOperation("select");
+		
+	
+		try
+		{
+			// get the selectors from the outer query
+			String randomString = Utility.getRandomString(5);
+			String subqName = randomString;
+			
+			
+			if(innerQuery.from  != null)
+			{
+				subqName = innerQuery.from.getLeftExpr();		
+				if(subqName == null)
+					subqName = innerQuery.from.leftAlias;
+				subqName = subqName + "_" + randomString;
+			}
+			
+			for(int selectorIndex = 0;selectorIndex < outerQuery.nselectors.size();selectorIndex++)
+			{
+				GenExpression curSelector = outerQuery.nselectors.get(selectorIndex);
+				GenExpression newSelector = new GenExpression();
+				newSelector.setOperation("column");
+				if(curSelector.leftAlias != null && curSelector.leftAlias.length() > 0)
+					newSelector.setLeftExpr(curSelector.leftAlias);
+				else
+					newSelector.setLeftExpr(curSelector.leftExpr);
+				newSelector.tableName = subqName;
+				
+				retExpression.addSelect(newSelector);
+			}
+			
+			// add this as a from now
+			retExpression.paranthesis = true;
+			retExpression.composite = true;
+			retExpression.from = innerQuery;
+			retExpression.from.leftAlias = subqName;
+			
+		}catch(Exception ex)
+		{
+			
+		}
+		return retExpression;
+
+	}
+	
+	
 }
