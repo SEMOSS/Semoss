@@ -20,22 +20,28 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public abstract class CloudClient {
 
-	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static String TRANSFER_LIMIT = "8";
 	static String rcloneConfigFolder = null;
-	protected static final String TRANSFER_LIMIT = "8";
+	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	/**
+	 * Get the cloud client for this cluster
+	 * @return
+	 */
 	public static CloudClient getClient(){
-
 		if(ClusterUtil.STORAGE_PROVIDER == null){
 			return AZClient.getInstance();
 		}
 		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AZURE")){
 			return AZClient.getInstance();
 		}
-		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AWS")||ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("S3")||ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("MINIO")){
-			//add in aws 
+		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AWS")||ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("S3")){
 			return S3Client.getInstance();
-		}
+		} 
+		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("MINIO")){
+			TRANSFER_LIMIT = "4";
+			return S3Client.getInstance();
+		} 
 		else{
 			throw new IllegalArgumentException("You have specified an incorrect storage provider");
 		}
@@ -201,9 +207,6 @@ public abstract class CloudClient {
           }
 		throw new IllegalArgumentException("There is no insight database for app: " + engine.getEngineName());
 	}
-
-
 	
-
 }
 
