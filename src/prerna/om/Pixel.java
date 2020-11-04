@@ -12,6 +12,10 @@ public class Pixel {
 	private String id = null;
 	private String pixelString = null;
 
+	// some metadata
+	private String pixelAlias = null;
+	private String pixelDescription = null;
+	
 	// some state management when editing the recipe
 	private boolean isMeta = false;
 	private boolean returnedError = false;
@@ -291,6 +295,38 @@ public class Pixel {
 	 */
 	public void addWarningMessage(String warningMessage) {
 		this.warningMessages.add(warningMessage);
+	}
+	
+	/**
+	 * Get the pixel alias
+	 * @return
+	 */
+	public String getPixelAlias() {
+		return pixelAlias;
+	}
+
+	/**
+	 * Set the pixel alias
+	 * @param pixelAlias
+	 */
+	public void setPixelAlias(String pixelAlias) {
+		this.pixelAlias = pixelAlias;
+	}
+
+	/**
+	 * Get the pixel description
+	 * @return
+	 */
+	public String getPixelDescription() {
+		return pixelDescription;
+	}
+
+	/**
+	 * Set the pixel description
+	 * @param pixelDescription
+	 */
+	public void setPixelDescription(String pixelDescription) {
+		this.pixelDescription = pixelDescription;
 	}
 
 	/**
