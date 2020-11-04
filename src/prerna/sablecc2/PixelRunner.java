@@ -146,9 +146,19 @@ public class PixelRunner {
 		if(!isMeta) {
 			PixelList pixelList = this.insight.getPixelList();
 			pixel = pixelList.addPixel(origExpression);
+			// add if there is an error or warning
+			determineErrorOrWarning(pixel, result);
 			pixel.setEndingFrameHeaders(InsightUtility.getAllFrameHeaders(this.insight.getVarStore()));
 			Pixel.translationMerge(pixel, translation.pixelObj);
-			pixelList.syncLastPixel();
+			if(pixel.isReturnedError() && !this.maintainErrors) {
+				// we actually need to remove this from the pixel list
+				// there is also no sync required 
+				List<String> removeId = new Vector<String>();
+				removeId.add(pixel.getId());
+				pixelList.removeIds(removeId, false);
+			} else {
+				pixelList.syncLastPixel();
+			}
 			// store this pixel
 			// in the return pixel list
 			this.returnPixelList.add(pixel);
@@ -157,9 +167,9 @@ public class PixelRunner {
 			// in the return pixel list
 			pixel = new Pixel("meta_unstored", origExpression);
 			this.returnPixelList.add(pixel);
+			// add if there is an error or warning
+			determineErrorOrWarning(pixel, result);
 		}
-		// add if there is an error or warning
-		determineErrorOrWarning(pixel, result);
 	}
 	
 	/**
