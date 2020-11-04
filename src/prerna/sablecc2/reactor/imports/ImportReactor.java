@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.imports;
 import java.io.File;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -18,10 +19,12 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class ImportReactor extends AbstractReactor {
 	
+	private static final Logger classLogger = LogManager.getLogger(NativeImporter.class);
 	private static final String CLASS_NAME = ImportReactor.class.getName();
 	
 	public ImportReactor() {
@@ -52,7 +55,7 @@ public class ImportReactor extends AbstractReactor {
 			} catch(SemossPixelException e) {
 				throw e;
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				String message = "Error occured executing query to load into the frame";
 				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
 					message += ". " + e.getMessage();
@@ -68,8 +71,10 @@ public class ImportReactor extends AbstractReactor {
 					exception.setContinueThreadOfExecution(false);
 					throw exception;
 				}
+			} catch (SemossPixelException e) {
+				throw e;
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(getError("Error occured executing query before loading into frame"));
 			}
 		}
@@ -79,7 +84,7 @@ public class ImportReactor extends AbstractReactor {
 		try {
 			importer.insertData();
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		}
 		// need to clear the unique col count used by FE for determining the need for math
