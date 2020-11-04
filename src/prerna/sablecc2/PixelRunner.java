@@ -62,6 +62,7 @@ public class PixelRunner {
 	
 	protected transient GreedyTranslation translation = null;
 	protected Insight insight = null;
+	protected boolean maintainErrors = false;
 	
 	protected List<NounMetadata> results = new Vector<>();
 	protected List<Pixel> returnPixelList = new Vector<>();
@@ -244,6 +245,14 @@ public class PixelRunner {
 		this.insight = insight;
 	}
 	
+	public boolean isMaintainErrors() {
+		return maintainErrors;
+	}
+
+	public void setMaintainErrors(boolean maintainErrors) {
+		this.maintainErrors = maintainErrors;
+	}
+
 	public void clear() {
 		this.results.clear();
 		this.returnPixelList.clear();
