@@ -62,6 +62,14 @@ public class JobManager {
 		return jt;
 	}
 	
+	public void removeJob(String jobId) {
+		threadPool.remove(jobId);
+	}
+	
+	public JobThread getJob(String jobId) {
+		return threadPool.get(jobId);
+	}
+	
 	public void addStdOut(String jobId, String stdOut)	{
 		List<String> outputList = new Vector<String>();
 		if(jobStdOut.containsKey(jobId)) {
@@ -178,6 +186,6 @@ public class JobManager {
 	
 	public PixelRunner getOutput(String jobId) {
 		JobThread jt = threadPool.get(jobId);
-		return jt.runner;
+		return jt.getRunner();
 	}
 }
