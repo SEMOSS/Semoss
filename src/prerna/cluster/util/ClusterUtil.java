@@ -41,8 +41,6 @@ public class ClusterUtil {
 	
 	private static final Logger logger = LogManager.getLogger(ClusterUtil.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
-
 	private static final String IS_CLUSTER_KEY = "SEMOSS_IS_CLUSTER";
 	public static final boolean IS_CLUSTER = (DIHelper.getInstance().getProperty(IS_CLUSTER_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY).isEmpty())) 
 			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY)) : (
