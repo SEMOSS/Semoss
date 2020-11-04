@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 
@@ -46,6 +48,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
+
+	private static final Logger classLogger = LogManager.getLogger(AbstractBaseRClass.class);
 
 	public static final String R_CONN = "R_CONN";
 	public static final String R_PORT = "R_PORT";
@@ -200,7 +204,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 					+ "STRINGDECODE('charset=UTF-8 fieldDelimiter=\"\" fieldSeparator=\t null=\"NA\"')"
 					+ ");");
 		} catch (Exception e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		this.rJavaTranslator.executeEmptyR("library(data.table);");
 		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(frameName, outputLocation, "\\t"));
@@ -311,8 +315,10 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 					exception.setContinueThreadOfExecution(false);
 					throw exception;
 				}
+			} catch (SemossPixelException e) {
+				throw e;
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			}
 			
@@ -652,7 +658,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			graphLocs.add(wd);
 			storeVariable(R_GRAQH_FOLDERS, new NounMetadata(graphLocs, PixelDataType.CONST_STRING));
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, ex);
 			System.out.println(
 					"ERROR ::: Could not convert TinkerFrame into iGraph.\nPlease make sure iGraph package is installed.");
 		} finally {
@@ -738,7 +744,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 						+ ", \"" + TinkerFrame.TINKER_ID + "\") == \"" + name + "\"])");
 			} catch (Exception ex) {
 				java.lang.System.out.println("ERROR ::: Could not delete node = " + name);
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 			}
 		}
 	}
@@ -786,14 +792,14 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				os = new FileOutputStream(fileName);
 				graph.io(IoCore.graphml()).writer().normalize(true).create().writeGraph(os, graph);
 			} catch (Exception ex) {
-				ex.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, ex);
 			} finally {
 				try {
 					if (os != null) {
 						os.close();
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

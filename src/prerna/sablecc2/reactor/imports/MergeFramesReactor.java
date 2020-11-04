@@ -403,6 +403,8 @@ public class MergeFramesReactor extends AbstractReactor {
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
+		} catch (SemossPixelException e) {
+			throw e;
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new SemossPixelException(e.getMessage());
