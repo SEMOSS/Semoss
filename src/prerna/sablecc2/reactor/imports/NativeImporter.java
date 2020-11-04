@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import net.snowflake.client.jdbc.internal.org.bouncycastle.util.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
@@ -32,9 +33,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class NativeImporter extends AbstractImporter {
+
+	private static final Logger logger = LogManager.getLogger(NativeImporter.class);
 
 	private static final String CLASS_NAME = NativeImporter.class.getName();
 	
@@ -68,7 +72,7 @@ public class NativeImporter extends AbstractImporter {
 					String newQuery = "select * from (" + query + ") as customQuery where 1 = 0";
 					this.it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), newQuery);
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(
 							new NounMetadata("Error occured executing query before loading into frame", 
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -221,9 +225,11 @@ public class NativeImporter extends AbstractImporter {
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
-		} catch (Exception e1) {
-			e1.printStackTrace();
-			throw new SemossPixelException(e1.getMessage());
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(e.getMessage());
 		}
 		
 		RDataTable rFrame = new RDataTable(this.in.getRJavaTranslator(LogManager.getLogger(CLASS_NAME)), Utility.getRandomString(8));
@@ -235,7 +241,7 @@ public class NativeImporter extends AbstractImporter {
 		try {
 			mergeFrameIt = ImportUtility.generateIterator(this.qs, this.dataframe);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
 					new NounMetadata("Error occured executing query before loading into frame", 
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -250,7 +256,7 @@ public class NativeImporter extends AbstractImporter {
 				throw exception;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		}
 		
