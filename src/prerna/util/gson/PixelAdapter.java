@@ -28,6 +28,8 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 
 		String id = null;
 		String pixelString = null;
+		String pixelAlias = null;
+		String pixelDescription = null;
 		boolean meta = false;
 		boolean error = false;
 		boolean warning = false;
@@ -55,6 +57,10 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 				id = in.nextString();
 			} else if(key.equals("pixelString")) {
 				pixelString = in.nextString();
+			} else if(key.equals("pixelAlias")) {
+				pixelAlias = in.nextString();
+			} else if(key.equals("pixelDescription")) {
+				pixelDescription = in.nextString();
 			} else if(key.equals("meta")) {
 				meta = in.nextBoolean();
 			} else if(key.equals("errorReturned")) {
@@ -98,6 +104,8 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		in.endObject();
 
 		Pixel pixel = new Pixel(id, pixelString);
+		pixel.setPixelAlias(pixelAlias);
+		pixel.setPixelDescription(pixelDescription);
 		pixel.setMeta(meta);
 		pixel.setReturnedError(error);
 		pixel.setReturnedWarning(warning);
@@ -124,6 +132,10 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		out.value(value.getId());
 		out.name("pixelString");
 		out.value(value.getPixelString());
+		out.name("pixelAlias");
+		out.value(value.getPixelAlias());
+		out.name("pixelDescription");
+		out.value(value.getPixelDescription());
 		out.name("meta");
 		out.value(value.isMeta());
 		out.name("errorReturned");
