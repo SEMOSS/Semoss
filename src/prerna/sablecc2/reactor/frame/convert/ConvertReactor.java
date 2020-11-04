@@ -58,6 +58,8 @@ public class ConvertReactor extends AbstractFrameReactor {
 					exception.setContinueThreadOfExecution(false);
 					throw exception;
 				}
+			} catch (SemossPixelException e) {
+				throw e;
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SemossPixelException(getError("Error occured executing query before loading into frame"));
