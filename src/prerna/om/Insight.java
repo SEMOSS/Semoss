@@ -108,7 +108,7 @@ public class Insight {
 	// this is the id it is assigned within the InsightCache
 	// it varies from one instance of an insight to another instance of the same insight
 	protected String insightId;
-
+	
 	// new user object
 	protected User user;
 	protected String insightName;
@@ -273,7 +273,10 @@ public class Insight {
 	}
 
 	public PixelRunner runPixel(List<String> pixelList) {
-		PixelRunner runner = getPixelRunner();
+		return runPixel(getPixelRunner(), pixelList);
+	}
+	
+	public PixelRunner runPixel(PixelRunner runner, List<String> pixelList) {
 		int size = pixelList.size();
 		if(size == 0) {
 			// set the insight in the runner as it is used
@@ -1080,7 +1083,9 @@ public class Insight {
 			this.pixelList = new PixelList();
 			
 			// execution
-			PixelRunner results = runPixel(currentRecipe);
+			PixelRunner results = getPixelRunner();
+			results.setMaintainErrors(true);
+			runPixel(results, currentRecipe);
 			// now update the pixel list to the new ids
 			// realize the pixel objects are the same
 			List<Pixel> pixelReturns = results.getReturnPixelList();
