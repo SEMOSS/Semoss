@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.export;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -37,7 +38,11 @@ public class ConvertToQueryReactor extends AbstractReactor {
 		} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
 			ITableDataFrame frame = qs.getFrame();
 			interp = frame.getQueryInterpreter();
-			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, frame.getMetaData());
+			if(frame instanceof NativeFrame) {
+				qs = ((NativeFrame) frame).prepQsForExecution(qs);
+			} else {
+				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, frame.getMetaData());
+			}
 		} else {
 			throw new IllegalArgumentException("Cannot generate a query for this source");
 		}
