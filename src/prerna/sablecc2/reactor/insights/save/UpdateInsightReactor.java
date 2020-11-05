@@ -89,8 +89,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			recipeToSave = getParamRecipe(recipeToSave, params, insightName);
 		}
 		
-		// pull the app
-		ClusterUtil.reactorPullApp(appId, true);
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
 			// we may have the alias
@@ -99,6 +97,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				throw new IllegalArgumentException("Cannot find app = " + appId);
 			}
 		}
+		
+		//Pull the insights db again incase someone just saved something 
+		ClusterUtil.reactorPullInsightsDB(appId);
+		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 
@@ -142,7 +145,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		// NOTE ::: We already pulled above, so we will not pull again to delete the cache
 		InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), existingId, false);
 		// push back to the cluster
-		ClusterUtil.reactorPushApp(appId);
+		ClusterUtil.reactorPushInsightDB(appId);
+		ClusterUtil.reactorPushFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
