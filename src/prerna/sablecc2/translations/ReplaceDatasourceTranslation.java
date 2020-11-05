@@ -38,7 +38,7 @@ import prerna.util.Utility;
 
 public class ReplaceDatasourceTranslation extends AbstractDatasourceModificationTranslation {
 
-	private static final Logger LOGGER = LogManager.getLogger(ReplaceDatasourceTranslation.class.getName());
+	private static final Logger logger = LogManager.getLogger(ReplaceDatasourceTranslation.class);
 
 	// this will store the list of pixels that were passed in
 	private List<String> pixels = new Vector<String>();
@@ -72,7 +72,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
     		this.resultKey = "$RESULT_" + e.hashCode();
 
 			String expression = e.toString();
-			LOGGER.info("Processing " + Utility.cleanLogString(expression));
+			logger.info("Processing " + Utility.cleanLogString(expression));
 
 			boolean process = false;
 			for(String iType : importTypes) {
@@ -228,7 +228,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 				.create();
 		
 		// grab an example recipe
-		LOGGER.info("TRYING WITH IMPLICIT REPLACEMENT OF FIRST SOURCE");
+		logger.info("TRYING WITH IMPLICIT REPLACEMENT OF FIRST SOURCE");
 		String expression = "AddPanel ( 0 ) ;Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"\u003cencode\u003eUnfilterFrame(\u003cSelectedColumn\u003e);\u003c/encode\u003e\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"\u003cencode\u003eif(IsEmpty(\u003cSelectedValues\u003e), UnfilterFrame(\u003cSelectedColumn\u003e), SetFrameFilter(\u003cSelectedColumn\u003e\u003d\u003d\u003cSelectedValues\u003e));\u003c/encode\u003e\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;Panel ( 0 ) | RetrievePanelEvents ( ) ;Panel ( 0 ) | SetPanelView ( \"visualization\" , \"\u003cencode\u003e{\"type\":\"echarts\"}\u003c/encode\u003e\" ) ;Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"\u003cencode\u003e{\"core_engine\":\"NEWSEMOSSAPP\"}\u003c/encode\u003e\" ) ;CreateFrame ( Grid ) .as ( [ \u0027FRAME549443\u0027 ] ) ;GoogleSheetSource ( id \u003d [ \"1EZbv_mXn_tnguDG02awFwQ30EqGMoWKZBflUVlcLgxY\" ] , sheetNames \u003d [ \"diabetes\" ] , type \u003d [ \".spreadsheet\" ] ) | Import ( ) ;Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel \u003d [ \"0\" ] , layout \u003d [ \"Grid\" ] ) | Collect ( 500 ) ;if ( ( HasDuplicates ( Drug ) ) , ( Select ( Drug , Average ( id ) ) .as ( [ Drug , Averageofid ] ) | Group ( Drug ) | With ( Panel ( 0 ) ) | Format ( type \u003d [ \u0027table\u0027 ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"Averageofid\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Drug , id ) .as ( [ Drug , id ] ) | With ( Panel ( 0 ) ) | Format ( type \u003d [ \u0027table\u0027 ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"id\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;Panel(0)|AddPanelOrnaments({\"showMenu\":true});Panel(0)|RetrievePanelOrnaments(\"showMenu\");";
 		
 		List<Map<String, Object>> testReplacements = new Vector<Map<String, Object>>();
@@ -255,8 +255,8 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 		List<String> sourcePixels = translation.getPixels();
 		System.out.println(gson.toJson(sourcePixels));
 		
-		LOGGER.info("");
-		LOGGER.info("");
+		logger.info("");
+		logger.info("");
 
 //		LOGGER.info("TRYING WITH EXPLICIT REPLACEMENT INDEX");
 //		expression = "AddPanel ( 0 ) ;Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"\u003cencode\u003eUnfilterFrame(\u003cSelectedColumn\u003e);\u003c/encode\u003e\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"\u003cencode\u003eif(IsEmpty(\u003cSelectedValues\u003e), UnfilterFrame(\u003cSelectedColumn\u003e), SetFrameFilter(\u003cSelectedColumn\u003e\u003d\u003d\u003cSelectedValues\u003e));\u003c/encode\u003e\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;Panel ( 0 ) | RetrievePanelEvents ( ) ;Panel ( 0 ) | SetPanelView ( \"visualization\" , \"\u003cencode\u003e{\"type\":\"echarts\"}\u003c/encode\u003e\" ) ;Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"\u003cencode\u003e{\"core_engine\":\"NEWSEMOSSAPP\"}\u003c/encode\u003e\" ) ;CreateFrame ( Grid ) .as ( [ \u0027FRAME549443\u0027 ] ) ;GoogleSheetSource ( id \u003d [ \"1EZbv_mXn_tnguDG02awFwQ30EqGMoWKZBflUVlcLgxY\" ] , sheetNames \u003d [ \"diabetes\" ] , type \u003d [ \".spreadsheet\" ] ) | Import ( ) ;Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel \u003d [ \"0\" ] , layout \u003d [ \"Grid\" ] ) | Collect ( 500 ) ;if ( ( HasDuplicates ( Drug ) ) , ( Select ( Drug , Average ( id ) ) .as ( [ Drug , Averageofid ] ) | Group ( Drug ) | With ( Panel ( 0 ) ) | Format ( type \u003d [ \u0027table\u0027 ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"Averageofid\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Drug , id ) .as ( [ Drug , id ] ) | With ( Panel ( 0 ) ) | Format ( type \u003d [ \u0027table\u0027 ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"id\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;Panel(0)|AddPanelOrnaments({\"showMenu\":true});Panel(0)|RetrievePanelOrnaments(\"showMenu\");";
@@ -287,10 +287,10 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 //		System.out.println(gson.toJson(sourcePixels));
 		
 		
-		LOGGER.info("");
-		LOGGER.info("");
+		logger.info("");
+		logger.info("");
 
-		LOGGER.info("TRYING WITH DATABASE ");
+		logger.info("TRYING WITH DATABASE ");
 		expression = "AddPanel ( 0 ) ;Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"\u003cencode\u003eUnfilterFrame(\u003cSelectedColumn\u003e);\u003c/encode\u003e\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"\u003cencode\u003eif(IsEmpty(\u003cSelectedValues\u003e), UnfilterFrame(\u003cSelectedColumn\u003e), SetFrameFilter(\u003cSelectedColumn\u003e\u003d\u003d\u003cSelectedValues\u003e));\u003c/encode\u003e\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;Panel ( 0 ) | RetrievePanelEvents ( ) ;Panel ( 0 ) | SetPanelView ( \"visualization\" , \"\u003cencode\u003e{\"type\":\"echarts\"}\u003c/encode\u003e\" ) ;Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"\u003cencode\u003e{\"core_engine\":\"NEWSEMOSSAPP\"}\u003c/encode\u003e\" ) ;CreateFrame ( Grid ) .as ( [ \u0027FRAME549443\u0027 ] ) ; Database(abc) | Select(Title, Title__Movie_Budget) | Import ( ) ;Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel \u003d [ \"0\" ] , layout \u003d [ \"Grid\" ] ) | Collect ( 500 ) ;if ( ( HasDuplicates ( Drug ) ) , ( Select ( Drug , Average ( id ) ) .as ( [ Drug , Averageofid ] ) | Group ( Drug ) | With ( Panel ( 0 ) ) | Format ( type \u003d [ \u0027table\u0027 ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"Averageofid\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Drug , id ) .as ( [ Drug , id ] ) | With ( Panel ( 0 ) ) | Format ( type \u003d [ \u0027table\u0027 ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"id\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;Panel(0)|AddPanelOrnaments({\"showMenu\":true});Panel(0)|RetrievePanelOrnaments(\"showMenu\");";
 		
 		testReplacements = new Vector<Map<String, Object>>();
