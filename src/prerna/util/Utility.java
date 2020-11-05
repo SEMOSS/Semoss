@@ -59,7 +59,6 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
@@ -2521,25 +2520,25 @@ public class Utility {
 		if (DIHelper.getInstance().getLocalProp(engineId) != null) {
 			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineId);
 		} else {
-			// Else, need to load the engine
-			
 			// Acquire the lock on the engine,
 			// don't want several calls to try and load the engine at the same
 			// time
+			logger.info("Applying lock for " + engineId + " to push app");
 			ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 			lock.lock();
+			logger.info("App "+ engineId + " is locked");
 
-			// Need to do a double check here,
-			// so if a different thread was waiting for the engine to load,
-			// it doesn't go through this process again
-			if (DIHelper.getInstance().getLocalProp(engineId) != null) {
-				return (IEngine) DIHelper.getInstance().getLocalProp(engineId);
-			}
-
-			// If in a clustered environment, then pull the app first
-			// TODO >>>timb: need to pull sec and lmd each time. They also need
-			// correct jdbcs...
 			try {
+				// Need to do a double check here,
+				// so if a different thread was waiting for the engine to load,
+				// it doesn't go through this process again
+				if (DIHelper.getInstance().getLocalProp(engineId) != null) {
+					return (IEngine) DIHelper.getInstance().getLocalProp(engineId);
+				}
+				
+				// If in a clustered environment, then pull the app first
+				// TODO >>>timb: need to pull sec and lmd each time. They also need
+				// correct jdbcs...
 				if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 					try {
 						CloudClient.getClient().pullApp(engineId);
@@ -2592,6 +2591,7 @@ public class Utility {
 			} finally {
 				// Make sure to unlock now
 				lock.unlock();
+				logger.info("App "+ engineId + " is unlocked");
 			}
 		}
 
