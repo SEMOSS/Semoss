@@ -105,6 +105,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private int fetchSize = -1;
 	private int poolMinSize = 1;
 	private int poolMaxSize = 16;
+	private int queryTimeout = -1;
 	
 	private AbstractSqlQueryUtil queryUtil = null;
 
@@ -191,6 +192,17 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
+			// connection timeout
+			if(prop.getProperty(Constants.CONNECTION_QUERY_TIMEOUT) != null) {
+				String queryTimeoutStr = prop.getProperty(Constants.CONNECTION_QUERY_TIMEOUT);
+				try {
+					this.queryTimeout = Integer.parseInt(queryTimeoutStr);
+				} catch(Exception e) {
+					System.out.println("Error occured trying to parse and get the query timeout");
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			// pool min size
 			if(prop.getProperty(Constants.POOL_MIN_SIZE) != null) {
 				String strMinPoolSize = prop.getProperty(Constants.POOL_MIN_SIZE);
 				try {
@@ -200,6 +212,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
+			// pool max size
 			if(prop.getProperty(Constants.POOL_MAX_SIZE) != null) {
 				String strMaxPoolSize = prop.getProperty(Constants.POOL_MAX_SIZE);
 				try {
@@ -518,6 +531,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 		Connection conn = getConnection();
 		Statement stmt = conn.createStatement();
+		if(this.queryTimeout > 0) {
+			stmt.setQueryTimeout(queryTimeout);
+		}
 		ResultSet rs = null;
 		rs = stmt.executeQuery(query);
 		if(this.fetchSize > 0) {

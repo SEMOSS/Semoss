@@ -53,7 +53,6 @@ public abstract class CloudClient {
 	
 	public  abstract void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException;
 
-
 	public  abstract void pullApp(String appId) throws IOException, InterruptedException;
 	
 	public  abstract void pullDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException;
@@ -117,7 +116,6 @@ public abstract class CloudClient {
 	}
 
 	protected static String getConfigPath(String rcloneConfig) {
-
 		if( rcloneConfigFolder == null) {
 			rcloneConfigFolder =  DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + "rcloneConfig";		
 		}

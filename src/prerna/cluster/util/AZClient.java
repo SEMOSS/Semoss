@@ -41,6 +41,7 @@ import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class AZClient extends CloudClient {
+	
 	private static final Logger logger = LogManager.getLogger(AZClient.class);
 
 	// this is a singleton
@@ -59,7 +60,6 @@ public class AZClient extends CloudClient {
 	public static final String AZ_URI = "AZ_URI";
 	public static final String STORAGE = "STORAGE"; // says if this is local / cluster
 	public static final String KEY_HOME = "KEY_HOME"; // this is where the various keys are cycled
-	private static final String STACKTRACE = "StackTrace: ";
 
 	public String azKeyRoot = "/khome";
 
@@ -159,9 +159,9 @@ public class AZClient extends CloudClient {
 
 			}
 		} catch (URISyntaxException use) {
-			logger.error(STACKTRACE, use);
+			logger.error(Constants.STACKTRACE, use);
 		} catch (InvalidKeyException ike) {
-			logger.error(STACKTRACE, ike);
+			logger.error(Constants.STACKTRACE, ike);
 		}
 	}
 
@@ -178,11 +178,11 @@ public class AZClient extends CloudClient {
 			retString = container.getUri() + "?" + container.generateSharedAccessSignature(getSASConstraints(), null); 
 
 		} catch (URISyntaxException use) {
-			logger.error(STACKTRACE, use);
+			logger.error(Constants.STACKTRACE, use);
 		} catch (StorageException se) {
-			logger.error(STACKTRACE, se);
+			logger.error(Constants.STACKTRACE, se);
 		} catch (InvalidKeyException ike) {
-			logger.error(STACKTRACE, ike);
+			logger.error(Constants.STACKTRACE, ike);
 		}
 
 		return retString;
