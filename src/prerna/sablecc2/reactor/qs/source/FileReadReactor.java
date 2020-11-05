@@ -30,8 +30,6 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	private static final String HEADER_NAMES = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
 	private static final String ADDITIONAL_DATA_TYPES = ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey();
 
-	public boolean evaluate = true;
-	
 	/**
 	 * FileRead args 
 	 * 
@@ -59,7 +57,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		Map<String, String> dataTypes = getDataTypes();
 		Map<String, String> additionalDataTypes = getAdditionalDataTypes();
 		String fileLocation = UploadInputUtility.getFilePath(this.store, this.insight);
-		if(this.evaluate && !new File(fileLocation).exists()) {
+		if(!new File(fileLocation).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
 		String fileExtension = "";
@@ -274,11 +272,5 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		
 		String fileLocation = fileGrs.get(0).toString();
 		return fileLocation;
-	}
-	
-	/////////////////////////////////////////////////////////////////////
-	
-	public void setEvaluate(boolean evaluate) {
-		this.evaluate = evaluate;
 	}
 }
