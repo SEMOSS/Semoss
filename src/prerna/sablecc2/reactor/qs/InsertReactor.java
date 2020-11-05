@@ -150,7 +150,12 @@ public class InsertReactor extends AbstractReactor {
 						}
 					}
 					else if(values[i] instanceof SemossDate) {
-						valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
+						String dateValue = ((SemossDate) values[i]).getFormattedDate();
+						if(dateValue == null || dateValue.isEmpty()) {
+							valuesSb.append("null");
+						} else {
+							valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
+						}
 					}
 					else {
 						valuesSb.append(values[i]);
@@ -165,7 +170,12 @@ public class InsertReactor extends AbstractReactor {
 						}
 					}
 					else if(values[i] instanceof SemossDate) {
-						valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "', ");
+						String dateValue = ((SemossDate) values[i]).getFormattedDate();
+						if(dateValue == null || dateValue.isEmpty()) {
+							valuesSb.append("null");
+						} else {
+							valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
+						}
 					}
 					else {
 						valuesSb.append(values[i] + ", ");
