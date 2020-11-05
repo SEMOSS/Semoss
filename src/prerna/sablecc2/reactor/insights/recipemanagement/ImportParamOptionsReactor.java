@@ -6,10 +6,20 @@ import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
 
 import prerna.om.Insight;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
+import prerna.query.parsers.ParamStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.transform.QSParseParamStruct;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -46,7 +56,36 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			}
 		}
 		
-		return new NounMetadata(translation.getImportQsMap(), PixelDataType.MAP);
+		Map<String, SelectQueryStruct> imports = translation.getImportQsMap();
+		// for each import
+		// we need to get the proper param struct
+		Map<String, List<ParamStruct>> params = new HashMap<>();
+		for(String pixelStep : imports.keySet()) {
+			List<ParamStruct> paramList = getParamsForImport(imports.get(pixelStep));
+			params.put(pixelStep, paramList);
+		}
+		
+		return new NounMetadata(params, PixelDataType.MAP);
+	}
+	
+	private List<ParamStruct> getParamsForImport(SelectQueryStruct qs) {
+		List<ParamStruct> paramList = new Vector<>();
+		
+		if(qs instanceof HardSelectQueryStruct) {
+			// TODO: IMPLEMENT THIS FROM THE QUERY
+			
+			
+		} else {
+			// get the filters first
+			GenRowFilters importFilters = qs.getExplicitFilters();
+			Set<String> filteredColumns = importFilters.getAllFilteredColumns();
+
+			for(IQueryFilter filter : importFilters) {
+				QSParseParamStruct.parseFilter(filter, paramList);
+			}
+		}
+		
+		return paramList;
 	}
 
 }
