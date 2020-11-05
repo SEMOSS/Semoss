@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-public class GenRowFilters implements Serializable {
+public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 
 	/*
 	 * This class is used to store filters within the QueryStruct2
@@ -334,5 +334,10 @@ public class GenRowFilters implements Serializable {
 			}
 		}
 		return filterList;
+	}
+
+	@Override
+	public Iterator<IQueryFilter> iterator() {
+		return this.filterVec.iterator();
 	}
 }
