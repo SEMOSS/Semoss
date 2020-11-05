@@ -274,6 +274,47 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) throws Exception {
 		long start = System.currentTimeMillis();
+
+		// prepare the query struct
+		qs = prepQsForExecution(qs);
+		// we can cache a few different engine types
+		boolean cache = false;
+		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache")) {
+			cache = ((String)qs.getPragmap().get("xCache")).equalsIgnoreCase("True") ? true : false;
+		}
+
+		IRawSelectWrapper it = null;
+		if(cache) {
+			if(NativeFrame.cacheEngines.contains(this.qs.retrieveQueryStructEngine().getEngineType())) {
+				// this is an engine whose results can be cached
+				IQueryInterpreter interpreter = this.qs.retrieveQueryStructEngine().getQueryInterpreter();
+				interpreter.setQueryStruct(qs);
+				String query = interpreter.composeQuery();
+
+				if(this.queryCache.containsKey(query)) {
+					CachedIterator cached = this.queryCache.get(query);
+					RawCachedWrapper rcw = new RawCachedWrapper();
+					rcw.setIterator(cached);
+					it = rcw;
+				}
+			}
+		}
+
+		// if we still dont have an iterator
+		// create it
+		if(it == null) {
+			IEngine engine = this.qs.retrieveQueryStructEngine();
+			logger.info("Executing query on engine " + Utility.cleanLogString(engine.getEngineId()));
+			it = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			long end = System.currentTimeMillis();
+			logger.info("Engine execution time = " + (end-start) + "ms");
+			return it;
+		}
+
+		return it;
+	}
+	
+	public SelectQueryStruct prepQsForExecution(SelectQueryStruct qs) {
 		IEngine engine = this.qs.retrieveQueryStructEngine();
 		// account for potential double aggregations
 		// TODO: account for double aggregation on other DB types...
@@ -338,40 +379,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		qs.setRelations(this.qs.getRelations());
 		qs.setBigDataEngine(this.qs.getBigDataEngine());
 		
-		// we can cache a few different engine types
-		boolean cache = false;
-		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache")) {
-			cache = ((String)qs.getPragmap().get("xCache")).equalsIgnoreCase("True") ? true : false;
-		}
-
-		IRawSelectWrapper it = null;
-		if(cache) {
-			if(NativeFrame.cacheEngines.contains(this.qs.retrieveQueryStructEngine().getEngineType())) {
-				// this is an engine whose results can be cached
-				IQueryInterpreter interpreter = this.qs.retrieveQueryStructEngine().getQueryInterpreter();
-				interpreter.setQueryStruct(qs);
-				String query = interpreter.composeQuery();
-
-				if(this.queryCache.containsKey(query)) {
-					CachedIterator cached = this.queryCache.get(query);
-					RawCachedWrapper rcw = new RawCachedWrapper();
-					rcw.setIterator(cached);
-					it = rcw;
-				}
-			}
-		}
-
-		// if we still dont have an iterator
-		// create it
-		if(it == null) {
-			logger.info("Executing query on engine " + Utility.cleanLogString(engine.getEngineId()));
-			it = WrapperManager.getInstance().getRawWrapper(engine, qs);
-			long end = System.currentTimeMillis();
-			logger.info("Engine execution time = " + (end-start) + "ms");
-			return it;
-		}
-
-		return it;
+		return qs;
 	}
 	
 	@Override
