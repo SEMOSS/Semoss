@@ -138,6 +138,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 */
 	public void removeEnv() {
 		executeEmptyRDirect("rm(" + this.env + ");");
+		executeEmptyRDirect("gc()");
 	}
 	
 	/**
