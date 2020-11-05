@@ -75,11 +75,11 @@ public class QsFilterParameterizeConverter {
 			}
 		}
 		
+		String comparator = filter.getComparator();
 		if(parameterizeLeft) {
 			// keep the same right
 			newR = origR;
 			// create the new left hand side
-			String comparator = filter.getComparator();
 			newL = new NounMetadata("<" + colToParameterize + "__" + IQueryFilter.getSimpleNameForComparator(comparator) + ">", PixelDataType.CONST_STRING);
 			addToColToParam(colToComparators, colToParameterize, comparator);
 
@@ -87,7 +87,6 @@ public class QsFilterParameterizeConverter {
 			// keep the same left
 			newL = origL;
 			// create the new right hand side
-			String comparator = filter.getComparator();
 			newR = new NounMetadata("<" + colToParameterize + "__" + IQueryFilter.getSimpleNameForComparator(comparator) + ">", PixelDataType.CONST_STRING);
 			addToColToParam(colToComparators, colToParameterize, comparator);
 			
