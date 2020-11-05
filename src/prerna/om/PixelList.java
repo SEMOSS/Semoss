@@ -41,6 +41,8 @@ public class PixelList implements Iterable<Pixel> {
 		pixelList.add(p);
 		idToIndexHash.put(p.getId(), this.pixelList.size()-1);
 		syncLastPixel();
+		// increment the counter
+		counter.getAndIncrement();
 	}
 	
 	public void syncLastPixel() {

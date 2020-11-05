@@ -290,20 +290,20 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @param cachedInsight
 	 * @return
 	 */
-	protected PixelRunner getCachedInsightData(Insight insight) throws IOException, JsonSyntaxException {
+	protected PixelRunner getCachedInsightData(Insight cachedInsight) throws IOException, JsonSyntaxException {
 		// so that I don't mess up the insight recipe
 		// use the object as it contains a ton of metadata
 		// around the pixel step
-		PixelList orig = insight.getPixelList().copy();
+		PixelList orig = cachedInsight.getPixelList().copy();
 		// clear the current insight recipe
-		insight.setPixelRecipe(new Vector<String>());
+		cachedInsight.setPixelRecipe(new Vector<String>());
 		
 		PixelRunner runner = new PixelRunner();
-		runner.setInsight(insight);
+		runner.setInsight(cachedInsight);
 		
 		// send the view data
 		try {
-			Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(insight);
+			Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(cachedInsight);
 			List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
 			if(!pixelReturn.isEmpty()) {
 				runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
@@ -311,10 +311,10 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			// logic to get all the frame headers
 			{
 				// get all frame headers
-				VarStore vStore = insight.getVarStore();
-				Set<String> keys = vStore.getKeys();
+				VarStore vStore = cachedInsight.getVarStore();
+				Set<String> keys = vStore.getFrameKeys();
 				for(String k : keys) {
-					NounMetadata noun = insight.getVarStore().get(k);
+					NounMetadata noun = vStore.get(k);
 					PixelDataType type = noun.getNounType();
 					if(type == PixelDataType.FRAME) {
 						try {
@@ -328,9 +328,14 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 					}
 				}
 			}
+			// get the insight config for layout
+			NounMetadata insightConfig = cachedInsight.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
+			if(insightConfig != null) {
+				runner.addResult("META | GetInsightConfig()", insightConfig, true);
+			}
 		} finally {
 			// we need to reset the recipe
-			insight.setPixelList(orig);
+			cachedInsight.setPixelList(orig);
 		}
 		
 		return runner;
