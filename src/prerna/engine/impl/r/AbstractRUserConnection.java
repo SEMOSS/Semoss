@@ -17,11 +17,12 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RSession;
 import org.rosuda.REngine.Rserve.RserveException;
 
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public abstract class AbstractRUserConnection implements IRUserConnection {
 	
-	protected static final Logger LOGGER = LogManager.getLogger(AbstractRUserConnection.class.getName());
+	protected static final Logger logger = LogManager.getLogger(AbstractRUserConnection.class);
 	
 	// Recovery
 	private boolean recoveryEnabled = RserveUtil.R_USER_RECOVERY_DEFAULT;
@@ -71,10 +72,10 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	private REXP eval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit, boolean retry) {
 		if (isHealthy(healthTimeout, healthTimeoutUnit)) {
 			if(rScript.length() > 500) {
-				LOGGER.info("Running R: " + rScript.substring(0, 500) + "...");
-				LOGGER.debug("Running R: " + rScript);
+				logger.info("Running R: " + rScript.substring(0, 500) + "...");
+				logger.debug("Running R: " + rScript);
 			} else {
-				LOGGER.info("Running R: " + rScript);
+				logger.info("Running R: " + rScript);
 			}
 			ExecutorService executor = Executors.newSingleThreadExecutor();
 			try {
@@ -130,10 +131,10 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	private void voidEval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit, boolean retry) {
 		if (isHealthy(healthTimeout, healthTimeoutUnit)) {
 			if(rScript.length() > 500) {
-				LOGGER.info("Running R: " + rScript.substring(0, 500) + "...");
-				LOGGER.debug("Running R: " + rScript);
+				logger.info("Running R: " + rScript.substring(0, 500) + "...");
+				logger.debug("Running R: " + rScript);
 			} else {
-				LOGGER.info("Running R: " + rScript);
+				logger.info("Running R: " + rScript);
 			}
 			ExecutorService executor = Executors.newSingleThreadExecutor();
 			try {
@@ -179,7 +180,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	@Override
 	public RSession detach() {
 		if (isHealthy()) {
-			LOGGER.info("Detaching R.");
+			logger.info("Detaching R.");
 				ExecutorService executor = Executors.newSingleThreadExecutor();
 				try {
 					synchronized (rconMonitor) {
@@ -237,27 +238,27 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 
 							// split stack shape
 							rcon.eval("library(splitstackshape);");
-							LOGGER.info("Loaded packages splitstackshape");
+							logger.info("Loaded packages splitstackshape");
 
 							// data table
 							rcon.eval("library(data.table);");
-							LOGGER.info("Loaded packages data.table");
+							logger.info("Loaded packages data.table");
 
 							// reshape2
 							rcon.eval("library(reshape2);");
-							LOGGER.info("Loaded packages reshape2");
+							logger.info("Loaded packages reshape2");
 
 							// stringr
 							rcon.eval("library(stringr)");
-							LOGGER.info("Loaded packages stringr");
+							logger.info("Loaded packages stringr");
 
 							// lubridate
 							rcon.eval("library(lubridate);");
-							LOGGER.info("Loaded packages lubridate");
+							logger.info("Loaded packages lubridate");
 
 							// dplyr
 							rcon.eval("library(dplyr);");
-							LOGGER.info("Loaded packages dplyr");
+							logger.info("Loaded packages dplyr");
 							return null;
 						}
 					});
@@ -268,6 +269,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 				executor.shutdownNow();
 			}
 		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not load R libraries.\n Please make sure the following libraries are installed:\n " +
 					"1)splitstackshape\n" +
 					"2)data.table\n" +
@@ -373,14 +375,14 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 				}
 			}
 		} catch (TimeoutException | InterruptedException e) {
-			LOGGER.warn("R health check failed due to a timeout.");
-			e.printStackTrace();
+			logger.warn("R health check failed due to a timeout.");
+			logger.error(Constants.STACKTRACE, e);
 		} catch (ExecutionException e) {
-			LOGGER.warn("R health check failed");
-			e.printStackTrace();
+			logger.warn("R health check failed");
+			logger.error(Constants.STACKTRACE, e);
 		} catch (REXPMismatchException e) {
-			LOGGER.warn("R health check failed due to incorrect result");
-			e.printStackTrace();
+			logger.warn("R health check failed due to incorrect result");
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			executor.shutdownNow();
 		}
