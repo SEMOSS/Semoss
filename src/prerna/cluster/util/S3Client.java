@@ -26,10 +26,10 @@ import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class S3Client extends CloudClient {
+	
 	private static Logger logger = LogManager.getLogger(S3Client.class);
 
 	private static final String PROVIDER = "s3";
-	private static final String STACKTRACE = "StackTrace: ";
 	private static final String SMSS_POSTFIX = "-smss";
 
 	private static String BUCKET = null;
@@ -659,12 +659,12 @@ public class S3Client extends CloudClient {
 		try {
 			rcloneConfig = createRcloneConfig();
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} catch (InterruptedException ie) {
-			logger.error(STACKTRACE, ie);
+			logger.error(Constants.STACKTRACE, ie);
 			Thread.currentThread().interrupt();
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return rcloneConfig;
 	}
