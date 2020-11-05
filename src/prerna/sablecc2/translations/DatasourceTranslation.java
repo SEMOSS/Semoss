@@ -41,7 +41,7 @@ import prerna.util.Utility;
 
 public class DatasourceTranslation extends AbstractDatasourceModificationTranslation {
 
-	private static final Logger LOGGER = LogManager.getLogger(DatasourceTranslation.class.getName());
+	private static final Logger logger = LogManager.getLogger(DatasourceTranslation.class.getName());
 
 	private List<Map<String, Object>> datasourcePixels = new Vector<Map<String, Object>>();
 	private Map<String, Object> currentSourceStatement = null;
@@ -58,7 +58,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
     		this.resultKey = "$RESULT_" + e.hashCode();
 
 			String expression = e.toString();
-			LOGGER.info("Processing " + Utility.cleanLogString(expression));
+			logger.info("Processing " + Utility.cleanLogString(expression));
 
 			boolean process = false;
 			for(String iType : importTypes) {
