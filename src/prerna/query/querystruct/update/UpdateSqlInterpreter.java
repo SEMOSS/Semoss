@@ -100,13 +100,15 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 			if(v == null) {
 				sets.append(column + "= NULL");
 			} else if(v instanceof String) {
-//				sets.append(table + "." + column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
 				sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
 			} else if(v instanceof SemossDate) {
-//				sets.append(table + "." + column + "=" + "'" + ((SemossDate) v).getFormattedDate() + "'");
-				sets.append(column + "=" + "'" + ((SemossDate) v).getFormattedDate() + "'");
+				String dateValue = ((SemossDate) v).getFormattedDate() ;
+				if(dateValue == null || dateValue.isEmpty()) {
+					sets.append(column + "= NULL");
+				} else {
+					sets.append(column + "=" + "'" + dateValue + "'");
+				}
 			} else {
-//				sets.append(table + "." + column + "=" + v );
 				sets.append(column + "=" + v );
 			}
 			
