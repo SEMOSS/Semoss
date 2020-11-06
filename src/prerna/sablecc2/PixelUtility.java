@@ -725,7 +725,9 @@ public class PixelUtility {
 		Map<String, String> encodedTextToOriginal = new HashMap<>();
 		
 		PixelList pixelList = in.getPixelList();
-		for(Pixel pixel : pixelList) {
+		int size = pixelList.size();
+		for(int i = 0; i < size; i++) {
+			Pixel pixel = pixelList.get(i);
 			String pixelString = pixel.getPixelString();
 			try {
 				pixelString = PixelPreProcessor.preProcessPixel(pixelString, encodingList, encodedTextToOriginal);

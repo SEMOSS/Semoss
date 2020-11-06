@@ -41,7 +41,8 @@ public class PixelListAdapter  extends TypeAdapter<PixelList> {
 		
 		PixelAdapter adapter = new PixelAdapter();
 		out.beginArray();
-		for(int i = 0; i < value.size(); i++) {
+		int size = value.size();
+		for(int i = 0; i < size; i++) {
 			Pixel p = value.get(i);
 			adapter.write(out, p);
 		}
