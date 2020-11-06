@@ -103,17 +103,20 @@ public class CreateFrameReactor extends AbstractReactor {
 	public void mergeUp() {
 		// merge this reactor into the parent reactor
 		if(parentReactor != null) {
-//			organizeKeys();
-//			this.keyValue.put("createFrame","true");
-			Map<String, List<Map>> map = getStoreMap();
-			map.put("createFrame", new ArrayList<>());
-			NounMetadata data = new NounMetadata(map, PixelDataType.FRAME, PixelOperationType.FRAME_MAP);
+			organizeKeys();
+			String alias = this.keyValue.get(this.keysToGet[2]);
+			NounMetadata mergeNoun = this.insight.getVarStore().get(alias);
+			if(mergeNoun == null) {
+				Map<String, List<Map>> map = getStoreMap();
+				map.put("createFrame", new ArrayList<>());
+				mergeNoun = new NounMetadata(map, PixelDataType.FRAME, PixelOperationType.FRAME_MAP);
+			}
 	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
 	    			|| parentReactor instanceof GenericReactor) {
-	    		parentReactor.getCurRow().add(data);
+	    		parentReactor.getCurRow().add(mergeNoun);
 	    	} else {
 	    		GenRowStruct parentInput = parentReactor.getNounStore().makeNoun(PixelDataType.FRAME.getKey());
-				parentInput.add(data);
+				parentInput.add(mergeNoun);
 	    	}
 		}
 	}
