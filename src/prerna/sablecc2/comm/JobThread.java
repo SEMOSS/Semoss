@@ -59,7 +59,7 @@ public class JobThread extends Thread {
 	}
 	
 	public String getStatus() {
-		return this.status.value;
+		return this.status.getValue();
 	}
 	
 	public PixelRunner getRunner() {

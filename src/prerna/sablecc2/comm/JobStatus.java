@@ -17,6 +17,10 @@ public enum JobStatus {
 		this.value = value;
 	}
 	
+	public String getValue() {
+		return this.value;
+	}
+	
 	public String toString() {
 		return this.value;
 	}
