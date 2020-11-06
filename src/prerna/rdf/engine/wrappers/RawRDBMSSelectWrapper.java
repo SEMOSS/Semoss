@@ -25,12 +25,11 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
 import prerna.query.parsers.PraseSqlQueryForCount;
 import prerna.util.ConnectionUtils;
+import prerna.util.Constants;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private static final Logger logger = LogManager.getLogger(RawRDBMSSelectWrapper.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	protected BasicDataSource dataSource = null;
 	protected Connection conn = null;
@@ -66,7 +65,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			// go through and collect the metadata around the query
 			setVariables();
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			if(this.useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, rs, stmt);
 			} else {
@@ -114,7 +113,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return false;
@@ -148,8 +147,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 							val = new SemossDate(dateValStr, "yyyy-MM-dd");
 						} catch(Exception e2) {
 							// out of luck...
-							logger.error(STACKTRACE, e);
-							logger.error(STACKTRACE, e2);
+							logger.error(Constants.STACKTRACE, e);
+							logger.error(Constants.STACKTRACE, e2);
 						}
 					}
 				} else if(type == Types.TIMESTAMP) {
@@ -169,8 +168,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 							val = new SemossDate(dateValStr, "yyyy-MM-dd HH:mm:ss");
 						} catch(Exception e2) {
 							// out of luck...
-							logger.error(STACKTRACE, e);
-							logger.error(STACKTRACE, e2);
+							logger.error(Constants.STACKTRACE, e);
+							logger.error(Constants.STACKTRACE, e2);
 						}
 					}
 				} else if(type == Types.CLOB) {
@@ -185,7 +184,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					try {
 						val = new String(bytes, "UTF-8");
 					} catch (UnsupportedEncodingException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 				else if(type == Types.BOOLEAN || type == Types.BIT) {
@@ -235,7 +234,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				types[colIndex-1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
 			}
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -267,14 +266,14 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				this.rs.close();
 			}
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		try {
 			if(this.stmt != null) {
 				this.stmt.close();
 			}
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		if(this.closeConnectionAfterExecution) {
 			try {
@@ -282,7 +281,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					this.conn.close();
 				}
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		if(this.dataSource != null) {
@@ -294,7 +293,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					this.conn.close();
 				}
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		this.closedConnection = true;
@@ -312,7 +311,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					try {
 						this.conn = ((RDBMSNativeEngine) this.engine).getConnection();
 					} catch (SQLException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -322,7 +321,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			try {
 				query = parser.processQuery(this.query);
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				query = this.query;
 			}
 			query = "select count(*) from (" + query + ") t";
@@ -341,20 +340,20 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					this.numRows = resultSet.getLong(1);
 				}
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(resultSet != null) {
 					try {
 						resultSet.close();
 					} catch (SQLException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 				if(statement != null) {
 					try {
 						statement.close();
 					} catch (SQLException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 				if(this.dataSource != null) {
@@ -363,7 +362,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 							connection.close();
 						}
 					} catch (SQLException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -405,7 +404,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			this.rs = this.stmt.executeQuery(query);
 			setVariables();
 		} catch(Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			if(closeIfFail) {
 				ConnectionUtils.closeAllConnections(conn, rs, stmt);
 			}
