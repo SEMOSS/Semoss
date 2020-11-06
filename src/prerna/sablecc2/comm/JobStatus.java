@@ -11,7 +11,7 @@ public enum JobStatus {
 	ERROR ("Error"),
 	UNKNOWN_JOB ("UnknownJob");
 
-	String value = "";
+	private String value = "";
 
 	JobStatus(String value) {
 		this.value = value;
