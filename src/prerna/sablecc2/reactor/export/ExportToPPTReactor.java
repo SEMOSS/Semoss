@@ -21,6 +21,7 @@ import org.apache.poi.xddf.usermodel.XDDFColor;
 import org.apache.poi.xddf.usermodel.XDDFLineProperties;
 import org.apache.poi.xddf.usermodel.XDDFShapeProperties;
 import org.apache.poi.xddf.usermodel.XDDFSolidFillProperties;
+import org.apache.poi.xddf.usermodel.chart.AxisCrossBetween;
 import org.apache.poi.xddf.usermodel.chart.AxisCrosses;
 import org.apache.poi.xddf.usermodel.chart.AxisPosition;
 import org.apache.poi.xddf.usermodel.chart.BarDirection;
@@ -336,7 +337,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(ChartTypes.BAR, bottomAxis, leftAxis);
-
+		leftAxis.setCrossBetween(AxisCrossBetween.BETWEEN);
+		
 		if (flipAxis) {
 			data.setBarDirection(BarDirection.BAR);
 		} else {
