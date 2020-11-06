@@ -239,7 +239,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 					String layerId = (String) layerMap.get("id");
 					addLayerForCurrentIndex(panel, layerId);
 				} else {
-					addLayerForCurrentIndex(panel, "base");
+					addLayerForCurrentIndex(panel, "0");
 				}
 			}
 		} else if (reactorId.equals("ClosePanel")) {
@@ -317,7 +317,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			}
 			clonePanelId = trimQuotes(clonePanelId);
 			addPanelForCurrentIndex(clonePanelId);
-			addLayerForCurrentIndex(clonePanelId, "base");
+			addLayerForCurrentIndex(clonePanelId, "0");
 
 			// store the order of the creation
 			panelCreationOrder.add(clonePanelId);
@@ -505,7 +505,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			addPanelForCurrentIndex(panel);
 			// add for layer
 			// should technically drop all the other layers for these
-			addLayerForCurrentIndex(panel, "base");
+			addLayerForCurrentIndex(panel, "0");
 		} else if(containsOrnamentTaskOptions && containsPanelKey) {
 			// this is the value for a panel
 			// store it with the current index
@@ -745,6 +745,10 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 							if(currentLastTaskForPanel > origTaskIndex) {
 								// add back the original task
 								if(!expressionsToKeep.contains(origTaskIndex)) {
+									{
+										String keepExpression = expressionMap.get(origTaskIndex);
+										LOGGER.info("Optimize recipe saving recipe step = " + keepExpression);
+									}
 									expressionsToKeep.add(origTaskIndex);
 
 									// do a sneak peak, is this expression a clone
@@ -765,6 +769,10 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				List<Integer> expressionsForLayer = thisLayerMap.get(layerId);
 
 				int lastExpressionIndex = expressionsForLayer.get(expressionsForLayer.size() - 1);
+				{
+					String keepExpression = expressionMap.get(lastExpressionIndex);
+					LOGGER.info("Optimize recipe saving recipe step = " + keepExpression);
+				}
 				expressionsToKeep.add(lastExpressionIndex);
 
 				// let us find any panel ornaments to keep
@@ -777,6 +785,10 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 						// if this happened after the last view
 						// add it to the list of expressions to keep
 						if(ornamentIndex > lastExpressionIndex) {
+							{
+								String keepExpression = expressionMap.get(ornamentIndex);
+								LOGGER.info("Optimize recipe saving recipe step = " + keepExpression);
+							}
 							expressionsToKeep.add(ornamentIndex);
 						}
 					}
