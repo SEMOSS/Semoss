@@ -33,6 +33,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -547,6 +548,23 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
+		} catch(SQLTimeoutException e) {
+			hasError = true;
+			if(this.queryTimeout > 0) {
+				throw new SQLTimeoutException("Query execution cancelled - processing time took longer than set limit of " 
+						+ this.queryTimeout + " seconds");
+			}
+			int statementTimeout = -1;
+			try {
+				statementTimeout = stmt.getQueryTimeout();
+			} catch(Exception e2) {
+				// ignore
+			}
+			if(statementTimeout > 0) {
+				throw new SQLTimeoutException("Query execution cancelled - processing time took longer than set limit of " 
+						+ statementTimeout + " seconds");
+			}
+			throw e;
 		} catch(SQLException e) {
 			hasError = true;
 			throw e;
