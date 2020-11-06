@@ -32,6 +32,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class InsertReactor extends AbstractReactor {
@@ -56,6 +57,7 @@ public class InsertReactor extends AbstractReactor {
 		AbstractQueryStruct qs = (AbstractQueryStruct) qStruct.getValue();
 		IEngine engine = null;
 		ITableDataFrame frame = null;
+		AbstractSqlQueryUtil queryUtil = null;
 		String userId = "user not defined";
 
 		if(qStruct.getValue() instanceof AbstractQueryStruct) {
@@ -65,7 +67,7 @@ public class InsertReactor extends AbstractReactor {
 				if(!(engine instanceof RDBMSNativeEngine)) {
 					throw new IllegalArgumentException("Insert query only works for rdbms databases");
 				}
-				
+				queryUtil = ((RDBMSNativeEngine) engine).getQueryUtil();
 				// If an engine and the user is defined, then grab it for the audit log
 				User user = this.insight.getUser();
 				if (user != null) {
@@ -81,6 +83,7 @@ public class InsertReactor extends AbstractReactor {
 				if(!(frame instanceof AbstractRdbmsFrame)) {
 					throw new IllegalArgumentException("Insert query only works for sql frames");
 				}
+				queryUtil = ((AbstractRdbmsFrame) frame).getQueryUtil();
 			}
 		} else {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
@@ -130,56 +133,58 @@ public class InsertReactor extends AbstractReactor {
 		if(ClusterUtil.IS_CLUSTER && engine != null) {
 			RdbmsTypeEnum eType = ((RDBMSNativeEngine) engine).getQueryUtil().getDbType();
 			if(eType == RdbmsTypeEnum.H2_DB || eType == RdbmsTypeEnum.SQLITE) {
-				insertFileEngine(engine, initial, valueCombinations, selectors, userId);
+				insertFileEngine(engine, queryUtil, initial, valueCombinations, selectors, userId);
 				return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 			}
 		}
 		
+		// determine if we can insert booleans as true/false
+		boolean allowBooleanType = queryUtil.allowBooleanDataType();
+		
 		// we are a frame
-		// or a "normal" rdbms type
+		// or a tcp/ip rdbms type
 		for(Object[] values : valueCombinations) {
 			StringBuilder valuesSb = new StringBuilder();
 			// Insert values
 			for(int i = 0; i < values.length; i++) {
-				if(i == values.length - 1) {
-					if(values[i] instanceof String) {
-						if(values[i].equals("<UUID>")) {
-							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
-						} else {
-							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
-						}
+				// add comma for next value
+				if(i != 0) {
+					valuesSb.append(", ");
+				}
+				
+				// append the value
+				if(values[i] == null) {
+					valuesSb.append("NULL");
+				} 
+				else if(values[i] instanceof String) {
+					if(values[i].equals("<UUID>")) {
+						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+					} else {
+						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
 					}
-					else if(values[i] instanceof SemossDate) {
-						String dateValue = ((SemossDate) values[i]).getFormattedDate();
-						if(dateValue == null || dateValue.isEmpty()) {
-							valuesSb.append("null");
-						} else {
-							valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
-						}
+				}
+				else if(values[i] instanceof SemossDate) {
+					String dateValue = ((SemossDate) values[i]).getFormattedDate();
+					if(dateValue == null || dateValue.isEmpty()) {
+						valuesSb.append("NULL, ");
+					} else {
+						valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
 					}
-					else {
+				}
+				else if(values[i] instanceof Boolean) {
+					if(allowBooleanType) {
 						valuesSb.append(values[i]);
+					} else {
+						// append 1 or 0 based on true/false
+						if(Boolean.parseBoolean(values[i] + "")) {
+							valuesSb.append(1);
+						} else {
+							valuesSb.append(0);
+						}
 					}
 				}
 				else {
-					if(values[i] instanceof String) {
-						if(values[i].equals("<UUID>")) {
-							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "', ");
-						} else {
-							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "', ");
-						}
-					}
-					else if(values[i] instanceof SemossDate) {
-						String dateValue = ((SemossDate) values[i]).getFormattedDate();
-						if(dateValue == null || dateValue.isEmpty()) {
-							valuesSb.append("null");
-						} else {
-							valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
-						}
-					}
-					else {
-						valuesSb.append(values[i] + ", ");
-					}
+					valuesSb.append(values[i]);
 				}
 			}
 			valuesSb.append(")");
@@ -226,42 +231,56 @@ public class InsertReactor extends AbstractReactor {
 	 * @param selectors
 	 * @param userId
 	 */
-	private void insertFileEngine(IEngine engine, String initial, List<Object[]> valueCombinations, List<IQuerySelector> selectors, String userId) {
+	private void insertFileEngine(IEngine engine, AbstractSqlQueryUtil queryUtil, 
+			String initial, List<Object[]> valueCombinations, List<IQuerySelector> selectors, String userId) {
 		synchronized(engine) {
 			ClusterUtil.reactorPullApp(engine.getEngineId());
+			
+			// determine if we can insert booleans as true/false
+			boolean allowBooleanType = queryUtil.allowBooleanDataType();
+
 			for(Object[] values : valueCombinations) {
 				StringBuilder valuesSb = new StringBuilder();
 				// insert values
 				for(int i = 0; i < values.length; i++) {
-					if(i == values.length - 1) {
-						if(values[i] instanceof String) {
-							if(values[i].equals("<UUID>")) {
-								valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
-							} else {
-								valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
-							}
+					// add comma for next value
+					if(i != 0) {
+						valuesSb.append(", ");
+					}
+					
+					// append the value
+					if(values[i] == null) {
+						valuesSb.append("NULL");
+					} 
+					else if(values[i] instanceof String) {
+						if(values[i].equals("<UUID>")) {
+							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+						} else {
+							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
 						}
-						else if(values[i] instanceof SemossDate) {
+					}
+					else if(values[i] instanceof SemossDate) {
+						String dateValue = ((SemossDate) values[i]).getFormattedDate();
+						if(dateValue == null || dateValue.isEmpty()) {
+							valuesSb.append("NULL, ");
+						} else {
 							valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
 						}
-						else {
+					}
+					else if(values[i] instanceof Boolean) {
+						if(allowBooleanType) {
 							valuesSb.append(values[i]);
+						} else {
+							// append 1 or 0 based on true/false
+							if(Boolean.parseBoolean(values[i] + "")) {
+								valuesSb.append(1);
+							} else {
+								valuesSb.append(0);
+							}
 						}
 					}
 					else {
-						if(values[i] instanceof String) {
-							if(values[i].equals("<UUID>")) {
-								valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "', ");
-							} else {
-								valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "', ");
-							}
-						}
-						else if(values[i] instanceof SemossDate) {
-							valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "', ");
-						}
-						else {
-							valuesSb.append(values[i] + ", ");
-						}
+						valuesSb.append(values[i]);
 					}
 				}
 				valuesSb.append(")");
