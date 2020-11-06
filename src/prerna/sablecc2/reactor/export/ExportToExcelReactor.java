@@ -30,6 +30,7 @@ import org.apache.poi.xddf.usermodel.XDDFColor;
 import org.apache.poi.xddf.usermodel.XDDFLineProperties;
 import org.apache.poi.xddf.usermodel.XDDFShapeProperties;
 import org.apache.poi.xddf.usermodel.XDDFSolidFillProperties;
+import org.apache.poi.xddf.usermodel.chart.AxisCrossBetween;
 import org.apache.poi.xddf.usermodel.chart.AxisCrosses;
 import org.apache.poi.xddf.usermodel.chart.AxisPosition;
 import org.apache.poi.xddf.usermodel.chart.BarDirection;
@@ -686,6 +687,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
+		leftAxis.setCrossBetween(AxisCrossBetween.BETWEEN);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(chartType, bottomAxis, leftAxis);
