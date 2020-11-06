@@ -25,7 +25,8 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 			} else if(nounType == PixelDataType.PANEL_CLONE_MAP) {
 				Map<String, InsightPanel> cloneMap = (Map<String, InsightPanel>) noun.getValue();
 				return cloneMap.get("clone");
-			} else if(nounType == PixelDataType.COLUMN || nounType == PixelDataType.CONST_STRING) {
+			} else if(nounType == PixelDataType.COLUMN || nounType == PixelDataType.CONST_STRING 
+					|| nounType == PixelDataType.CONST_INT) {
 				String panelId = noun.getValue().toString();
 				return this.insight.getInsightPanel(panelId);
 			}
