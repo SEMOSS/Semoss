@@ -7,13 +7,9 @@ import com.google.re2j.Pattern;
 
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.select.Fetch;
-import net.sf.jsqlparser.statement.select.Limit;
-import net.sf.jsqlparser.statement.select.Offset;
 import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.Top;
 
 public class PraseSqlQueryForCount {
 	private static final String ORDER_BY_REGEX = "(?i)order\\s*by";
@@ -58,41 +54,41 @@ public class PraseSqlQueryForCount {
 			}
 		}
 		
-		// get rid of top
-		{
-			Top top = sb.getTop();
-			if(top != null) {
-				String topExpression = toRegex(top.toString());
-				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + topExpression, "");
-			}
-		}
-		
-		// get rid of limit
-		{
-			Limit limit = sb.getLimit();
-			if(limit != null) {
-				String limitExpression = toRegex(limit.toString());
-				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + limitExpression, "");
-			}
-		}
-		
-		// get rid of offset
-		{
-			Offset offset = sb.getOffset();
-			if(offset != null) {
-				String offsetExpression = toRegex(offset.toString());
-				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + offsetExpression, "");
-			}
-		}
-		
-		// get rid of fetch
-		{
-			Fetch fetch = sb.getFetch();
-			if(fetch != null) {
-				String fetchExpression = toRegex(fetch.toString());
-				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + fetchExpression, "");
-			}
-		}
+//		// get rid of top
+//		{
+//			Top top = sb.getTop();
+//			if(top != null) {
+//				String topExpression = toRegex(top.toString());
+//				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + topExpression, "");
+//			}
+//		}
+//		
+//		// get rid of limit
+//		{
+//			Limit limit = sb.getLimit();
+//			if(limit != null) {
+//				String limitExpression = toRegex(limit.toString());
+//				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + limitExpression, "");
+//			}
+//		}
+//		
+//		// get rid of offset
+//		{
+//			Offset offset = sb.getOffset();
+//			if(offset != null) {
+//				String offsetExpression = toRegex(offset.toString());
+//				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + offsetExpression, "");
+//			}
+//		}
+//		
+//		// get rid of fetch
+//		{
+//			Fetch fetch = sb.getFetch();
+//			if(fetch != null) {
+//				String fetchExpression = toRegex(fetch.toString());
+//				newQuery = newQuery.replaceAll(CASE_INSENSITIVE_REGEX + fetchExpression, "");
+//			}
+//		}
 		
 		return newQuery;
 	}
