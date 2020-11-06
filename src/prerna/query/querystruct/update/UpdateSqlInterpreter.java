@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.date.SemossDate;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -23,13 +25,18 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 	public UpdateSqlInterpreter(UpdateQueryStruct qs) {
 		this.qs = qs;
 		this.frame = qs.getFrame();
+		if(this.frame != null) {
+			this.queryUtil = ((AbstractRdbmsFrame) this.frame).getQueryUtil();
+		}
 		this.engine = qs.getEngine();
+		if(this.engine != null) {
+			this.queryUtil = ((RDBMSNativeEngine) this.engine).getQueryUtil();
+		}
 	}
 	
 	//////////////////////////////////////////// Compose Query //////////////////////////////////////////////
 
 	public String composeQuery() {
-//		addSelectors();
 		addSets();
 		addFilters();
 		
@@ -54,35 +61,12 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 	
 	//////////////////////////////////////////// End Compose Query //////////////////////////////////////////
 	
-	//////////////////////////////////////////// Add Selectors //////////////////////////////////////////////
-	
-//	@Override
-//	public void addSelectors() {
-//		List<IQuerySelector> selectorData = qs.getSelectors();
-//		Set<String> tableList = new HashSet<String>();
-//
-//		for(IQuerySelector selector : selectorData) {
-//			if(selector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
-//				throw new IllegalArgumentException("Can only update column values");
-//			}
-//
-//			QueryColumnSelector t = (QueryColumnSelector) selector;
-//			String table = t.getTable();
-//			tableList.add(table);
-//		}		
-//		
-//		Iterator<String> it = tableList.iterator();
-//		if(it.hasNext()) {
-//			this.updateFrom.append(it.next());
-//		}
-//		while(it.hasNext()) {
-//			this.updateFrom.append(", ").append(it.next());
-//		}
-//	}
-
 	private void addSets() {
 		Set<String> tableList = new HashSet<String>();
 
+		// determine if we can insert booleans as true/false
+		boolean allowBooleanType = queryUtil.allowBooleanDataType();
+				
 		List<IQuerySelector> selectors = qs.getSelectors();
 		List<Object> values = ((UpdateQueryStruct) qs).getValues();
 		int numSelectors = selectors.size();
@@ -108,7 +92,19 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 				} else {
 					sets.append(column + "=" + "'" + dateValue + "'");
 				}
-			} else {
+			} else if(v instanceof Boolean) {
+				if(allowBooleanType) {
+					sets.append(column + "=" + v);
+				} else {
+					// append 1 or 0 based on true/false
+					if(Boolean.parseBoolean(v + "")) {
+						sets.append(column + "=1");
+					} else {
+						sets.append(column + "=0");
+					}
+				}
+			}
+			else {
 				sets.append(column + "=" + v );
 			}
 			
