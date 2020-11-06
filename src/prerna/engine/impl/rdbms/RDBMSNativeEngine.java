@@ -528,19 +528,35 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public Map<String, Object> execQuery(String query) throws SQLException
 	{
 		Map<String, Object> map = new HashMap<>();
-
-		Connection conn = getConnection();
-		Statement stmt = conn.createStatement();
-		if(this.queryTimeout > 0) {
-			stmt.setQueryTimeout(queryTimeout);
-		}
+		boolean hasError = false;
+		Connection conn = null;
+		Statement stmt = null;
 		ResultSet rs = null;
-		rs = stmt.executeQuery(query);
-		if(this.fetchSize > 0) {
-			try {
-				rs.setFetchSize(this.fetchSize);
-			} catch(Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+		try {
+			conn = getConnection();
+			stmt = conn.createStatement();
+			if(this.queryTimeout > 0) {
+				stmt.setQueryTimeout(queryTimeout);
+			}
+			rs = null;
+			rs = stmt.executeQuery(query);
+			if(this.fetchSize > 0) {
+				try {
+					rs.setFetchSize(this.fetchSize);
+				} catch(Exception e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		} catch(SQLException e) {
+			hasError = true;
+			throw e;
+		} finally {
+			if(hasError) {
+				if(this.dataSource != null) {
+					ConnectionUtils.closeAllConnections(conn, rs, stmt);
+				} else {
+					ConnectionUtils.closeAllConnections(null, rs, stmt);
+				}
 			}
 		}
 		//normally would use instance.getClass() but when we retrieve the 
