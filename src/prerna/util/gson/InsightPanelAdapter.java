@@ -2,6 +2,7 @@ package prerna.util.gson;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -17,10 +18,14 @@ import prerna.date.SemossDate;
 import prerna.om.ColorByValueRule;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySort;
+import prerna.sablecc2.om.task.options.TaskOptions;
 
 public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
+	
+	private static Gson GSON = GsonUtility.getDefaultGson();
 	
 	private static final Gson SIMPLE_GSON =  new GsonBuilder()
 			.disableHtmlEscaping()
@@ -81,14 +86,6 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
 			adapter.write(out, obj);
 		}
-		// this no longer exists
-		// it is pushed into the config
-//		out.name("position");
-//		{
-//			Map<String, Object> obj = value.getPosition();
-//			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
-//			adapter.write(out, obj);
-//		}
 		out.name("filters");
 		// this adapter will write an array
 		GenRowFiltersAdapter grsAdapter = new GenRowFiltersAdapter();
@@ -113,6 +110,53 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		}
 		out.endArray();
 		
+		if(!this.simple) {
+			// we will output some things stored on the BE
+			// including the last QS executed
+			// the task options
+			// the layer to task options
+			// and the layer to QS
+			SelectQueryStruct lastQs = value.getLastQs();
+			if(lastQs != null) {
+				out.name("lastQs");
+				TypeAdapter adapter = GSON.getAdapter(lastQs.getClass());
+				adapter.write(out, lastQs);
+			}
+			
+			Map<String, SelectQueryStruct> layerQueryStructMap = value.getLayerQueryStruct();
+			if(layerQueryStructMap != null && !layerQueryStructMap.isEmpty()) {
+				out.name("lastQueryStructMap");
+				out.beginObject();
+				for(String layer : layerQueryStructMap.keySet()) {
+					out.name(layer);
+					SelectQueryStruct layerQueryStruct = layerQueryStructMap.get(layer);
+					TypeAdapter adapter = GSON.getAdapter(layerQueryStruct.getClass());
+					adapter.write(out, layerQueryStruct);
+				}
+				out.endObject();
+			}
+			
+			TaskOptions lastTaskOptions = value.getTaskOptions();
+			if(lastTaskOptions != null) {
+				out.name("lastTaskOptions");
+				TypeAdapter adapter = GSON.getAdapter(lastTaskOptions.getClass());
+				adapter.write(out, lastTaskOptions);
+			}
+
+			Map<String, TaskOptions> layerTaskOptionsMap = value.getLayerTaskOption();
+			if(layerTaskOptionsMap != null && !layerTaskOptionsMap.isEmpty()) {
+				out.name("lastTaskOptionsMap");
+				out.beginObject();
+				for(String layer : layerTaskOptionsMap.keySet()) {
+					out.name(layer);
+					TaskOptions layerTaskOptions = layerTaskOptionsMap.get(layer);
+					TypeAdapter adapter = GSON.getAdapter(layerTaskOptions.getClass());
+					adapter.write(out, layerTaskOptions);
+				}
+				out.endObject();
+			}
+		}
+		
 		out.endObject();
 	}
 	
@@ -130,8 +174,12 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		GenRowFilters grf = null;
 		List<IQuerySort> orders = null;
 		Map<String, Map<String, Object>> comments = null;
-		Map<String, Object> position = null;
 		List<ColorByValueRule> cbvList = null;
+		// additional values that are not always serialized
+		SelectQueryStruct lastQs = null;
+		Map<String, SelectQueryStruct> layerQueryStructMap = null;
+		TaskOptions lastTaskOptions = null;
+		Map<String, TaskOptions> layerTaskOptionsMap = null;
 		
 		in.beginObject();
 		while(in.hasNext()) {
@@ -179,15 +227,6 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				comments = (Map<String, Map<String, Object>>) adapter.read(in);
 			
 			} 
-			
-			// this is for legacy only
-			// back when we had a position map
-			// this is now stored in the config
-			else if(key.equals("position")) {
-				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
-				position = (Map<String, Object>) adapter.read(in);
-			} 
-			
 			// the values that are not strings
 			else if(key.equals("filters")) {
 				GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
@@ -212,6 +251,36 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 					cbvList.add(cbvRule);
 				}
 				in.endArray();
+			
+			} else if(key.equals("lastQs")) {
+				TypeAdapter<SelectQueryStruct> adapter = GSON.getAdapter(SelectQueryStruct.class);
+				lastQs = adapter.read(in);
+
+			} else if(key.equals("lastQueryStructMap")) {
+				layerQueryStructMap = new HashMap<>();
+				in.beginObject();
+				while(in.hasNext()) {
+					String layerName = in.nextName();
+					TypeAdapter<SelectQueryStruct> adapter = GSON.getAdapter(SelectQueryStruct.class);
+					SelectQueryStruct layerQS = adapter.read(in);
+					layerQueryStructMap.put(layerName, layerQS);
+				}
+				in.endObject();
+
+			} else if(key.equals("lastTaskOptions")) {
+				TaskOptionsAdapter adapter = new TaskOptionsAdapter();
+				lastTaskOptions = adapter.read(in);
+				
+			} else if(key.equals("lastTaskOptionsMap")) {
+				layerTaskOptionsMap = new HashMap<>();
+				in.beginObject();
+				while(in.hasNext()) {
+					String layerName = in.nextName();
+					TaskOptionsAdapter adapter = new TaskOptionsAdapter();
+					TaskOptions taskOptions = adapter.read(in);
+					layerTaskOptionsMap.put(layerName, taskOptions);
+				}
+				in.endObject();
 			}
 		}
 		in.endObject();
@@ -233,15 +302,23 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		panel.setPanelOrderBys(orders);
 		panel.setComments(comments);
 		
-		// this is for legacy only
-		// back when we had a position map
-		// this is now stored in the config
-		if(position != null && !position.isEmpty()) {
-			panel.addConfig(position);
-		}
 		if(cbvList != null) {
 			panel.getColorByValue().addAll(cbvList);
 		}
+		if(lastQs != null) {
+			panel.setLastQs(lastQs);
+		}
+		if(layerQueryStructMap != null) {
+			panel.setLayerQueryStruct(layerQueryStructMap);
+		}
+		if(lastTaskOptions != null) {
+			panel.setLastTaskOptions(lastTaskOptions);
+		}
+		if(layerTaskOptionsMap != null) {
+			panel.setLayerTaskOptions(layerTaskOptionsMap);
+		}
+
+		// return the panel
 		return panel;
 	}
 
