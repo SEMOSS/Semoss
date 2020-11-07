@@ -32,6 +32,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -39,7 +40,6 @@ public class InsertReactor extends AbstractReactor {
 	
 	private static final Logger logger = LogManager.getLogger(InsertReactor.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
 	private NounMetadata qStruct = null;
 	
 	/*
@@ -197,7 +197,7 @@ public class InsertReactor extends AbstractReactor {
 						engine.insertData(query);
 					}
 				} catch (Exception e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occured trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 
@@ -213,7 +213,7 @@ public class InsertReactor extends AbstractReactor {
 						((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
 					}
 				} catch (Exception e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occured trying to insert new records in the frame", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
@@ -292,7 +292,7 @@ public class InsertReactor extends AbstractReactor {
 					AuditDatabase audit = engine.generateAudit();
 					audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
 				} catch (Exception e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occured trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
