@@ -538,6 +538,10 @@ public class InsightPanel {
 	public TaskOptions getTaskOptions() {
 		return taskOptions;
 	}
+	
+	public void setLastTaskOptions(TaskOptions lastTaskOptions) {
+		this.taskOptions = lastTaskOptions;
+	}
 
 	public void setFinalViewOptions(SelectQueryStruct lastQs, TaskOptions taskOptions) {
 		this.lastQs = lastQs;
@@ -570,8 +574,16 @@ public class InsightPanel {
 		return this.layerTaskOption;
 	}
 	
+	public void setLayerTaskOptions(Map<String, TaskOptions> layerTaskOption) {
+		this.layerTaskOption = layerTaskOption;
+	}
+	
 	public Map<String, SelectQueryStruct> getLayerQueryStruct() {
 		return this.layerQueryStruct;
+	}
+	
+	public void setLayerQueryStruct(Map<String, SelectQueryStruct> layerQueryStruct) {
+		this.layerQueryStruct = layerQueryStruct;
 	}
 
 	public SelectQueryStruct getLastQs() {
@@ -623,7 +635,7 @@ public class InsightPanel {
 			for(String layerId : existingPanel.layerQueryStruct.keySet()) {
 				SelectQueryStruct thisQs = existingPanel.layerQueryStruct.get(layerId);
 				if(thisQs != null) {
-					SelectQueryStruct copyQs = gson.fromJson(gson.toJson(thisQs), SelectQueryStruct.class);
+					SelectQueryStruct copyQs = gson.fromJson(gson.toJson(thisQs), thisQs.getClass());
 					// set the data fields that are not copied over
 					copyQs.setFrame(thisQs.getFrame());
 					copyQs.setEngine(thisQs.getEngine());
