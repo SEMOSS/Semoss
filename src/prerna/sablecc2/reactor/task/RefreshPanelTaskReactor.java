@@ -41,6 +41,9 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 		for(String panelId : insightPanelsMap.keySet()) {
 			if(panelIds == null || panelIds.contains(panelId)) {
 				InsightPanel panel = insightPanelsMap.get(panelId);
+				if(!panel.getPanelView().equalsIgnoreCase("visualization")) {
+					continue;
+				}
 				// need to account for layers
 				// so will loop through the layer maps
 				// that we are storing

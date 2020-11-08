@@ -26,6 +26,8 @@ import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
 import prerna.om.Insight;
+import prerna.om.InsightPanel;
+import prerna.om.InsightSheet;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -709,6 +711,28 @@ public class PixelUtility {
 		}
 		
 		return additionalSteps;
+	}
+	
+	/**
+	 * Get the cached recipe to use for this insight
+	 * @param in
+	 * @return
+	 */
+	public static List<String> getCachedInsightRecipe(Insight in) {
+		List<String> cacheRecipe = new Vector<>();
+		
+		// add sheets
+		Map<String, InsightSheet> sheets = in.getInsightSheets();
+		for(String sheetId : sheets.keySet()) {
+			cacheRecipe.add("CachedSheet(\"" + sheetId + "\");");
+		}
+		// add panels
+		Map<String, InsightPanel> panels = in.getInsightPanels();
+		for(String panelId : panels.keySet()) {
+			cacheRecipe.add("CachedPanel(\"" + panelId + "\");");
+		}
+		cacheRecipe.add("RefreshAllPanelTasks();");
+		return cacheRecipe;
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
