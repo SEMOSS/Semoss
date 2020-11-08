@@ -1,11 +1,14 @@
 package prerna.sablecc2.om.task;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import prerna.sablecc2.om.task.options.TaskOptions;
 
 public class TaskStore {
 
@@ -67,5 +70,38 @@ public class TaskStore {
 	
 	public void setCount(long count) {
 		this.count = count;
+	}
+	
+	/**
+	 * Loop through all the tasks in the store to see where they belong
+	 * @return
+	 */
+	public Map<String, Map<String, String>> getPanelLayerTaskIdMap() {
+		Map<String, Map<String, String>> panleLayerTaskIdMap = new HashMap<>();
+		for(String taskId : this.taskMap.keySet()) {
+			ITask task = this.taskMap.get(taskId);
+			TaskOptions taskOptions = task.getTaskOptions();
+			if(taskOptions != null) {
+				Set<String> panelIds = taskOptions.getPanelIds();
+				for(String panelId : panelIds) {
+					String layer = taskOptions.getPanelLayerId(panelId);
+					// store and override if required
+					if(layer == null) {
+						layer = "0";
+					}
+
+					Map<String, String> layerMap = null;
+					if(panleLayerTaskIdMap.containsKey(panelId)) {
+						layerMap = panleLayerTaskIdMap.get(panelId);
+					} else {
+						layerMap = new HashMap<>();
+						panleLayerTaskIdMap.put(panelId, layerMap);
+					}
+					layerMap.put(layer, taskId);
+				}
+			}
+		}
+
+		return panleLayerTaskIdMap;
 	}
 }
