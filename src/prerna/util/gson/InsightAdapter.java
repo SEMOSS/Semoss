@@ -1,12 +1,7 @@
 package prerna.util.gson;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
-import java.io.StringWriter;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,21 +29,13 @@ import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.PixelList;
-import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
-import prerna.sablecc2.node.Start;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
-import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
-import prerna.sablecc2.translations.OptimizeRecipeTranslation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -182,16 +169,25 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		}
 		out.endArray();
 
+		// this is not written
+		// but need to store the refresh panel task ids
+		// get the last task at each layer for each panel
+		// this will be written to the vizOutputFile
+		Insight cachedInsight = new Insight();
+		cachedInsight.setVarStore(value.getVarStore());
+		cachedInsight.setUser(value.getUser());
+		cachedInsight.setInsightSheets(value.getInsightSheets());
+		cachedInsight.setInsightPanels(value.getInsightPanels());
+		// make sure the task ids do not overlap
+		cachedInsight.setTaskStore(value.getTaskStore());
+		List<String> cachedRecipe = PixelUtility.getCachedInsightRecipe(value);
+		PixelRunner pixelRunner = cachedInsight.runPixel(cachedRecipe);
+		
 		// write the tasks
 		out.name("tasks");
-
-		// i am also going to need
-		// a panel id to task id mapping
-		// which will be used for the json cache of the view
 		TaskStore tStore = value.getTaskStore();
 		TaskStoreAdapter tAdapter = new TaskStoreAdapter();
 		tAdapter.write(out, tStore);
-		List<Map<String, String>> panelIdToTaskList = tAdapter.getPanelIdToTask();
 		
 		// write the recipe
 		PixelList pixelList = value.getPixelList();
@@ -209,60 +205,6 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		// write the json for the viz
 		// this doesn't actually add anything to the insight object
 		File vizOutputFile = new File(Utility.normalizePath(folderDir) + DIR_SEPARATOR + InsightCacheUtility.VIEW_JSON);
-		OptimizeRecipeTranslation opTrans = getOptimizedRecipe(pixelList.getPixelRecipe());
-		Insight rerunInsight = new Insight();
-		rerunInsight.setVarStore(value.getVarStore());
-		rerunInsight.setUser(value.getUser());
-		
-		// add a copy of all the insight sheets
-		for(String sheetId : sheets.keySet()) {
-			InsightSheetAdapter adapter = new InsightSheetAdapter();
-			StringWriter writer = new StringWriter();
-			JsonWriter jWriter = new JsonWriter(writer);
-			adapter.write(jWriter, sheets.get(sheetId));
-			String sheetStr = writer.toString();
-			InsightSheet sheetClone = adapter.fromJson(sheetStr);
-			rerunInsight.addNewInsightSheet(sheetClone);
-		}
-		
-		// add a copy of all the insight panels
-		for(String panelId : panels.keySet()) {
-			InsightPanelAdapter adapter = new InsightPanelAdapter();
-			StringWriter writer = new StringWriter();
-			JsonWriter jWriter = new JsonWriter(writer);
-			adapter.write(jWriter, panels.get(panelId));
-			String panelStr = writer.toString();
-			InsightPanel panelClone = adapter.fromJson(panelStr);
-			rerunInsight.addNewInsightPanel(panelClone);
-		}
-		
-		PixelRunner pixelRunner = rerunInsight.runPixel(opTrans.getCachedPixelRecipeSteps());
-		// i am going to need to go through
-		// and re-align the task ids to match properly
-		List<NounMetadata> pixelRunnerResults = pixelRunner.getResults();
-		NOUN_LOOP : for(NounMetadata noun : pixelRunnerResults) {
-			if(noun.getValue() instanceof ITask) {
-				ITask t = (ITask) noun.getValue();
-				TaskOptions taskOptions = t.getTaskOptions();
-				if(taskOptions != null && !taskOptions.isEmpty()) {
-					Set<String> panelIds = taskOptions.getPanelIds();
-					for(String panelId : panelIds) {
-						for(int i = 0; i < panelIdToTaskList.size(); i++) {
-							// this panel to id is always size 1!!!
-							Map<String, String> panelIdToTask  = panelIdToTaskList.get(i);
-							if(panelIdToTask.containsKey(panelId)) {
-								t.setId(panelIdToTask.get(panelId));
-								// each index only has 1 panel to id
-								// so we can just drop it now
-								panelIdToTaskList.remove(i);
-								continue NOUN_LOOP;
-							}
-						}
-					}
-				}
-			}
-		}
-		// now that we have updated the task ids
 		// lets write it
 		PixelStreamUtility.writePixelData(pixelRunner, vizOutputFile);
 		
@@ -273,33 +215,6 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
-	private OptimizeRecipeTranslation getOptimizedRecipe(List<String> recipe) {
-		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
-		for (int i = 0; i < recipe.size(); i++) {
-			String expression = recipe.get(i);
-			// fill in the encodedToOriginal with map for the current expression
-			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodingList, translation.encodedToOriginal);
-			try {
-				Parser p = new Parser(
-						new Lexer(
-								new PushbackReader(
-										new InputStreamReader(
-												new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
-				// parsing the pixel - this process also determines if expression is syntactically correct
-				Start tree = p.parse();
-				// apply the translation
-				// when we apply the translation, we will change encoded expressions back to their original form
-				tree.apply(translation);
-				// reset translation.encodedToOriginal for each expression
-				translation.encodedToOriginal = new HashMap<String, String>();
-			} catch (ParserException | LexerException | IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-		return translation;
-	}
-	
 	
 	@Override
 	public Insight read(JsonReader in) throws IOException {
@@ -449,7 +364,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		
 		// this will be the tasks
 		in.nextName();
-		TaskStoreAdapter tStoreAdapter = new TaskStoreAdapter();
+		TaskStoreAdapter tStoreAdapter = new TaskStoreAdapter(insight);
 		TaskStore tStore = tStoreAdapter.read(in);
 		insight.setTaskStore(tStore);
 		

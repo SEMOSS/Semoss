@@ -482,6 +482,9 @@ public class PixelStreamUtility {
 									first = false;
 									headers = iterator.getHeaders();
 									rawHeaders = headers;
+									// update the internal offset
+									long curOffset = ((BasicIteratorTask) task).getInternalOffset();
+									((BasicIteratorTask) task).setInternalOffset(curOffset + task.getNumCollect());
 								}
 							}
 							
