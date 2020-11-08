@@ -550,7 +550,7 @@ public class InsightPanel {
 		if(this.taskOptions != null) {
 			String layer = this.taskOptions.getPanelLayerId(this.panelId);
 			if(layer == null) {
-				layer = "$DEFAULT_LAYER";
+				layer = "0";
 			}
 			if(this.layerTaskOption == null) {
 				this.layerTaskOption = new HashMap<>();
@@ -618,7 +618,8 @@ public class InsightPanel {
 		this.grf = existingPanel.grf.copy();
 		// also move over the CBV
 		for(ColorByValueRule rule : existingPanel.colorByValue) {
-			this.addColorByValue(gson.fromJson(gson.toJson(rule), ColorByValueRule.class));
+			ColorByValueRule newRule = gson.fromJson(gson.toJson(rule), ColorByValueRule.class);
+			this.addColorByValue(newRule);
 		}
 
 		// copy the options and the qs too
@@ -628,6 +629,8 @@ public class InsightPanel {
 			optionMap.put(panelId, existingPanelOptions);
 			this.taskOptions = new TaskOptions(optionMap);
 			this.lastQs = existingPanel.lastQs;
+			// replace the panel in the task options
+			this.taskOptions.swapPanelIds(this.panelId);
 		}
 
 		if(existingPanel.layerQueryStruct != null) {
@@ -647,7 +650,12 @@ public class InsightPanel {
 		if(existingPanel.layerTaskOption != null) {
 			this.layerTaskOption = new HashMap<>();
 			for(String layerId : existingPanel.layerTaskOption.keySet()) {
-				this.layerTaskOption.put(layerId, existingPanel.layerTaskOption.get(layerId));
+				TaskOptions thisTaskOptions = existingPanel.layerTaskOption.get(layerId);
+				if(thisTaskOptions != null) {
+					TaskOptions copyTaskOptions = gson.fromJson(gson.toJson(thisTaskOptions), thisTaskOptions.getClass());
+					copyTaskOptions.swapPanelIds(this.panelId);
+					this.layerTaskOption.put(layerId, copyTaskOptions);
+				}
 			}
 		}
 	}

@@ -1,14 +1,11 @@
 package prerna.util.gson;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -29,10 +26,6 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 	
 	private Insight insight;
 	
-	// get the panel id to task id
-	// for the written task store
-	private List<Map<String, String>> panelIdToTaskList;
-	
 	public TaskStoreAdapter() {
 		
 	}
@@ -47,39 +40,32 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 		
 		out.name("tasks");
 		out.beginArray();
-		// i am also going to store
-		// a task id to panel map
-		// which will be used for the json cache of the view
-		panelIdToTaskList = new Vector<>();
 		
 		Set<String> tasks = value.getTaskIds();
 		for(String taskId : tasks) {
 			out.beginObject();
 			ITask t = value.getTask(taskId);
-			TypeAdapter adapter = null;
+			
 			if(t instanceof BasicIteratorTask) {
 				out.name("type").value(BASIC);
-				adapter = new BasicIteratorTaskAdapter();
+				out.name("task");
+				BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
+				adapter.write(out, (BasicIteratorTask) t); 
 			} else if(t instanceof ConstantDataTask) {
 				out.name("type").value(CONSTANT);
-				adapter = new ConstantDataTaskAdapter();
+				out.name("task");
+				ConstantDataTaskAdapter adapter = new ConstantDataTaskAdapter();
+				adapter.write(out, (ConstantDataTask) t); 
 			}
-			out.name("task");
-			if (adapter != null) {
-				adapter.write(out, t); 
+			
+			out.name("taskOptions");
+			if(t.getTaskOptions() != null) {
+				TaskOptionsAdapter adapter = new TaskOptionsAdapter();
+				adapter.write(out, t.getTaskOptions());
+			} else {
+				out.nullValue();
 			}
-
-			// store the task to panel ids
-			// note: this works because the tasks are stored in order
-			TaskOptions taskOptions = t.getTaskOptions();
-			if(taskOptions != null && !taskOptions.isEmpty()) {
-				Set<String> panelIds = taskOptions.getPanelIds();
-				for(String panelId : panelIds) {
-					Map<String, String> panelToTask = new HashMap<>();
-					panelToTask.put(panelId, taskId);
-					panelIdToTaskList.add(panelToTask);
-				}
-			}
+			
 			out.endObject();
 		}
 		out.endArray();
@@ -100,55 +86,67 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 		// we have a list
 		in.beginArray();
 		while(in.hasNext()) {
-			in.beginObject();
 			
-			// get the type
-			in.nextName();
-			String type = in.nextString();
-			
-			// the next name is the task
-			in.nextName();
-			// now time to create the task
+			String taskType = null;
 			ITask task = null;
+			TaskOptions taskOptions = null;
 			
-			if(type.equals(BASIC)) {
-				BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
-				adapter.setCurMode(BasicIteratorTaskAdapter.MODE.CONTINUE_PREVIOUS_ITERATING);
-				task = adapter.read(in);
-				SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
-				// need to set the source
-				IEngine engine = qs.retrieveQueryStructEngine();
-				// is it an engine
-				if(engine != null) {
-					qs.setEngine(engine);
-				} else if(this.insight != null) {
-					// not an engine
-					// must be a frame
-					// see if we can identify the variable
-					String frameName = qs.getFrameName();
-					if(frameName != null) {
-						NounMetadata frame = insight.getVarStore().get(frameName);
-						if(frame != null) {
-							qs.setFrame( (ITableDataFrame) frame.getValue());
-						} else {
-							qs.setFrame( (ITableDataFrame) insight.getDataMaker());
-						}
-					} else {
-						qs.setFrame( (ITableDataFrame) insight.getDataMaker());
-					}
+			// start the object for the task
+			in.beginObject();
+			while(in.hasNext()) {
+				String key = in.nextName();
+				if(in.peek() == JsonToken.NULL) {
+					in.nextNull();
+					continue;
 				}
-			} else if(type.equals(CONSTANT)) {
-				ConstantDataTaskAdapter adapter = new ConstantDataTaskAdapter();
-				task = adapter.read(in);
-			} else {
-				// you messed up
+				
+				if(key.equals("type")) {
+					taskType = in.nextString();
+					
+				} else if(key.equals("task")) {
+					if(taskType.equals(BASIC)) {
+						BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
+						adapter.setCurMode(BasicIteratorTaskAdapter.MODE.CONTINUE_PREVIOUS_ITERATING);
+						task = adapter.read(in);
+						SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
+						// need to set the source
+						IEngine engine = qs.retrieveQueryStructEngine();
+						// is it an engine
+						if(engine != null) {
+							qs.setEngine(engine);
+						} else if(this.insight != null) {
+							// not an engine
+							// must be a frame
+							// see if we can identify the variable
+							String frameName = qs.getFrameName();
+							if(frameName != null) {
+								NounMetadata frame = insight.getVarStore().get(frameName);
+								if(frame != null) {
+									qs.setFrame( (ITableDataFrame) frame.getValue());
+								} else {
+									qs.setFrame( (ITableDataFrame) insight.getDataMaker());
+								}
+							} else {
+								qs.setFrame( (ITableDataFrame) insight.getDataMaker());
+							}
+						}
+					} else if(taskType.equals(CONSTANT)) {
+						ConstantDataTaskAdapter adapter = new ConstantDataTaskAdapter();
+						task = adapter.read(in);
+					}
+					
+				} else if(key.equals("taskOptions")){
+					TaskOptionsAdapter adapter = new TaskOptionsAdapter();
+					taskOptions = adapter.read(in);
+					
+				}
 			}
-			
-			// end the task object
 			in.endObject();
 			
 			// store the task
+			// with the task options
 			if (task != null) {
+				task.setTaskOptions(taskOptions);
 				tStore.addTask(task.getId(), task);
 			}
 		}
@@ -163,14 +161,5 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 		// end the task store
 		in.endObject();
 		return tStore;
-	}
-	
-	/**
-	 * This is only set when we are writing
-	 * This will be null if you are reading
-	 * @return
-	 */
-	public List<Map<String, String>> getPanelIdToTask() {
-		return this.panelIdToTaskList;
 	}
 }
