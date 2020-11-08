@@ -1,5 +1,6 @@
 package prerna.sablecc2.om.task.options;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -86,5 +87,17 @@ public class TaskOptions {
 
 	public IFormatter getFormatter() {
 		return this.formatter;
+	}
+	
+	/**
+	 * Swap the current panel ids and 
+	 * @param newPanelIds
+	 */
+	public void swapPanelIds(String newPanelId) {
+		Map<String, Object> newOptions = new HashMap<>();
+		for(String curPanelId : this.options.keySet()) {
+			newOptions.put(newPanelId, this.options.get(curPanelId));
+		}
+		this.options = newOptions;
 	}
 }
