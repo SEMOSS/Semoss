@@ -527,9 +527,9 @@ public class PixelUtility {
 		map.put("label", insightName);
 		map.put("description", "Please select paramters for the insight");
 		// add params
+		int infiniteScrollCounter = 0;
 		List<Map<String, Object>> paramList = new Vector<>();
 		for(int i = 0; i < numParams; i++) {
-			int counter = 0;
 			Map<String, Object> pMap = paramsMap.get(i);
 			String param = (String) pMap.get("paramName");
 			// for now
@@ -572,7 +572,7 @@ public class PixelUtility {
 				Map<String, Object> modelMap = new LinkedHashMap<>();
 				Map<String, String> processedParam = processedParams.get(param);
 				String physicalQs = processedParam.get("qs");
-				String infiniteVar = "infinite"+counter++;
+				String infiniteVar = "infinite"+infiniteScrollCounter++;
 				String paramQ = "(" + infiniteVar + " = " + processedParam.get("source") + " | Select(" + physicalQs 
 						+ ") | Filter(" + physicalQs + " ?like \"<" + jsonParamName + "_Search>\") | Sort(columns=[" 
 						+ physicalQs + "], sort=[asc]) | Iterate()) | Collect(20);";  
