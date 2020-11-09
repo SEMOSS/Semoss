@@ -87,7 +87,7 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 				sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
 			} else if(v instanceof SemossDate) {
 				String dateValue = ((SemossDate) v).getFormattedDate() ;
-				if(dateValue == null || dateValue.isEmpty()) {
+				if(dateValue == null || dateValue.isEmpty() || dateValue.equals("null")) {
 					sets.append(column + "= NULL");
 				} else {
 					sets.append(column + "=" + "'" + dateValue + "'");
