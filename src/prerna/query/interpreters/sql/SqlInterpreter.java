@@ -1230,7 +1230,12 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				columnConceptualName = queryColumnSelector.getColumn();
 			}
 			else if (groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+				if(i > 0) {
+					groupByName.append(", ");
+				}
 				queryFunctionSelector = (QueryFunctionSelector) groupBySelector;
+				groupByName.append(processFunctionSelector(queryFunctionSelector));
+				continue;
 			}
 			else {
 				String errorMessage = "Cannot group by non QueryColumnSelector and QueryFunctionSelector types yet...";
