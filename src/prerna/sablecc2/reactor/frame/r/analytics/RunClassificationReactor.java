@@ -45,7 +45,7 @@ public class RunClassificationReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		init();
-		String[] packages = new String[] { "data.table", "partykit", "dplyr" };
+		String[] packages = new String[] { "data.table", "partykit", "dplyr", "naniar" };
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
@@ -53,7 +53,8 @@ public class RunClassificationReactor extends AbstractRFrameReactor {
 		boolean implicitFilter = false;
 		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
 		StringBuilder rsb = new StringBuilder();
-
+		// load packages
+		rsb.append("library('partykit');library('naniar');");
 		// figure out inputs
 		String predictionCol = getClassificationColumn();
 		String predictionCol_R = "predictionCol" + Utility.getRandomString(8);
