@@ -174,6 +174,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		// get the last task at each layer for each panel
 		// this will be written to the vizOutputFile
 		Insight cachedInsight = new Insight();
+		InsightUtility.transferDefaultVars(value, cachedInsight);
 		cachedInsight.setVarStore(value.getVarStore());
 		cachedInsight.setUser(value.getUser());
 		cachedInsight.setInsightSheets(value.getInsightSheets());
