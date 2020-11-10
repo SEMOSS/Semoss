@@ -1,10 +1,13 @@
 package prerna.sablecc2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
+import prerna.om.InsightPanel;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AOperation;
@@ -13,6 +16,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.IReactor;
@@ -301,6 +305,26 @@ public class GreedyTranslation extends LazyTranslation {
 		    		//otherwise if we have an assignment reactor or no reactor then add the result to the planner
 		    		this.planner.addVariable(this.resultKey, output);
 		    	}
+	    		
+	    		// WE WILL STORE SOME ADDITIONAL METADATA TO HELP WITH CACHING
+	    		// ON THE PIXEL OBJECT ITSELF
+	    		if(this.pixelObj != null) {
+		    		if(output.getNounType() == PixelDataType.FORMATTED_DATA_SET) {
+						ITask task = (ITask) output.getValue();
+						if(task.getTaskOptions() != null) {
+							pixelObj.addTaskOptions(task.getTaskOptions());
+						}
+		    		} else if(output.getNounType() == PixelDataType.REMOVE_LAYER) {
+						pixelObj.addRemoveLayer((Map<String, String>) output.getValue());
+		    		} else if(output.getNounType() == PixelDataType.PANEL_CLONE_MAP) {
+		    			Map<String, InsightPanel> cloneMap = (Map<String, InsightPanel>) output.getValue();
+		    			Map<String, String> simpleMap = new HashMap<>();
+		    			simpleMap.put("original", cloneMap.get("original").getPanelId());
+		    			simpleMap.put("clone", cloneMap.get("clone").getPanelId());
+						pixelObj.addCloneMap(simpleMap);
+		    		}
+	    		}
+	    		
 	    	} else {
 	    		this.planner.removeVariable(this.resultKey);
 	    	}
