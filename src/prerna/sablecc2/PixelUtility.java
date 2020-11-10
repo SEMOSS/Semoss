@@ -39,6 +39,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.pipeline.PipelineTranslation;
@@ -727,11 +728,177 @@ public class PixelUtility {
 			cacheRecipe.add("CachedSheet(\"" + sheetId + "\");");
 		}
 		// add panels
+		Map<String, Boolean> panelIsVisualizationMode = new HashMap<>();
 		Map<String, InsightPanel> panels = in.getInsightPanels();
 		for(String panelId : panels.keySet()) {
 			cacheRecipe.add("CachedPanel(\"" + panelId + "\");");
+			InsightPanel panel = panels.get(panelId);
+			panelIsVisualizationMode.put(panelId, panel.getPanelView().equalsIgnoreCase("visualization"));
 		}
-		cacheRecipe.add("RefreshAllPanelTasks();");
+
+		// this store the general panel -> layer -> pixel recipe map
+		Map<String, Map<String, String>> panelLayerPixels = new LinkedHashMap<>();
+
+		// some maps to keep for tracking
+		Map<String, Boolean> panelIsCloneView = new HashMap<>();
+		Map<String, List<String>> cloneMapToViewSteps = new HashMap<>();
+		
+		PixelList pixelList = in.getPixelList();
+		int size = pixelList.size();
+		for(int pIndex = 0; pIndex < size; pIndex++) {
+			Pixel pixelObj = pixelList.get(pIndex);
+			// based on new tasks
+			// we will store their pixels
+			List<TaskOptions> taskOptions = pixelObj.getTaskOptions();
+			if(taskOptions != null && !taskOptions.isEmpty()) {
+				int tSize = taskOptions.size();
+				for(int tIndex = 0; tIndex < tSize; tIndex++) {
+					// grab the task
+					// set it in the panel layer pixel
+					TaskOptions tOptions = taskOptions.get(tIndex);
+					Set<String> panelIds = tOptions.getPanelIds();
+					
+					// loop through and store all of the operations
+					// since even if the something happens to the panel
+					// we need to account for clones
+					for(String panelId : panelIds) {
+						String layer = tOptions.getPanelLayerId(panelId);
+						if(layer == null || layer.isEmpty()) {
+							layer = "0";
+						}
+						
+						// add this to the map
+						Map<String, String> layerMap = null;
+						if(panelLayerPixels.containsKey(panelId)) {
+							layerMap = panelLayerPixels.get(panelId);
+						} else {
+							layerMap = new HashMap<>();
+							panelLayerPixels.put(panelId, layerMap);
+						}
+						layerMap.put(layer, pixelObj.getPixelString());
+						
+						// update the storage map
+						panelIsCloneView.put(panelId, false);
+					}
+				}
+			}
+			
+			// account for clones
+			{
+				List<Map<String, String>> cloneList = pixelObj.getCloneMapList();
+				if(cloneList != null && !cloneList.isEmpty()) {
+					int cSize = cloneList.size();
+					for(int cIndex = 0; cIndex < cSize; cIndex++) {
+						Map<String, String> cloneMap = cloneList.get(cIndex);
+						String originalPanel = cloneMap.get("original");
+						String clonePanel = cloneMap.get("clone");
+	
+						Map<String, String> origPanelLayerMap = panelLayerPixels.get(originalPanel);
+						if(origPanelLayerMap != null && !origPanelLayerMap.isEmpty()) {
+							List<String> clonePanelSteps = new Vector<>();
+							for(String layerId : origPanelLayerMap.keySet()) {
+								clonePanelSteps.add(origPanelLayerMap.get(layerId));
+							}
+							// add in the clone step
+							clonePanelSteps.add("Panel(\"" + originalPanel + "\") | CachedPanelClone(\"" + clonePanel + "\");");
+							// + reset the panel view
+							clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
+							// now store this
+							cloneMapToViewSteps.put(clonePanel, clonePanelSteps);
+						}
+						// is this another clone?
+						else if(panelIsCloneView.containsKey(originalPanel)) {
+							// grab all the steps as well
+							List<String> clonePanelSteps = cloneMapToViewSteps.get(originalPanel);
+							// add in the clone step
+							clonePanelSteps.add("Panel(\"" + originalPanel + "\") | CachedPanelClone(\"" + clonePanel + "\");");
+							// + reset the panel view
+							clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
+							// now store this
+							cloneMapToViewSteps.put(clonePanel, clonePanelSteps);
+						}
+						
+						// update the clone map
+						panelIsCloneView.put(clonePanel, true);
+					}
+				}
+			}
+			
+			// check if we are removing any layers
+			// so we remove those pixels
+			{
+				List<Map<String, String>> removeLayerList = pixelObj.getRemoveLayerList();
+				if(removeLayerList != null && !removeLayerList.isEmpty()) {
+					int rSize = removeLayerList.size();
+					for(int rIndex = 0; rIndex < rSize; rIndex++) {
+						Map<String, String> removeMap = removeLayerList.get(rIndex);
+						String removePanel = removeMap.get("panel");
+						String removeLayer = removeMap.get("layer");
+	
+						Map<String, String> currentPanelLayers = panelLayerPixels.get(removePanel);
+						if(currentPanelLayers != null) {
+							String currentLayers = currentPanelLayers.remove(removeLayer);
+							if(currentLayers == null) {
+								logger.info("Removing a layer but doesn't seem to exist during cached recipe generation....");
+							}
+						} else {
+							logger.info("Removing a layer but doesn't seem to exist during cached recipe generation....");
+						}
+					}
+				}
+			}
+		}
+		
+		
+		// now we will add the pixel steps
+		// first, let us see if any panels that are clones
+		for(String panelId : panelIsCloneView.keySet()) {
+			// only care about storing this
+			// if the panel:
+			// 1) exists
+			// 2) is on visualization
+			if(!panels.containsKey(panelId)) {
+				// panel does not exist
+				// ignore
+				continue;
+			}
+			if(!panelIsVisualizationMode.get(panelId)) {
+				// panel is not visualization mode
+				continue;
+			}
+						
+			boolean isClone = panelIsCloneView.get(panelId);
+			if(isClone) {
+				List<String> cloneSteps = cloneMapToViewSteps.get(panelId);
+				if(cloneSteps != null) {
+					cacheRecipe.addAll(cloneSteps);
+				}
+			}
+		}
+		
+		// add in all the panel layer pixels
+		for(String panelId : panelLayerPixels.keySet()) {
+			// only care about storing this
+			// if the panel:
+			// 1) exists
+			// 2) is on visualization
+			if(!panels.containsKey(panelId)) {
+				// panel does not exist
+				// ignore
+				continue;
+			}
+			if(!panelIsVisualizationMode.get(panelId)) {
+				// panel is not visualization mode
+				continue;
+			}
+			
+			Map<String, String> layerMap = panelLayerPixels.get(panelId);
+			for(String layerId : layerMap.keySet()) {
+				String pixelString = layerMap.get(layerId);
+				cacheRecipe.add(pixelString);
+			}
+		}
+		
 		return cacheRecipe;
 	}
 	

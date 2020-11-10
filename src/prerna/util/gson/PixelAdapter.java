@@ -14,6 +14,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.om.Pixel;
+import prerna.sablecc2.om.task.options.TaskOptions;
 
 public class PixelAdapter  extends TypeAdapter<Pixel> {
 	
@@ -38,6 +39,7 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		List<Map<String, List<Map>>> reactorInputs = null;
 		Set<String> frameOutputs = new HashSet<>();
 		Set<String> frameInputs = new HashSet<>();
+		List<TaskOptions> taskOptions = new Vector<>();
 		Map<String, Object> positionMap = null;
 		List<String> errorMessages = new Vector<>();
 		List<String> warningMessages = new Vector<>();
@@ -85,6 +87,13 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 					frameOutputs.add(in.nextString());
 				}
 				in.endArray();
+			} else if(key.equals("taskOptions")) {
+				in.beginArray();
+				TaskOptionsAdapter tAdapter = new TaskOptionsAdapter();
+				while(in.hasNext()) {
+					taskOptions.add(tAdapter.read(in));
+				}
+				in.endArray();
 			} else if(key.equals("positionMap")) {
 				positionMap = (Map<String, Object>) mapAdapter.read(in);
 			} else if(key.equals("errorMessages")) {
@@ -114,6 +123,7 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		pixel.setReactorInputs(reactorInputs);
 		pixel.setFrameInputs(frameInputs);
 		pixel.setFrameOutputs(frameOutputs);
+		pixel.setTaskOptions(taskOptions);
 		pixel.setPositionMap(positionMap);
 		pixel.setErrorMessages(errorMessages);
 		pixel.setWarningMessages(warningMessages);
@@ -128,20 +138,28 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		}
 
 		out.beginObject();
+		// id
 		out.name("id");
 		out.value(value.getId());
+		// pixel
 		out.name("pixelString");
 		out.value(value.getPixelString());
+		// alias
 		out.name("pixelAlias");
 		out.value(value.getPixelAlias());
+		// description
 		out.name("pixelDescription");
 		out.value(value.getPixelDescription());
+		// meta
 		out.name("meta");
 		out.value(value.isMeta());
+		// error
 		out.name("errorReturned");
 		out.value(value.isReturnedError());
+		// warning
 		out.name("warningReturned");
 		out.value(value.isReturnedWarning());
+		// starting headers
 		out.name("startingFrameHeaders");
 		if(value.getStartingFrameHeaders() != null) {
 			TypeAdapter adapter = GSON.getAdapter(value.getStartingFrameHeaders().getClass());
@@ -149,6 +167,7 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		} else {
 			out.nullValue();
 		}
+		// end headers
 		out.name("endingFrameHeaders");
 		if(value.getEndingFrameHeaders() != null) {
 			TypeAdapter adapter = GSON.getAdapter(value.getEndingFrameHeaders().getClass());
@@ -156,6 +175,7 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		} else {
 			out.nullValue();
 		}
+		// reactor inputs
 		out.name("reactorInputs");
 		if(value.getReactorInputs() != null) {
 			TypeAdapter adapter = GSON.getAdapter(value.getReactorInputs().getClass());
@@ -163,25 +183,40 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		} else {
 			out.nullValue();
 		}
+		// frame inputs
 		out.name("frameInputs");
 		out.beginArray();
 		for(String frameName : value.getFrameInputs()) {
 			out.value(frameName);
 		}
 		out.endArray();
+		// frame outputs
 		out.name("frameOutputs");
 		out.beginArray();
 		for(String frameName : value.getFrameOutputs()) {
 			out.value(frameName);
 		}
 		out.endArray();
+		// task options
+		out.name("taskOptions");
+		out.beginArray();
+		{
+			TaskOptionsAdapter tAdapter = new TaskOptionsAdapter();
+			for(TaskOptions tOptions : value.getTaskOptions()) {
+				tAdapter.write(out, tOptions);
+			}
+		}
+		out.endArray();
+		// position map
 		out.name("positionMap");
 		if(value.getPositionMap() != null) {
 			TypeAdapter adapter = GSON.getAdapter(value.getPositionMap().getClass());
 			adapter.write(out, value.getPositionMap());
 		} else {
 			out.nullValue();
+		
 		}
+		// error messages
 		out.name("errorMessages");
 		if(value.getErrorMessages() != null) {
 			out.beginArray();
@@ -192,6 +227,7 @@ public class PixelAdapter  extends TypeAdapter<Pixel> {
 		} else {
 			out.nullValue();
 		}
+		// warning messages
 		out.name("warningMessages");
 		if(value.getWarningMessages() != null) {
 			out.beginArray();
