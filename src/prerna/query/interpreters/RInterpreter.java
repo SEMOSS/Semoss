@@ -43,6 +43,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	private String dataTableName = null;
 	private Map<String, SemossDataType> colDataTypes;
 
+	// store the qs value for each header to its alias
+	Map<String, String> qsToAliasMap = new HashMap<>();
+	
 	//keep track of the selectors
 	private StringBuilder selectorCriteria = new StringBuilder(); 
 	// keep track of the filters
@@ -308,6 +311,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			// also keep track of headers
 			// so we know what order by's are valid
 			this.validHeaders.add(alias);
+			// store header to alias
+			qsToAliasMap.put(selector.getQueryStructName(), selector.getAlias());
 		}
 		
 		if(!this.havingColumns.isEmpty()) {
@@ -328,6 +333,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				String tempName = "V" + (numSelectors+i);
 				selectorBuilder.append(tempName).append("=").append(processSelector(selector, this.dataTableName, false, false));
 				outputNames.append(alias).append("=").append(tempName);
+				// store header to alias
+				qsToAliasMap.put(selector.getQueryStructName(), selector.getAlias());
 			}
 		}
 		
@@ -970,7 +977,14 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			if(i >= 1) {
 				groupBys.append(",");
 			}
-			groupBys.append(processSelector(groupBySelector, this.dataTableName, false, true));
+			String selectorAlias = qsToAliasMap.get(groupBySelector.getQueryStructName());
+			if(selectorAlias != null) {
+				groupBys.append(selectorAlias).append("=")
+					.append(processSelector(groupBySelector, this.dataTableName, false, false));
+			} else {
+				groupBys.append(groupBySelector.getAlias()).append("=")
+					.append(processSelector(groupBySelector, this.dataTableName, false, false));
+			}
 		}
 		this.groupBys.append(")");
  	}
