@@ -330,6 +330,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			// i will just do the delete portion here
 			// since the add is the same in either case
 			RemoveOwlConceptReactor remover = new RemoveOwlConceptReactor();
+			remover.In();
 			remover.getNounStore().makeNoun(ReactorKeysEnum.APP.getKey()).addLiteral(this.engineId);
 			remover.getNounStore().makeNoun(ReactorKeysEnum.CONCEPT.getKey()).addLiteral(this.targetTable);
 			remover.setInsight(this.insight);
