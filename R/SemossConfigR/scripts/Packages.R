@@ -150,6 +150,7 @@ install.packages("arules", dependencies=TRUE)
 
 # Classification
 install.packages("partykit", dependencies=TRUE)
+install.packages("naniar", dependencies=TRUE)
 #install.packages("dplyr", dependencies=TRUE)
 #install.packages("data.table", dependencies=TRUE)
 

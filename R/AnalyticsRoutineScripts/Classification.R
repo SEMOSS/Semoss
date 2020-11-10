@@ -7,11 +7,14 @@ getUsefulPredictors <- function(x) {
 }
 
 getCTree <- function(dt, instanceCol, attrColList, subsetPercent=0.8){	
-	lapply(list('data.table', 'partykit', 'dplyr'), require, character.only = TRUE)
+	lapply(list('data.table', 'partykit', 'dplyr', 'naniar'), require, character.only = TRUE)
 	set.seed(123)	
 
 	tempDt <- dt[, c(instanceCol, attrColList), with=FALSE]
-	tempDt[tempDt==''|tempDt==' '] <- NA 
+	# replace empties as NA to drop 
+	# only need for character fields
+	tempDt <- mutate_if(tempDt, is.Date, as.character)
+	tempDt %>% naniar:::replace_with_na_if(.predicate = is.character, condition = ~.x %in% (common_na_strings))
 	tempDt <- tempDt[complete.cases(tempDt),]
 	
 	#split into training and test sets
