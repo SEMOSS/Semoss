@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.sablecc2.om.task.options.TaskOptions;
+
 public class Pixel {
 
 	private String id = null;
@@ -32,6 +34,12 @@ public class Pixel {
 	private Set<String> frameInputs = new HashSet<>();
 	// store the list of frame outputs from the reactor
 	private Set<String> frameOutputs = new HashSet<>();
+	
+	// to help with caching
+	// store any task options that are created
+	private List<TaskOptions> taskOptions = new Vector<>();
+	private List<Map<String, String>> removeLayerList = new Vector<>();
+	private List<Map<String, String>> cloneMapList = new Vector<>();
 	
 	// for the FE view
 	private Map<String, Object> positionMap = new HashMap<>();
@@ -183,6 +191,79 @@ public class Pixel {
 	 */
 	public void setFrameInputs(Set<String> frameInputs) {
 		this.frameInputs = frameInputs;
+	}
+	
+	/**
+	 * Get the task options
+	 * @return
+	 */
+	public List<TaskOptions> getTaskOptions() {
+		return taskOptions;
+	}
+	
+	/**
+	 * Add to the task options list
+	 * @param taskOptions
+	 */
+	public void addTaskOptions(TaskOptions taskOptions) {
+		this.taskOptions.add(taskOptions);
+	}
+
+	/**
+	 * Set the task options
+	 * @param taskOptions
+	 */
+	public void setTaskOptions(List<TaskOptions> taskOptions) {
+		this.taskOptions = taskOptions;
+	}
+
+	/**
+	 * Get the remove layer list
+	 * @return
+	 */
+	public List<Map<String, String>> getRemoveLayerList() {
+		return this.removeLayerList;
+	}
+	
+	/**
+	 * Add to the remove layer list
+	 * @param removeLayer
+	 */
+	public void addRemoveLayer(Map<String, String> removeLayer) {
+		this.removeLayerList.add(removeLayer);
+	}
+
+	/**
+	 * Set the remove layer list
+	 * @param removeLayerList
+	 */
+	public void setRemoveLayerList(List<Map<String, String>> removeLayerList) {
+		this.removeLayerList = removeLayerList;
+	}
+	
+	
+	/**
+	 * Get the clone map list
+	 * @return
+	 */
+	public List<Map<String, String>> getCloneMapList() {
+		return this.cloneMapList;
+	}
+	
+	/**
+	 * Add to the clone map list
+	 * @param cloneMap
+	 */
+	public void addCloneMap(Map<String, String> cloneMap) {
+		this.cloneMapList.add(cloneMap);
+	}
+
+	/**
+	 * Set the clone map list
+	 * @param cloneMapList
+	 */
+	public void setCloneMapList(List<Map<String, String>> cloneMapList) {
+		this.cloneMapList = cloneMapList;
 	}
 	
 	/**
@@ -360,6 +441,9 @@ public class Pixel {
 			pixelObj.setReactorInputs(mergePixel.getReactorInputs());
 			pixelObj.setFrameInputs(mergePixel.getFrameInputs());
 			pixelObj.setFrameOutputs(mergePixel.getFrameOutputs());
+			pixelObj.setTaskOptions(mergePixel.getTaskOptions());
+			pixelObj.setRemoveLayerList(mergePixel.getRemoveLayerList());
+			pixelObj.setCloneMapList(mergePixel.getCloneMapList());
 		}
 	}
 	
