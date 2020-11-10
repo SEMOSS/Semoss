@@ -281,10 +281,14 @@ public class PixelStreamUtility {
 		pixelList = null;
 		runner = null;
 	}
+
 	/**
 	 * Process the noun metadata for consumption on the FE
-	 * @param noun
-	 * @return
+	 * @param in 			Insight 
+	 * @param ps			PrintStream to write output json
+	 * @param gson			Gson utility instance
+	 * @param noun			Nounmetadata to process
+	 * @param pixelObj		Pixel object for the step
 	 */
 	private static void processNounMetadata(Insight in, PrintStream ps, Gson gson, NounMetadata noun, Pixel pixelObj) {
 		PixelDataType nounT = noun.getNounType();
@@ -419,7 +423,7 @@ public class PixelStreamUtility {
 				int numCollect = task.getNumCollect();
 				boolean collectAll = numCollect == -1;
 				String formatType = task.getFormatter().getFormatType();
-
+				
 				if(task instanceof ConstantDataTask) {
 					ps.print("\"output\":{");
 					ps.print("\"data\":" + gson.toJson( ((ConstantDataTask) task).getOutputData()));
