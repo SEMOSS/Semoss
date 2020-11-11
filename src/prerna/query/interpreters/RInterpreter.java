@@ -68,6 +68,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	// keep track of date columns that are aggregated
 	private Map<String, SemossDataType> aggregatedDateVals = new HashMap<>();
 	
+	// keep track of columns that have had their data type changed
+	private Map<String, SemossDataType> convertedDates = new HashMap<>();
+	
 	@Override
 	public String composeQuery() {
 		if(this.dataTableName == null) {
@@ -199,6 +202,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			query.append(" %>% " + rSubSyntax);
 		}
 		query.append("};");
+		convertedDates.put(column, type);
 	}
 	
 
@@ -1095,6 +1099,10 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	
 	public StringBuilder getHavingFilterCriteria() {
 		return this.havingFilterCriteria;
+	}
+	
+	public Map<String, SemossDataType> getConvertedDates() {
+		return this.convertedDates;
 	}
 	
 	public static void main(String[] args) {

@@ -182,7 +182,8 @@ public class RDataTable extends AbstractTableDataFrame {
 		logger.info("Generating R Data Table query...");
 		String query = interp.composeQuery();
 		logger.info("Done generating R Data Table query");
-
+		Map<String, SemossDataType> convertedDates = interp.getConvertedDates();
+		
 		RawRSelectWrapper it = null;
 		IRawSelectWrapper retWrapper = null;
 		String looker = interp.getMainQuery();
@@ -191,6 +192,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		if(!queryCache.containsKey(looker) || !cache) {
 			logger.info("Executing query...");
 			RIterator output = new RIterator(this.builder, query, qs);
+			output.setConvertedDates(convertedDates);
 			output.setQuery(looker);
 			it = new RawRSelectWrapper();
 			it.directExecution(output);
