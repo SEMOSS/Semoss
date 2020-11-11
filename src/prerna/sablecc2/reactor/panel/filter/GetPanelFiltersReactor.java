@@ -27,9 +27,9 @@ public class GetPanelFiltersReactor extends AbstractFilterReactor {
 		}
 		if (filters == null) {
 			// just return an empty list
-			return new NounMetadata(new ArrayList<Object>(), PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+			return new NounMetadata(new ArrayList<Object>(), PixelDataType.FILTER, PixelOperationType.PANEL_FILTER);
 		}
-		return new NounMetadata(filters.getFormatedFilters(), PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		return new NounMetadata(filters.getFormatedFilters(), PixelDataType.FILTER, PixelOperationType.PANEL_FILTER);
 	}
 
 }
