@@ -242,7 +242,7 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 		
 		retMap.put("selectedCount", selectedCount);
 
-		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
+		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_FILTER_MODEL);
 	}
 
 	private boolean columnFiltered(GenRowFilters filters, String columnName) {

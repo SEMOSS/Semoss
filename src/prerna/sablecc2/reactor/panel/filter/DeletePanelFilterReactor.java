@@ -39,7 +39,7 @@ public class DeletePanelFilterReactor extends AbstractFilterReactor {
 			filters.removeFilter(indexList.get(i - 1).intValue());
 		}
 
-		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.PANEL_FILTER);
 		return noun;
 	}
 
