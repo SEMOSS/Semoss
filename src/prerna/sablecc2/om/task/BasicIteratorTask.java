@@ -103,7 +103,7 @@ public class BasicIteratorTask extends AbstractTask {
 			return false;
 		} else if( this.qs != null && this.iterator == null) {
 			try {
-				generateIterator(this.qs, this.qs.isOverrideImplicit());
+				generateIterator(this.qs);
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SemossPixelException(e.getMessage());
@@ -134,7 +134,7 @@ public class BasicIteratorTask extends AbstractTask {
 		if(this.headerInfo != null && this.grabTypesFromWrapper) {
 			if(this.iterator == null) {
 				try {
-					generateIterator(this.qs, this.qs.isOverrideImplicit());
+					generateIterator(this.qs);
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new SemossPixelException(e.getMessage());
@@ -157,7 +157,7 @@ public class BasicIteratorTask extends AbstractTask {
 		} else if(this.grabFromWrapper && (this.headerInfo == null || this.headerInfo.isEmpty()) ) {
 			if(this.iterator == null) {
 				try {
-					generateIterator(this.qs, false);
+					generateIterator(this.qs);
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new SemossPixelException(e.getMessage());
@@ -219,11 +219,11 @@ public class BasicIteratorTask extends AbstractTask {
 			this.qs.setLimit(this.startLimit);
 			this.qs.setOffSet(this.startOffset);
 			this.internalOffset = 0;
-			generateIterator(this.qs, this.qs.isOverrideImplicit());
+			generateIterator(this.qs);
 		}
 	}
 	
-	private void generateIterator(SelectQueryStruct qs, boolean overrideImplicitFilters) throws Exception {
+	private void generateIterator(SelectQueryStruct qs) throws Exception {
 		// I need a way here to see if this is already done as a iterator and if so take a copy of it
 		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
@@ -234,7 +234,7 @@ public class BasicIteratorTask extends AbstractTask {
 			iterator = ExcelWorkbookFileHelper.buildSheetIterator((ExcelQueryStruct) qs); //new ExcelFileIterator((ExcelQueryStruct) qs);
 		} else {
 			ITableDataFrame frame = qs.getFrame();
-			if(overrideImplicitFilters) {
+			if(qs.isOverrideImplicit()) {
 				qs.setImplicitFilters(frame.getFrameFilters());
 			}
 			frame.setLogger(this.logger);
@@ -347,7 +347,7 @@ public class BasicIteratorTask extends AbstractTask {
 					}
 					addedOrder = true;
 				}
-				generateIterator(this.qs, this.qs.isOverrideImplicit());
+				generateIterator(this.qs);
 				// we got the iterator
 				// if we added an order, remove it
 				if(addedOrder) {
@@ -402,7 +402,7 @@ public class BasicIteratorTask extends AbstractTask {
 		// since we lazy execute the iterator
 		// make sure it exists
 		if(this.qs != null && this.iterator == null) {
-			generateIterator(this.qs, this.qs.isOverrideImplicit());
+			generateIterator(this.qs);
 		}
 		// creates a new cache to be used
 		ITableDataFrame frame = this.qs.getFrame();
@@ -439,7 +439,7 @@ public class BasicIteratorTask extends AbstractTask {
 	
 	public IRawSelectWrapper getIterator() throws Exception {
 		if(this.qs != null && this.iterator == null) {
-			generateIterator(this.qs, this.qs.isOverrideImplicit());
+			generateIterator(this.qs);
 		}
 		return this.iterator;
 	}
