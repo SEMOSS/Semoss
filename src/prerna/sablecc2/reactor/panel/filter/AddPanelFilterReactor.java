@@ -25,7 +25,9 @@ public class AddPanelFilterReactor extends AbstractFilterReactor {
 	@Override
 	public NounMetadata execute() {
 		InsightPanel panel = getInsightPanel();
-
+		if(panel == null) {
+			throw new NullPointerException("Cannot find the input panel for add panel filter");
+		}
 		// get the filters to add
 		GenRowFilters grf = getFilters();
 		if (grf.isEmpty()) {
