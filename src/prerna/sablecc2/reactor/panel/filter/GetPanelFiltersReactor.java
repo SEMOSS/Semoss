@@ -10,9 +10,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 
-public class GetPanelFilterStateReactor extends AbstractFilterReactor {
+public class GetPanelFiltersReactor extends AbstractFilterReactor {
 
-	public GetPanelFilterStateReactor() {
+	public GetPanelFiltersReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PANEL.getKey() };
 	}
 	
@@ -26,7 +26,7 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 			throw new IllegalArgumentException("No frame currently exists within the insight");
 		}
 		if (filters == null) {
-			// just return an empty l ist
+			// just return an empty list
 			return new NounMetadata(new ArrayList<Object>(), PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
 		}
 		return new NounMetadata(filters.getFormatedFilters(), PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
