@@ -68,7 +68,7 @@ public class ReplacePanelFilterReactor extends AbstractFilterReactor {
 			filters.addFilters(replaceFilter);
 		}
 
-		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.PANEL_FILTER);
 		return noun;
 	}
 
