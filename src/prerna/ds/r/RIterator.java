@@ -7,6 +7,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -33,6 +34,10 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	private int dataPos = 0;
 	private int rowIndex = 1;
 	private int bulkRowSize = 10_000;
+	
+	// since dates are turned to strings to send to FE
+	// need to maintain so we return the type as expected
+	private Map<String, SemossDataType> convertedDates;
 	
 	// main query instead of the whole thing for lookup
 	private String query = null;
@@ -181,6 +186,20 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 
 	public void setColTypes(String[] colTypes) {
 		this.colTypes = colTypes;
+	}
+	
+	public void setConvertedDates(Map<String, SemossDataType> convertedDates) {
+		this.convertedDates = convertedDates;
+		if(this.convertedDates != null && !this.convertedDates.isEmpty()) {
+			String[] headers = getHeaders();
+			String[] types = getColTypes();
+			int size = headers.length;
+			for(int i = 0; i < size; i++) {
+				if(convertedDates.containsKey(headers[i])) {
+					types[i] = convertedDates.get(headers[i]).toString();
+				}
+			}
+		}
 	}
 	
 	public int getNumRows() {
