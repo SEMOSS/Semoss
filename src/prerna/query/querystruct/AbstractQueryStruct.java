@@ -391,11 +391,11 @@ public abstract class AbstractQueryStruct {
 		setBigDataEngine(incomingQS.bigDataEngine);
 		setCustomFrom(incomingQS.customFrom);
 		setCustomFromAliasName(incomingQS.customFromAliasName);
+		setOverrideImplicit(incomingQS.overrideImplicit);
 		// setters but null check first
 		if(incomingQS.getEngineId() != null) {
 			setEngineId(incomingQS.getEngineId());
 		}
-		
 		if(incomingQS.getEngine() != null) {
 			setEngine(incomingQS.getEngine());
 		} 
