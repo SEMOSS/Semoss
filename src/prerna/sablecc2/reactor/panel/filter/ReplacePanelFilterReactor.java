@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.om.InsightPanel;
+import prerna.query.querystruct.filters.FilterBooleanVal;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -68,7 +69,10 @@ public class ReplacePanelFilterReactor extends AbstractFilterReactor {
 			filters.addFilters(replaceFilter);
 		}
 
-		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.PANEL_FILTER);
+		FilterBooleanVal pFilterVal = FilterBooleanVal.getPanelFilter();
+		pFilterVal.setName(panel.getPanelId());
+		pFilterVal.setFilterVal(true);
+		NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.FILTER_BOOLEAN_VAL, PixelOperationType.PANEL_FILTER_CHANGE);
 		return noun;
 	}
 

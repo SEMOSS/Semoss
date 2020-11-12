@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
@@ -79,7 +78,6 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 
 	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit,
 			int offset, InsightPanel panel) {
-		boolean selectAll = dataframe.getSelectAllFilter(tableCol);
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		// first just return the info that was passed in
@@ -190,12 +188,6 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 		}
 		// this is just the values of the column given the current filters
 		qs2.setExplicitFilters(baseFilters);
-		// if no filters are applied set select all to true
-		// TODO should this be only if the column does not have filters?
-		if (baseFilters.isEmpty()) {
-			selectAll = true;
-		}
-		retMap.put("selectAll", selectAll);
 
 //		if (!selectAll) {
 			// now run and flush out the values
@@ -243,18 +235,5 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 		retMap.put("selectedCount", selectedCount);
 
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_FILTER_MODEL);
-	}
-
-	private boolean columnFiltered(GenRowFilters filters, String columnName) {
-		Set<String> filteredCols = filters.getAllFilteredColumns();
-		if (filteredCols.contains(columnName)) {
-			return true;
-		}
-		if (columnName.contains("__")) {
-			if (filteredCols.contains(columnName.split("__")[1])) {
-				return true;
-			}
-		}
-		return false;
 	}
 }
