@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.query.querystruct.filters.FilterBooleanVal;
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,6 +50,9 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 			this.caseEvaluation = (boolean) ifEvaluatorObject;
 		} else if(ifEvaluatorType == PixelDataType.COLUMN) {
 			this.caseEvaluation = (boolean) this.planner.getVariableValue(ifEvaluatorObject.toString()).getValue();
+		} else if(ifEvaluatorType == PixelDataType.FILTER_BOOLEAN_VAL) {
+			FilterBooleanVal filterVal = (FilterBooleanVal) ifEvaluatorObject;
+			this.caseEvaluation = filterVal.getFilterVal();
 		} else if(ifEvaluatorType == PixelDataType.FILTER) {
 			// we have a filter object
 			// use its evaluate method
@@ -72,28 +76,28 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		return this.caseEvaluation;
 	}
 	
-	private NounMetadata evaluateStatement(NounMetadata trueNoun) {
+	private NounMetadata evaluateStatement(NounMetadata evalNoun) {
 		// if it is another reactor
 		// let the reactor execute and handle the returning of its data
-		if(trueNoun.getValue() instanceof AbstractReactor) {
-			AbstractReactor trueReactor = (AbstractReactor) trueNoun.getValue();
+		if(evalNoun.getValue() instanceof AbstractReactor) {
+			AbstractReactor trueReactor = (AbstractReactor) evalNoun.getValue();
 			trueReactor.evaluate = true;
 			return trueReactor.execute();
-		} else if(trueNoun.getNounType() == PixelDataType.VECTOR) {
+		} else if(evalNoun.getNounType() == PixelDataType.VECTOR) {
 			List<NounMetadata> evalutedValues = new Vector<NounMetadata>();
 			// need to loop through all the portions
-			List<NounMetadata> values = (List<NounMetadata>) trueNoun.getValue();
+			List<NounMetadata> values = (List<NounMetadata>) evalNoun.getValue();
 			for(int i = 0; i < values.size(); i++) {
 				evalutedValues.add(evaluateStatement(values.get(i)));
 			}
-			NounMetadata evalutedNoun = new NounMetadata(evalutedValues, PixelDataType.VECTOR, trueNoun.getOpType());
-			evalutedNoun.addAllAdditionalReturn(trueNoun.getAdditionalReturn());
+			NounMetadata evalutedNoun = new NounMetadata(evalutedValues, PixelDataType.VECTOR, evalNoun.getOpType());
+			evalutedNoun.addAllAdditionalReturn(evalNoun.getAdditionalReturn());
 			return evalutedNoun;
 		} else {
 			// ughh...
 			// must be an evaluted value
 			// just return it
-			return trueNoun;
+			return evalNoun;
 		}
 	}
 	

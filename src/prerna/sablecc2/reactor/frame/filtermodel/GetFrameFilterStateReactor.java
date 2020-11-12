@@ -86,7 +86,6 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 
 	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit,
 			int offset, boolean dynamic, InsightPanel panel) {
-		boolean selectAll = dataframe.getSelectAllFilter(tableCol);
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		// first just return the info that was passed in
@@ -201,12 +200,6 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		}
 		// this is just the values of the column given the current filters
 		qs2.setExplicitFilters(baseFilters);
-		// if no filters are applied set select all to true
-		// TODO should this be only if the column does not have filters?
-		if (baseFilters.isEmpty()) {
-			selectAll = true;
-		}
-		retMap.put("selectAll", selectAll);
 
 		// now run and flush out the values
 		IRawSelectWrapper unFilterValuesIt = null;
