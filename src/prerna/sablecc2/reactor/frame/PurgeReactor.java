@@ -1,6 +1,10 @@
 package prerna.sablecc2.reactor.frame;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
@@ -25,7 +29,7 @@ public class PurgeReactor extends AbstractFrameReactor {
 	private static final String CLASS_NAME = PurgeReactor.class.getName();
 	
 	public PurgeReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILTERS.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.FILTERS.getKey()};
 	}
 	
 	@Override
@@ -159,6 +163,28 @@ public class PurgeReactor extends AbstractFrameReactor {
 		}
 		
 		return null;
+	}
+	
+	@Override
+	public Map<String, List<Map>> getStoreMap() {
+		Map<String, List<Map>> inputMap = super.getStoreMap();
+		List<Map> list = inputMap.get(ReactorKeysEnum.FILTERS.getKey());
+		List<Map> newList = new Vector<>();
+		for(Map basicInput : list) {
+			Object qsObj = basicInput.get("value");
+			if(qsObj instanceof SelectQueryStruct) {
+				SelectQueryStruct qs = (SelectQueryStruct) qsObj;
+				
+				Map<String, Object> newInput = new HashMap<>();
+				newInput.put("type", PixelDataType.FILTER.getKey());
+				newInput.put("value", qs.getCombinedFilters().getFormatedFilters());
+				newList.add(newInput);
+			}
+		}
+		
+		inputMap.put(ReactorKeysEnum.FILTERS.getKey(), newList);
+		inputMap.put(ReactorKeysEnum.QUERY_STRUCT.getKey(), list);
+		return inputMap;
 	}
 
 }
