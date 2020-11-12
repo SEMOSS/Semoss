@@ -106,7 +106,7 @@ public class ExcelUtility {
 		try {
 			out = new FileOutputStream(fileLocation);
 			workbook.write(out);
-			workbook.close();
+			//workbook.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -121,8 +121,8 @@ public class ExcelUtility {
 			}
 			if (workbook != null) {
 				try {
-					workbook.close();
-				} catch (IOException e) {
+					//workbook.close();
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
