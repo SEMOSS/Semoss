@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.query.querystruct.filters.FilterBooleanVal;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -38,7 +39,10 @@ public class DeleteFrameFilterReactor extends AbstractFilterReactor {
 			filters.removeFilter(indexList.get(i - 1).intValue());
 		}
 
-		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		FilterBooleanVal fFilterVal = FilterBooleanVal.getFrameFilter();
+		fFilterVal.setName(frame.getName());
+		fFilterVal.setFilterVal(true);
+		NounMetadata noun = new NounMetadata(fFilterVal, PixelDataType.FILTER_BOOLEAN_VAL, PixelOperationType.FRAME_FILTER_CHANGE);
 		return noun;
 	}
 

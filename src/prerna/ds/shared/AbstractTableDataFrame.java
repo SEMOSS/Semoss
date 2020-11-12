@@ -68,9 +68,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// but it doesn't include prim keys
 	protected String[] qsNames;
 	
-	// this is to track if filtering all values
-	protected Map<String, Object> selectAll = new HashMap<>();
-	
 	// so that we do not need to re-execute on the frame multiple times
 	// to determine if a header has duplicates or not
 	protected Map<String, Boolean> uniqueColumnCache = new HashMap<String, Boolean>();
@@ -570,27 +567,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			return true;
 		}
 		return false;
-	}
-
-	@Override
-	public void setSelectAllFilter(String column, boolean selectAll) {
-		this.selectAll.put(column, selectAll);
-	}
-
-	@Override
-	public boolean getSelectAllFilter(String column) {
-		boolean selectAll = false;
-		if (this.selectAll.containsKey(column)) {
-			selectAll = (boolean) this.selectAll.get(column);
-		} else {
-			// if value is not defined add it to map
-			this.selectAll.put(column, false);
-		}
-		return selectAll;
-	}
-
-	public Map<String, Object> getSelectAllMap() {
-		return this.selectAll;
 	}
 	
 	/////////////////////////////////////////////////////
