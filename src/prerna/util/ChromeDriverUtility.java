@@ -124,7 +124,7 @@ public class ChromeDriverUtility {
 		
 		// time for FE to render the page before the image is taken
 	    try {
-			Thread.sleep(8000);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

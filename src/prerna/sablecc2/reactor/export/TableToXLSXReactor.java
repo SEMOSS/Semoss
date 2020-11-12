@@ -12,9 +12,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -398,7 +401,6 @@ public class TableToXLSXReactor	extends AbstractReactor
 					String rowSpan = td.attr("rowspan");
 					String colSpan = td.attr("colspan");
 					
-					cell.setCellValue(value);
 					String style = td.attr("Style");
 					List [] nameProps = null;
 					if(style == null)
@@ -422,8 +424,11 @@ public class TableToXLSXReactor	extends AbstractReactor
 						
 						// process background
 						input = processBackground(input, nameProps[0], nameProps[1]);
-						
+
 						cell.setCellStyle(input);
+
+						formatCellType(wb, input, cell, value);
+
 	
 						// process background
 						processWidth(cell.getSheet(), cell.getColumnIndex(), nameProps[0], nameProps[1]); 
@@ -431,7 +436,23 @@ public class TableToXLSXReactor	extends AbstractReactor
 					}
 					if(rowSpan != null || colSpan != null)
 						processSpan(cell, rowSpan, colSpan, value);
-			
+					
+					try
+					{
+						int intValue = Integer.parseInt(value);
+						cell.setCellValue(intValue);
+					}
+					catch(Exception ex)
+					{
+						try
+						{
+							double doubleValue = Double.parseDouble(value);
+							cell.setCellValue(doubleValue);							
+						}catch (Exception ex2)
+						{
+							cell.setCellValue(value);
+						}
+					}
 					tdIndex++;
 					cellIndex++;
 					lastColumn++;
@@ -741,6 +762,47 @@ public class TableToXLSXReactor	extends AbstractReactor
 			return input;
 		}
 
+		public void  formatCellType(Workbook wb, CellStyle input, Cell cell, String value)
+		{
+			Object output = value;
+			DataFormat fmt = wb.createDataFormat();
+			StringUtils su = null;
+			if(value != null)
+			{
+				
+				// see if it s $
+				if(value.contains("$"))
+				{
+					input.setDataFormat((short)0x5);
+					cell.setCellValue(value);
+					cell.setCellStyle(input);
+				}
+				
+				//see if it is a number
+				if(NumberUtils.isCreatable(value))
+				{
+					if(value.contains("."))
+						 cell.setCellValue(Double.parseDouble(value));
+					else
+					{
+						try {
+						 cell.setCellValue(Integer.parseInt(value));
+						}catch(Exception ex)
+						{
+							cell.setCellValue(value);
+						}
+					}
+				}
+				
+				// see if this is a date yuck
+				else 
+				{
+					input.setDataFormat((short)0x31);
+					cell.setCellValue(value);
+				}
+			}
+		}
+		
 		public void processWidth(Sheet inputSheet, int cellNum, List <String> names, List <String> cssProps)
 		{
 			String [] widths = new String [] {"width"};
@@ -973,10 +1035,10 @@ public class TableToXLSXReactor	extends AbstractReactor
 					"      <td data-column=\"First Name\"  style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\", colspan=\"2\">James</td>\r\n" + 
 					"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Matman</td>\r\n" + 
 					"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Chief Sandwich Eater</td>\r\n" + 
-					"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@james</td>\r\n" + 
+					"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">20</td>\r\n" + 
 					"    </tr>\r\n" + 
 					"    <tr>\r\n" + 
-					"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Andor</td>\r\n" + 
+					"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">30.123</td>\r\n" + 
 					"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Nagy</td>\r\n" + 
 					"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Designer</td>\r\n" + 
 					"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@andornagy</td>\r\n" + 
@@ -985,7 +1047,7 @@ public class TableToXLSXReactor	extends AbstractReactor
 					"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Tamas</td>\r\n" + 
 					"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Biro</td>\r\n" + 
 					"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Game Tester</td>\r\n" + 
-					"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@tamas</td>\r\n" + 
+					"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">$ 2000.32</td>\r\n" + 
 					"    </tr>\r\n" + 
 					"    <tr>\r\n" + 
 					"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Zoli</td>\r\n" + 
