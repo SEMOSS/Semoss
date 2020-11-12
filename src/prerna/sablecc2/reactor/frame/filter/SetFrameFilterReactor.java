@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.filter;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.query.querystruct.filters.FilterBooleanVal;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -24,7 +25,10 @@ public class SetFrameFilterReactor extends AbstractFilterReactor {
 		}
 		frame.setFilter(grf);
 
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER);
+		FilterBooleanVal fFilterVal = FilterBooleanVal.getFrameFilter();
+		fFilterVal.setName(frame.getName());
+		fFilterVal.setFilterVal(true);
+		NounMetadata noun = new NounMetadata(fFilterVal, PixelDataType.FILTER_BOOLEAN_VAL, PixelOperationType.FRAME_FILTER_CHANGE);
 		return noun;
 	}
 }
