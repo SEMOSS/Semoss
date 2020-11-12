@@ -19,6 +19,8 @@ import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.transform.QSParseParamStruct;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.lexer.Lexer;
@@ -78,10 +80,41 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		} else {
 			// get the filters first
 			GenRowFilters importFilters = qs.getExplicitFilters();
-			Set<String> filteredColumns = importFilters.getAllFilteredColumns();
+			Set<String> filteredColumns = importFilters.getAllQsFilteredColumns();
 
 			for(IQueryFilter filter : importFilters) {
 				QSParseParamStruct.parseFilter(filter, paramList);
+			}
+			
+			// the above should be the filtered options
+			// lets go through the selectors
+			// and what is not filtered will be added as well
+			List<String> addedQs = new Vector<>();
+			List<IQuerySelector> selectors = qs.getSelectors();
+			for(IQuerySelector select : selectors) {
+				List<QueryColumnSelector> allColumnSelectors = select.getAllQueryColumns();
+				for(QueryColumnSelector colS : allColumnSelectors) {
+					
+					String colQS = colS.getQueryStructName();
+					if(filteredColumns.contains(colQS)) {
+						// already have a filter on it
+						continue;
+					}
+					if(addedQs.contains(colQS)) {
+						// we have already added this
+						continue;
+					}
+					
+					ParamStruct pStruct = new ParamStruct();
+					pStruct.setTableName(colS.getTable());
+					pStruct.setColumnName(colS.getColumn());
+					pStruct.setOperator("==");
+					pStruct.setMultiple(true);
+					pStruct.setSearchable(true);
+					paramList.add(pStruct);
+					// store that this qs has been added
+					addedQs.add(colQS);
+				}
 			}
 		}
 		
