@@ -3,7 +3,9 @@ package prerna.sablecc2.reactor.export;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -11,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
@@ -55,6 +58,11 @@ import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 import org.apache.poi.xssf.usermodel.XSSFDrawing;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
@@ -63,6 +71,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
+import prerna.om.ThreadStore;
 import prerna.poi.main.helper.excel.ExcelUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -74,11 +83,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.ChromeDriverUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
-public class ExportToExcelReactor extends AbstractReactor {
+public class ExportToExcelReactor extends TableToXLSXReactor {
 
 	private static final String CLASS_NAME = ExportToExcelReactor.class.getName();
 	private static final String GRID_ON_X = "tools.shared.editGrid.x";
@@ -88,28 +98,71 @@ public class ExportToExcelReactor extends AbstractReactor {
 	protected String fileLocation = null;
 	protected Logger logger;
 
+	ChromeDriver driver = null;
 	private Map<String, Map<String, Object>> chartPanelLayout = new HashMap<>();
+	int height = 10;
+	int width = 10;
+	
+	// sheet alias
+	Map<String, String> sheetAlias = new HashMap<>();
+
+	
 
 	public ExportToExcelReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PASSWORD.getKey() };
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.HEIGHT.getKey(), ReactorKeysEnum.WIDTH.getKey(), 
+				ReactorKeysEnum.HEADERS.getKey(), 
+				ReactorKeysEnum.ROW_GUTTER.getKey(),
+				ReactorKeysEnum.COLUMN_GUTTER.getKey(),
+				ReactorKeysEnum.TABLE_HEADER.getKey(),
+				ReactorKeysEnum.TABLE_FOOTER.getKey(),
+				ReactorKeysEnum.MERGE_CELLS.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey()
+			};
+		this.keyRequired = new int[] {0,0,0,0,0,0,0,0,0,0,0,0,0};
+		this.keyMulti = new int[] {0,0,0,0,0,0,1,0,0,0,0,0,0};
+
+	
 	}
+	
+	public void processPayload()
+	{
+		super.processPayload();
+		if(keyValue.containsKey(ReactorKeysEnum.HEIGHT.getKey()))
+			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey())+"");
+		else if(exportMap.containsKey(ReactorKeysEnum.HEIGHT.getKey()))
+			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey())+"");
+		if(keyValue.containsKey(ReactorKeysEnum.WIDTH.getKey()))
+			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey())+"");
+		else if(exportMap.containsKey(ReactorKeysEnum.WIDTH.getKey()))
+			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey())+"");
+
+	}
+	
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		// get the map also
+		getMap(insight.getInsightId());
+		processPayload();
 		this.logger = getLogger(CLASS_NAME);
 		NounMetadata retNoun = null;
+
 		// get a random file name
-		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+		String prefixName = exportMap.get("FILE_NAME") + ""; 
+		
+		// this whole logic will be moved eventually
+		//////>>>>>>>>>>>>>>>
 		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 		// grab file path to write the file
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+		
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
 		if (fileLocation == null) {
 			String insightFolder = this.insight.getInsightFolder();
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
+			exportMap.put("FILE_LOCATION", fileLocation);
 			// store it in the insight so the FE can download it
 			// only from the given insight
 			this.insight.addExportFile(exportName, fileLocation);
@@ -117,6 +170,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		} else {
 			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
 		}
+		/// <<<<<<<
 		// Grab number of rows to export to know how many rows to iterate
 		// through
 		String limit = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
@@ -130,13 +184,15 @@ public class ExportToExcelReactor extends AbstractReactor {
 			}
 		}
 
+		
 		Map<String, InsightPanel> panelMap = this.insight.getInsightPanels();
 		Map<String, InsightSheet> sheetMap = this.insight.getInsightSheets();
 
 		// Use in-memory XSSF workbook to be able to plot charts
-		XSSFWorkbook workbook = new XSSFWorkbook();
-		// sheet alias
-		Map<String, String> sheetAlias = new HashMap<>();
+
+		// this should take care of templates too
+		XSSFWorkbook workbook = getWorkBook();
+		
 		
 		// create each sheet
 		// this is purely for positioning where we put the panel
@@ -206,28 +262,65 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 
 		// Insert Semoss Logo after the last chart on each sheet
-		addLogo(workbook, sheetAlias);
+		//addLogo(workbook, sheetAlias);
 
 		// rename sheets
+		// not sure we need this
+		/*
 		for (String sheetId : sheetAlias.keySet()) {
 			String sheetName = sheetAlias.get(sheetId);
 			int sheetIndex = workbook.getSheetIndex(sheetId);
 			if(sheetIndex >= 0) {
 				workbook.setSheetName(sheetIndex, sheetName);
 			}
-		}
+		}*/
+
+		
+		// add the last row count
+		// put the export map back
+		// count is already added by the way of createBaseChart
+		//putMap();
+		
+		// fill the headers
+		String para1 = null;
+		String para2 = null;
+		
+		if(exportMap.containsKey("para1"))
+			para1 = (String)exportMap.get("para1");
+		if(exportMap.containsKey("para2"))
+			para2 = (String)exportMap.get("para2");
+
+		if(para1 != null || para2 != null)
+			fillHeader(workbook, exportMap, para1, para2);
+		
+		// fill the footers
+		if(exportMap.containsKey("footer"))
+			fillFooter(workbook, exportMap, (String)exportMap.get("footer"));
+
+		// close the driver
+		if(driver != null)
+		  driver.quit();
 
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
+		
+		
 		if (password != null) {
 			// encrypt file
 			ExcelUtility.encrypt(workbook, fileLocation, password);
 		} else {
 			// write file
-			ExcelUtility.writeToFile(workbook, fileLocation);
+			String newFileLocation = fileLocation.substring(0, fileLocation.indexOf(".xlsx"));
+			newFileLocation = newFileLocation + "1.xlsx";
+			
+			ExcelUtility.writeToFile(workbook, newFileLocation);
+			new File(fileLocation).delete();
+			this.insight.addExportFile(exportName, newFileLocation);
 		}
-
+		
 		return retNoun;
 	}
+	
+	
 
 	private void addLogo(XSSFWorkbook workbook, Map<String, String> sheetAlias) {
 		String semossLogoPath = DIHelper.getInstance().getProperty("EXPORT_SEMOSS_LOGO");
@@ -294,9 +387,9 @@ public class ExportToExcelReactor extends AbstractReactor {
 		Map<String, Object> alignmentMap = taskOptions.getAlignmentMap(panelId);
 		if (chartLayout.equals("Line") || chartLayout.equals("Area") || chartLayout.equals("Column")
 				|| chartLayout.equals("Pie") || chartLayout.equals("Radar")) {
-			List<String> label = (Vector) alignmentMap.get("label");
+			List<String> label = (List) alignmentMap.get("label");
 			panelChartMap.put("x-axis", label);
-			List<String> yColumnNames = (Vector) alignmentMap.get("value");
+			List<String> yColumnNames = (List) alignmentMap.get("value");
 			panelChartMap.put("y-axis", yColumnNames);
 			for (String column : label) {
 				panelChartMap.put(column, new HashMap<>());
@@ -305,11 +398,11 @@ public class ExportToExcelReactor extends AbstractReactor {
 				panelChartMap.put(column, new HashMap<>());
 			}
 		} else if (chartLayout.equals("Scatter")) {
-			List<String> label = (Vector) alignmentMap.get("label");
+			List<String> label = (List) alignmentMap.get("label");
 			panelChartMap.put("label", label);
-			List<String> x = (Vector) alignmentMap.get("x");
+			List<String> x = (List) alignmentMap.get("x");
 			panelChartMap.put("x-axis", x);
-			List<String> yColumnNames = (Vector) alignmentMap.get("y");
+			List<String> yColumnNames = (List) alignmentMap.get("y");
 			panelChartMap.put("y-axis", yColumnNames);
 			for (String column : label) {
 				panelChartMap.put(column, new HashMap<>());
@@ -320,42 +413,70 @@ public class ExportToExcelReactor extends AbstractReactor {
 			// rows
 			// columns
 			// calculations
-			List <String> rows = (Vector)alignmentMap.get("rows");
-			List <String> columns = (Vector)alignmentMap.get("columns");
-			List <String> calcs = (Vector)alignmentMap.get("calculations");
+			List <String> rows = (List)alignmentMap.get("rows");
+			List <String> columns = (List)alignmentMap.get("columns");
+			List <String> calcs = (List)alignmentMap.get("calculations");
 		}
 	}
 
 	private void processTask(XSSFWorkbook workbook, ITask task, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
+		String sheetName = sheetAlias.get(sheetId);
 		TaskOptions tOptions = task.getTaskOptions();
 		Map<String, Object> options = tOptions.getOptions();
-		XSSFSheet sheet = workbook.getSheet(sheetId);
+		XSSFSheet sheet = workbook.getSheet(sheetName);
+		XSSFSheet dataSheet = workbook.getSheet(sheetName + "_Data");
 
 		// Insert chart if supported
-		String plotType = tOptions.getLayout(panelId);
-		if (plotType.equals("Line")) {
-			insertLineChart(sheet, options, panel);
-		} else if (plotType.equals("Scatter")) {
-			insertScatterChart(sheet, options, panel);
-		} else if (plotType.equals("Area")) {
-			insertAreaChart(sheet, options, panel);
-		} else if (plotType.equals("Column")) {
-			insertBarChart(sheet, options, panel);
-		} else if (plotType.equals("Pie")) {
-			insertPieChart(sheet, options, panel);
-		} else if (plotType.equals("Radar")) {
-			insertRadarChart(sheet, options, panel);
+		try
+		{
+			String plotType = tOptions.getLayout(panelId);
+			if (plotType.equals("Line")) {
+				insertLineChart(sheet, dataSheet, options, panel);
+			} else if (plotType.equals("Scatter")) {
+				insertScatterChart(sheet, dataSheet,options, panel);
+			} else if (plotType.equals("Area")) {
+				insertAreaChart(sheet, dataSheet,options, panel);
+			} else if (plotType.equals("Column")) {
+				insertBarChart(sheet, dataSheet,options, panel);
+			} else if (plotType.equals("Pie")) {
+				insertPieChart(sheet, dataSheet,options, panel);
+			} else if (plotType.equals("Radar")) {
+				insertRadarChart(sheet, dataSheet,options, panel);
+			} else if(!plotType.equals("Grid") && !plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
+				insertImage(workbook, sheet, sheetId, panelId);
+				//PivotTable
+			}else if(plotType.equals("Grid") || plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
+				insertGrid(sheet.getSheetName(), panelId);
+			}
+		}catch(Exception ex)
+		{
+			if(driver != null)
+				driver.quit();
+			driver = null;
+		}finally {
+			if(driver != null)
+				driver.quit();
+			driver = null;
 		}
 	}
 
 	private void writeData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId, Map<String , Map<String, String>> panelFormatting) {
 		CreationHelper createHelper = workbook.getCreationHelper();
-		XSSFSheet sheet = workbook.getSheet(sheetId);
+		String sheetName = sheetAlias.get(sheetId);
+		XSSFSheet sheet = workbook.getSheet(sheetName);
 		if (sheet == null) {
-			sheet = workbook.createSheet(sheetId);
+			sheet = getSheet(workbook, sheetName);
+			// also create a data sheet
+			// also hide the sheet
+			// no need to worry about creating template for data sheet
+			sheet = workbook.createSheet(sheetName + "_Data");
+			workbook.setSheetHidden(workbook.getSheetIndex(sheet), true);
 		}
+		else // create the data sheet as well
+			sheet = workbook.getSheet(sheetName + "_Data");
+			
 		// freeze the first row
 		sheet.createFreezePane(0, 1);
 
@@ -377,10 +498,14 @@ public class ExportToExcelReactor extends AbstractReactor {
 		// the excel data row
 		Row excelRow = null;
 		Map<String, Object> sheetMap = this.chartPanelLayout.get(sheetId);
+		// this is being kept so that we know what is the next column to start when putting data
 		int excelColStart = (int) sheetMap.get("colIndex");
 		int curSheetCol = i + excelColStart;
 		int endRow = (int) sheetMap.get("rowIndex");
-		int excelRowCounter = 0;
+		// the row counter is never used even though we read it, since this is putting it horizontally as opposed to vertical
+		// we may run out of options here
+		int excelRowCounter = 0 + endRow;
+		excelColStart = 0;
 				
 
 		// we need to iterate and write the headers during the first time
@@ -512,6 +637,8 @@ public class ExportToExcelReactor extends AbstractReactor {
 		// Update col and row bounds for sheet
 		int endCol = curSheetCol;
 		// just adding an additional one
+		// this is kept so when the data comes in next time we know where to put it
+		// this is basically putting it side by side
 		sheetMap.put("colIndex", endCol + 2);
 		if (excelRowCounter > endRow) {
 			sheetMap.put("rowIndex", excelRowCounter);
@@ -520,6 +647,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
 		List<String> headerList = Arrays.asList(headers);
 
+		// this is the one that demarcates, what is the start and end for this data
 		if (headers != null && headers.length > 0) {
 			for (String header : headers) {
 				Map<String, Object> columnMap = new HashMap<>();
@@ -534,7 +662,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 	}
 
-	private void insertLineChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+	private void insertLineChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
@@ -568,12 +696,14 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		// Add in x vals
-		XDDFNumericalDataSource xs = createXAxis(sheet, xColumnMap);
+		// do it based on data sheet
+		
+		XDDFNumericalDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
 		for (String yColumnName : yColumnNames) {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
-			XDDFNumericalDataSource ys = createYAxis(sheet, yColumnMap);
+			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFLineChartData.Series chartSeries = (XDDFLineChartData.Series) data.addSeries(xs, ys);
 			chartSeries.setTitle(yColumnName, null);
 			// Standardize markers
@@ -596,9 +726,10 @@ public class ExportToExcelReactor extends AbstractReactor {
 		if (displayValues.booleanValue()) {
 			POIExportUtility.displayValues(ChartTypes.LINE, chart);
 		}
+		
 	}
 
-	private void insertScatterChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+	private void insertScatterChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
@@ -631,13 +762,13 @@ public class ExportToExcelReactor extends AbstractReactor {
 		leftAxis.setCrosses(leftAxisCrosses);
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(chartType, bottomAxis, leftAxis);
 		// Add in x vals
-		XDDFDataSource xs = createXAxis(sheet, xColumnMap);
+		XDDFDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
 		for (int i = 0; i < yColumnNames.size(); i++) {
 			String yColumnName = yColumnNames.get(i);
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
-			XDDFNumericalDataSource ys = createYAxis(sheet, yColumnMap);
+			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFScatterChartData.Series chartSeries = (XDDFScatterChartData.Series) data.addSeries(xs, ys);
 			chartSeries.setTitle(yColumnName, null);
 			chartSeries.setSmooth(false);
@@ -655,7 +786,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 	}
 
-	private void insertBarChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+	private void insertBarChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
@@ -706,12 +837,12 @@ public class ExportToExcelReactor extends AbstractReactor {
 		data.setGapWidth(10);
 
 		// Add in x vals
-		XDDFNumericalDataSource xs = createXAxis(sheet, xColumnMap);
+		XDDFNumericalDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
 		for (String yColumnName : yColumnNames) {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
-			XDDFNumericalDataSource ys = createYAxis(sheet, yColumnMap);
+			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFBarChartData.Series chartSeries = (XDDFBarChartData.Series) data.addSeries(xs, ys);
 			XDDFNumericalDataSource<? extends Number> dataSource = chartSeries.getValuesData();
 			chartSeries.setTitle(yColumnName, null);
@@ -726,7 +857,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 	}
 
-	private void insertAreaChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+	private void insertAreaChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
@@ -760,12 +891,12 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XDDFAreaChartData data = (XDDFAreaChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		// Add in x vals
-		XDDFNumericalDataSource xs = createXAxis(sheet, xColumnMap);
+		XDDFNumericalDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
 		for (String yColumnName : yColumnNames) {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
-			XDDFNumericalDataSource ys = createYAxis(sheet, yColumnMap);
+			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFAreaChartData.Series chartSeries = (XDDFAreaChartData.Series) data.addSeries(xs, ys);
 			chartSeries.setTitle(yColumnName, null);
 		}
@@ -778,7 +909,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 	}
 
-	private void insertPieChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+	private void insertPieChart(XSSFSheet sheet, XSSFSheet dataSheet,  Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
@@ -807,12 +938,12 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XDDFPieChartData data = (XDDFPieChartData) chart.createData(chartType, null, null);
 
 		// Add in x vals
-		XDDFNumericalDataSource xs = createXAxis(sheet, xColumnMap);
+		XDDFNumericalDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
 		for (String yColumnName : yColumnNames) {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
-			XDDFNumericalDataSource ys = createYAxis(sheet, yColumnMap);
+			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFPieChartData.Series chartSeries = (XDDFPieChartData.Series) data.addSeries(xs, ys);
 			chartSeries.setTitle(yColumnName, null);
 			chartSeries.setExplosion((long) 0);
@@ -827,7 +958,7 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 	}
 
-	private void insertRadarChart(XSSFSheet sheet, Map<String, Object> options, InsightPanel panel) {
+	private void insertRadarChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
@@ -860,12 +991,12 @@ public class ExportToExcelReactor extends AbstractReactor {
 		XDDFRadarChartData data = (XDDFRadarChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		// Add in x vals
-		XDDFNumericalDataSource xs = createXAxis(sheet, xColumnMap);
+		XDDFNumericalDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
 		for (String yColumnName : yColumnNames) {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
-			XDDFNumericalDataSource ys = createYAxis(sheet, yColumnMap);
+			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFRadarChartData.Series chartSeries = (XDDFRadarChartData.Series) data.addSeries(xs, ys);
 			chartSeries.setTitle(yColumnName, null);
 		}
@@ -873,25 +1004,35 @@ public class ExportToExcelReactor extends AbstractReactor {
 		chart.plot(data);
 	}
 
+	// this is where the chart is being placed. Need to see this properly
 	private XSSFChart createBaseChart(XSSFSheet sheet, Map<String, Object> sheetMap, LegendPosition legendPosition) {
 		XSSFDrawing drawing = sheet.createDrawingPatriarch();
 		// Put chart to the right of any data columns
 		int colIndex = (int) sheetMap.get("colIndex");
 		int chartIndex = (int) sheetMap.get("chartIndex");
-		XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, colIndex, chartIndex, colIndex + 10,
-				chartIndex + 10);
+		// drawing can be at 0 ,0
+		int drawingColIndex = startColumn + this.columnGutter ;
+		int sheetLastRow = 0; 
+		if(exportMap.containsKey(sheet.getSheetName() + "ROW_COUNT"))
+			sheetLastRow = Integer.parseInt(exportMap.get(sheet.getSheetName() + "ROW_COUNT") + "");
+		
+		XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, drawingColIndex, sheetLastRow, drawingColIndex + width,
+				sheetLastRow + height);
 		// Increment for positioning other objects correctly
-		sheetMap.put("chartIndex", chartIndex + 10);
+		sheetMap.put("chartIndex", chartIndex + height + rowGutter);
 		XSSFChart chart = drawing.createChart(anchor);
 		if(legendPosition != null) {
 			XDDFChartLegend legend = chart.getOrAddLegend();
 			legend.setPosition(legendPosition);
 		}
+		sheetLastRow = sheetLastRow + height + rowGutter;
+		exportMap.put(sheet.getSheetName() + "ROW_COUNT", sheetLastRow);
 		
 		return chart;
 	}
 
 	private XDDFNumericalDataSource<Double> createXAxis(XSSFSheet sheet, Map<String, Object> xColumnMap) {
+		
 		int xStartCol = (int) xColumnMap.get("startCol");
 		int xEndCol = (int) xColumnMap.get("endCol");
 		int xStartRow = (int) xColumnMap.get("startRow");
@@ -912,4 +1053,116 @@ public class ExportToExcelReactor extends AbstractReactor {
 
 		return ys;
 	}
+	
+	private void insertGrid(String sheetId, String panelId)
+	{
+		
+		//http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0 
+		//http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0  
+		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5 - this worked
+		String baseUrl = this.insight.getBaseURL();
+		String sessionId = ThreadStore.getSessionId();
+		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&panel=" + panelId;
+		if(driver == null)
+			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl, sessionId, 800, 600);
+		ChromeDriverUtility.captureDataPersistent(driver, baseUrl, htmlUrl, sessionId);
+		WebElement we = driver.findElement(By.xpath("//html/body"));
+		//html = driver.executeScript("return document.documentElement.outerHTML;") + "";
+		//System.out.println(html);
+		String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
+		System.out.println(html2);
+		driver.quit();
+		driver = null; 
+		
+		TableToXLSXReactor txl = new TableToXLSXReactor();
+		txl.exportMap = exportMap;
+		txl.html = html2;
+		txl.sheetName = sheetId;
+		String fileName = (String)exportMap.get("FILE_NAME");
+		
+		txl.processTable(sheetId, html2, fileName);
+		
+		
+		System.out.println(we.getText());
+		
+	}
+	
+	private void insertImage(Workbook wb, XSSFSheet targetSheet, String sheetId, String panelId)
+	{
+		String baseUrl = this.insight.getBaseURL();
+		String sessionId = ThreadStore.getSessionId();
+		String imageUrl = this.insight.getLiveURL();
+
+		String panelAppender = "&panel=" + panelId;
+
+		String sheetAppender = "&sheet=" + sheetId;
+		
+		String prefixName = Utility.getRandomString(8);
+		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "png");
+		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
+
+		
+		if(driver == null)
+			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, sessionId, 800, 600);
+		// download this file
+		ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId);
+		
+		driver.quit();
+		driver = null;
+
+		// download this file
+		//ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800, 600, true);
+		// write this to the sheet now
+		int sheetLastRow = 0; 
+		if(exportMap.containsKey(targetSheet.getSheetName() + "ROW_COUNT"))
+			sheetLastRow = Integer.parseInt(exportMap.get(targetSheet.getSheetName() + "ROW_COUNT") + "");
+
+		//1920 x 936
+		//FileInputStream obtains input bytes from the image file
+		try {
+			InputStream inputStream = new FileInputStream(imageLocation);
+			//Get the contents of an InputStream as a byte[].
+			byte[] bytes = IOUtils.toByteArray(inputStream);
+			//Adds a picture to the workbook
+			int pictureIdx = wb.addPicture(bytes, Workbook.PICTURE_TYPE_PNG);
+			//close the input stream
+			inputStream.close();
+
+			FileUtils.forceDelete(new File(imageLocation));
+
+			//Returns an object that handles instantiating concrete classes
+			CreationHelper helper = wb.getCreationHelper();
+			//Creates the top-level drawing patriarch.
+			Drawing drawing = targetSheet.createDrawingPatriarch();
+
+			//Create an anchor that is attached to the worksheet
+			ClientAnchor anchor = helper.createClientAnchor();
+
+			
+			//create an anchor with upper left cell _and_ bottom right cell
+			anchor.setCol1(startColumn); //Column B
+			anchor.setRow1(sheetLastRow); //Row 3
+			anchor.setCol2(startColumn + width); //Column C // doesnt matter
+			anchor.setRow2(sheetLastRow+height); //Row 4
+
+			//Creates a picture
+			Picture pict = drawing.createPicture(anchor, pictureIdx);
+			//pict.resize();
+
+			//Reset the image to the original size
+			//pict.resize(); //don't do that. Let the anchor resize the image!
+			//Create the Cell B3
+			Cell cell = targetSheet.createRow(2).createCell(1);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		sheetLastRow = sheetLastRow + height + rowGutter;
+		exportMap.put(targetSheet.getSheetName() + "ROW_COUNT", sheetLastRow);		
+	}
+	
 }
