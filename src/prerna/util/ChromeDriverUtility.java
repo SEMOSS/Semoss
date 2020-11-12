@@ -99,6 +99,36 @@ public class ChromeDriverUtility {
 		}
 	}
 
+	public static void captureDataPersistent(ChromeDriver driver, String feUrl, String url, String sessionId) 
+	{
+		// need to go to the base url first
+		// so that the cookie is applied at root level
+		if(ChromeDriverUtility.contextPath != null) {
+			String startingUrl = feUrl;
+			if(startingUrl.endsWith("/")) {
+				startingUrl = startingUrl.substring(0, startingUrl.length()-1);
+			}
+			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/")+1) + ChromeDriverUtility.contextPath;
+			driver.get(baseUrl);
+		} else {
+			driver.get(url);
+		}
+		if(sessionId != null && ChromeDriverUtility.sessionCookie != null) {
+			// name, value, domain, path, expiration, secure, http only
+//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
+			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+			driver.manage().addCookie(name);
+		}
+		
+		driver.navigate().to(url);
+		
+		// time for FE to render the page before the image is taken
+	    try {
+			Thread.sleep(8000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	/**
 	 * Capture the image of from a url

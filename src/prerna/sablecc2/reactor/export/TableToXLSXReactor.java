@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,11 +26,13 @@ import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.neo4j.io.fs.FileUtils;
 
 import cz.vutbr.web.css.CSSException;
 import cz.vutbr.web.css.CSSFactory;
@@ -62,7 +65,10 @@ public class TableToXLSXReactor	extends AbstractReactor
 		boolean keepOpen = true;
 		boolean mergeCells = true; // should we merge the cells or not. 
 		Map exportMap = new HashMap<String, Object>();
-		
+
+		int lastDataRow = 0;
+		int lastDataColumn = 0;
+
 		public static final String ROW_COUNT = "ROW_COUNT";
 		public static final String COLUMN_COUNT = "COLUMN_COUNT";
 		
@@ -70,6 +76,8 @@ public class TableToXLSXReactor	extends AbstractReactor
 		Map rowspanMatrix = new HashMap();
 		Map <Sheet, List<CellRangeAddress>> mergeAreas = new HashMap<Sheet, List <CellRangeAddress>>();
 		String exportTemplate = null;
+		String sheetName = null;
+		String html = null;
 		
 		Map <Integer, Integer> columnToWidth = new HashMap<Integer, Integer>();
 		
@@ -96,31 +104,53 @@ public class TableToXLSXReactor	extends AbstractReactor
 			
 
 			String fileName = Utility.getRandomString(5);
-			String html = null;
-			String sheetName = null;
 			exportTemplate = null;
 
 			getMap(insight.getInsightId());
-
-			if(keyValue.containsKey(keysToGet[1]))
-				html = Utility.decodeURIComponent(keyValue.get(keysToGet[1]));
-			if(keyValue.containsKey(keysToGet[0]))
-				sheetName = keyValue.get(keysToGet[0]);
-			if(keyValue.containsKey(keysToGet[2]))
-				fileName = keyValue.get(keysToGet[2]);
+			processPayload();
+			 
+			
+			// process the table
+			// set in insight so FE can download the file
+			String fileLocation = processTable(sheetName, html,  fileName);
+			NounMetadata retNoun = null;
+			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
+			putMap();
+			// merge the cells
+			if(mergeCells)
+				mergeAreas();
+			
+			return retNoun;
+		}
+		
+		public void processPayload()
+		{
+			String fileName = null;
+			if(keyValue.containsKey(ReactorKeysEnum.HTML.getKey()))
+				html = Utility.decodeURIComponent(keyValue.get(ReactorKeysEnum.HTML.getKey()));
+			if(keyValue.containsKey(ReactorKeysEnum.SHEET.getKey()))
+				sheetName = keyValue.get(ReactorKeysEnum.SHEET.getKey());
+			if(keyValue.containsKey(ReactorKeysEnum.FILE_NAME.getKey()))
+				fileName = keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
 			else if(exportMap.containsKey("FILE_NAME"))
 				fileName = (String)exportMap.get("FILE_NAME");
+			
+			if(fileName == null || fileName.length() == 0)
+				fileName = Utility.getRandomString(5);
+			
+			exportMap.put("FILE_NAME", fileName);
 
-			if(keyValue.containsKey(keysToGet[3]))
-				mergeCells = keyValue.get(keysToGet[3]).equalsIgnoreCase("true");
+			if(keyValue.containsKey(ReactorKeysEnum.MERGE_CELLS.getKey()))
+				mergeCells = keyValue.get(ReactorKeysEnum.MERGE_CELLS.getKey()).equalsIgnoreCase("true");
 
-			if(keyValue.containsKey(keysToGet[4]))
-				exportTemplate = keyValue.get(keysToGet[4]);
-			else if(insight.getProperty(keysToGet[4]) != null) // may be it is a var I dont know
-				exportTemplate = insight.getProperty(keysToGet[4]);
+			if(keyValue.containsKey(ReactorKeysEnum.EXPORT_TEMPLATE.getKey()))
+				exportTemplate = keyValue.get(ReactorKeysEnum.EXPORT_TEMPLATE.getKey());
+			else if(insight.getProperty(ReactorKeysEnum.EXPORT_TEMPLATE.getKey()) != null) // may be it is a var I dont know
+				exportTemplate = insight.getProperty(ReactorKeysEnum.EXPORT_TEMPLATE.getKey());
 
+			exportMap.put("EXPORT_TEMPLATE", exportTemplate);
 			// get the headers
-			GenRowStruct grs = this.store.getNoun(keysToGet[5]);
+			GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.HEADERS.getKey());
 			String para1 = null;
 			String para2 = null;
 			
@@ -137,18 +167,97 @@ public class TableToXLSXReactor	extends AbstractReactor
 					exportMap.put("para2", para2);
 			}
 			
-			// process the table
-			// set in insight so FE can download the file
-			String fileLocation = processTable(sheetName, html,  fileName);
-			NounMetadata retNoun = null;
-			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
-			insight.getVarStore().put(insight.getInsightId(), new NounMetadata(exportMap, PixelDataType.CUSTOM_DATA_STRUCTURE));
+			// get the gutters 
+			if(keyValue.containsKey(ReactorKeysEnum.COLUMN_GUTTER.getKey()))
+				this.columnGutter = Integer.parseInt(keyValue.get(ReactorKeysEnum.COLUMN_GUTTER.getKey()));
+			else if(exportMap.containsKey(ReactorKeysEnum.COLUMN_GUTTER.getKey()))
+				this.columnGutter = Integer.parseInt(exportMap.get(ReactorKeysEnum.COLUMN_GUTTER.getKey()) + "");
 
-			// merge the cells
-			if(mergeCells)
-				mergeAreas();
+			if(keyValue.containsKey(ReactorKeysEnum.ROW_GUTTER.getKey()))
+				this.rowGutter = Integer.parseInt(keyValue.get(ReactorKeysEnum.ROW_GUTTER.getKey()));
+			else if(exportMap.containsKey(ReactorKeysEnum.COLUMN_GUTTER.getKey()))
+				this.rowGutter = Integer.parseInt(exportMap.get(ReactorKeysEnum.ROW_GUTTER.getKey()) + "");
 			
-			return retNoun;
+		}
+		
+		
+		
+		public XSSFWorkbook getWorkBook()
+		{
+			XSSFWorkbook wb = null;
+			if(exportMap.containsKey("FILE_NAME"))
+			{
+				String fileName = (String)exportMap.get("FILE_NAME");
+				
+				if(exportMap.containsKey(fileName))
+				{
+					// keeping a map to be used for various things
+					
+					wb = (XSSFWorkbook)exportMap.get(fileName);
+					
+					
+					// may be this is not needed for now
+					/*
+					Object oStartColumn = insight.getVar("COLUMN_COUNT");
+					if(oStartColumn != null)
+						startColumn = (Integer)oStartColumn;
+					*/
+				}
+				else
+				{
+					if(exportTemplate != null)
+					{
+						String fileLocation = (String)exportMap.get("FILE_LOCATION");
+						try {
+							FileUtils.copyFile(new File(exportTemplate), new File(fileLocation));
+							wb = new XSSFWorkbook(fileLocation);
+							if(wb.getSheet("footer") != null)
+							{
+								Sheet aSheet = wb.getSheet("footer");
+								if(aSheet.getRow(0) != null)
+								{
+									Row row = aSheet.getRow(0);
+									if(row.getCell(0) != null)
+									{
+										String footer = row.getCell(0).getStringCellValue();
+										exportMap.put("footer", footer);
+									}
+									
+								}
+							}
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					else
+						wb = new XSSFWorkbook();
+					exportMap.put(fileName, wb);
+				}
+			}
+			return wb;
+		}
+		
+		public XSSFSheet getSheet(XSSFWorkbook wb, String sheetName)
+		{
+			 XSSFSheet aSheet = wb.getSheet(sheetName);
+			 if(aSheet == null)
+			 {
+				 if(this.exportTemplate != null)
+				 {
+					 aSheet = wb.cloneSheet(wb.getSheetIndex("header"));
+					 wb.setSheetName(wb.getSheetIndex(aSheet), sheetName);
+					 startRow = 6;
+					 lastRow = 6;
+					 exportMap.put(sheetName + "ROW_COUNT", startRow);
+					 // need to find a way to remove disclaimer
+					 
+				 }
+				 else
+					 aSheet = wb.createSheet(sheetName);
+				
+			 }
+			 return aSheet;
 		}
 		
 		public void getMap(String fileName)
@@ -157,6 +266,11 @@ public class TableToXLSXReactor	extends AbstractReactor
 			{
 				exportMap = (Map)insight.getVar(fileName);
 			}
+		}
+
+		public void putMap()
+		{
+			insight.getVarStore().put(insight.getInsightId(), new NounMetadata(exportMap, PixelDataType.CUSTOM_DATA_STRUCTURE));
 		}
 
 		public String processTable(String sheetName, String html, String fileName) 
@@ -229,9 +343,9 @@ public class TableToXLSXReactor	extends AbstractReactor
 				Object oStartRow = exportMap.get(sheetName +"ROW_COUNT");
 				
 				if(oStartRow != null)
-					startRow = (Integer)oStartRow;
+					startRow = (Integer)oStartRow + rowGutter;
 
-		   	    int offset = startRow + rowOffset; 
+		   	    int offset = startRow; 
 		   	    lastRow = offset;
 		   	    // this assumes a single table being there
 				Elements trs = doc.select("tr"); // a with href
@@ -775,7 +889,7 @@ public class TableToXLSXReactor	extends AbstractReactor
 
 		}
 		
-		private void fillHeader(Workbook wb, Map exportMap, String para1, String para2)
+		public void fillHeader(Workbook wb, Map exportMap, String para1, String para2)
 		{
 			// usually the company name is in the first row 4th column
 			for(int sheetIndex = 0;sheetIndex < wb.getNumberOfSheets();sheetIndex++)
@@ -809,7 +923,7 @@ public class TableToXLSXReactor	extends AbstractReactor
 		}
 		
 		// can neel just send it as part of the information ?
-		private void fillFooter(Workbook wb, Map exportMap, String footer)
+		public void fillFooter(Workbook wb, Map exportMap, String footer)
 		{
 			
 			wb.removeSheetAt(wb.getSheetIndex("header"));		
