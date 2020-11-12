@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.query.querystruct.filters.FilterBooleanVal;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -76,7 +77,10 @@ public class RemoveFrameFilterReactor extends AbstractFilterReactor {
 			}
 		}
 
-		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		FilterBooleanVal fFilterVal = FilterBooleanVal.getFrameFilter();
+		fFilterVal.setName(frame.getName());
+		fFilterVal.setFilterVal(true);
+		NounMetadata noun = new NounMetadata(fFilterVal, PixelDataType.FILTER_BOOLEAN_VAL, PixelOperationType.FRAME_FILTER_CHANGE);
 		return noun;
 	}
 

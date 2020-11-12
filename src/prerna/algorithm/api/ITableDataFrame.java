@@ -117,24 +117,6 @@ public interface ITableDataFrame extends IDataMaker {
 	boolean unfilter();
 	
 	/**
-	 * Set select all state for a column
-	 * @param selectAll
-	 */
-	public void setSelectAllFilter(String column, boolean selectAll);	
-	
-	/**
-	 * Get select all state for column
-	 * @return
-	 */
-	public boolean getSelectAllFilter(String column);
-	
-	/**
-	 * Select all map {column: true/false}
-	 * @return
-	 */
-	public Map<String, Object> getSelectAllMap();
-	
-	/**
 	 * Removes a column from the data frame
 	 * @param columnHeader			The column header to remove from the data-frame
 	 */
