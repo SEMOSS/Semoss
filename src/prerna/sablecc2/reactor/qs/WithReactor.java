@@ -25,7 +25,7 @@ public class WithReactor extends AbstractQueryStructReactor {
 	protected AbstractQueryStruct createQueryStruct() {
 		InsightPanel panel = getPanel();
 		GenRowFilters panelFilters = panel.getPanelFilters();
-		qs.mergeImplicitFilters(panelFilters);
+		qs.mergeImplicitFilters(panelFilters.copy());
 		List<IQuerySort> orderBys = panel.getPanelOrderBys();
 		((SelectQueryStruct) qs).mergeOrderBy(orderBys);
 		return qs;
