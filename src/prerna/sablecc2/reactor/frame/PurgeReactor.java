@@ -10,7 +10,6 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -150,9 +149,9 @@ public class PurgeReactor extends AbstractFrameReactor {
 		GenRowFilters grf = new GenRowFilters();
 		int size = this.curRow.size();
 		for (int i = 0; i < size; i++) {
-			IQueryFilter nextFilter = (IQueryFilter) this.curRow.get(i);
-			if (nextFilter != null) {
-				grf.addFilters(nextFilter);
+			SelectQueryStruct qs = (SelectQueryStruct) this.curRow.get(i);
+			if (qs != null) {
+				grf.merge(qs.getCombinedFilters());
 			}
 		}
 		if(grf != null && !grf.isEmpty()) {
