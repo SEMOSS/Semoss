@@ -88,6 +88,71 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return null;
 	}
 	
+	/**
+	 * Get the insights the user has edit access to
+	 * @param user
+	 * @param appId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserEditableInsighs(User user, String appId) {
+		
+		String permission = SecurityAppUtils.getActualUserAppPermission(user, appId);
+		if(permission == null || permission.equals(AccessPermission.READ_ONLY.getPermission())) {
+			return new Vector<>();
+		}
+		
+		// you are either an owner or an editor
+		if(permission.equals(AccessPermission.OWNER.getPermission())) {
+			// you are the owner
+			// you get all the insights
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "exec_count"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+			qs.addSelector(new QueryConstantSelector("OWNER"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", appId));
+			qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHT__INSIGHTNAME"));
+			return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		} else {
+			// you are an editor
+			Collection<String> userIds = getUserFiltersQs(user);
+
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "exec_count"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+			qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+			// must have explicit access to the insight
+			qs.addRelation("INSIGHT__INSIGHTID", "USERINSIGHTPERMISSION__INSIGHTID", "inner.join");
+			qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", appId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+			List<Integer> permissions = new Vector<>();
+			permissions.add(AccessPermission.OWNER.getId());
+			permissions.add(AccessPermission.EDIT.getId());
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", permissions));
+			qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHT__INSIGHTNAME"));
+			return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param singleUserId
+	 * @param engineId
+	 * @param insightId
+	 * @return
+	 */
 	static Integer getUserInsightPermission(String singleUserId, String engineId, String insightId) {
 //		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
 //				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + singleUserId + "'";
@@ -1661,4 +1726,5 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
+
 }
