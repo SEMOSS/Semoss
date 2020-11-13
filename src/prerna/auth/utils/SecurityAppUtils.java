@@ -730,17 +730,20 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occured trying to generate the appropriate query to copy the data");
 		}
 		
+		// grab the permissions, filtered on the source engine id
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", sourceEngineId));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			while(wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
-				
+				// now loop through all the permissions
+				// but with the target engine id instead of the source engine id
 				insertTargetAppPermissionStatement.setString(1, targetEngineId);
 				insertTargetAppPermissionStatement.setString(2, (String) row[1]);
 				insertTargetAppPermissionStatement.setInt(3, ((Number) row[2]).intValue() );
