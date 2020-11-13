@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.query.querystruct.transform.QsToPixelConverter;
+
 public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 
 	/*
@@ -58,6 +60,7 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 			Map<String, Object> format = new HashMap<String, Object>();
 			format.put("filterObj", f.getSimpleFormat());
 			format.put("filterStr", f.getStringRepresentation());
+			format.put("pixelString", QsToPixelConverter.convertFilter(f));
 			ret.add(format);
 		}
 		return ret;
