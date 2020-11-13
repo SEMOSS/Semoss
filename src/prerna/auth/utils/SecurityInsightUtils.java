@@ -1653,17 +1653,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occured trying to generate the appropriate query to copy the data");
 		}
 		
+		// grab the permissions, filtered on the source engine id and source insight id
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID"));
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", sourceEngineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", sourceInsightId));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			while(wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
-				
+				// now loop through all the permissions
+				// but with the target engine/insight id instead of the source engine/insight id
 				insertTargetAppInsightPermissionStatement.setString(1, targetEngineId);
 				insertTargetAppInsightPermissionStatement.setString(2, targetInsightId);
 				insertTargetAppInsightPermissionStatement.setString(3, (String) row[2]);
