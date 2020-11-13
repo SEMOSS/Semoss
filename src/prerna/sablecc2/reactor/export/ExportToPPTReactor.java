@@ -216,21 +216,21 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
 
 		// Add in x vals
-		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
+		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSourceByType(xColumnName,0);
 
 		// Add in y vals
-		for (String yColumnName : yColumnNames) {
-			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
+		for (int i = 0; i < yColumnNames.size(); i++) {
+			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnNames.get(i));
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFLineChartData.Series chartSeries = (XDDFLineChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnNames.get(i), null);
 			// Standardize markers
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
 			fillProperties.setColor(XDDFColor.from(PresetColor.ROYAL_BLUE));
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
 			XDDFShapeProperties propertiesMarker = new XDDFShapeProperties();
 			propertiesMarker.setFillProperties(fillProperties);
-			chart.getCTChart().getPlotArea().getLineChartArray(0).getSerArray(0).getMarker().addNewSpPr()
+			chart.getCTChart().getPlotArea().getLineChartArray(0).getSerArray(i).getMarker().addNewSpPr()
 					.set(propertiesMarker.getXmlObject());
 			// Standardize line
 			XDDFLineProperties lineProperties = new XDDFLineProperties();
@@ -352,7 +352,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 
 		// Add in x vals
-		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
+		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSourceByType(xColumnName,0);
 
 		// Add in y vals
 		for (String yColumnName : yColumnNames) {
