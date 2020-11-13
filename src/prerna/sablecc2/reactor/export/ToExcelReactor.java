@@ -28,6 +28,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightPanel;
+import prerna.om.InsightSheet;
 import prerna.poi.main.helper.excel.ExcelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -89,7 +90,32 @@ public class ToExcelReactor extends TaskBuilderReactor {
 	protected void buildTask() {
 		SXSSFWorkbook workbook = new SXSSFWorkbook(1000);
 		CreationHelper createHelper = workbook.getCreationHelper();
-		SXSSFSheet sheet = workbook.createSheet("Results");
+		String sheetName = "Result";
+
+		// get the panel
+		InsightPanel panel = getInsightPanel();
+		Map<String, Map<String, String>> panelFormatting = new HashMap<>();
+		// if panel is passed 
+		// use that for panel level formatting
+		// and for the sheet name
+		if(panel != null) {
+			// panel level formatting
+			panelFormatting = panel.getPanelFormatValues();
+			// sheet name
+			String sheetId = panel.getSheetId();
+			InsightSheet sheet = this.insight.getInsightSheet(sheetId);
+			sheetName = sheet.getSheetLabel();
+			if (sheetName == null) {
+				// since we are 0 based, add 1
+				try {
+					sheetName = "Sheet" + (Integer.parseInt(sheetId) + 1);
+				} catch (Exception ignore) {
+					sheetName = "Sheet " + sheetId;
+				}
+			}
+		}
+		
+		SXSSFSheet sheet = workbook.createSheet(sheetName);
 		sheet.setRandomAccessWindowSize(100);
 		// freeze the first row
 		sheet.createFreezePane(0, 1);
@@ -101,13 +127,6 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		SemossDataType[] typesArr = null;
 		String[] additionalDataTypeArr = null;
 		CellStyle[] stylingArr = null;
-		
-		// get the panel formatting if defined
-		Map<String, Map<String, String>> panelFormatting = new HashMap<>();
-		InsightPanel panel = getInsightPanel();
-		if(panel != null) {
-			panelFormatting = panel.getPanelFormatValues();
-		}
 		
 		// style dates
 		CellStyle dateCellStyle = workbook.createCellStyle();
