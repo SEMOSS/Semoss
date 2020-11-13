@@ -714,25 +714,25 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFNumericalDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
-		for (String yColumnName : yColumnNames) {
-			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
+		for (int i = 0; i < yColumnNames.size(); i++) {
+			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnNames.get(i));
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFLineChartData.Series chartSeries = (XDDFLineChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnNames.get(i), null);
 			// Standardize markers
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
 			fillProperties.setColor(XDDFColor.from(PresetColor.ROYAL_BLUE));
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
 			XDDFShapeProperties propertiesMarker = new XDDFShapeProperties();
 			propertiesMarker.setFillProperties(fillProperties);
-			chart.getCTChart().getPlotArea().getLineChartArray(0).getSerArray(0).getMarker().addNewSpPr()
+			chart.getCTChart().getPlotArea().getLineChartArray(0).getSerArray(i).getMarker().addNewSpPr()
 					.set(propertiesMarker.getXmlObject());
 			// Standardize line
 			XDDFLineProperties lineProperties = new XDDFLineProperties();
 			lineProperties.setFillProperties(fillProperties);
 			chartSeries.setLineProperties(lineProperties);
-		}
-
+		}		
+		
 		chart.plot(data);
 
 		// if true, display data labels on chart
