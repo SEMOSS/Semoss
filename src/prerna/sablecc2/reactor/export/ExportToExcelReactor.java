@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.export;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -58,8 +57,6 @@ import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 import org.apache.poi.xssf.usermodel.XSSFDrawing;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -580,9 +577,17 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
 						cell.setCellValue(((Number) value).doubleValue());
 					} else if (typesArr[i] == SemossDataType.DATE) {
-						cell.setCellValue(((SemossDate) value).getDate());
+						if(value instanceof SemossDate) {
+							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						} else {
+							cell.setCellValue(value + "");
+						}
 					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
-						cell.setCellValue(((SemossDate) value).getDate());
+						if(value instanceof SemossDate) {
+							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						} else {
+							cell.setCellValue(value + "");
+						}
 					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
 						cell.setCellValue((boolean) value);
 					} else {
@@ -618,9 +623,17 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
 						cell.setCellValue(((Number) value).doubleValue());
 					} else if (typesArr[i] == SemossDataType.DATE) {
-						cell.setCellValue(((SemossDate) value).getDate());
+						if(value instanceof SemossDate) {
+							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						} else {
+							cell.setCellValue(value + "");
+						}
 					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
-						cell.setCellValue(((SemossDate) value).getDate());
+						if(value instanceof SemossDate) {
+							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						} else {
+							cell.setCellValue(value + "");
+						}
 					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
 						cell.setCellValue((boolean) value);
 					} else {
