@@ -180,9 +180,17 @@ public class ToExcelReactor extends TaskBuilderReactor {
 					} else if(typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
 						cell.setCellValue( ((Number) value).doubleValue() ) ;
 					} else if(typesArr[i] == SemossDataType.DATE) {
-						cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						if(value instanceof SemossDate) {
+							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						} else {
+							cell.setCellValue(value + "");
+						}
 					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
-						cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						if(value instanceof SemossDate) {
+							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						} else {
+							cell.setCellValue(value + "");
+						}
 					} else if(typesArr[i] == SemossDataType.BOOLEAN) {
 						cell.setCellValue( (boolean) value);
 					} else {
@@ -213,9 +221,17 @@ public class ToExcelReactor extends TaskBuilderReactor {
 					} else if(typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
 						cell.setCellValue( ((Number) value).doubleValue() ) ;
 					} else if(typesArr[i] == SemossDataType.DATE) {
-						cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						if(value instanceof SemossDate) {
+							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						} else {
+							cell.setCellValue(value + "");
+						}
 					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
-						cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						if(value instanceof SemossDate) {
+							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						} else {
+							cell.setCellValue(value + "");
+						}
 					} else if(typesArr[i] == SemossDataType.BOOLEAN) {
 						cell.setCellValue( (boolean) value);
 					} else {
