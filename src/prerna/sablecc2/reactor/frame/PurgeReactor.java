@@ -14,9 +14,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.query.querystruct.transform.QsToPixelConverter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -181,11 +179,6 @@ public class PurgeReactor extends AbstractFrameReactor {
 				newInput.put("type", PixelDataType.FILTER.getKey());
 				GenRowFilters combinedFilters = qs.getCombinedFilters();
 				newInput.put("value", combinedFilters.getFormatedFilters());
-				List<String> pixelStrings = new Vector<>();
-				for(IQueryFilter f : combinedFilters) {
-					pixelStrings.add(QsToPixelConverter.convertFilter(f));
-				}
-				newInput.put("pixelString", pixelStrings);
 				newList.add(newInput);
 			}
 		}
