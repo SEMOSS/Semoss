@@ -14,6 +14,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.task.ITask;
 
 public class PPTDataHandler {
+	
 	private Map<String, List<Object>> dataMap = new HashMap<String, List<Object>>();
 	private String[] headers = null;
 	private SemossDataType[] typesArr = null;
@@ -136,8 +137,6 @@ public class PPTDataHandler {
 		return colAsStringArray;
 	}
 
-
-	
 	/**
 	 * Return a column as an array of numbers (meant for
 	 * XDDFDataSourcesFactory.fromArray())
@@ -146,17 +145,23 @@ public class PPTDataHandler {
 	 * @return
 	 */
 	public Number[] getColumnAsNumberArray(String col) {
-
 		if (!this.dataMap.containsKey(col)) {
 			return null;
 		}
 
 		List<Object> colAsList = this.dataMap.get(col);
-		Number[] colAsNumberArray = colAsList.toArray(new Number[colAsList.size()]);
+		Number[] colAsNumberArray = new Number[colAsList.size()];
+		for (int i = 0; i < colAsList.size(); i++) {
+			if (colAsList.get(i) != null && !"".equals(colAsList.get(i))) {
+				colAsNumberArray[i] = (Number) colAsList.get(i);
+			} else {
+				colAsNumberArray[i] = 0;
+			}
+		}
 
 		return colAsNumberArray;
-	}
-
+	}	
+	
 	/**
 	 * Automatically figure out whether to build XDDFDataSource 
 	 * from String Array or Number Array
@@ -170,6 +175,28 @@ public class PPTDataHandler {
 			String[] stringArray = getColumnAsStringArray(col);
 			return XDDFDataSourcesFactory.fromArray(stringArray);
 		} else if (colDataType.equals("Number")) {
+			Number[] numberArray = getColumnAsNumberArray(col);
+			return XDDFDataSourcesFactory.fromArray(numberArray);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Getting the correct XDDFDataSource based on the data type of array
+	 * 
+	 * @param col
+	 * @param xAxisIndx
+	 * @return
+	 */
+	public XDDFDataSource<?> getColumnAsXDDFDataSourceByType(String col, int xAxisIndx) {
+		if (this.typesArr[xAxisIndx] == SemossDataType.STRING || 
+				this.typesArr[xAxisIndx] == SemossDataType.DATE || 
+				this.typesArr[xAxisIndx] == SemossDataType.TIMESTAMP) {
+			String[] stringArray = getColumnAsStringArray(col);
+			return XDDFDataSourcesFactory.fromArray(stringArray);
+		} else if (this.typesArr[xAxisIndx] == SemossDataType.INT
+				|| this.typesArr[xAxisIndx] == SemossDataType.DOUBLE) {
 			Number[] numberArray = getColumnAsNumberArray(col);
 			return XDDFDataSourcesFactory.fromArray(numberArray);
 		}
