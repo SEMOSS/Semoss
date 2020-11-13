@@ -234,9 +234,6 @@ public class BasicIteratorTask extends AbstractTask {
 			iterator = ExcelWorkbookFileHelper.buildSheetIterator((ExcelQueryStruct) qs); //new ExcelFileIterator((ExcelQueryStruct) qs);
 		} else {
 			ITableDataFrame frame = qs.getFrame();
-			if(qs.isOverrideImplicit()) {
-				qs.setImplicitFilters(frame.getFrameFilters());
-			}
 			frame.setLogger(this.logger);
 			optimizeFrame(frame, qs.getOrderBy());
 			boolean taskOptionsExists; 

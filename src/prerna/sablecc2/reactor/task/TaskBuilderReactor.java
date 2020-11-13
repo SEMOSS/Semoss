@@ -159,6 +159,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			}
 		}
 		
+		// just need to set some default behavior based on the pixel generation
 		if(qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			ITableDataFrame frame = qs.getFrame();
 			if(frame == null) {
@@ -170,9 +171,12 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 				if(frame == null) {
 					frame = (ITableDataFrame) this.insight.getDataMaker();
 				}
+				qs.setFrame(frame);
 			}
-			qs.setFrame(frame);
-			qs.mergeImplicitFilters(frame.getFrameFilters());
+			// if we are not overriding implicit filters - add them
+			if(!qs.isOverrideImplicit()) {
+				qs.setImplicitFilters(frame.getFrameFilters());
+			}
 			
 			// if the frame is native and there are other
 			// things to blend - we need to do that
