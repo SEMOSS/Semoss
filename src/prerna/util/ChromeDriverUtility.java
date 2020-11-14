@@ -2,13 +2,23 @@ package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
+import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.FluentWait;
+import org.openqa.selenium.support.ui.Wait;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import prerna.test.TestUtilityMethods;
 
 public class ChromeDriverUtility {
 
@@ -22,7 +32,7 @@ public class ChromeDriverUtility {
 		captureImage(feUrl, url, imagePath, sessionId, 1920, 1080, true);
 	}
 	
-	public static ChromeDriver makeChromeDriver(String feUrl, String url,String sessionId, int height, int width)
+	public static ChromeDriver makeChromeDriver(String feUrl, String url,String sessionI, int height, int width)
 	{
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String os = System.getProperty("os.name").toUpperCase();
@@ -65,6 +75,8 @@ public class ChromeDriverUtility {
 	{
 		// need to go to the base url first
 		// so that the cookie is applied at root level
+		driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
+
 		if(ChromeDriverUtility.contextPath != null) {
 			String startingUrl = feUrl;
 			if(startingUrl.endsWith("/")) {
@@ -75,6 +87,8 @@ public class ChromeDriverUtility {
 		} else {
 			driver.get(url);
 		}
+
+
 		if(sessionId != null && ChromeDriverUtility.sessionCookie != null) {
 			// name, value, domain, path, expiration, secure, http only
 //			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
@@ -82,14 +96,23 @@ public class ChromeDriverUtility {
 			driver.manage().addCookie(name);
 		}
 		
+		url = url + "&status";
 		driver.navigate().to(url);
 		
+		// looking for viz loaded
+		WebElement we = null;
+		we = driver.findElement(By.xpath("//html/body//div[@id='viz-loaded']"));
+		//we = new WebDriverWait(driver, 10).until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//div[@id='viz-loaded']"))); 
+
+		String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
+		//System.out.println(html2);
+		
 		// time for FE to render the page before the image is taken
-	    try {
+	    /*try {
 			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
-		}
+		}*/
 		// take image
 		File scrFile = (File)((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
 		try { 
@@ -103,6 +126,7 @@ public class ChromeDriverUtility {
 	{
 		// need to go to the base url first
 		// so that the cookie is applied at root level
+		//driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
 		if(ChromeDriverUtility.contextPath != null) {
 			String startingUrl = feUrl;
 			if(startingUrl.endsWith("/")) {
@@ -113,6 +137,8 @@ public class ChromeDriverUtility {
 		} else {
 			driver.get(url);
 		}
+		driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
+
 		if(sessionId != null && ChromeDriverUtility.sessionCookie != null) {
 			// name, value, domain, path, expiration, secure, http only
 //			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
@@ -123,11 +149,13 @@ public class ChromeDriverUtility {
 		driver.navigate().to(url);
 		
 		// time for FE to render the page before the image is taken
+		/*
 	    try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		*/
 	}
 	
 	/**
@@ -171,6 +199,7 @@ public class ChromeDriverUtility {
 			chromeOptions.addArguments("--allow-insecure-localhost ");
 		}
 		driver = new ChromeDriver(chromeOptions);
+		//driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
 	
 		// need to go to the base url first
 		// so that the cookie is applied at root level
@@ -225,4 +254,30 @@ public class ChromeDriverUtility {
 	public static void setSessionCookie(String sessionCookie) {
 		ChromeDriverUtility.sessionCookie = sessionCookie;
 	}
+	
+	public static void main(String [] args) 
+	{
+	
+		TestUtilityMethods.loadDIHelper();
+		ChromeDriver driver = ChromeDriverUtility.makeChromeDriver("https://www.buzzfeed.com/hbraga/best-gifts-2020", "https://www.buzzfeed.com/hbraga/best-gifts-2020", null, 30, 40);
+		driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
+		String eTitle = "Demo Guru99 Page";
+		String aTitle = "" ;
+		System.out.println("Starting wait");
+		// launch Chrome and redirect it to the Base URL
+		driver.get("http://demo.guru99.com/test/guru99home/" );
+		//Maximizes the browser window
+		driver.manage().window().maximize() ;
+		//get the actual value of the title
+		aTitle = driver.getTitle();
+		//compare the actual title with the expected title
+		System.out.println("Title is " + aTitle);
+		
+		
+		
+		
+		
+	}
+	
+	
 }
