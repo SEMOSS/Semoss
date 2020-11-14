@@ -175,7 +175,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			}
 			// if we are not overriding implicit filters - add them
 			if(!qs.isOverrideImplicit()) {
-				qs.setImplicitFilters(frame.getFrameFilters());
+				qs.mergeImplicitFilters(frame.getFrameFilters());
 			}
 			
 			// if the frame is native and there are other
