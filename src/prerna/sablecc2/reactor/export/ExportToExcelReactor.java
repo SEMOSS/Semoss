@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -60,6 +61,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
@@ -1079,13 +1082,16 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		if(driver == null)
 			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl, sessionId, 800, 600);
 		ChromeDriverUtility.captureDataPersistent(driver, baseUrl, htmlUrl, sessionId);
-		WebElement we = driver.findElement(By.xpath("//html/body"));
+		
+		//WebElement elem1 = new WebDriverWait(driver, 10)
+		//        .until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//table")));
+		WebElement we = driver.findElement(By.xpath("//html/body//table"));
 		//html = driver.executeScript("return document.documentElement.outerHTML;") + "";
 		//System.out.println(html);
 		String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
-		System.out.println(html2);
-		driver.quit();
-		driver = null; 
+		//System.out.println(html2);
+		//driver.quit();
+		//driver = null; 
 		
 		TableToXLSXReactor txl = new TableToXLSXReactor();
 		txl.exportMap = exportMap;
@@ -1095,8 +1101,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		
 		txl.processTable(sheetId, html2, fileName);
 		
-		
-		System.out.println(we.getText());
 		
 	}
 	
