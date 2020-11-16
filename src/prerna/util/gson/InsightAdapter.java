@@ -101,6 +101,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		out.name("rdbmsId").value(rdbmsId);
 		
 		// write varstore
+		// it is important that we write the first
+		// since we use this on read for references to frames
 		out.name("varstore");
 		// output all variables that are not frames or tasks
 		VarStoreAdapter varStoreAdapter = new VarStoreAdapter();
@@ -347,6 +349,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			in.beginArray();
 			while(in.hasNext()) {
 				InsightPanelAdapter panelAdapter = new InsightPanelAdapter();
+				panelAdapter.setInsight(insight);
 				InsightPanel panel = panelAdapter.read(in);
 				insight.addNewInsightPanel(panel);
 			}
@@ -357,6 +360,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			in.beginArray();
 			while(in.hasNext()) {
 				InsightPanelAdapter panelAdapter = new InsightPanelAdapter();
+				panelAdapter.setInsight(insight);
 				InsightPanel panel = panelAdapter.read(in);
 				insight.addNewInsightPanel(panel);
 			}
@@ -365,7 +369,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		
 		// this will be the tasks
 		in.nextName();
-		TaskStoreAdapter tStoreAdapter = new TaskStoreAdapter(insight);
+		TaskStoreAdapter tStoreAdapter = new TaskStoreAdapter();
+		tStoreAdapter.setInsight(insight);
 		TaskStore tStore = tStoreAdapter.read(in);
 		insight.setTaskStore(tStore);
 		

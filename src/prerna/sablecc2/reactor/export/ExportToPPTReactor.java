@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.poi.sl.usermodel.PictureData.PictureType;
@@ -200,9 +199,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// options is guaranteed to be of length 1 so just grab the only value
 		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
 		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
-		List<String> label = (Vector) alignmentMap.get("label");
+		List<String> label = (List<String>) alignmentMap.get("label");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) alignmentMap.get("value");
+		List<String> yColumnNames = (List<String>) alignmentMap.get("value");
 
 		XSLFSlide slide = slideshow.createSlide();
 		XSLFChart chart = slideshow.createChart(slide);
@@ -263,8 +262,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// options is guaranteed to be of length 1 so just grab the only value
 		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
 		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
-		String xColumnName = ((Vector) alignmentMap.get("x")).firstElement().toString();
-		List<String> yColumnNames = (Vector) alignmentMap.get("y");
+		String xColumnName = ((List<String>) alignmentMap.get("x")).get(0).toString();
+		List<String> yColumnNames = (List<String>) alignmentMap.get("y");
 
 		XSLFSlide slide = slideshow.createSlide();
 		XSLFChart chart = slideshow.createChart(slide);
@@ -323,9 +322,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// options is guaranteed to be of length 1 so just grab the only value
 		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
 		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
-		List<String> label = (Vector) alignmentMap.get("label");
+		List<String> label = (List<String>) alignmentMap.get("label");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) alignmentMap.get("value");
+		List<String> yColumnNames = (List<String>) alignmentMap.get("value");
 
 		XSLFSlide slide = slideshow.createSlide();
 		XSLFChart chart = slideshow.createChart(slide);
@@ -388,9 +387,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// options is guaranteed to be of length 1 so just grab the only value
 		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
 		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
-		List<String> label = (Vector) alignmentMap.get("label");
+		List<String> label = (List<String>) alignmentMap.get("label");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) alignmentMap.get("value");
+		List<String> yColumnNames = (List<String>) alignmentMap.get("value");
 
 		XSLFSlide slide = slideshow.createSlide();
 		XSLFChart chart = slideshow.createChart(slide);
@@ -438,9 +437,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// options is guaranteed to be of length 1 so just grab the only value
 		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
 		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
-		List<String> label = (Vector) alignmentMap.get("label");
+		List<String> label = (List<String>) alignmentMap.get("label");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) alignmentMap.get("value");
+		List<String> yColumnNames = (List<String>) alignmentMap.get("value");
 
 		XSLFSlide slide = slideshow.createSlide();
 		XSLFChart chart = slideshow.createChart(slide);
@@ -486,9 +485,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// options is guaranteed to be of length 1 so just grab the only value
 		Map<String, Object> optionsSubMap = (Map<String, Object>) options.values().toArray()[0];
 		Map<String, Object> alignmentMap = (Map<String, Object>) optionsSubMap.get("alignment");
-		List<String> label = (Vector) alignmentMap.get("label");
+		List<String> label = (List<String>) alignmentMap.get("label");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) alignmentMap.get("value");
+		List<String> yColumnNames = (List<String>) alignmentMap.get("value");
 
 		XSLFSlide slide = slideshow.createSlide();
 		XSLFChart chart = slideshow.createChart(slide);
