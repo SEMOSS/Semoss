@@ -740,6 +740,7 @@ public class PixelUtility {
 		Map<String, Map<String, String>> panelLayerPixels = new LinkedHashMap<>();
 
 		// some maps to keep for tracking
+		List<String> closePanels = new Vector<>();
 		Map<String, Boolean> panelIsCloneView = new HashMap<>();
 		Map<String, List<String>> cloneMapToViewSteps = new HashMap<>();
 		
@@ -796,34 +797,42 @@ public class PixelUtility {
 						Map<String, String> origPanelLayerMap = panelLayerPixels.get(originalPanel);
 						if(origPanelLayerMap != null && !origPanelLayerMap.isEmpty()) {
 							List<String> clonePanelSteps = new Vector<>();
-							for(String layerId : origPanelLayerMap.keySet()) {
-								clonePanelSteps.add(origPanelLayerMap.get(layerId));
-							}
 							// if the panel doesn't exist
 							// add in the panel
 							if(!panels.containsKey(originalPanel)) {
 								clonePanelSteps.add("AddPanel(\"" + originalPanel + "\");");
 							}
+							// now we need to add the last view for this panel
+							for(String layerId : origPanelLayerMap.keySet()) {
+								clonePanelSteps.add(origPanelLayerMap.get(layerId));
+							}
+							
 							// add in the clone step
 							clonePanelSteps.add("Panel(\"" + originalPanel + "\") | CachedPanelClone(\"" + clonePanel + "\");");
 							// + reset the panel view
-							clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
+							if(panels.containsKey(originalPanel)) {
+								clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
+							} 
+							// or store to drop the panel
+							else if(!closePanels.contains(originalPanel)){
+								closePanels.add(originalPanel);
+							}
 							// now store this
 							cloneMapToViewSteps.put(clonePanel, clonePanelSteps);
 						}
 						// is this another clone?
 						else if(panelIsCloneView.containsKey(originalPanel)) {
-							// grab all the steps as well
-							List<String> clonePanelSteps = cloneMapToViewSteps.get(originalPanel);
-							// if the panel doesn't exist
-							// add in the panel
-							if(!panels.containsKey(originalPanel)) {
-								clonePanelSteps.add("AddPanel(\"" + originalPanel + "\");");
-							}
+							List<String> clonePanelSteps = new Vector<>(cloneMapToViewSteps.get(originalPanel));
 							// add in the clone step
 							clonePanelSteps.add("Panel(\"" + originalPanel + "\") | CachedPanelClone(\"" + clonePanel + "\");");
 							// + reset the panel view
-							clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
+							if(panels.containsKey(originalPanel)) {
+								clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
+							}
+							// or store to drop the panel
+							else if(!closePanels.contains(originalPanel)){
+								closePanels.add(originalPanel);
+							}
 							// now store this
 							cloneMapToViewSteps.put(clonePanel, clonePanelSteps);
 						}
@@ -866,14 +875,13 @@ public class PixelUtility {
 			// only care about storing this
 			// if the panel:
 			// 1) exists
-			// 2) is on visualization
-			if(!panels.containsKey(panelId)) {
-				// panel does not exist
+			// 2) not a panel required but will be dropped
+			// 3) is on visualization
+			if(!panels.containsKey(panelId) &&
+					!closePanels.contains(panelId) &&
+					!(panelIsVisualizationMode.containsKey(panelId) && panelIsVisualizationMode.get(panelId))
+					) {
 				// ignore
-				continue;
-			}
-			if(!panelIsVisualizationMode.get(panelId)) {
-				// panel is not visualization mode
 				continue;
 			}
 						
@@ -884,6 +892,11 @@ public class PixelUtility {
 					cacheRecipe.addAll(cloneSteps);
 				}
 			}
+		}
+		
+		// now close unnecessary panels
+		for(String panelId : closePanels) {
+			cacheRecipe.add("ClosePanel(\"" + panelId + "\");");
 		}
 		
 		// add in all the panel layer pixels
