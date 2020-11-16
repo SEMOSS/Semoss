@@ -11,25 +11,28 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.om.ColorByValueRule;
+import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 
 public class ColorByValueRuleAdapter extends TypeAdapter<ColorByValueRule> {
 	
 	private static final Gson SIMPLE_GSON = new Gson();
 	
+	private Insight insight = null;
 	private boolean simple = false;
 	
-	public ColorByValueRuleAdapter() {
-		
-	}
-	
-	public ColorByValueRuleAdapter(boolean simple) {
-		this.simple = simple;
+	/**
+	 * Set the insight for context on read
+	 * @param insight
+	 */
+	public void setInsight(Insight insight) {
+		this.insight = insight;
 	}
 	
 	public void setSimple(boolean simple) {
 		this.simple= simple;
 	}
+	
 	@Override
 	public void write(JsonWriter out, ColorByValueRule value) throws IOException {
 		out.beginObject();
@@ -85,6 +88,7 @@ public class ColorByValueRuleAdapter extends TypeAdapter<ColorByValueRule> {
 				}
 			} else if(name.equals("qs")) {
 				SelectQueryStructAdapter qsAdapter = new SelectQueryStructAdapter();
+				qsAdapter.setInsight(this.insight);
 				qs = qsAdapter.read(in);
 			}
 		}

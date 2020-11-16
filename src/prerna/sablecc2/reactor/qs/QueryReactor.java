@@ -17,7 +17,7 @@ public class QueryReactor extends AbstractQueryStructReactor {
 	protected AbstractQueryStruct createQueryStruct() {
 		organizeKeys();
 		//grab the query
-		String query = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		String query = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[0]));
 
 		//create a new query struct
 		HardSelectQueryStruct hardQs = null;
