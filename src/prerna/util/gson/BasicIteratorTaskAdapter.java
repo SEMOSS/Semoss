@@ -2,8 +2,6 @@ package prerna.util.gson;
 
 import java.io.IOException;
 
-import com.google.gson.Gson;
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -12,10 +10,8 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 
-public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
+public class BasicIteratorTaskAdapter extends AbstractSemossTypeAdapter<BasicIteratorTask> {
 
-	private static final Gson GSON = new Gson();
-	
 	static enum MODE {RECREATE_NEW, CONTINUE_PREVIOUS_ITERATING}
 	private MODE curMode = MODE.RECREATE_NEW;
 	
@@ -46,10 +42,11 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 			else if(key.equals("internalOffset")) {
 				internalOffset = in.nextLong();
 			} else if(key.equals("taskOptions")) {
-				TypeAdapter adapter = GSON.getAdapter(TaskOptions.class);
+				TaskOptionsAdapter adapter = new TaskOptionsAdapter();
 				tOptions = (TaskOptions) adapter.read(in);
 			} else if(key.equals("qs")) {
 				SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
+				adapter.setInsight(this.insight);
 				qs = adapter.read(in);
 			}
 		}
@@ -76,7 +73,7 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 		out.name("internalOffset").value(value.getInternalOffset());
 		out.name("taskOptions");
 		if(value.getTaskOptions() != null) {
-			TypeAdapter adapter = GSON.getAdapter(value.getTaskOptions().getClass());
+			TaskOptionsAdapter adapter = new TaskOptionsAdapter();
 			adapter.write(out, value.getTaskOptions());
 		} else {
 			out.nullValue();
