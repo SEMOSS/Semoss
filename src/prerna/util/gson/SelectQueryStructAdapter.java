@@ -14,6 +14,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -22,7 +23,7 @@ import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
-public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
+public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQueryStruct> {
 	
 	private static final Logger logger = LogManager.getLogger(SelectQueryStructAdapter.class.getName());
 
@@ -137,6 +138,16 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		}
 		in.endObject();
 
+		// the frame is not cached
+		// but we store the frame name
+		// set it in the QS if a 
+		// context insight is defined
+		if(this.insight != null) {
+			if(qs.getFrameName() != null) {
+				qs.setFrame((ITableDataFrame) this.insight.getVar(qs.getFrameName()));
+			}
+		}
+		
 		return qs;
 	}
 	
