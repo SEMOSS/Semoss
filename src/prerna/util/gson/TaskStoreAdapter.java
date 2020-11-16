@@ -3,36 +3,20 @@ package prerna.util.gson;
 import java.io.IOException;
 import java.util.Set;
 
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
-import prerna.om.Insight;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
 
-public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
+public class TaskStoreAdapter extends AbstractSemossTypeAdapter<TaskStore> {
 
 	private static final String BASIC = "basic";
 	private static final String CONSTANT = "constant";
-	
-	private Insight insight;
-	
-	public TaskStoreAdapter() {
-		
-	}
-	
-	public TaskStoreAdapter(Insight insight) {
-		this.insight = insight;
-	}
 	
 	@Override
 	public void write(JsonWriter out, TaskStore value) throws IOException {
@@ -106,30 +90,31 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 				} else if(key.equals("task")) {
 					if(taskType.equals(BASIC)) {
 						BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
+						adapter.setInsight(this.insight);
 						adapter.setCurMode(BasicIteratorTaskAdapter.MODE.CONTINUE_PREVIOUS_ITERATING);
 						task = adapter.read(in);
-						SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
-						// need to set the source
-						IEngine engine = qs.retrieveQueryStructEngine();
-						// is it an engine
-						if(engine != null) {
-							qs.setEngine(engine);
-						} else if(this.insight != null) {
-							// not an engine
-							// must be a frame
-							// see if we can identify the variable
-							String frameName = qs.getFrameName();
-							if(frameName != null) {
-								NounMetadata frame = insight.getVarStore().get(frameName);
-								if(frame != null) {
-									qs.setFrame( (ITableDataFrame) frame.getValue());
-								} else {
-									qs.setFrame( (ITableDataFrame) insight.getDataMaker());
-								}
-							} else {
-								qs.setFrame( (ITableDataFrame) insight.getDataMaker());
-							}
-						}
+//						SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
+//						// need to set the source
+//						IEngine engine = qs.retrieveQueryStructEngine();
+//						// is it an engine
+//						if(engine != null) {
+//							qs.setEngine(engine);
+//						} else if(this.insight != null) {
+//							// not an engine
+//							// must be a frame
+//							// see if we can identify the variable
+//							String frameName = qs.getFrameName();
+//							if(frameName != null) {
+//								NounMetadata frame = insight.getVarStore().get(frameName);
+//								if(frame != null) {
+//									qs.setFrame( (ITableDataFrame) frame.getValue());
+//								} else {
+//									qs.setFrame( (ITableDataFrame) insight.getDataMaker());
+//								}
+//							} else {
+//								qs.setFrame( (ITableDataFrame) insight.getDataMaker());
+//							}
+//						}
 					} else if(taskType.equals(CONSTANT)) {
 						ConstantDataTaskAdapter adapter = new ConstantDataTaskAdapter();
 						task = adapter.read(in);

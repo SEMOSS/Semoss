@@ -22,7 +22,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		//grab the query
-		String encryptedQuery = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		String encryptedQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[0]));
 		
 		StandardPBEByteEncryptor encryptor = new StandardPBEByteEncryptor();
 		encryptor.setPassword(getPassword());
@@ -54,7 +54,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 	
 	
 	public static void main(String[] args) {
-		String value = "This is my example sql query";
+		String value = "SELECT * FROM MOVIE_DATA";
 		
 		StandardPBEByteEncryptor encryptor = new StandardPBEByteEncryptor();
 		encryptor.setPassword("password123");

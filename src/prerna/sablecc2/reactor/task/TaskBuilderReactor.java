@@ -167,7 +167,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 				if(qs.getFrameName() != null) {
 					frame = (ITableDataFrame) this.insight.getVar(qs.getFrameName());
 				}
-				// default to bae frame
+				// default to base frame
 				if(frame == null) {
 					frame = (ITableDataFrame) this.insight.getDataMaker();
 				}

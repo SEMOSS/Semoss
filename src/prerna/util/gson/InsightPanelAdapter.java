@@ -23,7 +23,7 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.task.options.TaskOptions;
 
-public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
+public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel> {
 	
 	private static Gson GSON = GsonUtility.getDefaultGson();
 	
@@ -45,119 +45,6 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	
 	public void setSimple(boolean simple) {
 		this.simple= simple;
-	}
-	
-	@Override
-	public void write(JsonWriter out, InsightPanel value) throws IOException {
-		out.beginObject();
-
-		out.name("panelId").value(value.getPanelId());
-		out.name("panelLabel").value(value.getPanelLabel());
-		out.name("sheetId").value(value.getSheetId());
-		out.name("view").value(value.getPanelView());
-		out.name("viewOptions").value(value.getPanelActiveViewOptions());
-		out.name("viewOptionsMap");
-		{
-			Map<String, Map<String, String>> obj = value.getPanelViewOptions();
-			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
-			adapter.write(out, obj);
-		}
-		out.name("config");
-		{
-			Map<String, Object> obj = value.getConfig();
-			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
-			adapter.write(out, obj);
-		}
-		out.name("ornaments");
-		{
-			Map<String, Object> obj = value.getOrnaments();
-			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
-			adapter.write(out, obj);
-		}
-		out.name("events");
-		{
-			Map<String, Object> obj = value.getEvents();
-			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
-			adapter.write(out, obj);
-		}
-		out.name("comments");
-		{
-			Map<String, Map<String, Object>> obj = value.getComments();
-			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
-			adapter.write(out, obj);
-		}
-		out.name("filters");
-		// this adapter will write an array
-		GenRowFiltersAdapter grsAdapter = new GenRowFiltersAdapter();
-		grsAdapter.write(out, value.getPanelFilters());
-
-		out.name("order");
-		out.beginArray();
-		List<IQuerySort> orders = value.getPanelOrderBys();
-		for(int i = 0; i < orders.size(); i++) {
-			IQuerySort orderBy = orders.get(i);
-			TypeAdapter sortAdapter = IQuerySort.getAdapterForSort(orderBy.getQuerySortType());
-			sortAdapter.write(out, orderBy);
-		}
-		out.endArray();
-		
-		out.name("cbv");
-		out.beginArray();
-		List<ColorByValueRule> cbvList = value.getColorByValue();
-		for(ColorByValueRule rule : cbvList) {
-			ColorByValueRuleAdapter cbvAdapter = new ColorByValueRuleAdapter(this.simple);
-			cbvAdapter.write(out, rule);
-		}
-		out.endArray();
-		
-		if(!this.simple) {
-			// we will output some things stored on the BE
-			// including the last QS executed
-			// the task options
-			// the layer to task options
-			// and the layer to QS
-			SelectQueryStruct lastQs = value.getLastQs();
-			if(lastQs != null) {
-				out.name("lastQs");
-				TypeAdapter adapter = GSON.getAdapter(lastQs.getClass());
-				adapter.write(out, lastQs);
-			}
-			
-			Map<String, SelectQueryStruct> layerQueryStructMap = value.getLayerQueryStruct();
-			if(layerQueryStructMap != null && !layerQueryStructMap.isEmpty()) {
-				out.name("lastQueryStructMap");
-				out.beginObject();
-				for(String layer : layerQueryStructMap.keySet()) {
-					out.name(layer);
-					SelectQueryStruct layerQueryStruct = layerQueryStructMap.get(layer);
-					TypeAdapter adapter = GSON.getAdapter(layerQueryStruct.getClass());
-					adapter.write(out, layerQueryStruct);
-				}
-				out.endObject();
-			}
-			
-			TaskOptions lastTaskOptions = value.getTaskOptions();
-			if(lastTaskOptions != null) {
-				out.name("lastTaskOptions");
-				TypeAdapter adapter = GSON.getAdapter(lastTaskOptions.getClass());
-				adapter.write(out, lastTaskOptions);
-			}
-
-			Map<String, TaskOptions> layerTaskOptionsMap = value.getLayerTaskOption();
-			if(layerTaskOptionsMap != null && !layerTaskOptionsMap.isEmpty()) {
-				out.name("lastTaskOptionsMap");
-				out.beginObject();
-				for(String layer : layerTaskOptionsMap.keySet()) {
-					out.name(layer);
-					TaskOptions layerTaskOptions = layerTaskOptionsMap.get(layer);
-					TypeAdapter adapter = GSON.getAdapter(layerTaskOptions.getClass());
-					adapter.write(out, layerTaskOptions);
-				}
-				out.endObject();
-			}
-		}
-		
-		out.endObject();
 	}
 	
 	@Override
@@ -253,7 +140,8 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				in.endArray();
 			
 			} else if(key.equals("lastQs")) {
-				TypeAdapter<SelectQueryStruct> adapter = GSON.getAdapter(SelectQueryStruct.class);
+				AbstractSemossTypeAdapter<SelectQueryStruct> adapter = (AbstractSemossTypeAdapter<SelectQueryStruct>) GSON.getAdapter(SelectQueryStruct.class);
+				adapter.setInsight(this.insight);
 				lastQs = adapter.read(in);
 
 			} else if(key.equals("lastQueryStructMap")) {
@@ -261,7 +149,8 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				in.beginObject();
 				while(in.hasNext()) {
 					String layerName = in.nextName();
-					TypeAdapter<SelectQueryStruct> adapter = GSON.getAdapter(SelectQueryStruct.class);
+					AbstractSemossTypeAdapter<SelectQueryStruct> adapter = (AbstractSemossTypeAdapter<SelectQueryStruct>) GSON.getAdapter(SelectQueryStruct.class);
+					adapter.setInsight(this.insight);
 					SelectQueryStruct layerQS = adapter.read(in);
 					layerQueryStructMap.put(layerName, layerQS);
 				}
@@ -322,4 +211,118 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		return panel;
 	}
 
+	@Override
+	public void write(JsonWriter out, InsightPanel value) throws IOException {
+		out.beginObject();
+
+		out.name("panelId").value(value.getPanelId());
+		out.name("panelLabel").value(value.getPanelLabel());
+		out.name("sheetId").value(value.getSheetId());
+		out.name("view").value(value.getPanelView());
+		out.name("viewOptions").value(value.getPanelActiveViewOptions());
+		out.name("viewOptionsMap");
+		{
+			Map<String, Map<String, String>> obj = value.getPanelViewOptions();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
+		out.name("config");
+		{
+			Map<String, Object> obj = value.getConfig();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
+		out.name("ornaments");
+		{
+			Map<String, Object> obj = value.getOrnaments();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
+		out.name("events");
+		{
+			Map<String, Object> obj = value.getEvents();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
+		out.name("comments");
+		{
+			Map<String, Map<String, Object>> obj = value.getComments();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
+		out.name("filters");
+		// this adapter will write an array
+		GenRowFiltersAdapter grsAdapter = new GenRowFiltersAdapter();
+		grsAdapter.write(out, value.getPanelFilters());
+
+		out.name("order");
+		out.beginArray();
+		List<IQuerySort> orders = value.getPanelOrderBys();
+		for(int i = 0; i < orders.size(); i++) {
+			IQuerySort orderBy = orders.get(i);
+			TypeAdapter sortAdapter = IQuerySort.getAdapterForSort(orderBy.getQuerySortType());
+			sortAdapter.write(out, orderBy);
+		}
+		out.endArray();
+		
+		out.name("cbv");
+		out.beginArray();
+		List<ColorByValueRule> cbvList = value.getColorByValue();
+		for(ColorByValueRule rule : cbvList) {
+			ColorByValueRuleAdapter cbvAdapter = new ColorByValueRuleAdapter();
+			cbvAdapter.setSimple(this.simple);
+			cbvAdapter.setInsight(this.insight);
+			cbvAdapter.write(out, rule);
+		}
+		out.endArray();
+		
+		if(!this.simple) {
+			// we will output some things stored on the BE
+			// including the last QS executed
+			// the task options
+			// the layer to task options
+			// and the layer to QS
+			SelectQueryStruct lastQs = value.getLastQs();
+			if(lastQs != null) {
+				out.name("lastQs");
+				AbstractSemossTypeAdapter adapter = (AbstractSemossTypeAdapter) GSON.getAdapter(lastQs.getClass());
+				adapter.write(out, lastQs);
+			}
+			
+			Map<String, SelectQueryStruct> layerQueryStructMap = value.getLayerQueryStruct();
+			if(layerQueryStructMap != null && !layerQueryStructMap.isEmpty()) {
+				out.name("lastQueryStructMap");
+				out.beginObject();
+				for(String layer : layerQueryStructMap.keySet()) {
+					out.name(layer);
+					SelectQueryStruct layerQueryStruct = layerQueryStructMap.get(layer);
+					AbstractSemossTypeAdapter adapter = (AbstractSemossTypeAdapter) GSON.getAdapter(layerQueryStruct.getClass());
+					adapter.write(out, layerQueryStruct);
+				}
+				out.endObject();
+			}
+			
+			TaskOptions lastTaskOptions = value.getTaskOptions();
+			if(lastTaskOptions != null) {
+				out.name("lastTaskOptions");
+				TypeAdapter adapter = GSON.getAdapter(lastTaskOptions.getClass());
+				adapter.write(out, lastTaskOptions);
+			}
+
+			Map<String, TaskOptions> layerTaskOptionsMap = value.getLayerTaskOption();
+			if(layerTaskOptionsMap != null && !layerTaskOptionsMap.isEmpty()) {
+				out.name("lastTaskOptionsMap");
+				out.beginObject();
+				for(String layer : layerTaskOptionsMap.keySet()) {
+					out.name(layer);
+					TaskOptions layerTaskOptions = layerTaskOptionsMap.get(layer);
+					TypeAdapter adapter = GSON.getAdapter(layerTaskOptions.getClass());
+					adapter.write(out, layerTaskOptions);
+				}
+				out.endObject();
+			}
+		}
+		
+		out.endObject();
+	}
 }

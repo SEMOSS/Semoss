@@ -2,15 +2,15 @@ package prerna.util.gson;
 
 import java.io.IOException;
 
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 
-public class HardSelectQueryStructAdapter  extends TypeAdapter<HardSelectQueryStruct> {
+public class HardSelectQueryStructAdapter  extends AbstractSemossTypeAdapter<HardSelectQueryStruct> {
 
 	@Override
 	public HardSelectQueryStruct read(JsonReader in) throws IOException {
@@ -38,6 +38,16 @@ public class HardSelectQueryStructAdapter  extends TypeAdapter<HardSelectQuerySt
 		}
 		in.endObject();
 
+		// the frame is not cached
+		// but we store the frame name
+		// set it in the QS if a 
+		// context insight is defined
+		if(this.insight != null) {
+			if(qs.getFrameName() != null) {
+				qs.setFrame((ITableDataFrame) this.insight.getVar(qs.getFrameName()));
+			}
+		}
+		
 		return qs;
 	}
 	
