@@ -15,6 +15,7 @@ public class QueryReactor extends AbstractQueryStructReactor {
 
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
+		organizeKeys();
 		//grab the query
 		String query = Utility.decodeURIComponent(this.curRow.get(0).toString());
 
