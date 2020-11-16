@@ -557,6 +557,9 @@ public class Constants {
 	// tracking
 	public static final String T_ON = "T_ON";
 	
+	// post message specific keys
+	public static final String PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD = "PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD";
+	
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_BINARY = "GOOGLE_CHROME_BINARY";
 	//Graph engines
