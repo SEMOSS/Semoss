@@ -799,6 +799,11 @@ public class PixelUtility {
 							for(String layerId : origPanelLayerMap.keySet()) {
 								clonePanelSteps.add(origPanelLayerMap.get(layerId));
 							}
+							// if the panel doesn't exist
+							// add in the panel
+							if(!panels.containsKey(originalPanel)) {
+								clonePanelSteps.add("AddPanel(\"" + originalPanel + "\");");
+							}
 							// add in the clone step
 							clonePanelSteps.add("Panel(\"" + originalPanel + "\") | CachedPanelClone(\"" + clonePanel + "\");");
 							// + reset the panel view
@@ -810,6 +815,11 @@ public class PixelUtility {
 						else if(panelIsCloneView.containsKey(originalPanel)) {
 							// grab all the steps as well
 							List<String> clonePanelSteps = cloneMapToViewSteps.get(originalPanel);
+							// if the panel doesn't exist
+							// add in the panel
+							if(!panels.containsKey(originalPanel)) {
+								clonePanelSteps.add("AddPanel(\"" + originalPanel + "\");");
+							}
 							// add in the clone step
 							clonePanelSteps.add("Panel(\"" + originalPanel + "\") | CachedPanelClone(\"" + clonePanel + "\");");
 							// + reset the panel view
