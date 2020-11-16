@@ -5,13 +5,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -61,8 +59,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
@@ -450,14 +446,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			}else if(plotType.equals("Grid") || plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
 				insertGrid(sheet.getSheetName(), panelId);
 			}
-		}catch(Exception ex)
-		{
-			if(driver != null)
-				driver.quit();
-			driver = null;
+		}catch(Exception ex) {
+			ex.printStackTrace();
 		}finally {
-			if(driver != null)
+			if(driver != null) {
 				driver.quit();
+			}
 			driver = null;
 		}
 	}
@@ -698,9 +692,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// value is name(s) of column(s) of y vals
 		Map<String, Object> sheetMap = this.chartPanelLayout.get(sheetId);
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
-		List<String> label = (Vector) panelMap.get("x-axis");
+		List<String> label = (List<String>) panelMap.get("x-axis");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) panelMap.get("y-axis");
+		List<String> yColumnNames = (List<String>) panelMap.get("y-axis");
 		Map<String, Object> xColumnMap = (Map<String, Object>) panelMap.get(xColumnName);
 
 		// Build chart
@@ -765,9 +759,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// value is name(s) of column(s) of y vals
 		Map<String, Object> sheetMap = this.chartPanelLayout.get(sheetId);
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
-		List<String> label = (Vector) panelMap.get("x-axis");
+		List<String> label = (List<String>) panelMap.get("x-axis");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) panelMap.get("y-axis");
+		List<String> yColumnNames = (List<String>) panelMap.get("y-axis");
 		Map<String, Object> xColumnMap = (Map<String, Object>) panelMap.get(xColumnName);
 
 		// Build chart
@@ -825,9 +819,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// value is name(s) of column(s) of y vals
 		Map<String, Object> sheetMap = this.chartPanelLayout.get(sheetId);
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
-		List<String> label = (Vector) panelMap.get("x-axis");
+		List<String> label = (List<String>) panelMap.get("x-axis");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) panelMap.get("y-axis");
+		List<String> yColumnNames = (List<String>) panelMap.get("y-axis");
 		Map<String, Object> xColumnMap = (Map<String, Object>) panelMap.get(xColumnName);
 
 		// Build chart
@@ -893,9 +887,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// value is name(s) of column(s) of y vals
 		Map<String, Object> sheetMap = this.chartPanelLayout.get(sheetId);
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
-		List<String> label = (Vector) panelMap.get("x-axis");
+		List<String> label = (List<String>) panelMap.get("x-axis");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) panelMap.get("y-axis");
+		List<String> yColumnNames = (List<String>) panelMap.get("y-axis");
 		Map<String, Object> xColumnMap = (Map<String, Object>) panelMap.get(xColumnName);
 
 		// Build chart
@@ -944,9 +938,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// value is name(s) of column(s) of y vals
 		Map<String, Object> sheetMap = this.chartPanelLayout.get(sheetId);
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
-		List<String> label = (Vector) panelMap.get("x-axis");
+		List<String> label = (List<String>) panelMap.get("x-axis");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) panelMap.get("y-axis");
+		List<String> yColumnNames = (List<String>) panelMap.get("y-axis");
 		Map<String, Object> xColumnMap = (Map<String, Object>) panelMap.get(xColumnName);
 
 		// Build chart
@@ -993,9 +987,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// value is name(s) of column(s) of y vals
 		Map<String, Object> sheetMap = this.chartPanelLayout.get(sheetId);
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
-		List<String> label = (Vector) panelMap.get("x-axis");
+		List<String> label = (List<String>) panelMap.get("x-axis");
 		String xColumnName = label.get(0);
-		List<String> yColumnNames = (Vector) panelMap.get("y-axis");
+		List<String> yColumnNames = (List<String>) panelMap.get("y-axis");
 		Map<String, Object> xColumnMap = (Map<String, Object>) panelMap.get(xColumnName);
 
 		// Build chart
@@ -1100,12 +1094,16 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String fileName = (String)exportMap.get("FILE_NAME");
 		
 		txl.processTable(sheetId, html2, fileName);
-		
-		
 	}
-	
-	private void insertImage(Workbook wb, XSSFSheet targetSheet, String sheetId, String panelId)
-	{
+
+	/**
+	 * 
+	 * @param wb
+	 * @param targetSheet
+	 * @param sheetId
+	 * @param panelId
+	 */
+	private void insertImage(Workbook wb, XSSFSheet targetSheet, String sheetId, String panelId) {
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
 		String imageUrl = this.insight.getLiveURL();
@@ -1119,8 +1117,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
 		
-		if(driver == null)
+		if(driver == null) {
 			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, sessionId, 800, 600);
+		}
 		// download this file
 		ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId);
 		
@@ -1170,11 +1169,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			//pict.resize(); //don't do that. Let the anchor resize the image!
 			//Create the Cell B3
 			Cell cell = targetSheet.createRow(2).createCell(1);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
