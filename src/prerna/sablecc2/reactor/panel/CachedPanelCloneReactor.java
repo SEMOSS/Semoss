@@ -36,7 +36,13 @@ public class CachedPanelCloneReactor extends AbstractInsightPanelReactor {
 		String cloneId = getClonePanelId();
 		// grab the clone panel
 		InsightPanel clonePanel = this.insight.getInsightPanel(cloneId);
-		
+		if(clonePanel == null) {
+			// actually do the clone logic now
+			// this will be dropped in PixelUtility.getCachedInsightRecipe() method
+			clonePanel = new InsightPanel(cloneId, existingPanel.getSheetId());
+			clonePanel.clone(existingPanel);
+			this.insight.addNewInsightPanel(clonePanel);
+		}
 		Map<String, InsightPanel> cloneMap = new HashMap<String, InsightPanel>();
 		cloneMap.put("original", existingPanel);
 		cloneMap.put("clone", clonePanel);
