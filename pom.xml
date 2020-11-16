@@ -1857,5 +1857,11 @@
 		    <artifactId>jetty-io</artifactId>
 		    <version>9.4.12.v20180830</version>
 		</dependency>
+		<!-- encryption -->
+		<dependency>
+            <groupId>com.github.ulisesbocchio</groupId>
+            <artifactId>jasypt-spring-boot-starter</artifactId>
+            <version>2.0.0</version>
+        </dependency> 
 	</dependencies>
 </project>
