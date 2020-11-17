@@ -75,7 +75,7 @@ public class ChromeDriverUtility {
 	{
 		// need to go to the base url first
 		// so that the cookie is applied at root level
-		driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
+		driver.manage().timeouts().implicitlyWait(30,TimeUnit.SECONDS) ;
 
 		if(ChromeDriverUtility.contextPath != null) {
 			String startingUrl = feUrl;
@@ -108,11 +108,11 @@ public class ChromeDriverUtility {
 		//System.out.println(html2);
 		
 		// time for FE to render the page before the image is taken
-	    /*try {
-			Thread.sleep(10000);
+	    try {
+			Thread.sleep(800);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
-		}*/
+		}
 		// take image
 		File scrFile = (File)((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
 		try { 
@@ -137,7 +137,7 @@ public class ChromeDriverUtility {
 		} else {
 			driver.get(url);
 		}
-		driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
+		driver.manage().timeouts().implicitlyWait(30,TimeUnit.SECONDS) ;
 
 		if(sessionId != null && ChromeDriverUtility.sessionCookie != null) {
 			// name, value, domain, path, expiration, secure, http only
