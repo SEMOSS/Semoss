@@ -618,21 +618,23 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				isNative = type.toLowerCase().equals("native");
 				if (isNative) {
 					if (name != null && !name.isEmpty()) {
-						userName = name;
+						userName = id;
 						salt = SecurityQueryUtils.generateSalt();
 						hashedPassword = (SecurityQueryUtils.hash(password, salt));
 					}
 				}
 			}
-			String query = "INSERT INTO USER (ID, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES "
+			String query = "INSERT INTO USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES "
 					+ "('" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', " 
-					+ "'" + userName + "',"
+					+ (userName == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(userName) + "'") + ","
+					+ (name == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(name) + "'") + ","
 					+ (email == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(email.toLowerCase()) + "'") + ","
 					// add password and salt for native user
 					+ ( hashedPassword != null  ?  "'" + hashedPassword + "'": "null") + ","
 					+ ( salt != null  ?  "'" + salt + "'": "null") + ","
-					+ (type == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(type) + "'") + ", "
-					+ admin + ", " + "" + publisher + ");";
+					+ ( type == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(type) + "'") + ", "
+					+ admin + ", " 
+					+ publisher + ");";
 			try {
 				securityDb.insertData(query);
 				securityDb.commit();
