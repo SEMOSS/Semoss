@@ -446,8 +446,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			}else if(plotType.equals("Grid") || plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
 				insertGrid(sheet.getSheetName(), panelId);
 			}
-		}catch(Exception ex) {
-			ex.printStackTrace();
+		}catch(Exception ex)
+		{
+			if(driver != null)
+				driver.quit();
+			driver = null;
 		}finally {
 			if(driver != null) {
 				driver.quit();
