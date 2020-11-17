@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.security;
 
 import org.jasypt.encryption.pbe.StandardPBEByteEncryptor;
 
+import cern.colt.Arrays;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -22,16 +24,53 @@ public class PBEDecryptReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		//grab the query
-		String encryptedQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[0]));
+		byte[] encryptedQuery = getInput();
 		
 		StandardPBEByteEncryptor encryptor = new StandardPBEByteEncryptor();
 		encryptor.setPassword(getPassword());
-		byte[] queryBytes = encryptor.decrypt(encryptedQuery.getBytes());
+		byte[] queryBytes = encryptor.decrypt(encryptedQuery);
 		String query = new String(queryBytes);
 		
 		return new NounMetadata(query, PixelDataType.CONST_STRING);
 	}
 
+	/**
+	 * We allow 2 different input types
+	 * Single string input or
+	 * Byte [] (passed as array of numbers)
+	 * @return
+	 */
+	private byte[] getInput() {
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		if(grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			if(size == 1) {
+				String stringValue = Utility.decodeURIComponent(grs.get(0) + "");
+				return stringValue.getBytes();
+			} else {
+				byte[] arr = new byte[size];
+				for(int i = 0; i < size; i++) {
+					arr[i] = ((Number) grs.get(i)).byteValue();
+				}
+				
+				return arr;
+			}
+		}
+		
+		int size = this.curRow.size();
+		if(size == 1) {
+			String stringValue = Utility.decodeURIComponent(this.curRow.get(0) + "");
+			return stringValue.getBytes();
+		} else {
+			byte[] arr = new byte[size];
+			for(int i = 0; i < size; i++) {
+				arr[i] = ((Number) this.curRow.get(i)).byteValue();
+			}
+			
+			return arr;
+		}
+	}
+	
 	/**
 	 * Get the password from the SMSS file
 	 * @return
@@ -60,6 +99,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 		encryptor.setPassword("password123");
 		byte[] queryBytes = encryptor.encrypt(value.getBytes());
 		String encoded = new String(queryBytes);
+		System.out.println("Encode array > " + Arrays.toString(queryBytes));
 		System.out.println("Encoded >> " + encoded);
 		
 //		byte[] decodedBytes = encryptor.decrypt(queryBytes);
