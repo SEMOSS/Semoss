@@ -494,15 +494,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// the excel data row
 		Row excelRow = null;
+		// the task data is being dumped vertically
+		// we need to know where to start putting in data
 		Map<String, Object> sheetMap = this.chartPanelLayout.get(sheetId);
-		// this is being kept so that we know what is the next column to start when putting data
-		int excelColStart = (int) sheetMap.get("colIndex");
-		int curSheetCol = i + excelColStart;
+		int curSheetCol = 0;
 		int endRow = (int) sheetMap.get("rowIndex");
-		// the row counter is never used even though we read it, since this is putting it horizontally as opposed to vertical
-		// we may run out of options here
-		int excelRowCounter = 0 + endRow;
-		excelColStart = 0;
+		int excelRowCounter = endRow;
 				
 
 		// we need to iterate and write the headers during the first time
@@ -511,12 +508,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			List<Map<String, Object>> headerInfo = task.getHeaderInfo();
 
 			// create the header row
-			Row headerRow = null;
-			if (excelRowCounter < endRow) {
-				headerRow = sheet.getRow(excelRowCounter++);
-			} else {
-				headerRow = sheet.createRow(excelRowCounter++);
-			}
+			Row headerRow = sheet.createRow(excelRowCounter++);
+			
 			// create a Font for styling header cells
 			Font headerFont = workbook.createFont();
 			headerFont.setBold(true);
@@ -535,7 +528,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			additionalDataTypeArr = new String[size];
 			stylingArr = new CellStyle[size];
 			for (; i < size; i++) {
-				curSheetCol = i + excelColStart;
+				curSheetCol = i;
 				Cell cell = headerRow.createCell(curSheetCol);
 				cell.setCellValue(headers[i]);
 				cell.setCellStyle(headerCellStyle);
@@ -557,16 +550,13 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			}
 
 			// generate the data row
-			if (excelRowCounter < endRow) {
-				excelRow = sheet.getRow(excelRowCounter++);
-			} else {
-				excelRow = sheet.createRow(excelRowCounter++);
 
-			}
+			excelRow = sheet.createRow(excelRowCounter++);
+
 			Object[] dataRow = row.getValues();
 			i = 0;
 			for (; i < size; i++) {
-				curSheetCol = i + excelColStart;
+				curSheetCol = i;
 				Cell cell = excelRow.createCell(curSheetCol);
 				Object value = dataRow[i];
 				if (value == null || value.toString().length() == 0) {
@@ -603,16 +593,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// now iterate through all the data
 		while (task.hasNext()) {
-			if (excelRowCounter < endRow) {
-				excelRow = sheet.getRow(excelRowCounter++);
-			} else {
-				excelRow = sheet.createRow(excelRowCounter++);
-			}
+			excelRow = sheet.createRow(excelRowCounter++);
 			IHeadersDataRow row = task.next();
 			Object[] dataRow = row.getValues();
 			i = 0;
 			for (; i < size; i++) {
-				curSheetCol = i + excelColStart;
+				curSheetCol = i;
 				Cell cell = excelRow.createCell(curSheetCol);
 				Object value = dataRow[i];
 				if (value == null || value.toString().length() == 0) {
@@ -648,28 +634,23 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 
 		// Update col and row bounds for sheet
-		int endCol = curSheetCol;
-		// just adding an additional one
-		// this is kept so when the data comes in next time we know where to put it
-		// this is basically putting it side by side
-		sheetMap.put("colIndex", endCol + 2);
-		if (excelRowCounter > endRow) {
-			sheetMap.put("rowIndex", excelRowCounter);
-		}
+		// this keeps track at the sheet level where to add next task
+		sheetMap.put("colIndex", 0);
+		// add the offset of rows
+		sheetMap.put("rowIndex", endRow + (excelRowCounter - endRow));		
 
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
 		List<String> headerList = Arrays.asList(headers);
 
-		// this is the one that demarcates, what is the start and end for this data
+		// this map defines the start and end for each column
 		if (headers != null && headers.length > 0) {
 			for (String header : headers) {
 				Map<String, Object> columnMap = new HashMap<>();
-				columnMap.put("startRow", 1);
+				columnMap.put("startRow", endRow + 1);
 				columnMap.put("endRow", excelRowCounter - 1);
-				// find header index in list
 				int headerIndex = headerList.indexOf(header);
-				columnMap.put("startCol", excelColStart + headerIndex);
-				columnMap.put("endCol", excelColStart + headerIndex);
+				columnMap.put("startCol", headerIndex);
+				columnMap.put("endCol", headerIndex);
 				panelMap.put(header, columnMap);
 			}
 		}
