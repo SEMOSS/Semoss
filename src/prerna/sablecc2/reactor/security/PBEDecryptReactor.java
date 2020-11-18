@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.security;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jasypt.encryption.pbe.StandardPBEByteEncryptor;
 
 import cern.colt.Arrays;
@@ -14,6 +16,8 @@ import prerna.util.Utility;
 
 public class PBEDecryptReactor extends AbstractReactor {
 
+	private static final Logger logger = LogManager.getLogger(PBEDecryptReactor.class);
+
 	private static String password = null;
 	
 	public PBEDecryptReactor() {
@@ -26,12 +30,17 @@ public class PBEDecryptReactor extends AbstractReactor {
 		//grab the query
 		byte[] encryptedQuery = getInput();
 		
-		StandardPBEByteEncryptor encryptor = new StandardPBEByteEncryptor();
-		encryptor.setPassword(getPassword());
-		byte[] queryBytes = encryptor.decrypt(encryptedQuery);
-		String query = new String(queryBytes);
-		
-		return new NounMetadata(query, PixelDataType.CONST_STRING);
+		try {
+			StandardPBEByteEncryptor encryptor = new StandardPBEByteEncryptor();
+			encryptor.setPassword(getPassword());
+			byte[] queryBytes = encryptor.decrypt(encryptedQuery);
+			String query = new String(queryBytes);
+			
+			return new NounMetadata(query, PixelDataType.CONST_STRING);
+		} catch(Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occured decrypting with message = " + e.getMessage());
+		}
 	}
 
 	/**
@@ -77,6 +86,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 	 */
 	private static String getPassword() {
 		if(PBEDecryptReactor.password != null) {
+			logger.info("Decrypting with password >> " + PBEDecryptReactor.password);
 			return PBEDecryptReactor.password;
 		}
 		
@@ -88,6 +98,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 			PBEDecryptReactor.password = DIHelper.getInstance().getProperty(Constants.PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD);
 		}
 		
+		logger.info("Decrypting with password >> " + PBEDecryptReactor.password);
 		return PBEDecryptReactor.password;
 	}
 	
