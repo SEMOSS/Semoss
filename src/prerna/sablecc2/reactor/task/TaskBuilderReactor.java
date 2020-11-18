@@ -114,7 +114,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 	 * Generate the task from the query struct
 	 * @return
 	 */
-	private ITask constructTaskFromQs() {
+	protected ITask constructTaskFromQs() {
 		NounMetadata noun = null;
 		SelectQueryStruct qs = null;
 
