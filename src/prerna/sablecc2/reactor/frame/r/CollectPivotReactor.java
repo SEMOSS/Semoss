@@ -234,7 +234,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	
 			// load html
 			StringBuilder pivoter = new StringBuilder("library(xtable);");
-			pivoter.append("options(\"datatable.keepLeadingZeros\"=TRUE);");
 			pivoter.append(RSyntaxHelper.getFReadSyntax(fileName, outputFile, ","));
 			pivoter.append(pivotName + " <- data.table::cube(" + fileName + "," + calcs + "," + rows + ");");
 	
