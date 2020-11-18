@@ -169,7 +169,6 @@ public class RFrameBuilder {
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 			File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, newFile.getAbsolutePath(), "\\t");
-			evalR("options(\"datatable.keepLeadingZeros\"=TRUE);" );
 			evalR(loadFileRScript);
 			newFile.delete();
 			

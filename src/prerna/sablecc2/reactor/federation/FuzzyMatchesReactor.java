@@ -69,7 +69,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 
 		// the main script to execute
 		StringBuilder script = new StringBuilder();
-		script.append("library(data.table);library(stringdist);options(\"datatable.keepLeadingZeros\"=TRUE);");
+		script.append("library(data.table);library(stringdist);");
 
 		// string of table to return
 		final String matchesFrame = getOutputFrame();
