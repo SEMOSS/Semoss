@@ -252,7 +252,6 @@ public class FederationBlend extends AbstractRFrameReactor {
 		if (newFile != null) {
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(trg, newFile.getAbsolutePath(), "\\t");
 			//trg + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
-			this.rJavaTranslator.executeEmptyR("options(\"datatable.keepLeadingZeros\"=TRUE);");
 			this.rJavaTranslator.runR(loadFileRScript);
 			newFile.delete();
 		}

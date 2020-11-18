@@ -207,7 +207,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		this.rJavaTranslator.executeEmptyR("library(data.table);");
-		this.rJavaTranslator.executeEmptyR("options(\"datatable.keepLeadingZeros\"=TRUE);");
 		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(frameName, outputLocation, "\\t"));
 		File f = new File(outputLocation);
 		f.delete();
