@@ -794,7 +794,8 @@ public class RSyntaxHelper {
 	public static String getFReadSyntax(String tableName, String absolutePath, String delimiter) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(tableName).append(" <- fread(\"").append(absolutePath.replace("\\", "/"))
-			.append("\", sep=\"").append(delimiter).append("\", encoding=\"UTF-8\", blank.lines.skip=TRUE, fill=TRUE, na.strings=NULL);");
+			.append("\", sep=\"").append(delimiter)
+			.append("\", encoding=\"UTF-8\", blank.lines.skip=TRUE, fill=TRUE, na.strings=NULL, keepLeadingZeros=TRUE);");
 		return builder.toString();
 	}
 	
