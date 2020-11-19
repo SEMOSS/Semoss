@@ -8,20 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PyUtils;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
-import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
@@ -47,105 +41,10 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey() };
 	}
 	
-	// TODO: DELETE ONCE PROPELRY IMPLEMENTED
-	@Override
-	protected ITask constructTaskFromQs() {
-		// TODO: DOING THIS BECAUSE WE NEED THE QS TO ALWAYS BE DISTINCT FALSE
-		// TODO: ADDING UNTIL WE CAN HAVE FE BE EXPLICIT
-		NounMetadata noun = null;
-		SelectQueryStruct qs = null;
-
-		GenRowStruct grsQs = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
-		//if we don't have tasks in the curRow, check if it exists in genrow under the qs key
-		if(grsQs != null && !grsQs.isEmpty()) {
-			noun = grsQs.getNoun(0);
-			qs = (SelectQueryStruct) noun.getValue();
-		} else {
-			List<NounMetadata> qsList = this.curRow.getNounsOfType(PixelDataType.QUERY_STRUCT);
-			if(qsList != null && !qsList.isEmpty()) {
-				noun = qsList.get(0);
-				qs = (SelectQueryStruct) noun.getValue();
-			}
-		}
-		
-		// no qs either... i guess we will return an empty constant data task
-		// this will just store the information
-		if(qs == null) {
-			// THIS SHOULD ONLY HAPPEN WHEN YOU CARE CALLING COLLECTGRAPH 
-			// SINCE THERE ARE NO SELECTORS
-			ConstantDataTask cdTask = new ConstantDataTask();
-			cdTask.setOutputData(new HashMap<Object, Object>());
-			this.insight.getTaskStore().addTask(cdTask);
-			return cdTask;
-		}
-
-		// set any additional details required
-		if (noun != null) {
-			this.subAdditionalReturn = noun.getAdditionalReturn();
-		}
-
-		// TODO: ALWAYS SETTING THIS FALSE
-		qs.setDistinct(false);
-		
-		// handle some defaults
-		QUERY_STRUCT_TYPE qsType = qs.getQsType();
-		// first, do a basic check
-		if(qsType != QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && qsType != QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
-			// it is not a hard query
-			// we need to make sure there is at least a selector
-			if(qs.getSelectors().isEmpty()) {
-				throw new IllegalArgumentException("There are no selectors in the query to return.  "
-						+ "There must be at least one selector for the query to execute.");
-			}
-		}
-		
-		// just need to set some default behavior based on the pixel generation
-		if(qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
-			ITableDataFrame frame = qs.getFrame();
-			if(frame == null) {
-				// see if the frame name exists
-				if(qs.getFrameName() != null) {
-					frame = (ITableDataFrame) this.insight.getVar(qs.getFrameName());
-				}
-				// default to base frame
-				if(frame == null) {
-					frame = (ITableDataFrame) this.insight.getDataMaker();
-				}
-				qs.setFrame(frame);
-			}
-			// if we are not overriding implicit filters - add them
-			if(!qs.isOverrideImplicit()) {
-				qs.mergeImplicitFilters(frame.getFrameFilters());
-			}
-			
-			// if the frame is native and there are other
-			// things to blend - we need to do that
-			if(frame instanceof NativeFrame) {
-				qs.setBigDataEngine( ((NativeFrame) frame).getQueryStruct().getBigDataEngine());
-			}
-		}
-		
-		// set the pragmap before I can build the task
-		// the idea is this needs to be passed into querystruct and later iterator
-		// unless we start keeping a reference of querystruct in the iterator
-		// adds it to the qs
-		if(qs.getPragmap() != null && insight.getPragmap() != null) {
-			qs.getPragmap().putAll(insight.getPragmap());
-		} else if(insight.getPragmap() != null) {
-			qs.setPragmap(insight.getPragmap());
-		}
-		
-		ITask task = new BasicIteratorTask(qs);
-		// add the task to the store
-		this.insight.getTaskStore().addTask(task);
-		return task;
-	}
-
 	public NounMetadata execute() {
-		
-		if(PyUtils.pyEnabled()) 
-		{
-	
+		// due to pivot limitations
+		// moving to Python if python exists
+		if(PyUtils.pyEnabled()) {
 			// move this guy to py
 			prerna.sablecc2.reactor.frame.py.CollectPivotReactor pyCollect = new prerna.sablecc2.reactor.frame.py.CollectPivotReactor();
 			pyCollect.In();
@@ -155,11 +54,19 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			pyCollect.setNounStore(this.getNounStore());
 			
 			return pyCollect.execute();
-		}
-		else
-		{
+		
+		} else {
 			this.task = getTask();
-	
+			// TODO: DOING THIS BECAUSE WE NEED THE QS TO ALWAYS BE DISTINCT FALSE
+			// TODO: ADDING UNTIL WE CAN HAVE FE BE EXPLICIT
+			// always ensure the task is distinct false
+			// as long as this is made through FE
+			// the task iterator hasn't been executed yet
+			this.task = getTask();
+			if(this.task instanceof BasicIteratorTask) {
+				((BasicIteratorTask) this.task).getQueryStruct().setDistinct(false);
+			}
+			
 			AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
 			rJavaTranslator.startR(); 
 	
