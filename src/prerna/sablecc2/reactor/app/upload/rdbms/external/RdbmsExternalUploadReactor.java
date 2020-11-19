@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -56,6 +57,12 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String CLASS_NAME = RdbmsExternalUploadReactor.class.getName();
 
+	private static final String[] JDBC_CONSTANTS = {Constants.USE_CONNECTION_POOLING,
+			Constants.POOL_MIN_SIZE,
+			Constants.POOL_MAX_SIZE,
+			Constants.CONNECTION_QUERY_TIMEOUT,
+			Constants.FETCH_SIZE};
+	
 	// we need to define some variables that are stored at the class level
 	// so that we can properly account for cleanup if errors occur
 	protected transient Logger logger;
@@ -282,8 +289,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			engineClassName = ImpalaEngine.class.getName();
 			engine = new ImpalaEngine();
 		}
+		
+		Map<String, Object> jdbcPropertiesMap = validateJDBCProperties(connectionDetails);	
+
 		this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile,
-				engineClassName, driverEnum, connectionUrl, connectionDetails);
+				engineClassName, driverEnum, connectionUrl, connectionDetails, jdbcPropertiesMap);
 		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
@@ -571,4 +581,70 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		
 		return null;
 	}
+
+	/**
+	 * Validates JDBC properties and returns a LinkedHash of the properties while removing said
+	 * properties from connection details. 
+	 * 
+	 * @param connectionDetails
+	 * @return jdbcProperties
+	 */
+	private Map<String, Object> validateJDBCProperties(Map<String, Object> connectionDetails) {
+		// keep an ordered map for the jdbc properties
+		Map<String, Object> jdbcProperties = new LinkedHashMap<String, Object>();
+		int minPool = -1;
+		int maxPool = -1;
+		for (String key : JDBC_CONSTANTS) {
+			if(connectionDetails.containsKey(key)) {
+				Object jdbcVal = connectionDetails.remove(key);
+				// ignore empty string inputs
+				if(jdbcVal.toString().isEmpty()) {
+					continue;
+				}
+				jdbcProperties.put(key, jdbcVal);
+				if (key.equals(Constants.USE_CONNECTION_POOLING)) {
+					// boolean check
+					String strBool = jdbcVal.toString();
+					if(!(strBool.equalsIgnoreCase("false") || strBool.equalsIgnoreCase("true"))) {
+						throw new IllegalArgumentException("Parameter " + key + " is not a valid boolean value");
+					}
+				}
+				
+				// currently all other parameter inputs are integer values
+				// make sure it is a valid integer or turn it to an integer
+				int integerInput = -1;
+				if(jdbcVal instanceof Number) {
+					integerInput = ((Number) jdbcVal).intValue();
+				} else {
+					try {
+						integerInput = Integer.parseInt(jdbcVal + "");
+					} catch(NumberFormatException e) {
+						throw new IllegalArgumentException("Parameter " + key + " is not a valid number");
+					}
+				}
+				
+				// perform the integer check
+				if(integerInput < 0) {
+					throw new IllegalArgumentException("Paramter " + key + " must be a numeric value greater than 0");
+				}
+				
+				// assign so we can do a final check for min/max pool size
+				if(key.equals(Constants.POOL_MIN_SIZE)) {
+					minPool = integerInput;
+				} else if(key.equals(Constants.POOL_MAX_SIZE)) {
+					maxPool = integerInput;
+				}
+			}
+		}
+		// after check pool min/max size
+		if(minPool > 0 && maxPool >0) {
+			if (minPool > maxPool) {
+				throw new IllegalArgumentException("Max pool size must be greater than min pool size");
+			}
+		}
+		
+		return jdbcProperties;
+	}
 }
+	
+
