@@ -102,8 +102,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	// sheet alias
 	Map<String, String> sheetAlias = new HashMap<>();
 
-	
-
 	public ExportToExcelReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.HEIGHT.getKey(), ReactorKeysEnum.WIDTH.getKey(), 
@@ -116,24 +114,22 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			};
 		this.keyRequired = new int[] {0,0,0,0,0,0,0,0,0,0,0,0,0};
 		this.keyMulti = new int[] {0,0,0,0,0,0,1,0,0,0,0,0,0};
-
-	
 	}
 	
-	public void processPayload()
-	{
+	public void processPayload() {
 		super.processPayload();
-		if(keyValue.containsKey(ReactorKeysEnum.HEIGHT.getKey()))
+		if(keyValue.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
 			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey())+"");
-		else if(exportMap.containsKey(ReactorKeysEnum.HEIGHT.getKey()))
+		} else if(exportMap.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
 			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey())+"");
-		if(keyValue.containsKey(ReactorKeysEnum.WIDTH.getKey()))
+		}
+		
+		if(keyValue.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
 			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey())+"");
-		else if(exportMap.containsKey(ReactorKeysEnum.WIDTH.getKey()))
+		} else if(exportMap.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
 			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey())+"");
-
+		}
 	}
-	
 
 	@Override
 	public NounMetadata execute() {
@@ -180,7 +176,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			}
 		}
 
-		
 		Map<String, InsightPanel> panelMap = this.insight.getInsightPanels();
 		Map<String, InsightSheet> sheetMap = this.insight.getInsightSheets();
 
@@ -188,8 +183,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// this should take care of templates too
 		XSSFWorkbook workbook = getWorkBook();
-		
-		
 		// create each sheet
 		// this is purely for positioning where we put the panel
 		for (String sheetId : sheetMap.keySet()) {
