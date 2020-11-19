@@ -12,12 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -54,8 +52,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
-public class TableToXLSXReactor	extends AbstractReactor
-{
+public class TableToXLSXReactor	extends AbstractReactor {
 
 		List <Integer> autoWrappedColumns = new Vector<Integer>();
 		int startColumn = 0;
@@ -278,6 +275,7 @@ public class TableToXLSXReactor	extends AbstractReactor
 
 		public String processTable(String sheetName, String html, String fileName) 
 		{
+			System.out.println("again");
 			try
 			{
 				Document doc = Jsoup.parse(html, "UTF-8");
@@ -427,30 +425,29 @@ public class TableToXLSXReactor	extends AbstractReactor
 
 						cell.setCellStyle(input);
 
-						formatCellType(wb, input, cell, value);
+						// THIS WILL ALSO SET THE CELL VALUE
+						formatAndSetCellType(wb, input, cell, value);
 
-	
 						// process background
 						processWidth(cell.getSheet(), cell.getColumnIndex(), nameProps[0], nameProps[1]); 
-	
 					}
-					if(rowSpan != null || colSpan != null)
-						processSpan(cell, rowSpan, colSpan, value);
 					
-					try
-					{
-						int intValue = Integer.parseInt(value);
-						cell.setCellValue(intValue);
+					if(rowSpan != null || colSpan != null) {
+						processSpan(cell, rowSpan, colSpan, value);
 					}
-					catch(Exception ex)
-					{
-						try
-						{
-							double doubleValue = Double.parseDouble(value);
-							cell.setCellValue(doubleValue);							
-						}catch (Exception ex2)
-						{
-							cell.setCellValue(value);
+					// if we have a style
+					// the format cell type already sets this
+					if(style == null) {
+						try {
+							int intValue = Integer.parseInt(value);
+							cell.setCellValue(intValue);
+						} catch(Exception ex) {
+							try {
+								double doubleValue = Double.parseDouble(value);
+								cell.setCellValue(doubleValue);							
+							} catch (Exception ex2) {
+								cell.setCellValue(value);
+							}
 						}
 					}
 					tdIndex++;
@@ -762,41 +759,49 @@ public class TableToXLSXReactor	extends AbstractReactor
 			return input;
 		}
 
-		public void  formatCellType(Workbook wb, CellStyle input, Cell cell, String value)
-		{
-			Object output = value;
-			DataFormat fmt = wb.createDataFormat();
-			StringUtils su = null;
-			if(value != null)
-			{
-				
-				// see if it s $
-				if(value.contains("$"))
-				{
+		/**
+		 * Format and set the cell value
+		 * @param wb
+		 * @param input
+		 * @param cell
+		 * @param value
+		 */
+		public void formatAndSetCellType(Workbook wb, CellStyle input, Cell cell, String value) {
+			if(value != null) {
+				boolean isNumeric = NumberUtils.isCreatable(value);
+
+				// see if it is $
+				if(value.contains("$")) {
 					input.setDataFormat((short)0x5);
-					cell.setCellValue(value);
+					Double val = Utility.getDouble(value.replaceAll("[$,\\s]", ""));
+					if(val != null) {
+						cell.setCellValue(val);
+					} else {
+						cell.setCellValue(value);
+					}
 					cell.setCellStyle(input);
 				}
-				
 				//see if it is a number
-				if(NumberUtils.isCreatable(value))
-				{
-					if(value.contains("."))
-						 cell.setCellValue(Double.parseDouble(value));
-					else
-					{
+				// that starts with 0
+				// so treat as a string
+				else if(isNumeric && value.startsWith("0")) {
+					input.setDataFormat((short)0);
+					cell.setCellValue(value);
+				// or just a number
+				} else if(NumberUtils.isCreatable(value)) {
+					if(value.contains(".")) {
+						cell.setCellValue(Double.parseDouble(value));
+					} else {
 						try {
-						 cell.setCellValue(Integer.parseInt(value));
-						}catch(Exception ex)
-						{
+							cell.setCellValue(Integer.parseInt(value));
+						} catch(Exception ex) {
+							// ignore and set value
 							cell.setCellValue(value);
 						}
 					}
 				}
-				
 				// see if this is a date yuck
-				else 
-				{
+				else {
 					input.setDataFormat((short)0x31);
 					cell.setCellValue(value);
 				}
