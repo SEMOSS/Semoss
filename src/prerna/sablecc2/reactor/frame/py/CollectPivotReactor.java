@@ -94,8 +94,11 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			String frameQuery = interp.composeQuery();
 			
 			//aaw8Ciq = mvw.cache['data'][['Genre', 'Nominated', 'MovieBudget']].drop_duplicates().iloc[0:].to_dict('split')
-
-			frameQuery = frameQuery.replace(".drop_duplicates().iloc[0:].to_dict('split')", "");
+			if(qs.isDistinct()) {
+				frameQuery = frameQuery.replace(".drop_duplicates().iloc[0:].to_dict('split')", "");
+			} else {
+				frameQuery = frameQuery.replace(".iloc[0:].to_dict('split')", "");
+			}
 			
 			makeFrame = frameName + " = " + frameQuery;
 		}
