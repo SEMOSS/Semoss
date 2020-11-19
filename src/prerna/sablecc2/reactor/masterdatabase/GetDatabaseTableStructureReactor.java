@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.masterdatabase;
 
 import java.util.List;
 
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -12,6 +14,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GetDatabaseTableStructureReactor extends AbstractReactor {
+	
+	private static final String CLASS_NAME = GetDatabaseTableStructureReactor.class.getName();
 	
 	public GetDatabaseTableStructureReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
@@ -35,7 +39,9 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
 		}
-
+		
+		Logger logger = getLogger(CLASS_NAME);
+		logger.info("Pulling database structure for app " + engineId);
 		List<Object[]> data = MasterDatabaseUtility.getAllTablesAndColumns(engineId);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
 	}
