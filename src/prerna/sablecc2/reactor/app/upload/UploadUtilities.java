@@ -987,13 +987,15 @@ public class UploadUtilities {
 	 * @param connectionUrl
 	 * @param username
 	 * @param password
+	 * @param jdbcPropertiesMap
 	 * @return
 	 * @throws IOException
 	 * @throws SQLException
 	 */
 	public static File createTemporaryExternalRdbmsSmss(String appId, String appName, File owlFile,
 			String engineClassName, RdbmsTypeEnum dbType, String connectionUrl, 
-			Map<String, Object> connectionDetails) throws IOException, SQLException {
+			Map<String, Object> connectionDetails, Map<String, Object> jdbcPropertiesMap) throws IOException, SQLException {
+		
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
 		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(dbType);
@@ -1016,9 +1018,9 @@ public class UploadUtilities {
 			writer = new FileWriter(appTempSmss);
 			bufferedWriter = new BufferedWriter(writer);
 			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
-			// write the driver at the top
-			bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
+			// seperate for connection details
 			bufferedWriter.write(newLine);
+			bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
 
 			String customUrl = (String) connectionDetails.get(AbstractSqlQueryUtil.CONNECTION_STRING);
 			if(customUrl != null && !customUrl.isEmpty()) {
@@ -1046,20 +1048,31 @@ public class UploadUtilities {
 						connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
 					}
 				}
-				
+				// connection details
 				for(String key : connectionDetails.keySet()) {
-					if(key.equals(Constants.CONNECTION_URL) || connectionDetails.get(key) == null || connectionDetails.get(key).toString().isEmpty()) {
+					if(key.equals(Constants.CONNECTION_URL) 
+							|| connectionDetails.get(key) == null 
+							|| connectionDetails.get(key).toString().isEmpty()) {
 						continue;
 					}
-					bufferedWriter.write(key + tab + connectionDetails.get(key) + newLine);
+					bufferedWriter.write(key.toUpperCase() + tab + connectionDetails.get(key) + newLine);
 				}
 			}
 			
-			// write connection URL at the end
+			// connection url
 			if(connectionUrl.contains("\\")) {
 				connectionUrl = connectionUrl.replace("\\", "\\\\");
 			}
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
+			bufferedWriter.write(newLine);
+			
+			// write the additonal jdbc properties at the end of the properties file
+			for (String key: jdbcPropertiesMap.keySet()) {
+				if (jdbcPropertiesMap.get(key) == null || jdbcPropertiesMap.get(key).toString().isEmpty()) {
+					continue;
+				}
+				bufferedWriter.write(key + tab + jdbcPropertiesMap.get(key) + newLine);
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IOException("Could not generate temporary smss file for app");
@@ -1078,6 +1091,18 @@ public class UploadUtilities {
 		return appTempSmss;
 	}
 	
+	/**
+	 * 
+	 * @param appId
+	 * @param appName
+	 * @param owlFile
+	 * @param fileName
+	 * @param newHeaders
+	 * @param dataTypesMap
+	 * @param additionalDataTypeMap
+	 * @return
+	 * @throws IOException
+	 */
 	public static File createTemporaryRSmss(String appId, String appName, File owlFile, String fileName, Map<String, String> newHeaders, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 		
