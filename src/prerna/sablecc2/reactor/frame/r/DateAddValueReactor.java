@@ -58,6 +58,7 @@ public class DateAddValueReactor extends AbstractRFrameReactor{
 		
 		StringBuilder script = new StringBuilder();
 		if(newCol != null && !newCol.isEmpty()){
+			newCol = getCleanNewColName(frame, newCol);
 			script.append(table).append("$").append(newCol).append(" <- ").append(table).append("$").append(srcCol);
 		} else{
 			script.append(table).append("$").append(srcCol).append(" <- ").append(table).append("$").append(srcCol);
