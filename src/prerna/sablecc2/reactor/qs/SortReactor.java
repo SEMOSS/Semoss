@@ -27,19 +27,19 @@ public class SortReactor extends AbstractQueryStructReactor {
 			if(newSelector.contains("__")) {
 				String[] selectorSplit = newSelector.split("__");
 				if(sortDirSize > selectIndex) {
-					((SelectQueryStruct) qs).addOrderBy(selectorSplit[0], selectorSplit[1], sortDirs.get(selectIndex));
+					((SelectQueryStruct) this.qs).addOrderBy(selectorSplit[0], selectorSplit[1], sortDirs.get(selectIndex));
 				} else {
-					((SelectQueryStruct) qs).addOrderBy(selectorSplit[0], selectorSplit[1], "ASC");
+					((SelectQueryStruct) this.qs).addOrderBy(selectorSplit[0], selectorSplit[1], "ASC");
 				}
 			} else {
 				if(sortDirSize > selectIndex) {
-					((SelectQueryStruct) qs).addOrderBy(newSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER, sortDirs.get(selectIndex));
+					((SelectQueryStruct) this.qs).addOrderBy(newSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER, sortDirs.get(selectIndex));
 				} else {
-					((SelectQueryStruct) qs).addOrderBy(newSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER, "ASC");
+					((SelectQueryStruct) this.qs).addOrderBy(newSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER, "ASC");
 				}
 			}
 		}
-		return qs;
+		return this.qs;
 	}
 
 	/**
