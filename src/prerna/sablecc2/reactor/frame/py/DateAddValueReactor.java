@@ -48,6 +48,8 @@ public class DateAddValueReactor extends AbstractPyFrameReactor {
 		String newCol = this.keyValue.get(this.keysToGet[1]);
 		if(newCol == null || newCol.isEmpty()) {
 			newCol = srcCol;
+		} else {
+			newCol = getCleanNewColName(frame, newCol);
 		}
 		String unit = this.keyValue.get(this.keysToGet[2]).toLowerCase();
 		int value = getValue();
