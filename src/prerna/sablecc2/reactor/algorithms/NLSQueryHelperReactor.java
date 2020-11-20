@@ -138,9 +138,6 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 		// handle differently depending on whether it is from the frame or global
 		// convert json input into java map
-		// query = "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"==\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"==\",\"value\":\"R\"},{\"component\":\"having sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
-		// query = "[{\"component\":\"select\",\"column\":[\"Title\",\"Genre\"]},{\"component\": \"sum\"}]";
-
 		String queryTable = getQueryTableFromJson(query);
 		String colHeadersAndTypesFrame = getColHeadersAndTypes(global,engineFilters);
 		Object[] retData = getDropdownItems(queryTable, colHeadersAndTypesFrame);
@@ -280,13 +277,13 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 			// handle select and group
 			String[] selectAndGroup = { "select", "average", "count", "max", "min", "sum", "group", "stdev",
-					"unique count" };
+					"unique count", "distribution" };
 			List<String> selectAndGroupList = Arrays.asList(selectAndGroup);
 			if (selectAndGroupList.contains(comp)) {
 				List<String> columns = new Vector<String>();
 
 				// if aggregate, add the aggregate row
-				if (!comp.equals("select") && !comp.equals("group")) {
+				if (!comp.equals("select") && !comp.equals("group") && !comp.equals("distribution")) {
 					// change aggregate to select
 					if (!comp.equals("group")) {
 						comp = "select";
