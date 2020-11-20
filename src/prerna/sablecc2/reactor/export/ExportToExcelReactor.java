@@ -90,6 +90,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	private static final String GRID_ON_X = "tools.shared.editGrid.x";
 	private static final String GRID_ON_Y = "tools.shared.editGrid.y";
 	private static final String DISPLAY_VALUES = "tools.shared.displayValues";
+	private static final String SHOW_Y_AXIS_TITLE = "tools.shared.editYAxis.title.show";
+	private static final String SHOW_X_AXIS_TITLE = "tools.shared.editXAxis.title.show";
+	private static final String Y_AXIS_TITLE_NAME = "tools.shared.editYAxis.title.name";
+	private static final String X_AXIS_TITLE_NAME = "tools.shared.editXAxis.title.name";
 
 	protected String fileLocation = null;
 	protected Logger logger;
@@ -657,6 +661,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.editGrid.x") + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.editGrid.y") + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.displayValues") + "");
+        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+ 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+ 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
@@ -680,6 +690,22 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
+		// Add Y Axis Title
+		if(showYAxisTitle) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+				leftAxis.setTitle(yAxisTitleName);
+			} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+			}
+		}
+		// Add X Axis Title
+		if(showXAxisTitle) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+				bottomAxis.setTitle(xAxisTitleName);
+			} else {
+				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+			}
+		}
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		// Add in x vals
@@ -692,7 +718,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnNames.get(i));
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFLineChartData.Series chartSeries = (XDDFLineChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnNames.get(i), null);
+			chartSeries.setTitle(yColumnNames.get(i).replaceAll("_", " "), null);
 			// Standardize markers
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
 			fillProperties.setColor(XDDFColor.from(PresetColor.ROYAL_BLUE));
@@ -705,8 +731,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			XDDFLineProperties lineProperties = new XDDFLineProperties();
 			lineProperties.setFillProperties(fillProperties);
 			chartSeries.setLineProperties(lineProperties);
-		}		
-		
+		}
+
 		chart.plot(data);
 
 		// if true, display data labels on chart
@@ -715,7 +741,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 		
 	}
-
+	
 	private void insertScatterChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
@@ -724,6 +750,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
@@ -747,6 +779,20 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
+		if(showYAxisTitle) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+				leftAxis.setTitle(yAxisTitleName);
+			} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+			}
+		}
+		if(showXAxisTitle) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+				bottomAxis.setTitle(xAxisTitleName);
+			} else {
+				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+			}
+		}
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(chartType, bottomAxis, leftAxis);
 		// Add in x vals
 		XDDFDataSource xs = createXAxis(dataSheet, xColumnMap);
@@ -757,7 +803,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFScatterChartData.Series chartSeries = (XDDFScatterChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 			chartSeries.setSmooth(false);
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
 			CTScatterChart scatterSeries = chart.getCTChart().getPlotArea().getScatterChartArray(0);
@@ -784,6 +830,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
 		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizeBarLabel.position") + "";
+		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
@@ -808,6 +860,22 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		leftAxis.setCrossBetween(AxisCrossBetween.BETWEEN);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
+		// Add Y Axis Title
+		if(showYAxisTitle) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+				leftAxis.setTitle(yAxisTitleName);
+			} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+			}
+		}
+		// Add X Axis Title
+		if(showXAxisTitle) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+				bottomAxis.setTitle(xAxisTitleName);
+			} else {
+				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+			}
+		}
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		if (flipAxis) {
@@ -832,7 +900,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFBarChartData.Series chartSeries = (XDDFBarChartData.Series) data.addSeries(xs, ys);
 			XDDFNumericalDataSource<? extends Number> dataSource = chartSeries.getValuesData();
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 		}
 
 		chart.plot(data);
@@ -843,7 +911,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			POIExportUtility.positionDisplayValues(ChartTypes.BAR, dLbls, displayValuesPosition);
 		}
 	}
-
+	
 	private void insertAreaChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
@@ -852,6 +920,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+ 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+ 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
@@ -875,6 +949,22 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
+		// Add Y Axis Title
+		if(showYAxisTitle) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+				leftAxis.setTitle(yAxisTitleName);
+			} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+			}
+		}
+		// Add X Axis Title
+		if(showXAxisTitle) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+				bottomAxis.setTitle(xAxisTitleName);
+			} else {
+				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+			}
+		}
 		XDDFAreaChartData data = (XDDFAreaChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		// Add in x vals
@@ -885,7 +975,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFAreaChartData.Series chartSeries = (XDDFAreaChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 		}
 
 		chart.plot(data);
@@ -932,10 +1022,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFPieChartData.Series chartSeries = (XDDFPieChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 			chartSeries.setExplosion((long) 0);
 		}
-
 		chart.plot(data);
 
 		// if true, display data labels on chart
@@ -952,6 +1041,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// retrieve ornaments
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
+        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+ 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+ 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";		             
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
@@ -975,6 +1070,22 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
+		// Add Y Axis Title
+		if(showYAxisTitle) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+				leftAxis.setTitle(yAxisTitleName);
+			} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+			}
+		}
+		// Add X Axis Title
+		if(showXAxisTitle) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+				bottomAxis.setTitle(xAxisTitleName);
+			} else {
+				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+			}
+		}
 		XDDFRadarChartData data = (XDDFRadarChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		// Add in x vals
@@ -985,7 +1096,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFRadarChartData.Series chartSeries = (XDDFRadarChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 		}
 
 		chart.plot(data);
