@@ -68,6 +68,10 @@ public class ExportToPPTReactor extends AbstractReactor {
 	private static final String GRID_ON_X = "tools.shared.editGrid.x";
 	private static final String GRID_ON_Y = "tools.shared.editGrid.y";
 	private static final String DISPLAY_VALUES = "tools.shared.displayValues";
+	private static final String SHOW_Y_AXIS_TITLE = "tools.shared.editYAxis.title.show";
+	private static final String SHOW_X_AXIS_TITLE = "tools.shared.editXAxis.title.show";
+	private static final String Y_AXIS_TITLE_NAME = "tools.shared.editYAxis.title.name";
+	private static final String X_AXIS_TITLE_NAME = "tools.shared.editXAxis.title.name";
 
 	public ExportToPPTReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
@@ -194,6 +198,13 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.editGrid.x") + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.editGrid.y") + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.displayValues") + "");
+        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+ 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+ 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
+
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -212,6 +223,22 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+		// Add Y Axis Title
+		if(showYAxisTitle) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+				leftAxis.setTitle(yAxisTitleName);
+			} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+			}
+		}
+		// Add X Axis Title
+		if(showXAxisTitle) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+				bottomAxis.setTitle(xAxisTitleName);
+			} else {
+				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+			}
+		}
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
 
 		// Add in x vals
@@ -257,6 +284,13 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+ 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+ 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
+
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -274,6 +308,20 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+		if(showYAxisTitle) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+				leftAxis.setTitle(yAxisTitleName);
+			} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+			}
+		}
+		if(showXAxisTitle) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+				bottomAxis.setTitle(xAxisTitleName);
+			} else {
+				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+			}
+		}
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(ChartTypes.SCATTER, bottomAxis, leftAxis);
 
 		// Add in x vals
@@ -285,7 +333,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFScatterChartData.Series chartSeries = (XDDFScatterChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 			// Standardize markers
 			chartSeries.setSmooth(false);
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
@@ -317,6 +365,13 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
 		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizeBarLabel.position") + "";
+        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+ 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+ 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
+
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -335,6 +390,20 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+		if(showYAxisTitle) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+				leftAxis.setTitle(yAxisTitleName);
+			} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+			}
+		}
+		if(showXAxisTitle) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+				bottomAxis.setTitle(xAxisTitleName);
+			} else {
+				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+			}
+		}
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(ChartTypes.BAR, bottomAxis, leftAxis);
 		leftAxis.setCrossBetween(AxisCrossBetween.BETWEEN);
 		
@@ -358,7 +427,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFBarChartData.Series chartSeries = (XDDFBarChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 		}
 
 		chart.plot(data);
@@ -382,6 +451,13 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+ 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+ 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
+
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -400,6 +476,20 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+		if(showYAxisTitle) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+				leftAxis.setTitle(yAxisTitleName);
+			} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+			}
+		}
+		if(showXAxisTitle) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+				bottomAxis.setTitle(xAxisTitleName);
+			} else {
+				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+			}
+		}
 		XDDFAreaChartData data = (XDDFAreaChartData) chart.createData(ChartTypes.AREA, bottomAxis, leftAxis);
 
 		// Add in x vals
@@ -410,7 +500,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFAreaChartData.Series chartSeries = (XDDFAreaChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 		}
 
 		chart.plot(data);
@@ -432,6 +522,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// retrieve ornaments
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
 		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.position") + "";
+
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -456,7 +547,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFPieChartData.Series chartSeries = (XDDFPieChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 			chartSeries.setExplosion((long) 0);
 		}
 
@@ -480,6 +571,13 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// retrieve ornaments
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
+        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+ 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+ 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
+
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -498,6 +596,20 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+		if(showYAxisTitle) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+				leftAxis.setTitle(yAxisTitleName);
+			} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+			}
+		}
+		if(showXAxisTitle) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+				bottomAxis.setTitle(xAxisTitleName);
+			} else {
+				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+			}
+		}
 		XDDFRadarChartData data = (XDDFRadarChartData) chart.createData(ChartTypes.RADAR, bottomAxis, leftAxis);
 
 		// Add in x vals
@@ -508,7 +620,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFRadarChartData.Series chartSeries = (XDDFRadarChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName, null);
+			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 		}
 
 		chart.plot(data);
