@@ -159,7 +159,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			}
 		}
 		
-		// query = "[{\"component\":\"select\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"sum\",\"column\":\"MovieBudget\"},{\"component\":\"average\",\"column\":\"Revenue_Domestic\"},{\"component\":\"group\",\"column\":[\"Rating\",\"Genre\"]},{\"component\":\"where\",\"column\":\"Genre\",\"operation\":\"=\",\"value\":\"Drama\"},{\"component\":\"where\",\"column\":\"Rating\",\"operation\":\"=\",\"value\":\"R\"},{\"component\":\"having sum\",\"column\":\"MovieBudget\",\"operation\":\">\",\"value\":\"100\"},{\"component\":\"having average\",\"column\":\"Revenue_Domestic\",\"operation\":\">\",\"value\":\"100\"}]";
 		String queryString = "";
 		query = buildNamedArray(query);
 		queryString = getQStringFromArray(query);
@@ -246,13 +245,13 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			String elemName = "";
 			
 			// handle select and group
-			String[] selectAndGroup = { "select", "average", "count", "max", "min", "sum", "group" , "stdev" , "unique count" };
+			String[] selectAndGroup = { "select", "average", "count", "max", "min", "sum", "group" , "stdev" , "unique count" , "distribution" };
 			List<String> selectAndGroupList = Arrays.asList(selectAndGroup);
 			if (selectAndGroupList.contains(comp)) {
 				List<String> columns = new Vector<String>();
 				
 				// if aggregate, add the aggregate row
-				if (!comp.equals("select") && !comp.equals("group")) {
+				if (!comp.equals("select") && !comp.equals("group")  && !comp.equals("distribution")) {
 					// change aggregate to select
 					if(!comp.equals("group")) {
 						elemToAdd += "select ";
@@ -340,7 +339,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		namesRsb.append(");");
 		
 		// run arrays in r
-		System.out.println(arrayRsb.toString() + namesRsb.toString());
 		this.rJavaTranslator.runR(arrayRsb.toString() + namesRsb.toString());
 		
 		return request;
@@ -1070,7 +1068,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// track when the entry changes and setup other vars
 		String curEntry = null;
-		String frameName = "FRAME_" + Utility.getRandomString(5);
+		String frameName = queryString.replaceAll(" ", "_");
 		String finalPixel = "";
 		LinkedHashSet<String> prevAppIds = new LinkedHashSet<>();
 		int entryCount = 1;
@@ -1099,7 +1097,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						finalPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
 						finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
 						finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-						finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",panel=[" + panelId + "]);");
+						finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "]);");
 						map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
 						map.put("layout", "NLP");
 						map.put("columns", pickedCols);
@@ -1126,7 +1124,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					finalPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
 					finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
 					finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-					finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",panel=[" + panelId + "]);");
+					finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "]);");
 					map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
 					map.put("layout", "NLP");
 					map.put("columns", pickedCols);
@@ -1159,7 +1157,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
 				finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
 				finalPixel += (frameName + " | PredictViz(app=[\"" + appId + "\"],columns="
-						+ getSelectorAliases(qs.getSelectors()) + ",panel=[" + panelId + "]);");
+						+ getSelectorAliases(qs.getSelectors()) + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "]);");
 				map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
 				map.put("layout", "NLP");
 				map.put("columns", getSelectorAliases(qs.getSelectors()));
@@ -1200,6 +1198,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		rsb.append(rSessionTable + "$Table == \"" + alteredTable + "\" & ");
 		rsb.append(rSessionTable + "$Column == \"" + property + "\"");
 		rsb.append(",]$Key);");
+		
+		int nrow = this.rJavaTranslator.getInt("length("+rsb.toString()+")");
+		if(nrow == 0 ){
+			return false;
+		} 
 		
 		String key = this.rJavaTranslator.getString(rsb.toString());
 
@@ -1462,31 +1465,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			}
 			psb.append(") | ");
 		}
-
-		List<IQuerySort> orderBys = qs.getOrderBy();
-		if (orderBys != null && !orderBys.isEmpty()) {
-			StringBuilder b = new StringBuilder();
-			StringBuilder b2 = new StringBuilder();
-			int i = 0;
-			for (IQuerySort orderBy : orderBys) {
-				if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
-					QueryColumnOrderBySelector columnSort = (QueryColumnOrderBySelector) orderBy;
-					if (i > 0) {
-						b.append(", ");
-						b2.append(", ");
-					}
-					if (qsToAlias.containsKey(columnSort.getQueryStructName().toUpperCase())) {
-						b.append(qsToAlias.get(columnSort.getQueryStructName().toUpperCase()));
-					} else {
-						b.append(columnSort.getQueryStructName());
-					}
-					b2.append(columnSort.getSortDirString());
-					i++;
-				}
-			}
-			psb.append("Sort(columns=[").append(b.toString()).append("], sort=[").append(b2.toString())
-					.append("]) | ");
-		}
+		
+		String sortPixel = getSortPixel(qs, qsToAlias, frameName);
+		psb.append(sortPixel);
 
 		if (qs.getLimit() > 0) {
 			psb.append("Limit(").append(qs.getLimit()).append(") | ");
@@ -1510,6 +1491,63 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// return the pixel
 		return retString;
+	}
+
+	/**
+	 * get the sort pixel string -- pulled out because used in two different places
+	 * @param qsToAlias 
+	 */
+	private String getSortPixel(SelectQueryStruct qs, Map<String, String> qsToAlias, String frameName) {
+		List<IQuerySort> orderBys = qs.getOrderBy();
+		String retString = "";
+		boolean replaceFrame = false;
+		
+		if (orderBys == null || orderBys.isEmpty()) {
+			return retString;
+		}
+		
+		// need to recreate this if called from GeneratePixels function
+		if(qsToAlias == null) {
+			qsToAlias = new HashMap<String,String>();
+			List<IQuerySelector> selectors = qs.getSelectors();
+
+			// loop through the selectors and store their name and alias
+			for (IQuerySelector sel : selectors) {
+				String selAliasToAdd = sel.getAlias();
+				// track list in case we need it
+				qsToAlias.put(sel.getQueryStructName().toUpperCase(), selAliasToAdd);
+			}
+			replaceFrame = true;
+		}
+		
+		StringBuilder b = new StringBuilder();
+		StringBuilder b2 = new StringBuilder();
+		int i = 0;
+		for (IQuerySort orderBy : orderBys) {
+			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+				QueryColumnOrderBySelector columnSort = (QueryColumnOrderBySelector) orderBy;
+				if (i > 0) {
+					b.append(", ");
+					b2.append(", ");
+				}
+				if (qsToAlias.containsKey(columnSort.getQueryStructName().toUpperCase())) {
+					b.append(qsToAlias.get(columnSort.getQueryStructName().toUpperCase()));
+				} else {
+					b.append(columnSort.getQueryStructName());
+				}
+				b2.append(columnSort.getSortDirString());
+				i++;
+			}
+		}
+		retString = "Sort(columns=[" + b.toString() + "], sort=[" + b2.toString() + "]) | ";		
+		
+		// if this is being passed to the createviz reactor, need to remove frame name
+		if(replaceFrame) {
+			retString = retString.replaceAll(frameName + "__", "");
+		}
+		
+		
+		return retString;		
 	}
 
 	/**
