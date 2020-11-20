@@ -131,12 +131,12 @@ get_element_alternatves<-function(db,df,nbr,root_fn){
 		}
 	}else if(component=='group'){
 		# get all string columns
-		out<-unname(cols[names(cols)=='STRING'])
+		out<-unname(cols[names(cols) %in% c('STRING','DATE')])
 		# get all date columns and append date groupping
-		date_cols<-unname(cols[names(cols)=='DATE'])
-		if(length(date_cols)>0){
-			out<-append(out,c(date_cols,as.vector(sapply(date_cols,function(x) paste(x,DATE_GROUPPING,sep=' ')))))
-		}
+		#date_cols<-unname(cols[names(cols)=='DATE'])
+		#if(length(date_cols)>0){
+		#	out<-append(out,c(date_cols,as.vector(sapply(date_cols,function(x) paste(x,DATE_GROUPPING,sep=' ')))))
+		#}
 		aggr_cols<-get_aliases(df)
 		out<-append(out,aggr_cols)
 	}else if(component=='having'){
@@ -158,8 +158,12 @@ get_element_alternatves<-function(db,df,nbr,root_fn){
 		}else{
 			out<-MISSING_VALUE
 		}
-	}
-	else if(component=='sort'){
+	}else if(component=='distribution'){
+		if(element=='column'){
+			# get all string columns
+			out<-unname(cols[names(cols) %in% c('STRING','DATE')])
+		}
+	}else if(component=='sort'){
 		single_cols<-get_single_cols(df)
 		aggr_cols<-get_aliases(df)
 		out<-append(single_cols,aggr_cols)
@@ -172,7 +176,7 @@ get_single_cols<-function(df){
 	if(length(ind)>0){
 		df<-df[-c(ind,ind+1),]
 	}
-	single_cols<-df[df$Component=='select' & df$Element=='column','Value']
+	single_cols<-df[df$Component %in% c('select','position') & df$Element=='column','Value']
 	return(single_cols)
 }
 
@@ -181,7 +185,7 @@ get_component_alternatives<-function(df){
 	'sort column direction','based on aggregate column','group column','having column is value')	
 	REQUEST_COMPONENTS<-list('1'='select column','2'=c('select column','where column is value'),
 	'3'=c('select column','aggregate column','group column'),'4'=c('top n column','based on aggregate column'),'5'=c('bottom n column','based on aggregate column'),
-	'7'=c('- top n column','based on aggregate column'),'7'=c('- bottom n column','based on aggregate column'))
+	'7'=c('- top n column','based on aggregate column'),'7'=c('- bottom n column','based on aggregate column'),'8'=c('distribution column','based on aggregate column'))
 	if(nrow(df)==0){
 		# for the first run only select components available
 		out<-REQUEST_COMPONENTS
@@ -286,6 +290,22 @@ preprocess_request<-function(request,cols){
 	components<-names(request)
 	n<-length(components)
 	if(n>0){
+		if('distribution' %in% components){
+			ind<-which(components=='distribution')
+			items<-unlist(strsplit(unname(request[ind]),' '))
+			group_items<-paste(items[2:length(items)],collapse=' ')
+			group<-paste0(c('group',group_items),collapse=' ')
+			
+			items<-unlist(strsplit(unname(request[ind+1]),' '))
+			select_items<-paste(append(group_items,items[3:length(items)]),collapse=' ')
+			select<-paste0('select ',select_items)
+			
+			request[ind]<-select
+			request[ind+1]<-group
+			names(request)[ind:(ind+1)]<-c('select','group')
+			components<-names(request)
+			n<-length(components)
+		}
 		if('position' %in% components | 'based on' %in% components){
 			if('based on' %in% components){
 				based_on<-TRUE
@@ -330,6 +350,7 @@ preprocess_request<-function(request,cols){
 			out<-request
 		}
 	}
+	gc()
 	return(out)
 }
 
@@ -353,7 +374,7 @@ get_all_cols<-function(p){
 get_aliases<-function(df){
 	library(tools)
 	aliases<-vector()
-	ind<-which(df$Component=='select' & df$Element=='aggregate')
+	ind<-which(df$Component %in% c('select','based on') & df$Element=='aggregate')
 	if(length(ind)>0){
 		for(i in 1:length(ind)){
 			if(df$Value[ind[i]] == 'unique count'){
