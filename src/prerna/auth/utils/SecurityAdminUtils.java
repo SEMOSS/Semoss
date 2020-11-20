@@ -170,7 +170,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
 		String email = userInfo.get("email") != null ? userInfo.get("email").toString() : "";
 		String password = userInfo.get("password") != null ? userInfo.get("password").toString() : "";
-		
+		// always lower case emails
+		if(email != null) {
+			email = email.toLowerCase();
+		}
+
 		// cannot edit a user to match another user when native... would cause some serious issues :/
 		boolean isNative = SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE);
 		if(isNative && SecurityQueryUtils.checkUserExist(name, email)){
