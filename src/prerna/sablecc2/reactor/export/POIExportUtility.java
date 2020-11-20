@@ -140,14 +140,21 @@ public class POIExportUtility {
     	Object round = null;
     	
     	if(panelFormatting != null && panelFormatting.containsKey("type")) {
+    		boolean isDateFormatting = false;
     		String panelAdditionalDataType = panelFormatting.get("type");
     		// if there is a date type
     		// we will use that as the additionalDataType
-    		if(panelAdditionalDataType.equals("Default")) {
+    		if(panelAdditionalDataType.equalsIgnoreCase("Default")) {
+    			// for date formatting, it is stored in a bit different
     			String dateAdditionalDataType = panelFormatting.get("dateType");
     			if(dateAdditionalDataType != null && !dateAdditionalDataType.isEmpty()) {
     				panelAdditionalDataType = dateAdditionalDataType;
+    				isDateFormatting = true;
     			}
+    		}
+			// aside from dates, we can lowercase the additional data type
+    		if(!isDateFormatting) {
+    			panelAdditionalDataType = panelAdditionalDataType.toLowerCase();
     		}
     		
     		// grab the format from the additional data type
@@ -259,7 +266,7 @@ public class POIExportUtility {
      */
     private static String getBaseExcelFormat(String additionalDataType) {
     	String format;
-    	switch (additionalDataType.toLowerCase()) {
+    	switch (additionalDataType) {
     	case "int_comma":
     		format = "#,###";
     		break;
