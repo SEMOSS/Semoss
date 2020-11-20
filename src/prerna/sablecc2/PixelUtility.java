@@ -895,8 +895,12 @@ public class PixelUtility {
 		}
 		
 		// now close unnecessary panels
+		// right now the logic above doesn't account
+		// for if these panels were never added 
+		// i.e. the cloned panel from these panels are now
+		// using their own task to paint results
 		for(String panelId : closePanels) {
-			cacheRecipe.add("ClosePanel(\"" + panelId + "\");");
+			cacheRecipe.add("ClosePanelIfExists(\"" + panelId + "\");");
 		}
 		
 		// add in all the panel layer pixels
