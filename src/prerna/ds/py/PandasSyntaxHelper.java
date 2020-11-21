@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
+import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.sablecc2.om.Join;
 
@@ -73,8 +74,22 @@ public class PandasSyntaxHelper {
 		if(encoding == null || encoding.isEmpty()) {
 			encoding = "utf-8";
 		}
-		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', sep='" + sep + "', encoding='" + encoding + "')";//.replace(np.nan, '', regex=True)";
+		// this is to account for leading zeros in columns that get converted to numbers when we want to maintain strings
+		String converters = "converters={i : lambda x: str(x) "
+				+ "if (isinstance(x,int) and len(str(int(x))) != len(str(x))) "
+				+ "else x for i in range(" + numberOfColumns(fileLocation) + ")}";
+		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', sep='" + sep + "', encoding='" + encoding + "', " + converters + ")";//.replace(np.nan, '', regex=True)";
 		return readCsv;
+	}
+	/**
+	 * Returns the number of columns in a csv file. 
+	 * @param filePath
+	 * @return
+	 */
+	public static Number numberOfColumns(String filePath) {
+		CSVFileHelper csv = new CSVFileHelper();
+		csv.parse(filePath);
+		return csv.getHeaders().length;
 	}
 	
 	/**
