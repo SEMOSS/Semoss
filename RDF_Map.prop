@@ -83,7 +83,7 @@ SCHEDULER_ENDPOINT	http://localhost:8080/Monolith_Dev
 LOCAL_DEPLOYMENT false
 
 #POST MESSAGE SPECIFIC KEYS
-PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD password123
+PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD	password123
 
 ##################################################
 ##################################################
