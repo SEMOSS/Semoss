@@ -20,6 +20,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class FrameFactory {
 
+	private static final Logger logger = LogManager.getLogger(FrameFactory.class);
+	
 	private static final String CLASS_NAME = FrameFactory.class.getName();
 	// this is so we only grab from DIHelper once
 	private static boolean INIT = false;
@@ -141,8 +143,14 @@ public class FrameFactory {
 		if(defaultGridType == null || defaultGridType.isEmpty()) {
 			defaultGridType = "H2_DB";
 		}
-		
-		RDBMS_TYPE = RdbmsTypeEnum.valueOf(defaultGridType);
+		try {
+			RDBMS_TYPE = RdbmsTypeEnum.valueOf(defaultGridType);
+		} catch(Exception e) {
+			logger.error("Error occured trying to set the default grid type for the application. Defaulting to h2");
+			logger.error(Constants.STACKTRACE, e);
+			defaultGridType = "H2_DB";
+			RDBMS_TYPE = RdbmsTypeEnum.H2_DB;
+		}
 		
 		if(DEFAULT_FRAME_TYPE == null) {
 			DEFAULT_FRAME_TYPE = "GRID";
