@@ -7,6 +7,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class ReloadAppOwlReactor extends AbstractMetaEditorReactor {
@@ -41,6 +42,7 @@ public class ReloadAppOwlReactor extends AbstractMetaEditorReactor {
 		if (oldOwlEngine != null) {
 			oldOwlEngine.closeDB();
 		}
+		EngineSyncUtility.clearEngineCache(appId);
 		ClusterUtil.reactorPushOwl(appId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
