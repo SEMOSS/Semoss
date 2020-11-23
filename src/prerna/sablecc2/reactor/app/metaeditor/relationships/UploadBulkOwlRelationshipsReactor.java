@@ -30,6 +30,7 @@ import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
@@ -145,7 +146,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		
+		EngineSyncUtility.clearEngineCache(appId);
 		ClusterUtil.reactorPushOwl(appId);
 		
 		if(sync) {
