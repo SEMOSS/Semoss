@@ -14,6 +14,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
+import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
@@ -96,6 +97,7 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add the desired property", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
+		EngineSyncUtility.clearEngineCache(appId);
 		ClusterUtil.reactorPushOwl(appId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);

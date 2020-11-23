@@ -5,13 +5,14 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.EngineSyncUtility;
 
 public class GetDatabaseTableStructureReactor extends AbstractReactor {
 	
@@ -32,17 +33,25 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 		
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
-		List<String> appFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
-			if(!appFilters.contains(engineId)) {
+			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
+			}
+		}
+		
+		// if cache exists, return from there
+		{
+			List<Object[]> cacheData = EngineSyncUtility.getDatabaseStructureCache(engineId);
+			if(cacheData != null) {
+				return new NounMetadata(cacheData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
 			}
 		}
 		
 		Logger logger = getLogger(CLASS_NAME);
 		logger.info("Pulling database structure for app " + engineId);
 		List<Object[]> data = MasterDatabaseUtility.getAllTablesAndColumns(engineId);
+		// store the cache for the database structure
+		EngineSyncUtility.setDatabaseStructureCache(engineId, data);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
 	}
 }
