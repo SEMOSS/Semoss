@@ -42,12 +42,13 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = SaveInsightReactor.class.getName();
 	
 	public SaveInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(),
-				HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), 
-				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.TAGS.getKey(), 
-				ReactorKeysEnum.PIPELINE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), 
+				ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), 
+				ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
+				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.PIPELINE.getKey(), 
+				ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
@@ -92,8 +93,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			recipeToSave = this.insight.getPixelList().getPixelRecipe();
 			recipeToSave.addAll(PixelUtility.getMetaInsightRecipeSteps(this.insight));
 		} else {
-			// this is always encoded before it gets here
-			recipeToSave = decodeRecipe(recipeToSave);
+			// default for recipe encoded when no key is passed is true
+			if(recipeEncoded()) {
+				recipeToSave = decodeRecipe(recipeToSave);
+			}
 		}
 		
 		IEngine engine = Utility.getEngine(appId);

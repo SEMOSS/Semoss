@@ -27,13 +27,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 import prerna.util.git.GitRepoUtils;
 
 public class UploadInsightReactor extends AbstractInsightReactor {
+	
 	private static final String CLASS_NAME = UploadInsightReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
 
 	public UploadInsightReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
@@ -102,7 +103,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 			}
 
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			SemossPixelException exception = new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Unable to unzip files."));
 			exception.setContinueThreadOfExecution(false);
@@ -116,7 +117,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		try {
 			mosfet = MosfetFile.generateFromFile(mosfetFile);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			SemossPixelException exception = new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Unable to load the mosfet file."));
 			exception.setContinueThreadOfExecution(false);
@@ -156,7 +157,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		logger.info(step + ") Done...");
 		step++;
 
-		ClusterUtil.reactorPushApp(appId);
+		ClusterUtil.reactorPushInsightDB(appId);
 
 		Map<String, Object> returnMap = new HashMap<>();
 		returnMap.put("name", insightName);
