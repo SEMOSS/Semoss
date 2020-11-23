@@ -46,6 +46,7 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -448,6 +449,9 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			if(owlF.exists()) {
 				owlF.delete();
 			}
+			
+			// also clear caching that is stored for the app
+			EngineSyncUtility.clearEngineCache(appId);
 		}
 	}
 

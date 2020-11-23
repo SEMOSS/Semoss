@@ -27,6 +27,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
+import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class GetDatabaseMetamodelReactor extends AbstractReactor {
@@ -54,18 +55,39 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
 		}
-
 		boolean includeDataTypes = options.contains("datatypes");
-		Map<String, Object> metamodelObject = MasterDatabaseUtility.getMetamodelRDBMS(engineId, includeDataTypes);
+
+		Map<String, Object> metamodelObject = new HashMap<>();
+		{
+			Map<String, Object> cacheMetamodel = EngineSyncUtility.getMetamodel(engineId);
+			if(cacheMetamodel != null) {
+				metamodelObject.putAll(cacheMetamodel);
+			} else {
+				includeDataTypes = true;
+				Map<String, Object> metamodel = MasterDatabaseUtility.getMetamodelRDBMS(engineId, includeDataTypes);
+				metamodelObject.putAll(metamodel);
+				EngineSyncUtility.setMetamodel(engineId, metamodel);
+			}
+		}
+
 		// add logical names
 		if(options.contains("logicalnames")) {
-			metamodelObject.put("logicalNames", MasterDatabaseUtility.getEngineLogicalNames(engineId));
+			Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(engineId);
+			if(logicalNames == null) {
+				logicalNames = MasterDatabaseUtility.getEngineLogicalNames(engineId);
+				EngineSyncUtility.setMetamodelLogicalNames(engineId, logicalNames);
+			}
+			metamodelObject.put("logicalNames", logicalNames);
 		}
 		// add descriptions
 		if(options.contains("descriptions")) {
-			metamodelObject.put("descriptions", MasterDatabaseUtility.getEngineDescriptions(engineId));
+			Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(engineId);
+			if(descriptions == null) {
+				descriptions = MasterDatabaseUtility.getEngineDescriptions(engineId);
+				EngineSyncUtility.setMetamodelDescriptions(engineId, descriptions);
+			}
+			metamodelObject.put("descriptions", descriptions);
 		}
-
 
 		// this is for the OWL positions for the new layout
 		if(options.contains("positions")) {
@@ -93,6 +115,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 				}
 			}
 		}
+		
 		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_METAMODEL);
 	}
 
