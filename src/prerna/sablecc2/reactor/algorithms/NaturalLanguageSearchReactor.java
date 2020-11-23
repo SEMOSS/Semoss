@@ -1197,7 +1197,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		rsb.append(rSessionTable + "$AppID == \"" + appId + "\" & ");
 		rsb.append(rSessionTable + "$Table == \"" + alteredTable + "\" & ");
 		rsb.append(rSessionTable + "$Column == \"" + property + "\"");
-		rsb.append(",]$Key);");
+		rsb.append(",]$Key)");
 		
 		int nrow = this.rJavaTranslator.getInt("length("+rsb.toString()+")");
 		if(nrow == 0 ){
