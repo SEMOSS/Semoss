@@ -42,6 +42,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String IMAGE_NAME = "image.png";
 	protected static final String HIDDEN_KEY = "hidden";
 	protected static final String CACHEABLE = "cache";
+	protected static final String ENCODED_KEY = "encoded";
 	protected static final String PIPELINE_FILE = "pipeline.json";
 	
 	public static String USER_SPACE_KEY = "USER";
@@ -275,6 +276,20 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Is the recipe encoded
+	 * @return 	default value of true
+	 */
+	protected boolean recipeEncoded() {
+		GenRowStruct grs = this.store.getNoun(ENCODED_KEY);
+		if(grs != null && !grs.isEmpty()) {
+			return Boolean.parseBoolean(grs.get(0).toString());
+		}
+		
+		// default to true
+		return true;
 	}
 	
 	/**
