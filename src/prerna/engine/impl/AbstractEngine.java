@@ -200,13 +200,14 @@ public abstract class AbstractEngine implements IEngine {
 				if(DIHelper.getInstance().getProperty("ENCRYPT") != null) {
 					encryptFile = Boolean.parseBoolean(DIHelper.getInstance().getProperty("ENCRYPT") + "");
 				}
+				// if not at application level, are we doing at app level
+				if(!encryptFile && prop.containsKey("ENCRYPT")) {
+					encryptFile = Boolean.parseBoolean(prop.getProperty("ENCRYPT"));
+				}
 				
 				if(encryptFile && this.prop.containsKey("PASSWORD") && 
 					!((String)this.prop.get("PASSWORD")).equalsIgnoreCase("encrypted password")) {
 						prop = encryptPropFile(propFile);
-				} else if(prop.containsKey("ENCRYPT") &&
-						!((String)this.prop.get("PASSWORD")).equalsIgnoreCase("encrypted password")) {
-					prop = encryptPropFile(propFile);
 				}
 				
 				// grab the main properties
