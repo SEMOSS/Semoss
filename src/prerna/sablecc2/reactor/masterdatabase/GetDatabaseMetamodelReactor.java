@@ -76,8 +76,8 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		}
 
 		// add logical names
-		logger.info("Pulling database logical names for app " + engineId);
 		if(options.contains("logicalnames")) {
+			logger.info("Pulling database logical names for app " + engineId);
 			Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(engineId);
 			if(logicalNames == null) {
 				logicalNames = MasterDatabaseUtility.getEngineLogicalNames(engineId);
@@ -85,9 +85,9 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 			}
 			metamodelObject.put("logicalNames", logicalNames);
 		}
-		logger.info("Pulling database descriptions for app " + engineId);
 		// add descriptions
 		if(options.contains("descriptions")) {
+			logger.info("Pulling database descriptions for app " + engineId);
 			Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(engineId);
 			if(descriptions == null) {
 				descriptions = MasterDatabaseUtility.getEngineDescriptions(engineId);
