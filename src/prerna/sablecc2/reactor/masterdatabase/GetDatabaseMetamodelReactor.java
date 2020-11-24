@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -33,6 +35,7 @@ import prerna.util.Utility;
 public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 	private static final Gson GSON = new GsonBuilder().create();
+	private static final String CLASS_NAME = GetDatabaseMetamodelReactor.class.getName();
 
 	/*
 	 * Get the database metamodel + meta options
@@ -55,8 +58,10 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
 		}
+		Logger logger = getLogger(CLASS_NAME);
 		boolean includeDataTypes = options.contains("datatypes");
 
+		logger.info("Pulling database metadata for app " + engineId);
 		Map<String, Object> metamodelObject = new HashMap<>();
 		{
 			Map<String, Object> cacheMetamodel = EngineSyncUtility.getMetamodel(engineId);
@@ -71,6 +76,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		}
 
 		// add logical names
+		logger.info("Pulling database logical names for app " + engineId);
 		if(options.contains("logicalnames")) {
 			Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(engineId);
 			if(logicalNames == null) {
@@ -79,6 +85,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 			}
 			metamodelObject.put("logicalNames", logicalNames);
 		}
+		logger.info("Pulling database descriptions for app " + engineId);
 		// add descriptions
 		if(options.contains("descriptions")) {
 			Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(engineId);
@@ -100,7 +107,10 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 				File positionFile = app.getOwlPositionFile();
 				// try to make the file
 				if(!positionFile.exists()) {
+					logger.info("Generating metamodel layout for app " + engineId);
+					logger.info("This process may take some time");
 					GenerateMetamodelLayout.generateLayout(engineId);
+					logger.info("Metamodel layout has been generated");
 				}
 				
 				if(positionFile.exists()) {

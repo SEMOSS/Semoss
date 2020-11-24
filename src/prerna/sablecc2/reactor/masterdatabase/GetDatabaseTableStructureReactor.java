@@ -38,20 +38,16 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
 		}
-		
-		// if cache exists, return from there
-		{
-			List<Object[]> cacheData = EngineSyncUtility.getDatabaseStructureCache(engineId);
-			if(cacheData != null) {
-				return new NounMetadata(cacheData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
-			}
-		}
-		
+
 		Logger logger = getLogger(CLASS_NAME);
 		logger.info("Pulling database structure for app " + engineId);
-		List<Object[]> data = MasterDatabaseUtility.getAllTablesAndColumns(engineId);
-		// store the cache for the database structure
-		EngineSyncUtility.setDatabaseStructureCache(engineId, data);
+		// if cache exists, return from there
+		List<Object[]> data = EngineSyncUtility.getDatabaseStructureCache(engineId);
+		if(data == null) {
+			data = MasterDatabaseUtility.getAllTablesAndColumns(engineId);
+			// store the cache for the database structure
+			EngineSyncUtility.setDatabaseStructureCache(engineId, data);
+		}
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
 	}
 }
