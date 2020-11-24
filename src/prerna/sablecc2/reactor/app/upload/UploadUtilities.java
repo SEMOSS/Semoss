@@ -418,7 +418,7 @@ public class UploadUtilities {
 			File newFile = new File(appTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			bufferedWriter.write("Base Properties" +  newLine);
+			bufferedWriter.write("#Base Properties" +  newLine);
 			bufferedWriter.write(Constants.ENGINE + tab + appId + newLine);
 			bufferedWriter.write(Constants.ENGINE_ALIAS + tab + appName + newLine);
 			bufferedWriter.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
@@ -1187,7 +1187,7 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	private static void writeDefaultSettings(BufferedWriter bufferedWriter, String appId, String appName, File owlFile, String engineClassName, final String newLine, final String tab) throws IOException {
-		bufferedWriter.write("Base Properties" +  newLine);
+		bufferedWriter.write("#Base Properties" +  newLine);
 		bufferedWriter.write(Constants.ENGINE + tab + appId + newLine);
 		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + appName + newLine);
 		bufferedWriter.write(Constants.ENGINE_TYPE + tab + engineClassName + newLine);
