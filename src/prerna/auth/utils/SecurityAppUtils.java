@@ -340,6 +340,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addRelation("USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("USER__ID"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
