@@ -197,16 +197,16 @@ public abstract class AbstractEngine implements IEngine {
 			if(this.prop != null) {
 				// do the piece of encrypting here
 				boolean encryptFile = false;
-				if(DIHelper.getInstance().getProperty("ENCRYPT") != null) {
-					encryptFile = Boolean.parseBoolean(DIHelper.getInstance().getProperty("ENCRYPT") + "");
+				if(DIHelper.getInstance().getProperty(Constants.ENCRYPT_SMSS) != null) {
+					encryptFile = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.ENCRYPT_SMSS) + "");
 				}
 				// if not at application level, are we doing at app level
-				if(!encryptFile && prop.containsKey("ENCRYPT")) {
-					encryptFile = Boolean.parseBoolean(prop.getProperty("ENCRYPT"));
+				if(!encryptFile && prop.containsKey(Constants.ENCRYPT_SMSS)) {
+					encryptFile = Boolean.parseBoolean(prop.getProperty(Constants.ENCRYPT_SMSS));
 				}
 				
-				if(encryptFile && this.prop.containsKey("PASSWORD") && 
-					!((String)this.prop.get("PASSWORD")).equalsIgnoreCase("encrypted password")) {
+				if(encryptFile && this.prop.containsKey(Constants.PASSWORD) && 
+					!((String)this.prop.get(Constants.PASSWORD)).equalsIgnoreCase("encrypted password")) {
 						prop = encryptPropFile(propFile);
 				}
 				
