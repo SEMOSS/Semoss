@@ -1,4 +1,4 @@
-This section is for properties
+#This section is for properties
 
 ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher
@@ -19,7 +19,11 @@ BaseFolder	C:\\workspace\\Semoss_Dev
 ADDITIONAL_REACTORS C:\\workspace\\Semoss_Dev\\reactors.json
 SOCIAL	C:\\workspace\\Semoss_Dev\\social.properties
 
+#Caching for tasks
 X_CACHE false
+
+#Encrypt the SMSS file passwords
+ENCRYPT false
 
 USE_PYTHON false
 PY_WORKER prerna.pyserve.FileBasedPyWorker
