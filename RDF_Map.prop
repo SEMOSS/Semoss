@@ -23,7 +23,7 @@ SOCIAL	C:\\workspace\\Semoss_Dev\\social.properties
 X_CACHE false
 
 #Encrypt the SMSS file passwords
-ENCRYPT false
+ENCRYPT_SMSS false
 
 USE_PYTHON false
 PY_WORKER prerna.pyserve.FileBasedPyWorker
