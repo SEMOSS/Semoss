@@ -69,6 +69,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		String appName = engine.getEngineName();
 		RDBMSNativeEngine insightEngine = engine.getInsightDatabase();
 		ENGINE_TYPE eType = engine.getEngineType();
+		ClusterUtil.reactorPullInsightsDB(appId);
 		if(addAll) {
 			logger.info("Adding all default insights");
 			String newInsightId = UploadUtilities.addExploreInstanceInsight(appId, appName, insightEngine);
@@ -163,7 +164,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		}
 		
 		// push to the cloud
-		ClusterUtil.reactorPushApp(appId);
+		ClusterUtil.reactorPushInsightDB(appId);
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		if(addedInsight) {
