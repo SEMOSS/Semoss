@@ -1,26 +1,26 @@
 package prerna.query.querystruct.filters;
 
-public class FilterBooleanVal {
+public class BooleanValMetadata {
 
-	private enum FILTER_BOOLEAN_MAP_TYPE {FRAME, PANEL};
+	private enum BOOLEAN_TYPE {FRAME, PANEL};
 	
-	private FILTER_BOOLEAN_MAP_TYPE type = null;
+	private BOOLEAN_TYPE type = null;
 	private String name = null;
 	private boolean filterVal = false;
 	
-	private FilterBooleanVal() {
+	private BooleanValMetadata() {
 		
 	}
 	
-	public static FilterBooleanVal getFrameFilter() {
-		FilterBooleanVal map = new FilterBooleanVal();
-		map.type = FILTER_BOOLEAN_MAP_TYPE.FRAME;
+	public static BooleanValMetadata getFrameVal() {
+		BooleanValMetadata map = new BooleanValMetadata();
+		map.type = BOOLEAN_TYPE.FRAME;
 		return map;
 	}
 	
-	public static FilterBooleanVal getPanelFilter() {
-		FilterBooleanVal map = new FilterBooleanVal();
-		map.type = FILTER_BOOLEAN_MAP_TYPE.PANEL;
+	public static BooleanValMetadata getPanelVal() {
+		BooleanValMetadata map = new BooleanValMetadata();
+		map.type = BOOLEAN_TYPE.PANEL;
 		return map;
 	}
 	
