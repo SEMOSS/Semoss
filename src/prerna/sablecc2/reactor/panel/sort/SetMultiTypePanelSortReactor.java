@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.BooleanValMetadata;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -95,7 +96,11 @@ public class SetMultiTypePanelSortReactor extends AbstractPanelSortReactor {
 		
 		// set this new list into the panel order by
 		panel.setPanelOrderBys(sorts);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.PANEL_SORT);
+		
+		BooleanValMetadata pSortVal = BooleanValMetadata.getPanelVal();
+		pSortVal.setName(panel.getPanelId());
+		pSortVal.setFilterVal(true);
+		NounMetadata noun = new NounMetadata(pSortVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_SORT);
 		return noun;
 	}
 	
