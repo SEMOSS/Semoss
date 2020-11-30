@@ -158,9 +158,6 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 					additionalNouns.add(NounMetadata.getWarningNounMessage("This app is not an RDBMS so grid delta insight cannot be added"));
 				}
 			}
-			if(insightsToAdd.contains("")) {
-				
-			}
 		}
 		
 		// push to the cloud
