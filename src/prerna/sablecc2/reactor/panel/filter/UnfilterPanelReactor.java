@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.panel.filter;
 import java.util.List;
 
 import prerna.om.InsightPanel;
-import prerna.query.querystruct.filters.FilterBooleanVal;
+import prerna.query.querystruct.filters.BooleanValMetadata;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -44,10 +44,10 @@ public class UnfilterPanelReactor extends AbstractFilterReactor {
 			}
 		}
 		
-		FilterBooleanVal pFilterVal = FilterBooleanVal.getPanelFilter();
+		BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
 		pFilterVal.setName(panel.getPanelId());
 		pFilterVal.setFilterVal(hasFilters);
-		NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.FILTER_BOOLEAN_VAL, PixelOperationType.PANEL_FILTER_CHANGE);
+		NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_FILTER_CHANGE);
 		return noun;
 	}
 }

@@ -34,8 +34,8 @@ public enum PixelDataType {
 	FRAME ("FRAME", ReactorKeysEnum.FRAME),
 	FRAME_MAP ("FRAME_MAP", null),
 	
-	// filter return
-	FILTER_BOOLEAN_VAL("FILTER_BOOLEAN_VAL", null),
+	// filter/sort return
+	BOOLEAN_METADATA("BOOLEAN_METADATA", null),
 	
 	// upload map
 	UPLOAD_RETURN_MAP ("UPLOAD_RETURN_MAP", null),
