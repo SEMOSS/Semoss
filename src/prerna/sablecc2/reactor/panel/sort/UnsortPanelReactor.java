@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.panel.sort;
 import java.util.List;
 
 import prerna.om.InsightPanel;
+import prerna.query.querystruct.filters.BooleanValMetadata;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryCustomOrderBy;
@@ -60,6 +61,10 @@ public class UnsortPanelReactor extends AbstractPanelSortReactor {
 			}
 		}
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.PANEL_SORT);
+		BooleanValMetadata pSortVal = BooleanValMetadata.getPanelVal();
+		pSortVal.setName(panel.getPanelId());
+		pSortVal.setFilterVal(true);
+		NounMetadata noun = new NounMetadata(pSortVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_SORT);
+		return noun;
 	}
 }

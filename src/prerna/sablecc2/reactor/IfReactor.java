@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.query.querystruct.filters.FilterBooleanVal;
+import prerna.query.querystruct.filters.BooleanValMetadata;
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -50,8 +50,8 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 			this.caseEvaluation = (boolean) ifEvaluatorObject;
 		} else if(ifEvaluatorType == PixelDataType.COLUMN) {
 			this.caseEvaluation = (boolean) this.planner.getVariableValue(ifEvaluatorObject.toString()).getValue();
-		} else if(ifEvaluatorType == PixelDataType.FILTER_BOOLEAN_VAL) {
-			FilterBooleanVal filterVal = (FilterBooleanVal) ifEvaluatorObject;
+		} else if(ifEvaluatorType == PixelDataType.BOOLEAN_METADATA) {
+			BooleanValMetadata filterVal = (BooleanValMetadata) ifEvaluatorObject;
 			this.caseEvaluation = filterVal.getFilterVal();
 		} else if(ifEvaluatorType == PixelDataType.FILTER) {
 			// we have a filter object
