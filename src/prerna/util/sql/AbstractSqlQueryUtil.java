@@ -488,6 +488,12 @@ public abstract class AbstractSqlQueryUtil {
 	
 	public abstract String getYearFunctionSyntax();
 	
+	// TODO: NEED TO BUILD OUT MORE FUNCTIONS THIS WAY TO ACCOUNT 
+	// FUNCTION SYNTAX REQUIREMENTS BASED ON THE SQL TYPE
+	public abstract String processGroupByFunction(String selector, String separator);
+	
+	// TODO: this might potentially be replaced from the above
+	// once we implement all the various functions
 	public abstract void appendDefaultFunctionOptions(QueryFunctionSelector fun);
 
 	// date functions - require more complex inputs
@@ -778,8 +784,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValue
 	 * @return
 	 */
-	public abstract String alterTableAddColumnWithDefault(String tableName, String newColumn, String newColType,
-			Object defualtValue);
+	public abstract String alterTableAddColumnWithDefault(String tableName, String newColumn, String newColType, Object defualtValue);
 
 	/**
 	 * Add a new column to an existing table if the column does not exist
@@ -823,8 +828,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValue
 	 * @return
 	 */
-	public abstract String alterTableAddColumnsWithDefaults(String tableName, String[] newColumns, String[] newColTypes,
-			Object[] defaultValues);
+	public abstract String alterTableAddColumnsWithDefaults(String tableName, String[] newColumns, String[] newColTypes, Object[] defaultValues);
 
 	/**
 	 * Drop a column from an existing table
@@ -863,8 +867,7 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValue
 	 * @return
 	 */
-	public abstract String modColumnTypeWithDefault(String tableName, String columnName, String dataType,
-			Object defualtValue);
+	public abstract String modColumnTypeWithDefault(String tableName, String columnName, String dataType, Object defualtValue);
 
 	/**
 	 * Modify a column definition if it exists
@@ -885,9 +888,26 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param defaultValue
 	 * @return
 	 */
-	public abstract String modColumnTypeIfExistsWithDefault(String tableName, String columnName, String dataType,
-			Object defualtValue);
+	public abstract String modColumnTypeIfExistsWithDefault(String tableName, String columnName, String dataType, Object defualtValue);
 
+	/**
+	 * Modify a column to not allow nulls
+	 * @param tableName
+	 * @param columnName
+	 * @param dataType
+	 * @return
+	 */
+	public abstract String modColumnNotNull(String tableName, String columnName, String dataType);
+	
+	/**
+	 * Modify a column name in a table
+	 * @param tableName
+	 * @param curColName
+	 * @param newColName
+	 * @return
+	 */
+	public abstract String modColumnName(String tableName, String curColName, String newColName);
+	
 	/*
 	 * Index
 	 */

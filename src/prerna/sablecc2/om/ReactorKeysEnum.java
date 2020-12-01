@@ -83,6 +83,7 @@ public enum ReactorKeysEnum {
 	JOB_GROUP("jobGroup",                                   "The name of the job group"),
 	JOB_ID("jobId", 										"Id of the job"),
 	JOB_NAME("jobName",                                     "The name of the job"),
+	JOB_TAGS("jobTags",                                   	"List of job tags to use for filtering"),
 	JOINS("joins", 											"Joins on the frame"),
 	LAYER("layer", 											"The id for the layer of this visualization"),				
 	LAMBDA("lambda", 										"Name of the lambda transformtion to perform"),				

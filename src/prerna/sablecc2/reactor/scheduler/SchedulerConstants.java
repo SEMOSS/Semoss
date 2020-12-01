@@ -21,6 +21,7 @@ public final class SchedulerConstants {
 	public static final String SMSS_JOB_RECIPES = "SMSS_JOB_RECIPES";
 	public static final String SMSS_AUDIT_TRAIL = "SMSS_AUDIT_TRAIL";
 	public static final String SMSS_EXECUTION = "SMSS_EXECUTION";
+	public static final String SMSS_JOB_TAGS  = "SMSS_JOB_TAGS";
 
 	// Column Headers
 	public static final String SCHED_NAME = "SCHED_NAME";
@@ -36,7 +37,10 @@ public final class SchedulerConstants {
 	public static final String SCHED_TIME = "SCHED_TIME";
 	public static final String PRIORITY = "PRIORITY";
 	public static final String STATE = "STATE";
+	public static final String JOB_TAG = "JOB_TAG";
+	public static final String JOB_ID = "JOB_ID";
 	public static final String JOB_NAME = "JOB_NAME";
+	public static final String JOB_TAGS = "JOB_TAGS";
 	public static final String JOB_GROUP = "JOB_GROUP";
 	public static final String IS_NONCONCURRENT = "IS_NONCONCURRENT";
 	public static final String REQUESTS_RECOVERY = "REQUESTS_RECOVERY";

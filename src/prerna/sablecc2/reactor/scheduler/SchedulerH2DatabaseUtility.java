@@ -33,7 +33,10 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_CATEGORY;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_CLASS_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_DATA;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_GROUP;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_ID;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_NAME;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_TAG;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_TAGS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.LAST_CHECKIN_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.LOCK_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.LONG_PROP_1;
@@ -67,6 +70,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMALLINT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_AUDIT_TRAIL;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_EXECUTION;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_JOB_RECIPES;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_JOB_TAGS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.START_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.STATE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.STR_PROP_1;
@@ -111,6 +115,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -133,11 +139,12 @@ public class SchedulerH2DatabaseUtility {
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	/**
-	 * SELECT SMSS_JOB_RECIPES.USER_ID, SMSS_JOB_RECIPES.JOB_NAME, SMSS_JOB_RECIPES.JOB_GROUP, SMSS_JOB_RECIPES.CRON_EXPRESSION, 
+	 * SELECT SMSS_JOB_RECIPES.USER_ID, SMSS_JOB_RECIPES.JOB_ID, SMSS_JOB_RECIPES.JOB_NAME, SMSS_JOB_RECIPES.JOB_GROUP, SMSS_JOB_RECIPES.CRON_EXPRESSION,
 	 * SMSS_JOB_RECIPES.PIXEL_RECIPE, SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, SMSS_JOB_RECIPES.PARAMETERS, QRTZ_TRIGGERS.NEXT_FIRE_TIME, QRTZ_TRIGGERS.PREV_FIRE_TIME
 	 * FROM SMSS_JOB_RECIPES LEFT OUTER JOIN QRTZ_TRIGGERS ON SMSS_JOB_RECIPES.JOB_NAME = QRTZ_TRIGGERS.JOB_NAME AND SMSS_JOB_RECIPES.JOB_GROUP = QRTZ_TRIGGERS.JOB_GROUP
 	 */
 	private static final String BASE_JOB_DETAILS_QUERY = "SELECT SMSS_JOB_RECIPES.USER_ID, "
+			+ "SMSS_JOB_RECIPES.JOB_ID, "
 			+ "SMSS_JOB_RECIPES.JOB_NAME, "
 			+ "SMSS_JOB_RECIPES.JOB_GROUP, "
 			+ "SMSS_JOB_RECIPES.CRON_EXPRESSION, "
@@ -146,12 +153,12 @@ public class SchedulerH2DatabaseUtility {
 			+ "SMSS_JOB_RECIPES.PARAMETERS, "
 			+ "QRTZ_TRIGGERS.NEXT_FIRE_TIME, "
 			+ "QRTZ_TRIGGERS.PREV_FIRE_TIME, "
-			+ "QRTZ_TRIGGERS.TRIGGER_STATE "
-			+ "FROM SMSS_JOB_RECIPES "
-			+ "LEFT OUTER JOIN QRTZ_TRIGGERS ON "
-			+ "SMSS_JOB_RECIPES.JOB_NAME = QRTZ_TRIGGERS.JOB_NAME "
+			+ "QRTZ_TRIGGERS.TRIGGER_STATE";
+
+	private static final String JOIN_JOB_DETAILS_QUERY = "LEFT OUTER JOIN QRTZ_TRIGGERS ON "
+			+ "SMSS_JOB_RECIPES.JOB_ID = QRTZ_TRIGGERS.JOB_NAME "
 			+ "AND SMSS_JOB_RECIPES.JOB_GROUP = QRTZ_TRIGGERS.JOB_GROUP ";
-	
+
 	static RDBMSNativeEngine schedulerDb;
 	static AbstractSqlQueryUtil queryUtil;
 
@@ -229,12 +236,12 @@ public class SchedulerH2DatabaseUtility {
 		}
 	}
 	
-	public static boolean insertIntoExecutionTable(String execId, String jobName, String jobGroup) {
+	public static boolean insertIntoExecutionTable(String execId, String jobId, String jobGroup) {
 		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
-				.prepareStatement("INSERT INTO SMSS_EXECUTION (EXEC_ID, JOB_NAME, JOB_GROUP) VALUES (?,?,?)")) {
+				.prepareStatement("INSERT INTO SMSS_EXECUTION (EXEC_ID, JOB_ID, JOB_GROUP) VALUES (?,?,?)")) {
 			statement.setString(1, execId);
-			statement.setString(2, jobName);
+			statement.setString(2, jobId);
 			statement.setString(3, jobGroup);
 			statement.executeUpdate();
 		} catch (SQLException e) {
@@ -249,13 +256,13 @@ public class SchedulerH2DatabaseUtility {
 		Connection connection = connectToScheduler();
 		ResultSet rs = null;
 		try (PreparedStatement statement = connection
-				.prepareStatement("SELECT JOB_NAME, JOB_GROUP FROM SMSS_EXECUTION WHERE EXEC_ID = ?")) {
+				.prepareStatement("SELECT JOB_ID, JOB_GROUP FROM SMSS_EXECUTION WHERE EXEC_ID = ?")) {
 			statement.setString(1, execId);
 			rs = statement.executeQuery();
 			if(rs.next()) {
-				String jobName = rs.getString(1);
+				String jobId = rs.getString(1);
 				String jobGroup = rs.getString(2);
-				return new String[] {jobName, jobGroup};
+				return new String[] {jobId , jobGroup};
 			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -287,15 +294,15 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static boolean insertIntoAuditTrailTable(String jobName, String jobGroup, Long start, Long end, boolean success) {
+	public static boolean insertIntoAuditTrailTable(String jobId, String jobGroup, Long start, Long end, boolean success) {
 		Connection connection = connectToScheduler();
 
 		Timestamp startTimeStamp = new Timestamp(start);
 		Timestamp endTimeStamp = new Timestamp(end);
 
 		try (PreparedStatement statement = connection
-				.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL (JOB_NAME, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS) VALUES (?,?,?,?,?,?)")) {
-			statement.setString(1, jobName);
+				.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL (JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS) VALUES (?,?,?,?,?,?)")) {
+			statement.setString(1, jobId);
 			statement.setString(2, jobGroup);
 			statement.setTimestamp(3, startTimeStamp);
 			statement.setTimestamp(4, endTimeStamp);
@@ -310,53 +317,94 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static boolean insertIntoJobRecipesTable(String userId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters, 
-			String jobCategory, boolean triggerOnLoad, String parameters) {
+	public static boolean insertIntoJobRecipesTable(String userId, String jobId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters,
+			String jobCategory, boolean triggerOnLoad, String parameters, List<String> jobTags ) {
 		
 		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
-				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS) VALUES (?,?,?,?,?,?,?,?,?)")) {
+				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS) VALUES (?,?,?,?,?,?,?,?,?,?)")) {
 			statement.setString(1, userId);
-			statement.setString(2, jobName);
-			statement.setString(3, jobGroup);
-			statement.setString(4, cronExpression);
-			statement.setString(7, jobCategory);
-			statement.setBoolean(8, triggerOnLoad);
+			statement.setString(2, jobId);
+			statement.setString(3, jobName);
+			statement.setString(4, jobGroup);
+			statement.setString(5, cronExpression);
+			statement.setString(8, jobCategory);
+			statement.setBoolean(9, triggerOnLoad);
 
 			if(queryUtil.allowBlobJavaObject()) {
-				statement.setBlob(5, stringToBlob(connection, recipe));
+				statement.setBlob(6, stringToBlob(connection, recipe));
 				if(recipeParameters == null || recipeParameters.isEmpty()) {
-					statement.setNull(6, java.sql.Types.BLOB);
+					statement.setNull(7, java.sql.Types.BLOB);
 				} else {
-					statement.setBlob(6, stringToBlob(connection, recipeParameters));
+					statement.setBlob(7, stringToBlob(connection, recipeParameters));
 				}
-				statement.setBlob(9, stringToBlob(connection, parameters));
+				statement.setBlob(10, stringToBlob(connection, parameters));
 			} else {
-				statement.setString(5, recipe);
+				statement.setString(6, recipe);
 				if(recipeParameters == null || recipeParameters.isEmpty()) {
-					statement.setNull(6, java.sql.Types.BLOB);
+					statement.setNull(7, java.sql.Types.BLOB);
 				} else {
-					statement.setString(6, recipeParameters);
+					statement.setString(7, recipeParameters);
 				}
-				statement.setString(9, parameters);
+				statement.setString(10, parameters);
 			}
-			
+
+
 			statement.executeUpdate();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
 		}
 
+
+		return updateJobTags(jobId, jobTags);
+	}
+
+	/**
+	 * Update the job tags for a specific job
+	 * @param jobId
+	 * @param jobTags
+	 * @return
+	 */
+	public static boolean updateJobTags( String jobId, List<String> jobTags) {
+		Connection connection = connectToScheduler();
+
+		// first we delete old tags
+		try (PreparedStatement statement = connection.prepareStatement("DELETE FROM SMSS_JOB_TAGS WHERE JOB_ID=?")) {
+			statement.setString(1, jobId);
+			statement.execute();
+		} catch( SQLException e) {
+			logger.error(Constants.STACKTRACE, e );
+			return false;
+		}
+
+
+		if(jobTags == null) {
+			return true;
+		}
+
+		// bulk insert for the job tags
+		try (PreparedStatement statement = connection.prepareStatement("INSERT INTO SMSS_JOB_TAGS (JOB_ID, JOB_TAG) VALUES (?,?)")) {
+			for(String jobTag : jobTags) {
+				statement.setString(1, jobId);
+				statement.setString(2, jobTag);
+				statement.addBatch();
+			}
+			statement.executeBatch();
+		} catch( SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return false;
+		}
 		return true;
 	}
 	
-	public static boolean updateJobRecipesTable(String userId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters, 
-			String jobCategory, boolean triggerOnLoad, String parameters, String existingJobName, String existingJobGroup) {
+	public static boolean updateJobRecipesTable(String userId, String jobId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters,
+			String jobCategory, boolean triggerOnLoad, String parameters, String existingJobName, String existingJobGroup, List<String> jobTags) {
 		
 		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
 				.prepareStatement("UPDATE SMSS_JOB_RECIPES SET USER_ID = ?, JOB_NAME = ?, JOB_GROUP = ?, CRON_EXPRESSION = ?, PIXEL_RECIPE = ?, "
-						+ "PIXEL_RECIPE_PARAMETERS = ?, JOB_CATEGORY = ?, TRIGGER_ON_LOAD = ?, PARAMETERS = ? WHERE JOB_NAME = ? AND JOB_GROUP = ?")) {
+						+ "PIXEL_RECIPE_PARAMETERS = ?, JOB_CATEGORY = ?, TRIGGER_ON_LOAD = ?, PARAMETERS = ? WHERE JOB_ID = ? AND JOB_GROUP = ?")) {
 			statement.setString(1, userId);
 			statement.setString(2, jobName);
 			statement.setString(3, jobGroup);
@@ -383,7 +431,7 @@ public class SchedulerH2DatabaseUtility {
 			}
 			
 			// where clause filters
-			statement.setString(10, existingJobName);
+			statement.setString(10, jobId);
 			statement.setString(11, existingJobGroup);
 			
 			statement.executeUpdate();
@@ -392,14 +440,14 @@ public class SchedulerH2DatabaseUtility {
 			return false;
 		}
 
-		return true;
+		return updateJobTags(jobId, jobTags);
 	}
 
-	public static boolean removeFromJobRecipesTable(String jobName, String jobGroup) {
+	public static boolean removeFromJobRecipesTable(String jobId , String jobGroup) {
 		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
-				.prepareStatement("DELETE FROM SMSS_JOB_RECIPES WHERE JOB_NAME=? AND JOB_GROUP=?")) {
-			statement.setString(1, jobName);
+				.prepareStatement("DELETE FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?")) {
+			statement.setString(1, jobId);
 			statement.setString(2, jobGroup);
 
 			statement.executeUpdate();
@@ -411,11 +459,11 @@ public class SchedulerH2DatabaseUtility {
 		return true;
 	}
 
-	public static boolean existsInJobRecipesTable(String jobName, String jobGroup) {
+	public static boolean existsInJobRecipesTable(String jobId, String jobGroup) {
 		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
-				.prepareStatement("SELECT COUNT(JOB_NAME) FROM SMSS_JOB_RECIPES WHERE JOB_NAME=? AND JOB_GROUP=?");) {
-			statement.setString(1, jobName);
+				.prepareStatement("SELECT COUNT(JOB_ID) FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?");) {
+			statement.setString(1, jobId);
 			statement.setString(2, jobGroup);
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
@@ -455,12 +503,14 @@ public class SchedulerH2DatabaseUtility {
 //		return true;
 //	}
 
-	public static Map<String, Map<String, String>> retrieveJobsForApp(String appId) {
+	public static Map<String, Map<String, String>> retrieveJobsForApp(String appId, List<String> jobTags ) {
 		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
+
 		try (PreparedStatement statement = connection
-				.prepareStatement(BASE_JOB_DETAILS_QUERY + " WHERE JOB_GROUP=?")) {
+				.prepareStatement(createJobQuery("WHERE JOB_GROUP=?",jobTags))) {
 			statement.setString(1, appId);
+
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
 					fillJobDetailsMap(jobMap, result);
@@ -473,11 +523,11 @@ public class SchedulerH2DatabaseUtility {
 		return jobMap;
 	}
 
-	public static Map<String, Map<String, String>> retrieveUsersJobsForApp(String appId, String userId) {
+	public static Map<String, Map<String, String>> retrieveUsersJobsForApp(String appId, String userId, List<String> jobTags) {
 		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
-				.prepareStatement(BASE_JOB_DETAILS_QUERY + " WHERE USER_ID=? AND JOB_GROUP=?")) {
+				.prepareStatement(createJobQuery(" WHERE USER_ID=? AND JOB_GROUP=?",jobTags))) {
 			statement.setString(1, userId);
 			statement.setString(2, appId);
 
@@ -493,11 +543,11 @@ public class SchedulerH2DatabaseUtility {
 		return jobMap;
 	}
 
-	public static Map<String, Map<String, String>> retrieveUsersJobs(String userId) {
+	public static Map<String, Map<String, String>> retrieveUsersJobs(String userId, List<String> jobTags) {
 		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
-				.prepareStatement(BASE_JOB_DETAILS_QUERY + " WHERE USER_ID=?")) {
+				.prepareStatement(createJobQuery(" WHERE USER_ID=?",jobTags))) {
 			statement.setString(1, userId);
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
@@ -511,11 +561,58 @@ public class SchedulerH2DatabaseUtility {
 		return jobMap;
 	}
 
-	public static Map<String, Map<String, String>> retrieveAllJobs() {
+	/**
+	 * Query generation helper
+	 * @param where
+	 * @param jobTags
+	 * @return
+	 */
+	public static String createJobQuery(String where, List<String> jobTags ) {
+		StringBuilder queryBuilder = new StringBuilder();
+		queryBuilder.append(BASE_JOB_DETAILS_QUERY);
+		// add the job tags
+		// this depends on how group_concat is defined based on the rdbms type
+		queryBuilder.append(", (SELECT ")
+			.append(queryUtil.processGroupByFunction("JOB_TAG", ","))
+			.append(" FROM SMSS_JOB_TAGS WHERE SMSS_JOB_TAGS.JOB_ID=SMSS_JOB_RECIPES.JOB_ID) AS JOB_TAGS ");
+
+		if(jobTags == null) {
+			queryBuilder.append( "FROM SMSS_JOB_RECIPES ");
+		} else {
+			queryBuilder.append( "FROM SMSS_JOB_TAGS,SMSS_JOB_RECIPES ");
+		}
+
+		queryBuilder.append( JOIN_JOB_DETAILS_QUERY );
+
+		if( where != null ) {
+			queryBuilder.append(' ');
+			queryBuilder.append(where);
+		}
+		if( jobTags != null) {
+			if(where != null) {
+				queryBuilder.append(" AND ");
+			} else {
+				queryBuilder.append(" WHERE ");
+			}
+
+			Iterator<String> i = jobTags.iterator();
+			while( i.hasNext() ) {
+				queryBuilder.append( String.format(" '%s' IN (SELECT SMSS_JOB_TAGS.JOB_TAG FROM SMSS_JOB_TAGS WHERE SMSS_JOB_TAGS.JOB_ID=SMSS_JOB_RECIPES.JOB_ID)", i.next()));
+				if( i.hasNext() ) {
+					queryBuilder.append( " OR " );
+				}
+			}
+		}
+		
+//		System.out.println(queryBuilder.toString());
+		return queryBuilder.toString();
+	}
+
+	public static Map<String, Map<String, String>> retrieveAllJobs(List<String> jobTags) {
 		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
-		try (PreparedStatement statement = connection
-				.prepareStatement(BASE_JOB_DETAILS_QUERY)) {
+		String query = createJobQuery(null, jobTags);
+		try (PreparedStatement statement = connection.prepareStatement(query)) {
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
 					fillJobDetailsMap(jobMap, result);
@@ -532,6 +629,8 @@ public class SchedulerH2DatabaseUtility {
 		Map<String, String> jobDetailsMap = new HashMap<>();
 
 		String userId = result.getString(USER_ID);
+		String jobId  = result.getString(JOB_ID);
+		String jobTags  = result.getString(JOB_TAGS);
 		String jobName = result.getString(JOB_NAME);
 		String jobGroup = result.getString(JOB_GROUP);
 		String cronExpression = result.getString(CRON_EXPRESSION);
@@ -560,8 +659,10 @@ public class SchedulerH2DatabaseUtility {
 		}
 		
 		jobDetailsMap.put(USER_ID, userId);
-		jobDetailsMap.put(ReactorKeysEnum.JOB_GROUP.getKey(), jobName);
+		jobDetailsMap.put(ReactorKeysEnum.JOB_ID.getKey(), jobId);
+		jobDetailsMap.put(ReactorKeysEnum.JOB_GROUP.getKey(), jobGroup );
 		jobDetailsMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
+		jobDetailsMap.put(ReactorKeysEnum.JOB_TAGS.getKey(), jobTags );
 		jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), recipeParameters);
@@ -587,7 +688,7 @@ public class SchedulerH2DatabaseUtility {
 		}
 
 		// add to the job map
-		JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
+		JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 		jobMap.put(jobKey.toString(), jobDetailsMap);
 	}
 
@@ -606,9 +707,10 @@ public class SchedulerH2DatabaseUtility {
 			result = preparedStatement.executeQuery();
 
 			while (result.next()) {
+				String jobId= result.getString(JOB_ID);
 				String jobName = result.getString(JOB_NAME);
 				String jobGroup = result.getString(JOB_GROUP);
-				JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
+				JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 				logger.info("Triggering job on startup " + jobName);
 				scheduler.triggerJob(jobKey);
 				
@@ -963,12 +1065,12 @@ public class SchedulerH2DatabaseUtility {
 
 		try {
 			// SMSS_JOB_RECIPES
-			colNames = new String[] { USER_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS };
-			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB, BLOB, VARCHAR_200, BOOLEAN, BLOB };
+			colNames = new String[] { USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS };
+			types = new String[] { VARCHAR_120, VARCHAR_200,VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB, BLOB, VARCHAR_200, BOOLEAN, BLOB };
 			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			if(!allowBlobDataType) { types = cleanUpDataType(types, BLOB, queryUtil.getBlobReplacementDataType()); };
-			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null };
-	
+			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null };
+
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(
 						queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints));
@@ -976,11 +1078,10 @@ public class SchedulerH2DatabaseUtility {
 				// see if table exists
 				if (!queryUtil.tableExists(connection, SMSS_JOB_RECIPES, schema)) {
 					// make the table
-					schedulerDb.insertData(
-							queryUtil.createTableWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints));
+					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints));
 				}
 			}
-			
+
 			// ADDED 2020-08-21
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
@@ -993,16 +1094,43 @@ public class SchedulerH2DatabaseUtility {
 					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, dataType));
 				}
 			}
+
+			// ADDED 2020-11-30
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			{
+				// need to add new JobId
+				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, schema).contains(JOB_ID)) {
+					// alter table to add the column
+					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.alterTableAddColumnWithDefault("SMSS_JOB_RECIPES", "JOB_ID", "VARCHAR(200)", "PLACEHOLDER"), true);
+					// make the JOB_ID the JOB_NAME for LEGACY recipes
+					schedulerDb.execUpdateAndRetrieveStatement("UPDATE SMSS_JOB_RECIPES SET JOB_ID=JOB_NAME", true);
+					// add constraints on job id column
+					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.modColumnNotNull("SMSS_JOB_RECIPES", "JOB_ID", "VARCHAR(2000)"), true);
+					schedulerDb.execUpdateAndRetrieveStatement("ALTER TABLE SMSS_JOB_RECIPES ADD CONSTRAINT SMSS_JOB_RECIPES_PK PRIMARY KEY (JOB_ID)", true);
+				}
+			}
 			
+			// SMSS_JOB_TAGS
+			colNames = new String[]{JOB_ID, JOB_TAG};
+			types = new String[]{VARCHAR_200, VARCHAR_200};
+			constraints = new String[] { NOT_NULL, NOT_NULL };
+			if (allowIfExistsTable) {
+				schedulerDb.insertData(queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_JOB_TAGS, colNames, types, constraints));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(connection, SMSS_JOB_TAGS, schema)) {
+					// make the table
+					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_JOB_TAGS, colNames, types, constraints));
+				}
+			}
+
 			// SMSS_AUDIT_TRAIL
-			colNames = new String[] { JOB_NAME, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS };
+			colNames = new String[] { JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS };
 			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN };
 			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			if(!dateTimeType.equals(TIMESTAMP)) { types = cleanUpDataType(types, TIMESTAMP, dateTimeType); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, null, null, null, null, null };
-	
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames,
 						types, constraints));
@@ -1010,18 +1138,26 @@ public class SchedulerH2DatabaseUtility {
 				// see if table exists
 				if (!queryUtil.tableExists(connection, SMSS_AUDIT_TRAIL, schema)) {
 					// make the table
-					schedulerDb.insertData(
-							queryUtil.createTableWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types, constraints));
+					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types, constraints));
 				}
 			}
-			
-			
+
+			// ADDED 2020-11-30
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			{
+				// need to add new JobId
+				if(!queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, schema).contains(JOB_ID)) {
+					// change JOB_NAME to JOB_ID
+					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.modColumnName("SMSS_AUDIT_TRAIL", "JOB_NAME", "JOB_ID"), true);
+				}
+			}
+
 			// SMSS_EXECUTION_SCHEDULE
-			colNames = new String[] { EXEC_ID, JOB_NAME, JOB_GROUP};
+			colNames = new String[] { EXEC_ID, JOB_ID, JOB_GROUP};
 			types = new String[] { VARCHAR_200, VARCHAR_200, VARCHAR_200};
 			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			if(!dateTimeType.equals(TIMESTAMP)) { types = cleanUpDataType(types, TIMESTAMP, dateTimeType); };
-	
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(queryUtil.createTableIfNotExists(SMSS_EXECUTION, colNames, types));
 			} else {
@@ -1029,6 +1165,17 @@ public class SchedulerH2DatabaseUtility {
 				if (!queryUtil.tableExists(connection, SMSS_EXECUTION, schema)) {
 					// make the table
 					schedulerDb.insertData(queryUtil.createTable(SMSS_EXECUTION, colNames, types));
+				}
+			}
+
+			// ADDED 2020-11-30
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			{
+				// need to add new JobId
+				if(!queryUtil.getTableColumns(connection, SMSS_EXECUTION, schema).contains(JOB_ID)) {
+					// change JOB_NAME to JOB_ID
+					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.modColumnName("SMSS_EXECUTION", "JOB_NAME", "JOB_ID"), true);
 				}
 			}
 		} catch (SQLException se) {
@@ -1179,7 +1326,6 @@ public class SchedulerH2DatabaseUtility {
 			String query3 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
 			String query4 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS FOREIGN KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP ) REFERENCES QRTZ_JOB_DETAILS ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
 
-			
 			try {
 				schedulerDb.insertData(query1);
 			} catch (SQLException se) {
