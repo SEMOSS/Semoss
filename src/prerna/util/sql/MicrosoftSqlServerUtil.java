@@ -153,10 +153,14 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public String processGroupByFunction(String selectExpression, String separator) {
-		return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(" + selectExpression + ", '" + separator + "')";
+	public String processGroupByFunction(String selectExpression, String separator, boolean distinct) {
+//		if(distinct) {
+//			return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(DISTINCT " + selectExpression + ", '" + separator + "')";
+//		} else {
+			return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(" + selectExpression + ", '" + separator + "')";
+//		}
 	}
-	
+		
 	@Override
 	public boolean allowBooleanDataType() {
 		return false;

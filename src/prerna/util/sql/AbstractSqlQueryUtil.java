@@ -490,7 +490,7 @@ public abstract class AbstractSqlQueryUtil {
 	
 	// TODO: NEED TO BUILD OUT MORE FUNCTIONS THIS WAY TO ACCOUNT 
 	// FUNCTION SYNTAX REQUIREMENTS BASED ON THE SQL TYPE
-	public abstract String processGroupByFunction(String selector, String separator);
+	public abstract String processGroupByFunction(String selector, String separator, boolean distinct);
 	
 	// TODO: this might potentially be replaced from the above
 	// once we implement all the various functions
