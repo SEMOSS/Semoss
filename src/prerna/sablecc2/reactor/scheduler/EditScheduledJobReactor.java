@@ -38,7 +38,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 	private static final String CURRENT_JOB_GROUP = "curJobGroup";
 
 	public EditScheduledJobReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(),ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
 				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), 
 				TRIGGER_ON_LOAD, TRIGGER_NOW, PARAMETERS, CURRENT_JOB_NAME, CURRENT_JOB_GROUP, ReactorKeysEnum.JOB_TAGS.getKey()};
 	}
@@ -84,8 +84,8 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		}
 
 		// existing name/group
-		String curJobName = this.keyValue.get(this.keysToGet[9]);
-		String curJobGroup = this.keyValue.get(this.keysToGet[10]);
+		String curJobName = this.keyValue.get(CURRENT_JOB_NAME);
+		String curJobGroup = this.keyValue.get(CURRENT_JOB_GROUP);
 
 		try {
 			scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
@@ -108,11 +108,11 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			}
 
 			// create json object for later use
-			JsonObject jsonObject = createJsonObject(jobId,jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
-
-			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
-
-			// if job exists throw error, job already exists
+			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
+			// the id does not change
+			// but technically the group does change at the moment
+			JobKey jobKey = JobKey.jobKey(jobId, curJobGroup);
+			// if job does not exist throw error
 			if (!scheduler.checkExists(jobKey)) {
 				logger.error("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
 				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
