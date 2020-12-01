@@ -508,7 +508,7 @@ public class SchedulerH2DatabaseUtility {
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 
 		try (PreparedStatement statement = connection
-				.prepareStatement(createJobQuery("WHERE JOB_GROUP=?",jobTags))) {
+				.prepareStatement(createJobQuery("WHERE SMSS_JOB_RECIPES.JOB_GROUP=?",jobTags))) {
 			statement.setString(1, appId);
 
 			try (ResultSet result = statement.executeQuery()) {
@@ -527,7 +527,7 @@ public class SchedulerH2DatabaseUtility {
 		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
-				.prepareStatement(createJobQuery(" WHERE USER_ID=? AND JOB_GROUP=?",jobTags))) {
+				.prepareStatement(createJobQuery(" WHERE SMSS_JOB_RECIPES.USER_ID=? AND SMSS_JOB_RECIPES.JOB_GROUP=?",jobTags))) {
 			statement.setString(1, userId);
 			statement.setString(2, appId);
 
@@ -547,7 +547,7 @@ public class SchedulerH2DatabaseUtility {
 		Connection connection = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
-				.prepareStatement(createJobQuery(" WHERE USER_ID=?",jobTags))) {
+				.prepareStatement(createJobQuery(" WHERE SMSS_JOB_RECIPES.USER_ID=?",jobTags))) {
 			statement.setString(1, userId);
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
