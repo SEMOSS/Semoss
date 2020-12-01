@@ -2,9 +2,11 @@ package prerna.sablecc2.reactor.scheduler;
 
 import static org.quartz.JobBuilder.newJob;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,8 +60,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 	public ScheduleJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
-				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), 
-				TRIGGER_ON_LOAD, TRIGGER_NOW, PARAMETERS };
+				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(),
+				TRIGGER_ON_LOAD, TRIGGER_NOW, PARAMETERS, ReactorKeysEnum.JOB_TAGS.getKey() };
 	}
 
 	@Override
@@ -70,9 +72,13 @@ public class ScheduleJobReactor extends AbstractReactor {
 		organizeKeys();
 
 		// Get inputs
+        String jobId = UUID.randomUUID().toString();
 		String jobName = this.keyValue.get(this.keysToGet[0]);
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
 		String cronExpression = this.keyValue.get(this.keysToGet[2]);
+
+		List<String> jobTags = getJobTags();
+
 		SchedulerH2DatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
 
 		// the job group is the app the user is in
@@ -118,9 +124,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 			}
 
 			// create json object for later use
-			JsonObject jsonObject = createJsonObject(jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
+			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
 
-			JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
+			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 
 			// if job exists throw error, job already exists
 			if (scheduler.checkExists(jobKey)) {
@@ -139,7 +145,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 			}
 
 			// insert into SMOSS_JOB_RECIPES table
-			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default", triggerOnLoad, parameters);
+			logger.info("Saving JobId to database: "+jobId);
+			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default", triggerOnLoad, parameters, jobTags);
 
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -171,6 +178,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		// Get the job's properties
 		JobConfig jobConfig = JobConfig.initialize(jsonObject);
 		Class<? extends Job> jobClass = RunPixelJobFromDB.class;
+		String jobId = jobConfig.getJobId();
 		String jobName = jobConfig.getJobName();
 		String jobGroup = jobConfig.getJobGroup();
 		String cronExpression = jobConfig.getCronExpression();
@@ -185,21 +193,22 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 
 		// Schedule the job
-		JobDetail job = newJob(jobClass).withIdentity(jobName, jobGroup).usingJobData(jobDataMap).storeDurably().build();
-		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobName + "Trigger", jobGroup + "TriggerGroup")
+		JobDetail job = newJob(jobClass).withIdentity(jobId, jobGroup).usingJobData(jobDataMap).storeDurably().build();
+		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup + "TriggerGroup")
 				.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
 
 		scheduler.scheduleJob(job, trigger);
 
-		logger.info("Scheduled " + jobName + " to run on the following schedule: " + cronExpression + ".");
+		logger.info("Scheduled " + jobId+ " to run on the following schedule: " + cronExpression + ".");
 
 		// Return the job key
 		return job.getKey();
 	}
 
-	public static JsonObject createJsonObject(String jobName, String jobGroup, String cronExpression, String recipe,
+	public static JsonObject createJsonObject(String jobId, String jobName, String jobGroup, String cronExpression, String recipe,
 			boolean triggerOnLoad, String parameters, String providerInfo) {
 		JsonObject jsonObject = new JsonObject();
+		jsonObject.addProperty(JobConfigKeys.JOB_ID, jobId);
 		jsonObject.addProperty(JobConfigKeys.JOB_NAME, jobName);
 		jsonObject.addProperty(JobConfigKeys.JOB_GROUP, jobGroup);
 		jsonObject.addProperty(JobConfigKeys.JOB_CRON_EXPRESSION, cronExpression);
@@ -218,8 +227,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 		GenRowStruct boolGrs = this.store.getNoun(TRIGGER_ON_LOAD);
 		if (boolGrs != null && !boolGrs.isEmpty()) {
 			List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
-
-			return (boolean) val.get(0);
+			if(val != null && !val.isEmpty()) {
+				return (boolean) val.get(0);
+			}
 		}
 
 		return false;
@@ -229,10 +239,24 @@ public class ScheduleJobReactor extends AbstractReactor {
 		GenRowStruct boolGrs = this.store.getNoun(TRIGGER_NOW);
 		if (boolGrs != null && !boolGrs.isEmpty()) {
 			List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
-
-			return (boolean) val.get(0);
+			if(val != null && !val.isEmpty()) {
+				return (boolean) val.get(0);
+			}
 		}
 
 		return false;
+	}
+	
+	protected List<String> getJobTags() {
+		List<String> jobTags = null;
+		GenRowStruct grs= this.store.getNoun(ReactorKeysEnum.JOB_TAGS.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			jobTags = new ArrayList<>();
+			int size = grs.size();
+			for(int i = 0; i < size; i++) {
+				jobTags.add( grs.get(i)+"" );
+			}
+		}
+		return jobTags;
 	}
 }

@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.scheduler;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.quartz.Scheduler;
@@ -8,6 +9,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -22,7 +24,8 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class SchedulerHistoryReactor extends AbstractReactor {
 
 	public SchedulerHistoryReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.SORT.getKey(), 
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.JOB_TAGS.getKey()};
 	}
 
 	@Override
@@ -33,13 +36,38 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 		SchedulerH2DatabaseUtility.startScheduler(scheduler);
 		RDBMSNativeEngine schedulerDb = SchedulerH2DatabaseUtility.getSchedulerDB();
 
+		List<String> jobTags = getJobTags();
+
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.JOB_NAME));
+		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_JOB_RECIPES + "__" + SchedulerConstants.JOB_NAME));
+		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_JOB_RECIPES + "__" + SchedulerConstants.JOB_ID));
+		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.JOB_ID));
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.JOB_GROUP));
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.EXECUTION_START));
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.EXECUTION_END));
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.EXECUTION_DELTA));
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.SUCCESS));
+		qs.addRelation(SchedulerConstants.SMSS_JOB_RECIPES+"__"+SchedulerConstants.JOB_ID, SchedulerConstants.SMSS_AUDIT_TRAIL+"__"+SchedulerConstants.JOB_ID, "left.outer.join");
+		qs.addRelation(SchedulerConstants.SMSS_JOB_RECIPES+"__"+SchedulerConstants.JOB_ID, SchedulerConstants.SMSS_JOB_TAGS+"__"+SchedulerConstants.JOB_ID, "inner.join");
+
+/*		QueryFunctionSelector tagSelector = new QueryFunctionSelector();
+		tagSelector.addInnerSelector(new QueryColumnSelector(SchedulerConstants.SMSS_JOB_TAGS+ "__" + SchedulerConstants.JOB_TAG));
+		tagSelector.setFunction(QueryFunctionHelper.UNIQUE_GROUP_CONCAT);
+		tagSelector.setDistinct(true);
+		qs.addSelector(tagSelector);
+		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_JOB_TAGS+ "__" + SchedulerConstants.JOB_TAG));
+		qs.addGroupBy( new QueryColumnSelector(SchedulerConstants.SMSS_JOB_TAGS+ "__" + SchedulerConstants.JOB_TAG));
+		qs.addGroupBy( new QueryColumnSelector(SchedulerConstants.SMSS_JOB_RECIPES+ "__" + SchedulerConstants.JOB_NAME));
+		qs.addGroupBy( new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL+ "__" + SchedulerConstants.JOB_ID));
+		qs.addGroupBy( new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL+ "__" + SchedulerConstants.EXECUTION_START));
+		qs.addRelation(SchedulerConstants.SMSS_AUDIT_TRAIL+"__"+SchedulerConstants.JOB_ID, SchedulerConstants.SMSS_JOB_TAGS+"__"+SchedulerConstants.JOB_ID, "inner.join");
+ */
+		
+		if( jobTags != null ) {
+			for( String tag : jobTags ) {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SchedulerConstants.SMSS_JOB_TAGS + "__" + SchedulerConstants.JOB_TAG, "==", tag, PixelDataType.CONST_STRING));
+			}
+		}
 
 		GenRowFilters additionalFilters = getFilters();
 		if(additionalFilters != null) {
@@ -59,13 +87,14 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 		IRawSelectWrapper iterator = null;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(schedulerDb, qs);
+//			diagnose(iterator);
 		} catch (Exception e) {
 			e.printStackTrace();
 			String message = e.getMessage();
 			if(message == null || message.isEmpty()) {
 				throw new IllegalArgumentException(message);
 			} else {
-				throw new IllegalArgumentException("An error occured attemping to get your requests");
+				throw new IllegalArgumentException("An error occurred attemping to get your requests");
 			}
 		}
 		BasicIteratorTask task = new BasicIteratorTask(qs, iterator);
@@ -117,5 +146,32 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 		}
 		return -1;
 	}
+	
+	private List<String> getJobTags() {
+		List<String> jobTags = null;
+		GenRowStruct grs= this.store.getNoun(ReactorKeysEnum.JOB_TAGS.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			jobTags = new ArrayList<>();
+			int size = grs.size();
+			for(int i = 0; i < size; i++) {
+				jobTags.add( grs.get(i)+"" );
+			}
+		}
+		return jobTags;
+	}
+
+//	private void diagnose( IRawSelectWrapper iterator )
+//	{
+//	    try {
+//		    String query = iterator.getQuery();
+//			System.out.println("***********************************");
+//			System.out.println(query);
+//			System.out.println("***********************************");
+//		}
+//	    catch( Throwable t )
+//		{
+//			t.printStackTrace();
+//		}
+//	}
 
 }

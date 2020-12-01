@@ -1,7 +1,10 @@
 package prerna.sablecc2.reactor.scheduler;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -14,7 +17,8 @@ public class ListAllJobsReactor extends AbstractReactor {
 	private static final String MY_JOBS = "myJobs";
 
 	public ListAllJobsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.USERNAME.getKey(), MY_JOBS };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.USERNAME.getKey(), MY_JOBS, 
+				ReactorKeysEnum.JOB_TAGS.getKey() };
 	}
 
 	@Override
@@ -36,20 +40,34 @@ public class ListAllJobsReactor extends AbstractReactor {
 
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		String userId = this.keyValue.get(this.keysToGet[1]);
+		List<String> jobTags  = getJobTags();
 
 		if (appId == null && userId == null) {
 			// TODO: check if admin if not admin throw permissions error
 			// security utils. isAdmin() to check if user is admin *******
 			// return all jobs
-			jobMap = SchedulerH2DatabaseUtility.retrieveAllJobs();
+			jobMap = SchedulerH2DatabaseUtility.retrieveAllJobs(jobTags);
 		} else if (appId != null && userId == null) {
-			jobMap = SchedulerH2DatabaseUtility.retrieveJobsForApp(appId);
+			jobMap = SchedulerH2DatabaseUtility.retrieveJobsForApp(appId, jobTags);
 		} else if (appId == null) {
-			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobs(userId);
+			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobs(userId,jobTags);
 		} else {
-			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobsForApp(appId, userId);
+			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobsForApp(appId, userId, jobTags);
 		}
 
 		return new NounMetadata(jobMap, PixelDataType.MAP, PixelOperationType.LIST_JOB);
+	}
+	
+	private List<String> getJobTags() {
+		List<String> jobTags = null;
+		GenRowStruct grs= this.store.getNoun(ReactorKeysEnum.JOB_TAGS.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			jobTags = new ArrayList<>();
+			int size = grs.size();
+			for(int i = 0; i < size; i++) {
+				jobTags.add( grs.get(i)+"" );
+			}
+		}
+		return jobTags;
 	}
 }

@@ -204,6 +204,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	public String getYearFunctionSyntax() {
 		return "YEAR";
 	}
+	
+	@Override
+	public String processGroupByFunction(String selectExpression, String separator) {
+		return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(" + selectExpression + " SEPARATOR '" + separator + "')";
+	}
 
 	@Override
 	public void appendDefaultFunctionOptions(QueryFunctionSelector fun) {
@@ -1064,6 +1069,31 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			columnName = getEscapeKeyword(columnName);
 		}
 		return "ALTER TABLE " + tableName + " ALTER COLUMN IF EXISTS " + columnName + " " + dataType + " " + defualtValue + ";";
+	}
+	
+	@Override
+	public String modColumnNotNull(String tableName, String columnName, String dataType) {
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
+		return "ALTER TABLE " + tableName + " MODIFY " + columnName + " " + dataType + " NOT NULL";
+	}
+	
+	@Override
+	public String modColumnName(String tableName, String curColName, String newColName) {
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(curColName)) {
+			curColName = getEscapeKeyword(curColName);
+		}
+		if(isSelectorKeyword(newColName)) {
+			newColName = getEscapeKeyword(newColName);
+		}
+		return "ALTER TABLE " + tableName + " ALTER COLUMN " + curColName + " RENAME TO " + newColName;
 	}
 
 	@Override

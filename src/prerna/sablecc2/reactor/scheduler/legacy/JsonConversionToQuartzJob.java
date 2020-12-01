@@ -13,7 +13,9 @@ import java.nio.file.NotDirectoryException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Properties;
+import java.util.UUID;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
@@ -170,6 +172,7 @@ public class JsonConversionToQuartzJob {
 		if(Boolean.parseBoolean(oldJobs.getHidden())) {
 			return;
 		}
+		String jobId = UUID.randomUUID().toString();
  		String jobName = oldJobs.getJobName();
 		String jobGroup = oldJobs.getJobGroup();
 		String cronExpression = oldJobs.getJobCronExpression();
@@ -183,7 +186,7 @@ public class JsonConversionToQuartzJob {
 		}
 		String pixel = oldJobs.getPixel();
 
-		JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
+		JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 		Class<? extends Job> jobClass = null;
 
 		try {
@@ -200,13 +203,13 @@ public class JsonConversionToQuartzJob {
 			}
 
 			// Schedule the job
-			JobDetail job = newJob(jobClass).withIdentity(jobName, jobGroup).storeDurably().build();
-			Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobName + "Trigger", jobGroup + "TriggerGroup")
+			JobDetail job = newJob(jobClass).withIdentity(jobId, jobGroup).storeDurably().build();
+			Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup + "TriggerGroup")
 					.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
 
 			// insert into SMSS_JOB_RECIPES table
 			// THERE WAS NO POSSIBILITY OF RUNNING OLD JOBS WITH RECIPE PARAMETERS
-			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userAccess, jobName, jobGroup, cronExpression, pixel, null, "Default", triggerOnLoad, parameters);
+			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userAccess, jobId, jobName, jobGroup, cronExpression, pixel, null, "Default", triggerOnLoad, parameters, new ArrayList<String>());
 
 			if (active) {
 				scheduler.scheduleJob(job, trigger);
