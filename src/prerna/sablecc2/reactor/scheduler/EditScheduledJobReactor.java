@@ -22,8 +22,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityAppUtils;
-import prerna.rpa.config.IllegalConfigException;
-import prerna.rpa.config.ParseConfigException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -40,9 +38,9 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 	private static final String CURRENT_JOB_GROUP = "curJobGroup";
 
 	public EditScheduledJobReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(),ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
 				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), 
-				TRIGGER_ON_LOAD, TRIGGER_NOW, PARAMETERS, CURRENT_JOB_NAME, CURRENT_JOB_GROUP};
+				TRIGGER_ON_LOAD, TRIGGER_NOW, PARAMETERS, CURRENT_JOB_NAME, CURRENT_JOB_GROUP, ReactorKeysEnum.JOB_TAGS.getKey()};
 	}
 
 	@Override
@@ -53,9 +51,13 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		organizeKeys();
 
 		// Get inputs
-		String jobName = this.keyValue.get(this.keysToGet[0]);
-		String jobGroup = this.keyValue.get(this.keysToGet[1]);
-		String cronExpression = this.keyValue.get(this.keysToGet[2]);
+		String jobId = this.keyValue.get(this.keysToGet[0]);
+		String jobName = this.keyValue.get(this.keysToGet[1]);
+		String jobGroup = this.keyValue.get(this.keysToGet[2]);
+		String cronExpression = this.keyValue.get(this.keysToGet[3]);
+
+		List<String> jobTags = getJobTags();
+
 		SchedulerH2DatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
 
 		// the job group is the app the user is in
@@ -65,26 +67,26 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityAppUtils.userCanEditEngine(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
-		
-		String recipe = this.keyValue.get(this.keysToGet[3]);
+
+		String recipe = this.keyValue.get(this.keysToGet[4]);
 		recipe = SchedulerH2DatabaseUtility.validateAndDecodeRecipe(recipe);
 
-		String recipeParameters = this.keyValue.get(this.keysToGet[4]);
+		String recipeParameters = this.keyValue.get(this.keysToGet[5]);
 		recipeParameters = SchedulerH2DatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
-		
+
 		// get triggers
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 
-		String parameters = this.keyValue.get(this.keysToGet[7]);
+		String parameters = this.keyValue.get(this.keysToGet[8]);
 		if(parameters == null) {
 			parameters = "";
 		}
-		
+
 		// existing name/group
-		String curJobName = this.keyValue.get(this.keysToGet[8]);
-		String curJobGroup = this.keyValue.get(this.keysToGet[9]);
-		
+		String curJobName = this.keyValue.get(this.keysToGet[9]);
+		String curJobGroup = this.keyValue.get(this.keysToGet[10]);
+
 		try {
 			scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
@@ -106,52 +108,32 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			}
 
 			// create json object for later use
-			JsonObject jsonObject = createJsonObject(jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
+			JsonObject jsonObject = createJsonObject(jobId,jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
 
-			JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
-			JobKey oldJobKey = JobKey.jobKey(curJobName, curJobGroup);
+			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 
 			// if job exists throw error, job already exists
-			if (!scheduler.checkExists(oldJobKey)) {
-				logger.error("job " + Utility.cleanLogString(oldJobKey.toString()) + " could not be found to edit");
-				throw new IllegalArgumentException("job " + Utility.cleanLogString(oldJobKey.toString()) + " could not be found to edit");
+			if (!scheduler.checkExists(jobKey)) {
+				logger.error("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
+				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
 			}
 
 			try {
-				if(jobKey.equals(oldJobKey)) {
-					// edit the current recipe
-					SchedulerH2DatabaseUtility.updateJobRecipesTable(userId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default", 
-							triggerOnLoad, parameters, curJobName, curJobGroup);
-					
-					// update the trigger
-					String triggerName = jobName.concat("Trigger");
-					String triggerGroup = jobGroup.concat("TriggerGroup");
-					TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
-					Trigger trigger = TriggerBuilder.newTrigger().withIdentity(triggerName, triggerGroup)
-							.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
-					// reschedule job
-					if (scheduler.checkExists(jobKey)) {
-						scheduler.rescheduleJob(triggerKey, trigger);
-					}
-				} else {
-					// make sure the new name you are using is also valid
-					if (scheduler.checkExists(jobKey)) {
-						logger.error("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
-						throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " already exists. Must edit to a unique job name");
-					}
-					
-					// edit the current recipe
-					SchedulerH2DatabaseUtility.updateJobRecipesTable(userId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default", 
-							triggerOnLoad, parameters, curJobName, curJobGroup);
-					
-					// delete the current job
-					if (scheduler.checkExists(oldJobKey)) {
-						scheduler.deleteJob(oldJobKey);
-					}
-					// add the new job
-	 				scheduleJob(jsonObject);
+				// edit the current recipe
+				SchedulerH2DatabaseUtility.updateJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default",
+						triggerOnLoad, parameters, curJobName, curJobGroup, jobTags);
+
+				// update the trigger
+				String triggerName = jobName.concat("Trigger");
+				String triggerGroup = jobGroup.concat("TriggerGroup");
+				TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
+				Trigger trigger = TriggerBuilder.newTrigger().withIdentity(triggerName, triggerGroup)
+						.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
+				// reschedule job
+				if (scheduler.checkExists(jobKey)) {
+					scheduler.rescheduleJob(triggerKey, trigger);
 				}
-			} catch (ParseConfigException | IllegalConfigException | SchedulerException e) {
+			} catch (SchedulerException e) {
 				throw new RuntimeException("Failed to schedule the job", e);
 			}
 
@@ -159,7 +141,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			if (triggerNow) {
 				triggerJobNow(jobKey);
 			}
-			
+
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 			String jsonConfig = gson.toJson(jsonObject);

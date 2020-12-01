@@ -22,7 +22,7 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(PauseJobTriggerReactor.class);
 
 	public PauseJobTriggerReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
 	}
 
 	@Override
@@ -36,7 +36,7 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 
 		organizeKeys();
 		// Get inputs
-		String jobName = this.keyValue.get(this.keysToGet[0]);
+		String jobId = this.keyValue.get(this.keysToGet[0]);
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
 
 		// the job group is the app the user is in
@@ -48,10 +48,10 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 		}
 		
 		try {
-			String triggerName = jobName.concat("Trigger");
+			String triggerName = jobId.concat("Trigger");
 			String triggerGroup = jobGroup.concat("TriggerGroup");
 			TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
-			JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
+			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 
 			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
