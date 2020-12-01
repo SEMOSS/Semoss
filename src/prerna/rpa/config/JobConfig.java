@@ -316,5 +316,11 @@ public abstract class JobConfig {
 		}
 		return bypass;
 	}
-	
+
+
+	public String getJobId() throws ParseConfigException {
+		return getString(JobConfigKeys.JOB_ID);
+	}
+
 }
+

@@ -9,6 +9,7 @@ public class JobConfigKeys {
 	// Job metadata
 	// All jobs may have these keys
 	// However, they are are not always required
+	public static final String JOB_ID= "-jobId";
 	public static final String JOB_NAME = "-jobName";
 	public static final String JOB_GROUP = "-jobGroup";
 	public static final String JOB_CLASS_NAME = "-jobClass";

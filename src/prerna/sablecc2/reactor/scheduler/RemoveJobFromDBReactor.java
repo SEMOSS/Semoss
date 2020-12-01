@@ -21,7 +21,7 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(RemoveJobFromDBReactor.class);
 
 	public RemoveJobFromDBReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
 	}
 
 	@Override
@@ -32,7 +32,7 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		 */
 		organizeKeys();
 		// Get inputs
-		String jobName = this.keyValue.get(this.keysToGet[0]);
+		String jobId = this.keyValue.get(this.keysToGet[0]);
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
 		boolean deleteJob = false;
 		
@@ -46,7 +46,7 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		
 		// delete job from quartz
 		try {
-			JobKey job = JobKey.jobKey(jobName, jobGroup);
+			JobKey job = JobKey.jobKey(jobId, jobGroup);
 			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 			
 			// start up scheduler
@@ -59,10 +59,10 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 			logger.error(Constants.STACKTRACE, se);
 		}
 
-		// Delete record from SMSS_JOB_RECIPES table in H2
-		boolean recordExists = SchedulerH2DatabaseUtility.existsInJobRecipesTable(jobName, jobGroup);
+		// delete record from SMSS_JOB_RECIPES table in H2
+		boolean recordExists = SchedulerH2DatabaseUtility.existsInJobRecipesTable(jobId, jobGroup);
 		if (recordExists) {
-			SchedulerH2DatabaseUtility.removeFromJobRecipesTable(jobName, jobGroup);
+			SchedulerH2DatabaseUtility.removeFromJobRecipesTable(jobId, jobGroup);
 		}
 
 		return new NounMetadata(deleteJob, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
