@@ -32,7 +32,9 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_CATEGORY;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_CLASS_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_DATA;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_GROUP;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_ID;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_NAME;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_TAG;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.LAST_CHECKIN_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.LOCK_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.LONG_PROP_1;
@@ -65,6 +67,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMALLINT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_AUDIT_TRAIL;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_EXECUTION;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_JOB_RECIPES;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.SMSS_JOB_TAGS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.START_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.STATE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.STR_PROP_1;
@@ -120,14 +123,12 @@ public class SchedulerOwlCreator {
 		conceptsRequired.add(QRTZ_JOB_DETAILS);
 		conceptsRequired.add(QRTZ_SIMPLE_TRIGGERS);
 		conceptsRequired.add(QRTZ_SIMPROP_TRIGGERS);
-		conceptsRequired.add(SMSS_AUDIT_TRAIL);
 		conceptsRequired.add(QRTZ_BLOB_TRIGGERS);
-		conceptsRequired.add(SMSS_AUDIT_TRAIL);
-		conceptsRequired.add(SMSS_JOB_RECIPES);
 		conceptsRequired.add(QRTZ_TRIGGERS);
 		conceptsRequired.add(SMSS_JOB_RECIPES);
 		conceptsRequired.add(SMSS_AUDIT_TRAIL);
 		conceptsRequired.add(SMSS_EXECUTION);
+		conceptsRequired.add(SMSS_JOB_TAGS);
 	}
 
 	public SchedulerOwlCreator(IEngine schedulerDb) {
@@ -317,6 +318,7 @@ public class SchedulerOwlCreator {
 		// SMSS_JOB_RECIPES
 		owler.addConcept(SMSS_JOB_RECIPES, null, null);
 		owler.addProp(SMSS_JOB_RECIPES, USER_ID, VARCHAR_120);
+		owler.addProp(SMSS_JOB_RECIPES, JOB_ID, VARCHAR_200);
 		owler.addProp(SMSS_JOB_RECIPES, JOB_NAME, VARCHAR_200);
 		owler.addProp(SMSS_JOB_RECIPES, JOB_GROUP, VARCHAR_200);
 		owler.addProp(SMSS_JOB_RECIPES, CRON_EXPRESSION, VARCHAR_250);
@@ -328,12 +330,18 @@ public class SchedulerOwlCreator {
 
 		// SMSS_AUDIT_TRAIL
 		owler.addConcept(SMSS_AUDIT_TRAIL, null, null);
+		owler.addProp(SMSS_AUDIT_TRAIL, JOB_ID, VARCHAR_200);
 		owler.addProp(SMSS_AUDIT_TRAIL, JOB_NAME, VARCHAR_200);
 		owler.addProp(SMSS_AUDIT_TRAIL, JOB_GROUP, VARCHAR_200);
 		owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_START, TIMESTAMP);
 		owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_END, TIMESTAMP);
 		owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_DELTA, VARCHAR_255);
 		owler.addProp(SMSS_AUDIT_TRAIL, SUCCESS, BOOLEAN);
+
+		// SMSS_JOB_TAGS
+		owler.addConcept(SMSS_JOB_TAGS, null, null);
+		owler.addProp(SMSS_JOB_TAGS, JOB_ID, VARCHAR_200);
+		owler.addProp(SMSS_JOB_TAGS, JOB_TAG, VARCHAR_200);
 
 		// SMSS_EXECUTION
 		owler.addConcept(SMSS_EXECUTION, null, null);

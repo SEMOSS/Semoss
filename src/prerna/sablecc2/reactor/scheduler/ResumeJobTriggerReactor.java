@@ -25,7 +25,7 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(ResumeJobTriggerReactor.class);
 
 	public ResumeJobTriggerReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
 	}
 
 	@Override
@@ -38,7 +38,7 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 
 		organizeKeys();
 		// Get inputs
-		String jobName = this.keyValue.get(this.keysToGet[0]);
+		String jobId = this.keyValue.get(this.keysToGet[0]);
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
 
 		// the job group is the app the user is in
@@ -52,8 +52,8 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 		// resume the job in quartz
 		// later grab cron expression and add functionality to resume specific trigger under job
 		try {
-			JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
-			String triggerName = jobName.concat("Trigger");
+			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
+			String triggerName = jobId.concat("Trigger");
 			String triggerGroup = jobGroup.concat("TriggerGroup");
 			TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
 
@@ -72,7 +72,7 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 
 		// Save metadata into a map and return
 		Map<String, String> quartzJobMetadata = new HashMap<>();
-		quartzJobMetadata.put("jobName", jobName);
+		quartzJobMetadata.put("jobId", jobId);
 		quartzJobMetadata.put("jobGroup", jobGroup);
 
 		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.RESCHEDULE_JOB);

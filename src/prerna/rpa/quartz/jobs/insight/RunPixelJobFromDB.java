@@ -35,20 +35,20 @@ public class RunPixelJobFromDB implements InterruptableJob {
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	public static final String OUT_INSIGHT_ID_KEY = CommonDataKeys.INSIGHT_ID;
 
-	private String jobName;
+	private String jobId;
 	private String jobGroup;
 	
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {
 		JobDataMap dataMap = context.getMergedJobDataMap();
-		jobName = context.getJobDetail().getKey().getName();
+		jobId= context.getJobDetail().getKey().getName();
 		jobGroup = context.getJobDetail().getKey().getGroup();
 		String pixel = dataMap.getString(JobConfigKeys.PIXEL);
 		String userAccess = RPAProps.getInstance().decrypt(dataMap.getString(JobConfigKeys.USER_ACCESS));
 
 		String execId = UUID.randomUUID().toString();
 		// insert the exec id so we allow the execution
-		SchedulerH2DatabaseUtility.insertIntoExecutionTable(execId, jobName, jobGroup);
+		SchedulerH2DatabaseUtility.insertIntoExecutionTable(execId, jobId, jobGroup);
 		
 		try {
 			// run the pixel endpoint
@@ -69,7 +69,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			// add the body
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
 			paramList.add(new BasicNameValuePair(JobConfigKeys.EXEC_ID, execId));
-			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_NAME, jobName));
+			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_ID, jobId));
 			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_GROUP, jobGroup));
 			paramList.add(new BasicNameValuePair(JobConfigKeys.USER_ACCESS, userAccess));
 			paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixel));
@@ -91,7 +91,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 	
 			// store execution time and date in SMSS_AUDIT_TRAIL table
 			long end = System.currentTimeMillis();
-			SchedulerH2DatabaseUtility.insertIntoAuditTrailTable(jobName, jobGroup, start, end, true);
+			SchedulerH2DatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, true);
 			logger.info("Execution time: " + (end - start) / 1000 + " seconds.");
 		} finally {
 			// always delete the UUID
@@ -137,7 +137,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 
 	@Override
 	public void interrupt() throws UnableToInterruptJobException {
-		logger.warn("Received request to interrupt the " + jobName
+		logger.warn("Received request to interrupt the " + jobId
 				+ " job. However, there is nothing to interrupt for this job.");
 	}
 }
