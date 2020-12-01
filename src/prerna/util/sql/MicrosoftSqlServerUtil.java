@@ -7,6 +7,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 
 public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	
@@ -152,6 +153,11 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String processGroupByFunction(String selectExpression, String separator) {
+		return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(" + selectExpression + ", '" + separator + "')";
+	}
+	
+	@Override
 	public boolean allowBooleanDataType() {
 		return false;
 	}
@@ -232,6 +238,38 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 			newColumn = getEscapeKeyword(newColumn);
 		}
 		return "ALTER TABLE " + tableName + " ADD " + newColumn + " " + newColType + ";";
+	}
+	
+	@Override
+	public String alterTableAddColumnWithDefault(String tableName, String newColumn, String newColType, Object defualtValue) {
+		if(!allowAddColumn()) {
+			throw new UnsupportedOperationException("Does not support add column syntax");
+		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(newColumn)) {
+			newColumn = getEscapeKeyword(newColumn);
+		}
+		return "ALTER TABLE " + tableName + " ADD " + newColumn + " " + newColType + " DEFAULT '" + defualtValue + "';";
+	}
+	
+	@Override
+	public String modColumnNotNull(String tableName, String columnName, String dataType) {
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
+		return "ALTER TABLE " + tableName + " ALTER COLUMN " + columnName + " " + dataType + " NOT NULL";
+	}
+	
+	@Override
+	public String modColumnName(String tableName, String curColName, String newColName) {
+		return "sp_rename '" + tableName + "." + curColName + "', '" + newColName + "', 'COLUMN';";
 	}
 	
 	@Override

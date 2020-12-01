@@ -21,8 +21,7 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 	}
 	
 	@Override
-	public NounMetadata execute()
-	{
+	public NounMetadata execute() {
 		// on the translation
 		// we already push which result is the true/false case
 		// so all we need to do is grab the only thing in the curRow

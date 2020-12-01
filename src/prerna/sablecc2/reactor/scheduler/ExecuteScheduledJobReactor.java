@@ -20,7 +20,7 @@ public class ExecuteScheduledJobReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(ExecuteScheduledJobReactor.class);
 
 	public ExecuteScheduledJobReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
 	}
 	
 	@Override
@@ -28,7 +28,7 @@ public class ExecuteScheduledJobReactor extends AbstractReactor {
 		organizeKeys();
 
 		// Get inputs
-		String jobName = this.keyValue.get(this.keysToGet[0]);
+		String jobId= this.keyValue.get(this.keysToGet[0]);
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
 		
 		// the job group is the app the user is in
@@ -39,13 +39,13 @@ public class ExecuteScheduledJobReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
 		
-		JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
+		JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		try {
 			if (scheduler.checkExists(jobKey)) {
 				scheduler.triggerJob(jobKey);
 			} else {
-				throw new IllegalArgumentException("Could not find job with name = " + jobName + " and group = " + jobGroup);
+				throw new IllegalArgumentException("Could not find job with name = " + jobId+ " and group = " + jobGroup);
 			}
 		} catch (SchedulerException se) {
 			logger.error(Constants.STACKTRACE, se);
