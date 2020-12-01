@@ -573,7 +573,7 @@ public class SchedulerH2DatabaseUtility {
 		// add the job tags
 		// this depends on how group_concat is defined based on the rdbms type
 		queryBuilder.append(", (SELECT ")
-			.append(queryUtil.processGroupByFunction("JOB_TAG", ","))
+			.append(queryUtil.processGroupByFunction("JOB_TAG", ",", true))
 			.append(" FROM SMSS_JOB_TAGS WHERE SMSS_JOB_TAGS.JOB_ID=SMSS_JOB_RECIPES.JOB_ID) AS JOB_TAGS ");
 
 		if(jobTags == null) {

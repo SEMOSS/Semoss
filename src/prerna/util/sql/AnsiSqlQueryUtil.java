@@ -206,8 +206,12 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 	
 	@Override
-	public String processGroupByFunction(String selectExpression, String separator) {
-		return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(" + selectExpression + " SEPARATOR '" + separator + "')";
+	public String processGroupByFunction(String selectExpression, String separator, boolean distinct) {
+		if(distinct) {
+			return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(DISTINCT " + selectExpression + " SEPARATOR '" + separator + "')";
+		} else {
+			return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(" + selectExpression + " SEPARATOR '" + separator + "')";
+		}
 	}
 
 	@Override
