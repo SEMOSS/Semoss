@@ -127,7 +127,6 @@ public class ScheduleJobReactor extends AbstractReactor {
 			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
 
 			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
-
 			// if job exists throw error, job already exists
 			if (scheduler.checkExists(jobKey)) {
 				logger.error("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
