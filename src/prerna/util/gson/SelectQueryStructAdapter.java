@@ -15,6 +15,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.om.InsightPanel;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -135,6 +136,16 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 				in.endArray();
 				qs.setRelations(relations);
 			}
+			else if(name.equals("withPanels")) {
+				List<String> panelIds = new Vector<>();
+				in.beginArray();
+				while(in.hasNext()) {
+					String pId = in.nextString();
+					panelIds.add(pId);
+				}
+				in.endArray();
+				qs.setPanelIdList(panelIds);
+			}
 		}
 		in.endObject();
 
@@ -142,9 +153,18 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 		// but we store the frame name
 		// set it in the QS if a 
 		// context insight is defined
+		// -- now do the same for insight panels
 		if(this.insight != null) {
 			if(qs.getFrameName() != null) {
 				qs.setFrame((ITableDataFrame) this.insight.getVar(qs.getFrameName()));
+			}
+			List<String> pIds = qs.getPanelIdList();
+			if(pIds != null && !pIds.isEmpty()) {
+				List<InsightPanel> panels = new Vector<>(pIds.size());
+				for(String pId : pIds) {
+					panels.add(this.insight.getInsightPanel(pId));
+				}
+				qs.setPanelList(panels);
 			}
 		}
 		
@@ -274,7 +294,19 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 			}
 			out.endArray();
 		}
-
+		
+		// do the panels
+		// we only do the panel ids
+		List<String> panelIds = value.getPanelIdList();
+		if(panelIds != null && !panelIds.isEmpty()) {
+			out.name("withPanels");
+			out.beginArray();
+			for(String pId : panelIds) {
+				out.value(pId);
+			}
+			out.endArray();
+		}
+		
 		out.endObject();
 	}
 	
