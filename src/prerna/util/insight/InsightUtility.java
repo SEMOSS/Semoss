@@ -18,16 +18,22 @@ import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.date.SemossDate;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.reactor.PixelPlanner;
@@ -489,6 +495,88 @@ public class InsightUtility {
 		}
 
 		return retMap;
+	}
+	
+	/**
+	 * Generate a task based on the QueryStruct
+	 * @param qs
+	 * @param insight
+	 * @return
+	 */
+	public static BasicIteratorTask constructTaskFromQs(Insight insight, SelectQueryStruct qs) {
+		// handle some defaults
+		QUERY_STRUCT_TYPE qsType = qs.getQsType();
+		// first, do a basic check
+		if(qsType != QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && qsType != QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			// it is not a hard query
+			// we need to make sure there is at least a selector
+			if(qs.getSelectors().isEmpty()) {
+				throw new IllegalArgumentException("There are no selectors in the query to return.  "
+						+ "There must be at least one selector for the query to execute.");
+			}
+		}
+
+		// just need to set some default behavior based on the pixel generation
+		if(qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			ITableDataFrame frame = qs.getFrame();
+			if(frame == null) {
+				// see if the frame name exists
+				if(qs.getFrameName() != null) {
+					frame = (ITableDataFrame) insight.getVar(qs.getFrameName());
+				}
+				// default to base frame
+				if(frame == null) {
+					frame = (ITableDataFrame) insight.getDataMaker();
+				}
+				qs.setFrame(frame);
+			}
+			// if we are not overriding implicit filters - add them
+			if(!qs.isOverrideImplicit()) {
+				qs.mergeImplicitFilters(frame.getFrameFilters());
+			}
+
+			// if the frame is native and there are other
+			// things to blend - we need to do that
+			if(frame instanceof NativeFrame) {
+				qs.setBigDataEngine( ((NativeFrame) frame).getQueryStruct().getBigDataEngine());
+			}
+		}
+		// now apply the panel state if any is defined on the query
+		List<String> panelIds = qs.getPanelIdList();
+		List<InsightPanel> panels = qs.getPanelList();
+		for(int i = 0; i < panelIds.size(); i++) {
+			InsightPanel panel = null;
+			if(panels.size() > i && panels.get(i) != null) {
+				panel = panels.get(i);
+			} else {
+				panel = insight.getInsightPanel(panelIds.get(i));
+				panels.add(i, panel);
+			}
+			
+			if(panel == null) {
+				throw new IllegalArgumentException("Could not find panel " + panelIds.get(i));
+			}
+			
+			GenRowFilters panelFilters = panel.getPanelFilters();
+			qs.mergeImplicitFilters(panelFilters.copy());
+			List<IQuerySort> orderBys = panel.getPanelOrderBys();
+			qs.mergeOrderBy(orderBys);
+		}
+
+		// set the pragmap before I can build the task
+		// the idea is this needs to be passed into querystruct and later iterator
+		// unless we start keeping a reference of querystruct in the iterator
+		// adds it to the qs
+		if(qs.getPragmap() != null && insight.getPragmap() != null) {
+			qs.getPragmap().putAll(insight.getPragmap());
+		} else if(insight.getPragmap() != null) {
+			qs.setPragmap(insight.getPragmap());
+		}
+
+		BasicIteratorTask task = new BasicIteratorTask(qs);
+		// add the task to the store
+		insight.getTaskStore().addTask(task);
+		return task;
 	}
 	
 }

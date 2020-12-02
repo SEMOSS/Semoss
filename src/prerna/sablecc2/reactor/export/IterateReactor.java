@@ -3,21 +3,17 @@ package prerna.sablecc2.reactor.export;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.logging.log4j.Logger;
-
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.insight.InsightUtility;
 
 public class IterateReactor extends AbstractReactor {
 
@@ -67,37 +63,10 @@ public class IterateReactor extends AbstractReactor {
 
 			// okay, we want to query an engine or a frame
 			// do this based on if the key is defined in the QS
-			IRawSelectWrapper iterator = null;
-			if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE ||
-					qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-				try {
-					iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
-				} catch (Exception e) {
-					e.printStackTrace();
-					throw new SemossPixelException(e.getMessage());
-				}
-			} else {
-				ITableDataFrame frame = qs.getFrame();
-				if(frame == null) {
-					frame = (ITableDataFrame) this.insight.getDataMaker();
-				}
-				if(useFrameFilters) {
-					qs.mergeImplicitFilters(frame.getFrameFilters());
-				}
-				Logger logger = getLogger(frame.getClass().getName());
-				frame.setLogger(logger);
-				try {
-					iterator = frame.query(qs);
-				} catch (Exception e) {
-					e.printStackTrace();
-					throw new SemossPixelException(e.getMessage());
-				}
-			}
-			this.task = new BasicIteratorTask(qs, iterator);
+			this.task = InsightUtility.constructTaskFromQs(this.insight, qs);
 			this.task.setHeaderInfo(qs.getHeaderInfo());
 			this.task.setSortInfo(qs.getSortInfo());
 			this.task.setFilterInfo(qs.getExplicitFilters());
-			this.insight.getTaskStore().addTask(this.task);
 		}
 		
 		// create the return
