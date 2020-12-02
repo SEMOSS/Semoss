@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.awt.Color;
 import java.awt.Rectangle;
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,6 +15,8 @@ import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.poi.sl.usermodel.PictureData.PictureType;
+import org.apache.poi.sl.usermodel.StrokeStyle;
+import org.apache.poi.sl.usermodel.TableCell.BorderEdge;
 import org.apache.poi.util.Units;
 import org.apache.poi.xddf.usermodel.PresetColor;
 import org.apache.poi.xddf.usermodel.XDDFColor;
@@ -45,9 +48,15 @@ import org.apache.poi.xslf.usermodel.XSLFChart;
 import org.apache.poi.xslf.usermodel.XSLFPictureData;
 import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
+import org.apache.poi.xslf.usermodel.XSLFTable;
+import org.apache.poi.xslf.usermodel.XSLFTableCell;
+import org.apache.poi.xslf.usermodel.XSLFTableRow;
+import org.apache.poi.xslf.usermodel.XSLFTextParagraph;
+import org.apache.poi.xslf.usermodel.XSLFTextRun;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -186,6 +195,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 			insertPieChart(options, slideshow, task, panel);
 		} else if (plotType.equals("Radar")) {
 			insertRadarChart(options, slideshow, task, panel);
+		} else if (plotType.equals("Grid")) {
+			insertGridChart(options, slideshow, task, panel);
 		}
 	}
 
@@ -627,6 +638,85 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
 	}
+	
+	private void insertGridChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
+
+//		// retrieve ornaments
+//		Boolean toggleStack = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.toggleStack") + "");
+//		Boolean flipAxis = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.rotateAxis") + "");
+//		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
+//		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
+//		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
+//		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizeBarLabel.position") + "";
+//		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+//		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+//		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
+//		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+//		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
+//		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
+
+		XSLFSlide slide = slideshow.createSlide();
+		XSLFTable table = slide.createTable();
+	    table.setAnchor(new Rectangle(50, 50, 800, 800));
+	    
+	    int maxRows = 50;
+	    int counter = 0;
+		boolean first = true;
+		MAX_TABLE_SIZE : while(task.hasNext()) {
+			if(counter++ > maxRows) {
+				task.cleanUp();
+				break MAX_TABLE_SIZE;
+			}
+			IHeadersDataRow headerRow = task.next();
+			Object[] dataValues = headerRow.getValues();
+
+			// add the headers in first iteration
+			if(first) {
+				String[] headers = headerRow.getHeaders();
+				XSLFTableRow tableHeader = table.addRow();
+				for(int i = 0; i < headers.length; i++) {
+					XSLFTableCell cell = tableHeader.addCell();
+					cell.setFillColor(new Color(52, 152, 219));
+					XSLFTextParagraph paragraph = cell.addNewTextParagraph();
+					XSLFTextRun textRun = paragraph.addNewTextRun();
+					textRun.setText(headers[i]);
+					textRun.setFontColor(Color.WHITE);
+					textRun.setFontSize(14.0);
+					// some styling
+					cell.setBorderColor(BorderEdge.top, Color.BLACK);
+					cell.setBorderCompound(BorderEdge.top, StrokeStyle.LineCompound.SINGLE);
+					cell.setBorderColor(BorderEdge.bottom, Color.BLACK);
+					cell.setBorderCompound(BorderEdge.bottom, StrokeStyle.LineCompound.SINGLE);
+					cell.setBorderColor(BorderEdge.left, Color.BLACK);
+					cell.setBorderCompound(BorderEdge.left, StrokeStyle.LineCompound.SINGLE);
+					cell.setBorderColor(BorderEdge.right, Color.BLACK);
+					cell.setBorderCompound(BorderEdge.right, StrokeStyle.LineCompound.SINGLE);
+				}
+				first = false;
+			}
+
+			XSLFTableRow tableRow = table.addRow();
+			for(int i = 0; i < dataValues.length; i++) {
+				XSLFTableCell cell = tableRow.addCell();
+				cell.setFillColor(Color.WHITE);
+				XSLFTextParagraph paragraph = cell.addNewTextParagraph();
+				XSLFTextRun textRun = paragraph.addNewTextRun();
+				textRun.setText(dataValues[i] + "");
+				textRun.setFontSize(12.0);
+
+				// some styling
+				cell.setBorderColor(BorderEdge.top, Color.BLACK);
+				cell.setBorderCompound(BorderEdge.top, StrokeStyle.LineCompound.SINGLE);
+				cell.setBorderColor(BorderEdge.bottom, Color.BLACK);
+				cell.setBorderCompound(BorderEdge.bottom, StrokeStyle.LineCompound.SINGLE);
+				cell.setBorderColor(BorderEdge.left, Color.BLACK);
+				cell.setBorderCompound(BorderEdge.left, StrokeStyle.LineCompound.SINGLE);
+				cell.setBorderColor(BorderEdge.right, Color.BLACK);
+				cell.setBorderCompound(BorderEdge.right, StrokeStyle.LineCompound.SINGLE);
+			}
+		}
+	}
+
 
 	private Rectangle createStandardPowerPointChartBounds() {
 		double leftOffsetInches = 0.05;
