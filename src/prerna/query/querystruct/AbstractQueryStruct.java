@@ -10,6 +10,7 @@ import com.google.gson.TypeAdapter;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
+import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -78,7 +79,9 @@ public abstract class AbstractQueryStruct {
 	protected transient IEngine engine;
 	protected String engineId;
 	protected Boolean bigDataEngine = false;
-
+	protected transient List<InsightPanel> panelList = new Vector<>();
+	protected List<String> panelIdList = new Vector<>();
+	
 	// map of pragmas
 	protected transient Map pragmap = new HashMap();
 	
@@ -325,6 +328,27 @@ public abstract class AbstractQueryStruct {
 
 	public void setFrameType(String frameType) {
 		this.frameType = frameType;
+	}
+	
+	public void addPanel(InsightPanel panel) {
+		this.panelList.add(panel);
+		this.panelIdList.add(panel.getPanelId());
+	}
+	
+	public List<InsightPanel> getPanelList() {
+		return this.panelList;
+	}
+	
+	public List<String> getPanelIdList() {
+		return this.panelIdList;
+	}
+	
+	public void setPanelIdList(List<String> panelIdList) {
+		this.panelIdList = panelIdList;
+	}
+	
+	public void setPanelList(List<InsightPanel> panelList) {
+		this.panelList = panelList;
 	}
 
 	public void setOverrideImplicit(boolean overrideImplicit) {

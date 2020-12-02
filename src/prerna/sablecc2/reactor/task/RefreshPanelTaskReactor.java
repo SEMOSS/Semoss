@@ -13,11 +13,13 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 public class RefreshPanelTaskReactor extends AbstractReactor {
 
@@ -58,7 +60,10 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 						
 						if(qs != null && taskOptions != null) {
 							logger.info("Found task for panel = " + Utility.cleanLogString(panelId));
-							BasicIteratorTask task = new BasicIteratorTask(qs);
+							// this will ensure we are using the latest panel and frame filters on refresh
+							BasicIteratorTask task = InsightUtility.constructTaskFromQs(this.insight, qs);
+							task.setLogger(logger);
+							task.toOptimize(true);
 							task.setLogger(logger);
 							task.setTaskOptions(taskOptions);
 							// we store the formatter in the task
@@ -67,8 +72,13 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 							if(taskOptions.getFormatter() != null) {
 								task.setFormat(taskOptions.getFormatter());
 							}
-							task.setNumCollect(limit);
-							this.insight.getTaskStore().addTask(task);
+							try {
+								task.setNumCollect(limit);
+								task.optimizeQuery(limit);
+							} catch (Exception e) {
+								e.printStackTrace();
+								throw new SemossPixelException(e.getMessage());
+							}
 							taskOutput.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
 						}
 					}
