@@ -225,7 +225,7 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 		if(isSelectorKeyword(newTableName)) {
 			newTableName = getEscapeKeyword(newTableName);
 		}
-		return "sp_reanme '" + tableName + "', '" + newTableName + "';";
+		return "sp_rename '" + tableName + "', '" + newTableName + "';";
 	}
 	
 	@Override
