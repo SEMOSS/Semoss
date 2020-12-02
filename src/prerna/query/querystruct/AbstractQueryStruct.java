@@ -178,9 +178,17 @@ public abstract class AbstractQueryStruct {
 	//////////////////////////////////////////// FILTERING /////////////////////////////////////////////////
 
 	public void addExplicitFilter(IQueryFilter newFilter) {
-		GenRowFilters newGrf = new GenRowFilters();
-		newGrf.addFilters(newFilter);
-		this.explicitFilters.merge(newGrf);
+		addExplicitFilter(newFilter, true);
+	}
+	
+	public void addExplicitFilter(IQueryFilter newFilter, boolean merge) {
+		if(merge) {
+			GenRowFilters newGrf = new GenRowFilters();
+			newGrf.addFilters(newFilter);
+			this.explicitFilters.merge(newGrf);
+		} else {
+			this.explicitFilters.addFilters(newFilter);
+		}
 	}
 	
 	public GenRowFilters getExplicitFilters() {
@@ -191,9 +199,17 @@ public abstract class AbstractQueryStruct {
 	}
 	
 	public void addImplicitFilter(IQueryFilter newFilter) {
-		GenRowFilters newGrf = new GenRowFilters();
-		newGrf.addFilters(newFilter);
-		this.implicitFilters.merge(newGrf);
+		addImplicitFilter(newFilter, true);
+	}
+	
+	public void addImplicitFilter(IQueryFilter newFilter, boolean merge) {
+		if(merge) {
+			GenRowFilters newGrf = new GenRowFilters();
+			newGrf.addFilters(newFilter);
+			this.implicitFilters.merge(newGrf);
+		} else {
+			this.implicitFilters.addFilters(newFilter);
+		}
 	}
 	
 	public GenRowFilters getImplicitFilters() {
