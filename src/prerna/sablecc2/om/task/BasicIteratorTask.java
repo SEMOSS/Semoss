@@ -103,7 +103,7 @@ public class BasicIteratorTask extends AbstractTask {
 			return false;
 		} else if( this.qs != null && this.iterator == null) {
 			try {
-				generateIterator(this.qs);
+				generateIterator();
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SemossPixelException(e.getMessage());
@@ -134,7 +134,7 @@ public class BasicIteratorTask extends AbstractTask {
 		if(this.headerInfo != null && this.grabTypesFromWrapper) {
 			if(this.iterator == null) {
 				try {
-					generateIterator(this.qs);
+					generateIterator();
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new SemossPixelException(e.getMessage());
@@ -157,7 +157,7 @@ public class BasicIteratorTask extends AbstractTask {
 		} else if(this.grabFromWrapper && (this.headerInfo == null || this.headerInfo.isEmpty()) ) {
 			if(this.iterator == null) {
 				try {
-					generateIterator(this.qs);
+					generateIterator();
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new SemossPixelException(e.getMessage());
@@ -219,41 +219,41 @@ public class BasicIteratorTask extends AbstractTask {
 			this.qs.setLimit(this.startLimit);
 			this.qs.setOffSet(this.startOffset);
 			this.internalOffset = 0;
-			generateIterator(this.qs);
+			generateIterator();
 		}
 	}
 	
-	private void generateIterator(SelectQueryStruct qs) throws Exception {
+	private void generateIterator() throws Exception {
 		// I need a way here to see if this is already done as a iterator and if so take a copy of it
-		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
+		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
 		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
+			iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), this.qs);
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
-			iterator = new CsvFileIterator((CsvQueryStruct) qs);
+			iterator = new CsvFileIterator((CsvQueryStruct) this.qs);
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
-			iterator = ExcelWorkbookFileHelper.buildSheetIterator((ExcelQueryStruct) qs); //new ExcelFileIterator((ExcelQueryStruct) qs);
+			iterator = ExcelWorkbookFileHelper.buildSheetIterator((ExcelQueryStruct) this.qs); //new ExcelFileIterator((ExcelQueryStruct) qs);
 		} else {
-			ITableDataFrame frame = qs.getFrame();
+			ITableDataFrame frame = this.qs.getFrame();
 			frame.setLogger(this.logger);
-			optimizeFrame(frame, qs.getOrderBy());
+			optimizeFrame(frame, this.qs.getOrderBy());
 			boolean taskOptionsExists; 
 			if (this.taskOptions != null && !(this.taskOptions.isEmpty())){
 				taskOptionsExists = true;
 			} else{
 				taskOptionsExists = false; 
 			}
-			if(qs.getPragmap() == null){	
+			if(this.qs.getPragmap() == null) {	
 				Map prags=  new java.util.HashMap();
 				prags.put(Constants.TASK_OPTIONS_EXIST, taskOptionsExists);
-				qs.setPragmap(prags);
+				this.qs.setPragmap(prags);
 			} else{
-				Map prags = qs.getPragmap();
+				Map prags = this.qs.getPragmap();
 				prags.put(Constants.TASK_OPTIONS_EXIST, taskOptionsExists);
-				qs.setPragmap(prags);
+				this.qs.setPragmap(prags);
 			}
-			iterator = frame.query(qs);
+			iterator = frame.query(this.qs);
 		}
-		setQsMetadata(qs);
+		setQsMetadata(this.qs);
 	}
 	
 	private void optimizeFrame(ITableDataFrame dataframe, List<IQuerySort> orderBys) {
@@ -307,20 +307,20 @@ public class BasicIteratorTask extends AbstractTask {
 	
 	public void optimizeQuery(int collectNum) throws Exception {
 		if(this.isOptimize) {
-			// already have a limit defined
-			// just continue;
-			if(this.startLimit > 0) {
-				return;
-			}
-			
 			if(this.qs != null && !(this.qs instanceof HardSelectQueryStruct) ) {
-				if(collectNum < 0) {
-					// from this point on
-					// we will just collect everything
-					this.qs.setLimit(-1);
-				} else {
-					this.qs.setLimit(collectNum);
+				this.logger.info("Optimizing query and generating result set");
+
+				// if no limit defined
+				if(this.startLimit < 0) {
+					if(collectNum < 0) {
+						// from this point on
+						// we will just collect everything
+						this.qs.setLimit(-1);
+					} else {
+						this.qs.setLimit(collectNum);
+					}
 				}
+				
 				long offset = 0;
 				if(this.startOffset > 0) {
 					offset = this.startOffset;
@@ -335,7 +335,6 @@ public class BasicIteratorTask extends AbstractTask {
 				
 				if(this.qs.getOrderBy().isEmpty() && !this.qs.getBigDataEngine() && setImplicitOrderBy) {
 					// need to add an implicit order
-			
 					IQuerySelector firstSelector = this.qs.getSelectors().get(0);
 					if(firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
 						this.qs.addOrderBy(firstSelector.getQueryStructName(), "ASC");
@@ -344,7 +343,7 @@ public class BasicIteratorTask extends AbstractTask {
 					}
 					addedOrder = true;
 				}
-				generateIterator(this.qs);
+				generateIterator();
 				// we got the iterator
 				// if we added an order, remove it
 				if(addedOrder) {
@@ -399,7 +398,7 @@ public class BasicIteratorTask extends AbstractTask {
 		// since we lazy execute the iterator
 		// make sure it exists
 		if(this.qs != null && this.iterator == null) {
-			generateIterator(this.qs);
+			generateIterator();
 		}
 		// creates a new cache to be used
 		ITableDataFrame frame = this.qs.getFrame();
@@ -436,7 +435,7 @@ public class BasicIteratorTask extends AbstractTask {
 	
 	public IRawSelectWrapper getIterator() throws Exception {
 		if(this.qs != null && this.iterator == null) {
-			generateIterator(this.qs);
+			generateIterator();
 		}
 		return this.iterator;
 	}

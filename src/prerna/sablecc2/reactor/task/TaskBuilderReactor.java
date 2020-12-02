@@ -7,15 +7,11 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.nativeframe.NativeFrame;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -23,6 +19,7 @@ import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
 import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.util.Constants;
+import prerna.util.insight.InsightUtility;
 
 public abstract class TaskBuilderReactor extends AbstractReactor {
 
@@ -147,58 +144,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			this.subAdditionalReturn = noun.getAdditionalReturn();
 		}
 
-		// handle some defaults
-		QUERY_STRUCT_TYPE qsType = qs.getQsType();
-		// first, do a basic check
-		if(qsType != QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && qsType != QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
-			// it is not a hard query
-			// we need to make sure there is at least a selector
-			if(qs.getSelectors().isEmpty()) {
-				throw new IllegalArgumentException("There are no selectors in the query to return.  "
-						+ "There must be at least one selector for the query to execute.");
-			}
-		}
-		
-		// just need to set some default behavior based on the pixel generation
-		if(qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
-			ITableDataFrame frame = qs.getFrame();
-			if(frame == null) {
-				// see if the frame name exists
-				if(qs.getFrameName() != null) {
-					frame = (ITableDataFrame) this.insight.getVar(qs.getFrameName());
-				}
-				// default to base frame
-				if(frame == null) {
-					frame = (ITableDataFrame) this.insight.getDataMaker();
-				}
-				qs.setFrame(frame);
-			}
-			// if we are not overriding implicit filters - add them
-			if(!qs.isOverrideImplicit()) {
-				qs.mergeImplicitFilters(frame.getFrameFilters());
-			}
-			
-			// if the frame is native and there are other
-			// things to blend - we need to do that
-			if(frame instanceof NativeFrame) {
-				qs.setBigDataEngine( ((NativeFrame) frame).getQueryStruct().getBigDataEngine());
-			}
-		}
-		
-		// set the pragmap before I can build the task
-		// the idea is this needs to be passed into querystruct and later iterator
-		// unless we start keeping a reference of querystruct in the iterator
-		// adds it to the qs
-		if(qs.getPragmap() != null && insight.getPragmap() != null) {
-			qs.getPragmap().putAll(insight.getPragmap());
-		} else if(insight.getPragmap() != null) {
-			qs.setPragmap(insight.getPragmap());
-		}
-		
-		ITask task = new BasicIteratorTask(qs);
-		// add the task to the store
-		this.insight.getTaskStore().addTask(task);
-		return task;
+		return InsightUtility.constructTaskFromQs(insight, qs);
 	}
 	
 	@Override
