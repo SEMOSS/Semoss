@@ -4,9 +4,6 @@ import java.util.List;
 
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -24,10 +21,7 @@ public class WithReactor extends AbstractQueryStructReactor {
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		InsightPanel panel = getPanel();
-		GenRowFilters panelFilters = panel.getPanelFilters();
-		qs.mergeImplicitFilters(panelFilters.copy());
-		List<IQuerySort> orderBys = panel.getPanelOrderBys();
-		((SelectQueryStruct) qs).mergeOrderBy(orderBys);
+		this.qs.addPanel(panel);
 		return qs;
 	}
 	
@@ -70,7 +64,7 @@ public class WithReactor extends AbstractQueryStructReactor {
 			// this is only called lazy
 			// have to init to set the qs
 			// to them add to the parent
-			NounMetadata data = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
+			NounMetadata data = new NounMetadata(createQueryStruct(), PixelDataType.QUERY_STRUCT);
 	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
 	    			|| parentReactor instanceof GenericReactor) {
 	    		parentReactor.getCurRow().add(data);

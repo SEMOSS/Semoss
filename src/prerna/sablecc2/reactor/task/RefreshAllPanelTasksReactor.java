@@ -18,6 +18,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 public class RefreshAllPanelTasksReactor extends AbstractReactor {
 
@@ -58,7 +59,9 @@ public class RefreshAllPanelTasksReactor extends AbstractReactor {
 						long previousLimit = qs.getLimit();
 						// force the QS to sort if none exists
 						qs.setLimit(-1);
-						BasicIteratorTask task = new BasicIteratorTask(qs);
+						// this will ensure we are using the latest panel and frame filters on refresh
+						BasicIteratorTask task = InsightUtility.constructTaskFromQs(this.insight, qs);
+						task.setLogger(logger);
 						task.toOptimize(true);
 						task.setLogger(logger);
 						task.setTaskOptions(taskOptions);
@@ -74,12 +77,13 @@ public class RefreshAllPanelTasksReactor extends AbstractReactor {
 							limit = (int) previousLimit;
 						}
 						try {
+							task.setNumCollect(limit);
 							task.optimizeQuery(limit);
+							taskOutput.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
 						} catch (Exception e) {
 							e.printStackTrace();
+							taskOutput.add(new NounMetadata(e.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
 						}
-						this.insight.getTaskStore().addTask(task);
-						taskOutput.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
 					}
 				}
 			}
