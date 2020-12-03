@@ -66,11 +66,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
+import prerna.util.insight.InsightUtility;
 
 public class ExportToPPTReactor extends AbstractReactor {
 
@@ -139,7 +139,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 				} else {
 					qs.addOrderBy(firstSelector.getAlias(), null, "ASC");
 				}
-				ITask task = new BasicIteratorTask(qs);
+				ITask task = InsightUtility.constructTaskFromQs(this.insight, qs);
 				task.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
 				task.setTaskOptions(taskOptions);
 				
