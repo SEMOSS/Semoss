@@ -92,9 +92,9 @@ public class IterateReactor extends AbstractReactor {
 	 * @return
 	 */
 	private SelectQueryStruct getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		GenRowStruct allNouns = store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
 		SelectQueryStruct queryStruct = null;
-		if(allNouns != null) {
+		if(allNouns != null && !allNouns.isEmpty()) {
 			queryStruct = (SelectQueryStruct) allNouns.get(0);
 		}
 		return queryStruct;
