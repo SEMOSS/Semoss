@@ -1,6 +1,5 @@
 package prerna.poi.main;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -67,7 +66,7 @@ public class RDFEngineCreationHelper {
 					files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 					GitRepoUtils.addSpecificFiles(gitFolder, files);				
 					GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
-				} catch (IOException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
 				
@@ -149,7 +148,7 @@ public class RDFEngineCreationHelper {
 					files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 					GitRepoUtils.addSpecificFiles(gitFolder, files);				
 					GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));		
-				} catch (IOException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
 					
