@@ -17,6 +17,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.IReactor;
@@ -310,10 +311,19 @@ public class GreedyTranslation extends LazyTranslation {
 	    		// ON THE PIXEL OBJECT ITSELF
 	    		if(this.pixelObj != null) {
 		    		if(output.getNounType() == PixelDataType.FORMATTED_DATA_SET) {
-						ITask task = (ITask) output.getValue();
-						if(task.getTaskOptions() != null) {
-							pixelObj.addTaskOptions(task.getTaskOptions());
-						}
+		    			Object oVal = output.getValue();
+		    			if(oVal instanceof ITask) {
+							ITask task = (ITask) oVal;
+							if(task.getTaskOptions() != null) {
+								pixelObj.addTaskOptions(task.getTaskOptions());
+							}
+		    			} else if(oVal instanceof Map) {
+		    				Map taskMap = (Map) oVal;
+		    				if(taskMap.get("taskOptions") != null) {
+		    					Map<String, Object> tOptions = (Map<String, Object>) taskMap.get("taskOptions");
+								pixelObj.addTaskOptions(new TaskOptions(tOptions));
+		    				}
+		    			}
 		    		} else if(output.getNounType() == PixelDataType.REMOVE_LAYER) {
 						pixelObj.addRemoveLayer((Map<String, String>) output.getValue());
 		    		} else if(output.getNounType() == PixelDataType.PANEL_CLONE_MAP) {
