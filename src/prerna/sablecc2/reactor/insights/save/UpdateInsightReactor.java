@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -199,16 +198,15 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		try {
 			MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName,
 					layout, imageName, recipeToSave, hidden, description, tags);
-		} catch (IOException e) {
+			// add to git
+			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			List<String> files = new Vector<>();
+			files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
+			GitRepoUtils.addSpecificFiles(gitFolder, files);
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " recipe on"));
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
-		// git
-		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
-		List<String> files = new Vector<>();
-		files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
-		GitRepoUtils.addSpecificFiles(gitFolder, files);
-		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " recipe on"));
 	}
 	
 }

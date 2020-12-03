@@ -1404,7 +1404,7 @@ public class UploadUtilities {
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ EXPLORE_INSIGHT_INSIGHT_NAME +" insight on"));
 				return insightId;
-			} catch (IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
@@ -1431,7 +1431,7 @@ public class UploadUtilities {
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved " + INSIGHT_USAGE_STATS_INSIGHT_NAME + " insight on"));
 			return insightId;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -1451,16 +1451,15 @@ public class UploadUtilities {
 		// write recipe to file
 		try {
 			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pixelRecipeToSave, false);
-		} catch (IOException e) {
+			// add the insight to git
+			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			List<String> files = new Vector<>();
+			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
+			GitRepoUtils.addSpecificFiles(gitFolder, files);				
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ GRID_DELTA_INSIGHT_NAME +" insight on"));
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
-		// add the insight to git
-		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
-		List<String> files = new Vector<>();
-		files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-		GitRepoUtils.addSpecificFiles(gitFolder, files);				
-		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ GRID_DELTA_INSIGHT_NAME +" insight on"));
 		return insightId;
 	}
 	
@@ -1494,7 +1493,7 @@ public class UploadUtilities {
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_MODIFICATION_VIEW_INSIGHT_NAME +" insight on"));
 				return insightId;
-			} catch (IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
@@ -1530,7 +1529,7 @@ public class UploadUtilities {
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_TIMELINE_INSIGHT_NAME +" insight on"));
 				return insightId;
-			} catch (IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
@@ -1562,16 +1561,15 @@ public class UploadUtilities {
 		// write recipe to file
 		try {
 			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave, false);
-		} catch (IOException e) {
+			// add the insight to git
+			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			List<String> files = new Vector<>();
+			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
+			GitRepoUtils.addSpecificFiles(gitFolder, files);				
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
-		// add the insight to git
-		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
-		List<String> files = new Vector<>();
-		files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-		GitRepoUtils.addSpecificFiles(gitFolder, files);				
-		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 	}
 	
 	/**
@@ -1606,7 +1604,7 @@ public class UploadUtilities {
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -1639,7 +1637,7 @@ public class UploadUtilities {
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}

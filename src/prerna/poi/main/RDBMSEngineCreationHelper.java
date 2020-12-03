@@ -94,7 +94,7 @@ public class RDBMSEngineCreationHelper {
 					files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 					GitRepoUtils.addSpecificFiles(gitFolder, files);				
 					GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));		
-				} catch (IOException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
 				

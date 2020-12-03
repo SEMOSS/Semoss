@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,15 +114,16 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		if(mosfet.exists()) {
 			try {
 				MosfetSyncHelper.updateMosfitFileInsightName(new File(recipeLocation), insightName);
-			} catch (IOException e) {
+				// add to git
+				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				List<String> files = new Vector<>();
+				files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
+				GitRepoUtils.addSpecificFiles(gitFolder, files);
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " insight name"));
+			} catch (Exception e) {
+				logger.info("Error occured trying to write to git folder");
 				e.printStackTrace();
 			}
-			// add to git
-			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
-			List<String> files = new Vector<>();
-			files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
-			GitRepoUtils.addSpecificFiles(gitFolder, files);
-			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " insight name"));
 		} else {
 			logger.info("... Could not find existing mosfet file. Ignoring update.");
 		}
