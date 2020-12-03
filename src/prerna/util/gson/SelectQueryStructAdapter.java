@@ -14,8 +14,6 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.om.InsightPanel;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -23,6 +21,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.util.insight.InsightUtility;
 
 public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQueryStruct> {
 	
@@ -149,23 +148,10 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 		}
 		in.endObject();
 
-		// the frame is not cached
-		// but we store the frame name
-		// set it in the QS if a 
-		// context insight is defined
-		// -- now do the same for insight panels
+		// fill in the references into the query struct
+		// for frames and panels
 		if(this.insight != null) {
-			if(qs.getFrameName() != null) {
-				qs.setFrame((ITableDataFrame) this.insight.getVar(qs.getFrameName()));
-			}
-			List<String> pIds = qs.getPanelIdList();
-			if(pIds != null && !pIds.isEmpty()) {
-				List<InsightPanel> panels = new Vector<>(pIds.size());
-				for(String pId : pIds) {
-					panels.add(this.insight.getInsightPanel(pId));
-				}
-				qs.setPanelList(panels);
-			}
+			InsightUtility.fillQueryStructReferences(this.insight, qs);
 		}
 		
 		return qs;
