@@ -12,6 +12,7 @@ import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
 import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 
+@Deprecated
 public class WithReactor extends AbstractQueryStructReactor {
 	
 	public WithReactor() {
@@ -20,9 +21,18 @@ public class WithReactor extends AbstractQueryStructReactor {
 
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
-		InsightPanel panel = getPanel();
-		this.qs.addPanel(panel);
-		return qs;
+//		InsightPanel panel = getPanel();
+//		this.qs.addPanel(panel);
+		
+		/*
+		 * 
+		 * THIS REACTOR IS NOT REQUIRED ANYMORE
+		 * THIS IS AUTOMATICALLY ASSUMED WHEN A 
+		 * TASK OPTIONS IS ADDED IN THE QUERY
+		 * 
+		 */
+		
+		return this.qs;
 	}
 	
 	/**

@@ -115,7 +115,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		addGroupClause(((SelectQueryStruct) this.qs).getGroupBy());
 		
 		// add sort bys
-		addOrderByClause(((SelectQueryStruct) this.qs).getOrderBy());
+		addOrderByClause(((SelectQueryStruct) this.qs).getCombinedOrderBy());
 		
 		// combine the pieces and return
 		StringBuilder query = new StringBuilder();
