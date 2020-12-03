@@ -239,7 +239,7 @@ public class BasicIteratorTask extends AbstractTask {
 			boolean taskOptionsExists; 
 			if (this.taskOptions != null && !(this.taskOptions.isEmpty())){
 				taskOptionsExists = true;
-			} else{
+			} else {
 				taskOptionsExists = false; 
 			}
 			if(this.qs.getPragmap() == null) {	
@@ -250,6 +250,9 @@ public class BasicIteratorTask extends AbstractTask {
 				Map prags = this.qs.getPragmap();
 				prags.put(Constants.TASK_OPTIONS_EXIST, taskOptionsExists);
 				this.qs.setPragmap(prags);
+			}
+			if(this.logger != null) {
+				frame.setLogger(this.logger);
 			}
 			iterator = frame.query(this.qs);
 		}
