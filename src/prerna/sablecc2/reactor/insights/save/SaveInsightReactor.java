@@ -205,7 +205,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			GitRepoUtils.addSpecificFiles(folder, files);
 			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"), author, email);
 			logger.info(stepCounter + ") Done...");
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.info(stepCounter + ") Unable to add insight to git...");
 			e.printStackTrace();
 		} finally {
