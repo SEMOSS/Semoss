@@ -79,8 +79,13 @@ public abstract class AbstractQueryStruct {
 	protected transient IEngine engine;
 	protected String engineId;
 	protected Boolean bigDataEngine = false;
+	// frame filters stored at runtime
+	protected transient GenRowFilters frameImplicitFilters = new GenRowFilters();
+	
+	// Panel objects added at runtime
 	protected transient List<InsightPanel> panelList = new Vector<>();
 	protected List<String> panelIdList = new Vector<>();
+	protected transient GenRowFilters panelImplicitFilters = new GenRowFilters();
 	
 	// map of pragmas
 	protected transient Map pragmap = new HashMap();
@@ -128,11 +133,6 @@ public abstract class AbstractQueryStruct {
 	// ignore all the filters
 	public boolean ignoreFilters = false;
 	
-	////////////////////////////////////// experimental /////////////////////////////////////////
-	
-	// this is the actual query
-	//public String aQuery = null;
-	
 	//////////////////////////////////////////// SELECTORS /////////////////////////////////////////////////
 	
 	public void setSelectors(List<IQuerySelector> selectors) {
@@ -178,17 +178,7 @@ public abstract class AbstractQueryStruct {
 	//////////////////////////////////////////// FILTERING /////////////////////////////////////////////////
 
 	public void addExplicitFilter(IQueryFilter newFilter) {
-		addExplicitFilter(newFilter, true);
-	}
-	
-	public void addExplicitFilter(IQueryFilter newFilter, boolean merge) {
-		if(merge) {
-			GenRowFilters newGrf = new GenRowFilters();
-			newGrf.addFilters(newFilter);
-			this.explicitFilters.merge(newGrf);
-		} else {
-			this.explicitFilters.addFilters(newFilter);
-		}
+		this.explicitFilters.merge(newFilter);
 	}
 	
 	public GenRowFilters getExplicitFilters() {
@@ -199,20 +189,22 @@ public abstract class AbstractQueryStruct {
 	}
 	
 	public void addImplicitFilter(IQueryFilter newFilter) {
-		addImplicitFilter(newFilter, true);
-	}
-	
-	public void addImplicitFilter(IQueryFilter newFilter, boolean merge) {
-		if(merge) {
-			GenRowFilters newGrf = new GenRowFilters();
-			newGrf.addFilters(newFilter);
-			this.implicitFilters.merge(newGrf);
-		} else {
-			this.implicitFilters.addFilters(newFilter);
-		}
+		this.implicitFilters.merge(newFilter);
 	}
 	
 	public GenRowFilters getImplicitFilters() {
+		// if we have frame or panel filters
+		// we will apply those into a new filter object
+		// so that everything is separated properly
+		if(!frameImplicitFilters.isEmpty() || !panelImplicitFilters.isEmpty()) {
+			// return the combined state of all the filters
+			GenRowFilters combinedFilters = new GenRowFilters();
+			combinedFilters.merge(this.implicitFilters, true);
+			combinedFilters.merge(frameImplicitFilters, true);
+			combinedFilters.merge(panelImplicitFilters, true);
+			return combinedFilters;
+		}
+		
 		return this.implicitFilters;
 	}
 	
@@ -235,10 +227,11 @@ public abstract class AbstractQueryStruct {
 	}
 	
 	public GenRowFilters getCombinedFilters() {
-		
 		GenRowFilters combinedFilters = new GenRowFilters();
-		if(ignoreFilters)
+		// if we want to ignore all filters
+		if(this.ignoreFilters) {
 			return combinedFilters;
+		}
 		
 		combinedFilters.merge(this.explicitFilters.copy());
 		if(this.overrideImplicit) {
@@ -273,6 +266,22 @@ public abstract class AbstractQueryStruct {
 		}
 			
 		return false;
+	}
+	
+	public void setFrameImplicitFilters(GenRowFilters frameImplicitFilters) {
+		this.frameImplicitFilters = frameImplicitFilters;
+	}
+	
+	public GenRowFilters getFrameImplicitFilters() {
+		return frameImplicitFilters;
+	}
+	
+	public void setPanelImplicitFilters(GenRowFilters panelImplicitFilters) {
+		this.panelImplicitFilters = panelImplicitFilters;
+	}
+	
+	public GenRowFilters getPanelImplicitFilters() {
+		return panelImplicitFilters;
 	}
 	
 	//////////////////////////////////////////// JOINING ////////////////////////////////////////////////////
@@ -349,6 +358,9 @@ public abstract class AbstractQueryStruct {
 	public void addPanel(InsightPanel panel) {
 		this.panelList.add(panel);
 		this.panelIdList.add(panel.getPanelId());
+		
+		// also add in the current panel state
+		this.panelImplicitFilters.merge(panel.getPanelFilters());
 	}
 	
 	public List<InsightPanel> getPanelList() {
@@ -365,8 +377,13 @@ public abstract class AbstractQueryStruct {
 	
 	public void setPanelList(List<InsightPanel> panelList) {
 		this.panelList = panelList;
+		this.panelImplicitFilters.clear();
+		for(InsightPanel panel : panelList) {
+			// also add in the current panel state
+			this.panelImplicitFilters.merge(panel.getPanelFilters());
+		}
 	}
-
+	
 	public void setOverrideImplicit(boolean overrideImplicit) {
 		this.overrideImplicit = overrideImplicit;
 	}
@@ -489,18 +506,15 @@ public abstract class AbstractQueryStruct {
 		this.havingFilters.merge(incomingFilters);		
 	}
 	
-	/**
-	 * 
-	 * @param incomingBigDataEngine
-	 */
-	private void mergeBigEngine(Boolean bigDataEngine) {
-		//merge the filters
-		this.bigDataEngine = bigDataEngine;		
-	}
-	
-	
 	public void mergeRelations(Set<String[]> relationSet) {
 		this.relationsSet.addAll(relationSet);
+	}
+	
+	/**
+	 * Reset the panel state for changes that have been applied
+	 */
+	public void resetPanelState() {
+		setPanelList(this.panelList);
 	}
 	
 	// sets the pragma map to be used
@@ -580,8 +594,13 @@ public abstract class AbstractQueryStruct {
 		return null;
 	}
 	
-	
 	/////////////////////////////////////// experimental ////////////////////////////////////////
+	/////////////////////////////////////// experimental ////////////////////////////////////////
+	/////////////////////////////////////// experimental ////////////////////////////////////////
+	/////////////////////////////////////// experimental ////////////////////////////////////////
+	
+	// this is the actual query
+	//public String aQuery = null;
 	
 	public void removeSelect(String column)
 	{

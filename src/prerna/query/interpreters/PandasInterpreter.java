@@ -495,7 +495,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 	
 	private void processOrderBy() {
-		List<IQuerySort> qcos = ((SelectQueryStruct) this.qs).getOrderBy();
+		List<IQuerySort> qcos = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
 		for(int orderIndex = 0; orderIndex < qcos.size(); orderIndex++) {
 			IQuerySort sortOp = qcos.get(orderIndex);
 			if(sortOp.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {

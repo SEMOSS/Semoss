@@ -578,7 +578,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	}
 
 	protected void addOrderBy() {
-		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getOrderBy();
+		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
 		if (orderByList == null || orderByList.isEmpty()) {
 			return;
 		}

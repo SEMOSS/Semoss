@@ -240,5 +240,12 @@ public class GenRowStruct {
 	public List<NounMetadata> getVector() {
 		return this.vector;
 	}
+	
+	/**
+	 * Clear the store
+	 */
+	public void clear() {
+		this.vector.clear();
+	}
 
 }

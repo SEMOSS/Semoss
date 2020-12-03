@@ -338,6 +338,12 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 		}
 		return filterList;
 	}
+	
+	public void clear() {
+		this.filterVec.clear();
+		this.filteredColumns.clear();
+		this.qsFilteredColumns.clear();
+	}
 
 	@Override
 	public Iterator<IQueryFilter> iterator() {
