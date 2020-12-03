@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.export;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,17 +31,6 @@ public class CollectReactor extends TaskBuilderReactor {
 	}
 	
 	public NounMetadata execute() {
-		
-		// need to see if the PixelDataType.QUERY_STRUCT.toString() is available in nounstore
-		// if not they came to this through an override so run this
-		// I take care of this in query part this might not be needed anymore
-		
-		/*if(this.store.getNoun(PixelDataType.QUERY_STRUCT.toString()) == null)
-		{
-			GenRowStruct grs = new GenRowStruct();
-			grs.add(insight.getLastQS(), PixelDataType.QUERY_STRUCT);
-			this.store.addNoun(PixelDataType.QUERY_STRUCT.toString(), grs);
-		}*/
 		this.task = getTask();		
 		
 		this.limit = getTotalToCollect();
@@ -75,28 +63,8 @@ public class CollectReactor extends TaskBuilderReactor {
 			this.task.setTaskOptions(ornamnetOptions);
 			retOpType = PixelOperationType.PANEL_ORNAMENT_DATA;
 		}
-
-		// cache this so that it is good when we do the querypart followed by collect
-		// I assume there is always some task options needed, but I dont know 
-		if(this.task.getTaskOptions() != null)
-		{
-			if (retOpType != PixelOperationType.PANEL_ORNAMENT_DATA && this.task instanceof BasicIteratorTask) {
-				prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
-				// I really hope this is only one
-				Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
-				while(panelIds.hasNext()) {
-					String panelId = panelIds.next();
-					// this is a bit silly
-					// but will set the formatter into the task options
-					// so if we pull the task options we have that information
-					// this is for {{@link RefreshPanelTaskReactor}}
-					task.getTaskOptions().setFormatter(task.getFormatter());
-					this.insight.setFinalViewOptions(panelId, sqs, task.getTaskOptions());
-				}
-			}
-		}
-		else
-		{
+		
+		if(this.task.getTaskOptions() == null) {
 			// I am setting the panel id on the task options and getting it from here
 			TaskOptions taskOptions = this.insight.getLastTaskOptions();
 			if(taskOptions != null) {

@@ -30,7 +30,7 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 	public String composeQuery() {
 		if(this.qs != null && !(this.qs instanceof HardSelectQueryStruct) ) {
 			if(((SelectQueryStruct) this.qs).getLimit() > 0 || ((SelectQueryStruct) this.qs).getOffset() > 0) {
-				if(((SelectQueryStruct) this.qs).getOrderBy().isEmpty()) {
+				if(((SelectQueryStruct) this.qs).getCombinedOrderBy().isEmpty()) {
 					// need to add an implicit order
 					IQuerySelector firstSelector = this.qs.getSelectors().get(0);
 					if(firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {

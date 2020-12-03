@@ -33,7 +33,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 	protected abstract void buildTask() throws Exception;
 
 	public NounMetadata execute() {
-		this.task = getTask(); //initialize the task
+		this.task = getTask();
 		try {
 			buildTask();
 		} catch (Exception e) {
