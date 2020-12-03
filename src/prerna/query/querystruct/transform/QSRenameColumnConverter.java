@@ -60,6 +60,10 @@ public class QSRenameColumnConverter {
 		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), transformationMap, keepOrigAlias));
 		convertedQs.setHavingFilters(convertGenRowFilters(qs.getHavingFilters(), transformationMap, keepOrigAlias));
 
+		// also do the frame and panel filters
+		convertedQs.setFrameImplicitFilters(convertGenRowFilters(qs.getFrameImplicitFilters(), transformationMap, keepOrigAlias));
+		convertedQs.setPanelImplicitFilters(convertGenRowFilters(qs.getPanelImplicitFilters(), transformationMap, keepOrigAlias));
+
 		// now go through the joins
 		convertedQs.setRelations(convertJoins(qs.getRelations(), transformationMap));
 		
@@ -87,6 +91,18 @@ public class QSRenameColumnConverter {
 				convertedOrderBys.add(convertedOrderByS);
 			}
 			convertedQs.setOrderBy(convertedOrderBys);
+		}
+		
+		// do the same for the panel order bys
+		List<IQuerySort> origPanelOrders = qs.getPanelOrderBy();
+		if(origPanelOrders != null && !origPanelOrders.isEmpty()) {
+			List<IQuerySort> convertedOrderBys =  new Vector<IQuerySort>();
+			for(int i = 0; i < origPanelOrders.size(); i++) {
+				IQuerySort origOrderS = origPanelOrders.get(i);
+				IQuerySort convertedOrderByS = convertOrderByOperation(origOrderS, transformationMap);
+				convertedOrderBys.add(convertedOrderByS);
+			}
+			convertedQs.setPanelOrderBy(convertedOrderBys);
 		}
 		
 		return convertedQs;

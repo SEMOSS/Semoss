@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.reactor.export.IFormatter;
 
 public class TaskOptions {
@@ -11,7 +12,9 @@ public class TaskOptions {
 	private Map<String, Object> options;
 	private boolean ornament = false;
 	private transient IFormatter formatter;
-
+	// kinda hacky at the moment
+	private NounStore collectStore = null;
+	
 	/**
 	 * Constructor for task options
 	 * @param options
@@ -99,5 +102,21 @@ public class TaskOptions {
 			newOptions.put(newPanelId, this.options.get(curPanelId));
 		}
 		this.options = newOptions;
+	}
+	
+	/**
+	 * Set the noun store that was used during the collect
+	 * @param collectStore
+	 */
+	public void setCollectStore(NounStore collectStore) {
+		this.collectStore = collectStore;
+	}
+	
+	/**
+	 * Get the collect store
+	 * @return
+	 */
+	public NounStore getCollectStore() {
+		return collectStore;
 	}
 }
