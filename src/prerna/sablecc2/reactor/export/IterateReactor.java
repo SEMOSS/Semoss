@@ -18,6 +18,7 @@ import prerna.util.insight.InsightUtility;
 public class IterateReactor extends AbstractReactor {
 
 	private static final String IN_MEM_STORE = "store";
+	private static final String CLASS_NAME = IterateReactor.class.getName();
 
 	private BasicIteratorTask task;
 	
@@ -48,15 +49,12 @@ public class IterateReactor extends AbstractReactor {
 		// try to get an in memory store being used
 		InMemStore inMemStore = getInMemoryStore();
 		
-		if(inMemStore != null) 
-		{
+		if(inMemStore != null) {
 			// TODO: figure out how to use a QS if present with this query
 			IRawSelectWrapper iterator = inMemStore.getIterator();
 			this.task = new BasicIteratorTask(iterator);
 			this.insight.getTaskStore().addTask(this.task);
-		} 
-		else 
-		{
+		} else {
 			//TODO: add tableJoins to query
 			//TODO: remove hard coded classes when we establish querystruct2 and sqlinterpreter2 function properly 
 			//TODO: Hard coding this to use QueryStruct2 and SQLInterpreter2 to test changes
@@ -64,6 +62,7 @@ public class IterateReactor extends AbstractReactor {
 			// okay, we want to query an engine or a frame
 			// do this based on if the key is defined in the QS
 			this.task = InsightUtility.constructTaskFromQs(this.insight, qs);
+			this.task.setLogger(this.getLogger(CLASS_NAME));
 			this.task.setHeaderInfo(qs.getHeaderInfo());
 			this.task.setSortInfo(qs.getSortInfo());
 			this.task.setFilterInfo(qs.getExplicitFilters());
