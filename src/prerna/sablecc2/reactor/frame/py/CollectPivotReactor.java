@@ -43,7 +43,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		mathMap.put("Median", "median");
 		mathMap.put("StandardDeviation", "std");
 		mathMap.put("Count", "count");
-	};
+	}
 
 	public CollectPivotReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(),  ReactorKeysEnum.SUBTOTALS.getKey(), "json", "margins", "sections", "optional"};
@@ -269,8 +269,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		// need to set the task options
 		// hopefully this is the current one I am working with
-		if(this.task.getTaskOptions() != null)
-		{
+		if(this.task.getTaskOptions() != null) {
 			prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
 			// I really hope this is only one
 			Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
@@ -282,6 +281,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				// this is for {{@link RefreshPanelTaskReactor}}
 				task.getTaskOptions().setFormatter(task.getFormatter());
 				task.getTaskOptions().getOptions().put("values", values);
+				// store the noun store as well for refreshing
+				task.getTaskOptions().setCollectStore(this.store);
 				this.insight.setFinalViewOptions(panelId, sqs, task.getTaskOptions());
 			}
 		}

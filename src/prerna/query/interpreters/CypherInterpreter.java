@@ -723,7 +723,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	private void addOrderBy() {
 		// grab the order by and get the corresponding display name for that
 		// order by column
-		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getOrderBy();
+		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
 		if (orderByList == null || orderByList.isEmpty()) {
 			return;
 		}
