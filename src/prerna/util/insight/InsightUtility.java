@@ -24,6 +24,7 @@ import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.InMemStore;
@@ -514,21 +515,11 @@ public class InsightUtility {
 			}
 		}
 
+		// fill in the references in the QS
+		fillQueryStructReferences(insight, qs);
 		// just need to set some default behavior based on the pixel generation
 		if(qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			ITableDataFrame frame = qs.getFrame();
-			if(frame == null) {
-				// see if the frame name exists
-				if(qs.getFrameName() != null) {
-					frame = (ITableDataFrame) insight.getVar(qs.getFrameName());
-				}
-				// default to base frame
-				if(frame == null) {
-					frame = (ITableDataFrame) insight.getDataMaker();
-				}
-				qs.setFrame(frame);
-			}
-			
 			// if we are not overriding implicit filters - add them
 			if(!qs.isOverrideImplicit()) {
 				qs.setFrameImplicitFilters(frame.getFrameFilters());
@@ -557,4 +548,49 @@ public class InsightUtility {
 		return task;
 	}
 	
+	/**
+	 * Sets the reference for frames and panels in the insight if not present
+	 * @param insight
+	 * @param qs
+	 */
+	public static void fillQueryStructReferences(Insight insight, AbstractQueryStruct qs) {
+		// set the frame reference based on the insight state
+		ITableDataFrame frame = qs.getFrame();
+		if(frame == null) {
+			// see if the frame name exists
+			if(qs.getFrameName() != null) {
+				frame = (ITableDataFrame) insight.getVar(qs.getFrameName());
+			}
+			// default to base frame
+			if(frame == null) {
+				frame = (ITableDataFrame) insight.getDataMaker();
+			}
+			qs.setFrame(frame);
+		}
+		
+		// set the panel state
+		List<String> pIds = qs.getPanelIdList();
+		if(pIds != null && !pIds.isEmpty()) {
+			List<InsightPanel> panels = qs.getPanelList();
+			if(panels == null) {
+				panels = new Vector<>(pIds.size());
+			}
+			if(pIds.size() != panels.size()) {
+				boolean insightPanelsExist = true;
+				for(String pId : pIds) {
+					// this might not exist
+					// when the insight
+					InsightPanel panel = insight.getInsightPanel(pId);
+					if(panel == null) {
+						insightPanelsExist = false;
+						break;
+					}
+					panels.add(insight.getInsightPanel(pId));
+				}
+				if(insightPanelsExist) {
+					qs.setPanelList(panels);
+				}
+			}
+		}
+	}
 }
