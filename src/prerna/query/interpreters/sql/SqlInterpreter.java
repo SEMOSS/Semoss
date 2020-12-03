@@ -1114,7 +1114,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	
 	public StringBuilder appendOrderBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
-		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getOrderBy();
+		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
 		List<StringBuilder> validOrderBys = new Vector<>();
 		for(IQuerySort orderBy : orderByList) {
 			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {

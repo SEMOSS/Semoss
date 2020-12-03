@@ -35,7 +35,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		mathMap.put("Median", "median");
 		mathMap.put("StandardDeviation", "sd");
 		mathMap.put("Count", "N");
-	};
+	}
 
 	public CollectPivotReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey() };
@@ -195,6 +195,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					// this is for {{@link RefreshPanelTaskReactor}}
 					task.getTaskOptions().setFormatter(task.getFormatter());
 					task.getTaskOptions().getOptions().put("values", values);
+					// store the noun store as well for refreshing
+					task.getTaskOptions().setCollectStore(this.store);
 					this.insight.setFinalViewOptions(panelId, sqs, task.getTaskOptions());
 				}
 			}

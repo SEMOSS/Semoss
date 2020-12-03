@@ -18,6 +18,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.export.CollectPivotReactor;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -56,6 +57,7 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 					Set<String> layers = lQs.keySet();
 					for(String layerId : layers) {
 						SelectQueryStruct qs = lQs.get(layerId);
+						qs.resetPanelState();
 						TaskOptions taskOptions = lTaskOption.get(layerId);
 						
 						if(qs != null && taskOptions != null) {
@@ -79,7 +81,22 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 								e.printStackTrace();
 								throw new SemossPixelException(e.getMessage());
 							}
-							taskOutput.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+							
+							// is this a pivot?
+							Set<String> taskPanelIds = taskOptions.getPanelIds();
+							String layout = taskOptions.getLayout(taskPanelIds.iterator().next());
+							if(layout.equals("PivotTable")) {
+								CollectPivotReactor pivot = new CollectPivotReactor();
+								pivot.In();
+								pivot.setInsight(this.insight);
+								pivot.setNounStore(taskOptions.getCollectStore());
+								GenRowStruct grs = taskOptions.getCollectStore().makeNoun(PixelDataType.TASK.getKey());
+								grs.clear();
+								grs.add(new NounMetadata(task, PixelDataType.TASK));
+								taskOutput.add(pivot.execute());
+							} else {
+								taskOutput.add(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+							}
 						}
 					}
 				}

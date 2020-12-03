@@ -26,9 +26,6 @@ import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -531,51 +528,16 @@ public class InsightUtility {
 				}
 				qs.setFrame(frame);
 			}
+			
 			// if we are not overriding implicit filters - add them
 			if(!qs.isOverrideImplicit()) {
-				qs.mergeImplicitFilters(frame.getFrameFilters());
+				qs.setFrameImplicitFilters(frame.getFrameFilters());
 			}
 
 			// if the frame is native and there are other
 			// things to blend - we need to do that
 			if(frame instanceof NativeFrame) {
 				qs.setBigDataEngine( ((NativeFrame) frame).getQueryStruct().getBigDataEngine());
-			}
-		}
-		// now apply the panel state if any is defined on the query
-		List<String> panelIds = qs.getPanelIdList();
-		List<InsightPanel> panels = qs.getPanelList();
-		if(!panelIds.isEmpty()) {
-			// we will aggregate a merged panel filter state
-			GenRowFilters combinedPanelFilters = new GenRowFilters();
-			
-			for(int i = 0; i < panelIds.size(); i++) {
-				InsightPanel panel = null;
-				if(panels.size() > i && panels.get(i) != null) {
-					panel = panels.get(i);
-				} else {
-					panel = insight.getInsightPanel(panelIds.get(i));
-					panels.add(i, panel);
-				}
-				
-				if(panel == null) {
-					throw new IllegalArgumentException("Could not find panel " + panelIds.get(i));
-				}
-				
-				// we do NOT merge panel filters
-				// and frame filters
-				// they are applied separately
-				GenRowFilters panelFilters = panel.getPanelFilters();
-				combinedPanelFilters.merge(panelFilters);
-				// we do however merge order bys as its one statement
-				List<IQuerySort> orderBys = panel.getPanelOrderBys();
-				qs.mergeOrderBy(orderBys);
-			}
-			
-			// now we add in all the combined filters 
-			// without merging them to the general query
-			for(IQueryFilter pFilter : combinedPanelFilters) {
-				qs.addImplicitFilter(pFilter, false);
 			}
 		}
 

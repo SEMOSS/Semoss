@@ -235,7 +235,7 @@ public class BasicIteratorTask extends AbstractTask {
 		} else {
 			ITableDataFrame frame = this.qs.getFrame();
 			frame.setLogger(this.logger);
-			optimizeFrame(frame, this.qs.getOrderBy());
+			optimizeFrame(frame, this.qs.getCombinedOrderBy());
 			boolean taskOptionsExists; 
 			if (this.taskOptions != null && !(this.taskOptions.isEmpty())){
 				taskOptionsExists = true;
@@ -333,7 +333,7 @@ public class BasicIteratorTask extends AbstractTask {
 					 setImplicitOrderBy = Boolean.parseBoolean(value.toString());
 				}
 				
-				if(this.qs.getOrderBy().isEmpty() && !this.qs.getBigDataEngine() && setImplicitOrderBy) {
+				if(this.qs.getCombinedOrderBy().isEmpty() && !this.qs.getBigDataEngine() && setImplicitOrderBy) {
 					// need to add an implicit order
 					IQuerySelector firstSelector = this.qs.getSelectors().get(0);
 					if(firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {

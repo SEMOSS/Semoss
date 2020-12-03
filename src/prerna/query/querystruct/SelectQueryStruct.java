@@ -1,13 +1,14 @@
 package prerna.query.querystruct;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.om.InsightPanel;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -20,9 +21,12 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	protected boolean isDistinct = true;
 	
-	protected List<IQuerySort> orderByOperations = new ArrayList<>();
-	protected List<IQuerySelector> groupBy = new ArrayList<>();
+	protected List<IQuerySort> orderByOperations = new Vector<>();
+	protected List<IQuerySelector> groupBy = new Vector<>();
 
+	// panel specific 
+	protected transient List<IQuerySort> panelOrderByOperations = new Vector<>();
+	
 	protected long limit = -1;
 	protected long offset = -1;
 	
@@ -67,8 +71,49 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		this.orderByOperations.add(selector);
 	}
 	
+	/**
+	 * Returns order bys defined in the qs
+	 * NOTE - USE COMBINED ORDER BY TO COMBINE PANEL ORDER BY ON VISUALIZATIONS
+	 * @return
+	 */
 	public List<IQuerySort> getOrderBy() {
 		return this.orderByOperations;
+	}
+	
+	public List<IQuerySort> getCombinedOrderBy() {
+		List<IQuerySort> combinedSorts = new Vector<>();
+		combinedSorts.addAll(this.orderByOperations);
+		combinedSorts.addAll(this.panelOrderByOperations);
+		return combinedSorts;
+	}
+	
+	public void setPanelOrderBy(List<IQuerySort> panelOrderByOperations) {
+		this.panelOrderByOperations = panelOrderByOperations;
+	}
+	
+	public List<IQuerySort> getPanelOrderBy() {
+		return this.panelOrderByOperations;
+	}
+	
+	// overriding methods for ordering with panels
+	@Override
+	public void addPanel(InsightPanel panel) {
+		super.addPanel(panel);
+		this.panelOrderByOperations.addAll(panel.getPanelOrderBys());
+	}
+	
+	@Override
+	public void setPanelList(List<InsightPanel> panelList) {
+		// this method is same as the super
+		// but we are also doing the order by
+		this.panelList = panelList;
+		this.panelImplicitFilters.clear();
+		this.panelOrderByOperations.clear();
+		for(InsightPanel panel : panelList) {
+			// also add in the current panel state
+			this.panelImplicitFilters.merge(panel.getPanelFilters());
+			this.panelOrderByOperations.addAll(panel.getPanelOrderBys());
+		}
 	}
 	
 	////////////////////////////////////////////////////
@@ -97,7 +142,6 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	public List<IQuerySelector> getGroupBy() {
 		return this.groupBy;
 	}
-	
 	
 	////////////////////////////////////////////////////
 	/////////////////////// OTHER //////////////////////
@@ -237,7 +281,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		boolean frameQuery = qsType == QUERY_STRUCT_TYPE.FRAME;
 		boolean engineQuery = qsType == QUERY_STRUCT_TYPE.ENGINE;
 		
-		List<Map<String, Object>> headerInfo = new ArrayList<Map<String, Object>>();
+		List<Map<String, Object>> headerInfo = new Vector<Map<String, Object>>();
 		for(IQuerySelector selector : this.selectors) {
 			Map<String, Object> selectorMap = new HashMap<String, Object>();
 			// get header information based on the type of column
@@ -255,7 +299,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 				
 			} else {
 				selectorMap.put("derived", true);
-				List<String> groupBy = new ArrayList<String>();
+				List<String> groupBy = new Vector<String>();
 				for(IQuerySelector groupBySelector : this.groupBy) {
 					String groupQs = groupBySelector.getQueryStructName();
 					groupBy.add(groupQs);
@@ -280,7 +324,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 					addDataType((QueryColumnSelector) innerSelector.get(0), frameQuery, engineQuery, selectorMap);
 				}
 				
-				List<String> groupBy = new ArrayList<String>();
+				List<String> groupBy = new Vector<>();
 				for(IQuerySelector groupBySelector : this.groupBy) {
 					String groupQs = groupBySelector.getQueryStructName();
 					groupBy.add(groupQs);
@@ -324,7 +368,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	}
 	
 	public List<Map<String, Object>> getSortInfo() {
-		List<Map<String, Object>> orderByInfo = new ArrayList<Map<String, Object>>();
+		List<Map<String, Object>> orderByInfo = new Vector<Map<String, Object>>();
 		for(IQuerySort orderBy : this.orderByOperations) {
 			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
 				QueryColumnOrderBySelector columnSort = (QueryColumnOrderBySelector) orderBy;
