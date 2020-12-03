@@ -45,12 +45,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ChromeDriverUtility;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 // export to excel non-native is the NN
 public class ExportToExcelNNReactor extends AbstractReactor {
@@ -218,7 +218,7 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 					// call the genXLPivot
 					InsightPanel pivotPanel = pivotPanelsBySheet.get(thisKey);
 					TaskOptions taskOptions= pivotPanel.getTaskOptions();
-					ITask task = new BasicIteratorTask(pivotPanel.getLastQs());
+					ITask task = InsightUtility.constructTaskFromQs(this.insight, pivotPanel.getLastQs());
 					task.setLogger(this.getLogger(this.getClass().getName()));
 					task.setTaskOptions(taskOptions);
 
