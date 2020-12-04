@@ -1,7 +1,10 @@
 package prerna.query.querystruct;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -10,7 +13,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	
 	// if composite is set then you basically have 2 sides
 	// if not just one side
-	boolean composite = false;
+	public boolean composite = false;
 	public GenExpression parent = null;
 	
 	public boolean recursive = false; // ((a+b)+c)*d) - 2 values - tree out of the expression
@@ -25,7 +28,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	String rightAlias = null;
 	String rightExpr = null;
 	
-	String leftAlias = null; // used all the time
+	public String leftAlias = null; // used all the time
 	String leftExpr = null; // left expression - string of the sql being used
 	String on = null;
 	
@@ -34,14 +37,17 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	
 	String alias = null;
 	public String aQuery = null;
+	public boolean neutralize = false;
 	
 	public boolean paranthesis = false;
+	
 	
 	public void setRightExpresion(Object rightItem)
 	{
 		this.rightItem = rightItem;
 		if(rightItem instanceof GenExpression)
 			((GenExpression)rightItem).parent = this;
+		
 	}
 	
 	public void setLeftExpresion(Object leftItem)
@@ -155,7 +161,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	}
 
 	
-	public StringBuffer printQS(GenExpression qs, StringBuffer buf)
+	public static StringBuffer printQS(GenExpression qs, StringBuffer buf)
 	{
 		// if the type is join.. you need to do other things
 		//System.err.println("Processing  " + qs.aQuery + " <>" + qs.expression + "<>" + qs.operation);
@@ -163,7 +169,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		if(buf == null)
 			buf = new StringBuffer();
 		boolean processed = false;
-		if(qs != null && qs.operation != null)
+		if(qs != null && qs.operation != null && !qs.neutralize)
 		{
 			if(qs.operation.equalsIgnoreCase("select") || qs.operation.equalsIgnoreCase("querystruct"))
 			{
@@ -175,17 +181,25 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 					
 					// need to handle telescope
 					
-					if(selIndex > 0)
-						buf.append(", ");
+
+					StringBuffer newBuf = printQS(sqs, null);
 					
-					if(sqs.operation != null && sqs.operation.equalsIgnoreCase("querystruct"))		
+					if(newBuf != null && newBuf.length() > 0)
 					{
-						buf.append("(");
-					}
-					printQS(sqs, buf);
-					if(sqs.operation != null && sqs.operation.equalsIgnoreCase("querystruct"))		
-					{
-						buf.append(")");
+						if(selIndex > 0)
+							buf.append(", ");
+
+						if(sqs.operation != null && sqs.operation.equalsIgnoreCase("querystruct"))		
+						{
+							buf.append("(");
+						}
+					
+						buf.append(newBuf);
+						
+						if(sqs.operation != null && sqs.operation.equalsIgnoreCase("querystruct"))		
+						{
+							buf.append(")");
+						}
 					}
 					/*// if it is a column I need to put alias too
 					else if(sqs.operation.equalsIgnoreCase("column") || sqs.operation.equalsIgnoreCase("double") || sqs.operation.equalsIgnoreCase("date") || sqs.operation.equalsIgnoreCase("time") || sqs.operation.equalsIgnoreCase("string") )
@@ -244,7 +258,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				//System.err.println(" hmm.. from is composite.. but simple ?  " + qs.aQuery);
 			}
 		}
-		if(qs.operation != null && qs.operation.contains("union"))
+		if(qs.operation != null && qs.operation.contains("union") && !qs.neutralize)
 		{
 			//System.err.println("And now we are getting the union " + qs);
 			// process the left and right
@@ -264,7 +278,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			processed = true;
 		}
 		
-		if(qs.operation != null && qs.operation.equalsIgnoreCase("between"))
+		if(qs.operation != null && qs.operation.equalsIgnoreCase("between") && !qs.neutralize)
 		{
 			processed = true;
 			buf.append("  "); 
@@ -276,7 +290,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			processed = true;
 			
 		}
-		if(qs.operation != null && qs.operation.equalsIgnoreCase("cast"))
+		if(qs.operation != null && qs.operation.equalsIgnoreCase("cast") && !qs.neutralize)
 		{
 			// name of the function is in the left alias
 			buf.append("CAST ").append("(");
@@ -289,20 +303,24 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			processed = true;
 		}
 		
-		if(qs.operation != null && qs.operation.equalsIgnoreCase("function"))
+		if(qs.operation != null && qs.operation.equalsIgnoreCase("function") && !qs.neutralize)
 		{
 			// name of the function is in the left alias
 			buf.append(qs.expression).append("(");
 			FunctionExpression thisExpr = (FunctionExpression)qs;
 			List <GenExpression> parameters = thisExpr.expressions;
 			for(int paramIndex = 0;paramIndex < parameters.size();paramIndex++)
+			{
+				if(paramIndex > 0)
+					buf.append(", ");
 				printQS(parameters.get(paramIndex), buf);
+			}
 			buf.append(")");
 			if(qs.leftAlias != null)
 				buf.append(" AS ").append(qs.leftAlias);
 			processed = true;
 		}
-		if(qs.operation != null && qs.operation.equalsIgnoreCase("isnull"))
+		if(qs.operation != null && qs.operation.equalsIgnoreCase("isnull") && !qs.neutralize)  
 		{
 			// name of the function is in the left alias
 			printQS((GenExpression)qs.leftItem, buf);
@@ -313,7 +331,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		}
 		// need to handle telescope
 
-		if(!processed)
+		if(!processed && !qs.neutralize)
 		{
 			if(qs.recursive)
 			{
@@ -356,6 +374,8 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				}
 				processed = true;
 			}
+			
+			// this also needs to be neutralized
 			else if(qs.leftItem != null && qs.rightItem != null) // this is expression
 			{
 				// dont know how to handle this yet
@@ -378,8 +398,9 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 					buf.append(")");
 
 			}
-			else if(qs.telescope )
+			else if(qs.telescope && !qs.body.neutralize)
 			{
+				// need to acomodate when it is neutralize
 				buf.append("(");
 				printQS((GenExpression)qs.body, buf);
 				buf.append(")");
@@ -443,7 +464,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			// I also need to pick the from here
 			// this is is the inner join on <from>
 			// how to tell if a join is a subjoin ?
-			if(sqs.from != null)
+			if(sqs.from != null && !sqs.neutralize)
 			{
 				buf.append(newLine);
 				buf.append(sqs.on);
@@ -456,13 +477,13 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				if(sqs.from.leftAlias != null)
 					buf.append("  AS ").append(sqs.from.leftAlias);
 			}
-			if(sqs.body != null && sqs.body.operation.equalsIgnoreCase("querystruct"))
+			if(sqs.body != null && sqs.body.operation.equalsIgnoreCase("querystruct") && !sqs.neutralize)
 			{
 				open = "(";
 				close = ")  ";
 			}
 			// process this as a query struct
-			if(sqs.body != null)
+			if(sqs.body != null && !sqs.neutralize)
 			{
 				buf.append("  on ");
 				buf.append(open);
@@ -474,9 +495,13 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		// add the where
 		if(qs.filter != null)
 		{
-			buf.append(newLine);
-			buf.append("  WHERE " );
-			printQS(qs.filter, buf);
+			StringBuffer newBuf = printQS(qs.filter, null);
+			if(newBuf != null && newBuf.length() > 0)
+			{
+				buf.append(newLine);
+				buf.append("  WHERE " );
+				buf.append(newBuf);
+			}
 		}
 		
 		
@@ -490,12 +515,14 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 					buf = buf.append(" , ");
 				GenExpression gep = qs.ngroupBy.get(groupIndex);
 
-				if(gep.composite)
-					buf.append("(");
-				printQS(gep, buf);
-				if(gep.composite)
-					buf.append(")");
-				
+				if(!gep.neutralize) // accomodating if it has been removed
+				{
+					if(gep.composite)
+						buf.append("(");
+					printQS(gep, buf);
+					if(gep.composite)
+						buf.append(")");
+				}				
 			}
 		}
 
@@ -509,15 +536,19 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 					buf = buf.append(" , ");
 				GenExpression gep = qs.norderBy.get(orderIndex).body;
 
-				if(gep.composite)
-					buf.append("(");
-				printQS(gep, buf);
-				if(gep.composite)
-					buf.append(")");
-				buf.append("  ");
-				String direction = ((OrderByExpression)qs.norderBy.get(orderIndex)).direction;
-				if(direction.length() > 0)
-					buf.append(direction);
+				if(!gep.neutralize) // accomodating if it has been removed
+				{
+					
+					if(gep.composite)
+						buf.append("(");
+					printQS(gep, buf);
+					if(gep.composite)
+						buf.append(")");
+					buf.append("  ");
+					String direction = ((OrderByExpression)qs.norderBy.get(orderIndex)).direction;
+					if(direction.length() > 0)
+						buf.append(direction);
+				}
 			}
 		}
 		
@@ -532,51 +563,97 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		return buf;
 	}
 		
-	public StringBuffer printQSRecursive(GenExpression qs, StringBuffer buf)
+	public static StringBuffer printQSRecursive(GenExpression qs, StringBuffer buf)
 	{
 		Object leftItem = qs.leftItem;
 		Object rightItem = qs.rightItem;
 		
+		String operation = qs.operation;
+		
+		// Account for when it is an or and both left item and right item are neutralized
+		//if(leftItem != null && leftItem instanceof GenExpression && ((GenExpression)leftItem).neutralize && rightItem != null && rightItem instanceof GenExpression && ((GenExpression)rightItem).neutralize)
+		//	return buf.append("(1 = 1) ");
+		
 		if(leftItem instanceof GenExpression)
 		{
-			// need to know if I need to put a paranthesis around this or not
-			Object childLeftItem = ((GenExpression)leftItem).leftItem;
-			Object childRightItem = ((GenExpression)leftItem).leftItem;
-			
-			StringBuffer leftBuf = printQS((GenExpression)leftItem, new StringBuffer());
-			
-			if((childLeftItem != null && childLeftItem instanceof GenExpression && ((GenExpression)childLeftItem).composite) 
-					&& (childRightItem != null && childRightItem instanceof GenExpression && ((GenExpression)childRightItem).composite))
+			if(!((GenExpression)leftItem).neutralize)
 			{
-				buf.append("(");
-				buf.append(leftBuf);
-				buf.append(")");
+				// need to know if I need to put a paranthesis around this or not
+				Object childLeftItem = ((GenExpression)leftItem).leftItem;
+				Object childRightItem = ((GenExpression)leftItem).rightItem;
+				
+				StringBuffer leftBuf = printQS((GenExpression)leftItem, new StringBuffer()); // need to account for neutralize here
+
+				if(leftBuf.length() > 0)
+				{
+					if((childLeftItem != null && childLeftItem instanceof GenExpression && ((GenExpression)childLeftItem).composite) 
+							&& (childRightItem != null && childRightItem instanceof GenExpression && ((GenExpression)childRightItem).composite))
+					{
+						buf.append("(");
+						buf.append(leftBuf);
+						buf.append(")");
+					}
+					else
+						buf.append(leftBuf).append(" ");
+				}
+				else if(operation.equalsIgnoreCase("and"))
+				{
+					// get the "and" gen expression to be added
+					// True and True = True
+					// False and True = false;
+					buf.append("1 = 1");
+				}
+				else if(operation.equalsIgnoreCase("or"))
+				{
+					// get the "or" gen expression to be added
+					// True or False = True
+					// False or False = False
+					buf.append("1 = 0");
+				}
 			}
-			else
-				buf.append(leftBuf).append(" ");
 		}
 		else 
 			buf.append(qs.leftItem).append(" ");
 		
-		if(qs.operation != null)
-			buf.append(" ").append(qs.operation).append(" ");
+		if(operation != null)
+			buf.append(" ").append(operation).append(" ");
 		
 		if(rightItem instanceof GenExpression)
 		{
-			// need to know if I need to put a paranthesis around this or not
-			Object childLeftItem = ((GenExpression)rightItem).leftItem;
-			Object childRightItem = ((GenExpression)rightItem).rightItem;
-			
-			StringBuffer rightBuf = printQS((GenExpression)rightItem, new StringBuffer());
-			
-			if((childLeftItem != null && childLeftItem instanceof GenExpression && ((GenExpression)childLeftItem).composite) && (childRightItem != null && childLeftItem instanceof GenExpression && ((GenExpression)childRightItem).composite))
+			if(!((GenExpression)rightItem).neutralize)
 			{
-				buf.append("(");
-				buf.append(rightBuf);
-				buf.append(")");
+			// need to know if I need to put a paranthesis around this or not
+				Object childLeftItem = ((GenExpression)rightItem).leftItem;
+				Object childRightItem = ((GenExpression)rightItem).rightItem;
+				
+				StringBuffer rightBuf = printQS((GenExpression)rightItem, new StringBuffer());
+				
+				if(rightBuf.length() > 0)
+				{
+					if((childLeftItem != null && childLeftItem instanceof GenExpression && ((GenExpression)childLeftItem).composite) && (childRightItem != null && childLeftItem instanceof GenExpression && ((GenExpression)childRightItem).composite))
+					{
+						buf.append("(");
+						buf.append(rightBuf);
+						buf.append(")");
+					}
+					else
+						buf.append(rightBuf).append(" ");
+				}
+				else if(operation.equalsIgnoreCase("and"))
+				{
+					// get the "and" gen expression to be added
+					// True and True = True
+					// False and True = false;
+					buf.append("1 = 1 ");
+				}
+				else if(operation.equalsIgnoreCase("or"))
+				{
+					// get the "or" gen expression to be added
+					// True or False = True
+					// False or False = False
+					buf.append("1 = 0 ");
+				}
 			}
-			else
-				buf.append(rightBuf).append(" ");
 		}
 		else 
 			buf.append(qs.rightItem).append(" ");
@@ -983,6 +1060,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		return match;
 	}
 
+	
 	
 	
 }
