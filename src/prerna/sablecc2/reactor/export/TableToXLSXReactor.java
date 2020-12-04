@@ -275,7 +275,6 @@ public class TableToXLSXReactor	extends AbstractReactor {
 
 		public String processTable(String sheetName, String html, String fileName) 
 		{
-			System.out.println("again");
 			try
 			{
 				Document doc = Jsoup.parse(html, "UTF-8");
