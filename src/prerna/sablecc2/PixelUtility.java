@@ -25,6 +25,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
+import prerna.om.ColorByValueRule;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -923,6 +924,15 @@ public class PixelUtility {
 			for(String layerId : layerMap.keySet()) {
 				String pixelString = layerMap.get(layerId);
 				cacheRecipe.add(pixelString);
+			}
+		}
+		
+		// add the color by values at the end of the recipe
+		for(String panelId : panels.keySet()) {
+			InsightPanel panel = panels.get(panelId);
+			List<ColorByValueRule> cbvs = panel.getColorByValue();
+			for(ColorByValueRule cbv : cbvs) {
+				cacheRecipe.add("Panel(\"" + panelId + "\") | RetrievePanelColorByValue(name=[\"" + cbv.getId() + "\"]) | Collect(2000);");
 			}
 		}
 		
