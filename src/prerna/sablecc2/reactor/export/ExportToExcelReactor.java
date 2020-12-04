@@ -108,7 +108,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 	public ExportToExcelReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.HEIGHT.getKey(), ReactorKeysEnum.WIDTH.getKey(), 
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.HEIGHT.getKey(), 
+				ReactorKeysEnum.WIDTH.getKey(), 
 				ReactorKeysEnum.HEADERS.getKey(), 
 				ReactorKeysEnum.ROW_GUTTER.getKey(),
 				ReactorKeysEnum.COLUMN_GUTTER.getKey(),
@@ -1162,16 +1163,18 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
 		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&panel=" + panelId;
-		if(driver == null)
+		logger.info("Generating table at " + htmlUrl);
+		if(driver == null) {
 			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl, sessionId, 800, 600);
+		}
 		ChromeDriverUtility.captureDataPersistent(driver, baseUrl, htmlUrl, sessionId);
+		WebElement we = driver.findElement(By.xpath("//html/body//table"));
+		String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
 		
 		//WebElement elem1 = new WebDriverWait(driver, 10)
 		//        .until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//table")));
-		WebElement we = driver.findElement(By.xpath("//html/body//table"));
 		//html = driver.executeScript("return document.documentElement.outerHTML;") + "";
 		//System.out.println(html);
-		String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
 		//System.out.println(html2);
 		//driver.quit();
 		//driver = null; 
