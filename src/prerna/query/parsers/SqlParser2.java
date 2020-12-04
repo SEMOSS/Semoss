@@ -2453,6 +2453,14 @@ public class SqlParser2 {
 		test.printOutput(wrapper.root);
 		
 
+		wrapper.neutralizeFunction(root, "detok", true);
+		System.err.println("After removing Function");
+		test.printOutput(wrapper.root);
+
+		wrapper.neutralizeFunction(root, "detok", false);
+		System.err.println("After Adding Function");
+		test.printOutput(wrapper.root);
+
 		// get the param map and modify the value
 		// =CII_FACT_MBRSHP.ACCT_ID
 		/*
