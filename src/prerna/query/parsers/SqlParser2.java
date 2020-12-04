@@ -355,6 +355,7 @@ public class SqlParser2 {
 				SelectExpressionItem sei = (SelectExpressionItem) si;
 				Alias seiAlias = sei.getAlias();				
 				GenExpression gep = processExpression(qs, sei.getExpression(), null);
+				
 				if(seiAlias != null)
 					gep.setLeftAlias(seiAlias.getName());
 				qs.nselectors.add(gep);
@@ -436,6 +437,7 @@ public class SqlParser2 {
 		// operation - set to join
 		// join type = tells you if it is inner etc. 
 		// right item is another SQL expression if there is one
+		// from is the actual query
 		
 		// TODO - process using columns
 		GenExpression gep = new GenExpression(); // this is the one I am processing for the actual join itself. 
@@ -877,6 +879,8 @@ public class SqlParser2 {
 				GenExpression thisExpression = processExpression(qs, el.get(exprIndex), gep);
 				gep.expressions.add(thisExpression);
 			}
+			// add this to be used later
+			wrapper.addFunctionExpression(fexpr.getName(), gep);
 			gep.parent = (GenExpression)qs;
 			return gep;
 			
@@ -1111,6 +1115,8 @@ public class SqlParser2 {
 		else
 		{
 			System.err.println("Unhandled expression >>>>> " + joinExpr);
+			if(joinExpr == null)
+				return null;
 			GenExpression ge = new GenExpression();
 			ge.setOperation("opaque");
 			ge.setLeftExpr(joinExpr.toString());
@@ -2341,7 +2347,7 @@ public class SqlParser2 {
 				"		Paid_Amount,Account_Name,CBSA_Name,ICD_Diagnosis_Source_Short_Code_Definition_Text,\r\n" + 
 				"		Paid_PMPM";
 		
-		String query8 = "Select a.abc, b.b1,  sum(a.a1), a.a1 + 2 from a as a, (b) as b, (c) as c on a.id = b.id";
+		String query8 = "Select a.abc, b.b1,  coalesce(a.a1, 'abcd'), a.a1 + 2 from a as a, (b) as b, (c) as c on a.id = b.id";
 		
 		String query9 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title ";
 
@@ -2350,9 +2356,102 @@ public class SqlParser2 {
 		String query11 = "SELECT DISTINCT Title.MovieBudget AS \"MovieBudget\" , Title.RevenueDomestic AS \"RevenueDomestic\" , Title.RevenueInternational AS \"RevenueInternational\" , Title.RottenTomatoesAudience AS \"RottenTomatoesAudience\" , Title.RottenTomatoesCritics AS \"RottenTomatoesCritics\" , Title.Title AS \"Title\" FROM Title Title  WHERE (Title.MovieBudget) IN ( 1000000 , 1700000 ) \r\n";
 
 		String query12 = "SELECT DISTINCT customquery.\"MovieBudget\" AS \"MovieBudget\" , customquery.\"RevenueDomestic\" AS \"RevenueDomestic\" , customquery.\"RevenueInternational\" AS \"RevenueInternational\" , customquery.\"RottenTomatoesAudience\" AS \"RottenTomatoesAudience\" , customquery.\"RottenTomatoesCritics\" AS \"RottenTomatoesCritics\" , customquery.\"Title\" AS \"Title\" FROM (SELECT  avqLBU.\"MovieBudget\", avqLBU.\"RevenueDomestic\", avqLBU.\"RevenueInternational\", avqLBU.\"RottenTomatoesAudience\", avqLBU.\"RottenTomatoesCritics\", avqLBU.\"Title\"  FROM ( SELECT  Title.MovieBudget as \"MovieBudget\", Title.RevenueDomestic as \"RevenueDomestic\", Title.RevenueInternational as \"RevenueInternational\", Title.RottenTomatoesAudience as \"RottenTomatoesAudience\", Title.RottenTomatoesCritics as \"RottenTomatoesCritics\", Title.Title as \"Title\"  FROM Title as Title  WHERE (Title.MovieBudget)  IN  (1000000, 1700000)  UNION ALL  SELECT  Title.MovieBudget as \"MovieBudget\", Title.RevenueDomestic as \"RevenueDomestic\", Title.RevenueInternational as \"RevenueInternational\", Title.RottenTomatoesAudience as \"RottenTomatoesAudience\", Title.RottenTomatoesCritics as \"RottenTomatoesCritics\", Title.Title as \"Title\"  FROM Title as Title  WHERE (Title.MovieBudget)  IN  (500000, 800000)) AS avqLBU ) AS customquery\r\n";
+		
+		// testing queries for smart measure
+		
+		// harness 1 - multi level no join
+		// all with alias
+		String query13 = "Select B1 as A1, A.A2, A.A3 as A3 from "
+				+ "("
+				+ "Select B.B1, B.B2 as A2, B3 as A3 from "
+				+ "("
+				+ "Select C1 as B1, C2 as B2, C3 as B3 from C"
+				+ " where B3='Roof' ) B"
+				+ ") A where A3='poof'"
+				+ ";";
+		
+		// without alias
+		String query14 = "Select B1, A.A2, A.A3 as A3 from "
+				+ "("
+				+ "Select B.B1, B.B2 as A2, B3 as A3 from "
+				+ "("
+				+ "Select C1 as B1, C2 as B2, C3 as B3 from C"
+				+ ") B"
+				+ ") A"
+				+ ";";
+		
+		// without alias
+		// not in projection, but only in group by
+		String query15 = "Select A.A2, A.A3 as A3 from "
+				+ "("
+				+ "Select B.B1, B.B2 as A2, B3 as A3 from "
+				+ "("
+				+ "Select C1 as B1, C2 as B2, C3 as B3 from C"
+				+ ") B"
+				+ ") A group by B1"
+				+ ";";
+
+
+		// joins
+		String query16 = "Select A.A2, A.A3 as A3, detok(E.E1), E.E2 from "
+				+ "("
+				+ "Select B.B1, detok(B.B2) as A2, B3 as A3 from "
+				+ "("
+				+ "Select C1 as B1, C2 as B2, C3 as B3 from C "
+				+ "inner join ("
+				+ "Select D1, D2, detok(D3) as D3 from D where D3='Roof') D on "
+				+ "C.C1 = D.D1"
+				+ ") B"
+				+ ") A inner join ("
+				+ "Select E1, E2, E3 from E) E on B1=E.E1"
+				+ " where (A3 = 'Fun' and A3 = 'Bun') or A2 = 'Gun';";
+		
+		String query17 = "Select a,b, c from tabla where 1 = 0 and (a = 'a' or c = 'q')";
+
+		String query18 = "Select A.A2, A.A3 as A3, detok(E.E1), E.E2 from "
+				+ "("
+				+ "Select B.B1, detok(B.B2) as A2, B3 as A3 from "
+				+ "("
+				+ "Select C1 as B1, C2 as B2, C3 as B3 from C "
+				+ "inner join ("
+				+ "Select D1, D2, detok(D3) as D3 from D where D3='Roof') D on "
+				+ "C.C1 = D.D1"
+				+ ") B"
+				+ ") A inner join ("
+				+ "Select E1, E2, E3 from E) E on B1=E.E1"
+				+ " where (A3 = 'Fun' and A3 = 'Bun') or A2 = 'Gun';";
+
+		// there are a couple of scenarios to model for join
+		// I have only one join easy for me to drop this - what happens to remaining stuff ?
+		// I have 2 joins 
+
 		test.parameterize = false;
-		GenExpressionWrapper wrapper = test.processQuery(query12);
+		GenExpressionWrapper wrapper = test.processQuery(query16);
 		test.printOutput(wrapper.root);
+		GenExpression root = wrapper.root;
+		// works with Query 2
+		//Object [] output = root.printLineage(root, "Member Engagement Tier", null ,null, null, 0);
+		
+		// with alias
+		//Object [] output = root.printLineage(root, "A1", null ,null, null, 0);
+		
+		// without alias
+		//Object [] output = root.printLineage(root, "B1", null ,null, null, 0);
+
+		//Object [] output = root.printLineage(root, "B1", null ,null, null, 0);
+
+		//System.out.println("Physical Name for A3 >> " + wrapper.getPhysicalColumnName(root, "B3"));
+		
+		System.out.println("Detok List >> " + wrapper.getColumnsForFunction("detok"));
+		
+		wrapper.neutralizeSelector(root, "A3", true);
+		System.err.println("After removing it");
+		test.printOutput(wrapper.root);
+		
+		wrapper.neutralizeSelector(root, "A3", false);
+		System.err.println("After adding it");
+		test.printOutput(wrapper.root);
+		
 
 		// get the param map and modify the value
 		// =CII_FACT_MBRSHP.ACCT_ID
