@@ -762,6 +762,23 @@ public class GenExpressionWrapper {
 		return retList;
 	}
 	
+	public void neutralizeFunction(GenExpression starter, String functionName, boolean neutralize)
+	{
+
+		// I just need to grab the first array and neutralize
+		if(functionExpressionMapper.containsKey(functionName))
+		{
+			List <GenExpression> allExprs = functionExpressionMapper.get(functionName);
+			for(int exprIndex = 0;exprIndex < allExprs.size();exprIndex++)
+			{
+				GenExpression curSelector = allExprs.get(exprIndex);
+				curSelector.neutralizeFunction = neutralize;
+			}
+		}
+			
+	}
+
+	
 	
 
 }
