@@ -771,13 +771,39 @@ public class GenExpressionWrapper {
 			List <GenExpression> allExprs = functionExpressionMapper.get(functionName);
 			for(int exprIndex = 0;exprIndex < allExprs.size();exprIndex++)
 			{
-				GenExpression curSelector = allExprs.get(exprIndex);
+				FunctionExpression curSelector = (FunctionExpression)allExprs.get(exprIndex);
 				curSelector.neutralizeFunction = neutralize;
 			}
 		}
 			
 	}
 
+	// add function to a selector
+	public void addFunctionToSelector(GenExpression select, GenExpression selector, String functionName)
+	{
+		// get the selectors parent
+		// create a function expression by setting operation to function
+		// add the current selector to the expression
+		// get the alias and if not available, use the selector directly
+		// remove this from the list of selectors
+		// set the alias for function expression to be the alias
+		// add this to the selectors
+		
+		FunctionExpression funExpression = new FunctionExpression();
+		funExpression.operation = functionName;
+		funExpression.expressions.add(selector);
+		String alias = selector.leftAlias;
+		if(alias == null)
+			alias = selector.getLeftExpr();
+		
+		funExpression.leftAlias = alias;
+		select.nselectors.remove(selector);
+		select.nselectors.add(funExpression);
+		
+		// done
+	}
+		
+		// get all the selectors
 	
 	
 

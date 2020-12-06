@@ -37,7 +37,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	
 	String alias = null;
 	public String aQuery = null;
-	public boolean neutralize = false;
+	public boolean neutralize = false; // removes this from the overall string when printed
 	
 	public boolean paranthesis = false;
 	
@@ -305,9 +305,17 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		
 		if(qs.operation != null && qs.operation.equalsIgnoreCase("function") && !qs.neutralize)
 		{
-			// name of the function is in the left alias
-			buf.append(qs.expression).append("(");
 			FunctionExpression thisExpr = (FunctionExpression)qs;
+			if(!thisExpr.neutralizeFunction)
+			{
+				buf.append(thisExpr.expression).append("(");				
+			}
+			else if(thisExpr.expressions.size() == 1)
+			{
+				buf.append("(");
+			}
+			// name of the function is in the left alias
+			//buf.append(qs.expression).append("(");
 			List <GenExpression> parameters = thisExpr.expressions;
 			for(int paramIndex = 0;paramIndex < parameters.size();paramIndex++)
 			{
