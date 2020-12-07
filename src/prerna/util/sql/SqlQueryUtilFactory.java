@@ -167,6 +167,12 @@ public class SqlQueryUtilFactory {
 		}
 		
 		// see if it exists in dihelper and load
+		// this check is just for main methods 
+		// to prevent null pointer exceptions
+		if(DIHelper.getInstance().getCoreProp() == null) {
+			return new Vector<>();
+		}
+		
 		String keywordsString = DIHelper.getInstance().getProperty(type.getLabel().toUpperCase() + Constants.KEYWORDS_SUFFIX);
 		if(keywordsString != null) {
 			List<String> keywordsList = new Vector<String>();
