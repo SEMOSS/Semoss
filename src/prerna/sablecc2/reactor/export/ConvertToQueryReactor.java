@@ -12,6 +12,8 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ConvertToQueryReactor extends AbstractReactor {
@@ -21,6 +23,16 @@ public class ConvertToQueryReactor extends AbstractReactor {
 		String query = null;
 
 		SelectQueryStruct qs = getQs();
+		if(qs == null) {
+			ITask task = getTask();
+			if(task != null && task instanceof BasicIteratorTask) {
+				qs = ((BasicIteratorTask) task).getQueryStruct();
+			}
+		}
+		
+		if(qs == null) {
+			throw new NullPointerException("Must input a query struct");
+		}
 		
 		// if query defined
 		// just grab it
@@ -65,6 +77,24 @@ public class ConvertToQueryReactor extends AbstractReactor {
 			if(qsList != null && !qsList.isEmpty()) {
 				noun = qsList.get(0);
 				return (SelectQueryStruct) noun.getValue();
+			}
+		}
+		
+		return null;
+	}
+	
+	private ITask getTask() {
+		GenRowStruct grsTask = this.store.getNoun(PixelDataType.TASK.getKey());
+		NounMetadata noun;
+		//if we don't have tasks in the curRow, check if it exists in genrow under the task key
+		if(grsTask != null && !grsTask.isEmpty()) {
+			noun = grsTask.getNoun(0);
+			return (ITask) noun.getValue();
+		} else {
+			List<NounMetadata> taskList = this.curRow.getNounsOfType(PixelDataType.TASK);
+			if(taskList != null && !taskList.isEmpty()) {
+				noun = taskList.get(0);
+				return (ITask) noun.getValue();
 			}
 		}
 		
