@@ -391,8 +391,10 @@ public class TableUserTracker implements IUserTracker {
 				
 				if(name.contains("__")) {
 					String[] split = name.split("__");
-					table = split[0];
-					column = split[1];
+					if(split.length == 2) {
+						table = split[0];
+						column = split[1];
+					}
 				}
 				
 				if(dataType == null) {

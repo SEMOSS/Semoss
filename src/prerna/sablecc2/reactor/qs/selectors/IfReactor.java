@@ -30,6 +30,7 @@ public class IfReactor extends SelectReactor {
 		// second one is the precedent
 		// third one is the antecedent
 		QueryIfSelector qis = new QueryIfSelector();
+		qis.setPixelString(this.originalSignature);
 		
 		GenRowStruct qsInputs = this.getCurRow();
 		if(qsInputs != null && !qsInputs.isEmpty()) {

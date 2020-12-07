@@ -68,4 +68,7 @@ public class QueryIfSelector extends AbstractQuerySelector {
 		return this.antecedent;
 	}
 	
+	public void setPixelString(String pixelString) {
+		this.pixelString = pixelString;
+	}
 }
