@@ -26,13 +26,12 @@ public class QueryFunctionHelper {
 	public static final String SUBSTRING = "Substring";
 
 	// Date functions
-	public static final String MONTH_NAME = "MonthName";
 	public static final String DATE_ADD = "DateAdd";
+	public static final String MONTH_NAME = "MonthName";
 	public static final String DAY_NAME = "DayName";
 	public static final String QUARTER = "Quarter";
 	public static final String WEEK = "Week";
 	public static final String YEAR = "Year";
-	
 	
 	private QueryFunctionHelper() {
 		
@@ -212,7 +211,9 @@ public class QueryFunctionHelper {
 				|| inputFunction.equalsIgnoreCase(UNIQUE_GROUP_CONCAT)
 				|| inputFunction.equalsIgnoreCase(LOWER)
 				|| inputFunction.equalsIgnoreCase(COALESCE)
-				|| inputFunction.equalsIgnoreCase(SUBSTRING)) {
+				|| inputFunction.equalsIgnoreCase(SUBSTRING)
+				|| inputFunction.equalsIgnoreCase(MONTH_NAME)
+				|| inputFunction.equalsIgnoreCase(DAY_NAME)) {
 			return "STRING";
 		} else if(inputFunction.equalsIgnoreCase(COUNT) 
 				|| inputFunction.equalsIgnoreCase(UNIQUE_COUNT) ) {
