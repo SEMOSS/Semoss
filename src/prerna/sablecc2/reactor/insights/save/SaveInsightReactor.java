@@ -148,17 +148,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 		stepCounter++;
 		
-		//write recipe to file
-		logger.info(stepCounter + ") Add recipe to file...");
-		try {
-			MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), 
-					newRdbmsId, insightName, layout, recipeToSave, hidden, description, tags);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		logger.info(stepCounter + ") Done...");
-		stepCounter++;
-		
 		// Move assets to new insight folder
 		File tempInsightFolder = new File(this.insight.getInsightFolder());
 		File newInsightFolder = new File(AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), engine.getEngineId()) + DIR_SEPARATOR + newRdbmsId);
@@ -173,6 +162,18 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	    // delete the cache folder for the new insight
 	 	InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), newRdbmsId, false);
 
+	 	// write recipe to file
+	 	// force = true to delete any existing mosfet files that were pulled from asset folder
+		logger.info(stepCounter + ") Add recipe to file...");
+		try {
+			MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), 
+					newRdbmsId, insightName, layout, recipeToSave, hidden, description, tags, true);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		logger.info(stepCounter + ") Done...");
+		stepCounter++;
+	 	
 		// write pipeline
 		if(pipeline != null && !pipeline.isEmpty()) {
 			logger.info(stepCounter + ") Add pipeline to file...");
