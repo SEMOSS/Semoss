@@ -779,7 +779,7 @@ public class GenExpressionWrapper {
 	}
 
 	// add function to a selector
-	public void addFunctionToSelector(GenExpression select, GenExpression selector, String functionName)
+	public void addFunctionToSelector(GenExpression select, String selectorName, String functionName)
 	{
 		// get the selectors parent
 		// create a function expression by setting operation to function
@@ -789,17 +789,39 @@ public class GenExpressionWrapper {
 		// set the alias for function expression to be the alias
 		// add this to the selectors
 		
-		FunctionExpression funExpression = new FunctionExpression();
-		funExpression.operation = functionName;
-		funExpression.expressions.add(selector);
-		String alias = selector.leftAlias;
-		if(alias == null)
-			alias = selector.getLeftExpr();
+		GenExpression selector = null;
+		for(int selectIndex = 0;selectIndex < select.nselectors.size();selectIndex++) 
+		{
+			GenExpression curSelector = select.nselectors.get(selectIndex);
+			String selectorAlias = curSelector.leftAlias;
+			//System.err.println("Selector alias is set to .. " + selectorName);
+			String selectorColumn = curSelector.getLeftExpr();
+
+			// there is a possibility this is a functional expression
+			if(curSelector instanceof FunctionExpression)
+				selectorColumn = getColumnFromFunctionExpression((FunctionExpression)curSelector, false);
+
+			if((selectorAlias != null && selectorName.equalsIgnoreCase(selectorAlias) )|| selectorName.equalsIgnoreCase(selectorColumn))
+			{
+				selector = curSelector;
+				break;
+			}	
+		}
 		
-		funExpression.leftAlias = alias;
-		select.nselectors.remove(selector);
-		select.nselectors.add(funExpression);
-		
+		if(selector != null)
+		{
+			FunctionExpression funExpression = new FunctionExpression();
+			funExpression.operation = "function";
+			funExpression.setExpression(functionName);
+			funExpression.expressions.add(selector);
+			String alias = selector.leftAlias;
+			if(alias == null)
+				alias = selector.getLeftExpr();
+			
+			funExpression.leftAlias = alias;
+			select.nselectors.remove(selector);
+			select.nselectors.add(funExpression);
+		}		
 		// done
 	}
 		
