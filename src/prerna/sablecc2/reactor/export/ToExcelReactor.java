@@ -192,7 +192,7 @@ public class ToExcelReactor extends TaskBuilderReactor {
 				Cell cell = excelRow.createCell(i);
 				Object value = dataRow[i];
 				if(value == null) {
-					cell.setCellValue("");
+					cell.setCellValue("null");
 				} else {
 					if(typesArr[i] == SemossDataType.STRING) {
 						cell.setCellValue(value + "");
@@ -233,7 +233,7 @@ public class ToExcelReactor extends TaskBuilderReactor {
 				Cell cell = excelRow.createCell(i);
 				Object value = dataRow[i];
 				if(value == null) {
-					cell.setCellValue("");
+					cell.setCellValue("null");
 				} else {
 					if(typesArr[i] == SemossDataType.STRING) {
 						cell.setCellValue(value + "");
