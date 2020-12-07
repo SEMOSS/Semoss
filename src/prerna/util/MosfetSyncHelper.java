@@ -19,7 +19,6 @@ public class MosfetSyncHelper {
 
 	// get the directory separator
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String STACKTRACE = "StackTrace: ";
 
 	// ADDED
 	public static final String ADD = "ADD";
@@ -74,7 +73,7 @@ public class MosfetSyncHelper {
 				mosfetFile = MosfetFile.generateFromFile(file);
 			} catch (IOException e) {
 				outputError(logger, "MOSFET file is not in valid JSON format");
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				continue;
 			}
 			processAddedFile(mosfetFile, logger);
@@ -105,7 +104,7 @@ public class MosfetSyncHelper {
 				mosfetFile = MosfetFile.generateFromFile(file);
 			} catch (IOException e) {
 				outputError(logger, "MOSFET file is not in valid JSON format");
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				continue;
 			}
 			processModifiedFiles(mosfetFile, logger);
@@ -126,7 +125,7 @@ public class MosfetSyncHelper {
 				mosfetFile = MosfetFile.generateFromFile(file);
 			} catch (IOException e) {
 				outputError(logger, "MOSFET file is not in valid JSON format");
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				continue;
 			}
 			logger.info("Start deleting mosfet file");
@@ -135,7 +134,7 @@ public class MosfetSyncHelper {
 		}
 	}
 
-	private static void addInsightToEngineRdbms(IEngine engine, MosfetFile mosfet) {
+	public static void addInsightToEngineRdbms(IEngine engine, MosfetFile mosfet) {
 		String appId = mosfet.getEngineId();
 		String id = mosfet.getRdbmsId();
 		String insightName = mosfet.getInsightName();
@@ -162,7 +161,7 @@ public class MosfetSyncHelper {
 		}
 	}
 
-	private static void updateInsightInEngineRdbms(MosfetFile mosfet) {
+	public static void updateInsightInEngineRdbms(MosfetFile mosfet) {
 		String appId = mosfet.getEngineId();
 		String id = mosfet.getRdbmsId();
 		String insightName = mosfet.getInsightName();
@@ -190,7 +189,7 @@ public class MosfetSyncHelper {
 		}
 	}
 
-	private static void deleteInsightFromEngineRdbms(MosfetFile mosfet) {
+	public static void deleteInsightFromEngineRdbms(MosfetFile mosfet) {
 		String appId = mosfet.getEngineId();
 		String id = mosfet.getRdbmsId();
 
@@ -276,6 +275,26 @@ public class MosfetSyncHelper {
 	 */
 	public static File makeMosfitFile(String appId, String appName, String rdbmsId, String insightName, 
 			String layout, List<String> recipe, boolean hidden, String description, List<String> tags) throws IOException {
+		return makeMosfitFile(appId, appName, rdbmsId, insightName, layout, recipe, hidden, description, tags, false);
+	}
+	
+	/**
+	 * Only generate the mosfet file
+	 * @param appId
+	 * @param appName
+	 * @param rdbmsId
+	 * @param insightName
+	 * @param layout
+	 * @param recipe
+	 * @param hidden
+	 * @param description
+	 * @param tags
+	 * @param forceDelete
+	 * @return
+	 * @throws IOException 
+	 */
+	public static File makeMosfitFile(String appId, String appName, String rdbmsId, String insightName, 
+			String layout, List<String> recipe, boolean hidden, String description, List<String> tags, boolean forceDelete) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
 		mosfet.setEngineId(appId);
 		mosfet.setRdbmsId(rdbmsId);
@@ -296,7 +315,7 @@ public class MosfetSyncHelper {
 				+ DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsId;
 
-		mosfet.write(mosfetPath, false);
+		mosfet.write(mosfetPath, forceDelete);
 		return new File(mosfetPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
 	}
 
