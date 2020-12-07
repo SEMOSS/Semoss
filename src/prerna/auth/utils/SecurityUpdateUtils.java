@@ -603,6 +603,35 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Update OAuth user credentials
+	 * @param existingUser
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public static boolean updateOAuthUser(AccessToken existingUser) throws IllegalArgumentException {
+		// lower case the emails coming in
+		if(existingUser.getEmail() != null) {
+			existingUser.setEmail(existingUser.getEmail().toLowerCase());
+		}
+
+		String updateQuery = "UPDATE USER SET "
+				+ "NAME='"+ RdbmsQueryBuilder.escapeForSQLStatement(existingUser.getName()) + "', "
+				+ "USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUser.getUsername()) + "', "
+				+ "EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUser.getEmail()) + "', "
+				+ "WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUser.getId()) + "' "
+				+ "AND TYPE='" + existingUser.getProvider() + "';";
+		
+		try {
+			securityDb.insertData(updateQuery);
+			return true;
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+
+		return false;
+	}
+	
+	/**
 	 * Adds a new user to the database. Does not create any relations, simply the node.
 	 * @param userName	String representing the name of the user to add
 	 */
