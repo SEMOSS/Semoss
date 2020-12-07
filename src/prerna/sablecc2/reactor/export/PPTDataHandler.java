@@ -53,9 +53,17 @@ public class PPTDataHandler {
 					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
 						data.add(((Number) value).doubleValue());
 					} else if (typesArr[i] == SemossDataType.DATE) {
-						data.add(((SemossDate) value).getDate().toString());
+						if(value instanceof SemossDate) {
+							data.add( ((SemossDate) value).getDate() ) ;
+						} else {
+							data.add(value + "");
+						}
 					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
-						data.add(((SemossDate) value).getDate().toString());
+						if(value instanceof SemossDate) {
+							data.add( ((SemossDate) value).getDate() ) ;
+						} else {
+							data.add(value + "");
+						}
 					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
 						data.add(Boolean.toString((boolean) value));
 					} else {
@@ -85,9 +93,17 @@ public class PPTDataHandler {
 					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
 						data.add(((Number) value).doubleValue());
 					} else if (typesArr[i] == SemossDataType.DATE) {
-						data.add(((SemossDate) value).getDate().toString());
+						if(value instanceof SemossDate) {
+							data.add( ((SemossDate) value).getDate() ) ;
+						} else {
+							data.add(value + "");
+						}
 					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
-						data.add(((SemossDate) value).getDate().toString());
+						if(value instanceof SemossDate) {
+							data.add( ((SemossDate) value).getDate() ) ;
+						} else {
+							data.add(value + "");
+						}
 					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
 						data.add(Boolean.toString((boolean) value));
 					} else {
