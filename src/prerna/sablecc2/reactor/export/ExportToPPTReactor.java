@@ -7,13 +7,16 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.poi.hslf.usermodel.HSLFPictureData;
 import org.apache.poi.sl.usermodel.PictureData.PictureType;
 import org.apache.poi.sl.usermodel.StrokeStyle;
 import org.apache.poi.sl.usermodel.TableCell.BorderEdge;
@@ -53,12 +56,14 @@ import org.apache.poi.xslf.usermodel.XSLFTableCell;
 import org.apache.poi.xslf.usermodel.XSLFTableRow;
 import org.apache.poi.xslf.usermodel.XSLFTextParagraph;
 import org.apache.poi.xslf.usermodel.XSLFTextRun;
+import org.openqa.selenium.chrome.ChromeDriver;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
+import prerna.om.ThreadStore;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
@@ -69,7 +74,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.ChromeDriverUtility;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
 public class ExportToPPTReactor extends AbstractReactor {
@@ -82,6 +89,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 	private static final String Y_AXIS_TITLE_NAME = "tools.shared.editYAxis.title.name";
 	private static final String X_AXIS_TITLE_NAME = "tools.shared.editXAxis.title.name";
 
+	ChromeDriver driver = null;
+	
 	public ExportToPPTReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
 	}
@@ -182,21 +191,36 @@ public class ExportToPPTReactor extends AbstractReactor {
 		TaskOptions tOptions = task.getTaskOptions();
 		Map<String, Object> options = tOptions.getOptions();
 		// Insert chart if supported
-		String plotType = (String) tOptions.getLayout(panelId);
-		if (plotType.equals("Line")) {
-			insertLineChart(slideshow, task, options, panel);
-		} else if (plotType.equals("Scatter")) {
-			insertScatterChart(options, slideshow, task, panel);
-		} else if (plotType.equals("Area")) {
-			insertAreaChart(options, slideshow, task, panel);
-		} else if (plotType.equals("Column")) {
-			insertBarChart(options, slideshow, task, panel);
-		} else if (plotType.equals("Pie")) {
-			insertPieChart(options, slideshow, task, panel);
-		} else if (plotType.equals("Radar")) {
-			insertRadarChart(options, slideshow, task, panel);
-		} else if (plotType.equals("Grid")) {
-			insertGridChart(options, slideshow, task, panel);
+		try {
+			String plotType = (String) tOptions.getLayout(panelId);
+			if (plotType.equals("Line")) {
+				insertLineChart(slideshow, task, options, panel);
+			} else if (plotType.equals("Scatter")) {
+				insertScatterChart(options, slideshow, task, panel);
+			} else if (plotType.equals("Area")) {
+				insertAreaChart(options, slideshow, task, panel);
+			} else if (plotType.equals("Column")) {
+				insertBarChart(options, slideshow, task, panel);
+			} else if (plotType.equals("Pie")) {
+				insertPieChart(options, slideshow, task, panel);
+			} else if (plotType.equals("Radar")) {
+				insertRadarChart(options, slideshow, task, panel);
+			} else if (plotType.equals("Grid")) {
+				insertGridChart(options, slideshow, task, panel);
+			} else if(!plotType.equals("PivotTable")) { 
+				insertImage(options, slideshow, task, panel);
+			}
+		} catch(Exception ex) {
+			ex.printStackTrace();
+			if(driver != null) {
+				driver.quit();
+			}
+			driver = null;
+		} finally {
+			if(driver != null) {
+				driver.quit();
+			}
+			driver = null;
 		}
 	}
 
@@ -778,6 +802,53 @@ public class ExportToPPTReactor extends AbstractReactor {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+	}
+
+	
+	/**
+	 * 
+	 * @param options
+	 * @param slideshow
+	 * @param task
+	 * @param panel
+	 */
+	private void insertImage(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
+		String baseUrl = this.insight.getBaseURL();
+		String imageUrl = this.insight.getLiveURL();
+		String panelAppender = "&panel=" + panel.getPanelId();
+		String sheetAppender = "&sheet=" + panel.getSheetId();
+		String sessionId = ThreadStore.getSessionId();
+		String exportName = AbstractExportTxtReactor.getExportFileName(Utility.getRandomString(8), "png");
+		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
+		if(driver == null) {
+			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, sessionId, 800, 600);
+		}
+		ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId);
+		
+		InputStream inputStream = null;
+		try {
+			inputStream = new FileInputStream(imageLocation);
+			byte[] bytes = IOUtils.toByteArray(inputStream);
+			inputStream.close();
+			FileUtils.forceDelete(new File(imageLocation));
+			XSLFPictureData hslfPictureData = slideshow.addPicture(bytes, HSLFPictureData.PictureType.PNG);
+			XSLFSlide blankSlide = slideshow.createSlide();
+			XSLFPictureShape pic = blankSlide.createPicture(hslfPictureData);
+			pic.setAnchor(new Rectangle(0,0, 800,600));
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(inputStream != null) {
+				try {
+					inputStream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(driver != null) {
+				driver.quit();
+			}
 		}
 	}
 
