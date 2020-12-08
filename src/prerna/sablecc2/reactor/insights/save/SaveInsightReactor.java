@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
@@ -32,6 +33,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -39,6 +41,7 @@ import prerna.util.git.GitUtils;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
 
+	private static final Logger logger = LogManager.getLogger(SaveInsightReactor.class);
 	private static final String CLASS_NAME = SaveInsightReactor.class.getName();
 	
 	public SaveInsightReactor() {
@@ -156,6 +159,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			FileUtils.copyDirectory(tempInsightFolder, newInsightFolder);
 			logger.info(stepCounter + ") Done...");
 		} catch (IOException e) {
+			SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
 			logger.info(stepCounter + ") Unable to move assets...");
 		}
 	    stepCounter++;
@@ -169,7 +173,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), 
 					newRdbmsId, insightName, layout, recipeToSave, hidden, description, tags, true);
 		} catch (IOException e) {
-			e.printStackTrace();
+			SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
+			logger.info(stepCounter + ") Unable to save recipe file...");
 		}
 		logger.info(stepCounter + ") Done...");
 		stepCounter++;
@@ -207,8 +212,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"), author, email);
 			logger.info(stepCounter + ") Done...");
 		} catch (Exception e) {
+			SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
 			logger.info(stepCounter + ") Unable to add insight to git...");
-			e.printStackTrace();
 		} finally {
 			if(walk != null) {
 				walk.close();
