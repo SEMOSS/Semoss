@@ -122,20 +122,25 @@ class PyFrame:
 	def self_match(this, actual_col):
 		result = []
 		frame = this.cache['data']
+		#print ("Finished math")
 		actual_col_values = frame[actual_col].value_counts().index.values
 		for index_loop_one, x in enumerate(actual_col_values):
-			if x is np.nan:
+			if x is np.nan or x is None:
 				continue
 			for y in actual_col_values[(index_loop_one+1):]:
-				if y is np.nan:
+				if y is np.nan or y is None:
 					continue
-				ratio = distance.get_jaro_distance(x, y, winkler=True, scaling=0.1)
-				# ratio is 1 when values are the same
-				# so we want to do the inverse
-				ratio = 1 - ratio
-				if ratio != 0:
-					data = [x, y, ratio]
-					result.append(data)
+				#print(x + "<<>>" + y)
+				try:
+					ratio = distance.get_jaro_distance(x, y, winkler=True, scaling=0.1)
+					# ratio is 1 when values are the same
+					# so we want to do the inverse
+					ratio = 1 - ratio
+					if ratio != 0:
+						data = [x, y, ratio]
+						result.append(data)
+				except:
+					pass
 		result = pd.DataFrame(result, columns=['col1', 'col2', 'distance'])
 		return result
 
