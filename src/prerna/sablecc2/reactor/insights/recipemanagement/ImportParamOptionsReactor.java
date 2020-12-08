@@ -63,18 +63,30 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		// we need to get the proper param struct
 		Map<String, List<ParamStruct>> params = new HashMap<>();
 		for(String pixelStep : imports.keySet()) {
-			List<ParamStruct> paramList = getParamsForImport(imports.get(pixelStep));
+			List<ParamStruct> paramList = getParamsForImport(imports.get(pixelStep), pixelStep);
 			params.put(pixelStep, paramList);
 		}
 		
+		// frame -> [param struct]
+		// TODO: potentially change this sturcture base don conversation w/ FE
+		// TODO: potentially change this sturcture base don conversation w/ FE
+		// TODO: potentially change this sturcture base don conversation w/ FE
+		// TODO: potentially change this sturcture base don conversation w/ FE
+
 		return new NounMetadata(params, PixelDataType.MAP);
 	}
 	
-	private List<ParamStruct> getParamsForImport(SelectQueryStruct qs) {
+	private List<ParamStruct> getParamsForImport(SelectQueryStruct qs, String pixelId) {
 		List<ParamStruct> paramList = new Vector<>();
 		
 		if(qs instanceof HardSelectQueryStruct) {
 			// TODO: IMPLEMENT THIS FROM THE QUERY
+			// TODO: IMPLEMENT THIS FROM THE QUERY
+			// TODO: IMPLEMENT THIS FROM THE QUERY
+			// TODO: IMPLEMENT THIS FROM THE QUERY
+			// TODO: IMPLEMENT THIS FROM THE QUERY
+
+			
 			
 			
 		} else {
@@ -106,6 +118,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 					}
 					
 					ParamStruct pStruct = new ParamStruct();
+					pStruct.setPixelId(pixelId);
 					pStruct.setTableName(colS.getTable());
 					pStruct.setColumnName(colS.getColumn());
 					pStruct.setOperator("==");
