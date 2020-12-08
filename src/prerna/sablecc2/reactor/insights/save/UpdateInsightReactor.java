@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -33,6 +34,7 @@ import prerna.util.git.GitUtils;
 
 public class UpdateInsightReactor extends AbstractInsightReactor {
 
+	private static final Logger logger = LogManager.getLogger(UpdateInsightReactor.class);
 	private static final String CLASS_NAME = UpdateInsightReactor.class.getName();
 
 	public UpdateInsightReactor() {
@@ -205,7 +207,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " recipe on"));
 		} catch (Exception e) {
-			e.printStackTrace();
+			UpdateInsightReactor.logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
