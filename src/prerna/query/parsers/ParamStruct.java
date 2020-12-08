@@ -4,6 +4,7 @@ import prerna.sablecc2.om.PixelDataType;
 
 public class ParamStruct {
 
+	String pixelId = null;
 	public enum FILL_TYPE {MANUAL, PIXEL}
 	String tableName = null;
 	String tableAlias = null;
@@ -22,6 +23,14 @@ public class ParamStruct {
 	String model_label = null; // how do you want to ask your user what to do ?
 	boolean required = false;
 
+	public void setPixelId(String pixelId) {
+		this.pixelId = pixelId;
+	}
+	
+	public String getPixelId() {
+		return this.pixelId;
+	}
+	
 	public String getTableName() {
 		return tableName;
 	}
