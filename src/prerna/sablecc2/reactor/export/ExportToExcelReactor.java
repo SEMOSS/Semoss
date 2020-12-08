@@ -1154,19 +1154,18 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		return ys;
 	}
 	
-	private void insertGrid(String sheetId, String panelId)
-	{
-		
+	private void insertGrid(String sheetId, String panelId) {
 		//http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0 
 		//http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0  
 		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5 - this worked
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
 		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&panel=" + panelId;
-		logger.info("Generating table at " + htmlUrl);
+		logger.info("Generating grid at " + htmlUrl);
 		if(driver == null) {
 			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl, sessionId, 800, 600);
 		}
+		logger.info("Generating grid view");
 		ChromeDriverUtility.captureDataPersistent(driver, baseUrl, htmlUrl, sessionId);
 		WebElement we = driver.findElement(By.xpath("//html/body//table"));
 		String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
@@ -1186,6 +1185,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String fileName = (String)exportMap.get("FILE_NAME");
 		
 		txl.processTable(sheetId, html2, fileName);
+		logger.info("Done processing grid");
 	}
 
 	/**
@@ -1199,16 +1199,13 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
 		String imageUrl = this.insight.getLiveURL();
-
 		String panelAppender = "&panel=" + panelId;
-
 		String sheetAppender = "&sheet=" + sheetId;
 		
 		String prefixName = Utility.getRandomString(8);
 		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
-		
 		if(driver == null) {
 			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, sessionId, 800, 600);
 		}
