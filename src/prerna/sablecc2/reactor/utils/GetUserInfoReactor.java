@@ -21,6 +21,7 @@ public class GetUserInfoReactor extends AbstractReactor {
 			String providerName = provider.name();
 			AccessToken token = user.getAccessToken(provider);
 			Map<String, Object> providerMap = new HashMap<String, Object>();
+			providerMap.put("id", token.getId() == null ? "null" : token.getId());
 			providerMap.put("name", token.getName() == null ? "null" : token.getName());
 			providerMap.put("email", token.getEmail() == null ? "null" : token.getEmail());
 			returnMap.put(providerName, providerMap);
