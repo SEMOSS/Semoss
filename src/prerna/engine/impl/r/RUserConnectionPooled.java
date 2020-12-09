@@ -81,7 +81,6 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 	
 	@Override
 	protected void recoverConnection() throws Exception {
-
 		// First try to reestablish the connection without restarting Rserve itself
 		try {
 			initializeConnection();
@@ -96,12 +95,16 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 		if (!isHealthy()) {
 			throw new IllegalArgumentException("Basic R heath check failed after restarting R.");
 		}
+		this.stoppedR = false;
 	}
 	
 	@Override
 	public void stopR() throws Exception {
-		if (rcon != null) rcon.close();
+		if (rcon != null) {
+			rcon.close();
+		}
 		RserveConnectionPool.getInstance().releaseConnection(rconMeta);
+		this.stoppedR = true;
 	}
 
 	@Override
