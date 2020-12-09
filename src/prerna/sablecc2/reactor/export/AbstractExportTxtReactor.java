@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
@@ -21,7 +22,6 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 	protected String fileLocation = null;
 	protected Logger logger;
 	protected String delimiter;
-	private static final String STACKTRACE = "StackTrace: ";
 
 	/**
 	 * Set the delimiter for the export
@@ -53,6 +53,14 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 		if (delimiter == null) {
 			throw new IllegalArgumentException("Delimiter has not been defined for output");
 		}
+		// optimize the query so that it matches the general results on FE
+		try {
+			this.task.optimizeQuery(-1);
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred generating the query to write to the file");
+		}
+				
 		File f = new File(this.fileLocation);
 
 		try {
@@ -61,7 +69,7 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 			try {
 				f.createNewFile();
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 
 			FileWriter writer = null;
@@ -161,7 +169,7 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 				}
 
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				try {
 					if (bufferedWriter != null) {
@@ -171,7 +179,7 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 						writer.close();
 					}
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 
