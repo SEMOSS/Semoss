@@ -356,11 +356,13 @@ public abstract class AbstractQueryStruct {
 	}
 	
 	public void addPanel(InsightPanel panel) {
-		this.panelList.add(panel);
-		this.panelIdList.add(panel.getPanelId());
-		
-		// also add in the current panel state
-		this.panelImplicitFilters.merge(panel.getPanelFilters());
+		if(!this.panelList.contains(panel)) {
+			this.panelList.add(panel);
+			this.panelIdList.add(panel.getPanelId());
+			
+			// also add in the current panel state
+			this.panelImplicitFilters.merge(panel.getPanelFilters());
+		}
 	}
 	
 	public List<InsightPanel> getPanelList() {
