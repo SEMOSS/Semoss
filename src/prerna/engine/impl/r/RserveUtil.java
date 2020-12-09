@@ -114,8 +114,8 @@ public class RserveUtil {
 			ProcessBuilder pb;
 			if (SystemUtils.IS_OS_WINDOWS) {
 				pb = new ProcessBuilder(rBin, "-e",
-						"library(Rserve);" +
-						"Rserve(FALSE," + port + ",args='--vanilla');");
+						"\"library(Rserve);" +
+						"Rserve(FALSE," + port + ",args='--vanilla option(error=function() NULL)')\"");
 			} else {
 				pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "--RS-port", port + "");
 			}
