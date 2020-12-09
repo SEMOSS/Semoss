@@ -117,7 +117,7 @@ public class RserveUtil {
 						"\"library(Rserve);" +
 						"Rserve(FALSE," + port + ",args='--vanilla option(error=function() NULL)')\"");
 			} else {
-				pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "--RS-port", port + "");
+				pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
 			}
 			pb.redirectOutput(output);
 			pb.redirectError(error);
