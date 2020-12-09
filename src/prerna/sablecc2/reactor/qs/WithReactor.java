@@ -12,7 +12,6 @@ import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
 import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 
-@Deprecated
 public class WithReactor extends AbstractQueryStructReactor {
 	
 	public WithReactor() {
@@ -21,8 +20,8 @@ public class WithReactor extends AbstractQueryStructReactor {
 
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
-//		InsightPanel panel = getPanel();
-//		this.qs.addPanel(panel);
+		InsightPanel panel = getPanel();
+		this.qs.addPanel(panel);
 		
 		/*
 		 * 
@@ -68,7 +67,7 @@ public class WithReactor extends AbstractQueryStructReactor {
 	public void mergeUp() {
 		// merge this reactor into the parent reactor
 		init();
-//		createQueryStruct();
+		createQueryStruct();
 //		setAlias(qs.getSelectors(), selectorAlias, existingSelectors);
 		if(parentReactor != null) {
 			// this is only called lazy
