@@ -24,6 +24,9 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	
 	protected static final Logger logger = LogManager.getLogger(AbstractRUserConnection.class);
 	
+	// keep tracked if we have stopped the R connection
+	protected boolean stoppedR = false;
+	
 	// Recovery
 	private boolean recoveryEnabled = RserveUtil.R_USER_RECOVERY_DEFAULT;
 	private final String rDataFile;
@@ -392,6 +395,10 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	
 	protected boolean isHealthy() {
 		return isHealthy(HEALTH_TIMEOUT, HEALTH_TIMEOUT_UNIT);
+	}
+	
+	public boolean isStopped() {
+		return this.stoppedR;
 	}
 	
 }
