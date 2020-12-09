@@ -61,6 +61,8 @@ public interface IRUserConnection {
 	 */
 	public void stopR() throws Exception;
 	
+	public boolean isStopped();
+	
 	public void cancelExecution() throws Exception;
 	
 	public boolean isRecoveryEnabled();
