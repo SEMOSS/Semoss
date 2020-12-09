@@ -6,6 +6,7 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,10 +22,13 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
+import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
@@ -196,22 +200,22 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException(error);
 		}
 		
-		boolean first = true;
-		StringBuilder query = new StringBuilder("UPDATE USER SET ");
+		UpdateQueryStruct qs = new UpdateQueryStruct();
+		qs.setEngine(securityDb);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", userId));
 		Set<String> keys = userInfo.keySet();
+		List<IQuerySelector> selectors = new Vector<>();
+		List<Object> values = new Vector<>();
 		for(String k : keys) {
-			Object value = userInfo.get(k);
-			if(value == null || value.toString().isEmpty()) {
-				continue;
-			}
-			if(!first) {
-				query.append(", ");
-			}
-			query.append(k).append(" = '").append(RdbmsQueryBuilder.escapeForSQLStatement(value.toString())).append("'");
-			first = false;
+			selectors.add(new QueryColumnSelector("USER__" + k.toUpperCase()));
+			values.add(userInfo.get(k));
 		}
-		query.append(" WHERE ID='").append(userId).append("'");
-		Statement stmt = securityDb.execUpdateAndRetrieveStatement(query.toString(), true);
+		qs.setSelectors(selectors);
+		qs.setValues(values);
+		
+		UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
+		String updateQ = updateInterp.composeQuery();
+		Statement stmt = securityDb.execUpdateAndRetrieveStatement(updateQ, true);
 		if(stmt != null){
 			securityDb.commit();
 			return true;
