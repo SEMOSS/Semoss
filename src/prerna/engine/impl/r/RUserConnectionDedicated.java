@@ -43,12 +43,10 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 	
 	@Override
 	protected void recoverConnection() throws Exception {
-		
 		// Try to stop R
 		try {
 			stopR();
 		} catch (Exception e) {
-			
 			// If an error occurs stopping R, then grab a new port to run on
 			setPort();
 		}
@@ -62,19 +60,22 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 		if (!isHealthy()) {
 			throw new IllegalArgumentException("Basic R heath check failed after restarting R.");
 		}
+		this.stoppedR = false;
 	}
 	
 	@Override
 	public void stopR() throws Exception {
-		if (rcon != null) rcon.close();
+		if (rcon != null) {
+			rcon.close();
+		}
 		RserveUtil.stopR(port);
+		this.stoppedR = true;
 	}
 
 	@Override
 	public void cancelExecution() throws Exception {
 		// TODO >>>timb: R - need to complete cancellation here (later)
 	}
-	
 	
 	////////////////////////////////////////
 	// Port management
