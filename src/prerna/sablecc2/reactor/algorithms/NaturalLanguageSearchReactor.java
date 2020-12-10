@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.Logger;
 
@@ -240,18 +241,23 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		
 		// loop through the map
 		for (Map<String, Object> component : optMap) {
+			//TODO: Check if we have select + group
 			String comp = component.get("component").toString();
 			String elemToAdd = "";
 			String elemName = "";
 			
 			// handle select and group
-			String[] selectAndGroup = { "select", "average", "count", "max", "min", "sum", "group" , "stdev" , "unique count" , "distribution" };
-			List<String> selectAndGroupList = Arrays.asList(selectAndGroup);
-			if (selectAndGroupList.contains(comp)) {
+			String[] selects = { "select", "group", "distribution" };
+			String[] aggregates = { "average", "count", "max", "min", "sum", "stdev" , "unique count" };
+			String[] dates = { "dayname", "month", "week", "quarter", "year" };
+			List<String> selectsList = Arrays.asList(selects);
+			List<String> aggregatesList = Arrays.asList(aggregates);
+			List<String> datesList = Arrays.asList(dates);
+			if (selectsList.contains(comp) || aggregatesList.contains(comp) || datesList.contains(comp)) {
 				List<String> columns = new Vector<String>();
 				
 				// if aggregate, add the aggregate row
-				if (!comp.equals("select") && !comp.equals("group")  && !comp.equals("distribution")) {
+				if (!selectsList.contains(comp)) {
 					// change aggregate to select
 					if(!comp.equals("group")) {
 						elemToAdd += "select ";
@@ -259,7 +265,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					}
 					
 					// so first add the aggregate row
-					elemToAdd += comp;
+					// add 'f' prior to any aggregate function 
+					if(comp.equals("unique count")) {
+						elemToAdd += "unique fcount";
+					} else {
+						elemToAdd += ("f" + comp);
+					}
 					
 					// change the column to arraylist for below
 					columns.add(component.get("column").toString());
@@ -273,14 +284,28 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				
 				// then, add the component and columns
 				for(String col : columns) {
-					elemToAdd += " " + col;
+					// add the 'f' if its a date -- assuming the full thing gets passed as a column?
+					if(Stream.of(dates).anyMatch(col::startsWith)) {
+						elemToAdd += " f" + col;
+					} else {
+						elemToAdd += " " + col;
+					}
 				}
 			}
 			
 			// handle the based on
 			else if(comp.startsWith("based on")) {
 				elemName = "based on";
-				elemToAdd += comp;
+				String agg = comp.substring(9);
+				
+				// need to include the aggregate 'f'
+				if(agg.equals("unique count")) {
+					elemToAdd += (elemName + " unique fcount");
+				} else {
+					elemToAdd += (elemName + " f" + agg);
+				}
+				
+				
 				elemToAdd += " " + component.get("column");
 				
 			}
@@ -289,11 +314,17 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			else if (comp.equals("where") || comp.startsWith("having")) {
 				if(comp.startsWith("having")) {
 					elemName = "having";
+					if(comp.substring(7).equals("unique count")) {
+						elemToAdd += "having unique fcount";
+					} else {
+						elemToAdd += ("having f" + comp.substring(7));
+					}
 				} else {
 					elemName = "where";
+					elemToAdd += "where";
 				}
 				
-				elemToAdd += comp;
+				
 				elemToAdd += " " + component.get("column").toString();
 				
 				// catch the between
@@ -302,7 +333,15 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					elemToAdd += " between";
 					elemToAdd += " " + values.get(0) + " and " + values.get(1);
 				} else {
-					elemToAdd += " " + component.get("operation").toString();
+					String op = component.get("operation").toString();
+					if(op.equals("before")) {
+						elemToAdd += " <";
+					} else if(op.equals("after")) {
+						elemToAdd += " >";
+					} else {
+						elemToAdd += " " + op;
+					}					
+					
 					elemToAdd += " " + component.get("value").toString();
 				}
 			}
@@ -645,6 +684,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		LinkedHashSet<String> colsToDrop = new LinkedHashSet<>();
 		LinkedHashSet<String> pickedCols = new LinkedHashSet<>();
 		LinkedHashSet<String> groupedCols = new LinkedHashSet<>();
+		boolean hasDateGroup = false;
 
 		for (int i = 0; i < retData.size(); i++) {
 			Object[] row = retData.get(i);
@@ -750,10 +790,17 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						aggregateCols.add(row);
 					} else {
 						QueryFunctionSelector fSelector = new QueryFunctionSelector();
-						fSelector.setFunction(row[6].toString());
+						String func = row[6].toString();
+						fSelector.setFunction(func);
 						fSelector.addInnerSelector(selector);
 						// add the selector
 						curQs.addSelector(fSelector);
+						
+						// check if it was a date group
+						String[] dates = { "DAYNAME", "MONTH", "WEEK", "QUARTER", "YEAR" };
+						if(Stream.of(dates).anyMatch(func.toUpperCase()::startsWith)) {
+							hasDateGroup = true;
+						}
 					}
 				} else {
 					curQs.addSelector(selector);
@@ -998,6 +1045,19 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					boolean isPK = checkForPK(groupConcept, groupProperty, rSessionTable, currAppId, global);
 					if (isPK) {
 						curQs.addGroupBy(groupConcept, null);
+					} else if(hasDateGroup){
+						// check if it was a date group
+						String[] dates = { "DAYNAME", "MONTH", "WEEK", "QUARTER", "YEAR" };
+						if(Stream.of(dates).anyMatch(groupProperty.toUpperCase()::startsWith)) {
+							QueryFunctionSelector fSelector = new QueryFunctionSelector();
+							String[] dateGroup = groupProperty.split("_");
+							QueryColumnSelector groupSelector = new QueryColumnSelector(groupConcept + "__" + dateGroup[1]);
+							fSelector.setFunction(dateGroup[0]);
+							fSelector.addInnerSelector(groupSelector);
+							// add the selector
+							curQs.addGroupBy(fSelector);
+						}
+						
 					} else {
 						curQs.addGroupBy(groupConcept, groupProperty);
 					}
@@ -1068,7 +1128,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// track when the entry changes and setup other vars
 		String curEntry = null;
-		String frameName = queryString.replaceAll(" ", "_");
+		String frameName = getCleanFrameName(queryString);
 		String finalPixel = "";
 		LinkedHashSet<String> prevAppIds = new LinkedHashSet<>();
 		int entryCount = 1;
@@ -1170,6 +1230,22 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// return the map
 		return retMap;
+	}
+
+	private String getCleanFrameName(String queryString) {
+		queryString = queryString.replaceAll("<=", "less than or equal to");
+		queryString = queryString.replaceAll(">=", "greater than or equal to");
+		queryString = queryString.replaceAll("!=", "not equal to");
+		queryString = queryString.replaceAll("<", "less than");
+		queryString = queryString.replaceAll(">", "greater than");
+		queryString = queryString.replaceAll("=", "equals");
+		queryString = queryString.replaceAll(" ", "_");
+		queryString = queryString.replaceAll("-", "_");
+		queryString = queryString.replaceAll("/", "_");
+		queryString = queryString.replaceAll("\\\\", "_");
+
+		
+		return queryString;
 	}
 
 	////////////////////////////////////////////////////////////
@@ -1370,7 +1446,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						}
 						psb.append("]");
 					} else {
-						psb.append(rhs.getValue() + "");
+						psb.append("\"" + rhs.getValue() + "\"");
 					}
 				}
 
