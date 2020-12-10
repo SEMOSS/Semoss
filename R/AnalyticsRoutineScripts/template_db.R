@@ -79,13 +79,18 @@ get_element_alternatves<-function(db,df,nbr,root_fn){
 	OPS<-c('=','<','<=','>','>=','!=','between value and value')
 	OPS_STRING<-c('begins with','contains','ends with','not begins with','not contains','not ends with')
 	OPS_DATE<-c('after','before')
-	DATE_GROUPPING<-c('daily','weekly','monthly','yearly')
-	
+	DATE_GROUPPING<-c('dayname','week','monthname','quarter','year')
 	MISSING_VALUE<-'?'
 	
 	selected_cols<-df[df$Element=='column' & df$Value != MISSING_VALUE,]$Value
 	# cols is now a named array
 	if(length(selected_cols)>0){
+		# exclude group date functions
+		z<-sapply(selected_cols,function(x) strsplit(x,' '))
+		ind<-which(unlist(lapply(z,function(x) length(x)>1)))
+		if(length(ind)>0){
+			selected_cols<-selected_cols[-ind]
+		}
 		cols<-get_feasible_columns(db,selected_cols,root_fn=root_fn)
 	}else{
 		cols<-db$Column
@@ -117,9 +122,9 @@ get_element_alternatves<-function(db,df,nbr,root_fn){
 			out<-cols
 		}else if(element=='is'){
 			column<-df$Value[nbr-1]
-			type<-db[tolower(cols)==tolower(column),'Datatype']
+			type<-db[tolower(db$Column)==tolower(column),'Datatype'][1]
 			if(type=='STRING'){
-				out<-c(OPS[1],OPS_STRING)
+				out<-c(OPS[1],OPS[6],OPS_STRING)
 			}else if(type=='DATE'){
 				out<-c(OPS[1],OPS[7],OPS_DATE)
 			}else{
@@ -131,12 +136,13 @@ get_element_alternatves<-function(db,df,nbr,root_fn){
 		}
 	}else if(component=='group'){
 		# get all string columns
-		out<-unname(cols[names(cols) %in% c('STRING','DATE')])
+		out<-unname(cols[names(cols) == 'STRING'])
+		#out<-unname(cols[names(cols) %in% c('STRING','DATE')])
 		# get all date columns and append date groupping
-		#date_cols<-unname(cols[names(cols)=='DATE'])
-		#if(length(date_cols)>0){
-		#	out<-append(out,c(date_cols,as.vector(sapply(date_cols,function(x) paste(x,DATE_GROUPPING,sep=' ')))))
-		#}
+		date_cols<-unname(cols[names(cols)=='DATE'])
+		if(length(date_cols)>0){
+			out<-append(out,c(date_cols,as.vector(sapply(date_cols,function(x) paste(DATE_GROUPPING,x,sep=' ')))))
+		}
 		aggr_cols<-get_aliases(df)
 		out<-append(out,aggr_cols)
 	}else if(component=='having'){
@@ -183,9 +189,9 @@ get_single_cols<-function(df){
 get_component_alternatives<-function(df){
 	COMPONENTS<-c('aggregate column','where column is value','top n column','bottom n column','- top n column','- bottom n column',
 	'sort column direction','based on aggregate column','group column','having column is value')	
-	REQUEST_COMPONENTS<-list('1'='select column','2'=c('select column','where column is value'),
-	'3'=c('select column','aggregate column','group column'),'4'=c('top n column','based on aggregate column'),'5'=c('bottom n column','based on aggregate column'),
-	'7'=c('- top n column','based on aggregate column'),'7'=c('- bottom n column','based on aggregate column'),'8'=c('distribution column','based on aggregate column'))
+	REQUEST_COMPONENTS<-list('1'='select column','2'=c('select column','where column is value'),'3'=c('aggregate column','group column'),
+	'4'=c('select column','aggregate column','group column'),'5'=c('top n column','based on aggregate column'),'6'=c('bottom n column','based on aggregate column'),
+	'7'=c('- top n column','based on aggregate column'),'8'=c('- bottom n column','based on aggregate column'),'9'=c('distribution column','based on aggregate column'))
 	if(nrow(df)==0){
 		# for the first run only select components available
 		out<-REQUEST_COMPONENTS
@@ -219,11 +225,11 @@ get_component_alternatives<-function(df){
 	
 exec_componentized_query<-function(db,joins,request,root_fn="nldr"){
 	COMPONENTS<-c('select','where','group','having','rank','sort')
-	KEYWORDS<-c('sum','average','unique','count','min','max','stdev','where','group','by','having','sort','position','based','on')
+	KEYWORDS<-c('fsum','faverage','fcount','fmin','fmax','fstdev','where','fgroup','by','having','sort','position','based','on')
 	
 	library(data.table)
 	words<-unlist(strsplit(unname(request),' '))
-	cols<-db[db$Column %in% words,"Column"]
+	cols<-unique(db[db$Column %in% words,"Column"])
 	cols<-cols[!(tolower(cols) %in% KEYWORDS)]
 	request<-preprocess_request(request,cols)
 	if(!is.null(names(request))){
@@ -234,9 +240,9 @@ exec_componentized_query<-function(db,joins,request,root_fn="nldr"){
 		clusters<-unique(unname(partition))
 		if(length(clusters)>0){
 			k<-1
-			for(i in 1:length(clusters)){
+			for(l in 1:length(clusters)){
 				# make sure that all columns present in the cluster
-				tbls<-names(partition[partition==clusters[i]])
+				tbls<-names(partition[partition==clusters[l]])
 				tbls_cols<-unique(db[db$Table %in% tbls,"Column"])
 				if(all(cols %in% tbls_cols)){
 					cur_db<-db[db$Table %in% tbls,]
@@ -286,6 +292,8 @@ exec_componentized_query<-function(db,joins,request,root_fn="nldr"){
 }
 
 preprocess_request<-function(request,cols){
+	DATE_GROUPPING<-c('fdayname','fweek','fmonthname','fquarter','fyear')
+	
 	out<-vector()
 	components<-names(request)
 	n<-length(components)
@@ -306,7 +314,7 @@ preprocess_request<-function(request,cols){
 			components<-names(request)
 			n<-length(components)
 		}
-		if('position' %in% components | 'based on' %in% components){
+		if('position' %in% components | 'based on' %in% components ){
 			if('based on' %in% components){
 				based_on<-TRUE
 			}else{
@@ -389,6 +397,7 @@ get_aliases<-function(df){
 
 get_aggr_alias<-function(comp_text){
 	library(tools)
+	comp_text[1]<-substring(comp_text[1],2)
 	if(comp_text[1]=='unique' & comp_text[2]=='count'){
 		aggr_alias<-paste0('UniqueCount_',comp_text[3])
 	}else{
