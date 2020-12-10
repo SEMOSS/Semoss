@@ -1,6 +1,6 @@
 process_select<-function(db,part,cols,p,k){
 	library(tools)
-	AGGR<-c("sum","average","count","min","max","stdev")
+	AGGR<-c("fsum","faverage","fcount","fmin","fmax","fstdev","fdayname","fweek","fmonthname","fquarter","fyear")
 
 	ind<-which(tolower(part) %in% tolower(cols))
 	if(length(ind)>0){
@@ -8,6 +8,7 @@ process_select<-function(db,part,cols,p,k){
 			cur<-part[ind[i]]
 			if(ind[i]>1){
 				prev<-intersect(part[ind[i]-1],AGGR)
+				prev<-substring(prev,2)
 				if(length(prev)>0){
 					unique_count<-FALSE
 					if(ind[i]>2){
@@ -134,16 +135,22 @@ process_where<-function(db,part,cols,p,k){
 
 process_group<-function(db,part,cols,p,k){
 	# will be updated for the respected SEMOSS function!!!
-	DATE_GROUPPING<-c('daily','weekly','monthly','yearly')
+	DATE_GROUPPING<-c('fdayname','fweek','fmonthname','fquarter','fyear')
 	
 	ind<-which(tolower(part) %in% tolower(cols))
 	if(length(ind)>0){
 		for(i in 1:length(ind)){
 			cur<-part[ind[i]]
-			op<-intersect(part[ind[i]+1],DATE_GROUPPING)
+			if(ind[i]>1){
+				op<-intersect(part[ind[i]-1],DATE_GROUPPING)
+				op<-substring(op,2)
+				aggr_alias<-get_aggr_alias(part[(ind[i]-1):ind[i]])
+			}else{
+				op<-vector()
+			}
 			appid_tbl<-unlist(strsplit(db[tolower(db$Column)==tolower(cur),"Table"][1],"._.",fixed=TRUE))
 			if(length(op)>0){				
-				p<-rbindlist(list(p,list(k,appid_tbl[1],'','group',appid_tbl[2],cur,op,'','','','')))
+				p<-rbindlist(list(p,list(k,appid_tbl[1],'','group',appid_tbl[2],aggr_alias,'','','','','')))
 			}else{
 				p<-rbindlist(list(p,list(k,appid_tbl[1],'','group',appid_tbl[2],cur,'','','','','')))
 			}
@@ -153,7 +160,7 @@ process_group<-function(db,part,cols,p,k){
 }
 
 process_having<-function(db,part,cols,p,k){
-	AGGR<-c("sum","average","count","min","max")
+	AGGR<-c("fsum","faverage","fcount","fmin","fmax")
 	OPS<-c("<","<=",">",">=","<>","=")
 	
 	ind<-which(tolower(part) %in% tolower(cols))
@@ -162,6 +169,7 @@ process_having<-function(db,part,cols,p,k){
 			cur<-part[ind[i]]
 			if(ind[i]>1){
 				prev<-intersect(part[ind[i]-1],AGGR)
+				prev<-substring(prev,2)
 				if(length(prev)>0 & length(part) >= ind[i]+2){
 					op<-intersect(part[ind[i]+1],OPS)
 					if(length(op)>0){
@@ -277,6 +285,9 @@ build_joins<-function(cols,joins,cur_db){
 		edges_df<-data.frame(tbl1=tbl,tbl2=tbl,stringsAsFactors=FALSE)
 	}
 	if(length(join_cols)==1 | nrow(joins)==0){
+		if(length(join_cols)==1 & ncol(edges_df) !=2){
+			edges_df<-edges_df[edges_df$tbl2==join_cols,]
+		}
 		tbls<-edges_df[1,"tbl1"]
 		items<-unlist(strsplit(tbls,"._.",fixed=TRUE))
 		joins<-joins[0,]
