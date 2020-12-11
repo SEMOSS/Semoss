@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,10 @@ import prerna.engine.impl.EngineInsightsHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
+import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
@@ -525,21 +529,40 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				String newId = RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId());
 				// this user was added by the user
 				// and we need to update
-				String updateQuery = "UPDATE USER SET "
-						+ "ID='"+ newId + "', "
-						+ "NAME='"+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', "
-						+ "USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', "
-						+ "EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', "
-						+ "TYPE='" + newUser.getProvider() + "' "
-						+ "WHERE ID='" + oldId + "';";
-				try {
-					securityDb.insertData(updateQuery);
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+				{
+					UpdateQueryStruct uqs = new UpdateQueryStruct();
+					uqs.setEngine(securityDb);
+					uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", oldId));
+					
+					List<IQuerySelector> selectors = new Vector<>();
+					selectors.add(new QueryColumnSelector("USER__ID"));
+					selectors.add(new QueryColumnSelector("USER__NAME"));
+					selectors.add(new QueryColumnSelector("USER__USERNAME"));
+					selectors.add(new QueryColumnSelector("USER__EMAIL"));
+					selectors.add(new QueryColumnSelector("USER__TYPE"));
+
+					List<Object> values = new Vector<>();
+					values.add(newId);
+					values.add(newUser.getName());
+					values.add(newUser.getUsername());
+					values.add(newUser.getEmail());
+					values.add(newUser.getProvider());
+
+					uqs.setSelectors(selectors);
+					uqs.setValues(values);
+					
+					UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
+					String updateQuery = updateInterp.composeQuery();
+					
+					try {
+						securityDb.insertData(updateQuery);
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
 				}
 				
 				// need to update any other permissions that were set for this user
-				updateQuery = "UPDATE ENGINEPERMISSION SET USERID='" +  newId +"' WHERE USERID='" + oldId + "'";
+				String updateQuery = "UPDATE ENGINEPERMISSION SET USERID='" +  newId +"' WHERE USERID='" + oldId + "'";
 				try {
 					securityDb.insertData(updateQuery);
 				} catch (SQLException e) {
@@ -608,19 +631,34 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public static boolean updateOAuthUser(AccessToken existingUser) throws IllegalArgumentException {
+	public static boolean updateOAuthUser(AccessToken existingToken) throws IllegalArgumentException {
 		// lower case the emails coming in
-		if(existingUser.getEmail() != null) {
-			existingUser.setEmail(existingUser.getEmail().toLowerCase());
+		if(existingToken.getEmail() != null) {
+			existingToken.setEmail(existingToken.getEmail().toLowerCase());
 		}
-
-		String updateQuery = "UPDATE USER SET "
-				+ "NAME='"+ RdbmsQueryBuilder.escapeForSQLStatement(existingUser.getName()) + "', "
-				+ "USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUser.getUsername()) + "', "
-				+ "EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUser.getEmail()) + "' "
-				+ "WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUser.getId()) + "' "
-				+ "AND TYPE='" + existingUser.getProvider() + "';";
+		String name = existingToken.getName();
+		String username = existingToken.getUsername();
+		String email = existingToken.getEmail();
 		
+		UpdateQueryStruct uqs = new UpdateQueryStruct();
+		uqs.setEngine(securityDb);
+		uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", existingToken.getId()));
+		
+		List<IQuerySelector> selectors = new Vector<>();
+		selectors.add(new QueryColumnSelector("USER__NAME"));
+		selectors.add(new QueryColumnSelector("USER__USERNAME"));
+		selectors.add(new QueryColumnSelector("USER__EMAIL"));
+		List<Object> values = new Vector<>();
+		values.add(name);
+		values.add(username);
+		values.add(email);
+		
+		uqs.setSelectors(selectors);
+		uqs.setValues(values);
+		
+		UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
+		String updateQuery = updateInterp.composeQuery();
+
 		try {
 			securityDb.insertData(updateQuery);
 			return true;
@@ -693,19 +731,31 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(!SecurityAppUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this app.");
 		}
-		String userFilters = getUserFilters(user);
-		String query = "SELECT ENGINEID FROM ENGINEPERMISSION WHERE "
-				+ "ENGINEID = '" + engineId + "' "
-				+ "AND USERID IN " + userFilters;
+		Collection<String> userIdFilters = getUserFiltersQs(user);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
+
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if(wrapper.hasNext()){
-				query = "UPDATE ENGINEPERMISSION SET VISIBILITY = '" + visibility + "' WHERE "
-						+ "ENGINEID = '" + engineId + "' "
-						+ "AND USERID IN " + userFilters;
+				UpdateQueryStruct uqs = new UpdateQueryStruct();
+				uqs.setEngine(securityDb);
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
+
+				List<IQuerySelector> selectors = new Vector<>();
+				selectors.add(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
+				List<Object> values = new Vector<>();
+				values.add(visibility);
+				uqs.setSelectors(selectors);
+				uqs.setValues(values);
 				
-				securityDb.insertData(query);
+				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
+				String updateQuery = updateInterp.composeQuery();
+				securityDb.insertData(updateQuery);
 				
 			} else {
 				// need to insert
