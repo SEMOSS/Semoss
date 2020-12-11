@@ -39,35 +39,51 @@ public class WithReactor extends AbstractQueryStructReactor {
 	 * @return
 	 */
 	private InsightPanel getPanel() {
-		InsightPanel panel = null;
-
-		// see if panel was passed via generic reactor
-		GenRowStruct genericGrs = this.store.getNoun(keysToGet[0]);
-		if(genericGrs != null && !genericGrs.isEmpty()) {
-			String panelId = genericGrs.get(0).toString();
-			panel = this.insight.getInsightPanel(panelId);
-		}
-
-		if(panel == null) {
-			// if not, see if it was passed in the grs
-			List<Object> panelNouns = this.curRow.getValuesOfType(PixelDataType.PANEL);
-			if(panelNouns != null && !panelNouns.isEmpty()) {
-				panel = (InsightPanel) panelNouns.get(0);
+		// passed in directly as panel
+		GenRowStruct genericReactorGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
+			NounMetadata noun = genericReactorGrs.getNoun(0);
+			PixelDataType nounType = noun.getNounType();
+			if(nounType == PixelDataType.PANEL) {
+				return (InsightPanel) noun.getValue();
+			} else if(nounType == PixelDataType.COLUMN || nounType == PixelDataType.CONST_STRING
+					|| nounType == PixelDataType.CONST_INT) {
+				String panelId = noun.getValue().toString();
+				return this.insight.getInsightPanel(panelId);
 			}
 		}
 
-		if(panel == null) {
-			throw new IllegalArgumentException("Invalid panel id passed into With reactor");
+		// see if it is in the curRow
+		// if it was passed directly in as a variable
+		List<NounMetadata> panelNouns = this.curRow.getNounsOfType(PixelDataType.PANEL);
+		if(panelNouns != null && !panelNouns.isEmpty()) {
+			return (InsightPanel) panelNouns.get(0).getValue();
 		}
 
-		return panel;
+		// see if string or column passed in
+		List<String> strInputs = this.curRow.getAllStrValues();
+		if(strInputs != null && !strInputs.isEmpty()) {
+			for(String panelId : strInputs) {
+				InsightPanel panel = this.insight.getInsightPanel(panelId);
+				if(panel != null) {
+					return panel;
+				}
+			}
+		}
+		
+		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
+		if(strNouns != null && !strNouns.isEmpty()) {
+			return this.insight.getInsightPanel(strNouns.get(0).getValue().toString());
+		}
+		
+		throw new IllegalArgumentException("Invalid panel id passed into With reactor");
 	}
 	
 	@Override
 	public void mergeUp() {
 		// merge this reactor into the parent reactor
 		init();
-		createQueryStruct();
+//		createQueryStruct();
 //		setAlias(qs.getSelectors(), selectorAlias, existingSelectors);
 		if(parentReactor != null) {
 			// this is only called lazy
