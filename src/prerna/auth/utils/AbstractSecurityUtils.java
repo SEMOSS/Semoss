@@ -118,8 +118,8 @@ public abstract class AbstractSecurityUtils {
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		// ENGINE
-		colNames = new String[] { "enginename", "engineid", "global", "type", "cost" };
-		types = new String[] { "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)" };
+		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "TYPE", "COST" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
@@ -160,8 +160,8 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 		}
-		colNames = new String[] { "engineid", "metakey", "metavalue", "metaorder" };
-		types = new String[] { "varchar(255)", "varchar(255)", "clob", "int" };
+		colNames = new String[] { "ENGINEID", "METAKEY", "METAVALUE", "METAORDER" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types));
 		} else {
@@ -173,8 +173,8 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// ENGINEPERMISSION
-		colNames = new String[] { "userid", "permission", "engineid", "visibility" };
-		types = new String[] { "varchar(255)", "integer", "varchar(255)", "boolean" };
+		colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY" };
+		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", "boolean" };
 		defaultValues = new Object[]{null, null, null, true};
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues));
@@ -203,8 +203,8 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		// WORKSPACEENGINE
-		colNames = new String[] {"type", "userid", "engineid"};
-		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
+		colNames = new String[] {"TYPE", "USERID", "ENGINEID"};
+		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("WORKSPACEENGINE", colNames, types));
 		} else {
@@ -228,8 +228,8 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// ASSETENGINE
-		colNames = new String[] {"type", "userid", "engineid"};
-		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
+		colNames = new String[] {"TYPE", "USERID", "ENGINEID"};
+		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ASSETENGINE", colNames, types));
 		} else {
@@ -253,8 +253,8 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		// INSIGHT
-		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout", "cacheable" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)", "boolean" };
+		colNames = new String[] { "ENGINEID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", "CACHEABLE" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "BIGINT", "TIMESTAMP", "TIMESTAMP", "VARCHAR(255)", "BOOLEAN" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
 		} else {
@@ -283,8 +283,8 @@ public abstract class AbstractSecurityUtils {
 
 
 		// USERINSIGHTPERMISSION
-		colNames = new String[] { "userid", "engineid", "insightid", "permission" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
+		colNames = new String[] { "USERID", "ENGINEID", "INSIGHTID", "PERMISSION" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INTEGER" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types));
 		} else {
@@ -312,8 +312,8 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// INSIGHTMETA
-		colNames = new String[] { "engineid", "insightid", "metakey", "metavalue", "metaorder"};
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "clob", "int"};
+		colNames = new String[] { "ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTMETA", colNames, types));
 		} else {
@@ -337,8 +337,8 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		// USER
-		colNames = new String[] { "name", "email", "type", "id", "password", "salt", "username", "admin", "publisher"};
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "boolean" };
+		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", "ADMIN", "PUBLISHER" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "BOOLEAN" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("USER", colNames, types));
 		} else {
@@ -358,8 +358,8 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// PERMISSION
-		colNames = new String[] { "id", "name" };
-		types = new String[] { "integer", "varchar(255)" };
+		colNames = new String[] { "ID", "NAME" };
+		types = new String[] { "INT", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PERMISSION", colNames, types));
 		} else {
@@ -410,8 +410,8 @@ public abstract class AbstractSecurityUtils {
 		
 
 		// ACCESSREQUEST
-		colNames = new String[] { "id", "submittedby", "engine", "permission" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
+		colNames = new String[] { "ID", "SUBMITTEDBY", "ENGINE", "PERMISSION" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ACCESSREQUEST", colNames, types));
 		} else {
