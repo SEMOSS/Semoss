@@ -54,7 +54,6 @@ public class WrapperManager {
 	// I will do that later
 
 	private static final Logger logger = LogManager.getLogger(WrapperManager.class);
-	private static final String STACKTRACE = "StackTrace: ";
 	private static WrapperManager manager = null;
 
 	private WrapperManager() {
@@ -357,7 +356,7 @@ public class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		returnWrapper.getDisplayVariables();
 		returnWrapper.getPhysicalVariables();
@@ -399,7 +398,7 @@ public class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return returnWrapper;
 	}
@@ -439,7 +438,7 @@ public class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return returnWrapper;
 	}
