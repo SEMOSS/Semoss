@@ -3,6 +3,8 @@ package prerna.sablecc2.reactor.app.upload.rdf;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.logging.log4j.Logger;
+
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -20,6 +22,8 @@ import prerna.util.Utility;
 
 public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 
+	private static final String CLASS_NAME = RdfConvertLiteralTypeReactor.class.getName();
+	
 	public RdfConvertLiteralTypeReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), 
 				ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), 
@@ -53,6 +57,8 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 			throw new NullPointerException("Must provide a value for data type");
 		}
 		
+		Logger logger = getLogger(CLASS_NAME);
+		
 		final SemossDataType newDataType = SemossDataType.convertStringToDataType(dataType);
 		
 		final String propertyUri = "http://semoss.org/ontologies/Relation/Contains/" + property;
@@ -72,8 +78,6 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 				String rawUri = row.getRawValues()[0] + "";
 				Object literal = row.getValues()[1];
 				collection.add(new Object[] {rawUri, literal});
-				
-				System.out.println(Arrays.toString(new Object[] {rawUri, literal}));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -88,6 +92,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 			String subject = modification[0] + "";
 			Object object = modification[1];
 			
+			logger.info("Modifying object " + Arrays.toString(modification));
 			// remove
 			engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, 
 					new Object[] {subject, propertyUri, object, false});
