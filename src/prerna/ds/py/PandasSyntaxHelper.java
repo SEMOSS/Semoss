@@ -24,6 +24,9 @@ public class PandasSyntaxHelper {
 		OPERATOR_LIST.add("!=");
 	}
 	
+	private static final String NAN_VALUES = "[\"\",\"#N/A\",\"#N/A N/A\",\"#NA\",\"-1.#IND\",\"<NA>\",\"N/A\",\"NULL\"" 
+			+ "\"n/a\",\"null\",\"-1.#QNAN\",\"-NaN\",\"-nan\",\"1.#IND\",\"1.#Q.#NAN\",\"NA\",\"NaN\",\"nan\"]";
+	
 	private static final String EQUAL = "==";
 	private static final String NOT_EQUAL = "!=";
 
@@ -56,51 +59,82 @@ public class PandasSyntaxHelper {
 	 * Get the syntax to load a csv file Defaults the encoding to utf-8
 	 * 
 	 * @param pandasImportVar
+	 * @param numpyImportVar
 	 * @param fileLocation
 	 * @param tableName
 	 * @return
 	 */
-	public static String getCsvFileRead(String pandasImportVar, String fileLocation, String tableName) {
-		return getCsvFileRead(pandasImportVar, fileLocation, tableName, null);
+	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName) {
+		return getCsvFileRead(pandasImportVar, numpyImportVar, fileLocation, tableName, null);
 	}
 
 	/**
 	 * Get the syntax to load a csv file
 	 * 
-	 * @param pandas       import var
+	 * @param pandasImportVar
+	 * @param numpyImportVAr
 	 * @param fileLocation
 	 * @param tableName
 	 * @param sep
 	 */
-	public static String getCsvFileRead(String pandasImportVar, String fileLocation, String tableName, String sep) {
+	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep) {
 		if (sep == null || sep.isEmpty()) {
 			sep = ",";
 		}
-		return getCsvFileRead(pandasImportVar, fileLocation, tableName, sep, null);
+		return getCsvFileRead(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, null);
 	}
 
 	/**
-	 * Get the syntax to load a csv file
+	 * Get the syntax to load a CSV file that preserves leading zeros. 
 	 * 
-	 * @param pandas       import var
+	 * @param pandasImportVar
+	 * @param numpyImportVar
 	 * @param fileLocation
 	 * @param tableName
 	 * @param sep
 	 * @param encoding
 	 */
-	public static String getCsvFileRead(String pandasImportVar, String fileLocation, String tableName, String sep,
+	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep,
 			String encoding) {
 		if (encoding == null || encoding.isEmpty()) {
 			encoding = "utf-8";
 		}
-		// this is to account for leading zeros in columns that get converted to numbers
-		// when we want to maintain strings
-		String converters = "converters={i : lambda x: str(x) "
-				+ "if (isinstance(x,int) and len(str(int(x))) != len(str(x))) " + "else x for i in range("
-				+ numberOfColumns(fileLocation) + ")}";
-		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/")
-				+ "', sep='" + sep + "', encoding='" + encoding + "', " + converters + ")";
-		return readCsv;
+		
+		StringBuilder readCsv = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, encoding);
+		return readCsv.toString();
+	}
+	
+	/**
+	 * Builds the script to read in a CSV file to a pandas data frame. Code preserves leading zeros of integers. Returned data frame can have mixed 
+	 * columns of floats and ints, but if there is a string present, the column type is returned as an object. 
+	 * 
+	 * @param pandasImportVar
+	 * @param numpyImportVar
+	 * @param fileLocation
+	 * @param tableName
+	 * @param sep
+	 * @param encoding
+	 * @return
+	 */
+	public static StringBuilder buildReadCsv(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep, 
+			String encoding) {
+		StringBuilder script = new StringBuilder();
+		StringBuilder replace = new StringBuilder(".replace(");
+		StringBuilder converter = new StringBuilder("converters={i: lambda x: x.strip() if (isinstance(");
+		StringBuilder numeric = new StringBuilder("");
+		
+		numeric.append(pandasImportVar).append(".to_numeric(x,errors='ignore')");
+		replace.append(NAN_VALUES).append(",").append(numpyImportVar).append(".nan)");
+		converter.append(numeric).append(",").append(numpyImportVar).append(".integer) and x.strip()[0] == '0' and len(x.strip()) > 1) else ")
+				 .append(numeric).append(" for i in range(" + numberOfColumns(fileLocation) + ")}");
+		
+		
+		script.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
+			  .append("',sep='" + sep + "',encoding='" + encoding + "',").append(converter + ")").append(replace)
+			  .append(".apply(lambda x: x.astype(str) if (any(x.map(type) == str)) else x)").append(replace);
+		
+		return script;
+		
 	}
 
 	/**
