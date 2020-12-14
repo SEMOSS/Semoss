@@ -1106,7 +1106,11 @@ public class Insight {
 			// now update the pixel list to the new ids
 			// realize the pixel objects are the same
 			List<Pixel> pixelReturns = results.getReturnPixelList();
-			for(int i = 0; i < pixelReturns.size(); i++) {
+			int size = pixelReturns.size();
+			if(appendInsightConfig) {
+				size--;
+			}
+			for(int i = 0; i < size; i++) {
 				String id = currentPixelIds.get(i);
 				Map<String, Object> position = currentPixelPositions.get(i);
 				Pixel p = pixelReturns.get(i);
