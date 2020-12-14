@@ -26,7 +26,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xddf.usermodel.PresetColor;
 import org.apache.poi.xddf.usermodel.XDDFColor;
 import org.apache.poi.xddf.usermodel.XDDFLineProperties;
 import org.apache.poi.xddf.usermodel.XDDFShapeProperties;
@@ -94,6 +93,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	private static final String SHOW_X_AXIS_TITLE = "tools.shared.editXAxis.title.show";
 	private static final String Y_AXIS_TITLE_NAME = "tools.shared.editYAxis.title.name";
 	private static final String X_AXIS_TITLE_NAME = "tools.shared.editXAxis.title.name";
+	private static final String COLOR_NAME = "tools.shared.colorName";
+	private static final String CUSTOM_COLOR_ARRAY = "tools.shared.customColors";
+	private static final String COLOR_ARRAY = "tools.shared.color";
+	
 
 	protected String fileLocation = null;
 	protected Logger logger;
@@ -444,6 +447,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			}else if(plotType.equals("Grid") || plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
 				insertGrid(sheet.getSheetName(), panelId);
 			}
+
 		} catch(Exception ex) {
 			ex.printStackTrace();
 			if(driver != null) {
@@ -669,6 +673,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
  		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
  		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
  		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
+ 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
+        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
@@ -716,6 +724,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFNumericalDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
+		int yCounter = 0;
 		for (int i = 0; i < yColumnNames.size(); i++) {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnNames.get(i));
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
@@ -723,7 +732,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			chartSeries.setTitle(yColumnNames.get(i).replaceAll("_", " "), null);
 			// Standardize markers
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
-			fillProperties.setColor(XDDFColor.from(PresetColor.ROYAL_BLUE));
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
 			XDDFShapeProperties propertiesMarker = new XDDFShapeProperties();
 			propertiesMarker.setFillProperties(fillProperties);
@@ -733,6 +742,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			XDDFLineProperties lineProperties = new XDDFLineProperties();
 			lineProperties.setFillProperties(fillProperties);
 			chartSeries.setLineProperties(lineProperties);
+			yCounter++;
 		}
 
 		chart.plot(data);
@@ -838,7 +848,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
-
+		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
+        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
+        
+        
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -897,12 +912,16 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFNumericalDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
+		int yCounter = 0;
 		for (String yColumnName : yColumnNames) {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFBarChartData.Series chartSeries = (XDDFBarChartData.Series) data.addSeries(xs, ys);
-			XDDFNumericalDataSource<? extends Number> dataSource = chartSeries.getValuesData();
+			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
+            chartSeries.setFillProperties(fillProperties);
 			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			yCounter++;
 		}
 
 		chart.plot(data);
@@ -928,7 +947,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
  		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
  		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
  		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
-
+ 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
+        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
+        
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -973,11 +996,16 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFNumericalDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
+		int yCounter = 0;
 		for (String yColumnName : yColumnNames) {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFAreaChartData.Series chartSeries = (XDDFAreaChartData.Series) data.addSeries(xs, ys);
+			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
+			chartSeries.setFillProperties(fillProperties);
 			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			yCounter++;
 		}
 
 		chart.plot(data);
