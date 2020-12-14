@@ -21,6 +21,7 @@ import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.TimeValue;
 import net.sf.jsqlparser.expression.WhenClause;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.relational.Between;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
@@ -575,6 +576,11 @@ public class SqlParser2 {
 			Expression left = aExpr.getLeftExpression();
 			Expression right = aExpr.getRightExpression();
 			expr2.recursive = true;
+
+			wrapper.currentOperator.push("and");
+			wrapper.andCount++;
+			wrapper.procOrder.put("and" + wrapper.andCount, true);
+			wrapper.contextExpression.push(joinExpr.toString());
 			
 			// process the left and right
 			GenExpression leftExpr = processExpression(qs, left,  expr);
@@ -584,12 +590,56 @@ public class SqlParser2 {
 			expr2.setRightExpresion(rightExpr);
 			
 			expr2.parent = (GenExpression)qs;
+			
+			wrapper.fillParameters();
+			System.out.println("Arbitrary gen expression print" + expr2.printQS(expr2,null));
+			
+			wrapper.currentOperator.pop();
+			wrapper.contextExpression.pop();
+			wrapper.andCount--;
+			//wrapper.right.pop();
+			return expr2;
+			//System.err.println("Expression.. " + aExpr.getStringExpression());
+		}
+		else if(joinExpr instanceof OrExpression) // || joinExpr instanceof OrExpression)
+		{
+			GenExpression expr2 = new GenExpression();
+			OrExpression aExpr = (OrExpression)joinExpr;
+			expr2.setOperation(aExpr.getStringExpression());
+			expr2.aQuery = joinExpr.toString();
+			
+			// this is composite
+			expr2.setComposite(true);
+			//expr.setExpression(joinExpr.toString());
+
+			Expression left = aExpr.getLeftExpression();
+			Expression right = aExpr.getRightExpression();
+			expr2.recursive = true;
+
+			wrapper.currentOperator.push("or");
+			wrapper.orCount++;
+			wrapper.procOrder.put("or" + wrapper.andCount, true);
+			wrapper.contextExpression.push(joinExpr.toString());
+			
+			// process the left and right
+			GenExpression leftExpr = processExpression(qs, left,  expr);
+			GenExpression rightExpr = processExpression(qs, right,  expr);
+			
+			expr2.setLeftExpresion(leftExpr);
+			expr2.setRightExpresion(rightExpr);
+			
+			expr2.parent = (GenExpression)qs;
+			
+			wrapper.currentOperator.pop();
+			wrapper.contextExpression.pop();
+			wrapper.orCount--;
 			return expr2;
 			//System.err.println("Expression.. " + aExpr.getStringExpression());
 		}
 		// only the binary expression has 2 sides
 		else if(joinExpr instanceof BinaryExpression)
 		{
+			
 			    this.binary = true;
 			// do the regular stuff.. I need to accomodate for other pieces but
 			//if(!simple) 
@@ -601,6 +651,35 @@ public class SqlParser2 {
 				eqExpr.aQuery = joinExpr.toString();
 				BinaryExpression joinExpr2 = (BinaryExpression)joinExpr;
 				eqExpr.setOperation(joinExpr2.getStringExpression());
+				String modifier = "";
+
+				// need ome way to put the or here
+				/*
+				if(joinExpr2.getStringExpression().equalsIgnoreCase("or"))
+				{
+					wrapper.currentOperator = joinExpr2.getStringExpression();
+				}*/
+				if(wrapper.currentOperator.size() > 0)
+				{
+					String operator = wrapper.currentOperator.pop();
+					boolean left = false;
+					int count = 0;
+					if(operator.equalsIgnoreCase("and"))
+						count = wrapper.andCount;
+					else
+						count = wrapper.orCount;
+					left = wrapper.procOrder.get(operator + count);
+					if(left)
+					{
+						modifier = operator + count + ".left";
+						wrapper.procOrder.put(operator + count, false);
+						//wrapper.left = true;
+					}
+					else
+						modifier = operator + count + ".right";
+					wrapper.currentOperator.push(operator);
+				}
+				
 				
 				//System.err.println("Expression.. " + joinExpr2.getStringExpression());
 				
@@ -634,11 +713,10 @@ public class SqlParser2 {
 					constantType = ((GenExpression)sqs).getOperation();
 					if(columnName != null)
 					{
-						((GenExpression)sqs).setLeftExpresion("'<" + eqExpr.getOperation() + columnName + ">'");
+						((GenExpression)sqs).setLeftExpresion("'<" + modifier + eqExpr.getOperation().trim() + columnName + ">'");
 					}
 					exprToTrack = sqs;
 				}
-
 
 				if(((GenExpression)sqs2).getOperation().equalsIgnoreCase("column"))
 				{
@@ -660,13 +738,17 @@ public class SqlParser2 {
 					
 					if(columnName != null && parameterize)
 					{
-						((GenExpression)sqs2).setLeftExpresion("'<" + eqExpr.getOperation() +  columnName + ">'");
+						((GenExpression)sqs2).setLeftExpresion("'<" + modifier + eqExpr.getOperation().trim() +  columnName + ">'");
 					}
 					exprToTrack = sqs2;
 				}
 				
 				if(binary && column && constantValue != null)
-					this.wrapper.makeParameters(columnName, constantValue, eqExpr.getOperation(), constantType, exprToTrack, tableName);
+				{
+					this.wrapper.makeParameters(columnName, constantValue, modifier + eqExpr.getOperation().trim(), constantType, exprToTrack, tableName);
+					// set the name to this
+					//((GenExpression)sqs2).setLeftExpresion("'<" + name+ ">'");
+				}
 				
 				binary = false;
 				column = false;
@@ -783,7 +865,8 @@ public class SqlParser2 {
 				{
 					startExpression.setLeftExpresion("'<" + "between.start" +  columnName + ">'");
 				}
-				this.wrapper.makeParameters(columnName, constantValue, "between.start", constantType, startExpression, tableName);
+				String compositeName = this.wrapper.makeParameters(columnName, constantValue, "between.start", constantType, startExpression, tableName);
+				startExpression.setLeftExpresion("'<" + compositeName + ">'");
 			}
 		
 			// process the end value if it is a constant
@@ -801,7 +884,8 @@ public class SqlParser2 {
 				{
 					endExpression.setLeftExpresion("'<" + "between.end" +  columnName + ">'");
 				}
-				this.wrapper.makeParameters(columnName, constantValue, "between.end", constantType, endExpression, tableName);
+				String compositeName = this.wrapper.makeParameters(columnName, constantValue, "between.end", constantType, endExpression, tableName);
+				endExpression.setLeftExpresion("'<" + compositeName + ">'");
 			}
 			
 			binary = false;
@@ -2404,7 +2488,11 @@ public class SqlParser2 {
 				+ ") B"
 				+ ") A inner join ("
 				+ "Select E1, E2, E3 from E) E on B1=E.E1"
-				+ " where (A3 = 'Fun' and A3 = 'Bun') or A2 = 'Gun';";
+				+ " where (A3 = 'Fun' and A3 = 'Bun') or A3 = 'Gun';";
+		
+		// A3 - Age Less Than
+		// Second A3 - Age Less than
+		
 		
 		String query17 = "Select a,b, c from tabla where 1 = 0 and (a = 'a' or c = 'q')";
 
@@ -2419,14 +2507,16 @@ public class SqlParser2 {
 				+ ") B"
 				+ ") A inner join ("
 				+ "Select E1, E2, E3 from E) E on B1=E.E1"
-				+ " where (A3 = 'Fun' and A3 = 'Bun') or A2 = 'Gun';";
+				+ " where (A3 = 'Fun' or A3 = 'Bun') or A2 = 'Gun';";
 
+		
+		String query19 = "Select Nominated, Genre, Studio, Title, MovieBudget, RevenueDomestic, RevenueInternational from Movie2 where Studio = 'WB' and (MovieBudget > 10000000 or MovieBudget > 20000000)";
 		// there are a couple of scenarios to model for join
 		// I have only one join easy for me to drop this - what happens to remaining stuff ?
 		// I have 2 joins 
 
 		test.parameterize = false;
-		GenExpressionWrapper wrapper = test.processQuery(query16);
+		GenExpressionWrapper wrapper = test.processQuery(query19);
 		test.printOutput(wrapper.root);
 		GenExpression root = wrapper.root;
 		// works with Query 2
@@ -2440,7 +2530,8 @@ public class SqlParser2 {
 
 		//Object [] output = root.printLineage(root, "B1", null ,null, null, 0);
 
-		//System.out.println("Physical Name for A3 >> " + wrapper.getPhysicalColumnName(root, "B3"));
+		System.out.println("Physical Name for B3 >> " + wrapper.getPhysicalColumnName(root, "B3"));
+		System.out.println("Physical Name for A3 >> " + wrapper.getPhysicalColumnName(root, "A3"));
 		
 		System.out.println("Detok List >> " + wrapper.getColumnsForFunction("detok"));
 		
@@ -2473,7 +2564,8 @@ public class SqlParser2 {
 		List <ParamStruct> paramList = new Vector<ParamStruct>();
 		paramList.add(replaceStruct);
 		*/
-		wrapper.replaceColumn("ACCT_ID", "'Hello World !!!!'");
+		wrapper.replaceColumn("A2", "'Helloworld'");
+		wrapper.replaceTableColumnOperator("A.A3or1.right=", "'Mango boy'");
 		wrapper.replaceColumn("YEAR_ID", "123");
 		//wrapper.replaceColumn("YER_ID", "123456");
 
