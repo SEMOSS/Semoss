@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.Vector;
 
 import prerna.query.querystruct.FunctionExpression;
@@ -44,6 +45,13 @@ public class GenExpressionWrapper {
 	public Map <String, ParamStruct> operatorTableColumnParamIndex = new HashMap<String, ParamStruct>(); // this is the next level - clms.acctid=, clms.acctid <
 	public Map <ParamStruct, List <GenExpression>> paramToExpressionMap = new HashMap<ParamStruct, List <GenExpression>>(); // final level
 
+	// keeping track of the current operator
+	public Stack <String> currentOperator = new Stack<String>();
+	public Stack <String> contextExpression = new Stack<String>();
+	public Map <String, Boolean> procOrder = new HashMap<String, Boolean>();
+	int andCount = 0;
+	int orCount = 0;
+	
 	
 	// keeps function to expression list
 	public Map<String, List<GenExpression>> functionExpressionMapper = new HashMap<String, List<GenExpression>>();
@@ -226,9 +234,12 @@ public class GenExpressionWrapper {
 	
 	public void replaceTableColumnOperator(String id, Object value)
 	{
-		ParamStruct tableColumnOperatorParam = operatorTableColumnParamIndex.get(id);
-		tableColumnOperatorParam.setCurrentValue(value);
-		//replaceParameter(tableColumnOperatorParam);
+		if(operatorTableColumnParamIndex.containsKey(id))
+		{
+			ParamStruct tableColumnOperatorParam = operatorTableColumnParamIndex.get(id);
+			tableColumnOperatorParam.setCurrentValue(value);
+			//replaceParameter(tableColumnOperatorParam);
+		}
 	}
 	
 	// fills it with the latest list of parameters
@@ -264,7 +275,7 @@ public class GenExpressionWrapper {
 	
 	
 	
-	public void makeParameters(String columnName, Object constantValue, String operationName, String constantType, GenExpression exprToTrack, String tableName)
+	public String makeParameters(String columnName, Object constantValue, String operationName, String constantType, GenExpression exprToTrack, String tableName)
 	{
 			//String tableAliasName = columnName.substring(0, columnName.indexOf("."));
 			String tableAliasName = tableName;
@@ -286,6 +297,8 @@ public class GenExpressionWrapper {
 			columnTableIndex.put(columnName, tableColumnList);
 			
 			// next add the operator
+			// need to see if the operator exists
+			// if so i need to pop and do the left and right magic
 			List <String> operatorTableColumnList = new Vector<String>();
 			if(this.columnTableOperatorIndex.containsKey(tableColumnComposite))
 				operatorTableColumnList = columnTableOperatorIndex.get(tableColumnComposite);
@@ -294,11 +307,21 @@ public class GenExpressionWrapper {
 			if(!operatorTableColumnList.contains(tableColumnOperatorComposite))
 				operatorTableColumnList.add(tableColumnOperatorComposite);
 			
+			
 			columnTableOperatorIndex.put(tableColumnComposite, operatorTableColumnList);
+			
 			
 			ParamStruct daStruct = null;
 			if(!operatorTableColumnParamIndex.containsKey(tableColumnOperatorComposite))
 			{
+				String context = "";
+				String contextPart = "";
+				if(contextExpression.size() > 0)
+				{
+					context = contextExpression.pop();
+					// get the context part
+					contextPart = exprToTrack.printQS(exprToTrack, null) + "";
+				}				
 				daStruct = new ParamStruct();
 				daStruct.setParamName(tableColumnOperatorComposite);
 				daStruct.setColumnName(columnName);
@@ -306,6 +329,8 @@ public class GenExpressionWrapper {
 				daStruct.setTableName(tableName);
 				daStruct.setCurrentValue(constantValue);
 				daStruct.operator = operationName;
+				daStruct.context = context;
+				daStruct.contextPart = contextPart;
 				
 				// need to get the current select struct to add to this
 				
@@ -322,6 +347,8 @@ public class GenExpressionWrapper {
 				
 				
 				operatorTableColumnParamIndex.put(tableColumnOperatorComposite, daStruct);						
+				if(context.length() > 0)
+					contextExpression.push(context);
 			}
 			else
 				daStruct = operatorTableColumnParamIndex.get(tableColumnOperatorComposite);
@@ -329,10 +356,14 @@ public class GenExpressionWrapper {
 			List <GenExpression> allExpressions = new Vector<GenExpression>();
 			// now add this gen expression to it
 			if(paramToExpressionMap.containsKey(daStruct))
+			{
+				
 				allExpressions = paramToExpressionMap.get(daStruct);
-			
+			}
 			allExpressions.add(exprToTrack);
 			paramToExpressionMap.put(daStruct, allExpressions);
+			
+			return tableColumnOperatorComposite;
 
 	}
 	
