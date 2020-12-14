@@ -41,6 +41,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private static final String PANDAS_IMPORT_VAR = "pandas_import_var";
 	private static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
 	
+	private static final String NUMPY_IMPORT_VAR = "np";
+	private static final String NUMPY_IMPORT_STRING = "import numpy as " + NUMPY_IMPORT_VAR;
+	
 	static Map<String, SemossDataType> pyS = new Hashtable<String, SemossDataType>();
 	static Map<Object, String> spy = new Hashtable<Object, String>();
 	
@@ -158,16 +161,17 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
 			File newFile = Utility.writeResultToFile(newFileLoc, it, dataTypeMap);
 			
-			String importS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
+			String importPandasS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
+			String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
 			// generate the script
 			String fileLocation = newFile.getAbsolutePath();
-			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName, ",", pyt.getCurEncoding());
+			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, fileLocation, tableName, ",", pyt.getCurEncoding());
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
 			// execute the script
 			//pyt.runScript(importS, loadS);
 			//pyt.runScript(makeWrapper);
 
-			pyt.runEmptyPy(importS, loadS, makeWrapper);
+			pyt.runEmptyPy(importPandasS, importNumpyS, loadS, makeWrapper);
 			// delete the generated file
 			
 			// dont delete.. we probably need to test the file py
@@ -192,16 +196,17 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 */
 	private void addRowsViaCsvIterator(CsvFileIterator it, String tableName) {
 		// generate the script
-		String importS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
+		String importPandasS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
+		String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
 		String fileLocation = it.getFileLocation();
-		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName, ",", pyt.getCurEncoding());
+		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, fileLocation, tableName, ",", pyt.getCurEncoding());
 
 		// need to compose a string for names
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
 		// execute all 3 scripts
 		//pyt.runScript(importS, loadS, headerS);
 		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
-		pyt.runEmptyPy(importS, loadS, headerS, makeWrapper);
+		pyt.runEmptyPy(importPandasS, importNumpyS, loadS, headerS, makeWrapper);
 		// need to set up the name here as well as make the frame
 		//pyt.runScript(makeWrapper);
 	}
