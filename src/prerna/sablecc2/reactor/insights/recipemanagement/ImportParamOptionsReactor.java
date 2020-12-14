@@ -93,7 +93,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			if(query == null && qs instanceof HardSelectQueryStruct)
 				query = ((HardSelectQueryStruct)qs).getQuery();
 			SqlParser2 sqp2 = new SqlParser2();
-			//sqp2.parameterize = true;
+			sqp2.parameterize = false;
 			try {
 				GenExpressionWrapper wrapper = sqp2.processQuery(query);
 				Iterator <ParamStruct> structIterator = wrapper.paramToExpressionMap.keySet().iterator();

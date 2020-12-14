@@ -106,6 +106,7 @@ public enum ReactorKeysEnum {
 	ORNAMENTS_KEY("ornaments", 								"Panel ornaments"),
 	OVERRIDE("override", 									"Indicates if the existing value will be overridden or if a new value will be created"),
 	PANEL("panel", 											"Id of the panel"),
+	PANEL_ORDER_IDS("panelOrderIds",                        "Order of the panels in insight"),
 	PANEL_LABEL_KEY("panelLabel", 							"Label for the panel"),
 	PANEL_POSITION_KEY("position", 							"Panel position map"),
 	PANEL_VIEW_KEY("panelView", 							"Text that specifies what is displayed in the panel (e.g., \"visualization\")"),
