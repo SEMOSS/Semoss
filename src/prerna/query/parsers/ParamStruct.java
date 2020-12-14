@@ -4,25 +4,28 @@ import prerna.sablecc2.om.PixelDataType;
 
 public class ParamStruct {
 
-	String pixelId = null;
+	private String pixelId = null;
 	public enum FILL_TYPE {MANUAL, PIXEL}
-	String tableName = null;
-	String tableAlias = null;
-	String columnName = null;
-	PixelDataType type = null;
-	Object currentValue = null;
-	Object defaultValue = null;
-	String operator = null;
+	private String tableName = null;
+	private String tableAlias = null;
+	private String columnName = null;
+	private PixelDataType type = null;
+	private Object currentValue = null;
+	private Object defaultValue = null;
+	private String operator = null;
 
-	boolean searchable = false;
-	boolean multiple = false;
-	String paramName = null;
-	String model_query = null;
-	String manualChoices = null;
-	String model_display = null; // need to turn this into an enum
-	String model_label = null; // how do you want to ask your user what to do ?
-	boolean required = false;
+	private boolean searchable = false;
+	private boolean multiple = false;
+	private String paramName = null;
+	private String model_query = null;
+	private String manualChoices = null;
+	private String model_display = null; // need to turn this into an enum
+	private String model_label = null; // how do you want to ask your user what to do ?
+	private boolean required = false;
 
+	private String context = null;
+	private String contextPart = null;
+	
 	public void setPixelId(String pixelId) {
 		this.pixelId = pixelId;
 	}
@@ -149,6 +152,22 @@ public class ParamStruct {
 
 	public void setRequired(boolean required) {
 		this.required = required;
+	}
+	
+	public String getContext() {
+		return context;
+	}
+
+	public void setContext(String context) {
+		this.context = context;
+	}
+
+	public String getContextPart() {
+		return contextPart;
+	}
+
+	public void setContextPart(String contextPart) {
+		this.contextPart = contextPart;
 	}
 
 	public String toString()
