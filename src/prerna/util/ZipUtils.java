@@ -37,8 +37,6 @@ public final class ZipUtils {
 
 	private static final Logger logger = LogManager.getLogger(ZipUtils.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
-
 	// buffer for read and write data to file
 	private static byte[] buffer = new byte[2048];
 
@@ -188,21 +186,21 @@ public final class ZipUtils {
 			zipInput.closeEntry();
 
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if (zipInput != null) {
 					zipInput.close();
 				}
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 			try {
 				if (fInput != null) {
 					fInput.close();
 				}
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -217,12 +215,12 @@ public final class ZipUtils {
 			FileUtils.copyFile(tempFile, smssFile);
 			smssFile.setReadable(true);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		try {
 			FileUtils.forceDelete(tempFile);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -234,12 +232,12 @@ public final class ZipUtils {
 				fOutput.write(buffer, 0, count);
 			}
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				fOutput.close();
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
