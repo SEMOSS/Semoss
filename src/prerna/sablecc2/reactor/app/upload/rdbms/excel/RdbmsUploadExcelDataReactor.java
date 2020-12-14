@@ -593,12 +593,13 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 					SemossDataType type = types[colIndex];
 					// strings
 					if (type == SemossDataType.STRING) {
-						String strValue = (String) value;
+						// expand different variable types to string
+						String strValue = value + "";
 						if (clean) {
-							value = Utility.cleanString(strValue, false);
+							strValue = Utility.cleanString(strValue, false);
 						}
-						if(strValue.length() > 2000) {
-							value = strValue.substring(0, 1997) + "...";
+						if (strValue.length() > 2000) {
+							strValue = strValue.substring(0, 1997) + "...";
 						}
 						ps.setString(colIndex + 1, strValue);
 					}
