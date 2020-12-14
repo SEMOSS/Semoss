@@ -261,7 +261,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		// rerun the insight
-		PixelRunner runner = insight.reRunPixelInsight();
+		PixelRunner runner = insight.reRunPixelInsight(false);
 		return runner;
 	}
 	
