@@ -13,6 +13,8 @@ public class ParamStruct {
 	private Object currentValue = null;
 	private Object defaultValue = null;
 	private String operator = null;
+	private String uOperator = null;
+	
 
 	private boolean searchable = false;
 	private boolean multiple = false;
@@ -185,5 +187,15 @@ public class ParamStruct {
 
 		return builder.toString();
 	}
+	
+	
+	public String getuOperator() {
+		return uOperator;
+	}
+
+	public void setuOperator(String uOperator) {
+		this.uOperator = uOperator;
+	}
+
 
 }

@@ -745,7 +745,7 @@ public class SqlParser2 {
 				
 				if(binary && column && constantValue != null)
 				{
-					this.wrapper.makeParameters(columnName, constantValue, modifier + eqExpr.getOperation().trim(), constantType, exprToTrack, tableName);
+					this.wrapper.makeParameters(columnName, constantValue, modifier + eqExpr.getOperation().trim(), eqExpr.getOperation().trim(), constantType, exprToTrack, tableName);
 					// set the name to this
 					//((GenExpression)sqs2).setLeftExpresion("'<" + name+ ">'");
 				}
@@ -865,7 +865,7 @@ public class SqlParser2 {
 				{
 					startExpression.setLeftExpresion("'<" + "between.start" +  columnName + ">'");
 				}
-				String compositeName = this.wrapper.makeParameters(columnName, constantValue, "between.start", constantType, startExpression, tableName);
+				String compositeName = this.wrapper.makeParameters(columnName, constantValue, "between.start", "between.start",  constantType, startExpression, tableName);
 				startExpression.setLeftExpresion("'<" + compositeName + ">'");
 			}
 		
@@ -884,7 +884,7 @@ public class SqlParser2 {
 				{
 					endExpression.setLeftExpresion("'<" + "between.end" +  columnName + ">'");
 				}
-				String compositeName = this.wrapper.makeParameters(columnName, constantValue, "between.end", constantType, endExpression, tableName);
+				String compositeName = this.wrapper.makeParameters(columnName, constantValue, "between.end", "between.end",  constantType, endExpression, tableName);
 				endExpression.setLeftExpresion("'<" + compositeName + ">'");
 			}
 			
@@ -1188,7 +1188,7 @@ public class SqlParser2 {
 				{
 					ge.setLeftExpr("'<" + columnName + " In" + ">'");
 				}
-				this.wrapper.makeParameters(columnName, constantValue, "in", constantType, ge, tableName);
+				this.wrapper.makeParameters(columnName, constantValue, "in", "in", constantType, ge, tableName);
 
 			}
 				
@@ -2565,6 +2565,7 @@ public class SqlParser2 {
 		paramList.add(replaceStruct);
 		*/
 		wrapper.replaceColumn("A2", "'Helloworld'");
+		//wrapper.replaceColumn("A3", "'Helloworld'");
 		wrapper.replaceTableColumnOperator("A.A3or1.right=", "'Mango boy'");
 		wrapper.replaceColumn("YEAR_ID", "123");
 		//wrapper.replaceColumn("YER_ID", "123456");
