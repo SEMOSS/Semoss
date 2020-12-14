@@ -275,7 +275,7 @@ public class GenExpressionWrapper {
 	
 	
 	
-	public String makeParameters(String columnName, Object constantValue, String operationName, String constantType, GenExpression exprToTrack, String tableName)
+	public String makeParameters(String columnName, Object constantValue, String operationName, String actualOperationName, String constantType, GenExpression exprToTrack, String tableName)
 	{
 			//String tableAliasName = columnName.substring(0, columnName.indexOf("."));
 			String tableAliasName = tableName;
@@ -328,7 +328,8 @@ public class GenExpressionWrapper {
 				daStruct.setTableAlias(tableAliasName);
 				daStruct.setTableName(tableName);
 				daStruct.setCurrentValue(constantValue);
-				daStruct.setOperator(operationName);
+				daStruct.setOperator(actualOperationName);
+				daStruct.setuOperator(operationName);
 				daStruct.setContext(context);
 				daStruct.setContextPart(contextPart);
 				
