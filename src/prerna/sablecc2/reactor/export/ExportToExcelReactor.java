@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -71,6 +72,7 @@ import prerna.poi.main.helper.excel.ExcelUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -99,6 +101,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	
 
 	protected String fileLocation = null;
+	Map <String, List<String>> orderOfPanelsMap = null;
+	
 	protected Logger logger;
 
 	ChromeDriver driver = null;
@@ -118,7 +122,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				ReactorKeysEnum.COLUMN_GUTTER.getKey(),
 				ReactorKeysEnum.TABLE_HEADER.getKey(),
 				ReactorKeysEnum.TABLE_FOOTER.getKey(),
-				ReactorKeysEnum.MERGE_CELLS.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey()
+				ReactorKeysEnum.MERGE_CELLS.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey(),
+				ReactorKeysEnum.PANEL_ORDER_IDS.getKey()
 			};
 		this.keyRequired = new int[] {0,0,0,0,0,0,0,0,0,0,0,0,0};
 		this.keyMulti = new int[] {0,0,0,0,0,0,1,0,0,0,0,0,0};
@@ -186,6 +191,32 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		Map<String, InsightPanel> panelMap = this.insight.getInsightPanels();
 		Map<String, InsightSheet> sheetMap = this.insight.getInsightSheets();
+		
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PANEL_ORDER_IDS.getKey());
+		
+		/** If we need to send the map
+		//((HashMap)this.store.getNoun("panelOrderIds").get(0)).get("a")
+		// ((List)((HashMap)this.store.getNoun("panelOrderIds").get(0)).get("a")).get(0)
+		
+		// ExportToExcel ( panelOrderIds = [ { "a" : [ '1' , '2' ] } ] ) ;
+		//this.store.getNoun("panelOrderIds").get(2)
+		//orderOfPanelsMap = (HashMap)this.store.getNoun("panelOrderIds").get(0);
+		*/
+		List <String> orderOfPanels = null;
+
+		//setting the order of panels for export
+		//  ExportToExcel(panelOrderIds = ["0", "1", "2"])
+		if(grs != null)
+		{
+			
+			orderOfPanels = new ArrayList<String>(); //(Arrays.asList(((String)keyValue.get(ReactorKeysEnum.PANEL_ORDER_IDS.getKey())).split(",")));
+			for(int idx = 0;idx < grs.size();idx++)
+				orderOfPanels.add(grs.get(idx) + "");
+		}
+		else
+		{
+			orderOfPanels = new ArrayList(Arrays.asList(panelMap.keySet().toArray()));
+		}
 
 		// Use in-memory XSSF workbook to be able to plot charts
 
@@ -217,7 +248,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 
 		// iterate through panel map to figure out layout
-		for (String panelId : panelMap.keySet()) {
+		for (String panelId : orderOfPanels) {
 			InsightPanel panel = panelMap.get(panelId);
 			String sheetId = panel.getSheetId();
 			// for each panel get the task and task options
@@ -243,7 +274,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 
 		// now build charts
-		for (String panelId : panelMap.keySet()) {
+		for (String panelId : orderOfPanels) {
 			InsightPanel panel = panelMap.get(panelId);
 			// for each panel get the task and task options
 			SelectQueryStruct qs = panel.getLastQs();
@@ -257,7 +288,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			// add chart
 			processTask(workbook, task, panel);
 		}
-
+		
 		// Insert Semoss Logo after the last chart on each sheet
 		//addLogo(workbook, sheetAlias);
 
@@ -700,6 +731,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
+
 		// Add Y Axis Title
 		if(showYAxisTitle) {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
@@ -716,6 +748,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
 			}
 		}
+
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		// Add in x vals
@@ -789,8 +822,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, null);
 		XDDFValueAxis bottomAxis = chart.createValueAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
+	//	leftAxis.setMinimum(0.4);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
+
 		if(showYAxisTitle) {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
 				leftAxis.setTitle(yAxisTitleName);
@@ -805,6 +840,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
 			}
 		}
+
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(chartType, bottomAxis, leftAxis);
 		// Add in x vals
 		XDDFDataSource xs = createXAxis(dataSheet, xColumnMap);
@@ -822,9 +858,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			scatterSeries.getSerArray(i).addNewSpPr().addNewLn().addNewNoFill();
 			scatterSeries.addNewVaryColors().setVal(false);
 		}
-
+		
 		chart.plot(data);
-
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
 			POIExportUtility.displayValues(ChartTypes.SCATTER, chart);
@@ -872,11 +907,14 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// Build chart
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
+		//chart.setTitleText("Title Test");
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
+		
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		leftAxis.setCrossBetween(AxisCrossBetween.BETWEEN);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
+
 		// Add Y Axis Title
 		if(showYAxisTitle) {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
@@ -893,6 +931,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
 			}
 		}
+
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		if (flipAxis) {
@@ -974,6 +1013,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
+
 		// Add Y Axis Title
 		if(showYAxisTitle) {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
@@ -990,6 +1030,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
 			}
 		}
+
 		XDDFAreaChartData data = (XDDFAreaChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		// Add in x vals
@@ -1100,6 +1141,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
+
 		// Add Y Axis Title
 		if(showYAxisTitle) {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
@@ -1116,6 +1158,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
 			}
 		}
+
 		XDDFRadarChartData data = (XDDFRadarChartData) chart.createData(chartType, bottomAxis, leftAxis);
 
 		// Add in x vals
