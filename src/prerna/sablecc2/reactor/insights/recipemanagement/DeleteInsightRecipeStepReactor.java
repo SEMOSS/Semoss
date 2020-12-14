@@ -45,7 +45,7 @@ public class DeleteInsightRecipeStepReactor extends AbstractReactor {
 		// clear the insight
 		// and re-run it
 		logger.info("Re-executing the insight recipe... please wait as this operation may take some time");
-		PixelRunner runner = this.insight.reRunPixelInsight();
+		PixelRunner runner = this.insight.reRunPixelInsight(true);
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", runner);
