@@ -1,6 +1,9 @@
 package prerna.sablecc2.reactor.export;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DataConsolidateFunction;
@@ -22,6 +25,8 @@ import org.python.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+
+import prerna.util.Constants;
 
 public class POIExportUtility {
 
@@ -45,6 +50,7 @@ public class POIExportUtility {
             plotArea.getValAxArray()[0].addNewMajorGridlines();
         }
     }
+    
 
     public static CTDLbls displayValues(ChartTypes chartType, XDDFChart chart) {
         CTDLbls dLbls = null;
@@ -257,6 +263,45 @@ public class POIExportUtility {
 
     	// nothing worked
     	return null;
+    }
+    /**
+     * Convert hex color code into byte array
+     * @param colorStr
+     * @return
+     */
+    public static byte[] hex2Rgb(String colorStr) {
+        int r = Integer.valueOf(((String) colorStr).substring(1, 3), 16);
+        int g = Integer.valueOf(((String) colorStr).substring(3, 5), 16);
+        int b = Integer.valueOf(((String) colorStr).substring(5, 7), 16);      
+        return new byte[]{(byte) r, (byte) g, (byte) b};
+    }
+    /**
+     * Get hex color code array
+     * @param colorName
+     * @param customColors
+     * @param colorObject
+     * @return colorHexArray
+     */
+    public static String[] getHexColorCode(String colorName, Object customColors, Object colorObject) {
+    	String[] colorHexArray = Constants.COLOR_SEMOSS;
+    	if (!(colorObject instanceof HashMap)) {
+        	Vector colorsArray = (Vector) colorObject;
+        	Object[] objectArray = colorsArray.toArray();
+        	colorHexArray = Arrays.copyOf(objectArray, objectArray.length, String[].class);
+        }
+        if (customColors instanceof Map) {
+        	Map cc = (Map) customColors;
+        	if (cc.containsKey(colorName)) {
+        		Object[] result = cc.values().toArray();
+        		String[] r = Arrays.copyOf(result, result.length, String[].class);
+        		String dd = result.toString();
+        		String ee = (String) result[0];
+        		ee = ee.replaceAll("\\[", "").replaceAll("\\]","");
+        		ee = ee.replace("\"", "");
+        		colorHexArray = ee.split(",");
+        	}
+        }
+    	return colorHexArray;
     }
 
     /**

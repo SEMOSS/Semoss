@@ -648,4 +648,8 @@ public class Constants {
 	// public home to be used for deployments
 	public static final String PUBLIC_HOME = "public_home";
 	
+	// default semoss colors
+	// TODO: find a way to consolidate this with the FE
+	public static final String[] COLOR_SEMOSS = {"#4FA4DE","#5E61E3", "#ffe750", "#FFB350", "#f7724a", "#F54D83", "#9C25E1", "#1A936F", "#88D498", "#BDC3C7"}; 
+	
 }
