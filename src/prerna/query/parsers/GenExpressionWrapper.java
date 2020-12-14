@@ -325,12 +325,12 @@ public class GenExpressionWrapper {
 				daStruct = new ParamStruct();
 				daStruct.setParamName(tableColumnOperatorComposite);
 				daStruct.setColumnName(columnName);
-				daStruct.tableAlias = tableAliasName;
+				daStruct.setTableAlias(tableAliasName);
 				daStruct.setTableName(tableName);
 				daStruct.setCurrentValue(constantValue);
-				daStruct.operator = operationName;
-				daStruct.context = context;
-				daStruct.contextPart = contextPart;
+				daStruct.setOperator(operationName);
+				daStruct.setContext(context);
+				daStruct.setContextPart(contextPart);
 				
 				// need to get the current select struct to add to this
 				
