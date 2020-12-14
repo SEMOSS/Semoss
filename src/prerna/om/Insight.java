@@ -50,6 +50,9 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -80,6 +83,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.PyTranslatorFactory;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
+import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.AssetUtility;
@@ -1044,11 +1048,24 @@ public class Insight {
 		return runPixel(newList);
 	}
 	
-	public PixelRunner reRunPixelInsight() {
+	public PixelRunner reRunPixelInsight(boolean appendInsightConfig) {
 		synchronized(this) {
 			// set the mode
 			setRunSavedInsightMode(true);
 	
+			// always add the insight config
+			if(appendInsightConfig) {
+				NounMetadata noun = varStore.get(SetInsightConfigReactor.INSIGHT_CONFIG);
+				if(noun != null) {
+					Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+					StringBuilder builder = new StringBuilder("META | SetInsightConfig(");
+					builder.append(gson.toJson(noun.getValue()));
+					builder.append(");");
+					Pixel pixel = this.pixelList.addPixel(builder.toString());
+					pixel.setMeta(true);
+				}
+			}
+			
 			// clear the varStore
 			// but need to close the frames for memory / files
 			Set<String> tNames = new HashSet<>();
