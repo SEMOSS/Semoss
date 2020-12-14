@@ -612,31 +612,31 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 					if(!(strBool.equalsIgnoreCase("false") || strBool.equalsIgnoreCase("true"))) {
 						throw new IllegalArgumentException("Parameter " + key + " is not a valid boolean value");
 					}
-				}
-				
-				// currently all other parameter inputs are integer values
-				// make sure it is a valid integer or turn it to an integer
-				int integerInput = -1;
-				if(jdbcVal instanceof Number) {
-					integerInput = ((Number) jdbcVal).intValue();
 				} else {
-					try {
-						integerInput = Integer.parseInt(jdbcVal + "");
-					} catch(NumberFormatException e) {
-						throw new IllegalArgumentException("Parameter " + key + " is not a valid number");
+					// currently all other parameter inputs are integer values
+					// make sure it is a valid integer or turn it to an integer
+					int integerInput = -1;
+					if(jdbcVal instanceof Number) {
+						integerInput = ((Number) jdbcVal).intValue();
+					} else {
+						try {
+							integerInput = Integer.parseInt(jdbcVal + "");
+						} catch(NumberFormatException e) {
+							throw new IllegalArgumentException("Parameter " + key + " is not a valid number");
+						}
 					}
-				}
-				
-				// perform the integer check
-				if(integerInput < 0) {
-					throw new IllegalArgumentException("Paramter " + key + " must be a numeric value greater than 0");
-				}
-				
-				// assign so we can do a final check for min/max pool size
-				if(key.equals(Constants.POOL_MIN_SIZE)) {
-					minPool = integerInput;
-				} else if(key.equals(Constants.POOL_MAX_SIZE)) {
-					maxPool = integerInput;
+					
+					// perform the integer check
+					if(integerInput < 0) {
+						throw new IllegalArgumentException("Paramter " + key + " must be a numeric value greater than 0");
+					}
+					
+					// assign so we can do a final check for min/max pool size
+					if(key.equals(Constants.POOL_MIN_SIZE)) {
+						minPool = integerInput;
+					} else if(key.equals(Constants.POOL_MAX_SIZE)) {
+						maxPool = integerInput;
+					}
 				}
 			}
 		}
