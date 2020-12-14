@@ -9,6 +9,7 @@ install.packages("reshape2", dependencies=TRUE)
 install.packages("stringr", dependencies=TRUE)
 install.packages("lubridate", dependencies=TRUE)
 install.packages("dplyr", dependencies=TRUE)
+install.packages("fst", dependencies=TRUE)
 
 ###############################################################################
 # Clean Routines
