@@ -88,6 +88,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 	private static final String SHOW_X_AXIS_TITLE = "tools.shared.editXAxis.title.show";
 	private static final String Y_AXIS_TITLE_NAME = "tools.shared.editYAxis.title.name";
 	private static final String X_AXIS_TITLE_NAME = "tools.shared.editXAxis.title.name";
+	private static final String COLOR_NAME = "tools.shared.colorName";
+	private static final String CUSTOM_COLOR_ARRAY = "tools.shared.customColors";
+	private static final String COLOR_ARRAY = "tools.shared.color";
 
 	ChromeDriver driver = null;
 	
@@ -239,7 +242,10 @@ public class ExportToPPTReactor extends AbstractReactor {
  		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
  		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
  		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
-
+ 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
+        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -280,6 +286,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSourceByType(xColumnName,0);
 
 		// Add in y vals
+		int yCounter = 0;
 		for (int i = 0; i < yColumnNames.size(); i++) {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnNames.get(i));
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
@@ -287,7 +294,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			chartSeries.setTitle(yColumnNames.get(i), null);
 			// Standardize markers
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
-			fillProperties.setColor(XDDFColor.from(PresetColor.ROYAL_BLUE));
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
 			XDDFShapeProperties propertiesMarker = new XDDFShapeProperties();
 			propertiesMarker.setFillProperties(fillProperties);
@@ -297,6 +304,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			XDDFLineProperties lineProperties = new XDDFLineProperties();
 			lineProperties.setFillProperties(fillProperties);
 			chartSeries.setLineProperties(lineProperties);
+			yCounter++;
 		}
 
 		chart.plot(data);
@@ -406,7 +414,10 @@ public class ExportToPPTReactor extends AbstractReactor {
  		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
  		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
  		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
-
+ 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
+        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -458,11 +469,16 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSourceByType(xColumnName,0);
 
 		// Add in y vals
+		int yCounter = 0;
 		for (String yColumnName : yColumnNames) {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFBarChartData.Series chartSeries = (XDDFBarChartData.Series) data.addSeries(xs, ys);
+			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
+            chartSeries.setFillProperties(fillProperties);
 			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			yCounter++;
 		}
 
 		chart.plot(data);
@@ -492,7 +508,10 @@ public class ExportToPPTReactor extends AbstractReactor {
  		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
  		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
  		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
-
+ 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
+        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -531,11 +550,16 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
 
 		// Add in y vals
+		int yCounter = 0;
 		for (String yColumnName : yColumnNames) {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFAreaChartData.Series chartSeries = (XDDFAreaChartData.Series) data.addSeries(xs, ys);
+			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
+			chartSeries.setFillProperties(fillProperties);
 			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			yCounter++;
 		}
 
 		chart.plot(data);
