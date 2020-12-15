@@ -74,7 +74,9 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		// return output
 
 		// need to do a check to see if the frame is in R if not convert to R
-		ITableDataFrame thisFrame = insight.getCurFrame();
+		SelectQueryStruct qs = ((BasicIteratorTask)task).getQueryStruct();
+		ITableDataFrame thisFrame = qs.getFrame();
+//		ITableDataFrame thisFrame = insight.getCurFrame();
 		String type = FrameFactory.getFrameType(thisFrame);
 		
 		// need to also check if it is already there
@@ -123,7 +125,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		}
 
 		// I can avoid all this to make a selector
-		SelectQueryStruct qs = ((BasicIteratorTask)task).getQueryStruct();
+//		SelectQueryStruct qs = ((BasicIteratorTask)task).getQueryStruct();
 		qs.getRelations().clear();
 		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, thisFrame.getMetaData());

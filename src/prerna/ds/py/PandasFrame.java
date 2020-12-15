@@ -37,16 +37,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "PandasFrame";
 	
-	private static final String PANDAS_IMPORT_VAR = "pandas_import_var";
-	private static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
+	public static final String PANDAS_IMPORT_VAR = "pandas_import_var";
+	public static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
 	
-	private static final String NUMPY_IMPORT_VAR = "np";
-	private static final String NUMPY_IMPORT_STRING = "import numpy as " + NUMPY_IMPORT_VAR;
+	public static final String NUMPY_IMPORT_VAR = "np_import_var";
+	public static final String NUMPY_IMPORT_STRING = "import numpy as " + NUMPY_IMPORT_VAR;
 	
 	static Map<String, SemossDataType> pyS = new Hashtable<String, SemossDataType>();
 	static Map<Object, String> spy = new Hashtable<Object, String>();
 	
-	// gets all the commands in one fell swoop
+	// gets all the commands in one fell swoop 
 	List <String> commands = new ArrayList<String>();
 	
 	private PyExecutorThread py = null;
