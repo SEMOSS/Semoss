@@ -9,8 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.py.PyTranslator;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -56,35 +58,33 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// as long as this is made through FE
 		// the task iterator hasn't been executed yet
 		this.task = getTask();
+		SelectQueryStruct qs = null;
+		ITableDataFrame queryFrame = null;
 		if(this.task instanceof BasicIteratorTask) {
-			((BasicIteratorTask) this.task).getQueryStruct().setDistinct(false);
+			qs = ((BasicIteratorTask) this.task).getQueryStruct();
+			qs.setDistinct(false);
+			queryFrame = qs.getFrame();
 		}
-		PyTranslator pyt = insight.getPyTranslator();
-		// just for testing
-		//pyt = null;
-		if(pyt == null)
-			return getError("Pivot requires Python. Python is not enabled in this instance");
 		
+		PyTranslator pyt = insight.getPyTranslator();
+		if(pyt == null) {
+			return getError("Pivot requires Python. Python is not enabled in this instance");
+		}
 		pyt.setLogger(this.getLogger(this.getClass().getName()));
 
-		
 		// this is the payload that is coming
 		// Frame ( frame = [ FRAME890385 ] ) | Select ( Genre , Studio, MovieBudget ) .as ( [ Genre , Studio, MovieBudget ] ) | CollectPivot( rowGroups=["Genre"], columns=["Studio"], values=["sum(MovieBudget)"] ) ;
-		
 		// pandas format is - pd.pivot_table(mv, index=['Genre', 'Nominated'], values=['MovieBudget', 'RevenueDomestic'], aggfunc={'MovieBudget':np.sum, 'RevenueDomestic':np.mean}, columns='Studio')
 		
 		// I need to convert the values into aggregate functions
-		
 		// I need to change this check later
 
 		String frameName = Utility.getRandomString(6);
 		String makeFrame = null;
 		String outputFile = null;
-		if(task instanceof BasicIteratorTask && this.insight.getCurFrame() instanceof PandasFrame)
-		{
-			SelectQueryStruct qs = ((BasicIteratorTask)this.task).getQueryStruct();
+		if(task instanceof BasicIteratorTask && queryFrame instanceof PandasFrame) {
 			PandasInterpreter interp = new PandasInterpreter();
-			PandasFrame frame = (PandasFrame)this.insight.getCurFrame();
+			PandasFrame frame = (PandasFrame) queryFrame;
 			interp.setDataTableName(frame.getName(), frame.getWrapperName()+ ".cache['data']");
 			interp.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
 			interp.setQueryStruct(qs);
@@ -101,9 +101,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			}
 			
 			makeFrame = frameName + " = " + frameQuery;
-		}
-		else
-		{
+		} else {
 			String fileName = Utility.getRandomString(6);
 			String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
 			File tempDir = new File(dir);
@@ -113,8 +111,15 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			outputFile = dir + "/" + fileName + ".csv";
 			Utility.writeResultToFile(outputFile, this.task, ",");
 			
-			makeFrame = frameName + " = pd.read_csv('" + outputFile + "', encoding='" + pyt.getCurEncoding() + "')"; //.replace(np.nan, '', regex=True)";
+			String importPandasS = new StringBuilder(PandasFrame.PANDAS_IMPORT_STRING).toString();
+			String importNumpyS = new StringBuilder(PandasFrame.NUMPY_IMPORT_STRING).toString();
+			pyt.runEmptyPy(importPandasS, importNumpyS);
+
+			// generate the script
+			makeFrame = PandasSyntaxHelper.getCsvFileRead(PandasFrame.PANDAS_IMPORT_VAR, PandasFrame.NUMPY_IMPORT_VAR, 
+					outputFile, frameName, ",", pyt.getCurEncoding());
 		}
+		
 		// so this is going to come in as vectors
 		List<String> rowGroups = this.store.getNoun(keysToGet[0]).getAllStrValues();
 		List<String> colGroups = this.store.getNoun(keysToGet[1]).getAllStrValues();
@@ -122,30 +127,31 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		List<String> optional = null;
 
 		List<String> subtotals = rowGroups;
-		if(keyValue.containsKey(keysToGet[3]))
+		if(keyValue.containsKey(keysToGet[3])) {
 			subtotals = this.store.getNoun(keysToGet[3]).getAllStrValues();
-
+		}
 		boolean json = false;
 		boolean margins = true;
 
-		if(this.store.getNounKeys().contains("json"))
+		if(this.store.getNounKeys().contains("json")) {
 			json = this.store.getNoun(keysToGet[4]).get(0).toString().equalsIgnoreCase("true");
-
-		if(this.store.getNounKeys().contains("margins"))
+		}
+		if(this.store.getNounKeys().contains("margins")) {
 			margins = this.store.getNoun(keysToGet[5]).get(0).toString().equalsIgnoreCase("true");
-
+		}
 		List<String> sections = null;
 		
-		if(this.store.getNounKeys().contains(keysToGet[6]))
+		if(this.store.getNounKeys().contains(keysToGet[6])) {
 			sections = this.store.getNoun(keysToGet[6]).getAllStrValues();
-		
-		if(this.store.getNounKeys().contains(keysToGet[7]))
+		}
+		if(this.store.getNounKeys().contains(keysToGet[7])) {
 			optional = this.store.getNoun(keysToGet[7]).getAllStrValues();
+		}
 
-
-		if(curEncoding == null)
-			curEncoding = pyt.runPyAndReturnOutput("print(sys.stdout.encoding)");
-				
+		if(curEncoding == null) {
+			curEncoding = pyt.getCurEncoding();
+		}
+		
 		List <String> newValues = new Vector<String>();
 		List <String> functions = new Vector<String>();
 
@@ -158,7 +164,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		pivotMap.put(keysToGet[7], optional);
 
 		List<Map<String, String>> valuesList = new Vector<Map<String, String>>();
-
 		
 		for(int valIndex = 0;valIndex < values.size();valIndex++)
 		{
@@ -270,7 +275,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// need to set the task options
 		// hopefully this is the current one I am working with
 		if(this.task.getTaskOptions() != null) {
-			prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
 			// I really hope this is only one
 			Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
 			while(panelIds.hasNext()) {
@@ -283,21 +287,19 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				task.getTaskOptions().getOptions().put("values", values);
 				// store the noun store as well for refreshing
 				task.getTaskOptions().setCollectStore(this.store);
-				this.insight.setFinalViewOptions(panelId, sqs, task.getTaskOptions());
+				this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions());
 			}
 		}
 		
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 	
-	public void setTask(ITask task)
-	{
+	public void setTask(ITask task) {
 		this.task = task;
 	}
 	
 	// based on data type suggests if we need to add the ' or not
-	private String getQuote(String columnName)
-	{
+	private String getQuote(String columnName) {
 		String quote = "'";
 		List<Map<String, Object>> headersInfo = task.getHeaderInfo();
 		for (Map<String, Object> headerMap : headersInfo) 
@@ -716,16 +718,12 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				
 				retString.append(groupBy).append("\n").append(finalPivot).append("\n").append(columnRenamer).append("\n").append(dropAllTotal).append("\n").append(output).append("\n").append(deleter);
 			}		
-		}
-		else
-		{
+		} else {
 			retString.append("\n").append("print(").append(pivotName).append(outputFormat).append(")").append("\n").append("del(").append(pivotName).append(")");
 		}
 		
 		System.err.println(retString);
 		return retString.toString();
 	}
-
-	
 	
 }
