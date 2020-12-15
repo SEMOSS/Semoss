@@ -9,7 +9,6 @@ import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.EmptyIteratorException;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RFrameBuilder;
@@ -126,15 +125,15 @@ public class RImporter extends AbstractImporter {
 		String tempTableName = Utility.getRandomString(6);
 		Map<String, SemossDataType> newColumnsToTypeMap = ImportUtility.getTypesFromQs(this.qs, it);
 		
-		try {
+//		try {
 			this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
-		} catch(EmptyIteratorException e) {
-			if(!joins.get(0).getJoinType().equals("inner.join")) {
-				throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
-			}
-			// TODO: add alter missing columns logic
-			throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
-		}
+//		} catch(EmptyIteratorException e) {
+//			if(!joins.get(0).getJoinType().equals("inner.join")) {
+//				throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
+//			}
+//			// TODO: add alter missing columns logic
+//			throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
+//		}
 		// we may need to alias the headers in this new temp table
 		if(!rightTableAlias.isEmpty()) {
 			for(String oldColName : rightTableAlias.keySet()) {
@@ -142,17 +141,17 @@ public class RImporter extends AbstractImporter {
 			}
 		}
 		
-		if(builder.isEmpty(tempTableName)) {
-			if(joins.get(0).getJoinType().equals("inner.join")) {
-				// clear the fake table
-				builder.evalR("rm(" + tempTableName + ");");
-				throw new IllegalArgumentException("Iterator returned no results. Joining this data would result in no data.");
-			}
+//		if(builder.isEmpty(tempTableName)) {
+//			if(joins.get(0).getJoinType().equals("inner.join")) {
+//				// clear the fake table
+//				builder.evalR("rm(" + tempTableName + ");");
+//				throw new EmptyIteratorException("Iterator returned no results. Joining this data would result in no data.");
+//			}
 			// we are merging w/ no data
 			// just add an empty column with the column name
-			String alterTable = RSyntaxHelper.alterMissingColumns(tableName, newColumnsToTypeMap, joins, new HashMap<String, String>());
-			this.dataframe.executeRScript(alterTable);
-		} else {
+//			String alterTable = RSyntaxHelper.alterMissingColumns(tableName, newColumnsToTypeMap, joins, new HashMap<String, String>());
+//			this.dataframe.executeRScript(alterTable);
+//		} else {
 			//define parameters that we will pass into mergeSyntax method to get the R command
 			String returnTable = this.dataframe.getName();
 			String leftTableName = returnTable;
@@ -176,7 +175,7 @@ public class RImporter extends AbstractImporter {
 				}
 				joinColMapping.put(jSelector, jQualifier);
 				joinCols.add(joinColMapping);
-			}
+//			}
 			
 			// need to account for the data types being different for the join columns
 			updateTypesForJoin(leftTableTypes, tempTableName, newColumnsToTypeMap, joinCols);

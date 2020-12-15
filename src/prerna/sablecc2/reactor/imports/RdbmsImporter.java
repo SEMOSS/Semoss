@@ -10,7 +10,6 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.EmptyIteratorException;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -321,27 +320,27 @@ public class RdbmsImporter extends AbstractImporter {
 						rightTableTypes, joins, leftTableAlias, rightTableAlias);
 				this.dataframe.getBuilder().runQuery(joinQuery);
 			}
-		} catch(EmptyIteratorException e) {
-			// no data was returned from iterator
-			// so the right table wasn't created
-			successfullyAddedData = false;
-			// if we have a non-inner join
-			// add the columns into the frame
-			if(!joins.get(0).getJoinType().equals("inner.join")) {
-				// add columns onto the frame
-				String alterQuery = RdbmsQueryBuilder.alterMissingColumns(leftTableName, rightTableTypes, joins, rightTableAlias, this.dataframe.getQueryUtil());
-				try {
-					this.dataframe.getBuilder().runQuery(alterQuery);
-				} catch (Exception ex) {
-					// if this messes up... not sure what to do now 
-					ex.printStackTrace();
-				}
-			} else {
-				// continue the message up
-				// if we have an inner join and no data
-				// result will be null and we dont want that
-				throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
-			}
+//		} catch(EmptyIteratorException e) {
+//			// no data was returned from iterator
+//			// so the right table wasn't created
+//			successfullyAddedData = false;
+//			// if we have a non-inner join
+//			// add the columns into the frame
+//			if(!joins.get(0).getJoinType().equals("inner.join")) {
+//				// add columns onto the frame
+//				String alterQuery = RdbmsQueryBuilder.alterMissingColumns(leftTableName, rightTableTypes, joins, rightTableAlias, this.dataframe.getQueryUtil());
+//				try {
+//					this.dataframe.getBuilder().runQuery(alterQuery);
+//				} catch (Exception ex) {
+//					// if this messes up... not sure what to do now 
+//					ex.printStackTrace();
+//				}
+//			} else {
+//				// continue the message up
+//				// if we have an inner join and no data
+//				// result will be null and we dont want that
+//				throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
+//			}
 		}
 		catch(Exception e) {
 			e.printStackTrace();
