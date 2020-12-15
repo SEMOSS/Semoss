@@ -45,7 +45,6 @@ import prerna.util.Utility;
 public class ToLoaderSheetReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = ToLoaderSheetReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
 	
 	public ToLoaderSheetReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
@@ -82,7 +81,10 @@ public class ToLoaderSheetReactor extends AbstractReactor {
         // style timestamps
         CellStyle timeStampCellStyle = workbook.createCellStyle();
         timeStampCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("yyyy-MM-dd HH:mm:ss"));
-		
+		// doubles
+        CellStyle doubleCellStyle = workbook.createCellStyle();
+        doubleCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("#,###.00"));
+
 		// get a list of all the tables and properties
 		List<String> concepts = engine.getPhysicalConcepts();
 
@@ -117,9 +119,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			IRawSelectWrapper iterator = null;
 			try {
 				iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
-				writeNodePropSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, physicalConceptName, properties);
+				writeNodePropSheet(engine, workbook, dateCellStyle, timeStampCellStyle, doubleCellStyle, iterator, physicalConceptName, properties);
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(iterator != null) {
 					iterator.cleanUp();
@@ -138,9 +140,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				IRawSelectWrapper iterator = null;
 				try {
 					iterator = WrapperManager.getInstance().getRawWrapper(engine, query);
-					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, rel, edgeProps);
+					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, doubleCellStyle, iterator, rel, edgeProps);
 				} catch (Exception e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(iterator != null) {
 						iterator.cleanUp();
@@ -165,9 +167,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				IRawSelectWrapper iterator = null;
 				try {
 					iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
-					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, iterator, rel, new ArrayList<String>());
+					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, doubleCellStyle, iterator, rel, new ArrayList<String>());
 				} catch (Exception e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(iterator != null) {
 						iterator.cleanUp();
@@ -195,6 +197,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			Workbook workbook,
 			CellStyle dateCellStyle,
 			CellStyle timeStampCellStyle,
+			CellStyle doubleCellStyle,
 			Iterator<IHeadersDataRow> it, 
 			String physicalNodeName, 
 			List<String> properties) {
@@ -231,7 +234,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 					if(data[i] == null) {
 						row.createCell(i+1).setCellType(CellType.BLANK);
 					} else if(data[i] instanceof Number) {
-						row.createCell(i+1).setCellValue(((Number) data[i]).doubleValue());
+						Cell cell = row.createCell(i+1);
+						cell.setCellValue(((Number) data[i]).doubleValue());
+						cell.setCellStyle(doubleCellStyle);
 					} else if(data[i] instanceof SemossDate) {
 						SemossDate d = (SemossDate) data[i];
 						Cell cell = row.createCell(i+1);
@@ -257,7 +262,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				if(data[i] == null) {
 					row.createCell(i+1).setCellType(CellType.BLANK);
 				} else if(data[i] instanceof Number) {
-					row.createCell(i+1).setCellValue(((Number) data[i]).doubleValue());
+					Cell cell = row.createCell(i+1);
+					cell.setCellValue(((Number) data[i]).doubleValue());
+					cell.setCellStyle(doubleCellStyle);
 				} else if(data[i] instanceof SemossDate) {
 					SemossDate d = (SemossDate) data[i];
 					Cell cell = row.createCell(i+1);
@@ -285,6 +292,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			Workbook workbook, 
 			CellStyle dateCellStyle,
 			CellStyle timeStampCellStyle,
+			CellStyle doubleCellStyle,
 			Iterator<IHeadersDataRow> it, 
 			String[] rel, 
 			List<String> edgeProps) {
@@ -314,7 +322,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 					if(data[i] == null) {
 						row.createCell(i+1).setCellType(CellType.BLANK);
 					} else if(data[i] instanceof Number) {
-						row.createCell(i+1).setCellValue(((Number) data[i]).doubleValue());
+						Cell cell = row.createCell(i+1);
+						cell.setCellValue(((Number) data[i]).doubleValue());
+						cell.setCellStyle(doubleCellStyle);
 					} else if(data[i] instanceof SemossDate) {
 						SemossDate d = (SemossDate) data[i];
 						Cell cell = row.createCell(i+1);
@@ -339,7 +349,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				if(data[i] == null) {
 					row.createCell(i+1).setCellType(CellType.BLANK);
 				} else if(data[i] instanceof Number) {
-					row.createCell(i+1).setCellValue(((Number) data[i]).doubleValue());
+					Cell cell = row.createCell(i+1);
+					cell.setCellValue(((Number) data[i]).doubleValue());
+					cell.setCellStyle(doubleCellStyle);
 				} else if(data[i] instanceof SemossDate) {
 					SemossDate d = (SemossDate) data[i];
 					Cell cell = row.createCell(i+1);
