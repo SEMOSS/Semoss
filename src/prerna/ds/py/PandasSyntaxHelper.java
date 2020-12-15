@@ -72,10 +72,11 @@ public class PandasSyntaxHelper {
 	 * Get the syntax to load a csv file
 	 * 
 	 * @param pandasImportVar
-	 * @param numpyImportVAr
+	 * @param numpyImportVar
 	 * @param fileLocation
 	 * @param tableName
 	 * @param sep
+	 * @return
 	 */
 	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep) {
 		if (sep == null || sep.isEmpty()) {
@@ -93,6 +94,7 @@ public class PandasSyntaxHelper {
 	 * @param tableName
 	 * @param sep
 	 * @param encoding
+	 * @return
 	 */
 	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep,
 			String encoding) {
