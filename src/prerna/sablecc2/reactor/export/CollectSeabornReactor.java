@@ -153,17 +153,20 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 
 		assignPlotter = "plotterframe = " + subDataTable; //thisFrame.getName();
 		String importSeaborn = "import seaborn as sns";
+		String importMatPlot = "import matplotlib.pyplot as plt";
 		//assignPlotter = "plotterFrame = " + fileName;
-		String runPlot = "daplot = sns.relplot(" + splot + ")";
+		//String runPlot = "daplot = sns.relplot(" + splot + ")";
+		String runPlot =  splot ;
 		String seabornFile = Utility.getRandomString(6);
 		String printFile = "print(saveFile)";
 		String saveFileName = "saveFile = ROOT + '/" + seabornFile + "." + format + "'";
-		String savePlot = "daplot.savefig(saveFile)";
+		String savePlot = "plt.savefig(saveFile)";
 		String removeFrame = ""; //"del(" + fileName + ")";
-		String removeSeaborn = "del(sns)";
+		String removeSeaborn = "del(sns)"; 
+		String removeMatPlot = "del(plt)";
 		String removeSaveFile = "del(saveFile)";
 		
-		seabornFile = (String)pyt.runPyAndReturnOutput(loadDT, adjustTypes, importSeaborn, assignPlotter, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, printFile, removeSaveFile);
+		seabornFile = (String)pyt.runPyAndReturnOutput(loadDT, adjustTypes, importSeaborn, importMatPlot, assignPlotter, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, removeMatPlot, printFile, removeSaveFile);
 
 		// get the insight folder
 		String IF = insight.getInsightFolder();
