@@ -10,6 +10,7 @@ import java.util.Vector;
 
 import prerna.ds.py.PyUtils;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -63,8 +64,10 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			// as long as this is made through FE
 			// the task iterator hasn't been executed yet
 			this.task = getTask();
+			SelectQueryStruct qs = null;
 			if(this.task instanceof BasicIteratorTask) {
-				((BasicIteratorTask) this.task).getQueryStruct().setDistinct(false);
+				qs = ((BasicIteratorTask) this.task).getQueryStruct();
+				qs.setDistinct(false);
 			}
 			
 			AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
@@ -72,7 +75,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	
 			// going to do this with r datatable directly
 			//  cubed <- data.table::cube(mv, .(budget=sum(MovieBudget), revenue=mean(RevenueDomestic)), by=c('Genre', 'Studio'))
-			
 	
 			String fileName = Utility.getRandomString(6);
 			String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
@@ -182,9 +184,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					
 			// need to set the task options
 			// hopefully this is the current one I am working with
-			if(this.task.getTaskOptions() != null)
-			{
-				prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
+			if(this.task.getTaskOptions() != null) {
 				// I really hope this is only one
 				Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
 				while(panelIds.hasNext()) {
@@ -197,11 +197,10 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					task.getTaskOptions().getOptions().put("values", values);
 					// store the noun store as well for refreshing
 					task.getTaskOptions().setCollectStore(this.store);
-					this.insight.setFinalViewOptions(panelId, sqs, task.getTaskOptions());
+					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions());
 				}
 			}
 	
-			
 			return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		}
 	}
