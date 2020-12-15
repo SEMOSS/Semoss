@@ -14,7 +14,6 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.om.Insight;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -25,7 +24,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
-import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.frame.convert.ConvertReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
@@ -48,7 +46,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		organizeKeys();
 
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
-		//rJavaTranslator.startR(); 
+		rJavaTranslator.startR(); 
 		
 		String ggplotCommand = keyValue.get(keysToGet[0]) +"";
 		
@@ -57,43 +55,42 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 
 		boolean animate = false;
 		
-		for(int tokenIndex = 0;tokenIndex < comTokens.length;tokenIndex++)
-		{
+		for(int tokenIndex = 0;tokenIndex < comTokens.length;tokenIndex++) {
 			String command = comTokens[tokenIndex];
 			String nextCommand = null;
 			if(tokenIndex + 1 < comTokens.length)
 				nextCommand = comTokens[tokenIndex + 1];
-			if(!command.contains("animate"))
-			{
+			if(!command.contains("animate")) {
 				newCommand.append(command);
 				if(nextCommand != null && !nextCommand.contains("animate"))
 					newCommand.append(" + ");
-			}
-			else
+			} else {
 				animate = true;
+			}
 		}
 		
 		ggplotCommand = newCommand.toString();
 		String format = "jpeg";
-		if(animate)
+		if(animate) {
 			format = "gif";
+		}
 		
-		if(keyValue.containsKey(keysToGet[1]))
+		if(keyValue.containsKey(keysToGet[1])) {
 			format = keyValue.get(keysToGet[1]);
-		
+		}
 		this.task = getTask();
 		
 		// I neeed to get the basic iterator and then get types from there
-		
 		// need to do a check to see if the frame is in R if not convert to R
-		ITableDataFrame thisFrame = insight.getCurFrame();
+		SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
+		ITableDataFrame thisFrame = qs.getFrame();
+//		ITableDataFrame thisFrame = insight.getCurFrame();
 		String type = FrameFactory.getFrameType(thisFrame);
 		
 		// need to also check if it is already there
 		// obviously the issue of synchronization comes but for now
 		
-		if(!type.equalsIgnoreCase("R") && !insight.getVarStore().containsKey("R_SYNCHRONIZED"))
-		{
+		if(!type.equalsIgnoreCase("R") && !insight.getVarStore().containsKey("R_SYNCHRONIZED")) {
 			// move this to R
 			ConvertReactor cr = new ConvertReactor();
 			GenRowStruct grs = new GenRowStruct();
@@ -109,56 +106,35 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 			cr.setInsight(this.insight);
 			cr.execute();
 			
-			insight.getVarStore().put("R_SYNCHRONIZED", new NounMetadata(true, PixelDataType.BOOLEAN));
-			
-			// need replace to the frame back
-			insight.getVarStore().put(Insight.CUR_FRAME_KEY, new NounMetadata(thisFrame, PixelDataType.FRAME));
-
-			/*
-			ITableDataFrame newFrame = null;
-			try {
-				newFrame = FrameFactory.getFrame(this.insight, "R", frame.get);
-			} catch (Exception e) {
-				throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
-			}
-			// insert the data for the new frame
-			IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
-			try {
-				importer.insertData();
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new SemossPixelException(e.getMessage());
-			}
-			*/
-
+			// we shouldn't be auto doing this
+			// use case is i have a python frame and i want to paint a ggplot
+//			insight.getVarStore().put("R_SYNCHRONIZED", new NounMetadata(true, PixelDataType.BOOLEAN));
+//			// need replace to the frame back
+//			insight.getVarStore().put(Insight.CUR_FRAME_KEY, new NounMetadata(thisFrame, PixelDataType.FRAME));
 		}
 		
 		// I can avoid all this to make a selector
 		// use the task to make the selector
-		SelectQueryStruct qs = ((BasicIteratorTask)task).getQueryStruct();
 		qs.getRelations().clear();
-
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, thisFrame.getMetaData());
 		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(thisFrame.getName());
 		interp.setColDataTypes(thisFrame.getMetaData().getHeaderToTypeMap());
-//		interp.setAdditionalTypes(thisFrame.getMetaData().getHeaderToAdtlTypeMap());
 		interp.setLogger(getLogger(this.getClass().getName()));
 
 		String subDataTable = interp.composeQuery();
-
 		
 		// run the ggplot with this frame as the data
 		// we will refer to it as the plotterframe
 		//StringBuilder ggplotter = new StringBuilder("plotterframe <- " + fileName + ";");
 		StringBuilder ggplotter = new StringBuilder("plotterframe <- " + subDataTable + ";");
 
-		
 		ggplotter = ggplotter.append("{library(\"ggplot2\");"); // library(\"RCurl\");");
-		if(animate)
+		if(animate) {
 			ggplotter.append("library(\"gganimate\");");
-
+		}
+		
 		// run the ggplot with this frame as the data
 		// we will refer to it as the plotterframe
 		//ggplotter.append("plotterframe <- " + fileName + ";");
@@ -173,15 +149,13 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 
 		ggplotter.append(ggsaveFile + " <- " + "paste(ROOT,\"/" + ggsaveFile + "." +format +"\", sep=\"\"); ");
 
-		if(!animate)
+		if(!animate) {
 			ggplotter.append("ggsave(" + ggsaveFile + ");");
-		else
+		} else {
 			ggplotter.append("anim_save(" + ggsaveFile + ", " + plotString + ");");
-
+		}
 		ggplotter.append("}");
 
-		
-		
 		// run the ggplotter command
 		rJavaTranslator.runRAndReturnOutput(ggplotter.toString());
 
@@ -195,15 +169,14 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		System.out.println(dataURI);
 		*/
 		String ggremove = "rm(" + ggsaveFile + ", txt);detach(\"package:ggplot2\", unload=FALSE);"; //detach(\"package:RCurl\", unload=FALSE)";
-		if(animate)
+		if(animate) {
 			ggremove = ggremove + "detach(\"package:gganimate\", unload=FALSE);";
-
+		}
 		// remove the variable
 		rJavaTranslator.runRAndReturnOutput(ggsaveFile);
 
 		// remove the csv
 		//new File(outputFile).delete();
-
 		// Need to figure out if I am trying to delete the image and URI encode it at some point.. 
 
 		ConstantDataTask cdt = new ConstantDataTask();
@@ -228,8 +201,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		retFile = retFile.split(" ")[1].replace("\"","").replace("$IF", IF);
 
 		StringWriter sw = new StringWriter();
-		try
-		{
+		try {
 			// read the file and populate it
 			byte [] bytes = FileUtils.readFileToByteArray(new File(retFile));
 			String encodedString = Base64.getEncoder().encodeToString(bytes);
@@ -237,13 +209,13 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 			mimeType = Files.probeContentType(new File(retFile).toPath());
 			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
-		if(animate)
+		if(animate) {
 			ggplotCommand = ggplotCommand + " + animate";
-
+		}
+		
 		ggplotCommand = ggplotCommand.replaceAll("\"", "\\\\\"");
 		// remove the variable
 		rJavaTranslator.runRAndReturnOutput(ggremove);
@@ -272,37 +244,6 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		if(this.task.isOptimized()) {
 			this.task.optimizeQuery(this.limit);
 		}
-	}
-	
-	private TaskOptions genOrnamentTaskOptions() {
-		if(this.subAdditionalReturn != null && this.subAdditionalReturn.size() == 1) {
-			NounMetadata noun = this.subAdditionalReturn.get(0);
-			if(noun.getNounType() == PixelDataType.ORNAMENT_MAP) {
-				// we will use this map as task options
-				TaskOptions options = new TaskOptions((Map<String, Object>) noun.getValue());
-				options.setOrnament(true);
-				return options;
-			}
-		}
-		return null;
-	}
-	
-	//returns how much do we need to collect
-	private int getTotalToCollect() {
-		// try the key
-		GenRowStruct numGrs = store.getNoun(keysToGet[1]);
-		if(numGrs != null && !numGrs.isEmpty()) {
-			return ((Number) numGrs.get(0)).intValue();
-		}
-		
-		// try the cur row
-		List<Object> allNumericInputs = this.curRow.getAllNumericColumns();
-		if(allNumericInputs != null && !allNumericInputs.isEmpty()) {
-			return ((Number) allNumericInputs.get(0)).intValue();
-		}
-		
-		// default to 500
-		return 500;
 	}
 	
 	@Override
