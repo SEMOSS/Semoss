@@ -23,7 +23,6 @@ public class QueryAllReactor extends AbstractQueryStructReactor {
 //			}
 			this.qs.setQueryAll(true);
 			this.qs.merge(frameQs);
-			this.qs.setImplicitFilters(frame.getFrameFilters());
 		}
 		return this.qs;
 	}
