@@ -564,15 +564,14 @@ public class PyTranslator
 	}
 
 	// this becomes an issue on windows where it only consumes specific encoding
-	public String getCurEncoding()
-	{
-		if(curEncoding == null)
+	public String getCurEncoding() {
+		if(curEncoding == null) {
 			curEncoding = runPyAndReturnOutput("print(sys.stdout.encoding)");
+		}
 		return curEncoding;
 	}
 	
-	public static void main(String [] args)
-	{
+	public static void main(String [] args) {
 		DIHelper helper = DIHelper.getInstance();
 		Properties prop = new Properties();
 		try {
