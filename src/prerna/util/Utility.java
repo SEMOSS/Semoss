@@ -154,7 +154,6 @@ public class Utility {
 	private static final Logger logger = LogManager.getLogger(prerna.util.Utility.class);
 
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
-	private static final String STACKTRACE = "StackTrace: ";
 
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
@@ -849,7 +848,7 @@ public class Utility {
 				}
 			}
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} finally {
 			// close the readers
 			try {
@@ -857,7 +856,7 @@ public class Utility {
 					reader.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
+				logger.error(Constants.STACKTRACE, ioe);
 			}
 
 			try {
@@ -865,7 +864,7 @@ public class Utility {
 					fileOut.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
+				logger.error(Constants.STACKTRACE, ioe);
 			}
 		}
 	}
@@ -920,7 +919,7 @@ public class Utility {
 				}
 			}
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} finally {
 			// close the readers
 			try {
@@ -928,7 +927,7 @@ public class Utility {
 					reader.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
+				logger.error(Constants.STACKTRACE, ioe);
 			}
 
 			try {
@@ -936,7 +935,7 @@ public class Utility {
 					fileOut.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
+				logger.error(Constants.STACKTRACE, ioe);
 			}
 		}
 	}
@@ -1050,14 +1049,14 @@ public class Utility {
 			wb.write(newExcelFile);
 			newExcelFile.flush();
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} finally {
 			try {
 				if (newExcelFile != null) {
 					newExcelFile.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
+				logger.error(Constants.STACKTRACE, ioe);
 			}
 		}
 	}
@@ -1136,17 +1135,17 @@ public class Utility {
 					output = output + data;
 			}
 		} catch (RuntimeException ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} catch (NoSuchAlgorithmException nsae) {
-			logger.error(STACKTRACE, nsae);
+			logger.error(Constants.STACKTRACE, nsae);
 		} catch (KeyStoreException kse) {
-			logger.error(STACKTRACE, kse);
+			logger.error(Constants.STACKTRACE, kse);
 		} catch (URISyntaxException use) {
-			logger.error(STACKTRACE, use);
+			logger.error(Constants.STACKTRACE, use);
 		} catch (KeyManagementException kme) {
-			logger.error(STACKTRACE, kme);
+			logger.error(Constants.STACKTRACE, kme);
 		} finally {
 			try {
 				if (inputStream != null)
@@ -1205,17 +1204,17 @@ public class Utility {
 			return entity.getContent();
 
 		} catch (RuntimeException ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} catch (NoSuchAlgorithmException nsae) {
-			logger.error(STACKTRACE, nsae);
+			logger.error(Constants.STACKTRACE, nsae);
 		} catch (KeyStoreException kse) {
-			logger.error(STACKTRACE, kse);
+			logger.error(Constants.STACKTRACE, kse);
 		} catch (URISyntaxException use) {
-			logger.error(STACKTRACE, use);
+			logger.error(Constants.STACKTRACE, use);
 		} catch (KeyManagementException kme) {
-			logger.error(STACKTRACE, kme);
+			logger.error(Constants.STACKTRACE, kme);
 		}
 		return null;
 	}
@@ -1343,7 +1342,7 @@ public class Utility {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrap != null) {
 				wrap.cleanUp();
@@ -1383,7 +1382,7 @@ public class Utility {
 				retArray.add(valArray);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrap != null) {
 				wrap.cleanUp();
@@ -1541,25 +1540,25 @@ public class Utility {
 			logger.debug("Dataframe name is " + className);
 			obj = Class.forName(className).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException cnfe) {
-			logger.error(STACKTRACE, cnfe);
+			logger.error(Constants.STACKTRACE, cnfe);
 			logger.fatal("No such class: " + className);
 		} catch (InstantiationException ie) {
-			logger.error(STACKTRACE, ie);
+			logger.error(Constants.STACKTRACE, ie);
 			logger.fatal("Failed instantiation: " + className);
 		} catch (IllegalAccessException iae) {
-			logger.error(STACKTRACE, iae);
+			logger.error(Constants.STACKTRACE, iae);
 			logger.fatal("Illegal Access: " + className);
 		} catch (IllegalArgumentException iare) {
-			logger.error(STACKTRACE, iare);
+			logger.error(Constants.STACKTRACE, iare);
 			logger.fatal("Illegal argument: " + className);
 		} catch (InvocationTargetException ite) {
-			logger.error(STACKTRACE, ite);
+			logger.error(Constants.STACKTRACE, ite);
 			logger.fatal("Invocation exception: " + className);
 		} catch (NoSuchMethodException nsme) {
-			logger.error(STACKTRACE, nsme);
+			logger.error(Constants.STACKTRACE, nsme);
 			logger.fatal("No constructor: " + className);
 		} catch (SecurityException se) {
-			logger.error(STACKTRACE, se);
+			logger.error(Constants.STACKTRACE, se);
 			logger.fatal("Security exception: " + className);
 		}
 		return obj;
@@ -1813,7 +1812,7 @@ public class Utility {
 		try {
 			outDate = outdate_formatter.parse(output_date);
 		} catch (ParseException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return outDate;
@@ -1826,7 +1825,7 @@ public class Utility {
 		try {
 			mydate = sdf.parse(input);
 		} catch (ParseException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return mydate;
 	}
@@ -1843,7 +1842,7 @@ public class Utility {
 		try {
 			outDate = outdate_formatter.parse(output_date);
 		} catch (ParseException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return outDate;
@@ -2348,13 +2347,13 @@ public class Utility {
 				SecurityUpdateUtils.addApp(engineId);
 			}
 		} catch (InstantiationException ie) {
-			logger.error(STACKTRACE, ie);
+			logger.error(Constants.STACKTRACE, ie);
 		} catch (IllegalAccessException iae) {
-			logger.error(STACKTRACE, iae);
+			logger.error(Constants.STACKTRACE, iae);
 		} catch (ClassNotFoundException cnfe) {
-			logger.error(STACKTRACE, cnfe);
+			logger.error(Constants.STACKTRACE, cnfe);
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return engine;
 	}
@@ -2543,7 +2542,7 @@ public class Utility {
 					try {
 						CloudClient.getClient().pullApp(engineId);
 					} catch (IOException | InterruptedException e) {
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 						return null;
 					}
 				}
@@ -2699,7 +2698,7 @@ public class Utility {
 				// do nothing
 				logger.info("Port " + lowPort + " Failed. " + ex.getMessage());
 				found = false;
-//				logger.error(STACKTRACE, ex);
+//				logger.error(Constants.STACKTRACE, ex);
 			}
 		}
 
@@ -2879,7 +2878,7 @@ public class Utility {
 		try {
 			f.createNewFile();
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		}
 
 		FileOutputStream fos = null;
@@ -2955,6 +2954,22 @@ public class Utility {
 				}
 				// write row to file
 				bufferedWriter.write(builder.append("\n").toString());
+			} else {
+				// we have no rows... can we at least export an empty file with headers?
+				if(it instanceof IRawSelectWrapper) {
+					i = 0;
+					headers = ((IRawSelectWrapper) it).getHeaders();
+					size = headers.length;
+					builder = new StringBuilder();
+					for (; i < size; i++) {
+						builder.append("\"").append(headers[i]).append("\"");
+						if ((i + 1) != size) {
+							builder.append(seperator);
+						}
+					}
+					// write the header to the file
+					bufferedWriter.write(builder.append("\n").toString());
+				}
 			}
 
 			// now loop through all the data
@@ -2990,28 +3005,28 @@ public class Utility {
 			}
 
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} finally {
 			try {
 				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
+				logger.error(Constants.STACKTRACE, ioe);
 			}
 			try {
 				if (osw != null) {
 					osw.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
+				logger.error(Constants.STACKTRACE, ioe);
 			}
 			try {
 				if (fos != null) {
 					fos.close();
 				}
 			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
+				logger.error(Constants.STACKTRACE, ioe);
 			}
 		}
 
@@ -3026,7 +3041,7 @@ public class Utility {
 			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
 					.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
 		} catch (UnsupportedEncodingException uee) {
-			logger.error(STACKTRACE, uee);
+			logger.error(Constants.STACKTRACE, uee);
 		}
 		return s;
 	}
@@ -3037,7 +3052,7 @@ public class Utility {
 					.replaceAll("\\(", "%28").replaceAll("\\)", "%29").replace("~", "%7E");
 			s = URLDecoder.decode(newS, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return s;
 	}
@@ -3133,13 +3148,13 @@ public class Utility {
 				fis = new FileInputStream(Utility.normalizePath(fileName));
 				retProp.load(fis);
 			} catch (IOException ioe) {
-				logger.error(STACKTRACE, ioe);
+				logger.error(Constants.STACKTRACE, ioe);
 			} finally {
 				if (fis != null) {
 					try {
 						fis.close();
 					} catch (IOException ioe) {
-						logger.error(STACKTRACE, ioe);
+						logger.error(Constants.STACKTRACE, ioe);
 					}
 				}
 			}
@@ -3177,9 +3192,9 @@ public class Utility {
 			out.close();
 			in.close();
 		} catch (MalformedURLException mue) {
-			logger.error(STACKTRACE, mue);
+			logger.error(Constants.STACKTRACE, mue);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		}
 	}
 
@@ -3260,9 +3275,9 @@ public class Utility {
 								thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
 
 						} catch (NotFoundException nfe) {
-							logger.error(STACKTRACE, nfe);
+							logger.error(Constants.STACKTRACE, nfe);
 						} catch (CannotCompileException cce) {
-							logger.error(STACKTRACE, cce);
+							logger.error(Constants.STACKTRACE, cce);
 						}
 
 						// once the new instance has been done.. it has been injected into heap.. after
@@ -3273,7 +3288,7 @@ public class Utility {
 				}
 			}
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		}
 
 		return thisMap;
@@ -3344,7 +3359,7 @@ public class Utility {
 				}
 			}
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		}
 
 		return thisMap;
@@ -3374,7 +3389,7 @@ public class Utility {
 			}
 			envClassPath = "\"" + retClassPath.toString() + "\"";
 		} catch (ClassNotFoundException cnfe) {
-			logger.error(STACKTRACE, cnfe);
+			logger.error(Constants.STACKTRACE, cnfe);
 		}
 
 		return envClassPath;
@@ -3451,7 +3466,7 @@ public class Utility {
 
 			envClassPath = new StringBuffer("\"" + cp.substring(0, cp.length() - 1) + "\"");
 		} catch (ClassNotFoundException cnfe) {
-			logger.error(STACKTRACE, cnfe);
+			logger.error(Constants.STACKTRACE, cnfe);
 		}
 
 		return envClassPath.toString();
@@ -3541,7 +3556,7 @@ public class Utility {
 				p.waitFor(3, TimeUnit.SECONDS);
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
-				logger.error(STACKTRACE, ie);
+				logger.error(Constants.STACKTRACE, ie);
 			}
 			thisProcess = p;
 
@@ -3552,7 +3567,7 @@ public class Utility {
 			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
 			// thisProcess = pb.start();
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		}
 
 		return thisProcess;
@@ -3594,9 +3609,9 @@ public class Utility {
 				p.start();
 			}
 		} catch (FileNotFoundException fnfe) {
-			logger.error(STACKTRACE, fnfe);
+			logger.error(Constants.STACKTRACE, fnfe);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		}
 
 		return commandsStarter;
@@ -3652,8 +3667,7 @@ public class Utility {
 					status = javac.compile(compiler, pw);
 					pw.close();
 				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 				status = javac.compile(compiler);
 			}

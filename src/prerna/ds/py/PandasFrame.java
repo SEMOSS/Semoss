@@ -12,7 +12,6 @@ import java.util.UUID;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
-import prerna.ds.EmptyIteratorException;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.shared.CachedIterator;
@@ -178,9 +177,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 			newFile.delete();
 		}
 		
-		if(isEmpty(tableName)) {
-			throw new EmptyIteratorException("Unable to load data into pandas frame");
-		}
+//		if(isEmpty(tableName)) {
+//			throw new EmptyIteratorException("Unable to load data into pandas frame");
+//		}
 		
 		syncHeaders();
 		// need to get a pandas frame types and then see if this is the same as 
