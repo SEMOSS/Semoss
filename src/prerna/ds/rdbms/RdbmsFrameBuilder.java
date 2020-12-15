@@ -23,17 +23,16 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
-import prerna.ds.EmptyIteratorException;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.HeadersException;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class RdbmsFrameBuilder {
 
 	private Logger logger = LogManager.getLogger(RdbmsFrameBuilder.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	protected Connection conn;
 	protected String schema;
@@ -76,7 +75,7 @@ public class RdbmsFrameBuilder {
 				runQuery(createTable);
 			}
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 			create = false;
 		}
 
@@ -87,7 +86,7 @@ public class RdbmsFrameBuilder {
 				runQuery(insert);
 			}
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		}
 	}
 	
@@ -99,15 +98,37 @@ public class RdbmsFrameBuilder {
 	 * @param typesMap
 	 */
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, String tableName, Map<String, SemossDataType> typesMap) {
+		// keep a batch size so we dont get heapspace
+		final int batchSize = 5000;
+		int count = 0;
+
+		PreparedStatement ps = null;
+		SemossDataType[] types = null;
+		String[] strTypes = null;
+		String[] headers = null;
+		
+		boolean createdTable = false;
+		if(iterator instanceof IRawSelectWrapper) {
+			IRawSelectWrapper rawWrapper = (IRawSelectWrapper) iterator;
+			headers = rawWrapper.getHeaders();
+			headers = HeadersException.getInstance().getCleanHeaders(headers);
+			// get the data types
+			types = new SemossDataType[headers.length];
+			strTypes = new String[headers.length];
+			for (int i = 0; i < types.length; i++) {
+				types[i] = typesMap.get(headers[i]);
+				strTypes[i] = types[i].toString();
+			}
+			// alter the table to have the column information if not
+			// already present
+			// this will also create a new table if the table currently
+			// doesn't exist
+			alterTableNewColumns(tableName, headers, strTypes);
+			
+			createdTable = true;
+		}
+		
 		try {
-			// keep a batch size so we dont get heapspace
-			final int batchSize = 5000;
-			int count = 0;
-
-			PreparedStatement ps = null;
-			SemossDataType[] types = null;
-			String[] strTypes = null;
-
 			// we loop through every row of the csv
 			while (iterator.hasNext()) {
 				IHeadersDataRow headerRow = iterator.next();
@@ -115,21 +136,24 @@ public class RdbmsFrameBuilder {
 
 				// need to set values on the first iteration
 				if (ps == null) {
-					String[] headers = headerRow.getHeaders();
-					headers = HeadersException.getInstance().getCleanHeaders(headers);
-					// get the data types
-					types = new SemossDataType[headers.length];
-					strTypes = new String[headers.length];
-					for (int i = 0; i < types.length; i++) {
-						types[i] = typesMap.get(headers[i]);
-						strTypes[i] = types[i].toString();
+					if(headers == null || types == null || strTypes == null) {
+						headers = headerRow.getHeaders();
+						headers = HeadersException.getInstance().getCleanHeaders(headers);
+						// get the data types
+						types = new SemossDataType[headers.length];
+						strTypes = new String[headers.length];
+						for (int i = 0; i < types.length; i++) {
+							types[i] = typesMap.get(headers[i]);
+							strTypes[i] = types[i].toString();
+						}
 					}
-					// alter the table to have the column information if not
-					// already present
-					// this will also create a new table if the table currently
-					// doesn't exist
-					alterTableNewColumns(tableName, headers, strTypes);
-
+					if(!createdTable) {
+						// alter the table to have the column information if not
+						// already present
+						// this will also create a new table if the table currently
+						// doesn't exist
+						alterTableNewColumns(tableName, headers, strTypes);
+					}
 					// set the PS based on the headers
 					ps = createInsertPreparedStatement(tableName, headers);
 				}
@@ -221,15 +245,16 @@ public class RdbmsFrameBuilder {
 			}
 
 			if(ps == null) {
-				throw new EmptyIteratorException("Query returned no data");
+//				throw new EmptyIteratorException("Query returned no data");
+				logger.info("No data was found to import");
+			} else {
+				// well, we are done looping through now
+				logger.info("Executing final batch .... row num = " + count);
+				ps.executeBatch(); // insert any remaining records
+				ps.close();
 			}
-			
-			// well, we are done looping through now
-			logger.info("Executing final batch .... row num = " + count);
-			ps.executeBatch(); // insert any remaining records
-			ps.close();
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -247,7 +272,7 @@ public class RdbmsFrameBuilder {
 			// create the prepared statement using the sql query defined
 			ps = this.conn.prepareStatement(sql);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return ps;
@@ -269,7 +294,7 @@ public class RdbmsFrameBuilder {
 			// create the prepared statement using the sql query defined
 			ps = this.conn.prepareStatement(sql);
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		return ps;
@@ -281,7 +306,7 @@ public class RdbmsFrameBuilder {
 		try{
 			ps = this.conn.prepareStatement(sql);
 		}catch(SQLException e){
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return ps;
 	}
@@ -354,7 +379,7 @@ public class RdbmsFrameBuilder {
 				logger.info("Finished generating SQL table");
 			}
 		} catch (Exception e1) {
-			logger.error(STACKTRACE, e1);
+			logger.error(Constants.STACKTRACE, e1);
 		}
 	}
 	
@@ -386,7 +411,7 @@ public class RdbmsFrameBuilder {
 				logger.info("Finished generating indices on SQL Table on column = " + Utility.cleanLogString(colName));
 			} catch (Exception e) {
 				logger.debug("ERROR WITH INDEX !!! " + indexSql);
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -407,7 +432,7 @@ public class RdbmsFrameBuilder {
 				logger.info("Finished generating indices on SQL Table on columns = " + StringUtils.join(colNames, ", "));
 			} catch (Exception e) {
 				logger.debug("ERROR WITH INDEX !!! " + multiColIndexName);
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -420,7 +445,7 @@ public class RdbmsFrameBuilder {
 			try {
 				runQuery(queryUtil.dropIndex(indexName, tableName));
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -433,7 +458,7 @@ public class RdbmsFrameBuilder {
 			try {
 				runQuery(queryUtil.dropIndex(indexName, tableName));
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -475,14 +500,14 @@ public class RdbmsFrameBuilder {
 			try(Statement statement = this.conn.createStatement()){
 				statement.executeUpdate(query);
 			} catch(SQLException e){
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 		} else {
 			try(PreparedStatement statement = this.conn.prepareStatement(query)){
 				statement.execute();
 			} catch(SQLException e){
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 		}
@@ -519,20 +544,20 @@ public class RdbmsFrameBuilder {
 					return false;
 				}
 			} catch (SQLException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if (rs != null) {
 					try {
 						rs.close();
 					} catch (SQLException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 				if(stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -556,20 +581,20 @@ public class RdbmsFrameBuilder {
 				return rs.getInt(1);
 			}
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(rs != null) {
 				try {
 					rs.close();
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
