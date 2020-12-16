@@ -3164,11 +3164,11 @@ public class Utility {
 	}
 	
 	/**
-	 * Determine if on the applicaiton we should cahce insights or not
+	 * Determine if on the application we should cahce insights or not
 	 * @return
 	 */
-	public static boolean getCacheInsightSettings() {
-		String cacheSetting = DIHelper.getInstance().getProperty(Constants.CACHE_SETTING);
+	public static boolean getApplicationCacheInsight() {
+		String cacheSetting = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHT_CACHEABLE);
 		if(cacheSetting == null) {
 			// default cache is true
 			return true;

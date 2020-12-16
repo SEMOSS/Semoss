@@ -13,6 +13,7 @@ import prerna.om.MosfetFile;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.AssetUtility;
 import prerna.util.MosfetSyncHelper;
+import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 
@@ -71,7 +72,7 @@ public class RDFEngineCreationHelper {
 				}
 				
 				// insight security
-				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout);
+				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, Utility.getApplicationCacheInsight(), layout);
 				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
 			}
@@ -153,7 +154,7 @@ public class RDFEngineCreationHelper {
 				}
 					
 				// insight security
-				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout); 
+				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, Utility.getApplicationCacheInsight(), layout); 
 				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
 			}
