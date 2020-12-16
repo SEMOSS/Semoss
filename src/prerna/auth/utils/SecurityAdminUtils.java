@@ -357,9 +357,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES('"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', ?, " + "TRUE, "
 				+ AccessPermission.getIdByPermission(permission) + ");";
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(insertQuery);
+		PreparedStatement ps = null;
 		try {
 			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(insertQuery);
 			// add new permission for all engines
 			List<String> appIds = SecurityQueryUtils.getEngineIds();
 			for (String appId : appIds) {
@@ -390,11 +391,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?, '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(appId) + "', "
 				+ AccessPermission.getIdByPermission(permission) + ", " + "TRUE);";
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
-		// get users with no access to app
-		List<Map<String, Object>> users;
+		PreparedStatement ps = null;
 		try {
-			users = getAppUsersNoCredentials(appId);
+			ps = securityDb.getPreparedStatement(query);
+			// get users with no access to app
+			List<Map<String, Object>> users = getAppUsersNoCredentials(appId);
 			for (Map<String, Object> userMap : users) {
 				String userId = (String) userMap.get("id");
 				ps.setString(1, userId);
@@ -404,6 +405,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured adding user permissions for this app");
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 	
@@ -424,9 +433,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				+ RdbmsQueryBuilder.escapeForSQLStatement(appId) + "', ?, "
 				+ AccessPermission.getIdByPermission(permission) + ");";
 
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(insertQuery);
+		PreparedStatement ps = null;
 		try {
 			securityDb.insertData(query);
+
+			ps = securityDb.getPreparedStatement(insertQuery);
 			// add new permission for all insights
 			List<String> insightIds = getAllInsights(appId);
 			for (String x : insightIds) {
@@ -639,8 +650,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
 				+ AccessPermission.getIdByPermission(permission) + ");";
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
+		PreparedStatement ps = null;
 		try {
+			ps = securityDb.getPreparedStatement(query);
 			if (engineId != null && permission != null) {
 				List<Map<String, Object>> users = getInsightUsersNoCredentials(engineId, insightId);
 				for (Map<String, Object> userMap : users) {
@@ -820,9 +832,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES(?, '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(appId) + "', "
 				+ AccessPermission.getIdByPermission(permission) + ", " + "TRUE);";
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
-		// get users with no access to app
+		PreparedStatement ps = null;
 		try {
+			ps = securityDb.getPreparedStatement(query);
 			if (appId != null && permission != null) {
 				List<Map<String, Object>> users = getAppUsersNoCredentials(appId);
 				for (Map<String, Object> userMap : users) {
@@ -834,8 +846,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				// update existing user permissions
 				updateAppUserPermissions(appId, permission);
 			}
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+		} catch (SQLException e1) {
+			logger.error(Constants.STACKTRACE, e1);
 			throw new IllegalArgumentException("An error occured adding user permissions for this app");
 		} finally {
 			if(ps != null) {
@@ -875,8 +887,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
 				+ AccessPermission.getIdByPermission(permission) + ");";
 
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(insertQuery);
+		PreparedStatement ps = null;
 		try {
+			ps = securityDb.getPreparedStatement(insertQuery);
 			for (Map<String, Object> userMap : users) {
 				String userId = (String) userMap.get("id");
 				ps.setString(1, userId);
@@ -895,9 +908,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-	
 	}
-
-
 
 }
