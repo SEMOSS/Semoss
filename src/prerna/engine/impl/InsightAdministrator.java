@@ -16,12 +16,14 @@ import com.google.gson.Gson;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class InsightAdministrator {
 
-	private static final Logger LOGGER = LogManager.getLogger(InsightAdministrator.class.getName());
+	private static final Logger logger = LogManager.getLogger(InsightAdministrator.class);
+	
 	private static final String TABLE_NAME = "QUESTION_ID";
 	private static final String QUESTION_ID_COL = "ID";
 	private static final String QUESTION_NAME_COL = "QUESTION_NAME";
@@ -71,10 +73,10 @@ public class InsightAdministrator {
 	 * @param pixelRecipeToSave
 	 */
 	public String addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden, boolean cacheable) {
-		LOGGER.info("Adding new question with insight id :::: " + Utility.cleanLogString(insightId));
-		LOGGER.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
-		LOGGER.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
-		LOGGER.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
+		logger.info("Adding new question with insight id :::: " + Utility.cleanLogString(insightId));
+		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
+		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
+		logger.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
 		
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
@@ -99,7 +101,7 @@ public class InsightAdministrator {
 			this.insightEngine.insertData(insertQuery.toString());
 			this.insightEngine.commit();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// return the new rdbms id
@@ -128,7 +130,7 @@ public class InsightAdministrator {
 	 * @param pixelRecipeToSave
 	 */
 	public String addInsight(String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, boolean cacheable) {
-		LOGGER.info("Adding new question with insight id :::: " + insightId);
+		logger.info("Adding new question with insight id :::: " + insightId);
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
 		
@@ -152,7 +154,7 @@ public class InsightAdministrator {
 			this.insightEngine.insertData(insertQuery.toString());
 			this.insightEngine.commit();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// return the new rdbms id
@@ -172,15 +174,16 @@ public class InsightAdministrator {
 			this.insightEngine.insertData(query);
 			this.insightEngine.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		if(tags != null && !tags.isEmpty()) {
 			// now we do the new insert with the order of the tags
 			query = this.queryUtil.createInsertPreparedStatementString("INSIGHTMETA", 
 					new String[]{"INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
-			PreparedStatement ps = this.insightEngine.bulkInsertPreparedStatement(query);
+			PreparedStatement ps = null;
 			try {
+				ps = this.insightEngine.getPreparedStatement(query);
 				for(int i = 0; i < tags.size(); i++) {
 					String tag = tags.get(i);
 					ps.setString(1, insightId);
@@ -192,13 +195,13 @@ public class InsightAdministrator {
 				
 				ps.executeBatch();
 			} catch(Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(ps != null) {
 					try {
 						ps.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -218,15 +221,16 @@ public class InsightAdministrator {
 			this.insightEngine.insertData(query);
 			this.insightEngine.commit();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		if(tags != null && tags.length > 0) {
 			// now we do the new insert with the order of the tags
 			query = this.queryUtil.createInsertPreparedStatementString("INSIGHTMETA", 
 					new String[]{"INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
-			PreparedStatement ps = this.insightEngine.bulkInsertPreparedStatement(query);
+			PreparedStatement ps = null;
 			try {
+				ps = this.insightEngine.getPreparedStatement(query);
 				for(int i = 0; i < tags.length; i++) {
 					String tag = tags[i];
 					ps.setString(1, insightId);
@@ -238,13 +242,13 @@ public class InsightAdministrator {
 				
 				ps.executeBatch();
 			} catch(Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(ps != null) {
 					try {
 						ps.close();
 					} catch (SQLException e) {
-						e.printStackTrace();
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -277,13 +281,13 @@ public class InsightAdministrator {
 				this.insightEngine.insertData(query);
 			}
 		} catch(SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -301,10 +305,10 @@ public class InsightAdministrator {
 	}
 	
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
-		LOGGER.info("Modifying insight id :::: " + Utility.cleanLogString(existingRdbmsId));
-		LOGGER.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
-		LOGGER.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
-		LOGGER.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
+		logger.info("Modifying insight id :::: " + Utility.cleanLogString(existingRdbmsId));
+		logger.info("Adding new question with name :::: " + Utility.cleanLogString(insightName));
+		logger.info("Adding new question with layout :::: " + Utility.cleanLogString(layout));
+		logger.info("Adding new question with recipe :::: " + Utility.cleanLogString(Arrays.toString(pixelRecipeToSave)));
 		
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
@@ -326,12 +330,12 @@ public class InsightAdministrator {
 			this.insightEngine.insertData(updateQuery.toString());
 			this.insightEngine.commit();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden) {
-		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
+		logger.info("Modifying insight id :::: " + existingRdbmsId);
 		
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
@@ -353,13 +357,13 @@ public class InsightAdministrator {
 			this.insightEngine.insertData(updateQuery.toString());
 			this.insightEngine.commit();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
 	public void updateInsightName(String existingRdbmsId, String insightName) {
-		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
-		LOGGER.info("Adding new question with name :::: " + insightName);
+		logger.info("Modifying insight id :::: " + existingRdbmsId);
+		logger.info("Adding new question with name :::: " + insightName);
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
 				.append(QUESTION_NAME_COL).append(" = '").append(insightName)
@@ -369,14 +373,14 @@ public class InsightAdministrator {
 		try {
 			this.insightEngine.insertData(updateQuery.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		this.insightEngine.commit();
 	}
 	
 
 	public void updateInsightCache(String existingRdbmsId, boolean isCacheable) {
-		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
+		logger.info("Modifying insight id :::: " + existingRdbmsId);
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
 				.append(CACHEABLE_COL).append(" = ").append(isCacheable)
 				.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
@@ -385,13 +389,13 @@ public class InsightAdministrator {
 		try {
 			this.insightEngine.insertData(updateQuery.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		this.insightEngine.commit();
 	}
 	
 	public void updateInsightGlobal(String existingRdbmsId, boolean isHidden) {
-		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
+		logger.info("Modifying insight id :::: " + existingRdbmsId);
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
 				.append(HIDDEN_INSIGHT_COL).append(" = ").append(isHidden)
 				.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
@@ -400,7 +404,7 @@ public class InsightAdministrator {
 		try {
 			this.insightEngine.insertData(updateQuery.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		this.insightEngine.commit();
 	}
@@ -412,19 +416,19 @@ public class InsightAdministrator {
 	public void dropInsight(String... insightIDs) {		
 		String idsString = createString(insightIDs);
 		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
-		LOGGER.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
+		logger.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
 		try {
 			insightEngine.removeData(deleteQuery);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		deleteQuery = "DELETE FROM INSIGHTMETA WHERE INSIGHTID IN " + idsString;
-		LOGGER.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
+		logger.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
 		try {
 			insightEngine.removeData(deleteQuery);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	
@@ -436,7 +440,7 @@ public class InsightAdministrator {
 	public void dropInsight(Collection<String> insightIDs) throws Exception {		
 		String idsString = createString(insightIDs);
 		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
-		LOGGER.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
+		logger.info("Running drop query :::: " + Utility.cleanLogString(deleteQuery));
 		insightEngine.removeData(deleteQuery);
 	}
 	

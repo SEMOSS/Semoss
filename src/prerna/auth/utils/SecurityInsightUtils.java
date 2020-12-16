@@ -480,16 +480,32 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param cacheable
 	 * @param layout
 	 */
-	public static void addInsight(String engineId, String insightId, String insightName, boolean global, boolean cacheable, String layout) {
-		LocalDateTime now = LocalDateTime.now();
-		String nowString = java.sql.Timestamp.valueOf(now).toString();
-		String insightQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE) "
-				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + RdbmsQueryBuilder.escapeForSQLStatement(insightName) + "', " 
-				+ global + " ," + 0 + " ,'" + nowString + "' ,'" + nowString + "','" + layout + "', " + cacheable + ")";
+	public static void addInsight(String engineId, String insightId, String insightName, boolean global, boolean cacheable, String layout) {//, List<String> recipe) {
+		String insertQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, "
+				+ "EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, RECIPE) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?)";
+		
+		insertQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, "
+				+ "EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE) "
+				+ "VALUES (?,?,?,?,?,?,?,?)";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(insightQuery);
+			ps = securityDb.getPreparedStatement(insertQuery);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, insightName);
+			ps.setBoolean(parameterIndex++, global);
+			ps.setInt(parameterIndex++, 0);
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setString(parameterIndex++, layout);
+			ps.setBoolean(parameterIndex++, cacheable);
+//			Clob clob = securityDb.createClob();
+//			clob.setString(1, recipeGson.toJson(recipe));
+//			ps.setClob(parameterIndex, clob);
+			ps.execute();
 			securityDb.commit();
-		} catch (SQLException e) {
+		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
@@ -639,8 +655,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// now we do the new insert with the order of the tags
 		query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA", 
 				new String[]{"ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
+		PreparedStatement ps = null;
 		try {
+			ps = securityDb.getPreparedStatement(query);
 			for(int i = 0; i < tags.size(); i++) {
 				String tag = tags.get(i);
 				ps.setString(1, engineId);
@@ -685,8 +702,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// now we do the new insert with the order of the tags
 		query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA", 
 				new String[]{"ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
+		PreparedStatement ps = null;
 		try {
+			ps = securityDb.getPreparedStatement(query);
 			for(int i = 0; i < tags.length; i++) {
 				String tag = tags[i];
 				ps.setString(1, engineId);
@@ -1645,10 +1663,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void copyInsightPermissions(String sourceEngineId, String sourceInsightId, String targetEngineId, String targetInsightId) throws Exception {
 		String insertTargetAppInsightPermissionSql = "INSERT INTO USERINSIGHTPERMISSION (ENGINEID, INSIGHTID, USERID, PERMISSION) VALUES (?, ?, ?, ?)";
-		PreparedStatement insertTargetAppInsightPermissionStatement = securityDb.bulkInsertPreparedStatement(insertTargetAppInsightPermissionSql);
-		if(insertTargetAppInsightPermissionStatement == null) {
-			throw new IllegalArgumentException("An error occured trying to generate the appropriate query to copy the data");
-		}
+		PreparedStatement insertTargetAppInsightPermissionStatement = securityDb.getPreparedStatement(insertTargetAppInsightPermissionSql);
 		
 		// grab the permissions, filtered on the source engine id and source insight id
 		SelectQueryStruct qs = new SelectQueryStruct();
