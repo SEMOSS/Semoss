@@ -127,18 +127,18 @@ public class PandasImporter extends AbstractImporter {
 			}
 		}
 		
-		if(this.dataframe.isEmpty(tempTableName)) {
+//		if(this.dataframe.isEmpty(tempTableName)) {
 //			if(joins.get(0).getJoinType().equals("inner.join")) {
-				// clear the fake table
-				this.dataframe.runScript("del " + tempTableName);
-				throw new IllegalArgumentException("Iterator returned no results. Joining this data would result in no data.");
+//				// clear the fake table
+//				this.dataframe.runScript("del " + tempTableName);
+//				throw new IllegalArgumentException("Iterator returned no results. Joining this data would result in no data.");
 //			}
 			// TODO: figure out this annoying "not in index" error that i get here
 //			// we are merging w/ no data
 //			// just add an empty column with the column name
 //			String alterTable = PandasSyntaxHelper.alterMissingColumns(this.dataframe.getTableName(), this.dataframe.getColumnHeaders(), newColumnsToTypeMap, joins, new HashMap<String, String>());
 //			this.dataframe.runScript(alterTable);
-		} else {
+//		} else {
 		
 			//define parameters that we will pass into mergeSyntax method to get the R command
 			String returnTable = this.dataframe.getName();
@@ -169,7 +169,7 @@ public class PandasImporter extends AbstractImporter {
 			this.dataframe.merge(returnTable, leftTableName, rightTableName, joinType, joinCols);
 			// update the table in the wrapper
 			this.dataframe.runScript(this.dataframe.getWrapperName() +  ".cache['data'] = " + returnTable);
-		}
+//		}
 		
 		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
 		return this.dataframe;
