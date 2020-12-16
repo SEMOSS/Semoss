@@ -525,6 +525,10 @@ public class RFrameBuilder {
 		}
 	}
 	
+	public void removeAllColumnIndex() {
+		this.columnIndexSet.clear();
+	}
+	
 	public void dropTable() {
 		evalR("rm(" + this.dataTableName + ")");
 		evalR("gc()");
