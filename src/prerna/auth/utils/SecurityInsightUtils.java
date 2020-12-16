@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.sql.Clob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -479,15 +480,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param global
 	 * @param cacheable
 	 * @param layout
+	 * @param recipe
 	 */
-	public static void addInsight(String engineId, String insightId, String insightName, boolean global, boolean cacheable, String layout) {//, List<String> recipe) {
-		String insertQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, "
-				+ "EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, RECIPE) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?)";
+	public static void addInsight(String engineId, String insightId, String insightName, boolean global, boolean cacheable, String layout, List<String> recipe) {
+		String insertQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, "
+				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, RECIPE) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
 		
-		insertQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, "
-				+ "EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE) "
-				+ "VALUES (?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQuery);
@@ -497,12 +496,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, insightName);
 			ps.setBoolean(parameterIndex++, global);
 			ps.setInt(parameterIndex++, 0);
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			ps.setTimestamp(parameterIndex++, timestamp);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
-//			Clob clob = securityDb.createClob();
-//			clob.setString(1, recipeGson.toJson(recipe));
-//			ps.setClob(parameterIndex, clob);
+			Clob clob = securityDb.createClob();
+			clob.setString(1, recipeGson.toJson(recipe));
+			ps.setClob(parameterIndex++, clob);
 			ps.execute();
 			securityDb.commit();
 		} catch(SQLException e) {
@@ -544,15 +545,27 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param lastModified
 	 * @param layout
 	 */
-	public static void updateInsight(String engineId, String insightId, String insightName, boolean global, String layout) {
-		LocalDateTime now = LocalDateTime.now();
-		String nowString = java.sql.Timestamp.valueOf(now).toString();
-		String query = "UPDATE INSIGHT SET INSIGHTNAME='" + insightName + "', GLOBAL=" + global + ", LASTMODIFIEDON='" + nowString 
-				+ "', LAYOUT='" + layout + "'  WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
+	public static void updateInsight(String engineId, String insightId, String insightName, boolean global, String layout, List<String> recipe) {
+		String updateQuery = "UPDATE INSIGHT SET INSIGHTNAME=?, GLOBAL=?, LASTMODIFIEDON=?, "
+				+ "LAYOUT=?, RECIPE=? WHERE INSIGHTID = ? AND ENGINEID=?";
+
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(updateQuery);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, insightName);
+			ps.setBoolean(parameterIndex++, global);
+			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+			ps.setTimestamp(parameterIndex++, timestamp);
+			ps.setString(parameterIndex++, layout);
+			Clob clob = securityDb.createClob();
+			clob.setString(1, recipeGson.toJson(recipe));
+			ps.setClob(parameterIndex++, clob);
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
 			securityDb.commit();
-		} catch (SQLException e) {
+		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}

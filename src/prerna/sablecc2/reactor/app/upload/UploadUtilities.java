@@ -85,8 +85,11 @@ public class UploadUtilities {
 	public static final String AUDIT_MODIFICATION_VIEW_INSIGHT_NAME = "What are the modifications made to specific column(s)?";
 	public static final String AUDIT_MODIFICATION_VIEW_LAYOUT = "Bar";
 	
-	public static final  String AUDIT_TIMELINE_INSIGHT_NAME = "What are the modifications made to the specific column(s) over time?";
-	public static final  String AUDIT_TIMELINE_LAYOUT = "Line";
+	public static final String AUDIT_TIMELINE_INSIGHT_NAME = "What are the modifications made to the specific column(s) over time?";
+	public static final String AUDIT_TIMELINE_LAYOUT = "Line";
+	
+	public static final String INSIGHT_ID_KEY = "id";
+	public static final String RECIPE_ID_KEY = "recipe";
 	
 	private UploadUtilities() {
 
@@ -1380,7 +1383,7 @@ public class UploadUtilities {
 	 * @param insightEngine
 	 * @return 				String containing the new insight id
 	 */
-	public static String addExploreInstanceInsight(String appId, String appName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addExploreInstanceInsight(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
 		File exploreF = new File(exploreLoc);
@@ -1403,7 +1406,11 @@ public class UploadUtilities {
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ EXPLORE_INSIGHT_INSIGHT_NAME +" insight on"));
-				return insightId;
+				
+				Map<String, Object> retMap = new HashMap<>();
+				retMap.put(INSIGHT_ID_KEY, insightId);
+				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+				return retMap;
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -1411,7 +1418,7 @@ public class UploadUtilities {
 		return null;
 	}
 	
-	public static String addInsightUsageStats(String appId, String appName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addInsightUsageStats(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add("AddPanel(panel = [ 0 ] , sheet = [ \"0\" ] );");
@@ -1430,7 +1437,11 @@ public class UploadUtilities {
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved " + INSIGHT_USAGE_STATS_INSIGHT_NAME + " insight on"));
-			return insightId;
+
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put(INSIGHT_ID_KEY, insightId);
+			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+			return retMap;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -1443,7 +1454,7 @@ public class UploadUtilities {
 	 * @param insightEngine
 	 * @return 				String containing the new insight id
 	 */
-	public static String addGridDeltaInsight(String appId, String appName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addGridDeltaInsight(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add("AddPanel(0); Panel(0)|SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + appId + "\"}</encode>\");");
@@ -1457,10 +1468,15 @@ public class UploadUtilities {
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ GRID_DELTA_INSIGHT_NAME +" insight on"));
+			
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put(INSIGHT_ID_KEY, insightId);
+			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+			return retMap;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return insightId;
+		return null;
 	}
 	
 	/**
@@ -1469,7 +1485,7 @@ public class UploadUtilities {
 	 * @param appId
 	 * @param insightEngine
 	 */
-	public static String addAuditModificationView(String appId, String appName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addAuditModificationView(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditModificationView.json";
 		File jsonFile = new File(jsonLoc);
@@ -1492,7 +1508,11 @@ public class UploadUtilities {
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_MODIFICATION_VIEW_INSIGHT_NAME +" insight on"));
-				return insightId;
+
+				Map<String, Object> retMap = new HashMap<>();
+				retMap.put(INSIGHT_ID_KEY, insightId);
+				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+				return retMap;
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -1506,7 +1526,7 @@ public class UploadUtilities {
 	 * @param appId
 	 * @param insightEngine
 	 */
-	public static String addAuditTimelineView(String appId, String appName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addAuditTimelineView(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditTimelineView.json";
 		File jsonFile = new File(jsonLoc);
@@ -1528,7 +1548,11 @@ public class UploadUtilities {
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_TIMELINE_INSIGHT_NAME +" insight on"));
-				return insightId;
+
+				Map<String, Object> retMap = new HashMap<>();
+				retMap.put(INSIGHT_ID_KEY, insightId);
+				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+				return retMap;
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
