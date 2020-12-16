@@ -54,7 +54,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	// may be this is a good time to put this on tomcat
 
 
-	protected static final Logger logger = LogManager.getLogger(AbstractFileWatcher.class.getName());
+	protected static final Logger logger = LogManager.getLogger(AbstractFileWatcher.class);
 	
 	// processes the files with the given extension
 	protected String folderToWatch = null;
@@ -173,7 +173,17 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 							ex.printStackTrace();
 						}
 					} else {
-						logger.info("Ignoring File " + newFile);
+						String filePath = folderToWatch + "/" + newFile;
+						File file = new File(filePath);
+						if(file.exists()) {
+							if(file.isDirectory()) {
+								logger.info("File Watcher Ignoring Folder " + newFile);
+							} else {
+								logger.info("File Watcher Ignoring File " + newFile);
+							}
+						} else {
+							logger.info("Ignoring Folder/File " + newFile + " that has already been removed");
+						}
 					}
 				}
 			}

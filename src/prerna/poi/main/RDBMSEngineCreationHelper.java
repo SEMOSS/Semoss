@@ -99,7 +99,7 @@ public class RDBMSEngineCreationHelper {
 				}
 				
 				// insight security
-				SecurityInsightUtils.addInsight(rdbmsEngine.getEngineId(), insightId, insightName, false, layout);
+				SecurityInsightUtils.addInsight(rdbmsEngine.getEngineId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout);
 				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
 			}
