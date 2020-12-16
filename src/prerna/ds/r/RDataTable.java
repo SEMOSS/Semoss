@@ -266,6 +266,10 @@ public class RDataTable extends AbstractTableDataFrame {
 		String tableName = getName();
 		this.builder.addColumnIndex(tableName, columnName);
 	}
+	
+	public void removeAllColumnIndex() {
+		this.builder.removeAllColumnIndex();
+	}
 
 	@Override
 	public void removeColumn(String columnHeader) {

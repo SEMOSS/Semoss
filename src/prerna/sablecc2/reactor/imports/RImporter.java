@@ -11,7 +11,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.ds.r.RFrameBuilder;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -82,8 +81,8 @@ public class RImporter extends AbstractImporter {
 
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
-		RFrameBuilder builder = this.dataframe.getBuilder();
-		String tableName = this.dataframe.getName();
+//		RFrameBuilder builder = this.dataframe.getBuilder();
+//		String tableName = this.dataframe.getName();
 		
 		// need to ensure no names overlap
 		// otherwise we R will create a weird renaming for the column
@@ -135,11 +134,11 @@ public class RImporter extends AbstractImporter {
 //			throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
 //		}
 		// we may need to alias the headers in this new temp table
-		if(!rightTableAlias.isEmpty()) {
+//		if(!rightTableAlias.isEmpty()) {
 			for(String oldColName : rightTableAlias.keySet()) {
 				this.dataframe.executeRScript(RSyntaxHelper.alterColumnName(tempTableName, oldColName, rightTableAlias.get(oldColName)));
 			}
-		}
+//		}
 		
 //		if(builder.isEmpty(tempTableName)) {
 //			if(joins.get(0).getJoinType().equals("inner.join")) {
@@ -175,7 +174,7 @@ public class RImporter extends AbstractImporter {
 				}
 				joinColMapping.put(jSelector, jQualifier);
 				joinCols.add(joinColMapping);
-//			}
+			}
 			
 			// need to account for the data types being different for the join columns
 			updateTypesForJoin(leftTableTypes, tempTableName, newColumnsToTypeMap, joinCols);
@@ -186,13 +185,13 @@ public class RImporter extends AbstractImporter {
 			//execute r command
 			String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
 			this.dataframe.executeRScript(mergeString);
-			
+			this.dataframe.removeAllColumnIndex();
 //			System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
 //			System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
 			
 			// clean r temp table name
 			this.dataframe.executeRScript("rm("+tempTableName+")");
-		}
+//		}
 		
 		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
 		return this.dataframe;
