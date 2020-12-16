@@ -477,12 +477,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @param insightName
 	 * @param global
+	 * @param cacheable
 	 * @param layout
 	 */
-	public static void addInsight(String engineId, String insightId, String insightName, boolean global, String layout) {
-		addInsight(engineId, insightId, insightName, global, true, layout);
-	}
-	
 	public static void addInsight(String engineId, String insightId, String insightName, boolean global, boolean cacheable, String layout) {
 		LocalDateTime now = LocalDateTime.now();
 		String nowString = java.sql.Timestamp.valueOf(now).toString();
