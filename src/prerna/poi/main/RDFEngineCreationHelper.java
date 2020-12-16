@@ -72,7 +72,8 @@ public class RDFEngineCreationHelper {
 				}
 				
 				// insight security
-				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, Utility.getApplicationCacheInsight(), layout);
+				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, 
+						Utility.getApplicationCacheInsight(), layout, recipeArray);
 				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
 			}
@@ -154,7 +155,8 @@ public class RDFEngineCreationHelper {
 				}
 					
 				// insight security
-				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, Utility.getApplicationCacheInsight(), layout); 
+				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, 
+						Utility.getApplicationCacheInsight(), layout, recipeArray); 
 				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
 			}
