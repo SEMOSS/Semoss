@@ -86,7 +86,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		boolean hidden = getHidden();
 		Boolean cacheable = getUserDefinedCacheable();
 		if(cacheable == null) {
-			cacheable = true;
+			cacheable = Utility.getApplicationCacheInsight();
 		}
 		List<Map<String, Object>> params = getParams();
 		Map pipeline = getPipeline();
@@ -144,7 +144,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		if(!hidden) {
 			logger.info(stepCounter + ") Regsiter insight...");
-			registerInsightAndMetadata(engine, newRdbmsId, insightName, layout, description, tags);
+			registerInsightAndMetadata(engine, newRdbmsId, insightName, layout, cacheable, description, tags);
 			logger.info(stepCounter + ") Done...");
 		} else {
 			logger.info(stepCounter + ") Insight is hidden ... do not add to solr");
@@ -252,10 +252,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param description
 	 * @param tags
 	 */
-	private void registerInsightAndMetadata(IEngine engine, String insightIdToSave, String insightName, String layout, String description, List<String> tags) {
+	private void registerInsightAndMetadata(IEngine engine, String insightIdToSave, String insightName, String layout, boolean cacheable, String description, List<String> tags) {
 		String appId = engine.getEngineId();
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		SecurityInsightUtils.addInsight(appId, insightIdToSave, insightName, true, layout);
+		SecurityInsightUtils.addInsight(appId, insightIdToSave, insightName, true, cacheable, layout);
 		if(this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), appId, insightIdToSave);
 		}
