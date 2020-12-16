@@ -578,6 +578,16 @@ public class RSyntaxHelper {
 		return dateTimeExcelR;
 	}
 	
+	public static String alterEmptyTableColumnTypeToDateTime(String tableName, List<String> cols) {
+		//parse out the milliseconds options
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName + "[,(c('" + StringUtils.join(cols,"','") + "')) := "
+				+ "lapply(.SD, function(x) as.POSIXct(x)), "
+				+ ".SDcols = c('" + StringUtils.join(cols,"','") + "')]");
+		return builder.toString();
+	}
+	
+	
 	/**
 	 * Get specific columns from a frame
 	 * @param resultingFrame

@@ -437,12 +437,22 @@ public class RFrameBuilder {
 			}
 		}
 		// loop through time stamps dates
-		for(String format : dateTimeMap.keySet()) {
-			List<String> dateTimeHeaders = dateTimeMap.get(format);
-			dateTimeHeaders.removeAll(excelDTNumHeaders);
-			if (!dateTimeHeaders.isEmpty()){
-				String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
-				this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDateTime(tableName, rFormat, dateTimeHeaders) );
+		if(isEmpty(tableName)) {
+			for(String format : dateTimeMap.keySet()) {
+				List<String> dateTimeHeaders = dateTimeMap.get(format);
+				dateTimeHeaders.removeAll(excelDTNumHeaders);
+				if (!dateTimeHeaders.isEmpty()){
+					this.rJavaTranslator.runR( RSyntaxHelper.alterEmptyTableColumnTypeToDateTime(tableName, dateTimeHeaders) );
+				}
+			}
+		} else {
+			for(String format : dateTimeMap.keySet()) {
+				List<String> dateTimeHeaders = dateTimeMap.get(format);
+				dateTimeHeaders.removeAll(excelDTNumHeaders);
+				if (!dateTimeHeaders.isEmpty()){
+					String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
+					this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDateTime(tableName, rFormat, dateTimeHeaders) );
+				}
 			}
 		}
 	}
