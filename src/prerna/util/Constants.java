@@ -520,7 +520,7 @@ public class Constants {
 	public static final String KEYWORDS_SUFFIX = "_KEYWORDS";
 
 	// cache enabled by default
-	public static final String CACHE_SETTING = "CACHE_SETTING";
+	public static final String DEFAULT_INSIGHT_CACHEABLE = "DEFAULT_INSIGHT_CACHEABLE";
 	
 	// all frame limit
 	public static final String FRAME_SIZE_LIMIT = "FRAME_SIZE_LIMIT";

@@ -55,7 +55,6 @@ import prerna.theme.AbstractThemeUtils;
 public class SMSSWebWatcher extends AbstractFileWatcher {
 
 	private static List<String> ignoreSmssList = new Vector<>();
-	private static final String STACKTRACE = "StackTrace: ";
 
 	static {
 		ignoreSmssList.add(Constants.LOCAL_MASTER_DB_NAME);
@@ -108,14 +107,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				Utility.loadEngine(fileName, prop);
 			}
 		} catch(IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if(fileIn != null) {
 					fileIn.close();
 				}
 			} catch(IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -188,7 +187,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 //						engine.closeDB();
 //					} catch (Exception e) {
 //						// TODO Auto-generated catch block
-//						logger.error(STACKTRACE, e);
+//						logger.error(Constants.STACKTRACE, e);
 //					}
 //				}
 				
@@ -205,14 +204,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				}
 			}
 		} catch(Exception e){
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try{
 				if(fileIn != null) {
 					fileIn.close();
 				}
 			} catch(IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -237,7 +236,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			// we couldn't initialize the db
 			// remove it from DIHelper
 			DIHelper.getInstance().removeLocalProperty(Constants.LOCAL_MASTER_DB_NAME);
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			return;
 		}
 					
@@ -252,7 +251,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			// we couldn't initialize the db
 			// remove it from DIHelper
 			DIHelper.getInstance().removeLocalProperty(Constants.SECURITY_DB);
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			return;
 		}
 		
@@ -267,7 +266,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				// we couldn't initialize the db
 				// remove it from DIHelper
 				DIHelper.getInstance().removeLocalProperty(Constants.THEMING_DB);
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -282,10 +281,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			} catch (SQLException sqe) {
 				// we couldn't initialize the db remove it from DIHelper
 				DIHelper.getInstance().removeLocalProperty(Constants.SCHEDULER_DB);
-				logger.error(STACKTRACE, sqe);
+				logger.error(Constants.STACKTRACE, sqe);
 			} catch (IOException e) {
 				DIHelper.getInstance().removeLocalProperty(Constants.SCHEDULER_DB);
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -323,7 +322,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				String loadedEngineId = catalogDB(fileName, folderToWatch);
 				engineIds[fileIdx] = loadedEngineId;
 			} catch (RuntimeException ex) {
-				logger.error(STACKTRACE, ex);
+				logger.error(Constants.STACKTRACE, ex);
 				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
