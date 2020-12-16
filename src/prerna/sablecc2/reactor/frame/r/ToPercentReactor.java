@@ -65,16 +65,22 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 		
 		StringBuilder script = new StringBuilder();
 		script.append(rFrameName).append("$");
+		String replaceNA = "";
 		if (newColName == null || newColName.equals("") || newColName.equals("null")) {
 			script.append(srcCol);
+			replaceNA = rFrameName + "$" + srcCol + "[" + rFrameName + "$" + srcCol + " %in% c(\" NaN%\", \"  NA%\")] <- NA; ";
+
 		} else {
 			script.append(newColName);
+			replaceNA = rFrameName + "$" + newColName + "[" + rFrameName + "$" + newColName + " %in% c(\" NaN%\", \"  NA%\")] <- NA; ";
 		}
 		script.append(" <- paste0(format(round(" + rFrameName + "$" + srcCol);
 		if (by100) {
 			script.append(" * 100 ");
 		}
-		script.append(", " + sigDigits + "), nsmall = " + sigDigits + "), '%')");
+		script.append(", " + sigDigits + "), nsmall = " + sigDigits + "), '%');");
+		// replace NA% with NA
+		script.append(replaceNA);
 		this.rJavaTranslator.runR(script.toString());
 
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
