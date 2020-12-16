@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdbms;
 
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -885,8 +886,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	 * @param args			Object[] where the first index is the table name
 	 * 						and every other entry are the column names
 	 * @return				PreparedStatement to perform a bulk insert
+	 * @throws SQLException 
 	 */
-	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) {
+	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException {
 		// if a table name and a column name are not specified, do nothing
 		// not enough information to be meaningful
 		if(args.length < 2) {
@@ -906,7 +908,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 		sql.append(")");
 
-		return bulkInsertPreparedStatement(sql.toString());
+		return getPreparedStatement(sql.toString());
 	}
 	
 	/**
@@ -914,15 +916,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	 * @param query
 	 * @return
 	 */
-	public java.sql.PreparedStatement bulkInsertPreparedStatement(String sql) {
-		java.sql.PreparedStatement ps = null;
-		try {
-			// create the prepared statement using the sql query defined
-			ps = makeConnection().prepareStatement(sql);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		return ps;
+	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
+		return makeConnection().prepareStatement(sql);
 	}
 
 	/**
@@ -972,6 +967,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
+	}
+	
+	public Clob createClob() throws SQLException {
+		return this.makeConnection().createClob();
 	}
 	
 	public void setQueryUtil(AbstractSqlQueryUtil queryUtil) {

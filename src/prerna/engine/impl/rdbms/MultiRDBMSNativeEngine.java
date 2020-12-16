@@ -397,8 +397,9 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 	 * @param args			Object[] where the first index is the table name
 	 * 						and every other entry are the column names
 	 * @return				PreparedStatement to perform a bulk insert
+	 * @throws SQLException 
 	 */
-	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) {
+	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException {
 		return getContext().bulkInsertPreparedStatement(args);
 	}
 	
@@ -406,9 +407,10 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 	 * This is to get a prepared statement based on the input query
 	 * @param query
 	 * @return
+	 * @throws SQLException 
 	 */
-	public java.sql.PreparedStatement bulkInsertPreparedStatement(String sql) {
-		return getContext().bulkInsertPreparedStatement(sql);
+	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
+		return getContext().getPreparedStatement(sql);
 	}
 
 	/**
