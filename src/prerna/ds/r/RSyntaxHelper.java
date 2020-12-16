@@ -795,7 +795,7 @@ public class RSyntaxHelper {
 		StringBuilder builder = new StringBuilder();
 		builder.append(tableName).append(" <- fread(\"").append(absolutePath.replace("\\", "/"))
 			.append("\", sep=\"").append(delimiter)
-			.append("\", encoding=\"UTF-8\", blank.lines.skip=TRUE, fill=TRUE, na.strings=NULL, keepLeadingZeros=TRUE);");
+			.append("\", encoding=\"UTF-8\", blank.lines.skip=TRUE, fill=TRUE, na.strings=NULL, keepLeadingZeros=TRUE, integer64='numeric');");
 		return builder.toString();
 	}
 	
