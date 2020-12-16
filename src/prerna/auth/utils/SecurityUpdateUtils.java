@@ -147,8 +147,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		
 		// make a prepared statement
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(
-				new String[]{"INSIGHT","ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON","LASTMODIFIEDON","LAYOUT", "CACHEABLE"});
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.bulkInsertPreparedStatement(
+					new String[]{"INSIGHT","ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON","LASTMODIFIEDON","LAYOUT", "CACHEABLE"});
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
 		// keep a batch size so we dont get heapspace
 		final int batchSize = 5000;
 		int count = 0;
@@ -229,8 +234,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		
-		ps = securityDb.bulkInsertPreparedStatement(
-				new String[]{"INSIGHTMETA","ENGINEID","INSIGHTID","METAKEY","METAVALUE","METAORDER"});
+		try {
+			ps = securityDb.bulkInsertPreparedStatement(
+					new String[]{"INSIGHTMETA","ENGINEID","INSIGHTID","METAKEY","METAVALUE","METAORDER"});
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
 		
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
