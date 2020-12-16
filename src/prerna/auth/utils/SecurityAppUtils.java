@@ -586,8 +586,9 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		// now we do the new insert with the order of the tags
 		query = securityDb.getQueryUtil().createInsertPreparedStatementString("ENGINEMETA", 
 				new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"});
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
+		PreparedStatement ps = null;
 		try {
+			ps = securityDb.getPreparedStatement(query);
 			for(int i = 0; i < tags.size(); i++) {
 				String tag = tags.get(i);
 				ps.setString(1, engineId);
@@ -726,10 +727,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 */
 	public static void copyAppPermissions(String sourceEngineId, String targetEngineId) throws Exception {
 		String insertTargetAppPermissionSql = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
-		PreparedStatement insertTargetAppPermissionStatement = securityDb.bulkInsertPreparedStatement(insertTargetAppPermissionSql);
-		if(insertTargetAppPermissionStatement == null) {
-			throw new IllegalArgumentException("An error occured trying to generate the appropriate query to copy the data");
-		}
+		PreparedStatement insertTargetAppPermissionStatement = securityDb.getPreparedStatement(insertTargetAppPermissionSql);
 		
 		// grab the permissions, filtered on the source engine id
 		SelectQueryStruct qs = new SelectQueryStruct();
