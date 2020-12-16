@@ -619,7 +619,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		// so that way all those Asset apps do not appear a bunch of times
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
-		if(smssFile != null) {
+		if(smssFile != null && new File(smssFile).exists()) {
 			Properties prop = Utility.loadProperties(smssFile);
 			return Boolean.parseBoolean(prop.get(Constants.IS_ASSET_APP) + "");
 		}
