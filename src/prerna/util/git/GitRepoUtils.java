@@ -1,6 +1,7 @@
 package prerna.util.git;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -1246,6 +1247,7 @@ public class GitRepoUtils {
 	public static void init(String folder)
 	{
 		try {
+			addGitIgnore(folder);
 			Git.init().setDirectory(new File(folder)).call();
 			Git.open(new File(folder)).close();
 			if (ClusterUtil.IS_CLUSTER) {
@@ -1257,6 +1259,23 @@ public class GitRepoUtils {
 			logger.error(STACKTRACE, gae);
 		} catch (IOException e) {
 			logger.error(STACKTRACE, e);
+		}
+	}
+	
+	public static void addGitIgnore(String folder)
+	{
+		try
+		{
+			File f = new File(folder + "/.gitignore");
+			BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+			bw.write("*.cache");
+			bw.newLine();
+			bw.write("*/Temp/*");
+			bw.newLine();
+			bw.close();
+		}catch(Exception ex)
+		{
+			logger.error(STACKTRACE, ex);
 		}
 	}
 	
