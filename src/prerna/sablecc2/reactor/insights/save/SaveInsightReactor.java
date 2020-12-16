@@ -144,7 +144,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		if(!hidden) {
 			logger.info(stepCounter + ") Regsiter insight...");
-			registerInsightAndMetadata(engine, newRdbmsId, insightName, layout, cacheable, description, tags);
+			registerInsightAndMetadata(engine, newRdbmsId, insightName, layout, cacheable, recipeToSave, description, tags);
 			logger.info(stepCounter + ") Done...");
 		} else {
 			logger.info(stepCounter + ") Insight is hidden ... do not add to solr");
@@ -154,13 +154,17 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// Move assets to new insight folder
 		File tempInsightFolder = new File(this.insight.getInsightFolder());
 		File newInsightFolder = new File(AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), engine.getEngineId()) + DIR_SEPARATOR + newRdbmsId);
-	    try {
-			logger.info(stepCounter + ") Moving assets...");
-			FileUtils.copyDirectory(tempInsightFolder, newInsightFolder);
-			logger.info(stepCounter + ") Done...");
-		} catch (IOException e) {
-			SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
-			logger.info(stepCounter + ") Unable to move assets...");
+		if(tempInsightFolder.exists()) {
+			try {
+				logger.info(stepCounter + ") Moving assets...");
+				FileUtils.copyDirectory(tempInsightFolder, newInsightFolder);
+				logger.info(stepCounter + ") Done...");
+			} catch (IOException e) {
+				SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
+				logger.info(stepCounter + ") Unable to move assets...");
+			}
+		} else {
+			logger.info(stepCounter + ") No asset folder exists to move...");
 		}
 	    stepCounter++;
 	    // delete the cache folder for the new insight
@@ -252,10 +256,11 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param description
 	 * @param tags
 	 */
-	private void registerInsightAndMetadata(IEngine engine, String insightIdToSave, String insightName, String layout, boolean cacheable, String description, List<String> tags) {
+	private void registerInsightAndMetadata(IEngine engine, String insightIdToSave, String insightName, String layout, 
+			boolean cacheable, List<String> recipe, String description, List<String> tags) {
 		String appId = engine.getEngineId();
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		SecurityInsightUtils.addInsight(appId, insightIdToSave, insightName, true, cacheable, layout);
+		SecurityInsightUtils.addInsight(appId, insightIdToSave, insightName, true, cacheable, layout, recipe);
 		if(this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), appId, insightIdToSave);
 		}

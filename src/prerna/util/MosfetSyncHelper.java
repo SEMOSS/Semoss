@@ -146,7 +146,7 @@ public class MosfetSyncHelper {
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
 		admin.addInsight(id, insightName, layout, recipe, hidden, cacheable);
-		SecurityInsightUtils.addInsight(appId, id, insightName, false, cacheable, layout);
+		SecurityInsightUtils.addInsight(appId, id, insightName, false, cacheable, layout, recipe);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
@@ -174,7 +174,7 @@ public class MosfetSyncHelper {
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
 		admin.updateInsight(id, insightName, layout, recipe, hidden);
-		SecurityInsightUtils.updateInsight(appId, id, insightName, false, layout);
+		SecurityInsightUtils.updateInsight(appId, id, insightName, false, layout, recipe);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();

@@ -150,7 +150,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		step++;
 
 		logger.info(step + ") Regsiter insight...");
-		SecurityInsightUtils.addInsight(appId, newInsightId, insightName, true, Utility.getApplicationCacheInsight(), layout);
+		SecurityInsightUtils.addInsight(appId, newInsightId, insightName, true, Utility.getApplicationCacheInsight(), layout, pixelRecipeToSave);
 		if (this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), appId, newInsightId);
 		}

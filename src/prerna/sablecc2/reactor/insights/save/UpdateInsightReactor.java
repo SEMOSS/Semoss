@@ -119,7 +119,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		if(!hidden) {
 			logger.info("2) Updated registered insight...");
-			editRegisteredInsightAndMetadata(engine, existingId, insightName, layout, description, tags);
+			editRegisteredInsightAndMetadata(engine, existingId, insightName, layout, recipeToSave, description, tags);
 			logger.info("2) Done...");
 		}
 		
@@ -170,9 +170,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param description
 	 * @param tags
 	 */
-	private void editRegisteredInsightAndMetadata(IEngine engine, String existingRdbmsId, String insightName, String layout, String description, List<String> tags) {
+	private void editRegisteredInsightAndMetadata(IEngine engine, String existingRdbmsId, String insightName, String layout, 
+			List<String> recipe, String description, List<String> tags) {
 		String appId = engine.getEngineId();
-		SecurityInsightUtils.updateInsight(appId, existingRdbmsId, insightName, true, layout);
+		SecurityInsightUtils.updateInsight(appId, existingRdbmsId, insightName, true, layout, recipe);
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		if(description != null) {
 			admin.updateInsightDescription(existingRdbmsId, description);
