@@ -1231,7 +1231,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5 - this worked
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
-		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&panel=" + panelId;
+		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&sheet=" + sheetId + "&panel=" + panelId;
 		logger.info("Generating grid at " + htmlUrl);
 		if(driver == null) {
 			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl, sessionId, 800, 600);
