@@ -428,45 +428,36 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return;
 		}
-		String deleteQuery = "DELETE FROM ENGINE WHERE ENGINEID='" + appId + "'";
-		try {
-			securityDb.removeData(deleteQuery);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+		List<String> deletes = new Vector<>();
+		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
+		deletes.add("DELETE FROM INSIGHT WHERE ENGINEID=?");
+		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
+		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
+		deletes.add("DELETE FROM WORKSPACEENGINE WHERE ENGINEID=?");
+		deletes.add("DELETE FROM ASSETENGINE WHERE ENGINEID=?");
+		deletes.add("DELETE FROM ASSETENGINE WHERE ENGINEID=?");
+		// TODO: add the other tables...
+
+		for(String deleteQuery : deletes) {
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(deleteQuery);
+				ps.setString(1, appId);
+				ps.execute();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
 		}
-		deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
-		try {
-			securityDb.removeData(deleteQuery);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID='" + appId + "'";
-		try {
-			securityDb.removeData(deleteQuery);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINEID='" + appId + "'";
-		try {
-			securityDb.removeData(deleteQuery);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		deleteQuery = "DELETE FROM WORKSPACEENGINE WHERE ENGINEID='" + appId + "'";
-		try {
-			securityDb.removeData(deleteQuery);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-		deleteQuery = "DELETE FROM ASSETENGINE WHERE ENGINEID='" + appId + "'";
-		try {
-			securityDb.removeData(deleteQuery);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		}
-//		//TODO: add the other tables...
+		securityDb.commit();
 	}
-	
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
@@ -486,37 +477,82 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	
 	public static void addEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
 		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL) "
-				+ "VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(engineName) + "', '" + engineId + "', '" + engineType + "', '" + engineCost + "', " + global + ")";
+				+ "VALUES (?,?,?,?,?)";
+
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, engineName);
+			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, engineType);
+			ps.setString(parameterIndex++, engineCost);
+			ps.setBoolean(parameterIndex++, global);
+			ps.execute();
 			securityDb.commit();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 	
 	public static void updateEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
-		String query = "UPDATE ENGINE SET "
-				+ "ENGINENAME='" + RdbmsQueryBuilder.escapeForSQLStatement(engineName) 
-				+ "', TYPE='" + engineType 
-				+ "', COST='" + engineCost 
-				+ "', GLOBAL=" + global
-				+ " WHERE ENGINEID='" + engineId + "'";
+		String query = "UPDATE ENGINE SET ENGINENAME=?, TYPE=?, COST=?, GLOBAL=? WHERE ENGINEID=?";
+
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, engineName);
+			ps.setString(parameterIndex++, engineType);
+			ps.setString(parameterIndex++, engineCost);
+			ps.setBoolean(parameterIndex++, global);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
 			securityDb.commit();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 	
 	public static void addEngineOwner(String engineId, String userId) {
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', " + AccessPermission.OWNER.getId() + ", '" + engineId + "', TRUE);";
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES (?,?,?,?)";
+
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, userId);
+			ps.setInt(parameterIndex++, AccessPermission.OWNER.getId());
+			ps.setString(parameterIndex++, engineId);
+			ps.setBoolean(parameterIndex++, true);
+			ps.execute();
 			securityDb.commit();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 	
@@ -525,17 +561,50 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 */
 	public static void setEngineCompletelyGlobal(String engineId) {
-		String update1 = "UPDATE ENGINE SET GLOBAL=TRUE WHERE ENGINEID='" + engineId + "'";
-		try {
-			securityDb.insertData(update1);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+		{
+			String update1 = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(update1);
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, engineId);
+				ps.execute();
+				securityDb.commit();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 		}
-		String update2 = "UPDATE INSIGHT SET GLOBAL=TRUE WHERE ENGINEID='" + engineId + "'";
-		try {
-			securityDb.insertData(update2);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+		
+		{
+			String update1 = "UPDATE INSIGHT SET GLOBAL=? WHERE ENGINEID=?";
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(update1);
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, engineId);
+				ps.execute();
+				securityDb.commit();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 		}
 	}
 	
@@ -631,21 +700,32 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					// need to prevent 2 threads attempting to add the same user
 					userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 					if(!userExists) {
-						
-						query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER) VALUES ('" + 
-								RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '" + 
-								RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '" + 
-								RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '" + 
-								RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '" + 
-								newUser.getProvider() + "', " + 
-								"FALSE, " + 
-								!adminSetPublisher() + ");";
+						query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER) VALUES (?,?,?,?,?,?,?)";
+						PreparedStatement ps = null;
 						try {
-							securityDb.insertData(query);
+							ps = securityDb.getPreparedStatement(query);
+							int parameterIndex = 1;
+							ps.setString(parameterIndex++, newUser.getId());
+							ps.setString(parameterIndex++, newUser.getName());
+							ps.setString(parameterIndex++, newUser.getUsername());
+							ps.setString(parameterIndex++, newUser.getEmail());
+							ps.setString(parameterIndex++, newUser.getProvider().toString());
+							ps.setBoolean(parameterIndex++, false);
+							ps.setBoolean(parameterIndex++, !adminSetPublisher());
+							ps.execute();
 							securityDb.commit();
 						} catch (SQLException e) {
 							logger.error(Constants.STACKTRACE, e);
+						} finally {
+							if(ps != null) {
+								try {
+									ps.close();
+								} catch (SQLException e) {
+									logger.error(Constants.STACKTRACE, e);
+								}
+							}
 						}
+						
 						return true;
 					}
 				}
@@ -727,24 +807,41 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					}
 				}
 			}
-			String query = "INSERT INTO USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES "
-					+ "('" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', " 
-					+ (userName == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(userName) + "'") + ","
-					+ (name == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(name) + "'") + ","
-					+ (email == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(email.toLowerCase()) + "'") + ","
-					// add password and salt for native user
-					+ ( hashedPassword != null  ?  "'" + hashedPassword + "'": "null") + ","
-					+ ( salt != null  ?  "'" + salt + "'": "null") + ","
-					+ ( type == null ? " '' " : "'" + RdbmsQueryBuilder.escapeForSQLStatement(type) + "'") + ", "
-					+ admin + ", " 
-					+ publisher + ");";
+			if(userName == null) userName = "";
+			if(name == null) name = "";
+			if(email == null) email = "";
+			if(hashedPassword == null) hashedPassword = "";
+			if(salt == null) salt = "";
+			if(type == null) type = "";
+
+			String query = "INSERT INTO USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES (?,?,?,?,?,?,?,?,?)";
+			PreparedStatement ps = null;
 			try {
-				securityDb.insertData(query);
+				ps = securityDb.getPreparedStatement(query);
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, id);
+				ps.setString(parameterIndex++, userName);
+				ps.setString(parameterIndex++, name);
+				ps.setString(parameterIndex++, email.toLowerCase());
+				ps.setString(parameterIndex++, hashedPassword);
+				ps.setString(parameterIndex++, salt);
+				ps.setString(parameterIndex++, type);
+				ps.setBoolean(parameterIndex++, admin);
+				ps.setBoolean(parameterIndex++, publisher);
+				ps.execute();
 				securityDb.commit();
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
-				return false;
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
 			}
+
 			return true;
 		} else {
 			return false;
