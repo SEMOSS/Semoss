@@ -97,9 +97,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_8;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_95;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -132,6 +130,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RDBMSUtility;
 
 public class SchedulerH2DatabaseUtility {
 	
@@ -649,9 +648,21 @@ public class SchedulerH2DatabaseUtility {
 			nextExecTime = nExecTimeD.toBigInteger();
 		}
 		if(queryUtil.allowBlobJavaObject()) {
-			recipe = blobToString(result.getBlob(PIXEL_RECIPE));
-			recipeParameters = blobToString(result.getBlob(PIXEL_RECIPE_PARAMETERS));
-			parameters = blobToString(result.getBlob(PARAMETERS));
+			try {
+				recipe = RDBMSUtility.flushBlobToString(result.getBlob(PIXEL_RECIPE));
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+			try {
+				recipeParameters = RDBMSUtility.flushBlobToString(result.getBlob(PIXEL_RECIPE_PARAMETERS));
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+			try {
+				parameters = RDBMSUtility.flushBlobToString(result.getBlob(PARAMETERS));
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
 		} else {
 			recipe = result.getString(PIXEL_RECIPE);
 			recipeParameters = result.getString(PIXEL_RECIPE_PARAMETERS);
@@ -730,31 +741,6 @@ public class SchedulerH2DatabaseUtility {
 				logger.error(Constants.STACKTRACE, sqe);
 			}
 		}
-	}
-
-	private static String blobToString(Blob blob) {
-		if(blob == null) {
-			return null;
-		}
-		StringBuffer strOut = new StringBuffer();
-		String aux;
-		BufferedReader br;
-
-		try {
-			br = new BufferedReader(new InputStreamReader(blob.getBinaryStream()));
-			try {
-				while ((aux=br.readLine())!=null) {
-					strOut.append(aux);
-				}
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		} catch (SQLException se) {
-			logger.error("Failed to convert blob to string...");
-			logger.error(Constants.STACKTRACE, se);
-		}
-		
-		return strOut.toString();
 	}
 
 	private static Blob stringToBlob(Connection connection, String blobInput) {

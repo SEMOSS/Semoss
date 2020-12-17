@@ -37,6 +37,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RDBMSUtility;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
@@ -146,13 +148,19 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			}
 		}
 		
+		AbstractSqlQueryUtil securityQueryUtil = securityDb.getQueryUtil();
 		// make a prepared statement
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.bulkInsertPreparedStatement(
-					new String[]{"INSIGHT","ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON","LASTMODIFIEDON","LAYOUT", "CACHEABLE"});
-		} catch (SQLException e1) {
-			e1.printStackTrace();
+					new String[]{
+							// table name
+							"INSIGHT", 
+							// column names
+							"ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON",
+							"LASTMODIFIEDON","LAYOUT", "CACHEABLE", "RECIPE"});
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 		// keep a batch size so we dont get heapspace
 		final int batchSize = 5000;
@@ -170,6 +178,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_LAYOUT"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__HIDDEN_INSIGHT"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHEABLE"));
+		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_PKQL"));
+
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -177,18 +187,26 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			while(wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				try {
-					ps.setString(1, appId);
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, appId);
 					String insightId = row[0].toString();
-					ps.setString(2, insightId);
-					ps.setString(3, row[1].toString());
-					ps.setBoolean(4, !((boolean) row[3]));
-					ps.setLong(5, 0);
-					ps.setTimestamp(6, timeStamp);
-					ps.setTimestamp(7, timeStamp);
-					ps.setString(8, row[2].toString());
-					ps.setBoolean(9, (boolean) row[4]);
-					ps.addBatch();
+					ps.setString(parameterIndex++, insightId);
+					ps.setString(parameterIndex++, row[1].toString());
+					ps.setBoolean(parameterIndex++, !((boolean) row[3]));
+					ps.setLong(parameterIndex++, 0);
+					ps.setTimestamp(parameterIndex++, timeStamp);
+					ps.setTimestamp(parameterIndex++, timeStamp);
+					ps.setString(parameterIndex++, row[2].toString());
+					ps.setBoolean(parameterIndex++, (boolean) row[4]);
 					
+					// need to determine if our input is a clob
+					// and if the database allows a clob data type
+					// use the utility method generated
+					Object pixelObject = row[5];
+					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, pixelObject, securityGson);
+
+					// add to ps
+					ps.addBatch();
 					// batch commit based on size
 					if (++count % batchSize == 0) {
 						logger.info("Executing batch .... row num = " + count);
@@ -253,13 +271,22 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				Object[] row = data.getValues();
 				Object[] raw = data.getRawValues();
 				try {
-					ps.setString(1, appId);
-					ps.setString(2, row[0].toString());
-					ps.setString(3, row[1].toString());
-					ps.setClob(4, (java.sql.Clob) raw[2]);
-					ps.setInt(5, ((Number) row[3]).intValue()) ;
-					ps.addBatch();
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, appId);
+					ps.setString(parameterIndex++, row[0].toString());
+					ps.setString(parameterIndex++, row[1].toString());
+
+					// need to determine if our input is a clob
+					// and if the database allows a clob data type
+					// use the utility method generated
+					Object metaValue = raw[2];
+					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, metaValue, securityGson);
 					
+					// add the order
+					ps.setInt(parameterIndex++, ((Number) row[3]).intValue());
+					
+					// add to ps
+					ps.addBatch();
 					// batch commit based on size
 					if (++count % batchSize == 0) {
 						logger.info("Executing batch .... row num = " + count);
