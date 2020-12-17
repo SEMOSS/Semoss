@@ -604,6 +604,14 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract boolean allowBlobJavaObject();
 	
 	/**
+	 * Does the RDBMS type support clob java object storage
+	 * i.e. - connection.createClob();
+	 * @return
+	 */
+	public abstract boolean allowClobJavaObject();
+
+	
+	/**
 	 * Does the engine allow you to add a column to an existing table
 	 * 
 	 * @return

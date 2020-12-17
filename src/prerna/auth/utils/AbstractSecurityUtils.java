@@ -44,7 +44,7 @@ public abstract class AbstractSecurityUtils {
 	static boolean anonymousUsersEnabled = false;
 	static boolean anonymousUsersUploadData = false;
 
-	static Gson recipeGson = new GsonBuilder().disableHtmlEscaping().create();
+	static Gson securityGson = new GsonBuilder().disableHtmlEscaping().create();
 	
 	/**
 	 * Only used for static references
@@ -257,17 +257,6 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		// INSIGHT RECIPE
-		// check if column exists
-		// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
-		{
-			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "INSIGHT", schema);
-			// this should return in all upper case
-			if(!allCols.contains("RECIPE")) {
-				String addRecipeColumnSql = queryUtil.alterTableAddColumn("INSIGHT", "RECIPE", "CLOB");
-				securityDb.insertData(addRecipeColumnSql);
-			}
-		}
 		// INSIGHT
 		colNames = new String[] { "ENGINEID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", "CACHEABLE", "RECIPE" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "BIGINT", "TIMESTAMP", "TIMESTAMP", "VARCHAR(255)", "BOOLEAN", "CLOB" };
@@ -278,6 +267,17 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.tableExists(conn, "INSIGHT", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("INSIGHT", colNames, types));
+			}
+		}
+		// INSIGHT RECIPE
+		// check if column exists
+		// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
+		{
+			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "INSIGHT", schema);
+			// this should return in all upper case
+			if(!allCols.contains("RECIPE")) {
+				String addRecipeColumnSql = queryUtil.alterTableAddColumn("INSIGHT", "RECIPE", "CLOB");
+				securityDb.insertData(addRecipeColumnSql);
 			}
 		}
 		if(allowIfExistsIndexs) {
