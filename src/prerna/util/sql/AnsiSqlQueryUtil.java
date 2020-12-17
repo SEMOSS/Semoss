@@ -532,6 +532,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 	
 	@Override
+	public boolean allowClobJavaObject() {
+		return true;
+	}
+	
+	@Override
 	public boolean allowAddColumn() {
 		return true;
 	}
