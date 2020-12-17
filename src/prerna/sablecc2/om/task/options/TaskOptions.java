@@ -9,6 +9,13 @@ import prerna.sablecc2.reactor.export.IFormatter;
 
 public class TaskOptions {
 
+	/*
+	 * Please note - this is basically a wrapper around the Map<String, Object> options
+	 * The keys to this map should always be panel ids
+	 * Do not add random keys inside - this will break other logic that assumes that we can determine
+	 * the panel that this task is running on
+	 */
+	
 	private Map<String, Object> options;
 	private boolean ornament = false;
 	private transient IFormatter formatter;
@@ -93,14 +100,14 @@ public class TaskOptions {
 	}
 	
 	/**
-	 * Swap the current panel ids and 
-	 * @param newPanelIds
+	 * Swap the current panel ids
+	 * Boolean to pass if to remove all the other panels and keep only the new panelId
+	 * @param newPanelId
+	 * @param existingPanelId
 	 */
-	public void swapPanelIds(String newPanelId) {
+	public void swapPanelIds(String newPanelId, String curPanelId) {
 		Map<String, Object> newOptions = new HashMap<>();
-		for(String curPanelId : this.options.keySet()) {
-			newOptions.put(newPanelId, this.options.get(curPanelId));
-		}
+		newOptions.put(newPanelId, this.options.get(curPanelId));
 		this.options = newOptions;
 	}
 	

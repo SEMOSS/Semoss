@@ -194,7 +194,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					// so if we pull the task options we have that information
 					// this is for {{@link RefreshPanelTaskReactor}}
 					task.getTaskOptions().setFormatter(task.getFormatter());
-					task.getTaskOptions().getOptions().put("values", values);
 					// store the noun store as well for refreshing
 					task.getTaskOptions().setCollectStore(this.store);
 					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions());
