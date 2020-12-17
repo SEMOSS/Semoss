@@ -627,14 +627,12 @@ public class InsightPanel {
 
 		// copy the options and the qs too
 		if(existingPanel.taskOptions != null) {
-			Object existingPanelOptions = existingPanel.taskOptions.getOptions().get(existingPanel.panelId);
-			Map<String, Object> optionMap = new HashMap<>();
-			optionMap.put(panelId, existingPanelOptions);
-			this.taskOptions = new TaskOptions(optionMap);
-			this.lastQs = existingPanel.lastQs;
+			TaskOptions copyTaskOptions = gson.fromJson(gson.toJson(existingPanel.taskOptions), TaskOptions.class);
 			// replace the panel in the task options
-			this.taskOptions.swapPanelIds(this.panelId, existingPanel.getPanelId());
-			this.taskOptions.setCollectStore(existingPanel.taskOptions.getCollectStore());
+			copyTaskOptions.swapPanelIds(this.panelId, existingPanel.getPanelId());
+			copyTaskOptions.setCollectStore(existingPanel.taskOptions.getCollectStore());
+			this.taskOptions = copyTaskOptions;
+			this.lastQs = existingPanel.lastQs;
 		}
 
 		if(existingPanel.layerQueryStruct != null) {
@@ -656,7 +654,7 @@ public class InsightPanel {
 			for(String layerId : existingPanel.layerTaskOption.keySet()) {
 				TaskOptions thisTaskOptions = existingPanel.layerTaskOption.get(layerId);
 				if(thisTaskOptions != null) {
-					TaskOptions copyTaskOptions = gson.fromJson(gson.toJson(thisTaskOptions), thisTaskOptions.getClass());
+					TaskOptions copyTaskOptions = gson.fromJson(gson.toJson(thisTaskOptions), TaskOptions.class);
 					copyTaskOptions.swapPanelIds(this.panelId, existingPanel.getPanelId());
 					copyTaskOptions.setCollectStore(thisTaskOptions.getCollectStore());
 					this.layerTaskOption.put(layerId, copyTaskOptions);
