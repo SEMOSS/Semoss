@@ -195,7 +195,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		List<Object> values = new Vector<>();
 		// check new userID
 		if(newUserId != null && !newUserId.isEmpty()) {
-			boolean userExists = SecurityQueryUtils.checkUserExist(userId);
+			boolean userExists = SecurityQueryUtils.checkUserExist(newUserId);
 			if(userExists) {
 				throw new IllegalArgumentException("The user already exists");
 			}
@@ -214,7 +214,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			selectors.add(new QueryColumnSelector("USER__EMAIL"));
 			values.add(newEmail);
 		}
-		if(newUsername != null && !newEmail.isEmpty()) {
+		if(newUsername != null && !newUsername.isEmpty()) {
 			boolean usernameExists = SecurityQueryUtils.checkUsernameExist(newUsername);
 			if(usernameExists) {
 				throw new IllegalArgumentException("The username already exists");
