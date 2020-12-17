@@ -28,11 +28,163 @@
 
 package prerna.util.sql;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+import com.google.gson.Gson;
+
+import net.snowflake.client.jdbc.internal.com.nimbusds.jose.util.IOUtils;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class RDBMSUtility {
+	
+	private RDBMSUtility() {
+		
+	}
+	
+	/**
+	 * Determine how to handle a clob into a prepared statement based on if the input is already a clob
+	 * and if the database allows clobs or not
+	 * 
+	 * @param engine
+	 * @param queryUtil
+	 * @param ps
+	 * @param parameterIndex
+	 * @param value
+	 * @param gson
+	 * @throws SQLException
+	 * @throws IOException
+	 */
+	public static void handleInsertionOfClobInput(RDBMSNativeEngine engine, AbstractSqlQueryUtil queryUtil, 
+			PreparedStatement ps, int parameterIndex, Object value, Gson gson) throws SQLException, IOException {
+		if(value == null) {
+			ps.setNull(parameterIndex, java.sql.Types.CLOB);
+		}
+		// do we allow clob data types?
+		if(queryUtil.allowClobJavaObject()) {
+			Clob engineClob = engine.createClob();
+
+			// is our input also a clob?
+			if(value instanceof Clob) {
+				// yes clob - transfer clob from one to the other
+				RDBMSUtility.transferClob((Clob) value, engineClob);
+			} else {
+				// no clob - flush to string
+				engineClob.setString(1, gson.toJson(value));
+			}
+			// set the clob in the prepared statement
+			ps.setClob(parameterIndex, engineClob);
+		} else {
+			// we do not allow clob data types
+			// we will just set this as a string value
+			// in the prepared statement
+			String stringInput = null;
+			// is our input a clob?
+			if(value instanceof Clob) {
+				// flush the clob to a string
+				stringInput = RDBMSUtility.flushClobToString((Clob) value);
+			} else {
+				stringInput = gson.toJson(value);
+			}
+			// add the string to the prepared statement
+			ps.setString(parameterIndex, stringInput);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param sourceClob
+	 * @param targetClob
+	 * @throws SQLException
+	 * @throws IOException
+	 */
+	public static void transferClob(Clob sourceClob, Clob targetClob) throws SQLException, IOException {
+		InputStream source = sourceClob.getAsciiStream();
+		OutputStream target = targetClob.setAsciiStream(1);
+		
+		byte[] buf = new byte[8192];
+		int length;
+		while ((length = source.read(buf)) > 0) {
+			target.write(buf, 0, length);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param clob
+	 * @return
+	 * @throws SQLException
+	 * @throws IOException
+	 */
+	public static String flushClobToString(Clob clob) throws SQLException, IOException {
+		if(clob == null) {
+			return null;
+		}
+		// flush the clob to a string
+		InputStream inputStream =  clob.getAsciiStream();
+		// flush input stream to string
+		return IOUtils.readInputStreamToString(inputStream, StandardCharsets.UTF_8);
+	}
+	
+	/**
+	 * 
+	 * @param blob
+	 * @return
+	 */
+	public static String flushBlobToString(Blob blob) throws SQLException, IOException {
+		if(blob == null) {
+			return null;
+		}
+		StringBuffer strOut = new StringBuffer();
+		String aux;
+
+		InputStream is = null;
+		InputStreamReader isr = null;
+		BufferedReader br = null;
+
+		try {
+			is = blob.getBinaryStream();
+			isr = new InputStreamReader(is);
+			br = new BufferedReader(isr);
+			while ((aux=br.readLine())!=null) {
+				strOut.append(aux);
+			}
+		} finally {
+			if(is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(isr != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(br != null) {
+				try {
+					br.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return strOut.toString();
+	}
 	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
