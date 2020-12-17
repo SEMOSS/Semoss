@@ -182,6 +182,12 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	void close();
 	
+	/**
+	 * See if the frame has been closed
+	 * @return
+	 */
+	boolean isClosed();
+	
 	//////////////////////////////////////////////////
 	
 	// Info that is cached on the frame

@@ -14,7 +14,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.task.AudoTaskOptionsHelper;
+import prerna.sablecc2.reactor.task.AutoTaskOptionsHelper;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -75,7 +75,7 @@ public class CollectReactor extends TaskBuilderReactor {
 				if(this.task instanceof BasicIteratorTask) {
 					SelectQueryStruct qs = ((BasicIteratorTask) this.task).getQueryStruct();
 					if(!qs.getSelectors().isEmpty()) {
-						TaskOptions newTOptions = AudoTaskOptionsHelper.getAutoOptions(qs, panelId, layout);
+						TaskOptions newTOptions = AutoTaskOptionsHelper.getAutoOptions(qs, panelId, layout);
 						this.task.setTaskOptions(newTOptions);
 					}
 				}
