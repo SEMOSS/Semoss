@@ -16,7 +16,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
@@ -62,7 +61,7 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 
 				if(lQs != null && lTaskOption != null) {
 					Set<String> layers = lQs.keySet();
-					for(String layerId : layers) {
+					LAYER_LOOP : for(String layerId : layers) {
 						SelectQueryStruct qs = lQs.get(layerId);
 						qs.resetPanelState();
 						TaskOptions taskOptions = lTaskOption.get(layerId);
@@ -79,27 +78,32 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 								// see if the frame at least exists
 								ITableDataFrame queryFrame = qs.getFrame();
 								if(queryFrame == null || queryFrame.isClosed()) {
-									additionalMessages.add(getError("Error on refreshing panel id " + panelId 
-											+ " because the frame creating the visualization no longer exists"));
-									continue;
-								} else {
-									additionalMessages.add(getWarning("Warning on refreshing panel id " + panelId 
-											+ " but the underlying data creating the visualization no longer exists "
-											+ "or is now incompatible with the view. Displaying a grid of the data."));
-									
-									SelectQueryStruct allQs = queryFrame.getMetaData().getFlatTableQs(true);
-									allQs.setFrame(queryFrame);
-									allQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
-									allQs.setQueryAll(true);
-									task = new BasicIteratorTask(allQs);
-									taskOptions = new TaskOptions(AutoTaskOptionsHelper.generateGridTaskOptions(allQs, panelId));
-								}
+									additionalMessages.add(getError("Attempting to refresh panel id " + panelId 
+											+ " but the frame creating the visualization no longer exists"));
+									continue LAYER_LOOP;
+								} 
+								
+								NounMetadata warning = getWarning("Attempting to refresh panel id " + panelId 
+										+ " but the underlying data creating the visualization no longer exists "
+										+ "or is now incompatible with the view. Displaying a grid of the data.");
+								
+								SelectQueryStruct allQs = queryFrame.getMetaData().getFlatTableQs(true);
+								allQs.setFrame(queryFrame);
+								allQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+								allQs.setQueryAll(true);
+								task = new BasicIteratorTask(allQs);
+								taskOptions = new TaskOptions(AutoTaskOptionsHelper.generateGridTaskOptions(allQs, panelId));
 								try {
 									executeTask(task, taskOptions, limit, logger);
+									additionalMessages.add(warning);
 								} catch (Exception e1) {
 									// at this point - no luck :/
 									classLogger.error(Constants.STACKTRACE, e);
-									throw new SemossPixelException(e.getMessage());
+									additionalMessages.add(getError("Attempingt to refresh panel id " + panelId 
+												+ " but the underlying data creating the visualization no longer exists "
+												+ " or is now incompatible with the view. Displaying a grid of the data "
+												+ " errors with the following message: " + e.getMessage()));
+									continue LAYER_LOOP;
 								}
 							}
 							
