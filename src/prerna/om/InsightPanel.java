@@ -633,7 +633,8 @@ public class InsightPanel {
 			this.taskOptions = new TaskOptions(optionMap);
 			this.lastQs = existingPanel.lastQs;
 			// replace the panel in the task options
-			this.taskOptions.swapPanelIds(this.panelId);
+			this.taskOptions.swapPanelIds(this.panelId, existingPanel.getPanelId());
+			this.taskOptions.setCollectStore(existingPanel.taskOptions.getCollectStore());
 		}
 
 		if(existingPanel.layerQueryStruct != null) {
@@ -656,7 +657,8 @@ public class InsightPanel {
 				TaskOptions thisTaskOptions = existingPanel.layerTaskOption.get(layerId);
 				if(thisTaskOptions != null) {
 					TaskOptions copyTaskOptions = gson.fromJson(gson.toJson(thisTaskOptions), thisTaskOptions.getClass());
-					copyTaskOptions.swapPanelIds(this.panelId);
+					copyTaskOptions.swapPanelIds(this.panelId, existingPanel.getPanelId());
+					copyTaskOptions.setCollectStore(thisTaskOptions.getCollectStore());
 					this.layerTaskOption.put(layerId, copyTaskOptions);
 				}
 			}
