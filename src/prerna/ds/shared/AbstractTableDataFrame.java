@@ -89,6 +89,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// this is used for correct logging based on the pixel passed
 	protected transient Logger logger;
 	
+	// see if the frame has been closed
+	protected boolean isClosed = false;
+	
 	protected transient Map<String, CachedIterator> queryCache = new HashMap<String, CachedIterator>();
 
 	/**
@@ -630,7 +633,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public void close() {
 		this.metaData.close();
+		this.isClosed = true;
 		logger.debug("Successfully dropped frame metadata");
+	}
+	
+	@Override
+	public boolean isClosed() {
+		return this.isClosed;
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
