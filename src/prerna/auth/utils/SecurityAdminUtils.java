@@ -177,6 +177,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String newEmail = userInfo.get("newEmail") != null ? userInfo.get("newEmail").toString() : "";
 		String adminChange = userInfo.get("admin") != null ? userInfo.get("admin").toString() : "";
 		boolean admin = false;
+		String publisherChange = userInfo.get("publisher") != null ? userInfo.get("publisher").toString() : "";
+		boolean publisher = false;
 
 		// always lower case emails
 		if(email != null) {
@@ -242,6 +244,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			admin = Boolean.parseBoolean(adminChange);
 			selectors.add(new QueryColumnSelector("USER__ADMIN"));
 			values.add(admin);
+		}
+		if(publisherChange != null && !publisherChange.isEmpty()) {
+			publisher = Boolean.parseBoolean(publisherChange);
+			selectors.add(new QueryColumnSelector("USER__PUBLISHER"));
+			values.add(publisher);
 		}
 		if(error != null && !error.isEmpty()) {
 			throw new IllegalArgumentException(error);
