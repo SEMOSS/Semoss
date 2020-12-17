@@ -39,7 +39,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
@@ -169,18 +168,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		List<Object[]> retData = generateAndRunScript(query, engineFilters, rSessionTable, rSessionJoinTable, global);
 		
 		// check for error
-		int frameColCount = retData.get(0).length;
-		if(frameColCount == 1) {
-			// will not work, lets send all the error messages
-			String message = (String) retData.get(0)[0];
-			message = message.substring(0,1).toUpperCase() + message.substring(1);
-			NounMetadata errorNoun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			for(int i = 1; i < retData.size(); i ++) {
-				message = (String) retData.get(i)[0];
-				message = message.substring(0,1).toUpperCase() + message.substring(1);
-				errorNoun.addAdditionalReturn(new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			}
-			return errorNoun;
+		if(retData == null || retData.size() == 0) {
+			List<Map<String, Object>> retMap = new Vector<>();
+			NounMetadata noun = new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
+			return noun;
 		}
 		
 		logger.info(stepCounter + ". Generating pixel return from results");
@@ -241,7 +232,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		
 		// loop through the map
 		for (Map<String, Object> component : optMap) {
-			//TODO: Check if we have select + group
 			String comp = component.get("component").toString();
 			String elemToAdd = "";
 			String elemName = "";
@@ -249,7 +239,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			// handle select and group
 			String[] selects = { "select", "group", "distribution" };
 			String[] aggregates = { "average", "count", "max", "min", "sum", "stdev" , "unique count" };
-			String[] dates = { "dayname", "month", "week", "quarter", "year" };
+			String[] dates = { "dayname ", "monthname ", "week ", "quarter ", "year " };
 			List<String> selectsList = Arrays.asList(selects);
 			List<String> aggregatesList = Arrays.asList(aggregates);
 			List<String> datesList = Arrays.asList(dates);
@@ -793,14 +783,17 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						String func = row[6].toString();
 						fSelector.setFunction(func);
 						fSelector.addInnerSelector(selector);
-						// add the selector
-						curQs.addSelector(fSelector);
+						
 						
 						// check if it was a date group
-						String[] dates = { "DAYNAME", "MONTH", "WEEK", "QUARTER", "YEAR" };
+						String[] dates = { "DAYNAME", "MONTHNAME", "WEEK", "QUARTER", "YEAR" };
 						if(Stream.of(dates).anyMatch(func.toUpperCase()::startsWith)) {
+							fSelector.setDataType("String");
 							hasDateGroup = true;
 						}
+						
+						// add the selector
+						curQs.addSelector(fSelector);
 					}
 				} else {
 					curQs.addSelector(selector);
@@ -1047,7 +1040,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						curQs.addGroupBy(groupConcept, null);
 					} else if(hasDateGroup){
 						// check if it was a date group
-						String[] dates = { "DAYNAME", "MONTH", "WEEK", "QUARTER", "YEAR" };
+						String[] dates = { "DAYNAME", "MONTHNAME", "WEEK", "QUARTER", "YEAR" };
 						if(Stream.of(dates).anyMatch(groupProperty.toUpperCase()::startsWith)) {
 							QueryFunctionSelector fSelector = new QueryFunctionSelector();
 							String[] dateGroup = groupProperty.split("_");
@@ -1129,11 +1122,16 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// track when the entry changes and setup other vars
 		String curEntry = null;
 		String frameName = getCleanFrameName(queryString);
-		String finalPixel = "";
+		String importPixel = "";
+		String vizTypesPixel = "";
+		String vizPixel = "";
 		LinkedHashSet<String> prevAppIds = new LinkedHashSet<>();
 		int entryCount = 1;
 
 		for (Entry<String, SelectQueryStruct> entry : qsList.entrySet()) {
+			// make the framename unique with a counter
+			frameName = frameName + "_" + retMap.size();
+			
 			// first lets check if it is combined
 			if (entry.getKey().contains("Multiple")) {
 				// if this is the first instance of a combined result, then start a new map
@@ -1141,11 +1139,15 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					// start the new map
 					map = new HashMap<>();
 					curEntry = entry.getKey();
-					finalPixel = "";
+					importPixel = "";
+					vizTypesPixel = "";
+					vizPixel = "";
 
 					// process the qs
 					SelectQueryStruct qs = entry.getValue();
-					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, false, global);
+					importPixel += frameExistsPixel(frameName);
+					importPixel += "CreateFrame ( R ) .as ( [ " + frameName + " ] );";
+					importPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, false, global);
 
 					// in the case where there is only one combined qs, lets return
 					if (entryCount == qsList.entrySet().size()) {
@@ -1153,12 +1155,26 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						map.put("app_id", "Multiple Apps");
 						map.put("app_name", "Multiple Apps");
 						map.put("frame_name", frameName);
-						finalPixel += dropUnwantedCols(colsToDrop, groupedCols);
-						finalPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
-						finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
-						finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-						finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "]);");
-						map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
+						
+						// put all three pixels in the map
+						// import pixel
+						importPixel += dropUnwantedCols(colsToDrop, groupedCols);
+						importPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
+						importPixel += "));";
+						map.put("import_pixel", importPixel);
+						
+						// viz types pixel
+						vizTypesPixel = (frameName + " | GetNLPVizOptions(app=[\"Multiple\"],columns=" + pickedCols + ");");
+						map.put("viz_types_pixel", vizTypesPixel);
+						
+						// viz pixel
+						vizPixel += getStartPixel(frameName, panelId);
+						vizPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
+						vizPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
+						vizPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "],vizSelection=[<viztype>]);");
+						map.put("viz_pixel", "");
+						
+						// original workflow
 						map.put("layout", "NLP");
 						map.put("columns", pickedCols);
 						retMap.add(map);
@@ -1173,19 +1189,32 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				else if (entryCount == qsList.entrySet().size()) {
 					// process the qs
 					SelectQueryStruct qs = entry.getValue();
-					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true, global);
-					finalPixel += addMergePixel(qs, prevAppIds, joinCombinedResult, frameName);
-
+					
 					// return map
 					map.put("app_id", "Multiple Apps");
 					map.put("app_name", "Multiple Apps");
 					map.put("frame_name", frameName);
-					finalPixel += dropUnwantedCols(colsToDrop, groupedCols);
-					finalPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
-					finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
-					finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-					finalPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "]);");
-					map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
+					
+					// put all three pixels in the map
+					importPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true, global);
+					importPixel += addMergePixel(qs, prevAppIds, joinCombinedResult, frameName);
+					importPixel += dropUnwantedCols(colsToDrop, groupedCols);
+					importPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
+					importPixel += "));";
+					map.put("import_pixel", importPixel);
+					
+					// viz types pixel
+					vizTypesPixel = (frameName + " | GetNLPVizOptions(app=[\"Multiple\"],columns=" + pickedCols + ");");
+					map.put("viz_types_pixel", vizTypesPixel);
+					
+					// viz pixel
+					vizPixel = getStartPixel(frameName, panelId);
+					vizPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
+					vizPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
+					vizPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "],vizSelection=[<viztype>]);");
+					map.put("viz_pixel", vizPixel);
+					
+					// original workflow
 					map.put("layout", "NLP");
 					map.put("columns", pickedCols);
 					retMap.add(map);
@@ -1195,8 +1224,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				else {
 					// add to the existing pixel
 					SelectQueryStruct qs = entry.getValue();
-					finalPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true, global);
-					finalPixel += addMergePixel(qs, prevAppIds, joinCombinedResult, frameName);
+					importPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true, global);
+					importPixel += addMergePixel(qs, prevAppIds, joinCombinedResult, frameName);
 					entryCount++;
 
 					// store the previous app id for when we join across db's later
@@ -1213,18 +1242,35 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				map.put("app_id", appId);
 				map.put("app_name", appName);
 				map.put("frame_name", frameName);
-				finalPixel = buildImportPixelFromQs(qs, appId, frameName, false, global);
-				finalPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
-				finalPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-				finalPixel += (frameName + " | PredictViz(app=[\"" + appId + "\"],columns="
-						+ getSelectorAliases(qs.getSelectors()) + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "]);");
-				map.put("pixel", getStartPixel(frameName, panelId) + finalPixel);
+				
+				// put all three pixels in the map
+				// import pixel
+				importPixel = frameExistsPixel(frameName);
+				importPixel += "CreateFrame ( R ) .as ( [ " + frameName + " ] );";
+				importPixel += buildImportPixelFromQs(qs, appId, frameName, false, global);
+				importPixel += "));";
+				map.put("import_pixel", importPixel);
+				
+				// viz types pixel
+				vizTypesPixel = (frameName + " | GetNLPVizOptions(app=[\"" + appId + "\"],columns=" + getSelectorAliases(qs.getSelectors()) + ");");
+				map.put("viz_types_pixel", vizTypesPixel);
+				
+				// viz pixel
+				vizPixel = getStartPixel(frameName, panelId);
+				vizPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
+				vizPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
+				vizPixel += (frameName + " | PredictViz(app=[\"" + appId + "\"],columns="
+						+ getSelectorAliases(qs.getSelectors()) + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "],vizSelection=[<viztype>]);");
+				map.put("viz_pixel", vizPixel);
+				
+				// original workflow
 				map.put("layout", "NLP");
 				map.put("columns", getSelectorAliases(qs.getSelectors()));
 				retMap.add(map);
-				finalPixel = "";
+				importPixel = "";
+				vizTypesPixel = "";
+				vizPixel = "";
 				entryCount++;
-
 			}
 		}
 
@@ -1328,7 +1374,26 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		return numRows > 0;
 	}
-
+	
+	/**
+	 * Add the frameexists
+	 * 
+	 * @param frameName
+	 * @return
+	 */
+		
+	public String frameExistsPixel(String frameName) {
+		// create the pixel
+		StringBuilder psb = new StringBuilder();
+		psb.append("if( ( ");
+		psb.append("VariableExists ( '" + frameName + "' ) ");
+		psb.append(") , (\"Frame Exists\") , (");
+		
+		// return
+		return psb.toString();
+		
+	}
+	
 	/**
 	 * Build the pixel based on the query struct and app id
 	 * 
@@ -1341,7 +1406,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	public String buildImportPixelFromQs(SelectQueryStruct qs, String appId, String frameName, boolean merge, boolean global) {
 		StringBuilder psb = new StringBuilder();
 		QUERY_STRUCT_TYPE type = qs.getQsType();
-
+		
+		// continue with import if false
 		if (type == QUERY_STRUCT_TYPE.ENGINE) {
 			// pull from the appId
 			psb.append("Database ( database = [ \"" + appId + "\" ] ) | ");
@@ -1679,7 +1745,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				+ "\"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" :"
 				+ " \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , "
 				+ "\"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; Panel ( " + panelId + " ) | RetrievePanelEvents ( ) ;";
-		startPixel += "CreateFrame ( R ) .as ( [ '" + frameName + "' ] );";
 
 		return startPixel;
 	}
