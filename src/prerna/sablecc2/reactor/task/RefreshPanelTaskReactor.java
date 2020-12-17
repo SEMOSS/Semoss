@@ -70,22 +70,22 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 						if(qs != null && taskOptions != null) {
 							logger.info("Found task for panel = " + Utility.cleanLogString(panelId));
 							// this will ensure we are using the latest panel and frame filters on refresh
-							BasicIteratorTask task = null;
+							BasicIteratorTask task = InsightUtility.constructTaskFromQs(this.insight, qs);
 							try {
-								task = InsightUtility.constructTaskFromQs(this.insight, qs);
+								executeTask(task, taskOptions, limit, logger);	
 							} catch(Exception e) {
 								logger.info("Previous query on panel " + panelId + " does not work");
 								classLogger.error(Constants.STACKTRACE, e);
 								// see if the frame at least exists
 								ITableDataFrame queryFrame = qs.getFrame();
 								if(queryFrame == null || queryFrame.isClosed()) {
-									additionalMessages.add(getError("Refreshing panel id " + panelId 
-											+ " but the frame creating the visualization has been removed"));
+									additionalMessages.add(getError("Error on refreshing panel id " + panelId 
+											+ " because the frame creating the visualization no longer exists"));
 									continue;
 								} else {
-									additionalMessages.add(getWarning("Refreshing panel id " + panelId 
-											+ " but the underlying data creating the visualization no longer exists or is now incompatible with the view. "
-											+ "Displaying a grid of the frame"));
+									additionalMessages.add(getWarning("Warning on refreshing panel id " + panelId 
+											+ " but the underlying data creating the visualization no longer exists "
+											+ "or is now incompatible with the view. Displaying a grid of the data."));
 									
 									SelectQueryStruct allQs = queryFrame.getMetaData().getFlatTableQs(true);
 									allQs.setFrame(queryFrame);
@@ -94,23 +94,13 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 									task = new BasicIteratorTask(allQs);
 									taskOptions = new TaskOptions(AutoTaskOptionsHelper.generateGridTaskOptions(allQs, panelId));
 								}
-							}
-							task.setLogger(logger);
-							task.toOptimize(true);
-							task.setLogger(logger);
-							task.setTaskOptions(taskOptions);
-							// we store the formatter in the task
-							// so we can ensure we are properly painting
-							// the visualization (graph visuals)
-							if(taskOptions.getFormatter() != null) {
-								task.setFormat(taskOptions.getFormatter());
-							}
-							try {
-								task.setNumCollect(limit);
-								task.optimizeQuery(limit);
-							} catch (Exception e) {
-								e.printStackTrace();
-								throw new SemossPixelException(e.getMessage());
+								try {
+									executeTask(task, taskOptions, limit, logger);
+								} catch (Exception e1) {
+									// at this point - no luck :/
+									classLogger.error(Constants.STACKTRACE, e);
+									throw new SemossPixelException(e.getMessage());
+								}
 							}
 							
 							// is this a pivot?
@@ -139,6 +129,28 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 			noun.addAllAdditionalReturn(additionalMessages);
 		}
 		return noun;
+	}
+	
+	/**
+	 * Use this to actually build and execute the task
+	 * @param task
+	 * @param taskOptions
+	 * @param limit
+	 * @param logger
+	 * @throws Exception
+	 */
+	private void executeTask(BasicIteratorTask task, TaskOptions taskOptions, int limit, Logger logger) throws Exception {
+		task.setLogger(logger);
+		task.toOptimize(true);
+		task.setTaskOptions(taskOptions);
+		// we store the formatter in the task
+		// so we can ensure we are properly painting
+		// the visualization (graph visuals)
+		if(taskOptions.getFormatter() != null) {
+			task.setFormat(taskOptions.getFormatter());
+		}
+		task.setNumCollect(limit);
+		task.optimizeQuery(limit);
 	}
 
 	private List<String> getIds() {
