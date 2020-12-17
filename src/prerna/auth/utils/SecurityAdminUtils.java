@@ -167,13 +167,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public boolean editUser(Map<String, Object> userInfo) {
-		String userId = userInfo.remove("id").toString();
-		if(userId == null || userId.toString().isEmpty()) {
-			throw new IllegalArgumentException("Must define which user we are editing");
-		}
-		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
+		String userId = userInfo.get("id") != null ? userInfo.get("id").toString() : "";
+		String username = userInfo.get("username") != null ? userInfo.get("username").toString() : "";
 		String email = userInfo.get("email") != null ? userInfo.get("email").toString() : "";
 		String password = userInfo.get("password") != null ? userInfo.get("password").toString() : "";
+		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
+		String newUserId = userInfo.get("newId") != null ? userInfo.get("newId").toString() : "";
+		String newUsername = userInfo.get("newUsername") != null ? userInfo.get("newUsername").toString() : "";
+		String newEmail = userInfo.get("newEmail") != null ? userInfo.get("newEmail").toString() : "";
+
 		// always lower case emails
 		if(email != null) {
 			email = email.toLowerCase();
@@ -181,35 +183,66 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		// cannot edit a user to match another user when native... would cause some serious issues :/
 		boolean isNative = SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE);
-		if(isNative && SecurityQueryUtils.checkUserExist(name, email)){
-			throw new IllegalArgumentException("The user name or email already exist");
+		if(!isNative) {
+			throw new IllegalArgumentException("The user is not a NATIVE user");
 		}
+		if(!SecurityQueryUtils.checkUserExist(username, email)){
+			throw new IllegalArgumentException("The user name or email does not exist");
+		}
+		
+		// validate new inputs and insert into selectors and values to use for update
+		List<IQuerySelector> selectors = new Vector<>();
+		List<Object> values = new Vector<>();
+		// check new userID
+		if(newUserId != null && !newUserId.isEmpty()) {
+			boolean userExists = SecurityQueryUtils.checkUserExist(userId);
+			if(userExists) {
+				throw new IllegalArgumentException("The user already exists");
+			}
+			selectors.add(new QueryColumnSelector("USER__ID"));
+			values.add(newUserId);
+		}
+	
 		String error = "";
-		if(email != null && !email.isEmpty()){
-			error = validEmail(email);
+		if(newEmail != null && !newEmail.isEmpty()){
+			newEmail = newEmail.toLowerCase();
+			error = validEmail(newEmail);
+			boolean userEmailExists = SecurityQueryUtils.checkUserEmailExist(newEmail);
+			if(userEmailExists) {
+				throw new IllegalArgumentException("The user email already exists");
+			}
+			selectors.add(new QueryColumnSelector("USER__EMAIL"));
+			values.add(newEmail);
+		}
+		if(newUsername != null && !newEmail.isEmpty()) {
+			boolean usernameExists = SecurityQueryUtils.checkUsernameExist(newUsername);
+			if(usernameExists) {
+				throw new IllegalArgumentException("The username already exists");
+			}
+			selectors.add(new QueryColumnSelector("USER__USERNAME"));
+			values.add(newUsername);
 		}
 		if(password != null && !password.isEmpty()){
             error += validPassword(password);
             if(error.isEmpty()){
                 String newSalt = SecurityQueryUtils.generateSalt();
-                userInfo.put("password", SecurityQueryUtils.hash(password, newSalt));
-                userInfo.put("salt", newSalt);
+    			selectors.add(new QueryColumnSelector("USER__PASSWORD"));
+    			values.add(SecurityQueryUtils.hash(password, newSalt));
+    			selectors.add(new QueryColumnSelector("USER__SALT"));
+    			values.add(newSalt);
             }
         }
+		if(name != null && !name.isEmpty()) {
+			selectors.add(new QueryColumnSelector("USER__NAME"));
+			values.add(name);
+		}
 		if(error != null && !error.isEmpty()) {
 			throw new IllegalArgumentException(error);
 		}
-		
+
 		UpdateQueryStruct qs = new UpdateQueryStruct();
 		qs.setEngine(securityDb);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", userId));
-		Set<String> keys = userInfo.keySet();
-		List<IQuerySelector> selectors = new Vector<>();
-		List<Object> values = new Vector<>();
-		for(String k : keys) {
-			selectors.add(new QueryColumnSelector("USER__" + k.toUpperCase()));
-			values.add(userInfo.get(k));
-		}
 		qs.setSelectors(selectors);
 		qs.setValues(values);
 		

@@ -979,6 +979,45 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return false;
 	}
 	
+	public static boolean checkUserEmailExist(String email){
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__EMAIL", "==", email));
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
+	public static boolean checkUsernameExist(String username){
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
 	/**
 	 * Check if the user is of the type requested
 	 * @param userId	String representing the id of the user to check
@@ -994,7 +1033,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		
 		List<String[]> ret = QueryExecutionUtility.flushRsToListOfStrArray(securityDb, qs);
 		if(!ret.isEmpty()) {
-			return Boolean.parseBoolean(ret.get(0)[0]);
+			return true;
 		}
 		return false;
 	}
