@@ -8,7 +8,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.task.options.TaskOptions;
 
-public class AudoTaskOptionsHelper {
+public class AutoTaskOptionsHelper {
 
 	public static TaskOptions getAutoOptions(SelectQueryStruct qs, String panelId, String layout) {
 		return getAutoOptions(qs, panelId, layout, null);
