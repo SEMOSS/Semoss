@@ -501,9 +501,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, layout);
 			ps.setBoolean(parameterIndex++, cacheable);
-			Clob clob = securityDb.createClob();
-			clob.setString(1, recipeGson.toJson(recipe));
-			ps.setClob(parameterIndex++, clob);
+			if(securityDb.getQueryUtil().allowClobJavaObject()) {
+				Clob clob = securityDb.createClob();
+				clob.setString(1, securityGson.toJson(recipe));
+				ps.setClob(parameterIndex++, clob);
+			} else {
+				ps.setString(parameterIndex++, securityGson.toJson(recipe));
+			}
 			ps.execute();
 			securityDb.commit();
 		} catch(SQLException e) {
@@ -558,9 +562,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, layout);
-			Clob clob = securityDb.createClob();
-			clob.setString(1, recipeGson.toJson(recipe));
-			ps.setClob(parameterIndex++, clob);
+			if(securityDb.getQueryUtil().allowClobJavaObject()) {
+				Clob clob = securityDb.createClob();
+				clob.setString(1, securityGson.toJson(recipe));
+				ps.setClob(parameterIndex++, clob);
+			} else {
+				ps.setString(parameterIndex++, securityGson.toJson(recipe));
+			}
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, engineId);
 			ps.execute();
