@@ -439,14 +439,17 @@ public class InsightPanel {
 	
 	public void setPanelView(String view) {
 		this.view = view;
-		if(this.view != null && !this.view.equals("visualization")) {
-			// null out the qs
-			// since we do not want to accidently paint over 
-			// the current display (pipeline, filter, etc.)
-			this.lastQs = null;
-			this.taskOptions = null;
-			this.layerTaskOption = null;
-		}
+		// even if the view is not visualization
+		// we will maintain the last qs / task options
+		// so the user can toggle back to visualization mode
+//		if(this.view != null && !this.view.equals("visualization")) {
+//			// null out the qs
+//			// since we do not want to accidently paint over 
+//			// the current display (pipeline, filter, etc.)
+//			this.lastQs = null;
+//			this.taskOptions = null;
+//			this.layerTaskOption = null;
+//		}
 		
 		// set the current view options
 		Map<String, String> thisViewMap = this.viewOptionsMap.get(view);

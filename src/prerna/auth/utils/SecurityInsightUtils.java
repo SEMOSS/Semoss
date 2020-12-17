@@ -3,7 +3,6 @@ package prerna.auth.utils;
 import java.sql.Clob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashMap;
@@ -409,15 +408,28 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
 		}
 		
-		String query = "UPDATE INSIGHT SET GLOBAL=" + isPublic + " WHERE ENGINEID ='" + appId + "' AND INSIGHTID='" + insightId + "';";
+		String query = "UPDATE INSIGHT SET GLOBAL=? WHERE ENGINEID=? AND INSIGHTID=?";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
-		} catch (SQLException e) {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, isPublic);
+			ps.setString(parameterIndex++, appId);
+			ps.setString(parameterIndex++, insightId);
+			ps.execute();
+			securityDb.commit();
+		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured setting this insight global");
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
-	
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
@@ -512,6 +524,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			securityDb.commit();
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 	
@@ -523,20 +543,35 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void addUserInsightCreator(User user, String engineId, String insightId) {
 		List<AuthProvider> logins = user.getLogins();
-		StringBuilder insightInsert = new StringBuilder();
-		for(AuthProvider login : logins) {
-			insightInsert.append("INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) "
-					+ "VALUES ('" + user.getAccessToken(login).getId() + "', '" + engineId + "', '" + insightId + "', " + 1 + ");");
-		}
 		
+		int ownerId = AccessPermission.OWNER.getId();
+		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) VALUES (?,?,?,?)";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(insightInsert.toString());
+			ps = securityDb.getPreparedStatement(query);
+			for(AuthProvider login : logins) {
+				String id = user.getAccessToken(login).getId();
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, id);
+				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, insightId);
+				ps.setInt(parameterIndex++, ownerId);
+				ps.addBatch();
+			}
+			ps.executeBatch();
 			securityDb.commit();
-		} catch (SQLException e) {
+		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
-	
 	
 	// TODO >>>timb: push app here on create/update
 	/**
@@ -575,6 +610,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			securityDb.commit();
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 
@@ -585,34 +628,58 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightName
 	 */
 	public static void updateInsightName(String engineId, String insightId, String insightName) {
-		LocalDateTime now = LocalDateTime.now();
-		String nowString = java.sql.Timestamp.valueOf(now).toString();
-		String query = "UPDATE INSIGHT SET INSIGHTNAME='" + insightName + "', LASTMODIFIEDON='" + nowString + "' "
-				+ "WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
+		String query = "UPDATE INSIGHT SET INSIGHTNAME=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND ENGINEID=?";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, insightName);
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
 			securityDb.commit();
-		} catch (SQLException e) {
+		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 	
 	/**
-	 * Update if an insight is cacheable
+	 * Update if an insight should be cached
 	 * @param appId
 	 * @param existingId
-	 * @param cache
+	 * @param cacheInsight
 	 */
-	public static void updateInsightCache(String engineId, String insightId, boolean cache) {
-		LocalDateTime now = LocalDateTime.now();
-		String nowString = java.sql.Timestamp.valueOf(now).toString();
-		String query = "UPDATE INSIGHT SET CACHEABLE=" + cache + ", LASTMODIFIEDON='" + nowString + "' "
-				+ "WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
+	public static void updateInsightCache(String engineId, String insightId, boolean cacheInsight) {
+		String query = "UPDATE INSIGHT SET CACHEABLE=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND ENGINEID=?";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setBoolean(parameterIndex++, cacheInsight);
+			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
 			securityDb.commit();
-		} catch (SQLException e) {
+		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 	}
 	
@@ -627,33 +694,59 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// try to do an update
 		// if nothing is updated
 		// do an insert
-		insightId = RdbmsQueryBuilder.escapeForSQLStatement(insightId);
-		engineId = RdbmsQueryBuilder.escapeForSQLStatement(engineId);
-		String query = "UPDATE INSIGHTMETA SET METAVALUE='" 
-				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
-				+ "WHERE METAKEY='description' AND INSIGHTID='" + insightId + "' AND ENGINEID='" + engineId + "'";
-		Statement stmt = null;
+
+		int updateCount = 0;
+		final String META_KEY = "description";
+		
+		String query = "UPDATE INSIGHTMETA SET METAVALUE=? WHERE METAKEY=? AND INSIGHTID=? AND ENGINEID=?";
+		PreparedStatement ps = null;
 		try {
-			stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
-			if(stmt.getUpdateCount() == 0) {
-				// need to perform an insert
-				query = securityDb.getQueryUtil().insertIntoTable("INSIGHTMETA", 
-						new String[]{"ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"}, 
-						new String[]{"varchar(255)", "varchar(255)", "varchar(255)", "clob", "int"}, 
-						new Object[]{engineId, insightId, "description", description, 0});
-				securityDb.insertData(query);
-			}
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, description);
+			ps.setString(parameterIndex++, META_KEY);
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
+			updateCount = ps.getUpdateCount();
 		} catch(SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(stmt != null) {
+			if(ps != null) {
 				try {
-					stmt.close();
+					ps.close();
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
+		
+		// no updates, insert
+		if(updateCount <= 0) {
+			try {
+				query = "INSERT INTO INSIGHTMETA (ENGINEID, INSIGHTID, METAKEY, METAVALUE, METAORDER) VALUES (?,?,?,?,?)";
+				ps = securityDb.getPreparedStatement(query);
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, insightId);
+				ps.setString(parameterIndex++, META_KEY);
+				ps.setString(parameterIndex++, description);
+				ps.setInt(parameterIndex++, 0);
+				ps.execute();
+			} catch(SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		
+		securityDb.commit();
 	}
 	
 	/**
@@ -665,31 +758,48 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void updateInsightTags(String engineId, String insightId, List<String> tags) {
 		// first do a delete
-		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY='tag' AND INSIGHTID='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		final String metaKey = "tag";
+		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND ENGINEID=?";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, metaKey);
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
 			securityDb.commit();
-		} catch (SQLException e) {
+		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		
 		// now we do the new insert with the order of the tags
 		query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA", 
 				new String[]{"ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
-		PreparedStatement ps = null;
+		ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			for(int i = 0; i < tags.size(); i++) {
 				String tag = tags.get(i);
-				ps.setString(1, engineId);
-				ps.setString(2, insightId);
-				ps.setString(3, "tag");
-				ps.setString(4, tag);
-				ps.setInt(5, i);
-				ps.addBatch();;
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, insightId);
+				ps.setString(parameterIndex++, metaKey);
+				ps.setString(parameterIndex++, tag);
+				ps.setInt(parameterIndex++, i);
+				ps.addBatch();
 			}
 			
 			ps.executeBatch();
+			securityDb.commit();
 		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -712,28 +822,44 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void updateInsightTags(String engineId, String insightId, String[] tags) {
 		// first do a delete
-		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY='tag' AND INSIGHTID='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		final String metaKey = "tag";
+		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND ENGINEID=?";
+		PreparedStatement ps = null;
 		try {
-			securityDb.insertData(query);
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, metaKey);
+			ps.setString(parameterIndex++, insightId);
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
 			securityDb.commit();
-		} catch (SQLException e) {
+		} catch(Exception e) {
 			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		
 		// now we do the new insert with the order of the tags
 		query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA", 
 				new String[]{"ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
-		PreparedStatement ps = null;
+		ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			for(int i = 0; i < tags.length; i++) {
 				String tag = tags[i];
-				ps.setString(1, engineId);
-				ps.setString(2, insightId);
-				ps.setString(3, "tag");
-				ps.setString(4, tag);
-				ps.setInt(5, i);
-				ps.addBatch();;
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, insightId);
+				ps.setString(parameterIndex++, metaKey);
+				ps.setString(parameterIndex++, tag);
+				ps.setInt(parameterIndex++, i);
+				ps.addBatch();
 			}
 			
 			ps.executeBatch();
