@@ -476,7 +476,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				insertImage(workbook, sheet, sheetId, panelId);
 				//PivotTable
 			}else if(plotType.equals("Grid") || plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
-				insertGrid(sheet.getSheetName(), panelId);
+				insertGrid(sheet.getSheetName(), panelId, sheetId);
 			}
 
 		} catch(Exception ex) {
@@ -504,12 +504,14 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			// no need to worry about creating template for data sheet
 			sheet = workbook.createSheet(sheetName + "_Data");
 			workbook.setSheetHidden(workbook.getSheetIndex(sheet), true);
-		}
-		else // create the data sheet as well
+		} else {
+			// create the data sheet as well
 			sheet = workbook.getSheet(sheetName + "_Data");
-			
-		// freeze the first row
-		sheet.createFreezePane(0, 1);
+		}
+		// since we write veriticlaly
+		// shouldn't be doing this anymore
+//		// freeze the first row
+//		sheet.createFreezePane(0, 1);
 
 		int i = 0;
 		int size = 0;
@@ -534,7 +536,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		int curSheetCol = 0;
 		int endRow = (int) sheetMap.get("rowIndex");
 		int excelRowCounter = endRow;
-				
 
 		// we need to iterate and write the headers during the first time
 		if (task.hasNext()) {
@@ -586,7 +587,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			// generate the data row
 
 			excelRow = sheet.createRow(excelRowCounter++);
-
 			Object[] dataRow = row.getValues();
 			i = 0;
 			for (; i < size; i++) {
@@ -666,6 +666,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				}
 			}
 		}
+		
+		// add an additional empty row at the end
+		// so we have some spacing between
+		excelRow = sheet.createRow(excelRowCounter++);
 
 		// Update col and row bounds for sheet
 		// this keeps track at the sheet level where to add next task
@@ -1225,7 +1229,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		return ys;
 	}
 	
-	private void insertGrid(String sheetId, String panelId) {
+	private void insertGrid(String excelSheetName, String panelId, String sheetId) {
 		//http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0 
 		//http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0  
 		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5 - this worked
@@ -1252,10 +1256,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		TableToXLSXReactor txl = new TableToXLSXReactor();
 		txl.exportMap = exportMap;
 		txl.html = html2;
-		txl.sheetName = sheetId;
+		txl.sheetName = excelSheetName;
 		String fileName = (String)exportMap.get("FILE_NAME");
 		
-		txl.processTable(sheetId, html2, fileName);
+		txl.processTable(excelSheetName, html2, fileName);
 		logger.info("Done processing grid");
 	}
 
