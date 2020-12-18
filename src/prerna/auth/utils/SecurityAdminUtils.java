@@ -196,8 +196,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		List<Object> values = new Vector<>();
 		
 		// cannot edit a user to match another user when native... would cause some serious issues :/
-		boolean isNative = SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE)
-				|| (type != null && type.equalsIgnoreCase("NATIVE"));
+		// so we will check if you are switching to a native
+		boolean isNative = false;
+		if(type != null && !type.isEmpty()) {
+			isNative = type.equalsIgnoreCase("NATIVE");
+		} else {
+			isNative = SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE);
+		}
 		if(isNative) {
 			// username and id must match for native
 			// so they should be updated together and have the same value
