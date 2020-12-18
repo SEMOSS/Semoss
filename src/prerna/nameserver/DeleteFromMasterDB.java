@@ -46,8 +46,8 @@ public class DeleteFromMasterDB {
 	// delete from enginerelation where engine in (select id from engine where enginename='Mv1')
 	// delete from engine where enginename='Mv1'
 
-	public boolean deleteEngineRDBMS(String engineName) {
-		logger.info("Removing engine from Local Master " + Utility.cleanLogString(engineName));
+	public boolean deleteEngineRDBMS(String engineId) {
+		logger.info("Removing engine from Local Master " + Utility.cleanLogString(engineId));
 		try {
 			RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			Connection conn = engine.makeConnection();
@@ -58,10 +58,10 @@ public class DeleteFromMasterDB {
 			String kvDeleteSql = "DELETE FROM kvstore WHERE k like '%" + "?" + "%PHYSICAL'";
 			for(String sql: new String[]{metaDeleteSql, relationDeleteSql, conceptDeleteSql, engineDeleteSql, kvDeleteSql}){
 				try(PreparedStatement statement = conn.prepareStatement(sql)){
-					statement.setString(1, engineName);
+					statement.setString(1, engineId);
 					statement.execute();
-				}catch(SQLException e){
-
+				} catch(SQLException e){
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 
