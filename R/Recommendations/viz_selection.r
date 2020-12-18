@@ -63,10 +63,14 @@ get_viz_choices<-function(fileroot,df1,choice=''){
 		df1<-df1[!grepl("\\$",df1$reference),]
 		r<-get_viz_choices_helper(df,df1)
 		if(choice==''){
-			if(length(r[[1]])==0){
-				out<-vector()
+			if(length(r)>0){
+				if(length(r[[1]])==0){
+					out<-vector()
+				}else{
+					out<-r[[1]]
+				}
 			}else{
-				out<-r[[1]]
+				out<-vector()
 			}
 		}else{
 			out<-build_viz(choice,r[[2]],r[[3]],r[[4]],r[[5]])
