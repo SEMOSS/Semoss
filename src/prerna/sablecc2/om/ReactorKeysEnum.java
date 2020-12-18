@@ -102,6 +102,8 @@ public enum ReactorKeysEnum {
 	NUMERIC_VALUE("numValue", 								"Numeric value to be used in the operation"),
 	NUMERIC_VALUES("numValues", 							"Numeric values to be used in the operation"),
 	OFFSET("offset", 										"Offset to add for the query results"),
+	OPERATOR("operator", 									"The operator to use for identifying this filter such as > , < = != etc. "),
+	OPERATORU("operatoru", 									"Unique operator to use for identifying this filter such as > , < = != etc. For instance this can be a = 1 AND a = 2 in which case the first = would be and.left.="),
 	OPTIONS("options", 										"Map of option values"),
 	ORNAMENTS_KEY("ornaments", 								"Panel ornaments"),
 	OVERRIDE("override", 									"Indicates if the existing value will be overridden or if a new value will be created"),
