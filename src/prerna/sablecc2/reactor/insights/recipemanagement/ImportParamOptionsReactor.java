@@ -38,8 +38,20 @@ import prerna.sablecc2.translations.ImportQueryTranslation;
 
 public class ImportParamOptionsReactor extends AbstractReactor {
 
+	public static final String PARAM_OPTIONS = "PARAM_OPTIONS";
 	@Override
 	public NounMetadata execute() {
+		
+		NounMetadata retMap = null;
+		
+		// if it is already there just return
+		Object  obj = insight.getVar(ImportParamOptionsReactor.PARAM_OPTIONS);
+		if(obj != null)
+		{
+			retMap = new NounMetadata(obj, PixelDataType.MAP);
+			return retMap;
+		}
+		
 		PixelList pixelList = this.insight.getPixelList();
 		
 		Insight tempInsight = new Insight();
@@ -77,8 +89,12 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		// TODO: potentially change this sturcture base don conversation w/ FE
 		// TODO: potentially change this sturcture base don conversation w/ FE
 		// TODO: potentially change this sturcture base don conversation w/ FE
+		
+		retMap = new NounMetadata(params, PixelDataType.MAP);
 
-		return new NounMetadata(params, PixelDataType.MAP);
+		this.insight.getVarStore().put(PARAM_OPTIONS, retMap);
+		
+		return retMap;
 	}
 	
 	private List<ParamStruct> getParamsForImport(SelectQueryStruct qs, String pixelId) {
@@ -168,36 +184,48 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			String columnName = thisStruct.getColumnName();
 			String tableName = thisStruct.getTableName();
 			String opName = thisStruct.getOperator();
-			
+			String opuName = thisStruct.getuOperator();
+			if(opuName == null)
+				opuName = opName;
 			
 
 			// get the table
-			Map <String, Map<String, List<ParamStruct>>> tableMap = null;
+			Map <String, Map<String, Map<String, List<ParamStruct>>>> tableMap = null;
 			if(columnMap.containsKey(columnName))
-				tableMap = (Map <String, Map<String, List<ParamStruct>>>) columnMap.get(columnName);
+				tableMap = (Map <String, Map<String, Map<String, List<ParamStruct>>>>) columnMap.get(columnName);
 			else
-				tableMap = new HashMap <String, Map<String, List<ParamStruct>>>();
+				tableMap = new HashMap <String, Map<String, Map<String, List<ParamStruct>>>>();
 			
 			
 			// get the operator from the table
-			Map <String, List <ParamStruct>> opMap = null;
+			Map <String, Map<String, List <ParamStruct>>> opMap = null;
 			if(tableMap.containsKey(tableName))
-				opMap = (Map <String, List<ParamStruct>>)tableMap.get(tableName);
+				opMap = (Map <String, Map<String, List <ParamStruct>>>)tableMap.get(tableName);
 			else
-				opMap = new HashMap<String, List<ParamStruct>>();
+				opMap = new HashMap<String, Map<String, List<ParamStruct>>>();
+			
+			// get the table unique operator
+			Map<String, List <ParamStruct>> opuMap = null;
+			if(opMap.containsKey(opName))
+				opuMap = (Map<String, List <ParamStruct>>)opMap.get(opName);
+			else
+				opuMap = new HashMap<String, List<ParamStruct>>();
 			
 			// get the actual paramstruct
 			List <ParamStruct> curList = null;
-			if(opMap.containsKey(opName))
-				curList = (List <ParamStruct>) opMap.get(opName);
+			if(opuMap.containsKey(opuName))
+				curList = (List <ParamStruct>) opuMap.get(opuName);
 			else
 				curList = new ArrayList<ParamStruct>();
 			
 			
+			
 			// add the paramstruct
 			curList.add(thisStruct);
+			// add the opumap
+			opuMap.put(opuName, curList);
 			// add it to the operator
-			opMap.put(opName, curList);
+			opMap.put(opName, opuMap);
 			// put the table
 			tableMap.put(tableName, opMap);
 			// put the column
