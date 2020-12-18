@@ -19,6 +19,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
+import prerna.nameserver.DeleteFromMasterDB;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -33,8 +34,8 @@ import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
 public class UploadAppReactor extends AbstractInsightReactor {
+	
 	private static final String CLASS_NAME = UploadAppReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
 
 	public UploadAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
@@ -47,10 +48,9 @@ public class UploadAppReactor extends AbstractInsightReactor {
 		int step = 1;
 		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		// check security
-		User user = null;
+		User user = this.insight.getUser();
 		boolean security = AbstractSecurityUtils.securityEnabled();
 		if (security) {
-			user = this.insight.getUser();
 			if (user == null) {
 				NounMetadata noun = new NounMetadata(
 						"User must be signed into an account in order to create or update an app",
@@ -83,6 +83,7 @@ public class UploadAppReactor extends AbstractInsightReactor {
 		String smssFileLoc = null;
 		File smssFile = null;
 		// unzip files to temp db folder
+		boolean error = false;
 		try {
 			logger.info(step + ") Unzipping app");
 			filesAdded = ZipUtils.unzip(zipFilePath, tempDbFolderPath);
@@ -110,47 +111,48 @@ public class UploadAppReactor extends AbstractInsightReactor {
 
 			// delete the files if we were unable to find the smss file
 			if (smssFileLoc == null) {
-				try {
-					FileUtils.deleteDirectory(new File(tempDbFolderPath));
-				} catch (IOException ioe) {
-					logger.error(STACKTRACE, ioe);
-				}
-				SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("Unable to find " + Constants.SEMOSS_EXTENSION + " file."));
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
+				throw new SemossPixelException("Unable to find " + Constants.SEMOSS_EXTENSION + " file", false);
 			}
-
-		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
-			try {
-				FileUtils.deleteDirectory(new File(tempDbFolderPath));
-			} catch (IOException e1) {
-				logger.error(STACKTRACE, e1);
+		} catch (SemossPixelException e) {
+			error = true;
+			throw e;
+		} catch (Exception e) {
+			error = true;
+			logger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Error occured while unzipping the files", false);
+		} finally {
+			if(error) {
+				cleanUpFolders(null, null, null, null, tempDbFolder, logger);
 			}
-			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("Unable to unzip files."));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
 		}
-		
-		logger.info(step + ") Reading smss");
-		Properties prop = Utility.loadProperties(smssFileLoc);
-		String appId = prop.getProperty(Constants.ENGINE);
-		String appName = prop.getProperty(Constants.ENGINE_ALIAS);
-		logger.info(step + ") Done");
-		step++;
 
-
-		// zip file has the smss and db folder on the same level
-		// need to move these files around
-		String oldDbFolderPath = tempDbFolder + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId);
-		File oldDbFolder = new File(Utility.normalizePath(oldDbFolderPath));
-		File newDbFolder = new File(Utility.normalizePath(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)));
-		File finalSmss = new File(Utility.normalizePath(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + Constants.SEMOSS_EXTENSION));
 		String engines = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+		String appId = null;
+		String appName = null;
+		File tempSmss = null;
+		File tempEngFolder = null;
+		File finalSmss = null;
+		File finalEngFolder = null;
+		
 		try {
+			logger.info(step + ") Reading smss");
+			Properties prop = Utility.loadProperties(smssFileLoc);
+			appId = prop.getProperty(Constants.ENGINE);
+			appName = prop.getProperty(Constants.ENGINE_ALIAS);
+			logger.info(step + ") Done");
+			step++;
+
+			// zip file has the smss and db folder on the same level
+			// need to move these files around
+			String oldDbFolderPath = tempDbFolder + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId);
+			tempEngFolder = new File(Utility.normalizePath(oldDbFolderPath));
+			finalEngFolder = new File(Utility.normalizePath(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)));
+			finalSmss = new File(Utility.normalizePath(dbFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + Constants.SEMOSS_EXTENSION));
+
 			// need to ignore file watcher
 			if (!(engines.startsWith(appId) || engines.contains(";" + appId + ";") || engines.endsWith(";" + appId))) {
-				engines = engines + ";" + appId;
+				String newEngines = engines + ";" + appId;
+				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, newEngines);
 			} else {
 				SemossPixelException exception = new SemossPixelException(
 						NounMetadata.getErrorNounMessage("App ID already exists"));
@@ -159,33 +161,55 @@ public class UploadAppReactor extends AbstractInsightReactor {
 			}
 			// move database folder
 			logger.info(step + ") Moving app folder");
-			FileUtils.copyDirectory(oldDbFolder, newDbFolder);
+			FileUtils.copyDirectory(tempEngFolder, finalEngFolder);
 			logger.info(step + ") Done");
 			step++;
 
 			// move smss file
 			logger.info(step + ") Moving smss file");
-			smssFile = new File(Utility.normalizePath(tempDbFolder + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
-			+ Constants.SEMOSS_EXTENSION));
-			FileUtils.copyFile(smssFile, finalSmss);
+			tempSmss = new File(Utility.normalizePath(tempDbFolder + DIR_SEPARATOR 
+					+ SmssUtilities.getUniqueName(appName, appId) + Constants.SEMOSS_EXTENSION));
+			FileUtils.copyFile(tempSmss, finalSmss);
 			logger.info(step + ") Done");
 			step++;
-		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+		} catch (Exception e) {
+			error = true;
+			logger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(e.getMessage(), false);
 		} finally {
-			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
-			try {
-				FileUtils.deleteDirectory(tempDbFolder);
-			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+			if(error) {
+				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempDbFolder, logger);
+			} else {
+				// just delete the temp db folder
+				cleanUpFolders(null, null, null, null, tempDbFolder, logger);
 			}
 		}
 
-		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
-		logger.info(step + ") Grabbing app structure");
-		Utility.synchronizeEngineMetadata(appId);
-		logger.info(step + ") Done");
-		SecurityUpdateUtils.addApp(appId, !AbstractSecurityUtils.securityEnabled());
+		try {
+			DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
+			logger.info(step + ") Grabbing app structure");
+			Utility.synchronizeEngineMetadata(appId);
+			logger.info(step + ") Done");
+			SecurityUpdateUtils.addApp(appId, !AbstractSecurityUtils.securityEnabled());
+		} catch(Exception e) {
+			error = true;
+			logger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Error occured trying to synchronize the metadata and insights for the zip file", false);
+		} finally {
+			if(error) {
+				// delete all the resources
+				cleanUpFolders(tempSmss, finalSmss, tempEngFolder, finalEngFolder, tempDbFolder, logger);
+				// remove from DIHelper
+				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+				// delete from local master
+				DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
+				lmDeleter.deleteEngineRDBMS(appId);
+				// delete from security
+				SecurityUpdateUtils.deleteApp(appId);
+			}
+		}
+		
 		// even if no security, just add user as engine owner
 		if (user != null) {
 			List<AuthProvider> logins = user.getLogins();
@@ -197,5 +221,54 @@ public class UploadAppReactor extends AbstractInsightReactor {
 		ClusterUtil.reactorPushApp(appId);
 
 		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), appId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);	}
+		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);	
+	}
+	
+	/**
+	 * Utility method to delete resources that have to be cleaned up
+	 * @param tempSmss
+	 * @param finalSmss
+	 * @param tempEngDir
+	 * @param finalEngDir
+	 * @param tempDbDir
+	 * @param logger
+	 */
+	private void cleanUpFolders(File tempSmss, File finalSmss, File tempEngDir, File finalEngDir, File tempDbDir, Logger logger) {
+		if(tempSmss != null && tempSmss.exists()) {
+			try {
+				FileUtils.forceDelete(tempSmss);
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+		if(finalSmss != null && finalSmss.exists()) {
+			try {
+				FileUtils.forceDelete(finalSmss);
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+		if(tempEngDir != null && tempEngDir.exists()) {
+			try {
+				FileUtils.deleteDirectory(tempEngDir);
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+		if(finalEngDir != null && finalEngDir.exists()) {
+			try {
+				FileUtils.deleteDirectory(finalEngDir);
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+		if(tempDbDir != null && tempDbDir.exists()) {
+			try {
+				FileUtils.deleteDirectory(tempDbDir);
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+	}
+
 }
