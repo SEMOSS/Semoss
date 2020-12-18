@@ -622,7 +622,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// this means it could be on the ID or the EMAIL
 		// but name is the admin_added_user constant
 		String query = "SELECT ID FROM USER WHERE "
-				+ "NAME='" + ADMIN_ADDED_USER + "' AND "
+				+ "(NAME='" + ADMIN_ADDED_USER + "' OR USERNAME='" + ADMIN_ADDED_USER + "')"
+				+ " AND "
 				// this matching the ID field to the email because admin added user only sets the id field
 				+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
 		IRawSelectWrapper wrapper = null;
@@ -651,7 +652,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					values.add(newUser.getName());
 					values.add(newUser.getUsername());
 					values.add(newUser.getEmail());
-					values.add(newUser.getProvider());
+					values.add(newUser.getProvider().toString());
 
 					uqs.setSelectors(selectors);
 					uqs.setValues(values);
@@ -784,68 +785,79 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
 		return false;
 	}
-	
+
 	/**
-	 * Adds a new user to the database. Does not create any relations, simply the node.
-	 * @param userName	String representing the name of the user to add
+ 	 * Adds a new user to the database. Does not create any relations, simply the node.
+	 * @param id
+	 * @param name
+	 * @param email
+	 * @param password
+	 * @param type
+	 * @param admin
+	 * @param publisher
+	 * @return
+	 * @throws IllegalArgumentException
 	 */
 	public static boolean registerUser(String id, String name, String email, String password, String type, boolean admin,
 			boolean publisher) throws IllegalArgumentException {
 		boolean isNewUser = SecurityQueryUtils.checkUserExist(id);
-		if(!isNewUser) {	
-			String userName = ADMIN_ADDED_USER;
-			boolean isNative = false;
-			String salt = null;
-			String hashedPassword = null;
-			if (type != null) {
-				isNative = type.toLowerCase().equals("native");
-				if (isNative) {
-					if (name != null && !name.isEmpty()) {
-						userName = id;
-						salt = SecurityQueryUtils.generateSalt();
-						hashedPassword = (SecurityQueryUtils.hash(password, salt));
-					}
-				}
-			}
-			if(userName == null) userName = "";
-			if(name == null) name = "";
-			if(email == null) email = "";
-			if(hashedPassword == null) hashedPassword = "";
-			if(salt == null) salt = "";
-			if(type == null) type = "";
-
-			String query = "INSERT INTO USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES (?,?,?,?,?,?,?,?,?)";
-			PreparedStatement ps = null;
-			try {
-				ps = securityDb.getPreparedStatement(query);
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, id);
-				ps.setString(parameterIndex++, userName);
-				ps.setString(parameterIndex++, name);
-				ps.setString(parameterIndex++, email.toLowerCase());
-				ps.setString(parameterIndex++, hashedPassword);
-				ps.setString(parameterIndex++, salt);
-				ps.setString(parameterIndex++, type);
-				ps.setBoolean(parameterIndex++, admin);
-				ps.setBoolean(parameterIndex++, publisher);
-				ps.execute();
-				securityDb.commit();
-			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(ps != null) {
-					try {
-						ps.close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-
-			return true;
-		} else {
+		if(isNewUser) {
 			return false;
 		}
+		
+		String userName = ADMIN_ADDED_USER;
+		boolean isNative = false;
+		String salt = null;
+		String hashedPassword = null;
+		if (type != null) {
+			isNative = type.toLowerCase().equals("native");
+			if (isNative) {
+				if (name != null && !name.isEmpty()) {
+					userName = id;
+					salt = SecurityQueryUtils.generateSalt();
+					hashedPassword = (SecurityQueryUtils.hash(password, salt));
+				}
+			}
+		}
+		// if username or name is null
+		// switch to admin_added_user
+		// the {@link #addOAuthUser} will fill these in when the user 
+		// logins from their provider
+		if(userName == null) userName = ADMIN_ADDED_USER;
+		if(name == null) name = ADMIN_ADDED_USER;
+		if(email == null) email = "";
+		if(hashedPassword == null) hashedPassword = "";
+		if(salt == null) salt = "";
+		if(type == null) type = "";
+
+		String query = "INSERT INTO USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES (?,?,?,?,?,?,?,?,?)";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, id);
+			ps.setString(parameterIndex++, userName);
+			ps.setString(parameterIndex++, name);
+			ps.setString(parameterIndex++, email.toLowerCase());
+			ps.setString(parameterIndex++, hashedPassword);
+			ps.setString(parameterIndex++, salt);
+			ps.setString(parameterIndex++, type);
+			ps.setBoolean(parameterIndex++, admin);
+			ps.setBoolean(parameterIndex++, publisher);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return true;
 	}
 	
 	/*

@@ -5,7 +5,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -167,49 +166,67 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public boolean editUser(Map<String, Object> userInfo) {
+		// input fields
 		String userId = userInfo.get("id") != null ? userInfo.get("id").toString() : "";
-		String username = userInfo.get("username") != null ? userInfo.get("username").toString() : "";
-		String email = userInfo.get("email") != null ? userInfo.get("email").toString() : "";
+		if(userId == null || userId.isEmpty()) {
+			throw new NullPointerException("Must provide a unique and non-empty user id");
+		}
 		String password = userInfo.get("password") != null ? userInfo.get("password").toString() : "";
 		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
-		String newUserId = userInfo.get("newId") != null ? userInfo.get("newId").toString() : "";
-		String newUsername = userInfo.get("newUsername") != null ? userInfo.get("newUsername").toString() : "";
-		String newEmail = userInfo.get("newEmail") != null ? userInfo.get("newEmail").toString() : "";
-		String adminChange = userInfo.get("admin") != null ? userInfo.get("admin").toString() : "";
-		boolean admin = false;
-		String publisherChange = userInfo.get("publisher") != null ? userInfo.get("publisher").toString() : "";
-		boolean publisher = false;
-
+		String type = userInfo.get("type") != null ? userInfo.get("type").toString() : "";
+		// modified fields
+		String newUserId = (String) userInfo.get("newId");
+		if(newUserId != null && newUserId.trim().isEmpty()) {
+			newUserId = null;
+		}
+		String newUsername = (String) userInfo.get("newUsername");
+		if(newUsername != null && newUsername.trim().isEmpty()) {
+			newUsername = null;
+		}
+		String newEmail = (String) userInfo.get("newEmail");
 		// always lower case emails
-		if(email != null) {
-			email = email.toLowerCase();
+		if(newEmail != null) {
+			newEmail = newEmail.toLowerCase();
 		}
+		Boolean adminChange = (Boolean) userInfo.get("admin");
+		Boolean publisherChange = (Boolean) userInfo.get("publisher");
 
-		// cannot edit a user to match another user when native... would cause some serious issues :/
-		boolean isNative = SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE);
-		if(!isNative) {
-			throw new IllegalArgumentException("The user is not a NATIVE user");
-		}
-		if(!SecurityQueryUtils.checkUserExist(username, email)){
-			throw new IllegalArgumentException("The user name or email does not exist");
-		}
-		
 		// validate new inputs and insert into selectors and values to use for update
 		List<IQuerySelector> selectors = new Vector<>();
 		List<Object> values = new Vector<>();
-		// check new userID
-		if(newUserId != null && !newUserId.isEmpty()) {
-			boolean userExists = SecurityQueryUtils.checkUserExist(newUserId);
-			if(userExists) {
-				throw new IllegalArgumentException("The user already exists");
+		
+		// cannot edit a user to match another user when native... would cause some serious issues :/
+		boolean isNative = SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE)
+				|| (type != null && type.equalsIgnoreCase("NATIVE"));
+		if(isNative) {
+			// username and id must match for native
+			// so they should be updated together and have the same value
+			if( !( (newUsername != null && newUserId != null) || (newUsername == null && newUserId == null) ) ){
+				throw new IllegalArgumentException("For native users, the id and the username must be updated together and have the same value");
 			}
+			if(newUserId != null && newUserId.isEmpty()) {
+				throw new IllegalArgumentException("For native users, the id and the username must be updated together and have the same value");
+			}
+			if(newUserId != null && !newUserId.equalsIgnoreCase(newUsername)) {
+				throw new IllegalArgumentException("For native users, the id and the username must be updated together and have the same value");
+			}
+		}
+		// if we are updating the user id
+		// make sure the new id does not exist
+		if(newUserId != null) {
+			if(SecurityQueryUtils.checkUserExist(newUserId)){
+				throw new IllegalArgumentException("The new user id already exists. Please enter a unique user id.");
+			}
+		}
+		
+		// check new userID
+		if(newUserId != null) {
 			selectors.add(new QueryColumnSelector("USER__ID"));
 			values.add(newUserId);
 		}
 	
 		String error = "";
 		if(newEmail != null && !newEmail.isEmpty()){
-			newEmail = newEmail.toLowerCase();
 			error = validEmail(newEmail);
 			boolean userEmailExists = SecurityQueryUtils.checkUserEmailExist(newEmail);
 			if(userEmailExists) {
@@ -240,15 +257,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			selectors.add(new QueryColumnSelector("USER__NAME"));
 			values.add(name);
 		}
-		if(adminChange != null && !adminChange.isEmpty()) {
-			admin = Boolean.parseBoolean(adminChange);
-			selectors.add(new QueryColumnSelector("USER__ADMIN"));
-			values.add(admin);
+		if(type != null && !type.isEmpty()) {
+			selectors.add(new QueryColumnSelector("USER__TYPE"));
+			values.add(type);
 		}
-		if(publisherChange != null && !publisherChange.isEmpty()) {
-			publisher = Boolean.parseBoolean(publisherChange);
+		if(adminChange != null) {
+			selectors.add(new QueryColumnSelector("USER__ADMIN"));
+			values.add(adminChange);
+		}
+		if(publisherChange != null) {
 			selectors.add(new QueryColumnSelector("USER__PUBLISHER"));
-			values.add(publisher);
+			values.add(publisherChange);
 		}
 		if(error != null && !error.isEmpty()) {
 			throw new IllegalArgumentException(error);
