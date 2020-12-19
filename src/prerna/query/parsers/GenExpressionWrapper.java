@@ -290,7 +290,7 @@ public class GenExpressionWrapper {
 			if(this.columnTableIndex.containsKey(columnName))
 				tableColumnList = columnTableIndex.get(columnName);
 
-			String tableColumnComposite = tableName + "." + columnName;
+			String tableColumnComposite = tableName + "_" + columnName;
 
 			if(!tableColumnList.contains(tableColumnComposite))
 				tableColumnList.add(tableColumnComposite);
@@ -332,6 +332,7 @@ public class GenExpressionWrapper {
 				daStruct.setuOperator(operationName);
 				daStruct.setContext(context);
 				daStruct.setContextPart(contextPart);
+				daStruct.setQuote(ParamStruct.QUOTE.SINGLE);
 				
 				// need to get the current select struct to add to this
 				
@@ -857,7 +858,39 @@ public class GenExpressionWrapper {
 		// done
 	}
 		
-		// get all the selectors
+	// get the final query 
+	public static String transformQueryWithParams(String originalQuery, List <ParamStruct> incomingStructs)
+	{
+		String retQuery = null;
+		try {
+			SqlParser2 parse2 = new SqlParser2();
+			parse2.parameterize = true;
+			
+			GenExpressionWrapper wrapper = parse2.processQuery(originalQuery);
+			//System.out.println("Before Transformation " + wrapper.root.printQS(wrapper.root, null) + "");
+			for(int paramIndex = 0;paramIndex < incomingStructs.size();paramIndex++)
+			{
+				ParamStruct thisStruct = incomingStructs.get(paramIndex);
+				String paramStructKey = thisStruct.getParamKey();
+				
+				if(wrapper.operatorTableColumnParamIndex.containsKey(paramStructKey))
+				{
+					ParamStruct targetStruct = wrapper.operatorTableColumnParamIndex.get(paramStructKey);
+					// remove this struct from the overall so it wont fill
+					wrapper.paramToExpressionMap.remove(targetStruct);
+				}
+			}
+			wrapper.fillParameters();
+			retQuery = wrapper.root.printQS(wrapper.root, null) + "";
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
+		return retQuery;
+	}
 	
 	
 

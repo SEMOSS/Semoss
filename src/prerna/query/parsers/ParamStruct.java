@@ -6,6 +6,8 @@ public class ParamStruct {
 
 	private String pixelId = null;
 	public enum FILL_TYPE {MANUAL, PIXEL}
+	public enum LEVEL {COLUMN, TABLE, OPERATOR, OPERATORU};
+	public enum QUOTE {NO, SINGLE, DOUBLE};
 	private String tableName = null;
 	private String tableAlias = null;
 	private String columnName = null;
@@ -27,6 +29,11 @@ public class ParamStruct {
 
 	private String context = null;
 	private String contextPart = null;
+	private FILL_TYPE fillType = null;
+	private LEVEL level = null;
+	private QUOTE quote = QUOTE.DOUBLE;
+	
+	
 	
 	public void setPixelId(String pixelId) {
 		this.pixelId = pixelId;
@@ -190,6 +197,8 @@ public class ParamStruct {
 	
 	
 	public String getuOperator() {
+		if(uOperator == null)
+			return operator;
 		return uOperator;
 	}
 
@@ -197,5 +206,34 @@ public class ParamStruct {
 		this.uOperator = uOperator;
 	}
 
+	public FILL_TYPE getFillType() {
+		return fillType;
+	}
+
+	public void setFillType(FILL_TYPE fillType) {
+		this.fillType = fillType;
+	}
+
+	public LEVEL getLevel() {
+		return level;
+	}
+
+	public void setLevel(LEVEL level) {
+		this.level = level;
+	}
+
+	public QUOTE getQuote() {
+		return quote;
+	}
+
+	public void setQuote(QUOTE quote) {
+		this.quote = quote;
+	}
+
+	public String getParamKey()
+	{
+		return tableName + "_" + columnName + getuOperator() ;
+	}
+	
 
 }
