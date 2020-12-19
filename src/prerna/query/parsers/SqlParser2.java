@@ -591,8 +591,8 @@ public class SqlParser2 {
 			
 			expr2.parent = (GenExpression)qs;
 			
-			wrapper.fillParameters();
-			System.out.println("Arbitrary gen expression print" + expr2.printQS(expr2,null));
+			//wrapper.fillParameters();
+			//System.out.println("Arbitrary gen expression print" + expr2.printQS(expr2,null));
 			
 			wrapper.currentOperator.pop();
 			wrapper.contextExpression.pop();
@@ -671,12 +671,12 @@ public class SqlParser2 {
 					left = wrapper.procOrder.get(operator + count);
 					if(left)
 					{
-						modifier = operator + count + ".left";
+						modifier = operator + count + "_left";
 						wrapper.procOrder.put(operator + count, false);
 						//wrapper.left = true;
 					}
 					else
-						modifier = operator + count + ".right";
+						modifier = operator + count + "_right";
 					wrapper.currentOperator.push(operator);
 				}
 				
@@ -713,7 +713,7 @@ public class SqlParser2 {
 					constantType = ((GenExpression)sqs).getOperation();
 					if(columnName != null)
 					{
-						((GenExpression)sqs).setLeftExpresion("'<" + modifier + eqExpr.getOperation().trim() + columnName + ">'");
+						((GenExpression)sqs).setLeftExpresion("'<" + tableName + "_" + columnName + modifier + eqExpr.getOperation().trim() + ">'");
 					}
 					exprToTrack = sqs;
 				}
@@ -738,7 +738,7 @@ public class SqlParser2 {
 					
 					if(columnName != null && parameterize)
 					{
-						((GenExpression)sqs2).setLeftExpresion("'<" + modifier + eqExpr.getOperation().trim() +  columnName + ">'");
+						((GenExpression)sqs2).setLeftExpresion("<" + tableName + "_" + columnName + modifier + eqExpr.getOperation().trim() + ">");
 					}
 					exprToTrack = sqs2;
 				}
@@ -863,7 +863,7 @@ public class SqlParser2 {
 				
 				if(columnName != null && parameterize)
 				{
-					startExpression.setLeftExpresion("'<" + "between.start" +  columnName + ">'");
+					startExpression.setLeftExpresion("'<" + tableName + "_" + columnName + "between.start" + ">'");
 				}
 				String compositeName = this.wrapper.makeParameters(columnName, constantValue, "between.start", "between.start",  constantType, startExpression, tableName);
 				startExpression.setLeftExpresion("'<" + compositeName + ">'");
@@ -882,7 +882,7 @@ public class SqlParser2 {
 				
 				if(columnName != null && parameterize)
 				{
-					endExpression.setLeftExpresion("'<" + "between.end" +  columnName + ">'");
+					endExpression.setLeftExpresion("'<" + tableName + "_" + columnName  + "between.end" + ">'");
 				}
 				String compositeName = this.wrapper.makeParameters(columnName, constantValue, "between.end", "between.end",  constantType, endExpression, tableName);
 				endExpression.setLeftExpresion("'<" + compositeName + ">'");
@@ -1186,7 +1186,8 @@ public class SqlParser2 {
 				
 				if(columnName != null && parameterize)
 				{
-					ge.setLeftExpr("'<" + columnName + " In" + ">'");
+					// removing the quotes for now
+					ge.setLeftExpr("(<" + tableName + "_" + columnName + "in" + ">)");
 				}
 				this.wrapper.makeParameters(columnName, constantValue, "in", "in", constantType, ge, tableName);
 
@@ -2514,11 +2515,25 @@ public class SqlParser2 {
 		// there are a couple of scenarios to model for join
 		// I have only one join easy for me to drop this - what happens to remaining stuff ?
 		// I have 2 joins 
+		String query20 = "Select Nominated, Genre, Studio, Title, MovieBudget, RevenueDomestic, RevenueInternational from Movie2 where MovieBudget = 1000 and Studio ='WB' and RevenueDomestic in (1,2,3,4)";
 
 		test.parameterize = false;
-		GenExpressionWrapper wrapper = test.processQuery(query19);
+		GenExpressionWrapper wrapper = test.processQuery(query20);
 		test.printOutput(wrapper.root);
 		GenExpression root = wrapper.root;
+		List <ParamStruct> plist = new Vector<ParamStruct>();
+		ParamStruct pStruct = new ParamStruct();
+		pStruct.setColumnName("MovieBudget");
+		pStruct.setTableName("Movie2");
+		pStruct.setuOperator("or1_left>");
+		pStruct = new ParamStruct();
+		pStruct.setColumnName("RevenueDomestic");
+		pStruct.setTableName("Movie2");
+		pStruct.setuOperator("in");
+		plist.add(pStruct);
+		String finalQuery = GenExpressionWrapper.transformQueryWithParams(query20, plist);
+		System.err.println(" transformed query ..  " + finalQuery);
+		
 		// works with Query 2
 		//Object [] output = root.printLineage(root, "Member Engagement Tier", null ,null, null, 0);
 		
