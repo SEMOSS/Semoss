@@ -42,7 +42,7 @@ public class CreateFrameReactor extends AbstractReactor {
 		String alias = this.keyValue.get(this.keysToGet[2]);
 
 		Logger logger = getLogger(CLASS_NAME);
-		if(alias == null) {
+		if(alias == null || alias.trim().isEmpty()) {
 			logger.info("Creating new frame of type = " + frameType + " with no alias");
 			alias = "";
 		} else {
