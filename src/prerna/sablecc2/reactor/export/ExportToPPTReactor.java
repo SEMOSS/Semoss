@@ -21,7 +21,6 @@ import org.apache.poi.sl.usermodel.PictureData.PictureType;
 import org.apache.poi.sl.usermodel.StrokeStyle;
 import org.apache.poi.sl.usermodel.TableCell.BorderEdge;
 import org.apache.poi.util.Units;
-import org.apache.poi.xddf.usermodel.PresetColor;
 import org.apache.poi.xddf.usermodel.XDDFColor;
 import org.apache.poi.xddf.usermodel.XDDFLineProperties;
 import org.apache.poi.xddf.usermodel.XDDFShapeProperties;
@@ -846,7 +845,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		String exportName = AbstractExportTxtReactor.getExportFileName(Utility.getRandomString(8), "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 		if(driver == null) {
-			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, sessionId, 800, 600);
+			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
 		}
 		ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId);
 		
@@ -859,7 +858,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			XSLFPictureData hslfPictureData = slideshow.addPicture(bytes, HSLFPictureData.PictureType.PNG);
 			XSLFSlide blankSlide = slideshow.createSlide();
 			XSLFPictureShape pic = blankSlide.createPicture(hslfPictureData);
-			pic.setAnchor(new Rectangle(0,0, 800,600));
+			pic.setAnchor(new Rectangle(0, 0, 800, 600));
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
