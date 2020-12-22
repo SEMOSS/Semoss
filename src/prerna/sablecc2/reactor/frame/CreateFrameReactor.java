@@ -43,12 +43,17 @@ public class CreateFrameReactor extends AbstractReactor {
 
 		Logger logger = getLogger(CLASS_NAME);
 		if(alias == null || alias.trim().isEmpty()) {
-			logger.info("Creating new frame of type = " + frameType + " with no alias");
+			logger.info("Creating new frame of type = " + frameType + " with a random alias");
 			alias = "";
 		} else {
 			// clean the alias - make alpha numeric underscore + not start with a digit
-			alias = AbstractSqlQueryUtil.cleanTableName(alias);
-			logger.info("Creating new frame of type = " + frameType + " with alias = " + alias);
+			try {
+				alias = AbstractSqlQueryUtil.cleanTableName(alias);
+				logger.info("Creating new frame of type = " + frameType + " with alias = " + alias);
+			} catch(Exception e) {
+				alias = "";
+				logger.info("Invalid alias - creating new frame of type = " + frameType + " with a random alias");
+			}
 		}
 		ITableDataFrame newFrame = null;
 		try {
