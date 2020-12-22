@@ -174,7 +174,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 				String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			 
 				if(driver == null)
-					driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, sessionId, height, width);
+					driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, height, width);
 				// download this file
 				ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId);
 				//driver = ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800, 600, false);
@@ -196,7 +196,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			   if(shapeIndex == -1)
 			   {
 				   XSLFPictureShape pic = blankSlide.createPicture(hslfPictureData);
-				   pic.setAnchor(new Rectangle(0,0, height,width));
+				   pic.setAnchor(new Rectangle(0, 0, height, width));
 			   }			   			   
 			   else
 			   {

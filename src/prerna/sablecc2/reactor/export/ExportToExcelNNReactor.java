@@ -165,8 +165,9 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 					String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "png");
 					String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 
-					if(driver == null)
-						driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, sessionId, 800, 600);
+					if(driver == null) {
+						driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
+					}
 					// download this file
 					ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId);
 
