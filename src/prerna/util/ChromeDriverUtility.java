@@ -2,7 +2,6 @@ package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
@@ -13,10 +12,6 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.FluentWait;
-import org.openqa.selenium.support.ui.Wait;
-import org.openqa.selenium.support.ui.WebDriverWait;
 
 import prerna.test.TestUtilityMethods;
 
@@ -32,8 +27,7 @@ public class ChromeDriverUtility {
 		captureImage(feUrl, url, imagePath, sessionId, 1920, 1080, true);
 	}
 	
-	public static ChromeDriver makeChromeDriver(String feUrl, String url,String sessionI, int height, int width)
-	{
+	public static ChromeDriver makeChromeDriver(String feUrl, String url, int height, int width) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String os = System.getProperty("os.name").toUpperCase();
 		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
@@ -90,9 +84,9 @@ public class ChromeDriverUtility {
 
 
 		if(sessionId != null && ChromeDriverUtility.sessionCookie != null) {
-			// name, value, domain, path, expiration, secure, http only
-//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
-			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+			// name, value, domain, path, expiration
+			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
+//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
 			driver.manage().addCookie(name);
 		}
 		
@@ -142,7 +136,12 @@ public class ChromeDriverUtility {
 		if(sessionId != null && ChromeDriverUtility.sessionCookie != null) {
 			// name, value, domain, path, expiration, secure, http only
 //			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
-			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+			String domain = feUrl;
+			if(domain.endsWith("/#!/")) {
+				domain = domain.replace("/#!/", "");
+			}
+			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, domain, "/", null);
 			driver.manage().addCookie(name);
 		}
 		
@@ -255,11 +254,9 @@ public class ChromeDriverUtility {
 		ChromeDriverUtility.sessionCookie = sessionCookie;
 	}
 	
-	public static void main(String [] args) 
-	{
-	
+	public static void main(String [] args) {
 		TestUtilityMethods.loadDIHelper();
-		ChromeDriver driver = ChromeDriverUtility.makeChromeDriver("https://www.buzzfeed.com/hbraga/best-gifts-2020", "https://www.buzzfeed.com/hbraga/best-gifts-2020", null, 30, 40);
+		ChromeDriver driver = ChromeDriverUtility.makeChromeDriver("https://www.buzzfeed.com/hbraga/best-gifts-2020", "https://www.buzzfeed.com/hbraga/best-gifts-2020", 30, 40);
 		driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
 		String eTitle = "Demo Guru99 Page";
 		String aTitle = "" ;
@@ -272,12 +269,6 @@ public class ChromeDriverUtility {
 		aTitle = driver.getTitle();
 		//compare the actual title with the expected title
 		System.out.println("Title is " + aTitle);
-		
-		
-		
-		
-		
 	}
-	
 	
 }
