@@ -133,6 +133,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.om.AppAvailabilityStore;
+import prerna.om.IStringExportProcessor;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.task.ITask;
@@ -2866,7 +2867,7 @@ public class Utility {
 		*/
 
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it,
-			Map<String, SemossDataType> typesMap, String seperator) {
+			Map<String, SemossDataType> typesMap, String seperator, IStringExportProcessor... exportProcessors) {
 		long start = System.currentTimeMillis();
 
 		// make sure file is empty so we are only inserting the new values
@@ -2937,7 +2938,13 @@ public class Utility {
 						if(dataRow[i] == null) {
 							builder.append("\"\"");
 						} else {
-							builder.append("\"").append(dataRow[i]).append("\"");
+							String thisStringVal = dataRow[i] + "";
+							if(exportProcessors != null) {
+								for(IStringExportProcessor process : exportProcessors) {
+									thisStringVal = process.processString(thisStringVal);
+								}
+							}
+							builder.append("\"").append(thisStringVal).append("\"");
 						}
 					} else {
 						// print out null
@@ -2985,7 +2992,13 @@ public class Utility {
 						if(dataRow[i] == null) {
 							builder.append("\"\"");
 						} else {
-							builder.append("\"").append(dataRow[i]).append("\"");
+							String thisStringVal = dataRow[i] + "";
+							if(exportProcessors != null) {
+								for(IStringExportProcessor process : exportProcessors) {
+									thisStringVal = process.processString(thisStringVal);
+								}
+							}
+							builder.append("\"").append(thisStringVal).append("\"");
 						}
 					} else {
 						// print out null
