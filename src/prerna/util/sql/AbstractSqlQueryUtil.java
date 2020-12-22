@@ -382,6 +382,9 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public static String cleanTableName(String tableName) {
 		tableName = Utility.makeAlphaNumeric(tableName);
+		if(tableName.isEmpty()) {
+			throw new IllegalArgumentException("After removing unallowed special characters, the table name is empty");
+		}
 		if(Character.isDigit(tableName.charAt(0))) {
 			tableName = "_" + tableName;
 		}
