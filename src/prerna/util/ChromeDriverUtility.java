@@ -136,12 +136,12 @@ public class ChromeDriverUtility {
 		if(sessionId != null && ChromeDriverUtility.sessionCookie != null) {
 			// name, value, domain, path, expiration, secure, http only
 //			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
-//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
-			String domain = feUrl;
-			if(domain.endsWith("/#!/")) {
-				domain = domain.replace("/#!/", "");
-			}
-			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, domain, "/", null);
+			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+//			String domain = feUrl;
+//			if(domain.endsWith("/#!/")) {
+//				domain = domain.replace("/#!/", "");
+//			}
+//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, domain, "/", null);
 			driver.manage().addCookie(name);
 		}
 		
