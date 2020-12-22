@@ -1238,7 +1238,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&sheet=" + sheetId + "&panel=" + panelId;
 		logger.info("Generating grid at " + htmlUrl);
 		if(driver == null) {
-			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl, sessionId, 800, 600);
+			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl,  800, 600);
 		}
 		logger.info("Generating grid view");
 		ChromeDriverUtility.captureDataPersistent(driver, baseUrl, htmlUrl, sessionId);
@@ -1282,7 +1282,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
 		if(driver == null) {
-			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, sessionId, 800, 600);
+			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
 		}
 		// download this file
 		ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId);
