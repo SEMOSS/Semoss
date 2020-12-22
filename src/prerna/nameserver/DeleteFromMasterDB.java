@@ -51,7 +51,7 @@ public class DeleteFromMasterDB {
 		try {
 			RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			Connection conn = engine.makeConnection();
-			String metaDeleteSql = "DELETE FROM conceptmetadata WHERE physicalnameid in (SELECT physicalnameid FROM engineconcept WHERE engine = ?";
+			String metaDeleteSql = "DELETE FROM conceptmetadata WHERE physicalnameid in (SELECT physicalnameid FROM engineconcept WHERE engine = ?)";
 			String relationDeleteSql = "DELETE FROM enginerelation WHERE engine = ?";
 			String conceptDeleteSql = "DELETE FROM engineconcept WHERE engine = ?";
 			String engineDeleteSql = "DELETE FROM engine WHERE id = ?";
