@@ -55,14 +55,20 @@ public class DeleteFromMasterDB {
 			String relationDeleteSql = "DELETE FROM enginerelation WHERE engine = ?";
 			String conceptDeleteSql = "DELETE FROM engineconcept WHERE engine = ?";
 			String engineDeleteSql = "DELETE FROM engine WHERE id = ?";
-			String kvDeleteSql = "DELETE FROM kvstore WHERE k like '%" + "?" + "%PHYSICAL'";
-			for(String sql: new String[]{metaDeleteSql, relationDeleteSql, conceptDeleteSql, engineDeleteSql, kvDeleteSql}){
+			for(String sql: new String[]{metaDeleteSql, relationDeleteSql, conceptDeleteSql, engineDeleteSql}){
 				try(PreparedStatement statement = conn.prepareStatement(sql)){
 					statement.setString(1, engineId);
 					statement.execute();
 				} catch(SQLException e){
 					logger.error(Constants.STACKTRACE, e);
 				}
+			}
+			// prepared statement doesn't work when this has a ?
+			String kvDeleteSql = "DELETE FROM kvstore WHERE k like '%" + engineId + "%PHYSICAL'";
+			try(PreparedStatement statement = conn.prepareStatement(kvDeleteSql)){
+				statement.execute();
+			} catch(SQLException e){
+				logger.error(Constants.STACKTRACE, e);
 			}
 
 //			String metaDelete = "delete from conceptmetadata where physicalnameid in (select physicalnameid from engineconcept where engine ='" + engineName +"')";
