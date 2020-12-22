@@ -20,6 +20,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.IStringExportProcessor;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.RInterpreter;
@@ -166,7 +167,13 @@ public class RFrameBuilder {
 			// get the fread() notation for that csv file
 			// and read it back in
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
-			File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
+			File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t", new IStringExportProcessor() {
+				// for fread - we need to replace all inner quotes with ""
+				@Override
+				public String processString(String input) {
+					return input.replace("\"", "\"\"");
+				}
+			});
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, newFile.getAbsolutePath(), "\\t");
 			evalR(loadFileRScript);
 			newFile.delete();
