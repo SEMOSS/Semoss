@@ -38,7 +38,7 @@ import prerna.util.Utility;
 
 public class RInterpreter extends AbstractQueryInterpreter {
 
-	private static final Logger logger = LogManager.getLogger(RInterpreter.class.getName());
+	private static final Logger logger = LogManager.getLogger(RInterpreter.class);
 	
 	private String dataTableName = null;
 	private Map<String, SemossDataType> colDataTypes;
@@ -774,13 +774,17 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			if(useStringForType) {
 				formatDataType = SemossDataType.STRING;
 			}
+			String additionalTimestampParameter = null;
+			if(formatDataType == SemossDataType.TIMESTAMP) {
+				additionalTimestampParameter = "tz(" + leftSelectorExpression + ")";
+			}
 			if(objects.size() > 1) {
 				multi = true;
-				myFilterFormatted = RSyntaxHelper.createRColVec(objects, formatDataType);
+				myFilterFormatted = RSyntaxHelper.createRColVec(objects, formatDataType, additionalTimestampParameter);
 			} else {
 				// dont bother doing this if we have a date
 				// since we cannot use "in" with dates
-				myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), formatDataType);
+				myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), formatDataType, additionalTimestampParameter);
 			}
 			
 			// account for bad input
@@ -803,11 +807,11 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			if(multi) {
 				// special processing for date types
 				int size = objects.size();
-				if(SemossDataType.DATE == leftDataType) {
+				if(SemossDataType.DATE == leftDataType || SemossDataType.TIMESTAMP == leftDataType ) {
 					if(thisComparator.equals("==")) {
 						filterBuilder.append("(");
 						for (int i = 0; i < size; i++) {
-							filterBuilder.append(leftSelectorExpression).append(" == ").append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+							filterBuilder.append(leftSelectorExpression).append(" == ").append(RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType, additionalTimestampParameter));
 							if ((i+1) < size) {
 								filterBuilder.append(" | ");
 							}
@@ -816,7 +820,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
 						filterBuilder.append("(");
 						for (int i = 0; i < size; i++) {
-							filterBuilder.append(leftSelectorExpression).append(" != ").append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+							filterBuilder.append(leftSelectorExpression).append(" != ").append(RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType, additionalTimestampParameter));
 							if ((i+1) < size) {
 								filterBuilder.append(" & ");
 							}
@@ -824,7 +828,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 						filterBuilder.append(")");
 					} else {
 						// this will probably break...
-						myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE);
+						myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), leftDataType, additionalTimestampParameter);
 						filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
 					}
 				} 
@@ -843,7 +847,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 						if(SemossDataType.STRING == leftDataType) {
 							for (int i = 0; i < size; i++) {
 								String expression = rFunction + "( tolower(" + leftSelectorExpression + ")," 
-										+ RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType) + ")";
+										+ RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType, null) + ")";
 								filterBuilder.append(expression);
 								if ((i+1) < size) {
 									filterBuilder.append(" | ");
@@ -852,7 +856,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 						} else {
 							for (int i = 0; i < size; i++) {
 								String expression = rFunction + "( tolower(as.character(" + leftSelectorExpression + "))," 
-										+ RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType) + ")";
+										+ RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType, null) + ")";
 								filterBuilder.append(expression);
 								if ((i+1) < size) {
 									filterBuilder.append(" | ");
@@ -865,7 +869,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 						
 						if(SemossDataType.STRING == leftDataType) {
 							for (int i = 0; i < size; i++) {
-								String expression = "!" + rFunction + "( tolower(" + leftSelectorExpression + ")," + RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType) + ")";
+								String expression = "!" + rFunction + "( tolower(" + leftSelectorExpression + ")," + RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType, null) + ")";
 								filterBuilder.append(expression);
 								if ((i+1) < size) {
 									filterBuilder.append(" | ");
@@ -873,7 +877,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 							}
 						} else {
 							for (int i = 0; i < size; i++) {
-								String expression = "!" + rFunction + "( tolower(as.character(" + leftSelectorExpression + "))," + RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType) + ")";
+								String expression = "!" + rFunction + "( tolower(as.character(" + leftSelectorExpression + "))," + RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType, null) + ")";
 								filterBuilder.append(expression);
 								if ((i+1) < size) {
 									filterBuilder.append(" | ");
@@ -890,7 +894,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 							for (int i = 0; i < size; i++) {
 								filterBuilder.append(startFilter).append("tolower(").append(leftSelectorExpression)
 									.append(") %like% tolower(")
-									.append(RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType))
+									.append(RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType, null))
 									.append(")")
 									.append(endFilter);
 								if ((i+1) < size) {
@@ -901,7 +905,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 							for (int i = 0; i < size; i++) {
 								filterBuilder.append(startFilter).append("tolower(as.character(").append(leftSelectorExpression)
 									.append(")) %like% tolower(")
-									.append(RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType))
+									.append(RSyntaxHelper.formatFilterValue(objects.get(i), leftDataType, null))
 									.append(")")
 									.append(endFilter);
 								if ((i+1) < size) {
@@ -1069,7 +1073,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				//TODO: should not always use STRING as the data type
 				String randomSortMatchVar = "cSort_" + Utility.getRandomString(6);
 				customSortArray.append(randomSortMatchVar).append(" <- ")
-					.append(RSyntaxHelper.createRColVec(customSort.getCustomOrder(), SemossDataType.STRING)).append(";");
+					.append(RSyntaxHelper.createRColVec(customSort.getCustomOrder(), SemossDataType.STRING, null)).append(";");
 				
 				builderOrdering.append("match(").append(tempTableName).append("$").append(orderByName)
 					.append(" , ").append(randomSortMatchVar).append(")");;
