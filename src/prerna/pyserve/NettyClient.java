@@ -20,6 +20,7 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 public class NettyClient implements Runnable{
 
 	ChannelFuture f = null;
+	EventLoopGroup group = null;
 	public ChannelHandlerContext ctx = null;
     static final int SIZE = Integer.parseInt(System.getProperty("size", "256"));
     Object lock = new Object();
@@ -36,13 +37,21 @@ public class NettyClient implements Runnable{
     	this.PORT = PORT;
     	this.ssl = SSL;
     }
+    
+    public ChannelFuture disconnect()
+    {
+    	    ChannelFuture channelFuture = f.channel().close().awaitUninterruptibly();
+    	    //you have to close eventLoopGroup as well
+    	    group.shutdownGracefully();
+    	    return channelFuture;
+    }
 
     public void run()	
     {
         // Configure SSL.git
     	boolean connected = false;
     	int attempt = 1;
-    	while(!connected && attempt < 6)
+    	while(!connected && attempt < 6) // I do an attempt here too hmm.. 
     	{
 	    	try
 	    	{
@@ -55,7 +64,7 @@ public class NettyClient implements Runnable{
 		        }
 		
 		        // Configure the client.
-		        EventLoopGroup group = new NioEventLoopGroup();
+		        group = new NioEventLoopGroup();
 		        ChannelPipeline p = null;
 		        NettyClient nc = new NettyClient();
 		        TCPChannelInitializer nci = new TCPChannelInitializer();
@@ -82,11 +91,14 @@ public class NettyClient implements Runnable{
 	    	}catch(Exception ex)
 	    	{
 	    		attempt++;
+	    		
 	    		System.err.println("Attempting Number " + attempt);
 	    		// see if sleeping helps ?
 	    		try
 	    		{
-	    			Thread.sleep(attempt * 1000);
+	    			// sleeping only for 1 second here
+	    			// but the py executor sleeps in 2 second increments
+	    			Thread.sleep(attempt*200);
 	    		}catch(Exception ex2)
 	    		{
 	    			
@@ -107,18 +119,22 @@ public class NettyClient implements Runnable{
     public Object executeCommand(String command)
     {
     	int attempt = 1;
+    	// not sure if this is required anymore
+    	// this is already done in the user
+    	
     	while(ctx == null && attempt < 6)
     	{
+    		System.err.println("Python not yet available.. will sleep" + attempt);
     		try
     		{
-    			Thread.sleep(attempt * 1000);
+    			Thread.sleep(attempt * 500);
     			attempt++;
     		}catch(Exception ignored)
     		{
     			
     		}
     	}
-    	if(ctx == null)
+    	if(ctx == null)// need a way to kill this thread as well
     		return "Connection failed to get the context.!! ";
     		
     	TCPCommandeer tc = new TCPCommandeer();
@@ -128,6 +144,7 @@ public class NettyClient implements Runnable{
     	Thread t = new Thread(tc);
     	response = null;
 
+    	
     	synchronized(lock)
     	{
     		try
@@ -136,8 +153,7 @@ public class NettyClient implements Runnable{
     	    	boolean done = false;
     	    	while(!done) //attempt < 6)
     	    	{
-    	    		System.out.print("*");
-	    			lock.wait();
+	    			lock.wait(); // this waits indefeinitely
 	    			//System.out.println("Object that came " + response);
 	    			if(response != null)
 	    			{

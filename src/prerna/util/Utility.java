@@ -86,6 +86,7 @@ import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -3254,6 +3255,7 @@ public class Utility {
 
 				// ClassInfoList classes =
 				// sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+				
 				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
 
 				Map<String, Class> reactors = new HashMap<>();
@@ -3498,7 +3500,10 @@ public class Utility {
 			if (java == null) {
 				java = DIHelper.getInstance().getProperty("JAVA_HOME");
 			}
-			java = java + "/bin/java";
+			if(!java.endsWith("bin")) //seems like for graal
+				java = java + "/bin/java";
+			else
+				java = java + "/java";
 			// account for spaces in the path to java
 			if (java.contains(" ")) {
 				java = "\"" + java + "\"";
@@ -3597,6 +3602,7 @@ public class Utility {
 		if (osName.indexOf("win") >= 0) {
 			commandsStarter = new String[1];
 			commandsStarter[0] = dir + "/starter.bat";
+			starter = dir + "/starter.bat";
 		}
 		if (osName.indexOf("win") < 0) {
 			commandsStarter =  new String[2];
@@ -3611,10 +3617,7 @@ public class Utility {
 				baos.write(commands[cmdIndex].getBytes());
 				baos.write("  ".getBytes());
 			}
-			FileOutputStream fos = new FileOutputStream(starterFile);
-			baos.writeTo(fos);
-			baos.close();
-			fos.close();
+			FileUtils.writeByteArrayToFile(starterFile, baos.toByteArray());
 
 			// chmod in case.. who knows
 			if (osName.indexOf("win") < 0) {
