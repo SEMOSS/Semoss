@@ -37,7 +37,7 @@ import prerna.util.DIHelper;
 public class TCPPyWorker 
 {
 	
-	// basically a process which works by looking for commands in file space
+	// basically a process which works by looking for commands in TCP space
 	private static final String CLASS_NAME = TCPPyWorker.class.getName();
 
 	List <String> commandList = new ArrayList<String>(); // this is giving the file name and that too relative
@@ -79,8 +79,8 @@ public class TCPPyWorker
 		if(args == null || args.length == 0)
 		{
 			args = new String[3];
-			args[0] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
-			args[1] = "c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_MAP_Web.prop";
+			args[0] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/InsightCache/a4812715613094528081";
+			args[1] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/RDF_MAP.prop";
 			args[2] = "8007";
 		}
 		
@@ -126,7 +126,6 @@ public class TCPPyWorker
 			e.printStackTrace();
 		}
 		worker.mainFolder = args[0];
-		worker.startPyExecutor();
 		worker.bootServer(Integer.parseInt(args[2]));
 	}
 	
@@ -135,16 +134,22 @@ public class TCPPyWorker
 		if(this.pt== null)
 		{
 			pt = new PyExecutorThread();
+			//pt.getJep();
 			pt.start();
+			
+			
 			while(!pt.isAlive())
 			{
 				try {
-					Thread.sleep(2000);
+					// sleep until we get the py
+					Thread.sleep(200);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
+			
+			
 			LOGGER.info("PyThread Started");
 		}
 	}
@@ -168,8 +173,8 @@ public class TCPPyWorker
             b.group(bossGroup, workerGroup)
              .channel(NioServerSocketChannel.class)
              .option(ChannelOption.SO_BACKLOG, 100)
-             .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, (1024*1024))
-             .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, (512*1024))
+//             .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, (1024*1024))
+//             .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, (512*1024))
              .handler(new LoggingHandler(LogLevel.INFO))
              .childHandler(new ChannelInitializer<SocketChannel>() {
                  @Override
@@ -184,17 +189,23 @@ public class TCPPyWorker
                      tsh.setPyExecutorThread(pt);
                      tsh.setMainFolder(mainFolder);
                      p
-                     .addLast(new LengthFieldPrepender(4))
+                     //.addLast(new LengthFieldPrepender(4))
                      .addLast(tsh);
                  }
              });
+            // start python thread
+    		startPyExecutor();
 
+            
             // Start the server.
             ChannelFuture f = b.bind(PORT).sync();
             LOGGER.info("Listening on port " + PORT);
             LOGGER.info("set watermarks");
             // Wait until the server socket is closed.
             f.channel().closeFuture().sync();
+        }catch (IOException ex)
+        {
+        	LOGGER.debug("Connection Closed ");
         }catch(Exception ex)
         {
         	LOGGER.debug(ex);
