@@ -88,11 +88,12 @@ public class RSyntaxHelper {
 	
 	/**
 	 * Convert a r vector from a java vector
-	 * @param row				The object[] to convert
-	 * @param dataType			The data type for each entry in the object[]
-	 * @return					String containing the equivalent r column vector
+	 * @param row					The object[] to convert
+	 * @param dataType				The data type for each entry in the object[]
+	 * @param additionalParameter	Useful on timestamp where we need to define the timezone, tz()
+	 * @return						String containing the equivalent r column vector
 	 */
-	public static String createRColVec(List<Object> row, SemossDataType dataType) {
+	public static String createRColVec(List<Object> row, SemossDataType dataType, String additionalParameter) {
         DecimalFormat decimalFormat = null;
 		StringBuilder str = new StringBuilder("c(");
 		int i = 0;
@@ -114,7 +115,12 @@ public class RSyntaxHelper {
 			} else if(SemossDataType.DATE == dataType) {
 				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d')");
 			} else if(SemossDataType.TIMESTAMP == dataType) {
-				str.append("as.POSIXct(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d %H:%M:%S')");
+				if(additionalParameter != null && !additionalParameter.isEmpty()) {
+					str.append("as.POSIXct(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d %H:%M:%S', ")
+						.append(additionalParameter).append(")");
+				} else {
+					str.append("as.POSIXct(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d %H:%M:%S')");
+				}
 			} else {
 				// just in case this is not defined yet...
 				// see the type of the value and add it in based on that
@@ -851,7 +857,14 @@ public class RSyntaxHelper {
 		return rsb.toString();
 	}
 	
-	public static String formatFilterValue(Object value, SemossDataType dataType) {
+	/**
+	 * 
+	 * @param value
+	 * @param dataType
+	 * @param additionalParameter
+	 * @return
+	 */
+	public static String formatFilterValue(Object value, SemossDataType dataType, String additionalParameter) {
         DecimalFormat decimalFormat = null;
 		if(SemossDataType.STRING == dataType || SemossDataType.FACTOR == dataType) {
 			return "\"" + value + "\"";
@@ -866,7 +879,11 @@ public class RSyntaxHelper {
 		} else if(SemossDataType.DATE == dataType) {
 			return "as.Date(\"" + value.toString() + "\", format='%Y-%m-%d')";
 		} else if(SemossDataType.TIMESTAMP == dataType) {
-			return "as.POSIXct(\"" + value.toString() + "\", format='%Y-%m-%d %H:%M:%S')";
+			if(additionalParameter != null && !additionalParameter.isEmpty()) {
+				return "as.POSIXct(\"" + value.toString() + "\", format='%Y-%m-%d %H:%M:%S', " + additionalParameter + ")";
+			} else {
+				return "as.POSIXct(\"" + value.toString() + "\", format='%Y-%m-%d %H:%M:%S')";
+			}
 		} else {
 			// just in case this is not defined yet...
 			// see the type of the value and add it in based on that

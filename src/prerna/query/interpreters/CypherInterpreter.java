@@ -608,7 +608,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 						filterBuilder.append("(");
 						for (int i = 0; i < size; i++) {
 							filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" = ")
-									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE, null));
 							if ((i + 1) < size) {
 								filterBuilder.append(" OR ");
 							}
@@ -618,7 +618,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 						filterBuilder.append("(");
 						for (int i = 0; i < size; i++) {
 							filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" != ")
-									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE, null));
 							if ((i + 1) < size) {
 								filterBuilder.append(" AND ");
 							}
@@ -626,7 +626,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 						filterBuilder.append(")");
 					} else {
 						// this will probably break...
-						myFilterFormatted.append(RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE));
+						myFilterFormatted.append(RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE, null));
 						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" ")
 								.append(thisComparator).append(myFilterFormatted);
 					}
