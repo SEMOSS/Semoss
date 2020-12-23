@@ -19,6 +19,7 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
 	String inputSoFar = new String();
 	
 	String endChar = "<o>";
+	ByteBuf buf = null;
 	
 	PyExecutorThread pt = null;
 	String mainFolder = null;
@@ -40,8 +41,11 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
 		this.LOGGER = LOGGER;
 	}
 
+
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
+    	
+    	LOGGER.info(".");
     	
     	try {
 			ByteBuf in = (ByteBuf) msg;
@@ -54,69 +58,53 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
 			String command = new String(bytes);
 			
 			inputSoFar = inputSoFar + command;
-			if(inputSoFar.endsWith(endChar))
+			
+			byte [] output = null;
 			{
-				inputSoFar = inputSoFar.replace(endChar, "");
-				if(inputSoFar.contains("CLOSE_ALL_LOGOUT"))
+				if(inputSoFar.endsWith(endChar))
 				{
-					LOGGER.info("Closing all comms.. processing logout");
-		
-					pt.keepAlive = false;
-					processCommand("'logout now'"); // this should trigger it and kill it
-					
-					ctx.channel().close();
-					ctx.channel().parent().close();
-					
-					// stop the logger
-					//LogManager.resetConfiguration();
-					
-					FileUtils.deleteDirectory(new File(mainFolder));
-				}
-				else
-				{
-					// execute the command
-					Object retObject = processCommand(inputSoFar);
-					
-					if(retObject == null)
+					inputSoFar = inputSoFar.replace(endChar, "");
+					if(inputSoFar.contains("CLOSE_ALL_LOGOUT"))
 					{
-						LOGGER.debug("output.. [" + retObject + "]" + "for command" + command);
-						retObject = "";
+						LOGGER.info("Closing all comms.. processing logout");
+			
+						pt.keepAlive = false;
+						processCommand("'logout now'"); // this should trigger it and kill it
+						
+						ctx.channel().close();
+						ctx.channel().parent().close();
+						
+						// stop the logger
+						//LogManager.resetConfiguration();
+						
+						FileUtils.deleteDirectory(new File(mainFolder));
 					}
 					else
-						LOGGER.info("Got the result");
-					Object [] outputObj = new Object[2];
-					outputObj[0] = inputSoFar;
-					outputObj[1] = retObject;
-					
-					// write it back
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					
-					// FST
-					
-					FSTObjectOutput fo = new FSTObjectOutput(baos);
-					fo.writeObject(outputObj);
-					fo.close();
-					
-					// Java Object
-					/*
-					ObjectOutputStream oos = new ObjectOutputStream(baos);
-					oos.writeObject(outputObj);
-					//oos.writeChars("<o>");
-					oos.flush();
-					oos.close();
-					*/
-					
-					byte [] output = baos.toByteArray();
-					
-					ByteBuf buff = Unpooled.buffer(output.length);
-					buff.writeBytes(output);
-		
-					ctx.writeAndFlush(buff);
-					ctx.flush();
-					inputSoFar = "";
-					LOGGER.info("Result Flushed");
-
+					{
+						// execute the command
+						Object retObject = processCommand(inputSoFar);
+						
+						if(retObject == null)
+						{
+							LOGGER.debug("output.. [" + retObject + "]" + "for command" + command);
+							retObject = "";
+						}
+						else
+							LOGGER.info("Got the result");
+						output = marshalOutput(inputSoFar, retObject);
+					}
 				}
+			}
+				
+			if(output != null)
+			{
+				ByteBuf buff = Unpooled.buffer(output.length);
+				buff.writeBytes(output);
+	
+				ctx.writeAndFlush(buff);
+				ctx.flush();
+				inputSoFar = "";
+				LOGGER.info("Result Flushed");
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -128,6 +116,7 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
     
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) {
+    	//processData(ctx);
         ctx.flush();
     }
 
@@ -149,7 +138,7 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
 		synchronized(monitor) {
 			try {
 				monitor.notify();
-				monitor.wait(4000);
+				monitor.wait(4000); // need a better way.. what happens if it takes more than 4000 seconds ?
 				response = this.pt.response.get(command);
 			} catch (Exception ex) {
 				LOGGER.debug(ex);
@@ -158,4 +147,54 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
 		}
 		return response;
     }
+    
+    
+    // try methods - not used
+    
+    //@Override
+    public void channelRead2(ChannelHandlerContext cts, Object msg)
+    {
+		ByteBuf in = (ByteBuf)msg;
+		if(buf == null)
+		{
+			//System.err.print("." + in.readableBytes());
+			buf = in.copy();
+		}
+		else		
+		{
+			int curLen = buf.capacity();
+			int inLen = in.readableBytes();
+			int newLen = curLen + inLen;
+			//System.err.print("." + inLen + "+" + curLen);
+			buf = buf.capacity(newLen);
+			in.getBytes(0, buf, curLen, in.readableBytes());
+		}
+		in.release();
+    }
+    
+    public byte [] marshalOutput(String input, Object output)
+    {
+		try {
+			Object [] outputObj = new Object[2];
+			outputObj[0] = inputSoFar;
+			outputObj[1] = output;
+			
+			// write it back
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			
+			// FST
+			
+			FSTObjectOutput fo = new FSTObjectOutput(baos);
+			fo.writeObject(outputObj);
+			fo.close();
+			
+			return baos.toByteArray();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+    }    
+
+
 }

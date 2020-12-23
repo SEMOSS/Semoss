@@ -617,37 +617,30 @@ public class User extends AbstractValueObject implements Serializable {
 					// check to see if the py translator needs to be set ?
 					// check to see if the py translator needs to be set ?
 					else if (useFilePy) {
-						if (useTCP) {
+						if (useTCP) 
+						{
 							port = DIHelper.getInstance().getProperty("FORCE_PORT"); // this means someone has
 																							// started it for debug
-							if (port == null) {
-								port = Utility.findOpenPort();
+							if (port == null) // port has not been forced
+							{
+									port = Utility.findOpenPort();
 								if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
 									pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
 								} else {
 								pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 								}
 								pyTupleSpace = PyUtils.getInstance().startPyServe(this, pyTupleSpace, port);
-								NettyClient nc = new NettyClient();
-								nc.connect("127.0.0.1", Integer.parseInt(port), false);
-								//nc.run();
-								Thread t = new Thread(nc);
-								t.start();
-								int logSleeper = 1;
-								while(!nc.isReady() && logSleeper < 6)
-								{
-									try {
-										// wait for it to start
-										Thread.sleep(logSleeper*1000);
-										logSleeper++;
-									} catch (InterruptedException e) {
-										logger.error(Constants.STACKTRACE, e);
-									}
-								}
-								this.setPyServe(nc);
-								pyt = new TCPPyTranslator();
-								((TCPPyTranslator) pyt).nc = nc;
 							}
+							
+							NettyClient nc = new NettyClient();
+							nc.connect("127.0.0.1", Integer.parseInt(port), false);
+							
+							//nc.run(); - you cannot do this because then the client goes into listener mode
+							Thread t = new Thread(nc);
+							t.start();
+							this.setPyServe(nc);
+							pyt = new TCPPyTranslator();
+							((TCPPyTranslator) pyt).nc = nc;
 						} else {
 							PyUtils.getInstance().getTempTupleSpace(this, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
 							pyt = new FilePyTranslator();
@@ -658,6 +651,10 @@ public class User extends AbstractValueObject implements Serializable {
 		}
 		return this.pyt;
 	}
+	
+	// need something that just connects a netty client and gives back
+	
+	
 	
 	public boolean checkAppAccess(String appName, String appId)
 	{

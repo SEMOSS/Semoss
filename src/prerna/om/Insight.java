@@ -362,23 +362,7 @@ public class Insight {
 		}
 		this.cacheInWorkspace = false;
 	}
-	
-	public void dropPythonTupleSpace() {
 		
-		if(this.tupleSpace != null && nc == null) {
-			try {
-				File closer = new File(tupleSpace + "/alldone.closeall");
-				closer.createNewFile();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		if(this.nc != null)
-		{
-			//nc.disconnect();
-		}
-	}
-	
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -701,58 +685,6 @@ public class Insight {
 		return this.rJavaTranslator != null;
 	}
 	
-	public void setPy(PyExecutorThread jepThread) {
-		
-		this.jepThread = jepThread;
-		// need to do the check here
-		if(this.pyt == null)
-		{
-			pyt = new PyTranslator();
-			pyt.setInsight(this);
-			pyt.setPy(jepThread);
-		}
-	}
-	
-	public void setPyTranslator(PyTranslator pyt)
-	{
-		//if(this.pyt == null)
-		this.pyt = pyt;
-		if (pyt != null) {
-			pyt.setInsight(this);
-		}
-	}
-	
-	public PyTranslator getPyTranslator() {
-		// this is really where I need to pull from user
-		// I need to recreate since i make the translator specific to 
-		if(user != null) {
-			this.pyt = user.getPyTranslator();
-		} else {
-			// there is no user
-			this.pyt = PyTranslatorFactory.getTranslator();			
-		}		
-		
-		if(this.pyt == null) {
-			this.pyt = user.getPyTranslator();
-			// need to recreate the translator
-			if(this.pyt instanceof TCPPyTranslator) {
-				NettyClient nc1 = ((TCPPyTranslator)pyt).nc;
-				this.pyt = new TCPPyTranslator();
-				((TCPPyTranslator)pyt).nc = nc1;
-			} else if(this.pyt instanceof PyTranslator) {
-				this.jepThread = pyt.getPy();
-				this.pyt = new PyTranslator();
-				this.pyt.setPy(this.jepThread);
-				this.jepThread = pyt.getPy();
-			}
-		}
-		this.pyt.setInsight(this);
-		return this.pyt;
-	}
-	
-	public PyExecutorThread getPy() {
-		return this.jepThread;
-	}
 	
 	public TaskStore getTaskStore() {
 		return this.taskStore;
@@ -1405,41 +1337,6 @@ public class Insight {
 		this.tupleSpace = tupleSpace;
 	}
 	
-	public void setHostPort(String host, String port) {
-		if(!this.insightId.startsWith("Temp")) {
-			connectClient(host, port);
-		}
-	}
-		
-	public void connectClient(String host, String port) {
-		if(this.nc == null)	{
-			System.err.println("=========== Connecting Netty ==============");
-			this.nc = new NettyClient();
-			nc.connect(host, Integer.parseInt(port), false);
-			Thread t = new Thread(nc);
-			t.start();
-/*			while(nc.ctx == null)
-			{
-				try
-				{
-					Thread.sleep(100);
-				}catch(Exception ex)
-				{
-					
-				}
-			}
-*/		}
-		logger.info("Netty is connected");
-	}
-	
-	public void setNettyClient(NettyClient nc) {
-		if(nc != null) {
-			this.nc = nc;
-			this.pyt = new prerna.ds.py.TCPPyTranslator();
-			this.pyt.setInsight(this);
-		}
-	}
-
 	// gets the frame name to be more useful
 	public String predictFrameName() {
 		StringBuilder frameName = new StringBuilder("");
@@ -1502,5 +1399,89 @@ public class Insight {
 		}
 		return retOutput;
 	}
+
+	///////////////////////////////////////// PYTHON SPECIFIC METHODS ///////////////////////////////////////////
+	
+	public void setPy(PyExecutorThread jepThread) {
+		
+		this.jepThread = jepThread;
+		// need to do the check here
+		if(this.pyt == null)
+		{
+			pyt = new PyTranslator();
+			pyt.setInsight(this);
+			pyt.setPy(jepThread);
+		}
+	}
+	
+	public void setPyTranslator(PyTranslator pyt)
+	{
+		//if(this.pyt == null)
+		this.pyt = pyt;
+		if (pyt != null) {
+			pyt.setInsight(this);
+		}
+	}
+	
+	public PyTranslator getPyTranslator() {
+		// this is really where I need to pull from user
+		// I need to recreate since i make the translator specific to 
+		if(user != null) {
+			this.pyt = user.getPyTranslator();
+		} else {
+			// there is no user
+			this.pyt = PyTranslatorFactory.getTranslator();			
+		}		
+		
+		if(this.pyt == null) {
+			this.pyt = user.getPyTranslator();
+			// need to recreate the translator
+			if(this.pyt instanceof TCPPyTranslator) {
+				NettyClient nc1 = ((TCPPyTranslator)pyt).nc;
+				this.pyt = new TCPPyTranslator();
+				((TCPPyTranslator)pyt).nc = nc1;
+			} else if(this.pyt instanceof PyTranslator) {
+				this.jepThread = pyt.getPy();
+				this.pyt = new PyTranslator();
+				this.pyt.setPy(this.jepThread);
+				this.jepThread = pyt.getPy();
+			}
+		}
+		this.pyt.setInsight(this);
+		return this.pyt;
+	}
+	
+	public PyExecutorThread getPy() {
+		return this.jepThread;
+	}
+	
+	
+	public void setNettyClient(NettyClient nc) {
+		if(nc != null) {
+			this.nc = nc;
+			this.pyt = new prerna.ds.py.TCPPyTranslator();
+			this.pyt.setInsight(this);
+		}
+	}
+
+	public void dropPythonTupleSpace() {
+		
+		if(this.tupleSpace != null && nc == null) {
+			try {
+				File closer = new File(tupleSpace + "/alldone.closeall");
+				closer.createNewFile();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		if(this.nc != null)
+		{
+			//nc.disconnect();
+		}
+	}
+
+
+
+	///////////////////////////////////////// END PYTHON SPECIFIC METHODS ///////////////////////////////////////////
 
 }
