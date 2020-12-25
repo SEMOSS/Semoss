@@ -25,6 +25,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class CollectPivotReactor extends TaskBuilderReactor {
@@ -35,6 +36,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	
 	private static String curEncoding = null;
 	public static final String ALL_SECTIONS = "**ALL_SECTIONS**";
+	int row_max = -1;
+	int col_max = -1;
 
 	private static Map<String, String> mathMap = new HashMap<String, String>();
 	static {
@@ -125,7 +128,13 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		List<String> colGroups = this.store.getNoun(keysToGet[1]).getAllStrValues();
 		List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
 		List<String> optional = null;
-
+		
+		/*** check to see if the pivot is within limits **/
+		NounMetadata pivotCheck = checkPivotLimits(makeFrame, frameName, rowGroups, colGroups);
+		if(pivotCheck != null)
+			return pivotCheck;
+		
+		
 		List<String> subtotals = rowGroups;
 		if(keyValue.containsKey(keysToGet[3])) {
 			subtotals = this.store.getNoun(keysToGet[3]).getAllStrValues();
@@ -205,6 +214,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 //			sections = new Vector<String>();
 //			sections.add("Nominated");
 //		}
+
 		
 		if(sections == null)
 		{
@@ -219,7 +229,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			// get the values of the section and pass it in
 			// mv[['Genre']].drop_duplicates().to_dict('list')	
 			String sectionNames = frameName + "[['" + sections.get(0) + "']].drop_duplicates().to_dict('list')";
-			pyt.runEmptyPy(makeFrame);
 			HashMap nameToList = (HashMap) pyt.runScript(sectionNames);
 			//makeFrame = ""; // null the make frame it has been made now
 			Object objList = nameToList.get(sectionColumnName);
@@ -240,6 +249,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				commands = genSections(sections.get(0), allSections, quote, frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true, json, margins);
 		}
 		
+		// frame is already made
 		commands = makeFrame + "\n" + commands + "\n" +deleteFrame;
 		
 
@@ -292,6 +302,39 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
+	
+	private NounMetadata checkPivotLimits(String makeFrame, String frameName, List <String> rowGroups, List <String> colGroups)
+	{
+		getPivotLimits();
+		// make the frame
+		this.insight.getPyTranslator().runEmptyPy(makeFrame);
+
+		// need a way to evaluate if the rowgroups etc. are within the limits
+		long rowCount = getCount(frameName, rowGroups);
+		if(rowCount > row_max)
+			return getError("Max number of rows allowed : 1000. This pivot has " + rowCount +". Please filter and try again");
+		long colCount = getCount(frameName, colGroups);
+		if(colCount > col_max)
+			return getError("Max number of columns allowed : 100. This pivot has " + colCount +". Please filter and try again");
+
+		return null;
+	}
+	
+	private void getPivotLimits()
+	{
+		if(row_max < 0 || col_max < 0)
+		{
+			if(DIHelper.getInstance().getProperty("PIVOT_ROW_MAX") != null)
+				row_max = Integer.parseInt(DIHelper.getInstance().getProperty("PIVOT_ROW_MAX"));
+			else
+				row_max = 1000;
+			if(DIHelper.getInstance().getProperty("PIVOT_COL_MAX") != null)
+				col_max = Integer.parseInt(DIHelper.getInstance().getProperty("PIVOT_COL_MAX"));
+			else
+				col_max = 100;
+		}
+	}
+	
 	
 	public void setTask(ITask task) {
 		this.task = task;
@@ -724,5 +767,18 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		System.err.println(retString);
 		return retString.toString();
 	}
+	
+	private long getCount(String frameName, List <String> items)
+	{
+		long retCount = 1;
+		for(int itemIndex = 0;itemIndex < items.size();itemIndex++)
+		{
+			StringBuilder sb = new StringBuilder(frameName).append("['").append(items.get(itemIndex)).append("'].nunique()");
+			long count = (Long)this.insight.getPyTranslator().runScript(sb.toString());
+			retCount = retCount * count;
+		}
+		return retCount;
+	}
+	
 	
 }
