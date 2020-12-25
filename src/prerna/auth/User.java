@@ -30,6 +30,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.AbstractValueObject;
 import prerna.om.CopyObject;
 import prerna.pyserve.NettyClient;
+import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SemossClassloader;
@@ -83,6 +84,8 @@ public class User extends AbstractValueObject implements Serializable {
 	CopyObject cp = null;
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	
+	private CmdExecUtil cmdUtil = null;
 
 	/**
 	 * Set the access token for a given provider
@@ -426,7 +429,7 @@ public class User extends AbstractValueObject implements Serializable {
 		return addVarMap(varName, appName, false);
 	}
 
-	public boolean addVarMap(String varName, String appName, boolean override)
+	private boolean addVarMap(String varName, String appName, boolean override)
 	{
 		// convert the app name to alpha
 		String [] pathTokens = appName.split("/");
@@ -505,7 +508,7 @@ public class User extends AbstractValueObject implements Serializable {
 	}
 	
 	
-	public void addVarString(String varName, StringBuffer oldValue)
+	private void addVarString(String varName, StringBuffer oldValue)
 	{
 		StringBuffer retRString = appMap.get("R_VAR_STRING");
 		StringBuffer retPyString = appMap.get("PY_VAR_STRING");
@@ -526,7 +529,7 @@ public class User extends AbstractValueObject implements Serializable {
 		appMap.put("PY_VAR_STRING", retPyString);			
 	}
 	
-	public String getVarString(boolean r)
+	private String getVarString(boolean r)
 	{
 		if(r)
 			return appMap.get("R_VAR_STRING").toString();
@@ -659,6 +662,20 @@ public class User extends AbstractValueObject implements Serializable {
 	public boolean checkAppAccess(String appName, String appId)
 	{
 		return (engineIdMap.containsKey(appName) && engineIdMap.get(appName).equalsIgnoreCase(appId));	
+	}
+	
+	public void setContext(String context)
+	{
+		// sets the context space for the user
+		// also set rhe cmd context right here
+		String mountDir = appMap.get(context) + "";
+
+		this.cmdUtil = new CmdExecUtil(context, mountDir);
+	}
+	
+	public CmdExecUtil getCmdUtil()
+	{
+		return this.cmdUtil;
 	}
 	
 }
