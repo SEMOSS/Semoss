@@ -21,11 +21,15 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.util.Utility;
 
 public class PyReactor extends AbstractPyFrameReactor {
@@ -41,6 +45,7 @@ public class PyReactor extends AbstractPyFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		int tokens = code.split("\\n").length;
 
 		PyTranslator pyTranslator = this.insight.getPyTranslator();
 		pyTranslator.setLogger(logger);
@@ -51,9 +56,15 @@ public class PyReactor extends AbstractPyFrameReactor {
 			return handleSeaborn(code);
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			output = pyTranslator.runPyAndReturnOutput(insight.getUser().getAppMap(), code) + "";
+			if(tokens > 1)
+				output = pyTranslator.runPyAndReturnOutput(insight.getUser().getAppMap(), code) + "";
+			else
+				output = pyTranslator.runScript(code) + "";
 		} else {
-			output = pyTranslator.runPyAndReturnOutput(code) + "";
+			if(tokens > 1)
+				output = pyTranslator.runPyAndReturnOutput(code) + "";
+			else
+				output = pyTranslator.runScript(code) + "";
 		}
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
@@ -101,7 +112,39 @@ public class PyReactor extends AbstractPyFrameReactor {
 		// need something here to adjust the types
 		// need to move this to utilities 
 		// will move it once we have figured it out
+		
+		// there is a third scenario that needs to be addressed i..e when the frame type is R
+		
 		ITableDataFrame frame = insight.getCurFrame();
+		String type = FrameFactory.getFrameType(frame);
+
+		
+		NounMetadata newFrameVar = null;
+		if(frame == null)
+		{
+			// user is coming in for the first time
+			// create the variable here
+			// ggplot(framename, ... )
+			String frameName = command.substring(command.indexOf("("));
+			frameName = frameName.split(",")[0].trim();
+			frameName = frameName.replace("data=", "").trim();
+			GenRowStruct grs = new GenRowStruct();
+			grs.add(frameName, PixelDataType.CONST_STRING);
+			this.store.addNoun(ReactorKeysEnum.VARIABLE.getKey(), grs);
+			
+			GenerateFrameFromPyVariableReactor gfrv = new GenerateFrameFromPyVariableReactor();
+			gfrv.setInsight(insight);
+			gfrv.setNounStore(this.store);
+			gfrv.In();
+			newFrameVar = gfrv.execute();
+			
+			frame = insight.getCurFrame();
+		}
+		else if(frame != null && type.equalsIgnoreCase("R"))
+		{
+			// need to do the synchronization routine
+			
+		}
 		
 		String frameName = frame.getName();
 		String assigner = "";
@@ -226,6 +269,9 @@ public class PyReactor extends AbstractPyFrameReactor {
 				retList.add(noun);
 				retList.add( new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE));
 			
+				if(newFrameVar != null)
+					retList.add(newFrameVar);
+
 				return new NounMetadata(retList, PixelDataType.VECTOR, PixelOperationType.VECTOR);
 			}
 			//return //new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
