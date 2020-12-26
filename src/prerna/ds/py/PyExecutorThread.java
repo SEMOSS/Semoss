@@ -1,5 +1,6 @@
 package prerna.ds.py;
 
+import java.io.StringWriter;
 import java.util.Hashtable;
 
 import org.apache.logging.log4j.LogManager;
@@ -131,6 +132,17 @@ public final class PyExecutorThread extends Thread {
 	public Jep getJep() {
 		try {
 			if (this.jep == null) {
+				
+				// forcing a sleep here
+				/*
+				try {
+					Thread.sleep(20000);
+				}catch(Exception ignored)
+				{
+					
+				}
+				*/
+				
 				JepConfig aJepConfig = new JepConfig();
 				// this is not longer needed in 3.9.0
 				// https://github.com/ninia/jep/issues/140
@@ -159,11 +171,18 @@ public final class PyExecutorThread extends Thread {
 				}
 
 				initSharedInterpreter(aJepConfig);
+				StringWriter sw = new StringWriter();
+				
 				jep = new SharedInterpreter();
 
 				jep.eval("from jep import redirect_streams");
 				jep.eval("redirect_streams.setup()");
 				
+				
+				// exec(open('c:/users/pkapaleeswaran/workspacej3/SemossDev/py/init.py').read())
+				String execCommand = "exec(open('" + pyBase + "/init.py" + "').read())";
+				jep.eval(execCommand);
+				/*
 				jep.eval("import numpy as np");
 				jep.eval("import pandas as pd");
 				jep.eval("import gc as gc");
@@ -181,13 +200,12 @@ public final class PyExecutorThread extends Thread {
 					jep.eval("sys.argv.append('')"); 
 				}
 				jep.eval("from fuzzywuzzy import fuzz");
-				jep.eval("import pandas as pd");
 				jep.eval("import string");
 				jep.eval("import random");
 				jep.eval("import datetime");
 				// jep.eval("from annoy import AnnoyIndex");
-				jep.eval("import numpy");
-				jep.eval("import sys");
+				
+				*/
 
 				logger.debug("Adding Syspath " + pyBase);
 				jep.eval("sys.path.append('" + pyBase + "')");
