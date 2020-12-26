@@ -1561,7 +1561,9 @@ public abstract class AbstractEngine implements IEngine {
 		// no easy way to find other than may be find the classpath ? - will instrument this through RDF Map
 		try {
 			String public_home = DIHelper.getInstance().getProperty(Constants.PUBLIC_HOME);
-			if(public_home != null)
+			boolean enableForApp = false;
+			enableForApp = (prop != null && prop.containsKey("PUBLIC_HOME_ENABLE") && (prop.get("PUBLIC_HOME_ENABLE")+ "").equalsIgnoreCase("true"));
+			if(public_home != null && enableForApp)
 			{
 				String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + java.nio.file.FileSystems.getDefault().getSeparator() + "db" + java.nio.file.FileSystems.getDefault().getSeparator();
 				
@@ -1575,6 +1577,7 @@ public abstract class AbstractEngine implements IEngine {
 					Files.createSymbolicLink(targetPath, sourcePath);
 				}
 				file.deleteOnExit();
+				System.err.println(".");
 			}			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
