@@ -11,6 +11,7 @@ import java.util.Queue;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
+import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
 
 public class CmdExecUtil {
@@ -132,7 +133,7 @@ public class CmdExecUtil {
 		if (osName.indexOf("win") >= 0) 
 			this.commandAppender = "cmd /C ";
 		else
-			this.commandAppender = "sh ";
+			this.commandAppender = "/bin/bash ";
 
 	}
 	
@@ -160,6 +161,9 @@ public class CmdExecUtil {
 		PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
 		executor.setStreamHandler(streamHandler);
 		executor.setWorkingDirectory(new File(workingDir));
+
+		ExecuteWatchdog watchdog = new ExecuteWatchdog(20000); // 20 seconds is plenty of time.. if the process doesnt return kill it
+		executor.setWatchdog(watchdog);
 		try
 		{
 			int exitValue = executor.execute(cmdLine);
