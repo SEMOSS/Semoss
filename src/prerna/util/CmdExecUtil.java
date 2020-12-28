@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 import org.apache.commons.exec.CommandLine;
@@ -21,11 +22,12 @@ public class CmdExecUtil {
 	String mountName = "appName";
 	String mountDir =  "c:/users/pkapaleeswaran/workspacej3/gittest";
 	String workingDir = mountDir;
-	String commandAppender = "cmd /C ";
+	String commandAppender = "cmd";
 
 	
 	public CmdExecUtil(String mountName, String mountDir)
 	{
+		getCommandAppender();
 		this.mountName = mountName;
 		this.mountDir = mountDir;
 		this.workingDir = mountDir;
@@ -131,9 +133,9 @@ public class CmdExecUtil {
 		String[] commandsStarter = null;
 
 		if (osName.indexOf("win") >= 0) 
-			this.commandAppender = "cmd /C ";
+			this.commandAppender = "cmd";
 		else
-			this.commandAppender = "/bin/bash ";
+			this.commandAppender = "/bin/bash";
 
 	}
 	
@@ -154,14 +156,21 @@ public class CmdExecUtil {
 	{
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		boolean success = true;
-		command = commandAppender + command;
+		//command = commandAppender + command;
 		DefaultExecutor executor;
-		CommandLine cmdLine = CommandLine.parse(command);
+		CommandLine cmdLine = new CommandLine(commandAppender);
+		if(commandAppender.equalsIgnoreCase("/bin/bash"))
+			cmdLine.addArgument("-c");
+		else
+			cmdLine.addArgument("/C");
+		
+		cmdLine.addArgument(command);
+		
+		CollectingLogOutputStream clos = new CollectingLogOutputStream();
 		executor = new DefaultExecutor();
-		PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
+		PumpStreamHandler streamHandler = new PumpStreamHandler(clos);
 		executor.setStreamHandler(streamHandler);
 		executor.setWorkingDirectory(new File(workingDir));
-
 		ExecuteWatchdog watchdog = new ExecuteWatchdog(20000); // 20 seconds is plenty of time.. if the process doesnt return kill it
 		executor.setWatchdog(watchdog);
 		try
@@ -171,7 +180,11 @@ public class CmdExecUtil {
 		{
 			success = false;
 		}
-		String output = outputStream.toString();;
+		List <String> lines = clos.getLines();
+		StringBuilder builder = new StringBuilder();
+		for(int lineIndex = 0;lineIndex < lines.size();builder.append(lines.get(lineIndex)).append("\n"), lineIndex++);
+		//System.out.println(" List " + lines);
+		String output = builder.toString();;
 		output = output.replace("\\", "/");
 		
 		String [] foutput = new String[2];
