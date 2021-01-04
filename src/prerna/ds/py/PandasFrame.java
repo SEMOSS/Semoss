@@ -262,6 +262,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String[] headers = headerList.toArray(new String[headerList.size()]);
 		List<String> types = (List<String>) pyt.runScript(typeScript);
 
+		StringBuffer allTypes = new StringBuffer();
 		// here we run and see if the types are good
 		// or if we messed up, we perform a switch
 		for(int colIndex = 0; colIndex < headers.length; colIndex++) {
@@ -289,15 +290,21 @@ public class PandasFrame extends AbstractTableDataFrame {
 				// create and execute the type
 				if(proposedType == SemossDataType.DATE) {
 					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore')";
-					pyt.runScript(typeChanger);
+					allTypes.append(typeChanger).append("\n");
+					//pyt.runScript(typeChanger);
 				} else if(proposedType == SemossDataType.TIMESTAMP) {
 					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore')";
-					pyt.runScript(typeChanger);
+					allTypes.append(typeChanger).append("\n");
+					//pyt.runScript(typeChanger);
 				} else {
 					String typeChanger = tableName + "['" + colName + "'] = " + tableName + "['" + colName + "'].astype(" + pyproposedType + ", errors='ignore')";
-					pyt.runScript(typeChanger);
+					allTypes.append(typeChanger).append("\n");
+					//pyt.runScript(typeChanger);
 				}
 			}
+			
+			// execute all at once
+			pyt.runEmptyPy(allTypes.toString());
 			
 			//if(colType.equalsIgnoreType)
 			
@@ -644,7 +651,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	public boolean isEmpty(String tableName) {
-		String command = "(\"" + createFrameWrapperName(tableName) + "\" in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) >= 0)";
+		String command = "('" + createFrameWrapperName(tableName) + "' in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) >= 0)";
 		
 		Boolean notEmpty = (Boolean) pyt.runScript(command);
 		return !notEmpty;

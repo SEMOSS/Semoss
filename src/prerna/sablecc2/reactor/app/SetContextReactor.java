@@ -2,11 +2,16 @@ package prerna.sablecc2.reactor.app;
 
 import java.util.Map;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class SetContextReactor extends AbstractReactor {
 	
@@ -33,16 +38,13 @@ public class SetContextReactor extends AbstractReactor {
 		// all of this can be moved into the context reactor
 		if(context == null)
 			return getError("No context is set - please use Context(<mount point>) to set context");
+		
 		// need to replace the app with the 
-		Map <String, StringBuffer> appMap = this.insight.getUser().getAppMap();
-		if(!appMap.containsKey(context))
-		{
-			// attempt once to directly map it with same name
-			boolean success = this.insight.getUser().addVarMap(context, context); 
-			if(!success)
-				return getError("No mount point " + context + " - please use Mount(<mount point>, App Name) to set a mount point");
-		}	
-		this.insight.getUser().setContext(context);
+		boolean success = this.insight.setContext(context);
+		// attempt once to directly map it with same name
+		if(!success)
+			return getError("No mount point " + context + " - please use Mount(<mount point>, App Name) to set a mount point");
+		
 		return new NounMetadata("Successfully set context to '" + context , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 

@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -138,8 +139,9 @@ public class PyUtils {
 				userTupleMap.put(user, tempDirForUser.toString());
 				// this should possibly also launch the thread
 				String cp = DIHelper.getInstance().getProperty("PY_WORKER_CP");
-				Process p = Utility.startPyProcess(cp, tempDirForUser.toString(), port);
-				userProcessMap.put(user,  p);
+				Process  p = Utility.startPyProcess(cp, tempDirForUser.toString(), port);
+				if(p != null)
+					userProcessMap.put(user,  p);
 				LOGGER.info(">>>Pyserve Open on " + port + " <<<");
 				return tempDirForUser.toString();
 			} catch (Exception e) {
@@ -161,8 +163,9 @@ public class PyUtils {
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
 			String logConfig = FileUtils.readFileToString(logFile);
+			//property.filename = target/rolling/rollingtest.log
 			logConfig = logConfig.replace("FILE_LOCATION", dir + "/output.log");
-			File newLogFile = new File(dir + "/log4j.properties");
+			File newLogFile = new File(dir + "/log4j2.properties");
 			FileUtils.writeStringToFile(newLogFile, logConfig);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -184,9 +187,9 @@ public class PyUtils {
 			File closer = new File(dir + "/alldone.closeall");
 			try
 			{
-				Process p = (Process)userProcessMap.get(user);
+				ExecuteWatchdog p = (ExecuteWatchdog)userProcessMap.get(user);
 				closer.createNewFile();
-				p.destroyForcibly();
+				p.destroyProcess();
 				// delete the directory fully
 				FileUtils.deleteDirectory(new File(dir));
 			}catch(Exception ex)

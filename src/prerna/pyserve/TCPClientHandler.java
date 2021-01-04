@@ -74,42 +74,44 @@ public class TCPClientHandler extends ChannelInboundHandlerAdapter {
 	public void setFinalOutput()
 	{
 		offset = 0; // set this to 4 if there is a length appender
-		byte[]  data = new byte[buf.capacity() - offset];
-		// removing the length appender
-		//byte[]  data = new byte[buf.readableBytes()];
-		buf.getBytes(offset, data);
-		// remove the first four bytes.. but we will get to it
-		//System.err.println("Total size .. " + data.length);
-    	ByteArrayInputStream bais = new ByteArrayInputStream(data);
-    	
-		
-    	try {
-    		
-			FSTObjectInput fi = new FSTObjectInput(bais);
-			Object retObject = fi.readObject();
-
-			/*
-			ObjectInputStream ois = new ObjectInputStream(bais);
-			Object retObject = ois.readObject();
-			*/
+		if(buf != null)
+		{
+			byte[]  data = new byte[buf.capacity() - offset];
+			// removing the length appender
+			//byte[]  data = new byte[buf.readableBytes()];
+			buf.getBytes(offset, data);
+			// remove the first four bytes.. but we will get to it
+			//System.err.println("Total size .. " + data.length);
+	    	ByteArrayInputStream bais = new ByteArrayInputStream(data);
+	    	
 			
-			if(retObject != null)
-			{
-				nc.response = retObject;
-			}
-			else
-				System.out.println("Return was a null");
-			
-
-    	}catch(Exception ex)
-    	{
-    		ex.printStackTrace();
-    	}finally
-    	{
-    		buf.release();
-    		buf = null;
-    	}
-
+	    	try {
+	    		
+				FSTObjectInput fi = new FSTObjectInput(bais);
+				Object retObject = fi.readObject();
+	
+				/*
+				ObjectInputStream ois = new ObjectInputStream(bais);
+				Object retObject = ois.readObject();
+				*/
+				
+				if(retObject != null)
+				{
+					nc.response = retObject;
+				}
+				else
+					System.out.println("Return was a null");
+				
+	
+	    	}catch(Exception ex)
+	    	{
+	    		ex.printStackTrace();
+	    	}finally
+	    	{
+	    		buf.release();
+	    		buf = null;
+	    	}
+		}
 	}
 
     
