@@ -12,6 +12,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -442,6 +443,11 @@ public class RDataTable extends AbstractTableDataFrame {
 		// clear the cached info
 		this.clearCachedMetrics();
 		this.clearQueryCache();
+	}
+	
+	@Override
+	public DataFrameTypeEnum getFrameType() {
+		return DataFrameTypeEnum.R;
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////

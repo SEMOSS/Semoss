@@ -5,6 +5,8 @@ import prerna.sablecc2.om.PixelDataType;
 public class ParamStruct {
 
 	private String pixelId = null;
+	private String pixelString = null;
+	
 	public enum FILL_TYPE {MANUAL, PIXEL}
 	public enum LEVEL {COLUMN, TABLE, OPERATOR, OPERATORU};
 	public enum QUOTE {NO, SINGLE, DOUBLE};
@@ -41,6 +43,14 @@ public class ParamStruct {
 	
 	public String getPixelId() {
 		return this.pixelId;
+	}
+	
+	public void setPixelString(String pixelString) {
+		this.pixelString = pixelString;
+	}
+	
+	public String getPixelString() {
+		return this.pixelString;
 	}
 	
 	public String getTableName() {

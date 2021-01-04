@@ -49,7 +49,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -91,7 +90,6 @@ public class PipelineTranslation extends LazyTranslation {
 		codeBlocks.add("Py");
 		codeBlocks.add("Java");
 	}
-	
 	
 	private List<List<PipelineOperation>> allRoutines = new Vector<>();
 	private List<PipelineOperation> curRoutine;
@@ -399,7 +397,7 @@ public class PipelineTranslation extends LazyTranslation {
     	}
     	Map<String, Object> frameMap = new HashMap<>();
 		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), FrameFactory.getFrameType(frame));
+		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), frame.getFrameType().getTypeAsString());
 		String name = frame.getName();
 		if(name != null) {
 			frameMap.put(PixelDataType.ALIAS.getKey(), name);

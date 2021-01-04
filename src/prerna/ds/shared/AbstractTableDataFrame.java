@@ -42,7 +42,6 @@ import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -140,7 +139,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		retMap.put("name", this.frameName);
-		retMap.put("type", FrameFactory.getFrameType(this));
+		retMap.put("type", this.getFrameType().getTypeAsString());
 		retMap.put("headerInfo", headersObj);
 		return retMap;
 	}

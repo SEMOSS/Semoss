@@ -11,6 +11,7 @@ import java.util.Map;
  * @author bisutton
  *
  */
+@Deprecated
 public interface IDataMaker {
 
 	@Deprecated
@@ -37,29 +38,34 @@ public interface IDataMaker {
 	/**
 	 * Used to update the data id when data has changed within the frame
 	 */
+	@Deprecated
 	void updateDataId();
 	
 	/**
 	 * Returns the current data id
 	 * @return 
 	 */
+	@Deprecated
 	int getDataId();
 	
 	/**
 	 * reset the dataId to be 0
 	 */
+	@Deprecated
 	void resetDataId();
 	
 	/**
 	 * Sets the name of the user who created this instance of the data maker
 	 * @param userId
 	 */
+	@Deprecated
 	void setUserId(String userId);
 	
 	/**
 	 * Returns the name of the user who created this instance of the data maker
 	 * @return
 	 */
+	@Deprecated
 	String getUserId();
 	
 	/**
@@ -67,5 +73,6 @@ public interface IDataMaker {
 	 * This name must match that which is defined within RDF_MAP
 	 * @return
 	 */
+	@Deprecated
 	String getDataMakerName();
 }
