@@ -17,6 +17,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.om.Insight;
+import prerna.om.Pixel;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.LazyTranslation;
@@ -41,8 +42,8 @@ public class ImportQueryTranslation extends LazyTranslation {
 	
 	private static final Logger logger = LogManager.getLogger(ImportQueryTranslation.class);
 
-	private String pixelId = null;
-	private Map<String, SelectQueryStruct> importQsMap = new HashMap<>();
+	private Pixel pixelObj = null;
+	private Map<Pixel, SelectQueryStruct> importQsMap = new HashMap<>();
 	
 	public ImportQueryTranslation(Insight insight) {
 		super(insight);
@@ -97,7 +98,7 @@ public class ImportQueryTranslation extends LazyTranslation {
         	// need to find imports
         	if(prevReactor != null && (prevReactor instanceof ImportReactor)) {
     			SelectQueryStruct importQs = (SelectQueryStruct) prevReactor.getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey()).get(0);
-    			importQsMap.put(this.pixelId, importQs);
+    			importQsMap.put(this.pixelObj, importQs);
         	}
     	}
     }
@@ -105,15 +106,15 @@ public class ImportQueryTranslation extends LazyTranslation {
     /////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////
     
-	public void setPixelId(String pixelId) {
-		this.pixelId = pixelId;
+	public void setPixelObj(Pixel pixelObj) {
+		this.pixelObj = pixelObj;
 	}
 	
 	/**
 	 * Get the import qs in the recipe
 	 * @return
 	 */
-	public Map<String, SelectQueryStruct> getImportQsMap() {
+	public Map<Pixel, SelectQueryStruct> getImportQsMap() {
 		return importQsMap;
 	}
 	
@@ -149,7 +150,7 @@ public class ImportQueryTranslation extends LazyTranslation {
 		// loop through recipe
 		for(String expression : recipe) {
 			try {
-				translation.setPixelId("" + (counter++));
+				translation.setPixelObj(new Pixel("" + (counter++), expression));
 				expression = PixelPreProcessor.preProcessPixel(expression.trim(), new ArrayList<String>(), new HashMap<String, String>());
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 				// parsing the pixel - this process also determines if expression is syntactically correct

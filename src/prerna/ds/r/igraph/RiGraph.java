@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.cache.ICache;
 import prerna.ds.shared.AbstractTableDataFrame;
@@ -253,6 +254,11 @@ public class RiGraph extends AbstractTableDataFrame {
 	public long size(String tableName) {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+	
+	@Override
+	public DataFrameTypeEnum getFrameType() {
+		return DataFrameTypeEnum.IGRAPH;
 	}
 	
 	@Override

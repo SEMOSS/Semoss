@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
@@ -432,6 +433,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 		// open the meta details
 		this.openCacheMeta(cf);
+	}
+	
+	@Override
+	public DataFrameTypeEnum getFrameType() {
+		return DataFrameTypeEnum.NATIVE;
 	}
 
 	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE *************************************************/

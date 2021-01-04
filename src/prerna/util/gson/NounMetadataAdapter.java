@@ -18,7 +18,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.frame.FrameFactory;
 
 public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 
@@ -207,7 +206,7 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 	 */
 	private void writeFrame(ITableDataFrame frame, JsonWriter out) throws IOException {
 		Map<String, String> mapValue = new HashMap<String, String>();
-		mapValue.put("type", FrameFactory.getFrameType(frame));
+		mapValue.put("type", frame.getFrameType().getTypeAsString());
 		String name = frame.getName();
 		if(name != null) {
 			mapValue.put("name", name);
