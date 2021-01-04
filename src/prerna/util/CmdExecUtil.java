@@ -28,6 +28,7 @@ public class CmdExecUtil {
 	public CmdExecUtil(String mountName, String mountDir)
 	{
 		getCommandAppender();
+		mountDir = mountDir.replace("\\", "/");
 		this.mountName = mountName;
 		this.mountDir = mountDir;
 		this.workingDir = mountDir;
@@ -104,11 +105,14 @@ public class CmdExecUtil {
 	{
 		// Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, git
 		String upCommand = command.toUpperCase();
+		upCommand = upCommand.trim();
+		upCommand = upCommand.replace("\\","/"); // replace to forward slashes
+		
 		if(workingDir.equalsIgnoreCase(mountDir) && command.contains("..")) // you cannot do anything in the root
 			return mountName;
 
-		if((upCommand.startsWith("DEL") || command.contains("RM")) && (command.contains("..") || command.contains("\\") || command.contains("/")))
-			return " Delete across directories is not allowed ";
+		if((upCommand.startsWith("DEL") || upCommand.startsWith("RM") || upCommand.startsWith("CP") || upCommand.startsWith("COPY") || upCommand.startsWith("MV") || upCommand.startsWith("MOVE") ||  upCommand.startsWith("LS") || upCommand.startsWith("DIR")) && (command.contains("..") || command.contains("\\") || command.contains("/")))
+			return " Delete, move, copy, list is only allowed for a single level ";
 		
 		if(command.contains("&") || command.contains("&&"))
 			return "Concatenating commands is not allowed";
@@ -164,7 +168,7 @@ public class CmdExecUtil {
 		else
 			cmdLine.addArgument("/C");
 		
-		cmdLine.addArgument(command);
+		cmdLine.addArgument(command, false);
 		
 		CollectingLogOutputStream clos = new CollectingLogOutputStream();
 		executor = new DefaultExecutor();
