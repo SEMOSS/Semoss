@@ -108,7 +108,7 @@ public class PurgeReactor extends AbstractFrameReactor {
 			logger.info("Running generic purge logic");
 
 			// new frame
-			String frameType = FrameFactory.getFrameType(frame);
+			String frameType = frame.getFrameType().getTypeAsString();
 			try {
 				newFrame = FrameFactory.getFrame(this.insight, frameType, null);
 				newFrame.setName(frame.getName());
