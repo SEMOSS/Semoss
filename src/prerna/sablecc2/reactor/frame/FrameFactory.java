@@ -9,7 +9,6 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.r.RDataTable;
-import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.ds.rdbms.postgres.PostgresFrame;
 import prerna.ds.rdbms.sqlite.SQLiteFrame;
@@ -158,22 +157,6 @@ public class FrameFactory {
 		INIT = true;
 	}
 
-	public static String getFrameType(ITableDataFrame frame) {
-		if(frame instanceof AbstractRdbmsFrame) {
-			return "GRID";
-		} else if(frame instanceof TinkerFrame) {
-			return "GRAPH";
-		} else if(frame instanceof RDataTable) {
-			return "R";
-		} else if(frame instanceof PandasFrame) {
-			return "PY";
-		} else if(frame instanceof NativeFrame) {
-			return "NATIVE";
-		} else {
-			return null;
-		}
-	}
-	
 	public static boolean canCacheFrameQueries(ITableDataFrame frame) {
 		if(frame == null) {
 			return false;

@@ -32,7 +32,7 @@ public class FrameTypeReactor extends AbstractReactor {
 		}
 		
 		// return the data maker name
-		return new NounMetadata(FrameFactory.getFrameType(frame), PixelDataType.CONST_STRING);
+		return new NounMetadata(frame.getFrameType().getTypeAsString(), PixelDataType.CONST_STRING);
 	}
 
 }

@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
@@ -1037,6 +1038,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		}
 		
 		return reactorNames;
+	}
+	
+	@Override
+	public DataFrameTypeEnum getFrameType() {
+		return DataFrameTypeEnum.GRAPH;
 	}
 	
 	@Override

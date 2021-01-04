@@ -16,6 +16,11 @@ import prerna.util.EngineSyncUtility;
 
 public class GetDatabaseTableStructureReactor extends AbstractReactor {
 	
+	/*
+	 * PAYLOAD MUST MATCH THAT OF 
+	 * {@link prerna.sablecc2.reactor.frame.GetFrameTableStructureReactor}
+	 */
+	
 	private static final String CLASS_NAME = GetDatabaseTableStructureReactor.class.getName();
 	
 	public GetDatabaseTableStructureReactor() {

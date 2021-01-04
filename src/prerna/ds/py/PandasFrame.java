@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -655,6 +656,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		Boolean notEmpty = (Boolean) pyt.runScript(command);
 		return !notEmpty;
+	}
+	
+	@Override
+	public DataFrameTypeEnum getFrameType() {
+		return DataFrameTypeEnum.PYTHON;
 	}
 	
 	@Override

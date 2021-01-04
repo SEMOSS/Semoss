@@ -15,7 +15,6 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.util.Utility;
 import prerna.util.gson.HardSelectQueryStructAdapter;
 import prerna.util.gson.SelectQueryStructAdapter;
@@ -335,7 +334,7 @@ public abstract class AbstractQueryStruct {
 		if(frame != null) {
 			this.frame = frame;
 			this.frameName = frame.getName();
-			this.frameType = FrameFactory.getFrameType(frame);
+			this.frameType = frame.getFrameType().getTypeAsString();
 		}
 	}
 	

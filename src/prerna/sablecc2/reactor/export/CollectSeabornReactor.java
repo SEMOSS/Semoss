@@ -28,7 +28,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.frame.convert.ConvertReactor;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
@@ -77,7 +76,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		SelectQueryStruct qs = ((BasicIteratorTask)task).getQueryStruct();
 		ITableDataFrame thisFrame = qs.getFrame();
 //		ITableDataFrame thisFrame = insight.getCurFrame();
-		String type = FrameFactory.getFrameType(thisFrame);
+		String type = thisFrame.getFrameType().getTypeAsString();
 		
 		// need to also check if it is already there
 		// obviously the issue of synchronization comes but for now
