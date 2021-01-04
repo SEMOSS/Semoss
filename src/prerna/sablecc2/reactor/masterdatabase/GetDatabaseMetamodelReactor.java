@@ -34,6 +34,11 @@ import prerna.util.Utility;
 
 public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
+	/*
+	 * PAYLOAD MUST MATCH THAT OF 
+	 * {@link  prerna.sablecc2.reactor.frame.GetFrameMetamodelReactor}
+	 */
+	
 	private static final Gson GSON = new GsonBuilder().create();
 	private static final String CLASS_NAME = GetDatabaseMetamodelReactor.class.getName();
 

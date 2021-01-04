@@ -12,7 +12,7 @@ public class GetFrameMetamodelReactor extends AbstractFrameReactor {
 	
 	/*
 	 * PAYLOAD MUST MATCH THAT OF 
-	 * {@link prerna.sablecc2.reactor.masterdatabase.GetDatabaseTableStructureReactor}
+	 * {@link prerna.sablecc2.reactor.masterdatabase.GetDatabaseMetamodelReactor}
 	 */
 	
 	private static final String CLASS_NAME = GetFrameMetamodelReactor.class.getName();
@@ -24,33 +24,7 @@ public class GetFrameMetamodelReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		ITableDataFrame frame = getFrame();
-		Map<String, Object> metamodelObject = frame.getMetaData().getMetamodel();
+		Map<String, Object> metamodelObject = frame.getMetaData().getMetamodel(true);
 		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_METAMODEL);
- 
-//		this.organizeKeys();
-//		String engineId = this.keyValue.get(this.keysToGet[0]);
-//		if(engineId == null) {
-//			throw new IllegalArgumentException("Need to define the database to get the structure from from");
-//		}
-//		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
-//		
-//		// account for security
-//		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
-//		if(AbstractSecurityUtils.securityEnabled()) {
-//			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-//				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
-//			}
-//		}
-//
-//		Logger logger = getLogger(CLASS_NAME);
-//		logger.info("Pulling database structure for app " + engineId);
-//		// if cache exists, return from there
-//		List<Object[]> data = EngineSyncUtility.getDatabaseStructureCache(engineId);
-//		if(data == null) {
-//			data = MasterDatabaseUtility.getAllTablesAndColumns(engineId);
-//			// store the cache for the database structure
-//			EngineSyncUtility.setDatabaseStructureCache(engineId, data);
-//		}
-//		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
 	}
 }
