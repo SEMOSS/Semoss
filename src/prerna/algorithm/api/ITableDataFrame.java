@@ -228,6 +228,11 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	Map<String, StringBuffer> printFilters(List <String> columns, boolean all);
 
+	/**
+	 * Return the frame type
+	 * @return
+	 */
+	DataFrameTypeEnum getFrameType();
 	
 	//////////////////////////////////////////////////
 	//////////////////////////////////////////////////

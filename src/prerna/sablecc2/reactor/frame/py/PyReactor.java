@@ -116,8 +116,7 @@ public class PyReactor extends AbstractPyFrameReactor {
 		// there is a third scenario that needs to be addressed i..e when the frame type is R
 		
 		ITableDataFrame frame = insight.getCurFrame();
-		String type = FrameFactory.getFrameType(frame);
-
+		String type = frame.getFrameType().getTypeAsString();
 		
 		NounMetadata newFrameVar = null;
 		if(frame == null)

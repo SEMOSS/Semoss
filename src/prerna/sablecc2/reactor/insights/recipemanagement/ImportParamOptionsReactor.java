@@ -39,15 +39,14 @@ import prerna.sablecc2.translations.ImportQueryTranslation;
 public class ImportParamOptionsReactor extends AbstractReactor {
 
 	public static final String PARAM_OPTIONS = "PARAM_OPTIONS";
+	
 	@Override
 	public NounMetadata execute() {
-		
 		NounMetadata retMap = null;
 		
 		// if it is already there just return
 		Object  obj = insight.getVar(ImportParamOptionsReactor.PARAM_OPTIONS);
-		if(obj != null)
-		{
+		if(obj != null) {
 			retMap = new NounMetadata(obj, PixelDataType.MAP);
 			return retMap;
 		}
@@ -61,7 +60,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			try {
 				String pixelId = pixel.getId();
 				String expression = pixel.getPixelString();
-				translation.setPixelId(pixelId);
+				translation.setPixelObj(pixel);
 				expression = PixelPreProcessor.preProcessPixel(expression.trim(), new ArrayList<String>(), new HashMap<String, String>());
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 				// parsing the pixel - this process also determines if expression is syntactically correct
@@ -73,15 +72,15 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			}
 		}
 		
-		Map<String, SelectQueryStruct> imports = translation.getImportQsMap();
+		Map<Pixel, SelectQueryStruct> imports = translation.getImportQsMap();
 		// for each import
 		// we need to get the proper param struct
 		Map<String, Map> params = new HashMap<>();
-		for(String pixelStep : imports.keySet()) {
+		for(Pixel pixelStep : imports.keySet()) {
 			List<ParamStruct> paramList = getParamsForImport(imports.get(pixelStep), pixelStep);
 			Map output = organizeStruct(paramList);
 			
-			params.put(pixelStep, output);
+			params.put(pixelStep.getId(), output);
 		}
 		
 		// frame -> [param struct]
@@ -97,11 +96,10 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		return retMap;
 	}
 	
-	private List<ParamStruct> getParamsForImport(SelectQueryStruct qs, String pixelId) {
+	private List<ParamStruct> getParamsForImport(SelectQueryStruct qs, Pixel pixelObj) {
 		List<ParamStruct> paramList = new Vector<>();
 		
 		if(qs instanceof HardSelectQueryStruct || qs.getCustomFrom() != null) {
-			
 			// do the logic of getting the params. The only issue here is
 			// we assume the latest level which may not be true
 			// but let us see
@@ -113,12 +111,15 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			try {
 				GenExpressionWrapper wrapper = sqp2.processQuery(query);
 				Iterator <ParamStruct> structIterator = wrapper.paramToExpressionMap.keySet().iterator();
-				while(structIterator.hasNext())
-					paramList.add(structIterator.next());
+				while(structIterator.hasNext()) {
+					ParamStruct nextStruct = structIterator.next();
+					nextStruct.setPixelId(pixelObj.getId());
+					nextStruct.setPixelString(pixelObj.getPixelString());
+					paramList.add(nextStruct);
+				}
 				// dont save it for now
 				//insight.getVarStore().put(QS_WRAPPER, new NounMetadata(wrapper, PixelDataType.CUSTOM_DATA_STRUCTURE));
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		} else {
@@ -150,7 +151,8 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 					}
 					
 					ParamStruct pStruct = new ParamStruct();
-					pStruct.setPixelId(pixelId);
+					pStruct.setPixelId(pixelObj.getId());
+					pStruct.setPixelString(pixelObj.getPixelString());
 					pStruct.setTableName(colS.getTable());
 					pStruct.setColumnName(colS.getColumn());
 					pStruct.setOperator("==");
@@ -166,8 +168,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		return paramList;
 	}
 	
-	public Map organizeStruct(List <ParamStruct> structs)
-	{
+	public Map organizeStruct(List <ParamStruct> structs) {
 		Map columnMap = new HashMap();
 		// level 1 - column name
 		// column (key) -- List of tables (Value)
@@ -177,48 +178,48 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		// column + table + operator(key) - Param Struct(value)
 		// level 4 - frames - dont know how to get to this but.. 
 		
-		for(int paramIndex = 0;paramIndex < structs.size();paramIndex++)
-		{
+		for(int paramIndex = 0;paramIndex < structs.size();paramIndex++) {
 			ParamStruct thisStruct = structs.get(paramIndex);
 			
 			String columnName = thisStruct.getColumnName();
 			String tableName = thisStruct.getTableName();
 			String opName = thisStruct.getOperator();
 			String opuName = thisStruct.getuOperator();
-			if(opuName == null)
+			if(opuName == null) {
 				opuName = opName;
+			}
 			
-
 			// get the table
 			Map <String, Map<String, Map<String, List<ParamStruct>>>> tableMap = null;
-			if(columnMap.containsKey(columnName))
+			if(columnMap.containsKey(columnName)) {
 				tableMap = (Map <String, Map<String, Map<String, List<ParamStruct>>>>) columnMap.get(columnName);
-			else
+			} else {
 				tableMap = new HashMap <String, Map<String, Map<String, List<ParamStruct>>>>();
-			
+			}
 			
 			// get the operator from the table
 			Map <String, Map<String, List <ParamStruct>>> opMap = null;
-			if(tableMap.containsKey(tableName))
+			if(tableMap.containsKey(tableName)) {
 				opMap = (Map <String, Map<String, List <ParamStruct>>>)tableMap.get(tableName);
-			else
+			} else {
 				opMap = new HashMap<String, Map<String, List<ParamStruct>>>();
+			}
 			
 			// get the table unique operator
 			Map<String, List <ParamStruct>> opuMap = null;
-			if(opMap.containsKey(opName))
+			if(opMap.containsKey(opName)) {
 				opuMap = (Map<String, List <ParamStruct>>)opMap.get(opName);
-			else
+			} else {
 				opuMap = new HashMap<String, List<ParamStruct>>();
+			}
 			
 			// get the actual paramstruct
 			List <ParamStruct> curList = null;
-			if(opuMap.containsKey(opuName))
+			if(opuMap.containsKey(opuName)) {
 				curList = (List <ParamStruct>) opuMap.get(opuName);
-			else
+			} else {
 				curList = new ArrayList<ParamStruct>();
-			
-			
+			}
 			
 			// add the paramstruct
 			curList.add(thisStruct);
@@ -235,5 +236,4 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		return columnMap;
 	}
 	
-
 }
