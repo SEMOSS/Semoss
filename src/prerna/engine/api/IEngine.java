@@ -174,7 +174,10 @@ public interface IEngine extends IExplorable {
 	
 	// get engine specific reactor
 	public IReactor getReactor(String reactorName, SemossClassloader loader);
-	
+
+	// gets the UDF - user defined functions in this data catalog
+	public String [] getUDF();
+
 }
 
 

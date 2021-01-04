@@ -1584,6 +1584,13 @@ public abstract class AbstractEngine implements IEngine {
 			e.printStackTrace();
 		}
 	}
+	
+	public String [] getUDF()
+	{
+		if(prop.containsKey("UDF"))
+			return prop.get("UDF").toString().split(";");
+		return null;
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 

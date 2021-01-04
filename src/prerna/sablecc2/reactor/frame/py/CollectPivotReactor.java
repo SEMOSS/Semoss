@@ -390,6 +390,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		StringBuilder sectionBlock = new StringBuilder("[");
 		
+
 		// get the sections
 		// need to find a way to pass the pivot and other things
 		if(!sections.get(0).equalsIgnoreCase(ALL_SECTIONS))
@@ -454,6 +455,17 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		// set it up for subtotals as well
 		subtotalColumns = rowsAndColumns;
+		
+		// take care of the column order
+		StringBuilder column_order = new StringBuilder("[");
+		for(int valIndex = 0;valIndex < values.size();valIndex++)
+		{
+			if(valIndex > 0)
+				column_order.append(", ");
+			column_order.append("'").append(values.get(valIndex)).append("'");
+		}
+		column_order.append("]");
+
 		
 		// geenerate rows
 		for(int idxIndex = 0;idxIndex < rowsAndColumns.size();idxIndex++)
@@ -755,13 +767,13 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				
 				System.err.println(finalPivot);
 				System.err.println(deleter);
-				String output = "print(" + finalPivotName + outputFormat + ")"; //.encode('utf-8'))";
+				String output = "print(" + finalPivotName + "[" + column_order + "]" + outputFormat + ")"; //.encode('utf-8'))";
 				String deleteLast = "del(" + finalPivotName + ")";
 				
 				retString.append(groupBy).append("\n").append(finalPivot).append("\n").append(columnRenamer).append("\n").append(dropAllTotal).append("\n").append(output).append("\n").append(deleter);
 			}		
 		} else {
-			retString.append("\n").append("print(").append(pivotName).append(outputFormat).append(")").append("\n").append("del(").append(pivotName).append(")");
+			retString.append("\n").append("print(").append(pivotName).append("[").append(column_order).append("]").append(outputFormat).append(")").append("\n").append("del(").append(pivotName).append(")");
 		}
 		
 		System.err.println(retString);
