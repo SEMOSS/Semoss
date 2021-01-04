@@ -31,7 +31,11 @@ public class CommandReactor extends AbstractReactor {
 		
 		String command = keyValue.get(keysToGet[0]);
 
-		CmdExecUtil util = this.insight.getUser().getCmdUtil();
+		CmdExecUtil util = this.insight.getCmdUtil();
+		
+		// uncomment this line to see it in action. We want to test it for .. etc. before committing into play.
+		//util = null;
+		
 		// all of this can be moved into the context reactor
 		if(util == null)
 			return getError("No context is set - please use Context(<mount point>) to set context");

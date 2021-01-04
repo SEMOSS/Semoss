@@ -3,6 +3,9 @@ package prerna.pyserve;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -30,6 +33,9 @@ public class NettyClient implements Runnable{
     boolean ssl = false;
     Map responseMap = new HashMap();
     boolean ready = false;
+	private static final String CLASS_NAME = NettyClient.class.getName();
+	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
+
     
     public void connect(String HOST, int PORT, boolean SSL)
     {
@@ -79,7 +85,10 @@ public class NettyClient implements Runnable{
 		             .handler(nci);
 		
 		            nc.f = b.connect(HOST, PORT).sync();          
-		            System.out.println("CLIENT Connection complete !!!!!!!");
+		            logger.info("CLIENT Connection complete !!!!!!!");
+		            Thread.sleep(100); // sleep some before executing command
+		            // prime it
+		            logger.info("First command.. Prime" + executeCommand("2+2"));
 		            connected = true;
 		            ready = true;
 		            // Wait until the connection is closed.
@@ -92,13 +101,13 @@ public class NettyClient implements Runnable{
 	    	{
 	    		attempt++;
 	    		
-	    		System.err.println("Attempting Number " + attempt);
+	    		logger.info("Attempting Number " + attempt);
 	    		// see if sleeping helps ?
 	    		try
 	    		{
 	    			// sleeping only for 1 second here
 	    			// but the py executor sleeps in 2 second increments
-	    			Thread.sleep(attempt*200);
+	    			Thread.sleep(attempt*300);
 	    		}catch(Exception ex2)
 	    		{
 	    			
@@ -107,7 +116,7 @@ public class NettyClient implements Runnable{
     	}
     	
     	if(attempt > 6)
-            System.out.println("CLIENT Connection Failed !!!!!!!");
+            logger.info("CLIENT Connection Failed !!!!!!!");
 
     }	
     
@@ -124,7 +133,7 @@ public class NettyClient implements Runnable{
     	
     	while(ctx == null && attempt < 6)
     	{
-    		System.err.println("Python not yet available.. will sleep" + attempt);
+    		logger.info("Python not yet available.. will sleep" + attempt);
     		try
     		{
     			Thread.sleep(attempt * 500);
