@@ -31,7 +31,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.job.JobReactor;
 
 public abstract class AbstractReactor implements IReactor {
@@ -304,7 +303,7 @@ public abstract class AbstractReactor implements IReactor {
     	}
     	Map<String, Object> frameMap = new HashMap<>();
 		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), FrameFactory.getFrameType(frame));
+		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), frame.getFrameType().getTypeAsString());
 		String name = frame.getName();
 		if(name != null) {
 			frameMap.put(PixelDataType.ALIAS.getKey(), name);

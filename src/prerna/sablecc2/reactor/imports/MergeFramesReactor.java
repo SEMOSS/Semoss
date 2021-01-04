@@ -36,7 +36,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class MergeFramesReactor extends AbstractReactor {
@@ -83,8 +82,7 @@ public class MergeFramesReactor extends AbstractReactor {
 		// TODO: need to add for tracking...
 		boolean optimized = false;
 		// they are the same type
-		if(FrameFactory.getFrameType(sourceFrame).equals(FrameFactory.getFrameType(targetFrame))) {
-			
+		if(sourceFrame.getFrameType() == targetFrame.getFrameType()) {
 			// 1) are they both R
 			if(sourceFrame instanceof RDataTable) {
 				optimized = true;

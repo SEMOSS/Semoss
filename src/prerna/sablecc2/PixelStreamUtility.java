@@ -329,7 +329,7 @@ public class PixelStreamUtility {
 			// this has no meaning for graphs
 			Map<String, String> frameData = new HashMap<>();
 			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-			frameData.put("type", FrameFactory.getFrameType(frame));
+			frameData.put("type", frame.getFrameType().getTypeAsString());
 			String name = frame.getName();
 			if(name != null) {
 				frameData.put("name", name);
