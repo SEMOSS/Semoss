@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
@@ -34,8 +36,11 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 
 public class OwlTemporalEngineMeta {
+
+	private static final Logger logger = LogManager.getLogger(OwlTemporalEngineMeta.class);
 
 	private InMemorySesameEngine myEng;
 	
@@ -73,7 +78,7 @@ public class OwlTemporalEngineMeta {
 		} catch(RuntimeException ignored) {
 			ignored.printStackTrace();
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// set the rc in the in-memory engine
@@ -95,11 +100,11 @@ public class OwlTemporalEngineMeta {
 		} catch(RuntimeException ignored) {
 			ignored.printStackTrace();
 		} catch (RepositoryException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (RDFParseException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// set the rc in the in-memory engine
@@ -459,7 +464,7 @@ public class OwlTemporalEngineMeta {
 				eIds.add(eId);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -524,7 +529,7 @@ public class OwlTemporalEngineMeta {
 				retList.add(split);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -564,7 +569,7 @@ public class OwlTemporalEngineMeta {
 				ret.add(split);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -601,7 +606,7 @@ public class OwlTemporalEngineMeta {
 				return true;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -631,7 +636,7 @@ public class OwlTemporalEngineMeta {
 				uNames.add(it.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -661,7 +666,7 @@ public class OwlTemporalEngineMeta {
 				return it.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -693,7 +698,7 @@ public class OwlTemporalEngineMeta {
 				retMap.put(values[0].toString(), values[1].toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -726,7 +731,7 @@ public class OwlTemporalEngineMeta {
 				return values[1].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -756,7 +761,7 @@ public class OwlTemporalEngineMeta {
 				return it.next().getValues();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -801,7 +806,7 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -847,7 +852,7 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -879,7 +884,7 @@ public class OwlTemporalEngineMeta {
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -911,7 +916,7 @@ public class OwlTemporalEngineMeta {
 				relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -947,7 +952,7 @@ public class OwlTemporalEngineMeta {
 				relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -983,7 +988,7 @@ public class OwlTemporalEngineMeta {
 				relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1016,7 +1021,7 @@ public class OwlTemporalEngineMeta {
 				returnMap.put(row[0].toString(), SemossDataType.convertStringToDataType(row[1].toString()));
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1049,7 +1054,7 @@ public class OwlTemporalEngineMeta {
 				returnMap.put(row[0].toString(), row[1].toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1099,7 +1104,7 @@ public class OwlTemporalEngineMeta {
 				return SemossDataType.convertStringToDataType(row[1].toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1149,7 +1154,7 @@ public class OwlTemporalEngineMeta {
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1196,7 +1201,7 @@ public class OwlTemporalEngineMeta {
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1243,7 +1248,7 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1292,7 +1297,7 @@ public class OwlTemporalEngineMeta {
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1473,7 +1478,7 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1500,7 +1505,7 @@ public class OwlTemporalEngineMeta {
 				relList.add(rel);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1650,7 +1655,7 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1684,7 +1689,7 @@ public class OwlTemporalEngineMeta {
 				relList.add(rel);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1698,45 +1703,96 @@ public class OwlTemporalEngineMeta {
 	
 	/**
 	 * Get the metamodel view of the data
-	 * The payload should match that off
-	 * {@link prerna.nameserver.utility.MasterDatabaseUtility.getMetamodelRDBMS(String engineId, boolean includeDataTypes)}
+	 * The payload should match: 
+	 * {@link prerna.nameserver.utility.MasterDatabaseUtility#getMetamodelRDBMS(String, boolean)}
 	 * @return
 	 */
-	public Map<String, Object> getMetamodel() {
+	public Map<String, Object> getMetamodel(boolean includeDataTypes) {
 		// get the nodes
-		String nodesQuery 	= "select distinct "
-				+ "?concept "
-				+ "(coalesce(?alias, ?concept) as ?displayName) "
-				+ "(coalesce(?prop, 'noprops') as ?property) "
-				+ "(coalesce(?property_alias, ?property) as ?propAlias) "
-				+ "where {"
-				+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
-				+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
-				+ "optional "
-				+ "{"
-				+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
-				+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
-				+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} "
-				+ "} "
-				+ "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)"
-				+ "}";
+		String nodesQuery = null;
+		if(includeDataTypes) {
+			nodesQuery = "select distinct "
+					+ "?concept "
+					+ "(coalesce(?alias, ?concept) as ?displayName) "
+					+ "(coalesce(?prop, 'noprops') as ?property) "
+					+ "(coalesce(?property_alias, ?property) as ?propAlias) "
+					+ "(coalesce(?cType, 'unknown') as ?conceptType) "
+					+ "(coalesce(?cAdtlType, 'unknown') as ?conceptAdditionalType) "
+					+ "(coalesce(?pType, 'unknown') as ?propertyType) "
+					+ "(coalesce(?pAdtlType, 'unknown') as ?propertyAdditionalType) "
+					+ "where {"
+					+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
+					+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
+					+ "optional{?concept <" + OWL.DATATYPEPROPERTY + "> ?cType} "
+					+ "optional{?concept <" + ADDTL_DATATYPE_PRED + "> ?cAdtlType}"
+					+ "optional "
+					+ "{"
+					+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
+					+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
+					+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} "
+					+ "optional{?prop <" + OWL.DATATYPEPROPERTY + "> ?pType} "
+					+ "optional{?prop <" + ADDTL_DATATYPE_PRED + "> ?pAdtlType}"
+					+ "} "
+					+ "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)"
+					+ "}";
+		} else {
+			nodesQuery = "select distinct "
+					+ "?concept "
+					+ "(coalesce(?alias, ?concept) as ?displayName) "
+					+ "(coalesce(?prop, 'noprops') as ?property) "
+					+ "(coalesce(?property_alias, ?property) as ?propAlias) "
+					+ "where {"
+					+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
+					+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
+					+ "optional "
+					+ "{"
+					+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
+					+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
+					+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} "
+					+ "} "
+					+ "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)"
+					+ "}";
+		}
 		
 		Map<String, MetamodelVertex> nodeHash = new HashMap<>();
+		Map<String, String> dataTypes = new HashMap<>();
+		Map<String, String> additionalDataTypes = new HashMap<>();
+		
 		IRawSelectWrapper it = null;
 		try {
 			it = WrapperManager.getInstance().getRawWrapper(this.myEng, nodesQuery);
 			while(it.hasNext()) {
+				int index = 0;
 				Object[] row = it.next().getValues();
 				// concept values
-				String conceptName = row[0].toString();
+				String conceptName = (String) row[index++];
+				String conceptAlias = (String) row[index++];
+				if(conceptAlias == null) {
+					conceptAlias = conceptName;
+				}
 				// property values for concept
-				String propertyName = row[1].toString();
-				String propertyAlias = row[2].toString();
+				String propertyName = (String) row[index++];
+				String propertyAlias = (String) row[index++];
+				if(propertyAlias == null) {
+					propertyAlias = propertyName;
+				}
 
 				MetamodelVertex node = null;
 				if(nodeHash.containsKey(conceptName)) {
 					// we have seen this node before
 					node = nodeHash.get(conceptName);
+					
+					if(includeDataTypes) {
+						String conceptType = (String) row[index++];
+						String conceptAdditionalType = (String) row[index++];
+						
+						if(!conceptType.equals("unknown")) {
+							dataTypes.put(conceptAlias, conceptType);
+						}
+						if(!conceptAdditionalType.equals("unknown")) {
+							additionalDataTypes.put(conceptAlias, conceptAdditionalType);
+						}
+					}
 				} else {
 					// new node
 					// add the node info that can only appear once
@@ -1744,15 +1800,22 @@ public class OwlTemporalEngineMeta {
 					nodeHash.put(conceptName, node);
 				}
 
-				// check if there are properties to add
-				if(propertyName.equals("noprops")) {
-					continue;
-				}
-				
 				node.addProperty(propertyAlias);
+				
+				if(includeDataTypes) {
+					String propType = (String) row[index++];
+					String propAdditionalType = (String) row[index++];
+					
+					if(!propType.equals("unknown")) {
+						dataTypes.put(conceptAlias + "__" + propertyAlias, propType);
+					}
+					if(!propAdditionalType.equals("unknown")) {
+						additionalDataTypes.put(conceptAlias + "__" + propertyAlias, propAdditionalType);
+					}
+				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1783,7 +1846,7 @@ public class OwlTemporalEngineMeta {
 				edgeHash.put(endName + "-" + endName, newEdge);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1793,11 +1856,10 @@ public class OwlTemporalEngineMeta {
 		Map<String, Object> finalHash = new Hashtable<>();
 		finalHash.put("nodes", nodeHash.values().toArray());
 		finalHash.put("edges", edgeHash.values().toArray());
-//		if(includeDataTypes) {
-//			finalHash.put("physicalTypes", physicalDataTypes);
-//			finalHash.put("dataTypes", dataTypes);
-//			finalHash.put("additionalDataTypes", additionalDataTypes);
-//		}
+		if(includeDataTypes) {
+			finalHash.put("dataTypes", dataTypes);
+			finalHash.put("additionalDataTypes", additionalDataTypes);
+		}
 		return finalHash;
 	}
 	
@@ -1815,20 +1877,20 @@ public class OwlTemporalEngineMeta {
 				+ "(coalesce(?display, ?header) as ?alias) "
 				+ "(coalesce(?prim, 'false') as ?isPrim) "
 				+ "(coalesce(lcase(?display), lcase(?header)) as ?loweralias) "
-				+ "where {"
-				+ "{"
-				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
-				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
-				+ "}"
-				+ "union"
-				+ "{"
-				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
-				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
-				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
-				+ "}"
+				+ "where { "
+				+ "{ "
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
+				+ "optional{?header <" + ALIAS_PRED + "> ?display} "
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim} "
+				+ "} "
+				+ "union "
+				+ "{ "
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim} "
+				+ "optional{?header <" + ALIAS_PRED + "> ?display} "
+				+ "} "
 				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && "
-					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
+				+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">) "
 				+ "} order by ?loweralias";
 		
 		IRawSelectWrapper it = null;
@@ -1860,7 +1922,7 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -1875,6 +1937,72 @@ public class OwlTemporalEngineMeta {
 		}
 		
 		return qs;
+	}
+	
+	/**
+	 * Get a list of arrays containing [table, column, type] for a given database
+	 * The payload should match: 
+	 * {@link prerna.nameserver.utility.MasterDatabaseUtility#getAllTablesAndColumns(String)}
+	 * @param engineId
+	 * @return
+	 */
+	public List<Object[]> getAllTablesAndColumns() {
+		List<Object[]> ret = new ArrayList<>();
+
+		// get all the nodes that are not prim keys
+		String query = "select distinct "
+				+ "?concept "
+				+ "?property "
+				+ "?tableName "
+				+ "?columnName "
+				+ "?dt "
+				+ "(lcase(?tableName) as ?lowerT) "
+				+ "(lcase(?columnName) as ?lowerC) "
+				+ "where { "
+				+ "{ "
+				+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
+				+ "optional{?concept <" + ALIAS_PRED + "> ?tableName} "
+				+ "optional{?concept <" + ALIAS_PRED + "> ?columnName} "
+				+ "optional{?concept <" + OWL.DATATYPEPROPERTY + "> ?dt} "
+				+ "} "
+				+ "union "
+				+ "{ "
+				+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?header} "
+				+ "optional{?concept <" + ALIAS_PRED + "> ?tableName} "
+				+ "{?property <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
+				+ "optional{?property <" + OWL.DATATYPEPROPERTY + "> ?dt} "
+				+ "optional{?property <" + ALIAS_PRED + "> ?columnName} "
+				+ "} "
+				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && "
+					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">) "
+				+ "} order by ?lowerT ?lowerC";
+	
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				String concept = (String) data[0];
+				String property = (String) data[1];
+				String tName = (String) data[2];
+				String cName = (String) data[3];
+				String dataType = (String) data[4];
+				// if no table alias
+				// use the concept name
+				if(tName == null) {
+					tName = concept;
+				}
+				ret.add(new Object[] {tName, cName, dataType});
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return ret;
 	}
 	
 	/////////////////////////////////////////////////////////////////////
@@ -1975,7 +2103,7 @@ public class OwlTemporalEngineMeta {
 				propertyInfo.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2064,7 +2192,7 @@ public class OwlTemporalEngineMeta {
 			}
 			
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2098,7 +2226,7 @@ public class OwlTemporalEngineMeta {
 				headerProperties.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2125,7 +2253,7 @@ public class OwlTemporalEngineMeta {
 				upstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2152,7 +2280,7 @@ public class OwlTemporalEngineMeta {
 				downstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2300,7 +2428,7 @@ public class OwlTemporalEngineMeta {
 				headerInfo.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2334,7 +2462,7 @@ public class OwlTemporalEngineMeta {
 				headerProperties.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2361,7 +2489,7 @@ public class OwlTemporalEngineMeta {
 				upstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2388,7 +2516,7 @@ public class OwlTemporalEngineMeta {
 				downstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2506,7 +2634,7 @@ public class OwlTemporalEngineMeta {
 				propertyInfo.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2580,7 +2708,7 @@ public class OwlTemporalEngineMeta {
 				newMeta.myEng.addStatement(new Object[]{subUri, predUri, obj, isConcept});
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -2608,7 +2736,7 @@ public class OwlTemporalEngineMeta {
 				try {
 					fw.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -2648,7 +2776,7 @@ public class OwlTemporalEngineMeta {
 //				this.myEng.addStatement(new Object[]{subject, predicate, object, isConcept});
 //			}
 //		} catch (IOException e) {
-//			e.printStackTrace();
+//			logger.error(Constants.STACKTRACE, e);
 //		}
 //	}
 	
