@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +29,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
+import prerna.nameserver.utility.MetamodelVertex;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -1513,10 +1515,10 @@ public class OwlTemporalEngineMeta {
 	}
 	
 	/**
-	 * 
+	 * Get a complex version of the metamodel using all the metadata 
 	 * @return
 	 */
-	public Map<String, Object> getMetamodel() {
+	public Map<String, Object> getComplexMetamodel() {
 		Map<String, Object> metamodel = new HashMap<String, Object>();
 		// get the nodes
 		String nodesQuery 	= "select distinct "
@@ -1529,23 +1531,23 @@ public class OwlTemporalEngineMeta {
 				+ "(coalesce(?property_alias, ?property) as ?propAlias) "
 				+ "(coalesce(?property_prim, 'false') as ?propPrimKey) "
 				+ "where {"
-				+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "optional{?concept <" + QUERY_STRUCT_PRED + "> ?qs}"
-				+ "optional{?concept <" + ALIAS_PRED + "> ?alias}"
-				+ "optional{?concept <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
+				+ "optional{?concept <" + QUERY_STRUCT_PRED + "> ?qs} "
+				+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
+				+ "optional{?concept <" + IS_PRIM_KEY_PRED + "> ?prim} "
 				+ "optional "
 				+ "{"
-				+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
-				+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop}"
-				+ "optional{?prop <" + QUERY_STRUCT_PRED + "> ?property_qs}"
-				+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias}"
-				+ "optional{?prop <" + IS_PRIM_KEY_PRED + "> ?property_prim}"
-				+ "}"
+				+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
+				+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
+				+ "optional{?prop <" + QUERY_STRUCT_PRED + "> ?property_qs} "
+				+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} "
+				+ "optional{?prop <" + IS_PRIM_KEY_PRED + "> ?property_prim} "
+				+ "} "
 				+ "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)"
 //				+ "filter(?prop != <" + SEMOSS_PROPERTY_PREFIX + ">)"
 				+ "}";
 		
-		Map<String, Map<String, Object>> nodesMap = new HashMap<String, Map<String, Object>>();
+		Map<String, Map<String, Object>> nodesMap = new HashMap<>();
 		IRawSelectWrapper it = null;
 		try {
 			it = WrapperManager.getInstance().getRawWrapper(this.myEng, nodesQuery);
@@ -1563,7 +1565,6 @@ public class OwlTemporalEngineMeta {
 				String propertyAlias = row[6].toString();
 				String propertyPrim = row[7].toString();
 
-				
 				Map<String, Object> node = null;
 				if(nodesMap.containsKey(conceptName)) {
 					// we have seen this node before
@@ -1693,6 +1694,111 @@ public class OwlTemporalEngineMeta {
 		metamodel.put("edges", relList);
 		
 		return metamodel;
+	}
+	
+	/**
+	 * Get the metamodel view of the data
+	 * The payload should match that off
+	 * {@link prerna.nameserver.utility.MasterDatabaseUtility.getMetamodelRDBMS(String engineId, boolean includeDataTypes)}
+	 * @return
+	 */
+	public Map<String, Object> getMetamodel() {
+		// get the nodes
+		String nodesQuery 	= "select distinct "
+				+ "?concept "
+				+ "(coalesce(?alias, ?concept) as ?displayName) "
+				+ "(coalesce(?prop, 'noprops') as ?property) "
+				+ "(coalesce(?property_alias, ?property) as ?propAlias) "
+				+ "where {"
+				+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
+				+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
+				+ "optional "
+				+ "{"
+				+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
+				+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
+				+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} "
+				+ "} "
+				+ "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)"
+				+ "}";
+		
+		Map<String, MetamodelVertex> nodeHash = new HashMap<>();
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, nodesQuery);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				// concept values
+				String conceptName = row[0].toString();
+				// property values for concept
+				String propertyName = row[1].toString();
+				String propertyAlias = row[2].toString();
+
+				MetamodelVertex node = null;
+				if(nodeHash.containsKey(conceptName)) {
+					// we have seen this node before
+					node = nodeHash.get(conceptName);
+				} else {
+					// new node
+					// add the node info that can only appear once
+					node = new MetamodelVertex(conceptName);
+					nodeHash.put(conceptName, node);
+				}
+
+				// check if there are properties to add
+				if(propertyName.equals("noprops")) {
+					continue;
+				}
+				
+				node.addProperty(propertyAlias);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+
+		String relQuery = "select ?fromNode ?toNode where {"
+				+ "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?fromNode ?rel ?toNode}"
+				+ "}";
+		
+		Map<String, Map<String, String>> edgeHash = new Hashtable<>();
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				String startName = row[0].toString();
+				String endName = row[1].toString();
+				String relName = row[2].toString();
+
+				Map<String, String> newEdge = new Hashtable<>();
+				// need to check to see if the idHash has it else put it in
+				newEdge.put("source", startName);
+				newEdge.put("target", endName);
+				newEdge.put("relation", relName);
+				edgeHash.put(endName + "-" + endName, newEdge);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+		
+		Map<String, Object> finalHash = new Hashtable<>();
+		finalHash.put("nodes", nodeHash.values().toArray());
+		finalHash.put("edges", edgeHash.values().toArray());
+//		if(includeDataTypes) {
+//			finalHash.put("physicalTypes", physicalDataTypes);
+//			finalHash.put("dataTypes", dataTypes);
+//			finalHash.put("additionalDataTypes", additionalDataTypes);
+//		}
+		return finalHash;
 	}
 	
 	/**
