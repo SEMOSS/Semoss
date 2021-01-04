@@ -9,10 +9,20 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.Filter;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.builder.api.AppenderComponentBuilder;
+import org.apache.logging.log4j.core.config.builder.api.ComponentBuilder;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
+import org.apache.logging.log4j.core.config.builder.api.LayoutComponentBuilder;
+import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -23,7 +33,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
@@ -41,7 +50,7 @@ public class TCPPyWorker
 	private static final String CLASS_NAME = TCPPyWorker.class.getName();
 
 	List <String> commandList = new ArrayList<String>(); // this is giving the file name and that too relative
-	public static final Logger LOGGER = LogManager.getLogger(CLASS_NAME);
+	public static Logger LOGGER = LogManager.getLogger(CLASS_NAME);
 
 	String internalLock = "Internal Lock";
 	private static boolean first = true;
@@ -57,9 +66,10 @@ public class TCPPyWorker
 	
 	Properties prop = null; // this is basically reference to the RDF Map
 	List foldersBeingWatched = new ArrayList();
-	List threads = new ArrayList();
 	public String mainFolder = null;
 	PyExecutorThread pt = null;
+
+	static boolean test = false;
 
 	
 	public static void main(String [] args)
@@ -75,22 +85,27 @@ public class TCPPyWorker
 		
 		// when event comes write it to the command
 		// comment this for main execution
+		//-Dlog4j.defaultInitOverride=TRUE
 		
 		if(args == null || args.length == 0)
 		{
 			args = new String[3];
-			args[0] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/InsightCache/a4812715613094528081";
+			args[0] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/InsightCache/keeper";
 			args[1] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/RDF_MAP.prop";
 			args[2] = "8007";
+			test = true;
 		}
 		
 		String log4JPropFile = Paths.get(args[0], "log4j2.properties").toAbsolutePath().toString();
+		
 		FileInputStream fis = null;
 		ConfigurationSource source = null;
 		try {
 			fis = new FileInputStream(log4JPropFile);
 			source = new ConfigurationSource(fis);
-			Configurator.initialize(null, source);
+			//Configuration con = PropertiesConfigurationFactory.getInstance().getConfiguration(new LoggerContext(CLASS_NAME), source);
+			//LOGGER = con.getLoggerContext().getLogger(CLASS_NAME);
+			//LOGGER = Configurator.initialize(null, source).getLogger(CLASS_NAME);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
@@ -103,8 +118,8 @@ public class TCPPyWorker
 			}
 		}
 		
+		
 		TCPPyWorker worker = new TCPPyWorker();
-		System.out.println("Here.. ");
 		DIHelper.getInstance().loadCoreProp(args[1]);
 		DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
@@ -185,9 +200,12 @@ public class TCPPyWorker
                      }
                      //p.addLast(new LoggingHandler(LogLevel.INFO));
                      TCPServerHandler tsh = new TCPServerHandler();
+                     tsh.setBossGroup(bossGroup);
+                     tsh.setWorkerGroup(workerGroup);
                      tsh.setLogger(LOGGER);
                      tsh.setPyExecutorThread(pt);
                      tsh.setMainFolder(mainFolder);
+                     tsh.setTest(test);
                      p
                      //.addLast(new LengthFieldPrepender(4))
                      .addLast(tsh);
@@ -218,6 +236,5 @@ public class TCPPyWorker
         }
 		
 	}
-
 
 }

@@ -87,6 +87,7 @@ import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.AssetUtility;
+import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -205,6 +206,9 @@ public class Insight {
 	
 	// base URL
 	private String baseURL = null;
+	
+	// cmd util proxy
+	CmdExecUtil cmdUtil = null;
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -1398,6 +1402,41 @@ public class Insight {
 				retOutput = ((NounMetadata)retObject).getValue().toString();
 		}
 		return retOutput;
+	}
+
+	public boolean setContext(String context)
+	{
+		// sets the context space for the user
+		// also set rhe cmd context right here
+		if(this.user != null)
+		{
+			Map <String, StringBuffer> appMap = this.user.getAppMap();
+			if(!appMap.containsKey(context))
+			{
+				// attempt once to directly map it with same name
+				boolean success = this.user.addVarMap(context, context); 
+				return success;
+			}	
+			this.user.setContext(context);
+		}
+		else
+		{
+			String id = Utility.getEngineData(context);
+			String mountDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
+			+ DIR_SEPARATOR + context + "__" + id + DIR_SEPARATOR +  "version";
+	
+			this.cmdUtil = new CmdExecUtil(context, mountDir);
+			return true;
+		}
+		return true;
+	}
+	
+	public CmdExecUtil getCmdUtil()
+	{
+		if(this.user != null)
+			return this.user.getCmdUtil();
+		else
+			return this.cmdUtil;
 	}
 
 	///////////////////////////////////////// PYTHON SPECIFIC METHODS ///////////////////////////////////////////
