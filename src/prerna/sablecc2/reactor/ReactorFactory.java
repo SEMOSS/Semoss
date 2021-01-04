@@ -181,7 +181,6 @@ import prerna.sablecc2.reactor.frame.FrameHeaderExistsReactor;
 import prerna.sablecc2.reactor.frame.FrameHeadersReactor;
 import prerna.sablecc2.reactor.frame.FrameTypeReactor;
 import prerna.sablecc2.reactor.frame.HasDuplicatesReactor;
-import prerna.sablecc2.reactor.frame.InsightMetamodelReactor;
 import prerna.sablecc2.reactor.frame.SetCurrentFrameReactor;
 import prerna.sablecc2.reactor.frame.convert.ConvertReactor;
 import prerna.sablecc2.reactor.frame.filter.AddFrameFilterReactor;
@@ -994,7 +993,6 @@ public class ReactorFactory {
 		reactorHash.put("ReplaceFrameFilter", ReplaceFrameFilterReactor.class);
 		reactorHash.put("DeleteFrameFilter", DeleteFrameFilterReactor.class);
 		reactorHash.put("UnfilterFrame", UnfilterFrameReactor.class);
-		reactorHash.put("InsightMetamodel", InsightMetamodelReactor.class);
 		reactorHash.put("HasDuplicates", HasDuplicatesReactor.class);
 		reactorHash.put("CurrentFrame", CurrentFrameReactor.class);
 		reactorHash.put("SetCurrentFrame", SetCurrentFrameReactor.class);

@@ -1013,7 +1013,7 @@ public class MasterDatabaseUtility {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		// idHash - physical ID to the name of the node
-		Hashtable <String, MetamodelVertex> nodeHash = new Hashtable <>();
+		Map<String, MetamodelVertex> nodeHash = new HashMap<>();
 
 		Map<String, String> physicalDataTypes = new HashMap<>();
 		Map<String, String> dataTypes = new HashMap<>();
