@@ -68,11 +68,13 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 		String replaceNA = "";
 		if (newColName == null || newColName.equals("") || newColName.equals("null")) {
 			script.append(srcCol);
-			replaceNA = rFrameName + "$" + srcCol + "[" + rFrameName + "$" + srcCol + " %in% c(\" NaN%\", \"  NA%\")] <- NA; ";
+			replaceNA = rFrameName + "$" + srcCol + "[" + rFrameName + "$" + srcCol + " %like% \"NA%\" | " 
+					+ rFrameName + "$" + srcCol + " %like% \"NaN%\"] <- NA; ";
 
 		} else {
 			script.append(newColName);
-			replaceNA = rFrameName + "$" + newColName + "[" + rFrameName + "$" + newColName + " %in% c(\" NaN%\", \"  NA%\")] <- NA; ";
+			replaceNA = rFrameName + "$" + newColName + "[" + rFrameName + "$" + newColName + " %like% \"NA%\" | "
+					+ rFrameName + "$" + newColName + " %like% \"NaN%\"] <- NA; ";
 		}
 		script.append(" <- paste0(format(round(" + rFrameName + "$" + srcCol);
 		if (by100) {
