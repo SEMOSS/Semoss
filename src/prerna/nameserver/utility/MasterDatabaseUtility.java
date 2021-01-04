@@ -50,8 +50,6 @@ public class MasterDatabaseUtility {
 
 	private static final Logger logger = LogManager.getLogger(MasterDatabaseUtility.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
-
 	// -----------------------------------------   RDBMS CALLS ---------------------------------------
 
 	public static void initLocalMaster() throws SQLException, IOException {
@@ -444,7 +442,7 @@ public class MasterDatabaseUtility {
 				ret.add(data);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -492,7 +490,7 @@ public class MasterDatabaseUtility {
 				ret.add(data);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -602,7 +600,7 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -661,7 +659,7 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -730,7 +728,7 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -806,7 +804,7 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -860,7 +858,7 @@ public class MasterDatabaseUtility {
 //					returnData.add(mapRow);
 //				}
 //			} catch (Exception e) {
-//				logger.error(STACKTRACE, e);
+//				logger.error(Constants.STACKTRACE, e);
 //			} finally {
 //				if(wrapper != null) {
 //					wrapper.cleanUp();
@@ -936,7 +934,7 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e1) {
-			logger.error(STACKTRACE, e1);
+			logger.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -990,7 +988,7 @@ public class MasterDatabaseUtility {
 //					returnData.add(mapRow);
 //				}
 //			} catch (Exception e) {
-//				logger.error(STACKTRACE, e);
+//				logger.error(Constants.STACKTRACE, e);
 //			} finally {
 //				if(wrapper != null) {
 //					wrapper.cleanUp();
@@ -1089,7 +1087,7 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e1) {
-			logger.error(STACKTRACE, e1);
+			logger.error(Constants.STACKTRACE, e1);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1138,7 +1136,7 @@ public class MasterDatabaseUtility {
 				edgeHash.put(endName + "-" + endName + "-" + relName, newEdge);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1223,7 +1221,7 @@ public class MasterDatabaseUtility {
 				propList.add(columnName);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1320,7 +1318,7 @@ public class MasterDatabaseUtility {
 					vert.addProperty(columnName);
 				}
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1398,7 +1396,7 @@ public class MasterDatabaseUtility {
 					vert.addProperty(columnName);
 				}
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1489,7 +1487,7 @@ public class MasterDatabaseUtility {
 					retMap.put(engineId, conceptSpecific);
 				}
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1575,7 +1573,7 @@ public class MasterDatabaseUtility {
 					retMap.put(engineId, engineSpecific);
 				}
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1658,7 +1656,7 @@ public class MasterDatabaseUtility {
 					retMap.put(engineId, engineSpecific);
 				}
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					wrapper.cleanUp();
@@ -1740,7 +1738,7 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1841,7 +1839,7 @@ public class MasterDatabaseUtility {
 				logicalNames.add(logicalName);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1882,7 +1880,7 @@ public class MasterDatabaseUtility {
 				engineDescriptions.put(uniqueName, description);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -1962,7 +1960,7 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -2115,14 +2113,14 @@ public class MasterDatabaseUtility {
 				rs.close();
 			}
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		try {
 			if(stmt != null) {
 				stmt.close();
 			}
 		} catch (SQLException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -2224,7 +2222,7 @@ public class MasterDatabaseUtility {
 				results.add(row);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -2278,7 +2276,7 @@ public class MasterDatabaseUtility {
 				results.add(row);
 			}
 		} catch(Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -2340,7 +2338,7 @@ public class MasterDatabaseUtility {
 				map.put(sourcePhysical, targetPhysicals);
 			}
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		} finally {
 			closeStreams(stmt, rs);
 		}
@@ -2640,7 +2638,7 @@ public class MasterDatabaseUtility {
 				configFile = rs.getString(1);
 			}
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		} finally {
 			closeStreams(stmt, rs);
 		}
@@ -2728,7 +2726,7 @@ public class MasterDatabaseUtility {
 				//				}
 			}
 		} catch (SQLException ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		} finally {
 			// do not close the stmt
 			// reuse it below
@@ -2784,7 +2782,7 @@ public class MasterDatabaseUtility {
 			finalHash.put("edges", edgeHash);
 
 		} catch (SQLException ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		} finally {
 			closeStreams(stmt, rs);
 		}
