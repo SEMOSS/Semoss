@@ -120,6 +120,7 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.NotFoundException;
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
@@ -156,6 +157,7 @@ public class Utility {
 	private static final Logger logger = LogManager.getLogger(prerna.util.Utility.class);
 
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
+	private static Map <String, String> engineIdMap = new HashMap<String, String>();
 
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
@@ -3410,7 +3412,7 @@ public class Utility {
 		return envClassPath;
 	}
 
-	public static String getCP(String specificJars) {
+	public static String getCP(String specificJars, String insightFolder) {
 		StringBuffer envClassPath = new StringBuffer();
 		String osName = System.getProperty("os.name").toLowerCase();
 		boolean win = osName.indexOf("win") >= 0;
@@ -3478,8 +3480,11 @@ public class Utility {
 			}
 			// remove the last one
 			String cp = retClassPath.toString();
+			String curPath = insightFolder + ";";
+			if(!win)
+				curPath = insightFolder + ":";
 
-			envClassPath = new StringBuffer("\"" + cp.substring(0, cp.length() - 1) + "\"");
+			envClassPath = new StringBuffer("\"" + curPath + cp.substring(0, cp.length() - 1) + "\"");
 		} catch (ClassNotFoundException cnfe) {
 			logger.error(Constants.STACKTRACE, cnfe);
 		}
@@ -3494,7 +3499,7 @@ public class Utility {
 		if (cp == null) {
 			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
 		}
-		String specificPath = getCP(cp);
+		String specificPath = getCP(cp, insightFolder);
 		try {
 			String java = System.getenv("JAVA_HOME");
 			if (java == null) {
@@ -3567,15 +3572,17 @@ public class Utility {
 			String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
+			logger.info("came out of the waiting for process");
 			Process p = pb.start();
 
 			try {
 				// p.waitFor();
-				p.waitFor(3, TimeUnit.SECONDS);
+				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
 				logger.error(Constants.STACKTRACE, ie);
 			}
+			logger.info("came out of the waiting for process");
 			thisProcess = p;
 
 			// System.out.println("Process started with .. " + p.exitValue());
@@ -3880,6 +3887,26 @@ public class Utility {
 //			e.printStackTrace();
 //		}
 //	}
+
+	public static String getEngineData(String queryEngine)
+	{
+		if(engineIdMap.size() == 0)
+		{
+			List <Map<String, Object>> allEngines = SecurityQueryUtils.getAllDatabaseList();
+	
+			for(int engineIndex = 0;engineIndex < allEngines.size();engineIndex++)
+			{
+				Map <String, Object> engineValues = allEngines.get(engineIndex);
+				String engineName = (String)engineValues.get("app_name");
+				String engineId = (String)engineValues.get("app_id");
+				
+			
+				engineIdMap.put(engineName, engineId);
+			}
+		}
+		return engineIdMap.get(queryEngine);
+
+	}
 
 	public static void main(String[] args) {
 		DIHelper.getInstance().loadCoreProp("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop");
