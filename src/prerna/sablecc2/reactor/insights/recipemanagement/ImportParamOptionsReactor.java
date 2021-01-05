@@ -42,15 +42,6 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		NounMetadata retMap = null;
-		
-		// if it is already there just return
-		Object  obj = insight.getVar(ImportParamOptionsReactor.PARAM_OPTIONS);
-		if(obj != null) {
-			retMap = new NounMetadata(obj, PixelDataType.MAP);
-			return retMap;
-		}
-		
 		PixelList pixelList = this.insight.getPixelList();
 		
 		Insight tempInsight = new Insight();
@@ -75,24 +66,20 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		Map<Pixel, SelectQueryStruct> imports = translation.getImportQsMap();
 		// for each import
 		// we need to get the proper param struct
-		Map<String, Map> params = new HashMap<>();
+		List<Map<String, Object>> params = new Vector<>();
 		for(Pixel pixelStep : imports.keySet()) {
 			List<ParamStruct> paramList = getParamsForImport(imports.get(pixelStep), pixelStep);
-			Map output = organizeStruct(paramList);
+			Map<String, Map <String, Map<String, Map<String, List<ParamStruct>>>>> paramOutput = organizeStruct(paramList);
 			
-			params.put(pixelStep.getId(), output);
+			Map<String, Object> output = new HashMap<>();
+			output.put("pixelId", pixelStep.getId());
+			output.put("pixelString", pixelStep.getPixelString());
+			output.put("params", paramOutput);
+			params.add(output);
 		}
 		
-		// frame -> [param struct]
-		// TODO: potentially change this sturcture base don conversation w/ FE
-		// TODO: potentially change this sturcture base don conversation w/ FE
-		// TODO: potentially change this sturcture base don conversation w/ FE
-		// TODO: potentially change this sturcture base don conversation w/ FE
-		
-		retMap = new NounMetadata(params, PixelDataType.MAP);
-
-		this.insight.getVarStore().put(PARAM_OPTIONS, retMap);
-		
+		NounMetadata retMap = new NounMetadata(params, PixelDataType.VECTOR);
+//		this.insight.getVarStore().put(PARAM_OPTIONS, retMap);
 		return retMap;
 	}
 	
@@ -168,8 +155,8 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		return paramList;
 	}
 	
-	public Map organizeStruct(List <ParamStruct> structs) {
-		Map columnMap = new HashMap();
+	public Map<String, Map <String, Map<String, Map<String, List<ParamStruct>>>>> organizeStruct(List <ParamStruct> structs) {
+		Map<String, Map <String, Map<String, Map<String, List<ParamStruct>>>>> columnMap = new HashMap<>();
 		// level 1 - column name
 		// column (key) -- List of tables (Value)
 		// level 2 - column + table
