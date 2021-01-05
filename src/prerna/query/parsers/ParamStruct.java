@@ -4,12 +4,13 @@ import prerna.sablecc2.om.PixelDataType;
 
 public class ParamStruct {
 
-	private String pixelId = null;
-	private String pixelString = null;
-	
 	public enum FILL_TYPE {MANUAL, PIXEL}
 	public enum LEVEL {COLUMN, TABLE, OPERATOR, OPERATORU};
 	public enum QUOTE {NO, SINGLE, DOUBLE};
+	
+	private String pixelId = null;
+	private String pixelString = null;
+	
 	private String tableName = null;
 	private String tableAlias = null;
 	private String columnName = null;
@@ -18,7 +19,6 @@ public class ParamStruct {
 	private Object defaultValue = null;
 	private String operator = null;
 	private String uOperator = null;
-	
 
 	private boolean searchable = false;
 	private boolean multiple = false;
@@ -31,11 +31,10 @@ public class ParamStruct {
 
 	private String context = null;
 	private String contextPart = null;
+	
 	private FILL_TYPE fillType = null;
 	private LEVEL level = null;
 	private QUOTE quote = QUOTE.DOUBLE;
-	
-	
 	
 	public void setPixelId(String pixelId) {
 		this.pixelId = pixelId;
