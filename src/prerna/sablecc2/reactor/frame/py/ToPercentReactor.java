@@ -51,7 +51,8 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
                 wrapperFrameName + ".cache['data']['" + srcCol + "'].apply(lambda row: " +
                 "str(round(row, " + sigDigits + ") * 100) + '%' if " + by100v + 
                 " else " +
-                "str(round(row, " + sigDigits + ") * 1) + '%' )";
+                "str(round(row, " + sigDigits + ") * 1) + '%' )" +
+                ".replace(\'nan%\','null')"; //this check is for replacing nan% with null
 
 		// run script
 		// converting to lambda
