@@ -1,6 +1,7 @@
 package prerna.auth.utils.admin.reactors;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -197,11 +198,20 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 		Object[] row = null;
 		while ((helper.hasNext())) {
 			row = helper.next().getRawValues();
-			
+			// id could be string or # based on the type
+			Object idObj = row[idxId];
+			if(idObj == null || idObj.toString().trim().isEmpty()) {
+				throw new IllegalArgumentException("Must have the id for the user defined - check row " + counter);
+			}
+			String id = null;
+			if(idObj instanceof Number) {
+				id = new BigDecimal( ((Number) idObj).doubleValue() ).toPlainString();
+			} else {
+				id = idObj + "";
+			}
 			String name = (String) row[idxName];
 			String email = (String) row[idxEmail];
 			String type = (String) row[idxType];
-			String id = (String) row[idxId];
 			String password = (String) row[idxPassword];
 			String salt = (String) row[idxSalt];
 			String username = (String) row[idxUsername];
