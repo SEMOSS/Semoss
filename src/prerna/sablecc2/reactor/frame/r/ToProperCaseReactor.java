@@ -57,7 +57,7 @@ public class ToProperCaseReactor extends AbstractRFrameReactor {
 
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// define the script to be executed
-				builder.append(table + "$" + col + " <- to_upper_camel_case(" + table + "$" + col + ", sep_out=\"_\");");
+				builder.append(table + "$" + col + " <- to_upper_camel_case(" + table + "$" + col + ", sep_out=\",_\");");
 			}
 		}
 		
