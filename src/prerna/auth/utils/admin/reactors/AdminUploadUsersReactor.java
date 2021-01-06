@@ -52,7 +52,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 	private static Map<String, Integer> psIndex = new HashMap<>();
 	static {
 		String[] headers = new String[] {NAME, EMAIL, TYPE, ID, PASSWORD, SALT,
-				USERNAME, ADMIN, PUBLISHER };
+				USERNAME, ADMIN, PUBLISHER};
 		StringBuilder builder = new StringBuilder("INSERT INTO USER (");
 		for(int i = 0; i < headers.length; i++) {
 			if(i > 0) {
