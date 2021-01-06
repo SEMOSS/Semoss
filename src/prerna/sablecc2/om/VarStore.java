@@ -16,6 +16,8 @@ import prerna.sablecc2.reactor.storage.MapHeaderDataRowIterator;
 
 public class VarStore implements InMemStore<String, NounMetadata> {
 
+	public static final String PARAM_STRUCT_PREFIX = "$PARAM_STRUCT_";
+	
 	// the main object where all the nouns are stored
 	private Map<String, NounMetadata> varMap;
 	
@@ -23,9 +25,14 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	// storing the varNames for all frames
 	private Set<String> frameSet;
 	
+	// for quick searching
+	// storing the varnames for all insight parameters
+	private Set<String> insightParametersSet;
+	
 	public VarStore() {
 		varMap = new ConcurrentHashMap<>();
 		frameSet = new ConcurrentHashSet<>();
+		insightParametersSet = new ConcurrentHashSet<>();
 	}
 	
 	@Override
@@ -40,12 +47,15 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		// keep quick reference to frames
 		if(variable.getNounType() == PixelDataType.FRAME) {
 			frameSet.add(varName);
+		} else if(variable.getNounType() == PixelDataType.PARAM_STRUCT) {
+			insightParametersSet.add(varName);
 		}
 	}
 	
 	public void putAll(VarStore otherStore) {
 		varMap.putAll(otherStore.varMap);
 		frameSet.addAll(otherStore.frameSet);
+		insightParametersSet.addAll(otherStore.insightParametersSet);
 	}
 	
 	@Override
@@ -98,12 +108,14 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	public void removeAll(Collection<String> keys) {
 		// also try to remove from frameSet if its a frame
 		this.frameSet.removeAll(keys);
+		this.insightParametersSet.removeAll(keys);
 		this.varMap.keySet().removeAll(keys);
 	}
 	
 	@Override
 	public void clear() {
 		this.frameSet.clear();
+		this.insightParametersSet.clear();
 		this.varMap.clear();
 	}
 	
@@ -125,6 +137,10 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	public Set<String> getFrameKeys() {
 		return frameSet;
+	}
+	
+	public Set<String> getInsightParameterKeys() {
+		return insightParametersSet;
 	}
 	
 	/**
