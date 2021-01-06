@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.imports;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -143,16 +144,17 @@ public class PandasImporter extends AbstractImporter {
 			//define parameters that we will pass into mergeSyntax method to get the R command
 			String returnTable = this.dataframe.getName();
 			String leftTableName = returnTable;
-			String rightTableName = tempTableName;
 			
 			// only a single join type can be passed at a time
 			String joinType = null;
-			List<Map<String, String>> joinCols = new ArrayList<Map<String, String>>();
+			Set<String> joinTypeSet = new HashSet<>();
+			List<Map<String, String>> joinCols = new ArrayList<>();
 			for(Join joinItem : joins) {
 				joinType = joinItem.getJoinType();
+				joinTypeSet.add(joinType);
 				// in R, the existing column is referenced as frame__column
 				// but the R syntax only wants the col
-				Map<String, String> joinColMapping = new HashMap<String, String>();
+				Map<String, String> joinColMapping = new HashMap<>();
 				String jSelector = joinItem.getLColumn();
 				if(jSelector.contains("__")) {
 					jSelector = jSelector.split("__")[1];
@@ -165,10 +167,17 @@ public class PandasImporter extends AbstractImporter {
 				joinCols.add(joinColMapping);
 			}
 			
+			if(joinTypeSet.size() > 1) {
+				this.dataframe.runScript("del " + tempTableName);
+				throw new SemossPixelException(
+						new NounMetadata("Mixed join conditions cannot be applied on the python frame type", 
+								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
 			//execute python command
-			this.dataframe.merge(returnTable, leftTableName, rightTableName, joinType, joinCols);
+			this.dataframe.merge(returnTable, leftTableName, tempTableName, joinType, joinCols);
 			// update the table in the wrapper
 			this.dataframe.runScript(this.dataframe.getWrapperName() +  ".cache['data'] = " + returnTable);
+			this.dataframe.runScript("del " + tempTableName);
 //		}
 		
 		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
