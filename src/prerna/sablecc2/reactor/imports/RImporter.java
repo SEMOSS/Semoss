@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.imports;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -154,16 +155,17 @@ public class RImporter extends AbstractImporter {
 			//define parameters that we will pass into mergeSyntax method to get the R command
 			String returnTable = this.dataframe.getName();
 			String leftTableName = returnTable;
-			String rightTableName = tempTableName;
 			
 			// only a single join type can be passed at a time
 			String joinType = null;
-			List<Map<String, String>> joinCols = new ArrayList<Map<String, String>>();
+			Set<String> joinTypeSet = new HashSet<>();
+			List<Map<String, String>> joinCols = new ArrayList<>();
 			for(Join joinItem : joins) {
 				joinType = joinItem.getJoinType();
+				joinTypeSet.add(joinType);
 				// in R, the existing column is referenced as frame__column
 				// but the R syntax only wants the col
-				Map<String, String> joinColMapping = new HashMap<String, String>();
+				Map<String, String> joinColMapping = new HashMap<>();
 				String jSelector = joinItem.getLColumn();
 				if(jSelector.contains("__")) {
 					jSelector = jSelector.split("__")[1];
@@ -176,6 +178,14 @@ public class RImporter extends AbstractImporter {
 				joinCols.add(joinColMapping);
 			}
 			
+			if(joinTypeSet.size() > 1) {
+				// perform clean up
+				this.dataframe.executeRScript("rm("+tempTableName+")");
+				throw new SemossPixelException(
+						new NounMetadata("Mixed join conditions cannot be applied on the R frame type", 
+								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
+			
 			// need to account for the data types being different for the join columns
 			updateTypesForJoin(leftTableTypes, tempTableName, newColumnsToTypeMap, joinCols);
 			
@@ -183,7 +193,7 @@ public class RImporter extends AbstractImporter {
 //			System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
 
 			//execute r command
-			String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
+			String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, tempTableName, joinType, joinCols);
 			this.dataframe.executeRScript(mergeString);
 			this.dataframe.removeAllColumnIndex();
 //			System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
