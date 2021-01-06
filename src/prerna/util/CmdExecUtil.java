@@ -23,6 +23,7 @@ public class CmdExecUtil {
 	String mountDir =  "c:/users/pkapaleeswaran/workspacej3/gittest";
 	String workingDir = mountDir;
 	String commandAppender = "cmd";
+	String pwdCommand = "pwd";
 
 	
 	public CmdExecUtil(String mountName, String mountDir)
@@ -32,6 +33,7 @@ public class CmdExecUtil {
 		this.mountName = mountName;
 		this.mountDir = mountDir;
 		this.workingDir = mountDir;
+		System.err.println("Working Dir is set to ..  " + workingDir);
 	}
 	
 	public String executeCommand(String command)
@@ -45,10 +47,23 @@ public class CmdExecUtil {
 		String output = null;
 		try {
 			
-			if(!command.startsWith("cd") && !command.startsWith("dir"))
+			if(command.startsWith("cd"))
+			{
+				// remoe the cd and then add to working dir
+				command = command.replace("cd", "");
+				command = command.trim();
+				if(command.startsWith("/"))
+					output =  " Invalid command ";
+				output = adjustWorkingDir(command);
+			}
+			else if(command.startsWith("pwd"))
+			{
+				output = workingDir;
+			}
+			else if(!command.startsWith("cd") && !command.startsWith("dir"))
 			{
 				String finalCommand = new String("");
-				command = "cd " + workingDir + " && " + command;
+				//command = "cd " + workingDir + " && " + command;
 				// concat everything and then execute
 				output = runCommand(command)[1];
 			}
@@ -56,7 +71,7 @@ public class CmdExecUtil {
 			{
 				
 				StringBuilder finalCommand = new StringBuilder("");
-				command = "cd " + workingDir + " && " + command;
+				//command = "cd " + workingDir + " && " + command;
 				String [] foutput = runCommand(command);
 				boolean success = foutput[0].equalsIgnoreCase("true");
 				output = foutput[1];
@@ -75,7 +90,7 @@ public class CmdExecUtil {
 				if(output.length() == 0)
 				{
 					// add only if the output is not resulting
-					String newCommand = command + " & cd"; 
+					String newCommand = command; // + " & cd"; 
 					output = runCommand(newCommand)[1];
 					output = output.replace("\\", "/");
 					output = output.replace("\\r","");
@@ -111,7 +126,7 @@ public class CmdExecUtil {
 		if(workingDir.equalsIgnoreCase(mountDir) && command.contains("..")) // you cannot do anything in the root
 			return mountName;
 
-		if((upCommand.startsWith("DEL") || upCommand.startsWith("RM") || upCommand.startsWith("CP") || upCommand.startsWith("COPY") || upCommand.startsWith("MV") || upCommand.startsWith("MOVE") ||  upCommand.startsWith("LS") || upCommand.startsWith("DIR")) && (command.contains("..") || command.contains("\\") || command.contains("/")))
+		if((upCommand.startsWith("DEL") || upCommand.startsWith("RM") || upCommand.startsWith("CP") || upCommand.startsWith("COPY") || upCommand.startsWith("MV") || upCommand.startsWith("MOVE") ||  upCommand.startsWith("LS") || upCommand.startsWith("DIR") || upCommand.startsWith("PWD")) && (command.contains("..") || command.contains("\\") || command.contains("/")))
 			return " Delete, move, copy, list is only allowed for a single level ";
 		
 		if(command.contains("&") || command.contains("&&"))
@@ -121,8 +136,8 @@ public class CmdExecUtil {
 				&& !upCommand.startsWith("CD") 
 				&& !upCommand.startsWith("DIR") && !upCommand.startsWith("LS") 
 				&& !upCommand.startsWith("MV") && !upCommand.startsWith("MOVE") 
-				&& !upCommand.startsWith("GIT"))
-			return "Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, git";
+				&& !upCommand.startsWith("GIT") && !upCommand.startsWith("PWD"))
+			return "Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, pwd, git ";
 		
 		return null;
 		
@@ -137,7 +152,10 @@ public class CmdExecUtil {
 		String[] commandsStarter = null;
 
 		if (osName.indexOf("win") >= 0) 
+		{
 			this.commandAppender = "cmd";
+			pwdCommand = "cd";
+		}
 		else
 			this.commandAppender = "/bin/bash";
 
@@ -167,8 +185,11 @@ public class CmdExecUtil {
 			cmdLine.addArgument("-c");
 		else
 			cmdLine.addArgument("/C");
-		
+
+		//command = "\"" + command + "\"";
 		cmdLine.addArgument(command, false);
+		
+		//System.err.println("Running command ..  " + cmdLine);
 		
 		CollectingLogOutputStream clos = new CollectingLogOutputStream();
 		executor = new DefaultExecutor();
@@ -216,6 +237,43 @@ public class CmdExecUtil {
 		{
 			System.err.println("Exception is  " + ex);
 		}
+		
+	}
+	
+	private String adjustWorkingDir(String command)
+	{
+		String [] cdTokens = command.split("/");
+		for(int tokenIndex = 0;tokenIndex < cdTokens.length;tokenIndex++)
+		{
+			String curToken = cdTokens[tokenIndex];
+			//System.out.println("Processing CD " + curToken);
+			if(curToken.equalsIgnoreCase(".."))
+			{
+				String [] workdirTokens = workingDir.split("/");
+				// take out the last one
+				int wdTokenLength = workdirTokens.length;
+				if(wdTokenLength > 1)
+				{
+					String lastToken = workdirTokens[workdirTokens.length -1];
+					int lastIndex = workingDir.lastIndexOf("/" + lastToken);
+					workingDir = workingDir.substring(0, lastIndex);
+					//System.out.println("Working Dir " + workingDir);
+				}
+				else
+				{
+					workingDir = mountDir;
+					return " Directory levels doesnt match navigation ";
+				}
+			}
+			else 
+			{
+				if(!workingDir.endsWith("/"))
+					workingDir = workingDir + "/" + curToken;
+				else
+					workingDir = workingDir + curToken;					
+			}
+		}
+		return workingDir;
 		
 	}
 	
