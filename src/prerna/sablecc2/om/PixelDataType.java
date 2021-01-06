@@ -45,6 +45,9 @@ public enum PixelDataType {
 	// to ensure ornament data is sent properly
 	ORNAMENT_MAP ("ORNAMENT_MAP", null),
 	
+	// param struct
+	PARAM_STRUCT ("PARAM_STRUCT", ReactorKeysEnum.PARAM_STRUCT),
+	
 	SQLE ("SQLE", null), 													// sql expression
 	E ("E", null), 															// some other expression
 	FILTER ("FILTER", ReactorKeysEnum.FILTERS), 							// filter object
