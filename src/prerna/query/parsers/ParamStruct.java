@@ -1,5 +1,7 @@
 package prerna.query.parsers;
 
+import java.util.Map;
+
 import prerna.sablecc2.om.PixelDataType;
 
 public class ParamStruct {
@@ -23,10 +25,10 @@ public class ParamStruct {
 	private boolean searchable = false;
 	private boolean multiple = false;
 	private String paramName = null;
-	private String model_query = null;
+	private String modelQuery = null;
 	private String manualChoices = null;
-	private String model_display = null; // need to turn this into an enum
-	private String model_label = null; // how do you want to ask your user what to do ?
+	private String modelDisplay = null; // need to turn this into an enum
+	private String modelLabel = null; // how do you want to ask your user what to do ?
 	private boolean required = false;
 
 	private String context = null;
@@ -132,12 +134,12 @@ public class ParamStruct {
 		this.paramName = paramName;
 	}
 
-	public String getModel_query() {
-		return model_query;
+	public String getModelQuery() {
+		return modelQuery;
 	}
 
-	public void setModel_query(String model_query) {
-		this.model_query = model_query;
+	public void setModelQuery(String modelQuery) {
+		this.modelQuery = modelQuery;
 	}
 
 	public String getManualChoices() {
@@ -148,20 +150,20 @@ public class ParamStruct {
 		this.manualChoices = manualChoices;
 	}
 
-	public String getModel_display() {
-		return model_display;
+	public String getModelDisplay() {
+		return modelDisplay;
 	}
 
-	public void setModel_display(String model_display) {
-		this.model_display = model_display;
+	public void setModelDisplay(String modelDisplay) {
+		this.modelDisplay = modelDisplay;
 	}
 
-	public String getModel_label() {
-		return model_label;
+	public String getModelLabel() {
+		return modelLabel;
 	}
 
-	public void setModel_label(String model_label) {
-		this.model_label = model_label;
+	public void setModelLabel(String modelLabel) {
+		this.modelLabel = modelLabel;
 	}
 
 	public boolean isRequired() {
@@ -188,26 +190,10 @@ public class ParamStruct {
 		this.contextPart = contextPart;
 	}
 
-	public String toString()
-	{
-		StringBuilder builder = new StringBuilder();
-		builder.append(tableName);
-		builder.append(".");
-		builder.append(columnName);
-		builder.append(" ");
-		builder.append(operator);
-		builder.append("  ");
-		builder.append(currentValue);
-		builder.append("  ");
-		builder.append("from ").append(tableName);
-
-		return builder.toString();
-	}
-	
-	
 	public String getuOperator() {
-		if(uOperator == null)
+		if(uOperator == null) {
 			return operator;
+		}
 		return uOperator;
 	}
 
@@ -239,10 +225,98 @@ public class ParamStruct {
 		this.quote = quote;
 	}
 
-	public String getParamKey()
-	{
+	public String getParamKey() {
 		return tableName + "_" + columnName + getuOperator() ;
 	}
 	
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName);
+		builder.append(".");
+		builder.append(columnName);
+		builder.append(" ");
+		builder.append(operator);
+		builder.append("  ");
+		builder.append(currentValue);
+		builder.append("  ");
+		builder.append("from ").append(tableName);
 
+		return builder.toString();
+	}
+	
+	/**
+	 * Generate a param struct from map inputs
+	 * @param mapInputs
+	 * @return
+	 */
+	public static ParamStruct generateParamStruct(Map<String, Object> mapInputs) {
+		String pixelId = (String) mapInputs.get("pixelId");
+		String pixelString = (String) mapInputs.get("pixelString");
+		String tableName = (String) mapInputs.get("tableName");
+		String tableAlias = (String) mapInputs.get("tableAlias");
+		String columnName = (String) mapInputs.get("columnName");
+		Object currentValue = mapInputs.get("currentValue");
+		Object defaultValue = mapInputs.get("defaultValue");
+		String operator = (String) mapInputs.get("operator");
+		Boolean searchable = (Boolean) mapInputs.get("searchable");
+		Boolean multiple = (Boolean) mapInputs.get("multiple");
+		String paramName = (String) mapInputs.get("paramName");
+		String modelQuery = (String) mapInputs.get("modelQuery");
+		String manualChoices = (String) mapInputs.get("manualChoices");
+		String modelDisplay = (String) mapInputs.get("modelDisplay");
+		String modelLabel = (String) mapInputs.get("modelLabel");
+		Boolean required = (Boolean) mapInputs.get("required");
+		String context = (String) mapInputs.get("context");
+		String contextPart = (String) mapInputs.get("contextPart");
+		String uOperator = (String) mapInputs.get("uOperator");
+		
+		// these are enums
+		String type = (String) mapInputs.get("type");
+		String fillType = (String) mapInputs.get("fillType");
+		String level = (String) mapInputs.get("level");
+		String quote = (String) mapInputs.get("quote");
+		
+		ParamStruct pStruct = new ParamStruct();
+		pStruct.setPixelId(pixelId);
+		pStruct.setPixelString(pixelString);
+		pStruct.setTableName(tableName);
+		pStruct.setTableAlias(tableAlias);
+		pStruct.setColumnName(columnName);
+		pStruct.setCurrentValue(currentValue);
+		pStruct.setDefaultValue(defaultValue);
+		pStruct.setOperator(operator);
+		if(searchable != null) {
+			pStruct.setSearchable(searchable);
+		}
+		if(multiple != null) {
+			pStruct.setMultiple(multiple);
+		}
+		pStruct.setParamName(paramName);
+		pStruct.setModelQuery(modelQuery);
+		pStruct.setManualChoices(manualChoices);
+		pStruct.setModelDisplay(modelDisplay);
+		pStruct.setModelLabel(modelLabel);
+		if(required != null) {
+			pStruct.setRequired(required);
+		}
+		pStruct.setContext(context);
+		pStruct.setContextPart(contextPart);
+		pStruct.setuOperator(uOperator);
+		if(type != null && !type.isEmpty()) {
+			pStruct.setType(PixelDataType.valueOf(type));
+		}
+		if(fillType != null && !fillType.isEmpty()) {
+			pStruct.setFillType(FILL_TYPE.valueOf(fillType));
+		}
+		if(level != null && !level.isEmpty()) {
+			pStruct.setLevel(LEVEL.valueOf(level));
+		}
+		if(quote != null && !quote.isEmpty()) {
+			pStruct.setQuote(QUOTE.valueOf(quote));
+		}
+		
+		return pStruct;
+	}
+	
 }
