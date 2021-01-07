@@ -728,6 +728,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String xColumnName = label.get(0);
 		List<String> yColumnNames = (List<String>) panelMap.get("y-axis");
 		Map<String, Object> xColumnMap = (Map<String, Object>) panelMap.get(xColumnName);
+		
 
 		// Build chart
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
@@ -782,12 +783,19 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			yCounter++;
 		}
 
+		// add the title
+		Object chartTitle = panel.getOrnament(panel.getOrnaments(), "tools.shared.chartTitle.text");
+		if(chartTitle != null)
+			chart.setTitleText(chartTitle + "");
+		
 		chart.plot(data);
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
 			POIExportUtility.displayValues(ChartTypes.LINE, chart);
 		}
+		
+		
 		
 	}
 	
@@ -863,6 +871,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			scatterSeries.addNewVaryColors().setVal(false);
 		}
 		
+		// add the title
+		Object chartTitle = panel.getOrnament(panel.getOrnaments(), "tools.shared.chartTitle.text");
+		if(chartTitle != null)
+			chart.setTitleText(chartTitle + "");
+
 		chart.plot(data);
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
@@ -967,6 +980,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			yCounter++;
 		}
 
+		// add the title
+		Object chartTitle = panel.getOrnament(panel.getOrnaments(), "tools.shared.chartTitle.text");
+		if(chartTitle != null)
+			chart.setTitleText(chartTitle + "");
+
 		chart.plot(data);
 
 		// if true, display data labels on chart
@@ -1053,6 +1071,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			yCounter++;
 		}
 
+		// add the title
+		Object chartTitle = panel.getOrnament(panel.getOrnaments(), "tools.shared.chartTitle.text");
+		if(chartTitle != null)
+			chart.setTitleText(chartTitle + "");
+
 		chart.plot(data);
 
 		// if true, display data labels on chart
@@ -1100,6 +1123,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 			chartSeries.setExplosion((long) 0);
 		}
+
+		Object chartTitle = panel.getOrnament(panel.getOrnaments(), "tools.shared.chartTitle.text");
+		if(chartTitle != null)
+			chart.setTitleText(chartTitle + "");
+
 		chart.plot(data);
 
 		// if true, display data labels on chart
@@ -1176,6 +1204,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 		}
 
+		// add the title
+		Object chartTitle = panel.getOrnament(panel.getOrnaments(), "tools.shared.chartTitle.text");
+		if(chartTitle != null)
+			chart.setTitleText(chartTitle + "");
+
 		chart.plot(data);
 	}
 
@@ -1202,7 +1235,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 		sheetLastRow = sheetLastRow + height + rowGutter;
 		exportMap.put(sheet.getSheetName() + "ROW_COUNT", sheetLastRow);
-		
+				
 		return chart;
 	}
 

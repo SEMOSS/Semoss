@@ -662,4 +662,22 @@ public class InsightPanel {
 			}
 		}
 	}
+	
+	public Object getOrnament(Map input, String ornamentNav)
+	{
+		if(input == null)
+			input = ornaments;
+		String [] ornaments = ornamentNav.split("\\.");
+		String thisLevel = ornaments[0];
+		ornamentNav = ornamentNav.replace(thisLevel + ".", "");
+		if(input.containsKey(thisLevel))
+		{
+			Object newInput = input.get(thisLevel);
+			if(newInput instanceof Map)
+				return getOrnament((Map)newInput, ornamentNav);
+			else
+				return newInput;
+		}
+		return null;
+	}
 }
