@@ -47,14 +47,22 @@ public class CmdExecUtil {
 		String output = null;
 		try {
 			
-			if(command.startsWith("cd"))
+			if(command.equalsIgnoreCase("reset"))
+			{
+				workingDir = mountDir;
+				output = workingDir;
+			}
+			else if(command.startsWith("cd"))
 			{
 				// remoe the cd and then add to working dir
 				command = command.replace("cd", "");
 				command = command.trim();
 				if(command.startsWith("/"))
+				{
 					output =  " Invalid command ";
-				output = adjustWorkingDir(command);
+				}
+				else
+					output = adjustWorkingDir(command);
 			}
 			else if(command.startsWith("pwd"))
 			{
@@ -136,7 +144,7 @@ public class CmdExecUtil {
 				&& !upCommand.startsWith("CD") 
 				&& !upCommand.startsWith("DIR") && !upCommand.startsWith("LS") 
 				&& !upCommand.startsWith("MV") && !upCommand.startsWith("MOVE") 
-				&& !upCommand.startsWith("GIT") && !upCommand.startsWith("PWD"))
+				&& !upCommand.startsWith("GIT") && !upCommand.startsWith("PWD") && !upCommand.startsWith("RESET"))
 			return "Commands allowed cd, dir, ls, copy, cp, mv, move, del <specific file>, rm <specific file>, pwd, git ";
 		
 		return null;
@@ -242,6 +250,7 @@ public class CmdExecUtil {
 	
 	private String adjustWorkingDir(String command)
 	{
+		//System.out.println("Working Dir Before " + workingDir);
 		String [] cdTokens = command.split("/");
 		for(int tokenIndex = 0;tokenIndex < cdTokens.length;tokenIndex++)
 		{
@@ -273,6 +282,8 @@ public class CmdExecUtil {
 					workingDir = workingDir + curToken;					
 			}
 		}
+		
+		//System.out.println("Working Dir Set to " + workingDir);
 		return workingDir;
 		
 	}
