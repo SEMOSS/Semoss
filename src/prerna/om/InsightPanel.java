@@ -214,7 +214,7 @@ public class InsightPanel {
 
 		// check first key
 		if(!map.containsKey(traversal[0])) {
-			return new HashMap<String, Object>();
+			return null;
 		}
 		Object innerObj = map.get(traversal[0]);
 		
@@ -228,13 +228,13 @@ public class InsightPanel {
 				} else {
 					// well, can't find this...
 					// just return empty
-					return new HashMap<String, Object>();
+					return null;
 				}
-			} 
+			}
 			else {
 				// well, can't find this...
 				// just return empty
-				return new HashMap<String, Object>();
+				return null;
 			}
 		}
 		
@@ -661,23 +661,5 @@ public class InsightPanel {
 				}
 			}
 		}
-	}
-	
-	public Object getOrnament(Map input, String ornamentNav)
-	{
-		if(input == null)
-			input = ornaments;
-		String [] ornaments = ornamentNav.split("\\.");
-		String thisLevel = ornaments[0];
-		ornamentNav = ornamentNav.replace(thisLevel + ".", "");
-		if(input.containsKey(thisLevel))
-		{
-			Object newInput = input.get(thisLevel);
-			if(newInput instanceof Map)
-				return getOrnament((Map)newInput, ornamentNav);
-			else
-				return newInput;
-		}
-		return null;
 	}
 }

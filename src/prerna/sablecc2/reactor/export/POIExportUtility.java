@@ -283,6 +283,10 @@ public class POIExportUtility {
      * @return colorHexArray
      */
     public static String[] getHexColorCode(String colorName, Object customColors, Object colorObject) {
+    	if(colorObject == null) {
+    		return Constants.COLOR_SEMOSS;
+    	}
+    	
     	String[] colorHexArray = Constants.COLOR_SEMOSS;
     	if (!(colorObject instanceof HashMap)) {
         	Vector colorsArray = (Vector) colorObject;
