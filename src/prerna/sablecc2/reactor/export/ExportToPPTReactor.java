@@ -90,6 +90,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 	private static final String COLOR_NAME = "tools.shared.colorName";
 	private static final String CUSTOM_COLOR_ARRAY = "tools.shared.customColors";
 	private static final String COLOR_ARRAY = "tools.shared.color";
+	private static final String CHART_TITLE = "tools.shared.chartTitle.text";
 
 	ChromeDriver driver = null;
 	
@@ -237,8 +238,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.displayValues") + "");
         String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
  		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
  		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
  		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
  		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
@@ -265,7 +266,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		// Add Y Axis Title
 		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
@@ -273,7 +274,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 		// Add X Axis Title
 		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
@@ -306,6 +307,10 @@ public class ExportToPPTReactor extends AbstractReactor {
 			yCounter++;
 		}
 
+		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
+		if(chartTitle != null) {
+			chart.setTitleText(chartTitle + "");
+		}
 		chart.plot(data);
 
 		// if true, display data labels on chart
@@ -328,8 +333,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
         String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
  		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
  		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
  		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
 
@@ -351,14 +356,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
 			}
 		}
 		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
@@ -384,6 +389,10 @@ public class ExportToPPTReactor extends AbstractReactor {
 			scatterSeries.addNewVaryColors().setVal(false);
 		}
 
+		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
+		if(chartTitle != null) {
+			chart.setTitleText(chartTitle + "");
+		}
 		chart.plot(data);
 
 		// if true, display data labels on chart
@@ -409,8 +418,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizeBarLabel.position") + "";
         String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
  		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
  		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
  		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
  		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
@@ -436,14 +445,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
 			}
 		}
 		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
@@ -480,8 +489,11 @@ public class ExportToPPTReactor extends AbstractReactor {
 			yCounter++;
 		}
 
+		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
+		if(chartTitle != null) {
+			chart.setTitleText(chartTitle + "");
+		}
 		chart.plot(data);
-		Rectangle bounds = createStandardPowerPointChartBounds();
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
@@ -489,6 +501,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			POIExportUtility.positionDisplayValues(ChartTypes.BAR, dLbls, displayValuesPosition);
 		}
 
+		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
 	}
 
@@ -503,8 +516,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
         String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
  		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
  		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
  		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
  		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
@@ -530,14 +543,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
 			}
 		}
 		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
@@ -561,6 +574,10 @@ public class ExportToPPTReactor extends AbstractReactor {
 			yCounter++;
 		}
 
+		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
+		if(chartTitle != null) {
+			chart.setTitleText(chartTitle + "");
+		}
 		chart.plot(data);
 
 		// if true, display data labels on chart
@@ -609,6 +626,10 @@ public class ExportToPPTReactor extends AbstractReactor {
 			chartSeries.setExplosion((long) 0);
 		}
 
+		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
+		if(chartTitle != null) {
+			chart.setTitleText(chartTitle + "");
+		}
 		chart.plot(data);
 
 		// if true, display data labels on chart
@@ -631,8 +652,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
         String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
  		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+ 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
+ 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
  		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
  		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
 
@@ -655,14 +676,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("{}")) {
+			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
 			}
 		}
 		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("{}")) {
+			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
@@ -681,7 +702,12 @@ public class ExportToPPTReactor extends AbstractReactor {
 			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 		}
 
+		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
+		if(chartTitle != null) {
+			chart.setTitleText(chartTitle + "");
+		}
 		chart.plot(data);
+		
 		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
 	}
@@ -697,8 +723,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 //		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizeBarLabel.position") + "";
 //		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
 //		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
-//		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("{}") ? Boolean.parseBoolean(yAxisFlag) : true;
-//		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("{}") ? Boolean.parseBoolean(xAxisFlag) : true;
+//		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
+//		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
 //		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
 //		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
 
