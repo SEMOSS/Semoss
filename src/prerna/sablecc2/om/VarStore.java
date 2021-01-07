@@ -97,7 +97,8 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	@Override
 	public NounMetadata remove(String varName) {
 		// also try to remove from frameSet if its a frame
-		frameSet.remove(varName);
+		this.frameSet.remove(varName);
+		this.insightParametersSet.remove(varName);
 		return varMap.remove(varName);
 	}
 	
