@@ -552,8 +552,8 @@ public class User extends AbstractValueObject implements Serializable {
 		String appId = getAssetEngineId(provider);
 		String appName = "Asset";
 		String userAssetFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version"
-				+ DIR_SEPARATOR + "assets";
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version";
+				//+ DIR_SEPARATOR + "assets";
 
 		// if this folder does not exist create it
 		File file = new File(userAssetFolder);
@@ -670,6 +670,9 @@ public class User extends AbstractValueObject implements Serializable {
 		// also set rhe cmd context right here
 		String mountDir = appMap.get(context) + "";
 
+		// remove the last assets
+		mountDir = mountDir.replace("/assets", "");
+		
 		this.cmdUtil = new CmdExecUtil(context, mountDir);
 	}
 	
