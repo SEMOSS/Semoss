@@ -108,7 +108,6 @@ public class Insight {
 	// we will use a special key 
 	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
 	private static transient final String INSIGHT_FOLDER_KEY = "INSIGHT_FOLDER";
-	private static transient final String APP_FOLDER_KEY = "APP_FOLDER";
 
 	// this is the id it is assigned within the InsightCache
 	// it varies from one instance of an insight to another instance of the same insight
@@ -433,30 +432,11 @@ public class Insight {
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Get the app relative file key
-	 * @return
-	 */
-	public static String getAppRelativeFolderKey() {
-		return Insight.APP_FOLDER_KEY;
-	}
-	
-	/**
-	 * Get the APP_FOLDER/INSIGHT_FOLDER key
-	 * @return
-	 */
-	public static String getAppInsightFolderKey() {
-		return Insight.APP_FOLDER_KEY + DIR_SEPARATOR + Insight.INSIGHT_FOLDER_KEY;	
-	}
-	
-	/**
 	 * Get the prefix as APP_FOLDER/INSIGHT_FOLDER or INSIGHT_FOLDER depending on if it is saved
 	 * This is so we know what to send the FE
 	 * @return
 	 */
-	public static String getInsightRelativeFolderKey(Insight in) {
-		if(in.isSavedInsight()) {
-			return Insight.APP_FOLDER_KEY + DIR_SEPARATOR + Insight.INSIGHT_FOLDER_KEY;
-		}
+	public static String getInsightRelativeFolderKey() {
 		return Insight.INSIGHT_FOLDER_KEY;
 	}
 	
@@ -529,7 +509,7 @@ public class Insight {
 	 * @return
 	 */
 	public String getAbsoluteInsightFolderPath(String filePath) {
-		String relPath = Insight.getInsightRelativeFolderKey(this);
+		String relPath = Insight.getInsightRelativeFolderKey();
 		if(filePath.startsWith(relPath)) {
 			filePath = Pattern.compile(Matcher.quoteReplacement(relPath))
 					.matcher(filePath).replaceFirst(Matcher.quoteReplacement(getInsightFolder()));
@@ -710,7 +690,7 @@ public class Insight {
 	
 	public String getExportFileLocation(String uniqueKey) {
 		String fileLocation = this.exportFiles.get(uniqueKey);
-		String relPath = Insight.getInsightRelativeFolderKey(this);
+		String relPath = Insight.getInsightRelativeFolderKey();
 		if(fileLocation.startsWith(relPath)) {
 			fileLocation = fileLocation.replaceFirst(relPath, Matcher.quoteReplacement(getInsightFolder()));
 		}
