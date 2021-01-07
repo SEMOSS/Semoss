@@ -28,7 +28,11 @@ public class RetrievePanelOrnamentsReactor extends AbstractInsightPanelReactor {
 			ornamentData.put("ornaments", insightPanel.getOrnaments());
 		} else {
 			ornamentData.put("path", traversal);
-			ornamentData.put("ornaments", insightPanel.getMapInput(insightPanel.getOrnaments(), traversal));
+			Object ornamentMap = insightPanel.getMapInput(insightPanel.getOrnaments(), traversal);
+			if(ornamentMap == null) {
+				ornamentMap = new HashMap<>();
+			}
+			ornamentData.put("ornaments", ornamentMap);
 		}
 		return new NounMetadata(ornamentData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_ORNAMENT);
 	}

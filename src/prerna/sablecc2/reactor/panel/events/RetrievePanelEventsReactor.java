@@ -28,7 +28,11 @@ public class RetrievePanelEventsReactor extends AbstractInsightPanelReactor {
 			eventsData.put("events", insightPanel.getEvents());
 		} else {
 			eventsData.put("path", traversal);
-			eventsData.put("events", insightPanel.getMapInput(insightPanel.getEvents(), traversal));
+			Object eventMap = insightPanel.getMapInput(insightPanel.getEvents(), traversal);
+			if(eventMap == null) {
+				eventMap = new HashMap<>();
+			}
+			eventsData.put("events", eventMap);
 		}
 		return new NounMetadata(eventsData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_EVENT);
 	}
