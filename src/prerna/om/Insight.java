@@ -1415,9 +1415,13 @@ public class Insight {
 			{
 				// attempt once to directly map it with same name
 				boolean success = this.user.addVarMap(context, context); 
-				return success;
 			}	
-			this.user.setContext(context);
+			if(appMap.containsKey(context))
+			{
+				this.user.setContext(context);
+				return true;
+			}
+			return false;
 		}
 		else
 		{
@@ -1428,7 +1432,6 @@ public class Insight {
 			this.cmdUtil = new CmdExecUtil(context, mountDir);
 			return true;
 		}
-		return true;
 	}
 	
 	public CmdExecUtil getCmdUtil()
