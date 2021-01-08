@@ -26,24 +26,28 @@ public class GenExpressionWrapper {
 	public  Map<String, Set<String>> schema = null;
 
 	// keeps track of column to select
-	public  Map <String, List<GenExpression>> columnSelect = new Hashtable<String, List<GenExpression>>();
+	public  Map <String, List<GenExpression>> columnSelect = new Hashtable<>();
 	// keep track of table to select
-	public  Map <String, List<GenExpression>> tableSelect = new Hashtable<String, List<GenExpression>>();	
+	public  Map <String, List<GenExpression>> tableSelect = new Hashtable<>();	
 	// keep a list of selects as well
 	// to the columns
-	public  Map <GenExpression, List<String>> selectColumns = new Hashtable<GenExpression, List<String>>();
+	public  Map <GenExpression, List<String>> selectColumns = new Hashtable<>();
 	
 	// groupby hash
-	public Map <String, GenExpression> groupByHash = new HashMap<String, GenExpression>();
-	public Map <String, GenExpression> joinHash = new HashMap<String, GenExpression>();
+	public Map <String, GenExpression> groupByHash = new HashMap<>();
+	public Map <String, GenExpression> joinHash = new HashMap<>();
 
 	
 	public GenExpression root = null;
 	
-	public Map<String, List <String>> columnTableIndex = new HashMap<String, List<String>>(); // this is the highest level - acctid
-	public Map<String, List <String>> columnTableOperatorIndex = new HashMap<String, List<String>>(); // this is the next highest level - clms.acctid, mbrshp.acctid
-	public Map <String, ParamStruct> operatorTableColumnParamIndex = new HashMap<String, ParamStruct>(); // this is the next level - clms.acctid=, clms.acctid <
-	public Map <ParamStruct, List <GenExpression>> paramToExpressionMap = new HashMap<ParamStruct, List <GenExpression>>(); // final level
+	// this is the highest level - acctid
+	public Map<String, List <String>> columnTableIndex = new HashMap<>(); 
+	// this is the next highest level - clms.acctid, mbrshp.acctid
+	public Map<String, List <String>> columnTableOperatorIndex = new HashMap<>(); 
+	// this is the next level - clms.acctid=, clms.acctid <
+	public Map <String, ParamStructDetails> operatorTableColumnParamIndex = new HashMap<>(); 
+	 // final level
+	public Map <ParamStructDetails, List <GenExpression>> paramToExpressionMap = new HashMap<>();
 
 	// keeping track of the current operator
 	public Stack <String> currentOperator = new Stack<String>();
@@ -236,7 +240,7 @@ public class GenExpressionWrapper {
 	{
 		if(operatorTableColumnParamIndex.containsKey(id))
 		{
-			ParamStruct tableColumnOperatorParam = operatorTableColumnParamIndex.get(id);
+			ParamStructDetails tableColumnOperatorParam = operatorTableColumnParamIndex.get(id);
 			tableColumnOperatorParam.setCurrentValue(value);
 			//replaceParameter(tableColumnOperatorParam);
 		}
@@ -245,10 +249,10 @@ public class GenExpressionWrapper {
 	// fills it with the latest list of parameters
 	public void fillParameters()
 	{
-		Iterator <ParamStruct> paramIterator = paramToExpressionMap.keySet().iterator();
+		Iterator <ParamStructDetails> paramIterator = paramToExpressionMap.keySet().iterator();
 		while(paramIterator.hasNext())
 		{
-			ParamStruct daStruct = paramIterator.next();
+			ParamStructDetails daStruct = paramIterator.next();
 			// go through the pattern and fill it
 			List <GenExpression> exprs = paramToExpressionMap.get(daStruct);
 			
@@ -311,7 +315,7 @@ public class GenExpressionWrapper {
 			columnTableOperatorIndex.put(tableColumnComposite, operatorTableColumnList);
 			
 			
-			ParamStruct daStruct = null;
+			ParamStructDetails daStruct = null;
 			if(!operatorTableColumnParamIndex.containsKey(tableColumnOperatorComposite))
 			{
 				String context = "";
@@ -322,8 +326,7 @@ public class GenExpressionWrapper {
 					// get the context part
 					contextPart = exprToTrack.printQS(exprToTrack, null) + "";
 				}				
-				daStruct = new ParamStruct();
-				daStruct.setParamName(tableColumnOperatorComposite);
+				daStruct = new ParamStructDetails();
 				daStruct.setColumnName(columnName);
 				daStruct.setTableAlias(tableAliasName);
 				daStruct.setTableName(tableName);
@@ -332,7 +335,6 @@ public class GenExpressionWrapper {
 				daStruct.setuOperator(operationName);
 				daStruct.setContext(context);
 				daStruct.setContextPart(contextPart);
-				daStruct.setQuote(ParamStruct.QUOTE.SINGLE);
 				
 				// need to get the current select struct to add to this
 				
@@ -370,9 +372,9 @@ public class GenExpressionWrapper {
 	}
 	
 	// get all the param structs for 
-	public List <ParamStruct> getParams()
+	public List <ParamStructDetails> getParams()
 	{
-		List <ParamStruct> allParams = new Vector<ParamStruct>();
+		List <ParamStructDetails> allParams = new Vector<ParamStructDetails>();
 		allParams.addAll(paramToExpressionMap.keySet());
 		return allParams;
 	}
@@ -859,7 +861,7 @@ public class GenExpressionWrapper {
 	}
 		
 	// get the final query 
-	public static String transformQueryWithParams(String originalQuery, List <ParamStruct> incomingStructs)
+	public static String transformQueryWithParams(String originalQuery, List <ParamStructDetails> incomingStructs)
 	{
 		String retQuery = null;
 		try {
@@ -870,12 +872,12 @@ public class GenExpressionWrapper {
 			//System.out.println("Before Transformation " + wrapper.root.printQS(wrapper.root, null) + "");
 			for(int paramIndex = 0;paramIndex < incomingStructs.size();paramIndex++)
 			{
-				ParamStruct thisStruct = incomingStructs.get(paramIndex);
-				String paramStructKey = thisStruct.getParamKey();
+				ParamStructDetails thisStruct = incomingStructs.get(paramIndex);
+				String ParamStructDetailsKey = thisStruct.getParamKey();
 				
-				if(wrapper.operatorTableColumnParamIndex.containsKey(paramStructKey))
+				if(wrapper.operatorTableColumnParamIndex.containsKey(ParamStructDetailsKey))
 				{
-					ParamStruct targetStruct = wrapper.operatorTableColumnParamIndex.get(paramStructKey);
+					ParamStructDetails targetStruct = wrapper.operatorTableColumnParamIndex.get(ParamStructDetailsKey);
 					// remove this struct from the overall so it wont fill
 					wrapper.paramToExpressionMap.remove(targetStruct);
 				}
