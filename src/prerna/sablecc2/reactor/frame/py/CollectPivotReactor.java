@@ -131,9 +131,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		/*** check to see if the pivot is within limits **/
 		NounMetadata pivotCheck = checkPivotLimits(makeFrame, frameName, rowGroups, colGroups);
-		if(pivotCheck != null)
+		if(pivotCheck != null) {
 			return pivotCheck;
-		
+		}
 		
 		List<String> subtotals = rowGroups;
 		if(keyValue.containsKey(keysToGet[3])) {
@@ -303,35 +303,35 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 	
-	private NounMetadata checkPivotLimits(String makeFrame, String frameName, List <String> rowGroups, List <String> colGroups)
-	{
+	private NounMetadata checkPivotLimits(String makeFrame, String frameName, List <String> rowGroups, List <String> colGroups) {
 		getPivotLimits();
 		// make the frame
 		this.insight.getPyTranslator().runEmptyPy(makeFrame);
 
 		// need a way to evaluate if the rowgroups etc. are within the limits
 		long rowCount = getCount(frameName, rowGroups);
-		if(rowCount > row_max)
+		if(rowCount > row_max) {
 			return getError("Max number of rows allowed : 1000. This pivot has " + rowCount +". Please filter and try again");
+		}
 		long colCount = getCount(frameName, colGroups);
-		if(colCount > col_max)
+		if(colCount > col_max) {
 			return getError("Max number of columns allowed : 100. This pivot has " + colCount +". Please filter and try again");
-
+		}
 		return null;
 	}
 	
-	private void getPivotLimits()
-	{
-		if(row_max < 0 || col_max < 0)
-		{
-			if(DIHelper.getInstance().getProperty("PIVOT_ROW_MAX") != null)
+	private void getPivotLimits() {
+		if(row_max < 0 || col_max < 0) {
+			if(DIHelper.getInstance().getProperty("PIVOT_ROW_MAX") != null) {
 				row_max = Integer.parseInt(DIHelper.getInstance().getProperty("PIVOT_ROW_MAX"));
-			else
+			} else {
 				row_max = 1000;
-			if(DIHelper.getInstance().getProperty("PIVOT_COL_MAX") != null)
+			}
+			if(DIHelper.getInstance().getProperty("PIVOT_COL_MAX") != null) {
 				col_max = Integer.parseInt(DIHelper.getInstance().getProperty("PIVOT_COL_MAX"));
-			else
+			} else {
 				col_max = 100;
+			}
 		}
 	}
 	
