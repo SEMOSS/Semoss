@@ -90,16 +90,18 @@ public class ChromeDriverUtility {
 			driver.manage().addCookie(name);
 		}
 		
-		url = url + "&status";
+		//url = url + "&status";
 		driver.navigate().to(url);
 		
 		// looking for viz loaded
+		/*
 		WebElement we = null;
 		we = driver.findElement(By.xpath("//html/body//div[@id='viz-loaded']"));
 		//we = new WebDriverWait(driver, 10).until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//div[@id='viz-loaded']"))); 
 
 		String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
 		//System.out.println(html2);
+		*/
 		
 		// time for FE to render the page before the image is taken
 	    try {
