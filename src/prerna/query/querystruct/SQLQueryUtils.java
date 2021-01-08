@@ -12,6 +12,7 @@ import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import prerna.ds.nativeframe.NativeFrame;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.parsers.GenExpressionWrapper;
@@ -328,9 +329,10 @@ public class SQLQueryUtils {
 		// push it to NativeFrame call it a day
 		NativeFrame emptyFrame = null;
 		
-		try
-		{
-			SqlInterpreter interp = new SqlInterpreter();
+		try {
+			// grab the specific interpreter type from the engine itself
+			RDBMSNativeEngine engine = (RDBMSNativeEngine) subQueryStruct.retrieveQueryStructEngine();
+			IQueryInterpreter interp = engine.getQueryInterpreter();
 			
 			SqlParser2 parser = new SqlParser2();
 			parser.parameterize = false;
@@ -346,8 +348,7 @@ public class SQLQueryUtils {
 			
 			String mainQueryAlias = Utility.getRandomString(5);
 	
-			if(mainQueryExpression.from  != null)
-			{
+			if(mainQueryExpression.from  != null) {
 				String curAlias = subQueryExpression.from.getLeftExpr();			
 				mainQueryAlias = mainQueryAlias + "_" + curAlias;
 			}
@@ -376,9 +377,8 @@ public class SQLQueryUtils {
 			emptyFrame.setName(wrapperQueryStruct.getFrameName());
 			NativeImporter importer = new NativeImporter(emptyFrame, hqs);
 			importer.insertData();
-		}catch(Exception ex)
-		{
-			
+		} catch(Exception ex) {
+			ex.printStackTrace();
 		}
 		return emptyFrame;
 	}
