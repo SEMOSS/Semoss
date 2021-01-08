@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.query.parsers.ParamStruct;
+import prerna.query.parsers.ParamStructDetails;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -84,21 +85,22 @@ public class QSParseParamStruct {
 		String comparator = filter.getComparator();
 		
 		ParamStruct param = new ParamStruct();
-		param.setOperator(comparator);
+		ParamStructDetails paramDetails = new ParamStructDetails();
+		paramDetails.setOperator(comparator);
 		
 		QueryColumnSelector columnSelector = (QueryColumnSelector) selector;
-		param.setTableName(columnSelector.getTable());
-		param.setColumnName(columnSelector.getColumn());
+		paramDetails.setTableName(columnSelector.getTable());
+		paramDetails.setColumnName(columnSelector.getColumn());
 		if(parameterizeLeft) {
 			// rhs is the column, lhs is the value
 			Object paramValue = origL.getValue();
-			param.setCurrentValue(paramValue);
-			param.setType(origL.getNounType());
+			paramDetails.setCurrentValue(paramValue);
+			paramDetails.setType(origL.getNounType());
 		} else if(parameterizeRight) {
 			// lhs is the column, rhs is the value
 			Object paramValue = origR.getValue();
-			param.setCurrentValue(paramValue);
-			param.setType(origL.getNounType());
+			paramDetails.setCurrentValue(paramValue);
+			paramDetails.setType(origL.getNounType());
 		}
 		// additional options based on the comparator
 		if(IQueryFilter.comparatorIsNumeric(comparator)
@@ -111,7 +113,7 @@ public class QSParseParamStruct {
 			param.setMultiple(true);
 			param.setSearchable(true);
 		}
-		
+		param.addParamStructDetails(paramDetails);
 		// add to the list of params
 		paramList.add(param);
 	}

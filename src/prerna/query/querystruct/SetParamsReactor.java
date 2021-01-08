@@ -4,11 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.nativeframe.NativeFrame;
-import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.ParamStruct;
-import prerna.query.parsers.SqlParser2;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -197,14 +193,11 @@ public class SetParamsReactor extends AbstractReactor
 	public void updateParamStruct(Map columnTableOperatorUMap, String columnTableOperatorU, Object value)
 	{		
 		List <ParamStruct> curList = (List <ParamStruct>)columnTableOperatorUMap.get(columnTableOperatorU);
-		for(int paramIndex = 0;paramIndex < curList.size();paramIndex++)
-			curList.get(paramIndex).setCurrentValue(value);
+		for(int paramIndex = 0;paramIndex < curList.size();paramIndex++) {
+			// TODO!!! THIS IS ADDING TO THE FIRST ONE EVERY TIME
+			// MIGHT NEED TO REVAMP THIS!!!!
+			curList.get(paramIndex).getDetailsList().get(0).setCurrentValue(value);
+		}
 	}
-		
-		
-
-	
-	
-	
 	
 }
