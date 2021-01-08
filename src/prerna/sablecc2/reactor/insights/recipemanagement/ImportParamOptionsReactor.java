@@ -17,6 +17,7 @@ import prerna.om.Pixel;
 import prerna.om.PixelList;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.ParamStruct;
+import prerna.query.parsers.ParamStructDetails;
 import prerna.query.parsers.SqlParser2;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -97,11 +98,12 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			sqp2.parameterize = false;
 			try {
 				GenExpressionWrapper wrapper = sqp2.processQuery(query);
-				Iterator <ParamStruct> structIterator = wrapper.paramToExpressionMap.keySet().iterator();
+				Iterator <ParamStructDetails> structIterator = wrapper.paramToExpressionMap.keySet().iterator();
 				while(structIterator.hasNext()) {
-					ParamStruct nextStruct = structIterator.next();
-					nextStruct.setPixelId(pixelObj.getId());
-					nextStruct.setPixelString(pixelObj.getPixelString());
+					ParamStructDetails nextStructDetails = structIterator.next();
+					nextStructDetails.setPixelId(pixelObj.getId());
+					nextStructDetails.setPixelString(pixelObj.getPixelString());
+					ParamStruct nextStruct = new ParamStruct();
 					paramList.add(nextStruct);
 				}
 				// dont save it for now
@@ -137,14 +139,16 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 						continue;
 					}
 					
+					ParamStructDetails detailsStruct = new ParamStructDetails();
+					detailsStruct.setPixelId(pixelObj.getId());
+					detailsStruct.setPixelString(pixelObj.getPixelString());
+					detailsStruct.setTableName(colS.getTable());
+					detailsStruct.setColumnName(colS.getColumn());
+					detailsStruct.setOperator("==");
 					ParamStruct pStruct = new ParamStruct();
-					pStruct.setPixelId(pixelObj.getId());
-					pStruct.setPixelString(pixelObj.getPixelString());
-					pStruct.setTableName(colS.getTable());
-					pStruct.setColumnName(colS.getColumn());
-					pStruct.setOperator("==");
 					pStruct.setMultiple(true);
 					pStruct.setSearchable(true);
+					pStruct.addParamStructDetails(detailsStruct);
 					paramList.add(pStruct);
 					// store that this qs has been added
 					addedQs.add(colQS);
@@ -167,11 +171,12 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		
 		for(int paramIndex = 0;paramIndex < structs.size();paramIndex++) {
 			ParamStruct thisStruct = structs.get(paramIndex);
-			
-			String columnName = thisStruct.getColumnName();
-			String tableName = thisStruct.getTableName();
-			String opName = thisStruct.getOperator();
-			String opuName = thisStruct.getuOperator();
+			// these structs will always only have 1 struct
+			ParamStructDetails thisStructDetails = thisStruct.getDetailsList().get(0);
+			String columnName = thisStructDetails.getColumnName();
+			String tableName = thisStructDetails.getTableName();
+			String opName = thisStructDetails.getOperator();
+			String opuName = thisStructDetails.getuOperator();
 			if(opuName == null) {
 				opuName = opName;
 			}

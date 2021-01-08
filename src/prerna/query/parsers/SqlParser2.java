@@ -2521,12 +2521,12 @@ public class SqlParser2 {
 		GenExpressionWrapper wrapper = test.processQuery(query20);
 		test.printOutput(wrapper.root);
 		GenExpression root = wrapper.root;
-		List <ParamStruct> plist = new Vector<ParamStruct>();
-		ParamStruct pStruct = new ParamStruct();
+		List <ParamStructDetails> plist = new Vector<ParamStructDetails>();
+		ParamStructDetails pStruct = new ParamStructDetails();
 		pStruct.setColumnName("MovieBudget");
 		pStruct.setTableName("Movie2");
 		pStruct.setuOperator("or1_left>");
-		pStruct = new ParamStruct();
+		pStruct = new ParamStructDetails();
 		pStruct.setColumnName("RevenueDomestic");
 		pStruct.setTableName("Movie2");
 		pStruct.setuOperator("in");
