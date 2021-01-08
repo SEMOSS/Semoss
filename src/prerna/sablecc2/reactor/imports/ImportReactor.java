@@ -2,20 +2,27 @@ package prerna.sablecc2.reactor.imports;
 
 import java.io.File;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.SQLQueryUtils;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -48,6 +55,41 @@ public class ImportReactor extends AbstractReactor {
 		// set the logger into the frame
 		frame.setLogger(logger);
 		
+		// if we are loading from a native frame 
+		// that is backed by a RDBMSNativeEngine
+		// we will flush the query into a HQS
+		if( (qs.getQsType() == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY || qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) 
+				&& qs.getFrame().getFrameType() == DataFrameTypeEnum.NATIVE
+				&& frame.getFrameType() == DataFrameTypeEnum.NATIVE) {
+			NativeFrame queryFrame = (NativeFrame) qs.getFrame();
+			// make sure it is RDBMSNativeEngine
+			if(queryFrame.getQueryStruct().retrieveQueryStructEngine() instanceof RDBMSNativeEngine) {
+			
+				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, qs.getFrame().getMetaData());
+				NativeFrame newFrame = SQLQueryUtils.subQuery(queryFrame.getQueryStruct(), qs);
+				newFrame.setName(frame.getName());
+				newFrame.setLogger(logger);
+	
+				NounMetadata frameNoun = new NounMetadata(newFrame, PixelDataType.FRAME, 
+						PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+	
+				// replace newFrame with the current frame references
+				VarStore varStore = this.insight.getVarStore();
+				Set<String> allFrameReferences = varStore.findAllVarReferencesForFrame(frame);
+				for(String newAlias : allFrameReferences) {
+					varStore.put(newAlias, frameNoun);
+				}
+				// close the old frame - dont need it anymore as its replaced with this new one
+				frame.close();
+				
+				// track GA data
+				UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
+				
+				return frameNoun;
+			}
+		}
+		
+		// we are not having the special native frame case
 		IRawSelectWrapper it = null;
 		if(!(frame instanceof NativeFrame)) {
 			try {

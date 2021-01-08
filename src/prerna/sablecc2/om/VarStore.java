@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.jetty.util.ConcurrentHashSet;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -138,6 +139,22 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	public Set<String> getFrameKeys() {
 		return frameSet;
+	}
+	
+	/**
+	 * Get all the references for a specific frame
+	 * @param frame
+	 * @return
+	 */
+	public Set<String> findAllVarReferencesForFrame(ITableDataFrame frame) {
+		Set<String> referenceSet = new HashSet<>();
+		for(String frameKey : frameSet) {
+			NounMetadata possibleFrameVar = this.varMap.get(frameKey);
+			if(possibleFrameVar.getValue() == frame) {
+				referenceSet.add(frameKey);
+			}
+		}
+		return referenceSet;
 	}
 	
 	public Set<String> getInsightParameterKeys() {

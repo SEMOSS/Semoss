@@ -39,14 +39,13 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.gson.SelectQueryStructAdapter;
 
 public class NativeFrame extends AbstractTableDataFrame {
 
 	private static final Logger logger = LogManager.getLogger(NativeFrame.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	public static final String DATA_MAKER_NAME = "NativeFrame";
 
@@ -105,7 +104,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 				it = query(mQs);
 				return ((Number) it.next().getValues()[1]).doubleValue();
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
 					it.cleanUp();
@@ -138,7 +137,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 				it = query(mQs);
 				return ((Number) it.next().getValues()[1]).doubleValue();
 			} catch (Exception e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(it != null) {
 					it.cleanUp();
@@ -172,7 +171,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 				values.add(it.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -205,7 +204,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 				values.add(it.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -251,7 +250,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			it = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
 			empty = !(it.hasNext());
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(it != null) {
 				it.cleanUp();
@@ -408,7 +407,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			adapter.write(jWriter, this.qs);
 			FileUtils.writeStringToFile(new File(frameFileName), writer.toString());
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new IOException("Error occured attempting to save native frame");
 		}
 		cf.setFrameCacheLocation(frameFileName);
@@ -428,7 +427,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 			this.qs = adapter.read(jReader);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		// open the meta details
