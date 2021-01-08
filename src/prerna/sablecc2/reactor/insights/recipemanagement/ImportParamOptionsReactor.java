@@ -69,10 +69,16 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		// we need to get the proper param struct
 		List<Map<String, Object>> params = new Vector<>();
 		for(Pixel pixelStep : imports.keySet()) {
+			SelectQueryStruct qs = imports.get(pixelStep);
 			List<ParamStruct> paramList = getParamsForImport(imports.get(pixelStep), pixelStep);
 			Map<String, Map <String, Map<String, Map<String, List<ParamStruct>>>>> paramOutput = organizeStruct(paramList);
 			
 			Map<String, Object> output = new HashMap<>();
+			if(qs instanceof HardSelectQueryStruct) {
+				output.put("type", "hqs");
+			} else {
+				output.put("type", "sqs");
+			}
 			output.put("pixelId", pixelStep.getId());
 			output.put("pixelString", pixelStep.getPixelString());
 			output.put("params", paramOutput);
