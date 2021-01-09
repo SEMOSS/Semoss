@@ -79,6 +79,8 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			} else {
 				output.put("type", "sqs");
 			}
+			output.put("qsType", qs.getQsType());
+			output.put("appId", qs.getEngineId());
 			output.put("pixelId", pixelStep.getId());
 			output.put("pixelString", pixelStep.getPixelString());
 			output.put("params", paramOutput);
