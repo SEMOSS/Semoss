@@ -562,6 +562,10 @@ public class Constants {
 	
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_BINARY = "GOOGLE_CHROME_BINARY";
+	
+	//cookie name of a load load balancing routing
+	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
+
 	//Graph engines
 	public static final String TYPE_MAP = "TYPE_MAP";
 	public static final String NAME_MAP = "NAME_MAP";
