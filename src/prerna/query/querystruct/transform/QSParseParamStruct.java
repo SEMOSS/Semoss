@@ -100,7 +100,7 @@ public class QSParseParamStruct {
 			// lhs is the column, rhs is the value
 			Object paramValue = origR.getValue();
 			paramDetails.setCurrentValue(paramValue);
-			paramDetails.setType(origL.getNounType());
+			paramDetails.setType(origR.getNounType());
 		}
 		// additional options based on the comparator
 		if(IQueryFilter.comparatorIsNumeric(comparator)
