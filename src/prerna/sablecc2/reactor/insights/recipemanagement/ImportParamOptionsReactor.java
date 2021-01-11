@@ -114,6 +114,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 					nextStructDetails.setPixelId(pixelObj.getId());
 					nextStructDetails.setPixelString(pixelObj.getPixelString());
 					ParamStruct nextStruct = new ParamStruct();
+					nextStruct.addParamStructDetails(nextStructDetails);
 					paramList.add(nextStruct);
 				}
 				// dont save it for now
