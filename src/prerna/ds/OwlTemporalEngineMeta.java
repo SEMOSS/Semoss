@@ -1949,59 +1949,41 @@ public class OwlTemporalEngineMeta {
 	public List<Object[]> getAllTablesAndColumns() {
 		List<Object[]> ret = new ArrayList<>();
 
-		// get all the nodes that are not prim keys
-		String query = "select distinct "
-				+ "?concept "
-				+ "?property "
-				+ "?tableName "
-				+ "?columnName "
-				+ "?dt "
-				+ "(lcase(?tableName) as ?lowerT) "
-				+ "(lcase(?columnName) as ?lowerC) "
-				+ "where { "
-				+ "{ "
-				+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
-				+ "optional{?concept <" + ALIAS_PRED + "> ?tableName} "
-				+ "optional{?concept <" + ALIAS_PRED + "> ?columnName} "
-				+ "optional{?concept <" + OWL.DATATYPEPROPERTY + "> ?dt} "
-				+ "} "
-				+ "union "
-				+ "{ "
-				+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?header} "
-				+ "optional{?concept <" + ALIAS_PRED + "> ?tableName} "
-				+ "{?property <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
-				+ "optional{?property <" + OWL.DATATYPEPROPERTY + "> ?dt} "
-				+ "optional{?property <" + ALIAS_PRED + "> ?columnName} "
-				+ "} "
-				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && "
-					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">) "
-				+ "} order by ?lowerT ?lowerC";
-	
-		IRawSelectWrapper wrapper = null;
+		String query = "select distinct ?header ?datatype (lcase(?header) as ?loweralias) "
+				+ "where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+				+ "}"
+				+ "} order by ?loweralias";
+		
+		IRawSelectWrapper it = null;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-			while(wrapper.hasNext()) {
-				Object[] data = wrapper.next().getValues();
-				String concept = (String) data[0];
-				String property = (String) data[1];
-				String tName = (String) data[2];
-				String cName = (String) data[3];
-				String dataType = (String) data[4];
-				// if no table alias
-				// use the concept name
-				if(tName == null) {
-					tName = concept;
+			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+			while(it.hasNext()) {
+				Object[] row = it.next().getValues();
+				String header = (String) row[0];
+				String type = (String) row[1];
+				if(header.contains("__")) {
+					String[] split = header.split("__");
+					ret.add(new Object[] {split[0], split[1], type});
+				} else {
+					ret.add(new Object[] {header, header, type});
 				}
-				ret.add(new Object[] {tName, cName, dataType});
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			if(it != null) {
+				it.cleanUp();
 			}
 		}
-		
+			
 		return ret;
 	}
 	
