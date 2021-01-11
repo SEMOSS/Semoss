@@ -662,21 +662,21 @@ public class SqlParser2 {
 				if(wrapper.currentOperator.size() > 0)
 				{
 					String operator = wrapper.currentOperator.pop();
-					boolean left = false;
+					Boolean left = false;
 					int count = 0;
-					if(operator.equalsIgnoreCase("and"))
+					if(operator.equalsIgnoreCase("and")) {
 						count = wrapper.andCount;
-					else
+					} else {
 						count = wrapper.orCount;
+					}
 					left = wrapper.procOrder.get(operator + count);
-					if(left)
-					{
+					if(left == null || left) {
 						modifier = operator + count + "_left";
 						wrapper.procOrder.put(operator + count, false);
 						//wrapper.left = true;
-					}
-					else
+					} else {
 						modifier = operator + count + "_right";
+					}
 					wrapper.currentOperator.push(operator);
 				}
 				
