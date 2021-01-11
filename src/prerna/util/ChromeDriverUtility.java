@@ -42,6 +42,8 @@ public class ChromeDriverUtility {
 			sysProp += "chromedriver-linux";
 		}
 		System.setProperty("webdriver.chrome.driver", sysProp);
+	//	System.setProperty("webdriver.chrome.verboseLogging", "true");
+	    System.setProperty("webdriver.chrome.whitelistedIps", "");
 
 	    ChromeOptions chromeOptions = new ChromeOptions();
 	    String customGoogleBinaryLocation = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_BINARY);
@@ -85,8 +87,8 @@ public class ChromeDriverUtility {
 
 		if(sessionId != null && ChromeDriverUtility.sessionCookie != null) {
 			// name, value, domain, path, expiration
-			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
-//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
+			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
 			driver.manage().addCookie(name);
 		}
 		
