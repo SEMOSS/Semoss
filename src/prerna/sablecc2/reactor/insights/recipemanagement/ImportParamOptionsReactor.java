@@ -75,9 +75,9 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			
 			Map<String, Object> output = new HashMap<>();
 			if(qs instanceof HardSelectQueryStruct) {
-				output.put("type", "hqs");
+				output.put("baseQsType", "hqs");
 			} else {
-				output.put("type", "sqs");
+				output.put("baseQsType", "sqs");
 			}
 			output.put("qsType", qs.getQsType());
 			output.put("appId", qs.getEngineId());
@@ -109,6 +109,8 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 				Iterator <ParamStructDetails> structIterator = wrapper.paramToExpressionMap.keySet().iterator();
 				while(structIterator.hasNext()) {
 					ParamStructDetails nextStructDetails = structIterator.next();
+					nextStructDetails.setBaseQsType("hqs");
+					nextStructDetails.setAppId(qs.getEngineId());
 					nextStructDetails.setPixelId(pixelObj.getId());
 					nextStructDetails.setPixelString(pixelObj.getPixelString());
 					ParamStruct nextStruct = new ParamStruct();
@@ -148,6 +150,8 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 					}
 					
 					ParamStructDetails detailsStruct = new ParamStructDetails();
+					detailsStruct.setBaseQsType("sqs");
+					detailsStruct.setAppId(qs.getEngineId());
 					detailsStruct.setPixelId(pixelObj.getId());
 					detailsStruct.setPixelString(pixelObj.getPixelString());
 					detailsStruct.setTableName(colS.getTable());
