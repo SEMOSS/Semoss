@@ -9,6 +9,8 @@ public class ParamStructDetails {
 	public enum LEVEL {COLUMN, TABLE, OPERATOR, OPERATORU};
 	public enum QUOTE {NO, SINGLE, DOUBLE};
 
+	private String baseQsType = null;
+	private String appId = null;
 	private String pixelId = null;
 	private String pixelString = null;
 	
@@ -26,6 +28,22 @@ public class ParamStructDetails {
 	private String context = null;
 	private String contextPart = null;
 	
+	public String getBaseQsType() {
+		return baseQsType;
+	}
+
+	public void setBaseQsType(String baseQsType) {
+		this.baseQsType = baseQsType;
+	}
+
+	public String getAppId() {
+		return appId;
+	}
+
+	public void setAppId(String appId) {
+		this.appId = appId;
+	}
+
 	public void setPixelId(String pixelId) {
 		this.pixelId = pixelId;
 	}
