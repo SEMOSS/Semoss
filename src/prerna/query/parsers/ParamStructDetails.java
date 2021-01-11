@@ -177,6 +177,8 @@ public class ParamStructDetails {
 	 * @return
 	 */
 	public static ParamStructDetails generateParamStructDetails(Map<String, Object> mapInputs) {
+		String baseQsType = (String) mapInputs.get("baseQsType");
+		String appId = (String) mapInputs.get("appId");
 		String pixelId = (String) mapInputs.get("pixelId");
 		String pixelString = (String) mapInputs.get("pixelString");
 		String tableName = (String) mapInputs.get("tableName");
@@ -195,6 +197,8 @@ public class ParamStructDetails {
 		String quote = (String) mapInputs.get("quote");
 
 		ParamStructDetails pStruct = new ParamStructDetails();
+		pStruct.setBaseQsType(baseQsType);
+		pStruct.setAppId(appId);
 		pStruct.setPixelId(pixelId);
 		pStruct.setPixelString(pixelString);
 		pStruct.setTableName(tableName);
