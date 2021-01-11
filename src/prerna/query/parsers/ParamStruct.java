@@ -165,9 +165,8 @@ public class ParamStruct {
 		// now need to handle the details
 		List<Map<String, Object>> detailsListMap = (List<Map<String, Object>>) mapInputs.get("detailsList");
 		int numDetails = detailsListMap.size();
-		List<ParamStructDetails> detailsList = new Vector<>(numDetails);
 		for(int i = 0; i < numDetails; i++) {
-			detailsList.add(ParamStructDetails.generateParamStructDetails(detailsListMap.get(i)));
+			pStruct.detailsList.add(ParamStructDetails.generateParamStructDetails(detailsListMap.get(i)));
 		}
 		
 		return pStruct;
