@@ -14,7 +14,7 @@ public class ParamStruct {
 	private boolean multiple = false;
 	private String paramName = null;
 	private String modelQuery = null;
-	private String manualChoices = null;
+	private Object manualChoices = null;
 	private String modelDisplay = null; // need to turn this into an enum
 	private String modelLabel = null; // how do you want to ask your user what to do ?
 	private boolean required = false;
@@ -62,11 +62,11 @@ public class ParamStruct {
 		this.modelQuery = modelQuery;
 	}
 
-	public String getManualChoices() {
+	public Object getManualChoices() {
 		return manualChoices;
 	}
 
-	public void setManualChoices(String manualChoices) {
+	public void setManualChoices(Object manualChoices) {
 		this.manualChoices = manualChoices;
 	}
 
@@ -134,7 +134,7 @@ public class ParamStruct {
 		Boolean multiple = (Boolean) mapInputs.get("multiple");
 		String paramName = (String) mapInputs.get("paramName");
 		String modelQuery = (String) mapInputs.get("modelQuery");
-		String manualChoices = (String) mapInputs.get("manualChoices");
+		Object manualChoices = mapInputs.get("manualChoices");
 		String modelDisplay = (String) mapInputs.get("modelDisplay");
 		String modelLabel = (String) mapInputs.get("modelLabel");
 		Boolean required = (Boolean) mapInputs.get("required");
