@@ -3,7 +3,7 @@ package prerna.algorithm.api;
 public enum DataFrameTypeEnum {
 
 	GRID ("GRID"),
-	GRAPH ("GRSPH"),
+	GRAPH ("GRAPH"),
 	R ("R"),
 	PYTHON ("PY"),
 	NATIVE ("NATIVE"), 
