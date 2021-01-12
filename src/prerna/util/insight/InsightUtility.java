@@ -24,6 +24,7 @@ import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
+import prerna.query.parsers.ParamStruct;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -133,6 +134,23 @@ public class InsightUtility {
 				insightPanel.setPanelView(PANEL_VIEW_VISUALIZATION);
 			}
 		}
+	}
+	
+	/**
+	 * Get the parameters within the insight
+	 * @param insight
+	 * @return
+	 */
+	public static List<ParamStruct> getInsightParams(Insight insight) {
+		List<ParamStruct> params = new Vector<>();
+		VarStore varStore = insight.getVarStore();
+		Set<String> paramKeys = varStore.getInsightParameterKeys();
+		for(String paramKey : paramKeys) {
+			NounMetadata noun = varStore.get(paramKey);
+			params.add((ParamStruct) noun.getValue());
+		}
+		
+		return params;
 	}
 	
 	/**

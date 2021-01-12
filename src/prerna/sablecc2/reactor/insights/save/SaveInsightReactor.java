@@ -26,6 +26,8 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.om.PixelList;
+import prerna.query.parsers.ParamStruct;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -38,6 +40,7 @@ import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
+import prerna.util.insight.InsightUtility;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
 
@@ -48,8 +51,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), 
 				ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), 
 				ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
-				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.PIPELINE.getKey(), 
-				ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY};
+				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY};
 	}
 
 	@Override
@@ -81,20 +83,30 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		if(insightName == null || insightName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
+		
 		List<String> recipeToSave = getRecipe();
+		List<String> recipeIds = null;
+		List<ParamStruct> params = null;
+		
 		String layout = getLayout();
 		boolean hidden = getHidden();
 		Boolean cacheable = getUserDefinedCacheable();
 		if(cacheable == null) {
 			cacheable = Utility.getApplicationCacheInsight();
 		}
-		List<Map<String, Object>> params = getParams();
-		Map pipeline = getPipeline();
 
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.isEmpty()) {
-			recipeToSave = this.insight.getPixelList().getPixelRecipe();
-			recipeToSave.addAll(PixelUtility.getMetaInsightRecipeSteps(this.insight));
+			PixelList insightPixelList = this.insight.getPixelList();
+			recipeToSave = insightPixelList.getPixelRecipe();
+			recipeIds = insightPixelList.getPixelIds();
+			List<String> additionalSteps = PixelUtility.getMetaInsightRecipeSteps(this.insight);
+			int counter = 0;
+			for(String step : additionalSteps) {
+				recipeToSave.add(step);
+				recipeIds.add(counter++ + "_additionalStep");
+			}
+			params = InsightUtility.getInsightParams(insight);
 		} else {
 			// default for recipe encoded when no key is passed is true
 			if(recipeEncoded()) {
@@ -125,7 +137,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 		if(params != null && !params.isEmpty()) {
 			try {
-				recipeToSave = getParamRecipe(recipeToSave, params, insightName);
+				recipeToSave = PixelUtility.parameterizeRecipe(this.insight.getUser(), recipeToSave, recipeIds, params, insightName);
 			} catch(Exception e) {
 				throw new IllegalArgumentException("An error occured trying to parameterize the insight recipe. The source error message is: " + e.getMessage(), e);
 			}
@@ -183,14 +195,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		logger.info(stepCounter + ") Done...");
 		stepCounter++;
 	 	
-		// write pipeline
-		if(pipeline != null && !pipeline.isEmpty()) {
-			logger.info(stepCounter + ") Add pipeline to file...");
-			writePipelineToFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, pipeline);
-			logger.info(stepCounter + ") Done...");
-			stepCounter++;
-		}
-	
 		// get base 64 image string and write to file
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {

@@ -31,6 +31,8 @@ import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
+import prerna.query.parsers.ParamStruct;
+import prerna.query.parsers.ParamStructToJsonGenerator;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
@@ -46,6 +48,7 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.pipeline.PipelineTranslation;
 import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.translations.DatasourceTranslation;
+import prerna.sablecc2.translations.ParamStructSaveRecipeTranslation;
 import prerna.sablecc2.translations.ParameterizeSaveRecipeTranslation;
 import prerna.sablecc2.translations.ReplaceDatasourceTranslation;
 import prerna.util.Constants;
@@ -466,208 +469,49 @@ public class PixelUtility {
 	}
 	
 	/**
-	 * Add parameters into an existing recipe
+	 * 
+	 * @param user
 	 * @param recipe
 	 * @param params
+	 * @param insightName
 	 * @return
 	 */
-	public static List<String> getParameterizedRecipe(User user, List<String> recipe, List<Map<String, Object>> paramsMap, String insightName) {
-		int numParams = paramsMap.size();
-		List<String> params = new ArrayList<>(numParams);
-		for(Map<String, Object> pMap : paramsMap) {
-			String pName = (String) pMap.get("paramName");
-			if(pName == null || pName.isEmpty()) {
-				throw new IllegalArgumentException("Parameter list must all contain 'paramName'");
-			}
-			params.add(pName);
-		}
-		
+	public static List<String> parameterizeRecipe(User user, List<String> recipe, List<String> recipeIds, List<ParamStruct> params, String insightName) {
 		Insight in = new Insight();
-		in.setUser(user);
-		ParameterizeSaveRecipeTranslation translation = new ParameterizeSaveRecipeTranslation(in);
+		ParamStructSaveRecipeTranslation translation = new ParamStructSaveRecipeTranslation(in);
 		translation.setInputsToParameterize(params);
 		
 		// loop through recipe
-		for(String expression : recipe) {
+		int recipeSize = recipe.size();
+		for(int i = 0; i < recipeSize; i++) {
+			String expression = recipe.get(i);
+			String pixelId = recipeIds.get(i);
 			try {
-				expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodingList, translation.encodedToOriginal);
-				Parser p = new Parser(
-						new Lexer(
-								new PushbackReader(
-										new InputStreamReader(
-												new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
+				expression = PixelPreProcessor.preProcessPixel(expression.trim(), new ArrayList<String>(), new HashMap<String, String>());
+				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 				// parsing the pixel - this process also determines if expression is syntactically correct
 				Start tree = p.parse();
 				// apply the translation.
+				translation.setCurrentPixelId(pixelId);
 				tree.apply(translation);
 			} catch (ParserException | LexerException | IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				e.printStackTrace();
 			}
 		}
 		
-		Map<String, Map<String, String>> processedParams = translation.getParamToSource();
-		Map<String, List<String>> colToComparators = translation.getColToComparators();
-		List<String> newRecipe = translation.getPixels();
-		// since i am already adding a AddPanel(0) at the start of this recipe
-		// if it is contained as the first index inside newRecipe
-		// i will remove it
-		String first = newRecipe.get(0);
-		first = first.replace(" ", "").trim();
-		if(first.equals("AddPanel(0);")) {
-			newRecipe.remove(0);
-		}
-		
+		// combine the pixels together into a string
+		List<String> paramedPixels = translation.getPixels();
 		StringBuilder fullRecipe = new StringBuilder();
-		for(String s : newRecipe) {
+		for(String s : paramedPixels) {
 			fullRecipe.append(s.trim());
 		}
-		
-		List<Map<String, Object>> vec = new Vector<>();
-		Map<String, Object> map = new LinkedHashMap<>();
-		// recipe is the query
-		map.put("query", fullRecipe.toString());
-		map.put("label", insightName);
-		map.put("description", "Please select paramters for the insight");
-		// add params
-		int infiniteScrollCounter = 0;
-		List<Map<String, Object>> paramList = new Vector<>();
-		for(int i = 0; i < numParams; i++) {
-			Map<String, Object> pMap = paramsMap.get(i);
-			String param = (String) pMap.get("paramName");
-			// for now
-			// we will add each comparator once
-			// based on its occurrence
-			Set<String> comparators = new HashSet<>(colToComparators.get(param));
-
-			boolean keepSearch = keepSearchParameter(pMap);
-			// we will run this
-			// for every column-comparator combination
-			for(String comparator : comparators) {
-				boolean isNumeric = IQueryFilter.comparatorIsNumeric(comparator);
-				String jsonParamName = param + "__" + IQueryFilter.getSimpleNameForComparator(comparator);
-				String comparatorDisplay = IQueryFilter.getDisplayNameForComparator(comparator);
-				// and now for the param itself
-				Map<String, Object> paramMap = new LinkedHashMap<>();
-				paramMap.put("paramName", jsonParamName);
-				paramMap.put("required", true);
-				paramMap.put("useSelectedValues", true);
-				// nested map for view
-				Map<String, Object> paramViewMap = new LinkedHashMap<>();
-				if(isNumeric) {
-					paramViewMap.put("label", "Enter value for : " + param + "  " + comparatorDisplay); // + " [user input]");
-					paramViewMap.put("displayType", "number");
-				} else {
-					paramViewMap.put("label", "Select values for : " + param + "  " + comparatorDisplay); // + " [user input]");
-					paramViewMap.put("displayType", "checklist");
-				}
-				
-				// nested attributes map within nested view map
-				Map<String, Boolean> paramViewAttrMap = new LinkedHashMap<>();
-				// if numeric - no search and single valued
-				paramViewAttrMap.put("searchable", !isNumeric);
-				paramViewAttrMap.put("multiple", !isNumeric);
-				paramViewAttrMap.put("quickselect", !isNumeric);
-				paramViewMap.put("attributes", paramViewAttrMap);
-				// add view
-				paramMap.put("view", paramViewMap);
-				// nested map for model
-				Map<String, Object> modelMap = new LinkedHashMap<>();
-				Map<String, String> processedParam = processedParams.get(param);
-				String physicalQs = processedParam.get("qs");
-				String infiniteVar = "infinite"+infiniteScrollCounter++;
-				String paramQ = "(" + infiniteVar + " = " + processedParam.get("source") + " | Select(" + physicalQs 
-						+ ") | Filter(" + physicalQs + " ?like \"<" + jsonParamName + "_Search>\") | Sort(columns=[" 
-						+ physicalQs + "], sort=[asc]) | Iterate()) | Collect(20);";  
-				modelMap.put("query", paramQ);
-				paramMap.put("model", modelMap);
-
-				if(keepSearch & !isNumeric) {
-					// add to model map
-					modelMap.put("infiniteQuery", infiniteVar + " | Collect(20)");
-					modelMap.put("searchParam", jsonParamName + "_Search");
-					modelMap.put("dependsOn", new String[]{jsonParamName + "_Search"});
-					
-					// create search as well
-					Map<String, Object> paramSearchMap = new LinkedHashMap<>();
-					paramSearchMap.put("paramName", jsonParamName + "_Search");
-					paramSearchMap.put("view", false);
-					Map<String, String> paramSearchModel = new LinkedHashMap<>();
-					paramSearchModel.put("defaultValue", "");
-					paramSearchMap.put("model", paramSearchModel);
-					paramList.add(paramSearchMap);
-				}
-				
-				// now merge the existing pMap into the default values
-				recursivelyMergeMaps(paramMap, pMap);
-				// add to the param list
-				paramList.add(paramMap);
-			}
-		}
-		// add param list
-		map.put("params", paramList);
-		// add execute
-		map.put("execute", "button");
-		vec.add(map);
+		List<Map<String, Object>> insightJsonObject = ParamStructToJsonGenerator.generateInsightJsonForParameters(insightName, fullRecipe.toString(), params);
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		List<String> paramedRecipe = new Vector<>(2);
 		paramedRecipe.add("AddPanel(0);");
-		paramedRecipe.add("META | Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");");
+		paramedRecipe.add("META | Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(insightJsonObject) + "}</encode>\");");
 		return paramedRecipe;
-	}
-	
-	/**
-	 * Recursively join two maps together based on the keys
-	 * @param mainMap
-	 * @param newMap
-	 */
-	private static void recursivelyMergeMaps(Map<String, Object> mainMap, Map<String, Object> newMap) {
-		if(newMap != null) {
-			for(String key : newMap.keySet()) {
-				if(mainMap.containsKey(key)) {
-					// we have an overlap
-					// lets see if the children are both maps
-					boolean newKeyIsMap = (newMap.get(key) instanceof Map);
-					boolean existingKeyIsMap = (mainMap.get(key) instanceof Map);
-					if(newKeyIsMap && existingKeyIsMap) {
-						// recursively go through and try to add
-						recursivelyMergeMaps( (Map) mainMap.get(key), (Map) newMap.get(key));
-					} else {
-						// both are not maps
-						// just override
-						
-						// with new changes where BE separates 
-						// the comparators out
-						if(!key.equals("paramName")) {
-							mainMap.put(key, newMap.get(key));
-						}
-					}
-				} else {
-					// brand new key
-					// put all into the main map
-					mainMap.put(key, newMap.get(key));
-				}
-			}
-		}
-	}
-	
-	/**
-	 * Determine if we need the search in the parameter list
-	 * @param map
-	 * @return
-	 */
-	private static boolean keepSearchParameter(Map<String, Object> map) {
-		final String MODEL_KEY = "model";
-		final String DEFAULT_OPTIONS_KEY = "defaultOptions";
-		
-		if(map.containsKey(MODEL_KEY)) {
-			Map<String, Object> innerMap = (Map<String, Object>) map.get(MODEL_KEY);
-			if(innerMap.containsKey(DEFAULT_OPTIONS_KEY)) {
-				return false;
-			}
-		}
-		
-		return true;
 	}
 	
 	/**
@@ -993,4 +837,223 @@ public class PixelUtility {
 		return retMap;
 	}
 	
+	
+	
+	
+	
+	
+	
+	////////////////////////////////////////////////////////////////
+	
+	/*
+	 * OLD DEPRECATED METHODS - WILL DELETE AFTER A WHILE
+	 * COMMENT DATED - 2021-01-11
+	 */
+	
+	
+	/**
+	 * Add parameters into an existing recipe
+	 * @param recipe
+	 * @param params
+	 * @return
+	 */
+	@Deprecated
+	public static List<String> getParameterizedRecipe(User user, List<String> recipe, List<Map<String, Object>> paramsMap, String insightName) {
+		int numParams = paramsMap.size();
+		List<String> params = new ArrayList<>(numParams);
+		for(Map<String, Object> pMap : paramsMap) {
+			String pName = (String) pMap.get("paramName");
+			if(pName == null || pName.isEmpty()) {
+				throw new IllegalArgumentException("Parameter list must all contain 'paramName'");
+			}
+			params.add(pName);
+		}
+		
+		Insight in = new Insight();
+		in.setUser(user);
+		ParameterizeSaveRecipeTranslation translation = new ParameterizeSaveRecipeTranslation(in);
+		translation.setInputsToParameterize(params);
+		
+		// loop through recipe
+		for(String expression : recipe) {
+			try {
+				expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodingList, translation.encodedToOriginal);
+				Parser p = new Parser(
+						new Lexer(
+								new PushbackReader(
+										new InputStreamReader(
+												new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
+				// parsing the pixel - this process also determines if expression is syntactically correct
+				Start tree = p.parse();
+				// apply the translation.
+				tree.apply(translation);
+			} catch (ParserException | LexerException | IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+		
+		Map<String, Map<String, String>> processedParams = translation.getParamToSource();
+		Map<String, List<String>> colToComparators = translation.getColToComparators();
+		List<String> newRecipe = translation.getPixels();
+		// since i am already adding a AddPanel(0) at the start of this recipe
+		// if it is contained as the first index inside newRecipe
+		// i will remove it
+		String first = newRecipe.get(0);
+		first = first.replace(" ", "").trim();
+		if(first.equals("AddPanel(0);")) {
+			newRecipe.remove(0);
+		}
+		
+		StringBuilder fullRecipe = new StringBuilder();
+		for(String s : newRecipe) {
+			fullRecipe.append(s.trim());
+		}
+		
+		List<Map<String, Object>> vec = new Vector<>();
+		Map<String, Object> map = new LinkedHashMap<>();
+		// recipe is the query
+		map.put("query", fullRecipe.toString());
+		map.put("label", insightName);
+		map.put("description", "Please select paramters for the insight");
+		// add params
+		int infiniteScrollCounter = 0;
+		List<Map<String, Object>> paramList = new Vector<>();
+		for(int i = 0; i < numParams; i++) {
+			Map<String, Object> pMap = paramsMap.get(i);
+			String param = (String) pMap.get("paramName");
+			// for now
+			// we will add each comparator once
+			// based on its occurrence
+			Set<String> comparators = new HashSet<>(colToComparators.get(param));
+
+			boolean keepSearch = keepSearchParameter(pMap);
+			// we will run this
+			// for every column-comparator combination
+			for(String comparator : comparators) {
+				boolean isNumeric = IQueryFilter.comparatorIsNumeric(comparator);
+				String jsonParamName = param + "__" + IQueryFilter.getSimpleNameForComparator(comparator);
+				String comparatorDisplay = IQueryFilter.getDisplayNameForComparator(comparator);
+				// and now for the param itself
+				Map<String, Object> paramMap = new LinkedHashMap<>();
+				paramMap.put("paramName", jsonParamName);
+				paramMap.put("required", true);
+				paramMap.put("useSelectedValues", true);
+				// nested map for view
+				Map<String, Object> paramViewMap = new LinkedHashMap<>();
+				if(isNumeric) {
+					paramViewMap.put("label", "Enter value for : " + param + "  " + comparatorDisplay); // + " [user input]");
+					paramViewMap.put("displayType", "number");
+				} else {
+					paramViewMap.put("label", "Select values for : " + param + "  " + comparatorDisplay); // + " [user input]");
+					paramViewMap.put("displayType", "checklist");
+				}
+				
+				// nested attributes map within nested view map
+				Map<String, Boolean> paramViewAttrMap = new LinkedHashMap<>();
+				// if numeric - no search and single valued
+				paramViewAttrMap.put("searchable", !isNumeric);
+				paramViewAttrMap.put("multiple", !isNumeric);
+				paramViewAttrMap.put("quickselect", !isNumeric);
+				paramViewMap.put("attributes", paramViewAttrMap);
+				// add view
+				paramMap.put("view", paramViewMap);
+				// nested map for model
+				Map<String, Object> modelMap = new LinkedHashMap<>();
+				Map<String, String> processedParam = processedParams.get(param);
+				String physicalQs = processedParam.get("qs");
+				String infiniteVar = "infinite"+infiniteScrollCounter++;
+				String paramQ = "(" + infiniteVar + " = " + processedParam.get("source") + " | Select(" + physicalQs 
+						+ ") | Filter(" + physicalQs + " ?like \"<" + jsonParamName + "_Search>\") | Sort(columns=[" 
+						+ physicalQs + "], sort=[asc]) | Iterate()) | Collect(20);";  
+				modelMap.put("query", paramQ);
+				paramMap.put("model", modelMap);
+
+				if(keepSearch & !isNumeric) {
+					// add to model map
+					modelMap.put("infiniteQuery", infiniteVar + " | Collect(20)");
+					modelMap.put("searchParam", jsonParamName + "_Search");
+					modelMap.put("dependsOn", new String[]{jsonParamName + "_Search"});
+					
+					// create search as well
+					Map<String, Object> paramSearchMap = new LinkedHashMap<>();
+					paramSearchMap.put("paramName", jsonParamName + "_Search");
+					paramSearchMap.put("view", false);
+					Map<String, String> paramSearchModel = new LinkedHashMap<>();
+					paramSearchModel.put("defaultValue", "");
+					paramSearchMap.put("model", paramSearchModel);
+					paramList.add(paramSearchMap);
+				}
+				
+				// now merge the existing pMap into the default values
+				recursivelyMergeMaps(paramMap, pMap);
+				// add to the param list
+				paramList.add(paramMap);
+			}
+		}
+		// add param list
+		map.put("params", paramList);
+		// add execute
+		map.put("execute", "button");
+		vec.add(map);
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		List<String> paramedRecipe = new Vector<>(2);
+		paramedRecipe.add("AddPanel(0);");
+		paramedRecipe.add("META | Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");");
+		return paramedRecipe;
+	}
+	
+	/**
+	 * Recursively join two maps together based on the keys
+	 * @param mainMap
+	 * @param newMap
+	 */
+	private static void recursivelyMergeMaps(Map<String, Object> mainMap, Map<String, Object> newMap) {
+		if(newMap != null) {
+			for(String key : newMap.keySet()) {
+				if(mainMap.containsKey(key)) {
+					// we have an overlap
+					// lets see if the children are both maps
+					boolean newKeyIsMap = (newMap.get(key) instanceof Map);
+					boolean existingKeyIsMap = (mainMap.get(key) instanceof Map);
+					if(newKeyIsMap && existingKeyIsMap) {
+						// recursively go through and try to add
+						recursivelyMergeMaps( (Map) mainMap.get(key), (Map) newMap.get(key));
+					} else {
+						// both are not maps
+						// just override
+						
+						// with new changes where BE separates 
+						// the comparators out
+						if(!key.equals("paramName")) {
+							mainMap.put(key, newMap.get(key));
+						}
+					}
+				} else {
+					// brand new key
+					// put all into the main map
+					mainMap.put(key, newMap.get(key));
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Determine if we need the search in the parameter list
+	 * @param map
+	 * @return
+	 */
+	private static boolean keepSearchParameter(Map<String, Object> map) {
+		final String MODEL_KEY = "model";
+		final String DEFAULT_OPTIONS_KEY = "defaultOptions";
+		
+		if(map.containsKey(MODEL_KEY)) {
+			Map<String, Object> innerMap = (Map<String, Object>) map.get(MODEL_KEY);
+			if(innerMap.containsKey(DEFAULT_OPTIONS_KEY)) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
 }
