@@ -204,17 +204,29 @@ public class ParamStructToJsonGenerator {
 		return paramList;
 	}
 	
+	/**
+	 * Get the model display name
+	 * @param param
+	 * @return
+	 */
 	private static String getModelDisplay(ParamStruct param) {
 		String modelDisplay = param.getModelDisplay();
 		if(modelDisplay != null && !modelDisplay.isEmpty()) {
+			// model display is passed from the user
 			return modelDisplay;
 		}
 		
+		// logic is as follows
+		// if there is a numeric comparison
+		// set it to number
+		// otherwise use checklist
 		List<ParamStructDetails> details = param.getDetailsList();
 		boolean hasNumericOperator = false;
 		for(ParamStructDetails detail : details) {
 			String operator = detail.getOperator();
-			hasNumericOperator = IQueryFilter.comparatorIsNumeric(operator);
+			if(!hasNumericOperator) {
+				hasNumericOperator = IQueryFilter.comparatorIsNumeric(operator);
+			}
 		}
 		
 		if(hasNumericOperator) {
