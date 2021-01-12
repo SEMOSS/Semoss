@@ -152,7 +152,6 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 						// or a new filter we are adding
 						
 						List<IQueryFilter> newFilters = new Vector<>();
-						List<String> modifiedParams = new Vector<>();
 
 						// you can have a filter
 						// that is not a selector
