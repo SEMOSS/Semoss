@@ -14,6 +14,7 @@ import com.google.gson.GsonBuilder;
 import prerna.query.parsers.ParamStruct.FILL_TYPE;
 import prerna.query.parsers.ParamStructDetails.LEVEL;
 import prerna.query.parsers.ParamStructDetails.QUOTE;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.test.TestUtilityMethods;
 
 public class ParamStructToJsonGenerator {
@@ -83,7 +84,7 @@ public class ParamStructToJsonGenerator {
 		for(ParamStruct param : params) {
 			// grab the display type first
 			// since that determines some default values
-			final String DISPLAY_TYPE = param.getModelDisplay();
+			final String DISPLAY_TYPE = getModelDisplay(param);
 			boolean requireSearch = APPEND_SEARCH_PARAM_TYPES.contains(DISPLAY_TYPE);
 			boolean useSelectedValues = APPEND_USE_SELECTED_VALUES_TYPES.contains(DISPLAY_TYPE);
 			boolean quickSelect = APPEND_QUICK_SELECT_TYPES.contains(DISPLAY_TYPE);
@@ -202,6 +203,28 @@ public class ParamStructToJsonGenerator {
 		
 		return paramList;
 	}
+	
+	private static String getModelDisplay(ParamStruct param) {
+		String modelDisplay = param.getModelDisplay();
+		if(modelDisplay != null && !modelDisplay.isEmpty()) {
+			return modelDisplay;
+		}
+		
+		List<ParamStructDetails> details = param.getDetailsList();
+		boolean hasNumericOperator = false;
+		for(ParamStructDetails detail : details) {
+			String operator = detail.getOperator();
+			hasNumericOperator = IQueryFilter.comparatorIsNumeric(operator);
+		}
+		
+		if(hasNumericOperator) {
+			return "number";
+		}
+		
+		// default to checklist
+		return "checklist";
+	}
+	
 	
 	/**
 	 * Test method
