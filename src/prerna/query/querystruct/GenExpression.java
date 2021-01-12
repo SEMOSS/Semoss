@@ -668,21 +668,21 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		return buf;
 	}
 	
-	public void replaceTableAlias(GenExpression gep, String oldName, String newName)
-	{
-		// if this is an operation
-		if(gep.operation.equalsIgnoreCase("column"))
-			gep.tableName = newName;
-		
-		// operation
-		else if(gep.leftItem != null && gep.rightItem != null)
-		{
-			if(gep.leftItem instanceof GenExpression)
-				replaceTableAlias((GenExpression)gep.leftItem, oldName, newName);
-			if(gep.rightItem instanceof GenExpression)
-				replaceTableAlias((GenExpression)gep.rightItem, oldName, newName);
-		}
-	}
+//	public void replaceTableAlias(GenExpression gep, String oldName, String newName)
+//	{
+//		// if this is an operation
+//		if(gep.operation.equalsIgnoreCase("column"))
+//			gep.tableName = newName;
+//		
+//		// operation
+//		else if(gep.leftItem != null && gep.rightItem != null)
+//		{
+//			if(gep.leftItem instanceof GenExpression)
+//				replaceTableAlias((GenExpression)gep.leftItem, oldName, newName);
+//			if(gep.rightItem instanceof GenExpression)
+//				replaceTableAlias((GenExpression)gep.rightItem, oldName, newName);
+//		}
+//	}
 	
 	
 	// recursively goes through and replaces column table name
