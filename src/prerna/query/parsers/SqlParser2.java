@@ -92,7 +92,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 public class SqlParser2 {
 
 	// to determine type of the expression
-	private static enum EXPR_TYPE {LEFT, RIGHT, INNER};
+//	private static enum EXPR_TYPE {LEFT, RIGHT, INNER};
 
 	GenExpression qs = null;
 	GenExpressionWrapper wrapper = new GenExpressionWrapper();

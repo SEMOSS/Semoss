@@ -213,19 +213,6 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 	}
 	
-//	protected List<Map<String, Object>> getParams() {
-//		GenRowStruct paramGrs = this.store.getNoun(ReactorKeysEnum.PARAM_KEY.getKey());
-//		if(paramGrs == null || paramGrs.isEmpty()) {
-//			return null;
-//		}
-//		
-//		List<Map<String, Object>> params = new ArrayList<>();
-//		for(int i = 0; i < paramGrs.size(); i++) {
-//			params.add( (Map<String, Object>) paramGrs.get(i));
-//		}
-//		return params;
-//	}
-	
 	protected List<String> decodeRecipe(List<String> recipe) {
 		int size = recipe.size();
 		List<String> decodedRecipe = new Vector<>(size);
