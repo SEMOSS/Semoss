@@ -47,6 +47,10 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 
 		String by100v = by100 ? "True" : "False";
 		
+		if (sigDigits < 0) {
+			throw new IllegalArgumentException("Significant digits must be greater than or equal to zero.");
+		}
+		
         script = wrapperFrameName + ".cache['data']['" + newColName + "'] = " + 
                 wrapperFrameName + ".cache['data']['" + srcCol + "'].apply(lambda row: " +
                 "str(round(row, " + sigDigits + ") * 100) + '%' if " + by100v + 
@@ -110,6 +114,7 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		if (noun.getNounType() == PixelDataType.CONST_INT) {
 			return (int) grs.get(0);
 		}
+		
 		return defaultValue;
 	}
 }
