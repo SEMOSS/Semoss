@@ -110,7 +110,7 @@ public class PixelList implements Iterable<Pixel> {
 			List<Pixel> subset = new Vector<>();
 			for(int i = 0; i < pixelRecipe.size(); i++) {
 				int intVal = counter.getAndIncrement();
-				String uid = intVal + "__" + UUID.randomUUID().toString();
+				String uid = intVal + "";// + "__" + UUID.randomUUID().toString();
 				Pixel pixel = new Pixel(uid, pixelRecipe.get(i));
 				this.pixelList.add(pixel);
 				idToIndexHash.put(uid, this.pixelList.size()-1);

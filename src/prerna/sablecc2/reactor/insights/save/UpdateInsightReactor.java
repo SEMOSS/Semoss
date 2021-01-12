@@ -18,6 +18,8 @@ import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.MosfetFile;
+import prerna.om.PixelList;
+import prerna.query.parsers.ParamStruct;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -31,6 +33,7 @@ import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
+import prerna.util.insight.InsightUtility;
 
 public class UpdateInsightReactor extends AbstractInsightReactor {
 
@@ -42,7 +45,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, 
 				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
 				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), 
-				ReactorKeysEnum.PIPELINE.getKey(), ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY};
+				ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY};
 	}
 
 	@Override
@@ -68,11 +71,23 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(insightName == null || insightName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
+		
 		List<String> recipeToSave = getRecipe();
+		List<String> recipeIds = null;
+		List<ParamStruct> params = null;
+
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.isEmpty()) {
-			recipeToSave = this.insight.getPixelList().getPixelRecipe();
-			recipeToSave.addAll(PixelUtility.getMetaInsightRecipeSteps(this.insight));
+			PixelList insightPixelList = this.insight.getPixelList();
+			recipeToSave = insightPixelList.getPixelRecipe();
+			recipeIds = insightPixelList.getPixelIds();
+			List<String> additionalSteps = PixelUtility.getMetaInsightRecipeSteps(this.insight);
+			int counter = 0;
+			for(String step : additionalSteps) {
+				recipeToSave.add(step);
+				recipeIds.add(counter++ + "_additionalStep");
+			}
+			params = InsightUtility.getInsightParams(insight);
 		} else {
 			// default for recipe encoded when no key is passed is true
 			if(recipeEncoded()) {
@@ -82,15 +97,13 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		String layout = getLayout();
 		boolean hidden = getHidden();
-		List<Map<String, Object>> params = getParams();
-		Map pipeline = getPipeline();
 
 		// get an updated recipe if there are files used
 		// and save the files in the correct location
 		recipeToSave = saveFilesInInsight(recipeToSave, appId, existingId);
 		
 		if(params != null && !params.isEmpty()) {
-			recipeToSave = getParamRecipe(recipeToSave, params, insightName);
+			recipeToSave = PixelUtility.parameterizeRecipe(this.insight.getUser(), recipeToSave, recipeIds, params, insightName);
 		}
 		
 		IEngine engine = Utility.getEngine(appId);
@@ -128,13 +141,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		updateRecipeFile(engine.getEngineId(), engine.getEngineName(), 
 				existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden, description, tags);
 		logger.info("3) Done");
-		
-		// write pipeline
-		if(pipeline != null && !pipeline.isEmpty()) {
-			logger.info("4) Add pipeline to file...");
-			writePipelineToFile(engine.getEngineId(), engine.getEngineName(), existingId, pipeline);
-			logger.info("4) Done...");
-		}
 		
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
