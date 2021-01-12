@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
+import prerna.query.parsers.ParamStructDetails.LEVEL;
 import prerna.query.querystruct.FunctionExpression;
 import prerna.query.querystruct.GenExpression;
 import prerna.query.querystruct.OperationExpression;
@@ -286,31 +287,114 @@ public class GenExpressionWrapper {
 		// first replace the incoming structs with the user defined param names
 		for(int paramIndex = 0; paramIndex < incomingStructs.size(); paramIndex++) {
 			ParamStructDetails thisStruct = incomingStructs.get(paramIndex);
+			LEVEL thisStructLevel = thisStruct.getLevel();
+			
 			ParamStruct pStruct = detailsLookup.get(thisStruct);
 			String userDefinedParamName = pStruct.getParamName();
-			String paramStructDetailsKey = thisStruct.getParamKey();
 			
-			if(operatorTableColumnParamIndex.containsKey(paramStructDetailsKey)){
-				ParamStructDetails targetStruct = operatorTableColumnParamIndex.get(paramStructDetailsKey);
-				// replace the target struct with the user defined param name
-				List <GenExpression> exprs = paramToExpressionMap.get(targetStruct);
-				for(int exprIndex = 0; exprIndex < exprs.size(); exprIndex++) {
-					// we will replace the existing parameter 
-					// again with the parameter name
-					// but this time that defined by the user
-					String finalValue = "<" + userDefinedParamName + ">";
-					GenExpression thisExpression = exprs.get(exprIndex);
-					if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
-						thisExpression.setLeftExpresion(finalValue);	
-					} else {
-						thisExpression.setLeftExpr(finalValue);	
+			if(thisStructLevel == LEVEL.COLUMN) {
+				// loop through and find all at column level
+				for(String key : operatorTableColumnParamIndex.keySet()) {
+					ParamStructDetails targetStruct = operatorTableColumnParamIndex.get(key);
+					if(targetStruct.getColumnName().equals(thisStruct.getColumnName())) {
+						// replace the target struct with the user defined param name
+						List <GenExpression> exprs = paramToExpressionMap.get(targetStruct);
+						for(int exprIndex = 0; exprIndex < exprs.size(); exprIndex++) {
+							// we will replace the existing parameter 
+							// again with the parameter name
+							// but this time that defined by the user
+							String finalValue = "<" + userDefinedParamName + ">";
+							GenExpression thisExpression = exprs.get(exprIndex);
+							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
+								thisExpression.setLeftExpresion(finalValue);	
+							} else {
+								thisExpression.setLeftExpr(finalValue);	
+							}
+						}
+						
+						// remove this struct from the overall so it wont fill
+						paramToExpressionMap.remove(targetStruct);
 					}
 				}
-				
-				// remove this struct from the overall so it wont fill
-				paramToExpressionMap.remove(targetStruct);
+			} else if(thisStructLevel == LEVEL.TABLE) {
+				// loop through and find all at table level
+				for(String key : operatorTableColumnParamIndex.keySet()) {
+					ParamStructDetails targetStruct = operatorTableColumnParamIndex.get(key);
+					if(targetStruct.getColumnName().equals(thisStruct.getColumnName())
+							&& targetStruct.getTableName().equals(thisStruct.getTableName())
+							) {
+						// replace the target struct with the user defined param name
+						List <GenExpression> exprs = paramToExpressionMap.get(targetStruct);
+						for(int exprIndex = 0; exprIndex < exprs.size(); exprIndex++) {
+							// we will replace the existing parameter 
+							// again with the parameter name
+							// but this time that defined by the user
+							String finalValue = "<" + userDefinedParamName + ">";
+							GenExpression thisExpression = exprs.get(exprIndex);
+							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
+								thisExpression.setLeftExpresion(finalValue);	
+							} else {
+								thisExpression.setLeftExpr(finalValue);	
+							}
+						}
+						
+						// remove this struct from the overall so it wont fill
+						paramToExpressionMap.remove(targetStruct);
+					}
+				}
+			} else if(thisStructLevel == LEVEL.OPERATOR) {
+				// loop through and find all at operator level
+				for(String key : operatorTableColumnParamIndex.keySet()) {
+					ParamStructDetails targetStruct = operatorTableColumnParamIndex.get(key);
+					if(targetStruct.getColumnName().equals(thisStruct.getColumnName())
+							&& targetStruct.getTableName().equals(thisStruct.getTableName())
+							&& targetStruct.getOperator().equals(thisStruct.getOperator())
+							) {
+						// replace the target struct with the user defined param name
+						List <GenExpression> exprs = paramToExpressionMap.get(targetStruct);
+						for(int exprIndex = 0; exprIndex < exprs.size(); exprIndex++) {
+							// we will replace the existing parameter 
+							// again with the parameter name
+							// but this time that defined by the user
+							String finalValue = "<" + userDefinedParamName + ">";
+							GenExpression thisExpression = exprs.get(exprIndex);
+							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
+								thisExpression.setLeftExpresion(finalValue);	
+							} else {
+								thisExpression.setLeftExpr(finalValue);	
+							}
+						}
+						
+						// remove this struct from the overall so it wont fill
+						paramToExpressionMap.remove(targetStruct);
+					}
+				}
+			} else if(thisStructLevel == LEVEL.OPERATORU) {
+				String paramStructDetailsKey = thisStruct.getParamKey();
+				// compare at u operator level using the param struct details key
+				if(operatorTableColumnParamIndex.containsKey(paramStructDetailsKey)){
+					ParamStructDetails targetStruct = operatorTableColumnParamIndex.get(paramStructDetailsKey);
+					// replace the target struct with the user defined param name
+					List <GenExpression> exprs = paramToExpressionMap.get(targetStruct);
+					for(int exprIndex = 0; exprIndex < exprs.size(); exprIndex++) {
+						// we will replace the existing parameter 
+						// again with the parameter name
+						// but this time that defined by the user
+						String finalValue = "<" + userDefinedParamName + ">";
+						GenExpression thisExpression = exprs.get(exprIndex);
+						if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
+							thisExpression.setLeftExpresion(finalValue);	
+						} else {
+							thisExpression.setLeftExpr(finalValue);	
+						}
+					}
+					
+					// remove this struct from the overall so it wont fill
+					paramToExpressionMap.remove(targetStruct);
+				}
 			}
 		}
+		
 		// replace all the other structs with the default values already present in the query
 		Iterator <ParamStructDetails> paramIterator = paramToExpressionMap.keySet().iterator();
 		while(paramIterator.hasNext()) {
