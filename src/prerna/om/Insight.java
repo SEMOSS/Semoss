@@ -970,6 +970,7 @@ public class Insight {
 			setRunSavedInsightMode(true);
 	
 			// always add the insight config
+			boolean hasInsightConfig = false;
 			if(appendInsightConfig) {
 				NounMetadata noun = varStore.get(SetInsightConfigReactor.INSIGHT_CONFIG);
 				if(noun != null) {
@@ -979,6 +980,7 @@ public class Insight {
 					builder.append(");");
 					Pixel pixel = this.pixelList.addPixel(builder.toString());
 					pixel.setMeta(true);
+					hasInsightConfig = true;
 				}
 			}
 			
@@ -1023,7 +1025,7 @@ public class Insight {
 			// realize the pixel objects are the same
 			List<Pixel> pixelReturns = results.getReturnPixelList();
 			int size = pixelReturns.size();
-			if(appendInsightConfig) {
+			if(hasInsightConfig) {
 				size--;
 			}
 			for(int i = 0; i < size; i++) {
