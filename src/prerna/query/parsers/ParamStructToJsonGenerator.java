@@ -277,6 +277,7 @@ public class ParamStructToJsonGenerator {
 				details.setTableName("DIABETES");
 				details.setColumnName("AGE");
 				details.setOperator(">");
+				details.setCurrentValue(new Long(25));
 				details.setLevel(LEVEL.OPERATOR);
 				details.setQuote(QUOTE.DOUBLE);
 			}
