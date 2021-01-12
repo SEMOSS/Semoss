@@ -22,8 +22,8 @@ public class ParamStructToJsonGenerator {
 	public static final Set<String> APPEND_SEARCH_PARAM_TYPES = new HashSet<>();
 	static {
 		APPEND_SEARCH_PARAM_TYPES.add("dropdown");
-		APPEND_SEARCH_PARAM_TYPES.add("checklist");
 		APPEND_SEARCH_PARAM_TYPES.add("typeahead");
+		APPEND_SEARCH_PARAM_TYPES.add("checklist");
 	}
 	
 	public static final Set<String> APPEND_QUICK_SELECT_TYPES = new HashSet<>();
@@ -40,13 +40,6 @@ public class ParamStructToJsonGenerator {
 	static {
 		DEFAULT_VALUE_ARRAY.add("checklist");
 	}
-	
-	private static Gson gson = new GsonBuilder()
-			.disableHtmlEscaping()
-			.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
-			.setPrettyPrinting()
-			.create();
-	
 	
 	/**
 	 * Generate the final json object for the saved insight
@@ -344,6 +337,12 @@ public class ParamStructToJsonGenerator {
 			}
 		}
 		
+		Gson gson = new GsonBuilder()
+				.disableHtmlEscaping()
+				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
+				.setPrettyPrinting()
+				.create();
+
 		System.out.println(gson.toJson(generateJsonParameters(params)));
 	}
 	
