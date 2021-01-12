@@ -116,14 +116,13 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 
 	private int getValue(String key) {
 		GenRowStruct grs = this.store.getNoun(key);
-		int defaultValue = 4;
-
 		NounMetadata noun = grs.getNoun(0);
+		
 		if (noun.getNounType() == PixelDataType.CONST_INT) {
 			return (int) grs.get(0);
+		} else {
+			throw new IllegalArgumentException("Input of " + grs.get(0) + " is invalid. Significant digits must be an integer value.");
 		}
-
-		return defaultValue;
 	}
 
 	///////////////////////// KEYS /////////////////////////////////////
