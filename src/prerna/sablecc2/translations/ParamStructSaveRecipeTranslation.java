@@ -198,7 +198,7 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 							ParamStructDetails importParam = thisImportParams.get(i);
 							ParamStruct pStruct = detailsLookup.get(importParam);
 							String comparator = importParam.getOperator();
-							if(comparator == null || !comparator.isEmpty()) {
+							if(comparator == null || comparator.isEmpty()) {
 								comparator = "==";
 							}
 							SimpleQueryFilter paramF = new SimpleQueryFilter(
@@ -423,12 +423,11 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 		translation.setInputsToParameterize(params);
 		
 		// loop through recipe
-		
 		for(int i = 0; i < recipeLength; i++) {
 			String expression = recipe[i];
 			String pixelId = ids[i];
 			try {
-				expression = PixelPreProcessor.preProcessPixel(expression.trim(), new ArrayList<String>(), new HashMap<String, String>());
+				expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodingList, translation.encodedToOriginal);
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 				// parsing the pixel - this process also determines if expression is syntactically correct
 				Start tree = p.parse();
