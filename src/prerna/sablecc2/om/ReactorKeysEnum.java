@@ -120,7 +120,6 @@ public enum ReactorKeysEnum {
 	PARAM_STRUCT("paramStruct",								"Map containing the details for the parameter"),
 	PARALLEL_WORKER("parallel_worker", 						"Class that will run as a thread"),
 	PASSWORD("password", 									"Password used in conjunction with the username for access to a service"),
-	PIPELINE("pipeline", 									"Pipeline json for the insight"),
 	PIXEL("pixel", 											"Pixel script as string"),
 	PIXEL_ID("pixelId", 									"The pixel id for this pixel step"),
 	PORT("port",                                            "The connection port."),
