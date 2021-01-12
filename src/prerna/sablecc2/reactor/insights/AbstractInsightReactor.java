@@ -166,19 +166,6 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		return null;
 	}
 	
-	protected Map getPipeline() {
-		GenRowStruct pipelineGrs = this.store.getNoun(ReactorKeysEnum.PIPELINE.getKey());
-		if(pipelineGrs != null && !pipelineGrs.isEmpty()) {
-			Map pipeline = (Map) pipelineGrs.get(0);
-			if(pipeline.isEmpty()) {
-				return null;
-			}
-			return pipeline;
-		}
-		
-		return null;
-	}
-	
 	protected String getLayout() {
 		// it must be passed directly into its own grs
 		GenRowStruct genericLayoutGrs = this.store.getNoun(ReactorKeysEnum.LAYOUT_KEY.getKey());
@@ -226,18 +213,18 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 	}
 	
-	protected List<Map<String, Object>> getParams() {
-		GenRowStruct paramGrs = this.store.getNoun(ReactorKeysEnum.PARAM_KEY.getKey());
-		if(paramGrs == null || paramGrs.isEmpty()) {
-			return null;
-		}
-		
-		List<Map<String, Object>> params = new ArrayList<>();
-		for(int i = 0; i < paramGrs.size(); i++) {
-			params.add( (Map<String, Object>) paramGrs.get(i));
-		}
-		return params;
-	}
+//	protected List<Map<String, Object>> getParams() {
+//		GenRowStruct paramGrs = this.store.getNoun(ReactorKeysEnum.PARAM_KEY.getKey());
+//		if(paramGrs == null || paramGrs.isEmpty()) {
+//			return null;
+//		}
+//		
+//		List<Map<String, Object>> params = new ArrayList<>();
+//		for(int i = 0; i < paramGrs.size(); i++) {
+//			params.add( (Map<String, Object>) paramGrs.get(i));
+//		}
+//		return params;
+//	}
 	
 	protected List<String> decodeRecipe(List<String> recipe) {
 		int size = recipe.size();
@@ -426,10 +413,6 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 		
 		return recipeToSave;
-	}
-	
-	protected List<String> getParamRecipe(List<String> recipe, List<Map<String, Object>> params, String insightName) {
-		return PixelUtility.getParameterizedRecipe(this.insight.getUser(), recipe, params, insightName);
 	}
 	
 	/**

@@ -50,7 +50,7 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		if(rdbmsId == null) {
 			throw new IllegalArgumentException("Need to input the id for the insight");
 		}
-		List<Map<String, Object>> params = getParams();
+//		List<Map<String, Object>> params = getParams();
 		List<String> additionalPixels = getAdditionalPixels();
 
 		// get the engine so i can get the new insight
@@ -107,7 +107,7 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", runner);
-		runnerWraper.put("params", params);
+//		runnerWraper.put("params", params);
 		runnerWraper.put("additionalPixels", additionalPixels);
 		return new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
 	}

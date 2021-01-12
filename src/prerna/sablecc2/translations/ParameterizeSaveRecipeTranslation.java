@@ -52,6 +52,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+@Deprecated
 public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 	
 	private static final Logger logger = LogManager.getLogger(ParameterizeSaveRecipeTranslation.class);
