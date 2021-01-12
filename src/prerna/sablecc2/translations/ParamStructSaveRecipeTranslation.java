@@ -96,7 +96,9 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 				// check if we have a QS to modify
 				if(this.importQs == null) {
 					// just store
-					this.pixels.add(expression);	
+					// add to list of expressions
+					expression = PixelUtility.recreateOriginalPixelExpression(expression, this.encodingList, this.encodedToOriginal);
+					this.pixels.add(expression);
 				} else {
 					// we have a QS
 					
@@ -139,7 +141,9 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 							finalQuery = GenExpressionWrapper.transformQueryWithParams(query, thisImportParams, detailsLookup);
 						} catch (Exception e1) {
 							logger.error(Constants.STACKTRACE, e);
-							this.pixels.add(expression);	
+							// add to list of expressions
+							expression = PixelUtility.recreateOriginalPixelExpression(expression, this.encodingList, this.encodedToOriginal);
+							this.pixels.add(expression);
 							continue ROUTINE_LOOP;
 						}
 						
@@ -193,9 +197,13 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 							// add new filters
 							ParamStructDetails importParam = thisImportParams.get(i);
 							ParamStruct pStruct = detailsLookup.get(importParam);
+							String comparator = importParam.getOperator();
+							if(comparator == null || !comparator.isEmpty()) {
+								comparator = "==";
+							}
 							SimpleQueryFilter paramF = new SimpleQueryFilter(
 									new NounMetadata(new QueryColumnSelector(importParam.getTableName() + "__" + importParam.getColumnName()), PixelDataType.COLUMN), 
-									importParam.getOperator(), 
+									comparator, 
 									new NounMetadata("<" + pStruct.getParamName() + ">", PixelDataType.CONST_STRING)
 									);
 							
