@@ -32,7 +32,7 @@ public class ParamStructToJsonGenerator {
 	
 	public static final Set<String> APPEND_USE_SELECTED_VALUES_TYPES = new HashSet<>();
 	static {
-		APPEND_QUICK_SELECT_TYPES.add("checklist");
+		APPEND_USE_SELECTED_VALUES_TYPES.add("checklist");
 	}
 	
 	private static Gson gson = new GsonBuilder()
