@@ -85,7 +85,7 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 	@Override
 	public void caseARoutineConfiguration(ARoutineConfiguration node) {
 		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
-		for(PRoutine e : copy) {
+		ROUTINE_LOOP : for(PRoutine e : copy) {
 			String expression = e.toString();
 			if(expression.contains("Import")) {
         		this.resultKey = "$RESULT_" + e.hashCode();
@@ -134,7 +134,14 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 						
 						HardSelectQueryStruct hqs = (HardSelectQueryStruct) this.importQs;
 						String query = hqs.getQuery();
-						String finalQuery = GenExpressionWrapper.transformQueryWithParams(query, thisImportParams);
+						String finalQuery = null;
+						try {
+							finalQuery = GenExpressionWrapper.transformQueryWithParams(query, thisImportParams, detailsLookup);
+						} catch (Exception e1) {
+							logger.error(Constants.STACKTRACE, e);
+							this.pixels.add(expression);	
+							continue ROUTINE_LOOP;
+						}
 						
 						String newExpr = sourceStr + "| Query(\"<encode>" + finalQuery + "</encode>\") | " + this.importStr + " ;";
 						this.pixels.add(newExpr);
@@ -382,7 +389,7 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 			ParamStruct pStruct = new ParamStruct();
 			params.add(pStruct);
 			pStruct.setDefaultValue(null);
-			pStruct.setParamName("AGE");
+			pStruct.setParamName("AGE2");
 			pStruct.setFillType(FILL_TYPE.PIXEL);
 			pStruct.setModelQuery("");
 			pStruct.setMultiple(true);

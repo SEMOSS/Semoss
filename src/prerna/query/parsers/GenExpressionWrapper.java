@@ -275,9 +275,68 @@ public class GenExpressionWrapper {
 				}
 			}
 		}
-	}	
+	}
 	
-	
+	/**
+	 * Fill the parameters with the user defined names
+	 * @param incomingStructs
+	 * @param detailsLookup
+	 */
+	public void fillParameters(List<ParamStructDetails> incomingStructs, Map<ParamStructDetails, ParamStruct> detailsLookup) {
+		// first replace the incoming structs with the user defined param names
+		for(int paramIndex = 0; paramIndex < incomingStructs.size(); paramIndex++) {
+			ParamStructDetails thisStruct = incomingStructs.get(paramIndex);
+			ParamStruct pStruct = detailsLookup.get(thisStruct);
+			String userDefinedParamName = pStruct.getParamName();
+			String paramStructDetailsKey = thisStruct.getParamKey();
+			
+			if(operatorTableColumnParamIndex.containsKey(paramStructDetailsKey)){
+				ParamStructDetails targetStruct = operatorTableColumnParamIndex.get(paramStructDetailsKey);
+				// replace the target struct with the user defined param name
+				List <GenExpression> exprs = paramToExpressionMap.get(targetStruct);
+				for(int exprIndex = 0; exprIndex < exprs.size(); exprIndex++) {
+					// we will replace the existing parameter 
+					// again with the parameter name
+					// but this time that defined by the user
+					String finalValue = "<" + userDefinedParamName + ">";
+					GenExpression thisExpression = exprs.get(exprIndex);
+					if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
+						thisExpression.setLeftExpresion(finalValue);	
+					} else {
+						thisExpression.setLeftExpr(finalValue);	
+					}
+				}
+				
+				// remove this struct from the overall so it wont fill
+				paramToExpressionMap.remove(targetStruct);
+			}
+		}
+		// replace all the other structs with the default values already present in the query
+		Iterator <ParamStructDetails> paramIterator = paramToExpressionMap.keySet().iterator();
+		while(paramIterator.hasNext()) {
+			ParamStructDetails structDetails = paramIterator.next();
+			// go through the pattern and fill it
+			List <GenExpression> exprs = paramToExpressionMap.get(structDetails);
+
+			if(exprs != null) {
+				for(int exprIndex = 0; exprIndex < exprs.size(); exprIndex++) {
+					// get the current value and set it
+					StringBuilder finalValue = new StringBuilder();
+					String quote = "";
+					if(structDetails.getType() == PixelDataType.CONST_STRING) {
+						quote = "";
+					}
+					GenExpression thisExpression = exprs.get(exprIndex);
+					finalValue.append(quote).append(structDetails.getCurrentValue()).append(quote);
+					if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
+						thisExpression.setLeftExpresion(finalValue.toString());	
+					} else {
+						thisExpression.setLeftExpr(finalValue.toString());	
+					}
+				}
+			}
+		}
+	}
 	
 	public String makeParameters(String columnName, Object constantValue, String operationName, String actualOperationName, String constantType, GenExpression exprToTrack, String tableName)
 	{
@@ -894,6 +953,25 @@ public class GenExpressionWrapper {
 		return retQuery;
 	}
 	
+	/**
+	 * Transform the query and replace the param struct with the user defined param names via the lookup
+	 * @param originalQuery
+	 * @param incomingStructs
+	 * @param detailsLookup
+	 * @return
+	 * @throws Exception
+	 */
+	public static String transformQueryWithParams(String originalQuery, List<ParamStructDetails> incomingStructs, Map<ParamStructDetails, ParamStruct> detailsLookup) throws Exception {
+		String retQuery = null;
+		SqlParser2 parse2 = new SqlParser2();
+		parse2.parameterize = true;
+		
+		GenExpressionWrapper wrapper = parse2.processQuery(originalQuery);
+		wrapper.fillParameters(incomingStructs, detailsLookup);
+		retQuery = GenExpression.printQS(wrapper.root, null) + "";
+		
+		return retQuery;
+	}
 	
 
 }
