@@ -80,6 +80,11 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 		if (by100) {
 			script.append(" * 100 ");
 		}
+		// Validate SigDigits
+		if (sigDigits < 0 || sigDigits > 20) {
+			throw new IllegalArgumentException("Significant digits must be integer values between 0 and 20, inclusive.");
+		}
+		
 		script.append(", " + sigDigits + "), nsmall = " + sigDigits + "), '%');");
 		// replace NA% with NA
 		script.append(replaceNA);
@@ -117,6 +122,7 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 		if (noun.getNounType() == PixelDataType.CONST_INT) {
 			return (int) grs.get(0);
 		}
+
 		return defaultValue;
 	}
 
