@@ -41,6 +41,36 @@ public class ParamStructToJsonGenerator {
 			.setPrettyPrinting()
 			.create();
 	
+	
+	/**
+	 * Generate the final json object for the saved insight
+	 * @param insightName
+	 * @param paramRecipe
+	 * @param params
+	 * @return
+	 */
+	public static List<Map<String, Object>> generateInsightJsonForParameters(String insightName, String paramRecipe, List<ParamStruct> params) {
+		List<Map<String, Object>> finalJsonObject = new Vector<>();
+		Map<String, Object> jsonObject = new LinkedHashMap<>();
+		jsonObject.put("label", insightName);
+		jsonObject.put("description", "Please select paramters for the insight");
+		// the pixel recipe is the query
+		jsonObject.put("query", paramRecipe);
+		// add param list
+		jsonObject.put("params", generateJsonParameters(params));
+		// add execute
+		jsonObject.put("execute", "button");
+		// while we allow for array of jsons - in this case we only have 1 for saved insights
+		finalJsonObject.add(jsonObject);
+		
+		return finalJsonObject;
+	}
+	
+	/**
+	 * Generate the parameter section of the JSON for the list of params
+	 * @param params
+	 * @return
+	 */
 	public static List<Map<String, Object>> generateJsonParameters(List<ParamStruct> params) {
 		List<Map<String, Object>> paramList = new Vector<>();
 
