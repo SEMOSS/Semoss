@@ -35,6 +35,11 @@ public class ParamStructToJsonGenerator {
 		APPEND_USE_SELECTED_VALUES_TYPES.add("checklist");
 	}
 	
+	public static final Set<String> DEFAULT_VALUE_ARRAY = new HashSet<>();
+	static {
+		DEFAULT_VALUE_ARRAY.add("checklist");
+	}
+	
 	private static Gson gson = new GsonBuilder()
 			.disableHtmlEscaping()
 			.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
@@ -164,7 +169,28 @@ public class ParamStructToJsonGenerator {
 			}
 			Object defaultValue = param.getDefaultValue();
 			if(defaultValue != null) {
-				modelMap.put("defaultValue", defaultValue);
+				// we require an array for default value for certain 
+				// display types
+				// so going to enforce that
+				if(DEFAULT_VALUE_ARRAY.contains(DISPLAY_TYPE)) {
+					List<Object> defaultValArray = null;
+					if(defaultValue instanceof List) {
+						defaultValArray = (List<Object>) defaultValue;
+					} else {
+						defaultValArray = new Vector<>(1);
+						defaultValArray.add(defaultValue);
+					}
+					modelMap.put("defaultValue", defaultValArray);
+				} else {
+					// make sure it is not an array
+					Object defaultVal = null;
+					if(defaultValue instanceof List) {
+						defaultVal = ((List<Object>) defaultValue).get(0);
+					} else {
+						defaultVal = defaultValue;
+					}
+					modelMap.put("defaultValue", defaultVal);
+				}
 			}
 			
 			// add the model to the param
