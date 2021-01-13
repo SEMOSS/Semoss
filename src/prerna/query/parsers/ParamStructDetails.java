@@ -8,8 +8,9 @@ public class ParamStructDetails {
 
 	public enum LEVEL {COLUMN, TABLE, OPERATOR, OPERATORU};
 	public enum QUOTE {NO, SINGLE, DOUBLE};
-
-	private String baseQsType = null;
+	public enum BASE_QS_TYPE {SQS, HQS};
+	
+	private BASE_QS_TYPE baseQsType = null;
 	private String appId = null;
 	private String pixelId = null;
 	private String pixelString = null;
@@ -28,11 +29,11 @@ public class ParamStructDetails {
 	private String context = null;
 	private String contextPart = null;
 	
-	public String getBaseQsType() {
+	public BASE_QS_TYPE getBaseQsType() {
 		return baseQsType;
 	}
 
-	public void setBaseQsType(String baseQsType) {
+	public void setBaseQsType(BASE_QS_TYPE baseQsType) {
 		this.baseQsType = baseQsType;
 	}
 
@@ -177,7 +178,6 @@ public class ParamStructDetails {
 	 * @return
 	 */
 	public static ParamStructDetails generateParamStructDetails(Map<String, Object> mapInputs) {
-		String baseQsType = (String) mapInputs.get("baseQsType");
 		String appId = (String) mapInputs.get("appId");
 		String pixelId = (String) mapInputs.get("pixelId");
 		String pixelString = (String) mapInputs.get("pixelString");
@@ -192,12 +192,13 @@ public class ParamStructDetails {
 		String contextPart = (String) mapInputs.get("contextPart");
 		
 		// these are enums
+		String baseQsType = (String) mapInputs.get("baseQsType");
 		String type = (String) mapInputs.get("type");
 		String level = (String) mapInputs.get("level");
 		String quote = (String) mapInputs.get("quote");
 
 		ParamStructDetails pStruct = new ParamStructDetails();
-		pStruct.setBaseQsType(baseQsType);
+		pStruct.setBaseQsType(BASE_QS_TYPE.valueOf(baseQsType));
 		pStruct.setAppId(appId);
 		pStruct.setPixelId(pixelId);
 		pStruct.setPixelString(pixelString);

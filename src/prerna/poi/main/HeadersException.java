@@ -28,7 +28,7 @@ public class HeadersException {
 	
 	// the list of prohibited words read through the RDF_MAP
 	// we will store everything in upper case format
-	private static Set<String> prohibitedHeaders = new HashSet<String>();;
+	private static Set<String> prohibitedHeaders = new HashSet<String>();
 	
 	public final static String DUP_HEADERS_KEY = "DUPLICATE_HEADERS";
 	public final static String ILLEGAL_HEADERS_KEY = "ILLEGAL_HEADERS";
@@ -313,7 +313,7 @@ public class HeadersException {
 		 * Just perform a single fix within each block
 		 * And let the recursion deal with having to fix an issue that is arising
 		 * due to a previous fix
-		 * i.e. you made a header no longer illegal but now it is a duplicate, recurssion of
+		 * i.e. you made a header no longer illegal but now it is a duplicate, recursion of
 		 * this method will deal with that
 		 */
 		
