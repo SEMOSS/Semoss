@@ -19,11 +19,14 @@ import prerna.test.TestUtilityMethods;
 
 public class ParamStructToJsonGenerator {
 
+	private static final int COLLECT_SIZE = 150;
+	private static final String COLLECT_STRING = "Collect(" + COLLECT_SIZE + ")";
+	
 	public static final Set<String> APPEND_SEARCH_PARAM_TYPES = new HashSet<>();
 	static {
+		APPEND_SEARCH_PARAM_TYPES.add("checklist");
 		APPEND_SEARCH_PARAM_TYPES.add("dropdown");
 		APPEND_SEARCH_PARAM_TYPES.add("typeahead");
-		APPEND_SEARCH_PARAM_TYPES.add("checklist");
 	}
 	
 	public static final Set<String> APPEND_QUICK_SELECT_TYPES = new HashSet<>();
@@ -36,9 +39,16 @@ public class ParamStructToJsonGenerator {
 		APPEND_USE_SELECTED_VALUES_TYPES.add("checklist");
 	}
 	
-	public static final Set<String> DEFAULT_VALUE_ARRAY = new HashSet<>();
+	public static final Set<String> DEFAULT_VALUE_IS_ARRAY = new HashSet<>();
 	static {
-		DEFAULT_VALUE_ARRAY.add("checklist");
+		DEFAULT_VALUE_IS_ARRAY.add("checklist");
+	}
+	
+	public static final Set<String> REQUIRE_MODEL_TYPES = new HashSet<>();
+	static {
+		REQUIRE_MODEL_TYPES.add("checklist");
+		REQUIRE_MODEL_TYPES.add("dropdown");
+		REQUIRE_MODEL_TYPES.add("typeahead");
 	}
 	
 	/**
@@ -132,33 +142,70 @@ public class ParamStructToJsonGenerator {
 					
 					// now we just need to define the query supporting this model
 					String modelQuery = param.getModelQuery();
-					String paramQ = null;
-					if(modelQuery == null || modelQuery.isEmpty()) {
-						// we will generate the model
-						// we will use the information from the first details to generate this
-						ParamStructDetails detailParam = param.getDetailsList().get(0);
-						String appId = detailParam.getAppId();
-						String physicalQs = detailParam.getTableName() + "__" + detailParam.getColumnName();
+					if(REQUIRE_MODEL_TYPES.contains(DISPLAY_TYPE)) {
+						String paramQ = null;
 						
-						paramQ = "(" + infiniteVar + " = Database(\"" + appId + "\") | Select(" + physicalQs + ")"
-								+ "| Filter(" + physicalQs + " ?like \"<" + searchParamName + ">\") "
-								+ "| Iterate()"
-								+ ") "
-								+ "| Collect(20);";  
-					} else {
+						if( (modelQuery == null || modelQuery.isEmpty()) && param.getFillType() == FILL_TYPE.QUERY) {
+							throw new IllegalArgumentException("Cannot save a param where the model for the parameter "
+									+ "is not defined and the param is a query fill type");
+						}
+						
+						if(modelQuery == null || modelQuery.isEmpty()) {
 							// we will generate the model
 							// we will use the information from the first details to generate this
 							ParamStructDetails detailParam = param.getDetailsList().get(0);
+							String appId = detailParam.getAppId();
 							String physicalQs = detailParam.getTableName() + "__" + detailParam.getColumnName();
 							
-							paramQ = "(" + infiniteVar + " = " + modelQuery 
-									+ " | Filter(" + physicalQs + " ?like \"<" + searchParamName + ">\")"
-									+ " | Iterate()"
+							paramQ = "(" + infiniteVar + " = Database(\"" + appId + "\") | Select(" + physicalQs + ")"
+									+ "| Filter(" + physicalQs + " ?like \"<" + searchParamName + ">\") "
+									+ "| Iterate()"
 									+ ") "
-									+ "| Collect(20);";  
+									+ "| " + ParamStructToJsonGenerator.COLLECT_STRING + ";";
+						} else {
+							// different structure
+							// for sqs or hqs
+							// or pixel / query
+							String base = "(" + infiniteVar + " = Database(\"" + param.getModelAppId() + "\") | ";
+
+							if(param.getFillType() == FILL_TYPE.PIXEL) {
+								// we will generate the model
+								// we will use the information from the first details to generate this
+								ParamStructDetails detailParam = param.getDetailsList().get(0);
+								String physicalQs = detailParam.getTableName() + "__" + detailParam.getColumnName();
+								
+								// TODO: is user enters their own thing - would need a way to go through the object								// TODO: is user enters their own thing - would need a way to go through the object
+								// TODO: is user enters their own thing - would need a way to go through the object
+								// TODO: is user enters their own thing - would need a way to go through the object
+								// TODO: is user enters their own thing - would need a way to go through the object
+
+								// model query is only select/filter/joins that are not part of search
+								paramQ = base + modelQuery
+										+ " Filter(" + physicalQs + " ?like \"<" + searchParamName + ">\")"
+										+ " | Iterate()"
+										+ ") "
+										+ "| " + ParamStructToJsonGenerator.COLLECT_STRING + ";";  
+							} else {
+								// modelQuery is the query itself
+								paramQ = base + "Query(\"<encode>" + modelQuery + "\"</encode>)"
+										+ " | ModifyParamQuery(\"<" + searchParamName + ">\")"
+										+ " | Iterate()"
+										+ ") "
+										+ "| " + ParamStructToJsonGenerator.COLLECT_STRING + ";";  
+							}
+						}
+						// add the paramQ
+						if(paramQ != null) {
+							modelMap.put("query", paramQ);
+						}
+					} else {
+						// okay - dont require it based on type
+						// but if FE sends me something
+						// i will put it in...
+						if(modelQuery != null && !modelQuery.isEmpty()) {
+							modelMap.put("query", modelQuery);
+						}
 					}
-					// add the paramQ
-					modelMap.put("query", paramQ);
 				}
 			}
 			Object defaultValue = param.getDefaultValue();
@@ -166,7 +213,7 @@ public class ParamStructToJsonGenerator {
 				// we require an array for default value for certain 
 				// display types
 				// so going to enforce that
-				if(DEFAULT_VALUE_ARRAY.contains(DISPLAY_TYPE)) {
+				if(DEFAULT_VALUE_IS_ARRAY.contains(DISPLAY_TYPE)) {
 					List<Object> defaultValArray = null;
 					if(defaultValue instanceof List) {
 						defaultValArray = (List<Object>) defaultValue;

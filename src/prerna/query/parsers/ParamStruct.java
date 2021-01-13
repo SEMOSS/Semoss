@@ -6,13 +6,14 @@ import java.util.Vector;
 
 public class ParamStruct {
 
-	public enum FILL_TYPE {MANUAL, PIXEL}
+	public enum FILL_TYPE {MANUAL, PIXEL, QUERY}
 	
 	private List<ParamStructDetails> detailsList = new Vector<>();
 	
 	private boolean searchable = false;
 	private boolean multiple = false;
 	private String paramName = null;
+	private String modelAppId = null;
 	private String modelQuery = null;
 	private Object manualChoices = null;
 	private String modelDisplay = null; // need to turn this into an enum
@@ -52,6 +53,14 @@ public class ParamStruct {
 
 	public void setParamName(String paramName) {
 		this.paramName = paramName;
+	}
+	
+	public String getModelAppId() {
+		return modelAppId;
+	}
+
+	public void setModelAppId(String modelAppId) {
+		this.modelAppId = modelAppId;
 	}
 
 	public String getModelQuery() {
@@ -133,6 +142,7 @@ public class ParamStruct {
 		Boolean searchable = (Boolean) mapInputs.get("searchable");
 		Boolean multiple = (Boolean) mapInputs.get("multiple");
 		String paramName = (String) mapInputs.get("paramName");
+		String modelAppId = (String) mapInputs.get("modelAppId");
 		String modelQuery = (String) mapInputs.get("modelQuery");
 		Object manualChoices = mapInputs.get("manualChoices");
 		String modelDisplay = (String) mapInputs.get("modelDisplay");
@@ -141,8 +151,11 @@ public class ParamStruct {
 		
 		// these are enums
 		String fillType = (String) mapInputs.get("fillType");
-		
+		FILL_TYPE fillT = FILL_TYPE.valueOf(fillType);
 		ParamStruct pStruct = new ParamStruct();
+		if(fillType != null && !fillType.isEmpty()) {
+			pStruct.setFillType(fillT);
+		}
 		pStruct.setDefaultValue(defaultValue);
 		if(searchable != null) {
 			pStruct.setSearchable(searchable);
@@ -151,15 +164,13 @@ public class ParamStruct {
 			pStruct.setMultiple(multiple);
 		}
 		pStruct.setParamName(paramName);
+		pStruct.setModelAppId(modelAppId);
 		pStruct.setModelQuery(modelQuery);
 		pStruct.setManualChoices(manualChoices);
 		pStruct.setModelDisplay(modelDisplay);
 		pStruct.setModelLabel(modelLabel);
 		if(required != null) {
 			pStruct.setRequired(required);
-		}
-		if(fillType != null && !fillType.isEmpty()) {
-			pStruct.setFillType(FILL_TYPE.valueOf(fillType));
 		}
 		
 		// now need to handle the details
