@@ -42,6 +42,7 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.test.TestUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -660,7 +661,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		try {
 			innerInterpreter = this.getClass().newInstance();
 		} catch (InstantiationException | IllegalAccessException e) {
-			logger.error("StackTrace: ", e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		if(this.frame != null) {
 			subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
