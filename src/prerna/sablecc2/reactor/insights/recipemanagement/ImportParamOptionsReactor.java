@@ -18,6 +18,7 @@ import prerna.om.PixelList;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
+import prerna.query.parsers.ParamStructDetails.BASE_QS_TYPE;
 import prerna.query.parsers.SqlParser2;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -109,7 +110,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 				Iterator <ParamStructDetails> structIterator = wrapper.paramToExpressionMap.keySet().iterator();
 				while(structIterator.hasNext()) {
 					ParamStructDetails nextStructDetails = structIterator.next();
-					nextStructDetails.setBaseQsType("hqs");
+					nextStructDetails.setBaseQsType(BASE_QS_TYPE.HQS);
 					nextStructDetails.setAppId(qs.getEngineId());
 					nextStructDetails.setPixelId(pixelObj.getId());
 					nextStructDetails.setPixelString(pixelObj.getPixelString());
@@ -151,7 +152,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 					}
 					
 					ParamStructDetails detailsStruct = new ParamStructDetails();
-					detailsStruct.setBaseQsType("sqs");
+					detailsStruct.setBaseQsType(BASE_QS_TYPE.SQS);
 					detailsStruct.setAppId(qs.getEngineId());
 					detailsStruct.setPixelId(pixelObj.getId());
 					detailsStruct.setPixelString(pixelObj.getPixelString());
