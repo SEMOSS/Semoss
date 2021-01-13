@@ -40,6 +40,7 @@ import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.options.TaskOptions;
@@ -523,9 +524,10 @@ public class PixelUtility {
 	public static List<String> getMetaInsightRecipeSteps(Insight in) {
 		List<String> additionalSteps = new Vector<>();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		PixelList pixelList = in.getPixelList();
+		VarStore varStore = in.getVarStore();
 		
 		// add the pipeline positions
-		PixelList pixelList = in.getPixelList();
 		{
 			StringBuilder builder = new StringBuilder("META | PositionInsightRecipe(");
 			int size = pixelList.size();
@@ -545,9 +547,20 @@ public class PixelUtility {
 			builder.append(");");
 			additionalSteps.add(builder.toString());
 		}
+		// add the semoss parameters
+		{
+			Set<String> params = varStore.getInsightParameterKeys();
+			// loop through the keys
+			// and gson it
+			for(String paramKey : params) {
+				NounMetadata paramNoun = varStore.get(paramKey);
+				ParamStruct param = (ParamStruct) paramNoun.getValue();
+				additionalSteps.add("AddInsightParameter(" + gson.toJson(param) + ");");
+			}
+		}
 		// add the insight config
 		{
-			NounMetadata noun = in.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
+			NounMetadata noun = varStore.get(SetInsightConfigReactor.INSIGHT_CONFIG);
 			if(noun != null) {
 				StringBuilder builder = new StringBuilder("META | SetInsightConfig(");
 				builder.append(gson.toJson(noun.getValue()));
