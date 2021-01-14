@@ -18,7 +18,7 @@ public class ParamStruct {
 	private Object manualChoices = null;
 	private String modelDisplay = null; // need to turn this into an enum
 	private String modelLabel = null; // how do you want to ask your user what to do ?
-	private boolean required = false;
+	private boolean required = true;
 	private Object defaultValue = null;
 
 	private FILL_TYPE fillType = null;
