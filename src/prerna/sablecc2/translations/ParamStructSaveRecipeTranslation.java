@@ -333,7 +333,7 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
 				"Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ;", 
 				"Database ( database = [ \"995cf169-6b44-4a42-b75c-af12f9f45c36\" ] ) | Select ( DIABETES__AGE , DIABETES__BP_1D , DIABETES__BP_1S , DIABETES__BP_2D , DIABETES__BP_2S , DIABETES__CHOL , DIABETES__DIABETES_UNIQUE_ROW_ID , DIABETES__DRUG , DIABETES__END_DATE , DIABETES__FRAME , DIABETES__GENDER , DIABETES__GLYHB , DIABETES__HDL , DIABETES__HEIGHT , DIABETES__HIP , DIABETES__LOCATION , DIABETES__PATIENT , DIABETES__RATIO , DIABETES__STAB_GLU , DIABETES__START_DATE , DIABETES__TIME_PPN , DIABETES__WAIST , DIABETES__WEIGHT ) .as ( [ AGE , BP_1D , BP_1S , BP_2D , BP_2S , CHOL , DIABETES_UNIQUE_ROW_ID , DRUG , END_DATE , FRAME , GENDER , GLYHB , HDL , HEIGHT , HIP , LOCATION , PATIENT , RATIO , STAB_GLU , START_DATE , TIME_PPN , WAIST , WEIGHT ] ) | Filter ( ( ( DIABETES__AGE > [ 50 ] ) ) ) | Distinct ( false ) | Import ( frame = [ CreateFrame ( frameType = [ PY ] , override = [ true ] ) .as ( [ \"Diabetes_FRAME916484\" ] ) ] ) ;",
-				"Database ( database = [ \"995cf169-6b44-4a42-b75c-af12f9f45c36\" ] ) | Query (\"<encode>SELECT * FROM DIABETES WHERE AGE > 25</encode>\") | Distinct ( false ) | Import ( frame = [ CreateFrame ( frameType = [ PY ] , override = [ true ] ) .as ( [ \"Diabetes_FRAME555555\" ] ) ] ) ;",
+				"Database ( database = [ \"995cf169-6b44-4a42-b75c-af12f9f45c36\" ] ) | Query (\"<encode>SELECT * FROM DIABETES WHERE AGE in (25,35)</encode>\") | Distinct ( false ) | Import ( frame = [ CreateFrame ( frameType = [ PY ] , override = [ true ] ) .as ( [ \"Diabetes_FRAME555555\" ] ) ] ) ;",
 				"META | PositionInsightRecipeStep ( positionMap = [ { \"auto\" : false , \"top\" : 24 , \"left\" : 24 } ] ) ;",
 				"META | SetInsightConfig({\"panels\":{\"0\":{\"config\":{\"type\":\"golden\",\"backgroundColor\":\"\",\"opacity\":100}}},\"sheets\":{\"0\":{\"order\":0,\"golden\":{\"content\":[{\"type\":\"row\",\"content\":[{\"type\":\"stack\",\"activeItemIndex\":0,\"width\":100,\"content\":[{\"type\":\"component\",\"componentName\":\"panel\",\"componentState\":{\"panelId\":\"0\"}}]}]}]}}},\"sheet\":\"0\"});",
 		};
@@ -414,9 +414,9 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 				details.setAppId("995cf169-6b44-4a42-b75c-af12f9f45c36");
 				details.setTableName("DIABETES");
 				details.setColumnName("AGE");
-				details.setOperator(">");
+				details.setOperator("in");
 				details.setLevel(LEVEL.OPERATOR);
-				details.setQuote(QUOTE.DOUBLE);
+				details.setQuote(QUOTE.NO);
 			}
 		}
 		
