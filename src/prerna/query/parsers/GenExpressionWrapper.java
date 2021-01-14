@@ -522,17 +522,15 @@ public class GenExpressionWrapper {
 				}
 				
 				operatorTableColumnParamIndex.put(tableColumnOperatorComposite, daStruct);						
-				if(context.length() > 0)
+				if(context.length() > 0) {
 					contextExpression.push(context);
-			}
-			else
+				}
+			} else {
 				daStruct = operatorTableColumnParamIndex.get(tableColumnOperatorComposite);
-			
+			}
 			List <GenExpression> allExpressions = new Vector<GenExpression>();
 			// now add this gen expression to it
-			if(paramToExpressionMap.containsKey(daStruct))
-			{
-				
+			if(paramToExpressionMap.containsKey(daStruct)) {
 				allExpressions = paramToExpressionMap.get(daStruct);
 			}
 			allExpressions.add(exprToTrack);
