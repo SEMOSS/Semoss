@@ -187,7 +187,7 @@ public class ParamStructToJsonGenerator {
 										+ "| " + ParamStructToJsonGenerator.COLLECT_STRING + ";";  
 							} else {
 								// modelQuery is the query itself
-								paramQ = base + "Query(\"<encode>" + modelQuery + "\"</encode>)"
+								paramQ = base + "Query(\"<encode>" + modelQuery + "</encode>\")"
 										+ " | ModifyParamQuery(\"<" + searchParamName + ">\")"
 										+ " | Iterate()"
 										+ ") "
