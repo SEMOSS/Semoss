@@ -10,7 +10,7 @@ public class ParamStructDetails {
 	public enum QUOTE {NO, SINGLE, DOUBLE};
 	public enum BASE_QS_TYPE {SQS, HQS};
 	
-	private BASE_QS_TYPE baseQsType = null;
+	private BASE_QS_TYPE baseQsType = BASE_QS_TYPE.SQS;
 	private String appId = null;
 	private String pixelId = null;
 	private String pixelString = null;
@@ -198,7 +198,6 @@ public class ParamStructDetails {
 		String quote = (String) mapInputs.get("quote");
 
 		ParamStructDetails pStruct = new ParamStructDetails();
-		pStruct.setBaseQsType(BASE_QS_TYPE.valueOf(baseQsType));
 		pStruct.setAppId(appId);
 		pStruct.setPixelId(pixelId);
 		pStruct.setPixelString(pixelString);
@@ -210,6 +209,9 @@ public class ParamStructDetails {
 		pStruct.setContext(context);
 		pStruct.setContextPart(contextPart);
 		pStruct.setuOperator(uOperator);
+		if(baseQsType != null && !baseQsType.isEmpty()) {
+			pStruct.setBaseQsType(BASE_QS_TYPE.valueOf(baseQsType));
+		}
 		if(type != null && !type.isEmpty()) {
 			pStruct.setType(PixelDataType.valueOf(type));
 		}
