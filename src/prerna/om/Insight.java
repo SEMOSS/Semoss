@@ -1012,7 +1012,7 @@ public class Insight {
 			List<Map<String, Object>> currentPixelPositions = this.pixelList.getNonMetaPixelPositions();
 			// grab all the pixel recipes
 			List<String> currentRecipe = this.pixelList.getPixelRecipe();
-			int counterVal = this.pixelList.getCounter();
+//			int counterVal = this.pixelList.getCounter();
 			
 			// create a new pixelList
 			this.pixelList = new PixelList();
@@ -1041,7 +1041,7 @@ public class Insight {
 			// and set the counter properly
 			// so that way the counter doesn't exponentially
 			// increase with every rerun
-			this.pixelList.setCounter(counterVal);
+//			this.pixelList.setCounter(counterVal);
 			
 			// set the mode back
 			setRunSavedInsightMode(false);
