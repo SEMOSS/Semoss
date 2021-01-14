@@ -14,7 +14,7 @@ import prerna.sablecc2.om.Join;
 
 public class PandasSyntaxHelper {
 
-	private static final List<String> OPERATOR_LIST = new ArrayList<String>(6);
+	public static final List<String> OPERATOR_LIST = new ArrayList<String>(6);
 	static {
 		OPERATOR_LIST.add(">");
 		OPERATOR_LIST.add("<");
