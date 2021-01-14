@@ -510,7 +510,7 @@ public class PixelUtility {
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		List<String> paramedRecipe = new Vector<>(2);
-		paramedRecipe.add("AddPanel(0);");
+		paramedRecipe.add("META | AddPanel(0);");
 		paramedRecipe.add("META | Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(insightJsonObject) + "}</encode>\");");
 		return paramedRecipe;
 	}
@@ -555,7 +555,7 @@ public class PixelUtility {
 			for(String paramKey : params) {
 				NounMetadata paramNoun = varStore.get(paramKey);
 				ParamStruct param = (ParamStruct) paramNoun.getValue();
-				additionalSteps.add("AddInsightParameter(" + gson.toJson(param) + ");");
+				additionalSteps.add("META | AddInsightParameter(" + gson.toJson(param) + ");");
 			}
 		}
 		// add the insight config
