@@ -11,6 +11,7 @@ import java.util.Stack;
 import java.util.Vector;
 
 import prerna.query.parsers.ParamStructDetails.LEVEL;
+import prerna.query.parsers.ParamStructDetails.QUOTE;
 import prerna.query.querystruct.FunctionExpression;
 import prerna.query.querystruct.GenExpression;
 import prerna.query.querystruct.OperationExpression;
@@ -459,16 +460,14 @@ public class GenExpressionWrapper {
 			
 			
 			ParamStructDetails daStruct = null;
-			if(!operatorTableColumnParamIndex.containsKey(tableColumnOperatorComposite))
-			{
+			if(!operatorTableColumnParamIndex.containsKey(tableColumnOperatorComposite)) {
 				String context = "";
 				String contextPart = "";
-				if(contextExpression.size() > 0)
-				{
+				if(contextExpression.size() > 0) {
 					context = contextExpression.pop();
 					// get the context part
 					contextPart = exprToTrack.printQS(exprToTrack, null) + "";
-				}				
+				}
 				daStruct = new ParamStructDetails();
 				daStruct.setColumnName(columnName);
 				daStruct.setTableAlias(tableAliasName);
@@ -481,17 +480,22 @@ public class GenExpressionWrapper {
 				
 				// need to get the current select struct to add to this
 				
-				if(constantType.equalsIgnoreCase("string"))
+				if(constantType.equalsIgnoreCase("string")) {
 					daStruct.setType(PixelDataType.CONST_STRING);
-				if(constantType.equalsIgnoreCase("double"))
+					daStruct.setQuote(QUOTE.SINGLE);
+				} else if(constantType.equalsIgnoreCase("double")) {
 					daStruct.setType(PixelDataType.CONST_DECIMAL);
-				if(constantType.equalsIgnoreCase("long"))
+					daStruct.setQuote(QUOTE.NO);
+				} else if(constantType.equalsIgnoreCase("long")) {
 					daStruct.setType(PixelDataType.CONST_INT);
-				if(constantType.equalsIgnoreCase("date"))
+					daStruct.setQuote(QUOTE.NO);
+				} else if(constantType.equalsIgnoreCase("date")) {
 					daStruct.setType(PixelDataType.CONST_DATE);
-				if(constantType.equalsIgnoreCase("timestamp"))
+					daStruct.setQuote(QUOTE.SINGLE);
+				} else if(constantType.equalsIgnoreCase("timestamp")) {
 					daStruct.setType(PixelDataType.CONST_TIMESTAMP);
-				
+					daStruct.setQuote(QUOTE.SINGLE);
+				}
 				
 				operatorTableColumnParamIndex.put(tableColumnOperatorComposite, daStruct);						
 				if(context.length() > 0)
