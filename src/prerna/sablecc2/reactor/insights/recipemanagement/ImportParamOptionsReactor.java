@@ -89,7 +89,6 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 		}
 		
 		NounMetadata retMap = new NounMetadata(params, PixelDataType.VECTOR);
-//		this.insight.getVarStore().put(PARAM_OPTIONS, retMap);
 		return retMap;
 	}
 	
@@ -121,8 +120,6 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 					}
 					paramList.add(nextStruct);
 				}
-				// dont save it for now
-				//insight.getVarStore().put(QS_WRAPPER, new NounMetadata(wrapper, PixelDataType.CUSTOM_DATA_STRUCTURE));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
