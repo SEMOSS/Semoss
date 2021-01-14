@@ -236,8 +236,13 @@ public class ParamStructToJsonGenerator {
 			// add single quote if present
 			for(ParamStructDetails detail : param.getDetailsList()) {
 				if(detail.getQuote() == QUOTE.SINGLE) {
-					modelMap.put("useSingleQuote", true);
+					modelMap.put("quoteType", QUOTE.SINGLE);
 					break;
+				} else if(detail.getQuote() == QUOTE.NO) {
+					modelMap.put("quoteType", QUOTE.NO);
+					break;
+				} else {
+					modelMap.put("quoteType", QUOTE.DOUBLE);
 				}
 			}
 			
