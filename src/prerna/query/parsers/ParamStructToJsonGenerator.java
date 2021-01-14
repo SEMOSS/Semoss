@@ -233,6 +233,13 @@ public class ParamStructToJsonGenerator {
 					modelMap.put("defaultValue", defaultVal);
 				}
 			}
+			// add single quote if present
+			for(ParamStructDetails detail : param.getDetailsList()) {
+				if(detail.getQuote() == QUOTE.SINGLE) {
+					modelMap.put("useSingleQuote", true);
+					break;
+				}
+			}
 			
 			// add the model to the param
 			paramMap.put("model", modelMap);
