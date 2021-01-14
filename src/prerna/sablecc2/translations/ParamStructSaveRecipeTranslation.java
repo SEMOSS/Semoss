@@ -175,6 +175,9 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 								// that means it has been modified
 								if(modification != f) {
 									paramIndexFound.add(i);
+									// switch the reference of f in this example
+									// so that not all the param index get added
+									f = modification;
 								}
 							}
 							
