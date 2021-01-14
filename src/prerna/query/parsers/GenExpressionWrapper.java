@@ -304,7 +304,13 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String finalValue = "<" + userDefinedParamName + ">";
+							String quote = "";
+							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+								quote = "\"";
+							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+								quote = "'";
+							}
+							String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 							GenExpression thisExpression = exprs.get(exprIndex);
 							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
 								thisExpression.setLeftExpresion(finalValue);	
@@ -330,7 +336,13 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String finalValue = "<" + userDefinedParamName + ">";
+							String quote = "";
+							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+								quote = "\"";
+							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+								quote = "'";
+							}
+							String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 							GenExpression thisExpression = exprs.get(exprIndex);
 							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
 								thisExpression.setLeftExpresion(finalValue);	
@@ -357,7 +369,13 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String finalValue = "<" + userDefinedParamName + ">";
+							String quote = "";
+							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+								quote = "\"";
+							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+								quote = "'";
+							}
+							String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 							GenExpression thisExpression = exprs.get(exprIndex);
 							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
 								thisExpression.setLeftExpresion(finalValue);	
@@ -381,7 +399,13 @@ public class GenExpressionWrapper {
 						// we will replace the existing parameter 
 						// again with the parameter name
 						// but this time that defined by the user
-						String finalValue = "<" + userDefinedParamName + ">";
+						String quote = "";
+						if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+							quote = "\"";
+						} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+							quote = "'";
+						}
+						String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 						GenExpression thisExpression = exprs.get(exprIndex);
 						if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
 							thisExpression.setLeftExpresion(finalValue);	
