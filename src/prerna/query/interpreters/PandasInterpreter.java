@@ -1,12 +1,14 @@
 package prerna.query.interpreters;
 
 import java.util.ArrayList;
+import java.util.ListIterator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.py.PyTranslator;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -43,7 +45,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	private StringBuilder selectorCriteria;
 	private StringBuilder filterCriteria;
 	private StringBuilder havingCriteria;
+	private StringBuilder renameCriteria = new StringBuilder(""); // look into renCriteria below. I don't think it's necessary. 
 	private StringBuilder groupCriteria = new StringBuilder("");
+	private StringBuilder dateCriteria = new StringBuilder("");
 	private StringBuilder aggCriteria = new StringBuilder("");
 	private StringBuilder aggCriteria2 = new StringBuilder("");
 	private StringBuilder renCriteria = new StringBuilder(".rename(columns={'mean':'Average', 'nunique':'UniqueCount', 'sum':'Sum', 'median':'Median', 'max':'Max', 'min':'Min', 'count':'Count'})");
@@ -55,6 +59,21 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	private StringBuilder normalizer = new StringBuilder(".to_dict('split')['data']");
 	
+	private boolean isHavingFilter;
+	private List<StringBuilder> havingList = new ArrayList<StringBuilder>();
+	
+	private static final List<String> DATE_FUNCTION_LIST = new ArrayList<String>(5);
+	static {
+		DATE_FUNCTION_LIST.add(QueryFunctionHelper.YEAR);
+		DATE_FUNCTION_LIST.add(QueryFunctionHelper.QUARTER);
+		DATE_FUNCTION_LIST.add(QueryFunctionHelper.MONTH_NAME);
+		DATE_FUNCTION_LIST.add(QueryFunctionHelper.WEEK);
+		DATE_FUNCTION_LIST.add(QueryFunctionHelper.DAY_NAME);
+	}
+	
+	private Map<String, StringBuilder> dateHash = null;
+	private List<String> dateKeys = null;
+	private List<StringBuilder> renameColList = null;
 	
 	private Map <String, StringBuilder>aggHash = null;
 	private Map <String, StringBuilder>aggHash2 = null;
@@ -116,13 +135,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	@Override
 	public String composeQuery() {
 		StringBuilder query = new StringBuilder();
-		// there are a couple of things I need to do here
-		// build the selectors separately
-		// build the filters separately
 		
-		// if the filter is empty.. then I can go directly to iloc
-		// normalize everything since we are not creating this everytime.. we might as well but we need it at different points
-		// eventually move this to static
 		if(DIHelper.getInstance().getCoreProp().containsKey("SWIFTER")) {
 			swifter = DIHelper.getInstance().getCoreProp().get("SWIFTER")+"";
 		} else {
@@ -158,6 +171,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		normalizer = new StringBuilder(".to_dict('split')");//['data']"); // Ideally I should be able to put drop duplicates here
 		ascending = new StringBuilder("");
 		
+		dateCriteria = new StringBuilder("");
+		dateHash = new HashMap<>();
+		dateKeys = new ArrayList<>();
+		renameColList = new ArrayList<>();
+		
 		long limit = 500;
 		start = 0 ;
 		end = limit;
@@ -169,83 +187,21 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			end = (start + ((SelectQueryStruct) this.qs).getLimit());
 		}
 	
-		// add the filters, it doesn't matter where you add it.
-		// add the selectors - the act headers are no longer required since I look at the columns now to generate the remaining pieces		
-		
-		// I need to account for close all here
-		/*addFilters();
-		addSelectors();
-		processGroupSelectors();
-		genAggString();
-		processOrderBy();
-		*/
 		fillParts();
-		// since I have accounted for various things do the close all here
 		closeAll();
-		
-		// experimental part should come here
-		
+				
 		StringBuilder cachedFrame = new StringBuilder(wrapperFrameName);
-		// I need to account for when group is not there and filter is there
-		// as well as when filter is not there and group is there
-		// and when neither
-		/*
-		if(filterCriteria.length() > 0 && groupCriteria.length() == 0)
-		{
-			//createFilterOnlyCache(filterCriteria.toString(), this.wrapperFrameName + ".loc[" +  filterCriteria + "]");
-			createFilterOnlyCache(filterCriteria.toString(), this.wrapperFrameName + filterCriteria );
-			cachedFrame = new StringBuilder(frameName).append("w.cache[\"").append(filterCriteria).append("\"]");
-		}
-		
-		else if(filterCriteria.length() > 0 && groupCriteria.length() > 0)
-		{
-			// create group here
-			// but take into account the filter key
-			// essentially I dont need to check for the stuff in the end
-			String groupKey = filterCriteria + "__" + groupCriteria;
-			String groupQuery = this.wrapperFrameName + filterCriteria + groupCriteria ;
-			String filterQuery = this.wrapperFrameName + filterCriteria ;
-			createGroupAndFilterCache(filterCriteria.toString(), groupKey, filterQuery, groupCriteria + "");
-			cachedFrame = new StringBuilder(frameName).append("w.cache[\"").append(groupKey).append("\"]");
-			groupCriteria = new StringBuilder("");
-		}*/
-
-
-		
-		/*
-		 
-		 For some reason this is not yielding the result I thought it would. 
-		 
-		else if(groupCriteria.length() > 0 && filterCriteria.length() == 0)
-		{
-			// groupcache again separately
-			// how is this useful ? given that we already have the other cache ?
-			// we will come back to this
-			String groupKey = groupCriteria.toString();
-			String groupQuery = this.wrapperFrameName +  groupCriteria + "], sort=False)";
-			createGroupOnlyCache(groupKey, groupQuery);
-			cachedFrame = new StringBuilder(frameName).append("w.cache[\"").append(groupKey).append("\"]");
-			groupCriteria = new StringBuilder("");
-		}*/
-		
-		// see if replacements need to be done
-
 		
 		if(overrideQuery == null) {
 			query.append(cachedFrame)
-				//.append(".cache['data']")
-				//.append(".iloc[")
-				//.append(qs.getOffset() + ":" + (qs.getOffset() + qs.getLimit()) + "]")
-				//.append(0 + ":" + 500+ "]")
-				//.append(this)
+				.append(dateCriteria)
 				.append(this.filterCriteria)
-				.append(this.selectorCriteria)
-				.append(this.groupCriteria) //<-- trying disabling this now
-				//.append(this.aggCriteria2)
+				.append(this.havingCriteria)
+				.append(this.groupCriteria)
 				.append(this.aggCriteria2)
-				// add the having clause
-				.append(this.havingCriteria);
-				// add distinct after we aggregate
+				.append(renameCriteria)
+				.append(this.selectorCriteria);
+			
 				if(!scalar && aggCriteria2.toString().isEmpty()) {
 					query.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()));
 				}
@@ -259,20 +215,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 //				if(!scalar && !aggCriteria2.toString().isEmpty()) {
 //					query.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()));
 //				}
-				//.append(this.renCriteria);
 		} else {
 			query = overrideQuery;
 			if(actHeaders != null && actHeaders.size() > 0) {
 				headers = actHeaders;
 			}
 		}
-		
-		// in the end if we want to wipe it we can
-		//pyt.runScript("del " + frameName + "w.cache[\"" + filterCriteria + "\""]);
-		
-		//buildListMap();
-		//if(overrideQuery != null)
-		//	query = overrideQuery;
 		return query.toString();
 	}
 	
@@ -376,11 +324,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		} else {
 			addHavings();
 		}
-		// ideally this should not be but.. I need types
 		if (partMap.containsKey(SelectQueryStruct.Query_Part.SELECT)) {
 			selectorCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.SELECT) + "");
 		} else {
 			addSelectors();
+			genDateFunctionString();
 		}
 		
 		// if(overrideQuery == null) {
@@ -403,7 +351,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			}
 //		}
 	}
-	
 	
 	private String addDistinct(boolean distinct) {
 		if(distinct) {
@@ -430,16 +377,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		SelectQueryStruct sqs = (SelectQueryStruct)qs;
 		Map partMap = sqs.getParts();
 		
-		//t.agg({'Title': 'count'}).rename({'Title': 'count(Title)'}).reset_index().to_dict('split')['data']
-		if(this.aggCriteria.toString().length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.AGGREGATE))
+		if(this.aggCriteria2.toString().length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.AGGREGATE))
 		{
 			if(!((SelectQueryStruct) this.qs).getGroupBy().isEmpty()) {
 				this.aggCriteria = aggCriteria.append("})").append(".reset_index()");
 				this.aggCriteria2 = aggCriteria2.append(")").append(".reset_index()");
 				this.renCriteria = renCriteria.append("}).reset_index()");
-				if(headers.size() == 1) {
-					aggCriteria2 = aggCriteria.append(".reset_index()");
-				}
 			} 
 			// it is just getting one single data
 			else if(headers.size() == 1) {
@@ -452,35 +395,36 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			aggregate = true;
 		}
 		
-		// if there is agroup by.. this whole thing should be ignored pretty much
-		if(this.selectorCriteria.toString().length() > 0 && ((SelectQueryStruct) this.qs).getGroupBy().isEmpty() 
-				&& !partMap.containsKey(SelectQueryStruct.Query_Part.SELECT)) {
-			StringBuilder newSelectorCriteria = new StringBuilder("[[");
-			this.selectorCriteria = newSelectorCriteria.append(this.selectorCriteria).append("]]");
-		} else if(!partMap.containsKey(SelectQueryStruct.Query_Part.SELECT)) {
-			this.selectorCriteria = new StringBuilder("");
+		if (this.selectorCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SELECT) && !scalar) {
+			StringBuilder tempSelectorBuilder = new StringBuilder("[[");
+			this.selectorCriteria = tempSelectorBuilder.append(this.selectorCriteria).append("]]");
+			
+			if (!renameColList.isEmpty()) {
+				renameCriteria.append(".rename(columns={");
+				for (int i = 0; i < renameColList.size(); i++) {
+					if (i == 0) {
+						renameCriteria.append(renameColList.get(i));
+					} else {
+						renameCriteria.append(",").append(renameColList.get(i));
+					}
+				}
+				renameCriteria.append("})");
+			}
+			
+		} else if (!partMap.containsKey(SelectQueryStruct.Query_Part.SELECT)) {
+			this.selectorCriteria.delete(0, selectorCriteria.length());
+		}
+		
+		if (havingCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.HAVING)) {
+			StringBuilder tempGroupCriteria = new StringBuilder(groupCriteria);
+			havingCriteria = tempGroupCriteria.append("]).filter(lambda x: ").append(havingCriteria).append(")");
 		}
 		
 		if(groupCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.GROUP)) {
 			groupCriteria.append("], sort=False)");
 		}
-		/*
-		else if(aggregate) // this is the case for greater than less than etc. this means it I need to force a group by - the assumption is there is only one
-		{
-			// and I need to close out aggcriteria 2 as well
-			groupCriteria.append(".groupby('" + aggKeys.get(0) + "')");
-			this.aggCriteria2 = aggCriteria2.append(")").append(addLimitOffset(start, end)).append(".reset_index()");
-		}*/
-		
 		if(filterCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.FILTER)) {
 			filterCriteria = new StringBuilder(".loc[").append(filterCriteria).append("]");
-			// update the selector only if if there is no agg
-			//if(selectorCriteria.length() == 0)
-			//	selectorCriteria.append(".drop_duplicates()");
-		}
-		// add the having criteria 
-		if(havingCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.HAVING)) {
-			havingCriteria = new StringBuilder(".loc[").append(havingCriteria).append("]");
 		}
 		if(orderBy.length() != 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SORT)) {
 			// combine it
@@ -490,8 +434,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			// combine it
 			orderBy2.append("],").append(ascending2).append("])");
 		}
-		//if(aggregate) // swap the order
-		//	orderBy = orderBy;
 	}
 	
 	private void processOrderBy() {
@@ -582,10 +524,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 	
 	public void addHavings() {
-		addFilters(qs.getHavingFilters().getFilters(), this.wrapperFrameName, this.havingCriteria, false);
+		addHavingFilters(qs.getHavingFilters().getFilters(), this.wrapperFrameName, this.havingCriteria, false);
 	}
 
-	// add all the selectors
+	/**
+	 * Adds all the parameters passed through the SELECT statement. Keeps track of SELECTOR headers and types for
+	 * sync with output in PandasFrame. 
+	 */
 	public void addSelectors() {
 		this.selectorCriteria = new StringBuilder();
 		List<IQuerySelector> selectors = qs.getSelectors();
@@ -601,43 +546,36 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		for(int i = 0; i < size; i++) {
 			IQuerySelector selector = selectors.get(i);
-			String newHeader = null;
-			newHeader = processSelector(selector, wrapperFrameName, true, true);
+			SELECTOR_TYPE selectorType = selector.getSelectorType();
+			String newHeader = processSelector(selector, wrapperFrameName, true, true);
 			
-			//EXPERIMENTAL
+			//EXPERIMENTAL - review processOrder
 			orderList.add(selector.getAlias());
 			
-			// if this is an aggregator, it needs to accomodated in a different place which is why the processAgg will return an empty string
-			// if it is not, go ahead and add it
-			// if a selector has been processed for something and there is a groupby only one of it would get added
-			if (newHeader.length() > 0)
-			{
-				if(i == 0) {
-					this.selectorCriteria.append(newHeader);
-				} else {
-					this.selectorCriteria.append(", ").append(newHeader);
-				}
-				StringBuilder builder = new StringBuilder(newHeader);
-				newHeader = newHeader.replace("'", "");
-				headers.add(selector.getAlias());
-				orderHash.put(selector.getAlias(), builder);
-				actHeaders.add(newHeader);
-				if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-					types.add(colDataTypes.get(this.frameName + "__" + newHeader));
-				}
-				
-				/*
-				if(index2Drop.length() == 0)
-					index2Drop.append("[").append(i);
-				else
-					index2Drop.append(",").append(i);
-				*/
+			if (selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+				newHeader = "'" + selector.getAlias() + "'";
 			}
-		}
-		
-		//index2Drop.append("]");
+			if (i == 0) {
+				this.selectorCriteria.append(newHeader);
+			} else {
+				this.selectorCriteria.append(",").append(newHeader);
+			}
+			StringBuilder sb = new StringBuilder(newHeader);
+			newHeader = newHeader.replace("'", "");
+			headers.add(newHeader);
+			orderHash.put(selector.getAlias(), sb);
+			
+			if (selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION 
+					&& ((QueryFunctionSelector) selector).getFunction().equalsIgnoreCase(QueryFunctionHelper.UNIQUE_GROUP_CONCAT)) {
+				actHeaders.add(((QueryFunctionSelector) selector).getAllQueryColumns().get(0).getAlias());
+			} else {
+				actHeaders.add(newHeader);
+			}		
+			if (selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				types.add(colDataTypes.get(this.frameName + "__" + ((QueryColumnSelector) selector).getColumn()));
+			}
+		}		
 	}
-	
 	
 	public String[] getHeaders()
 	{
@@ -653,6 +591,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return typeArray;
 	}
 
+	/*
+	 * Process the types of Selectors being passed through the SELECT statement. 
+	 */
 	public String processSelector(IQuerySelector selector, String tableName, boolean includeTableName, boolean useAlias, boolean...useTable) {
 		SELECTOR_TYPE selectorType = selector.getSelectorType();
 		String tableNameForCol = null;
@@ -668,10 +609,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			return processConstantSelector((QueryConstantSelector) selector);
 		}  
 		else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-			if(aggHash != null) // making a dichotomy for query function
-				return processAggSelector((QueryFunctionSelector) selector);
-			else
-				return processFunctionSelector((QueryFunctionSelector)selector, tableName);
+			return processFunctionSelector((QueryFunctionSelector)selector, tableName);
 		}
 		// arithmetic selector is not implemented
 		else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
@@ -685,29 +623,66 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 	
-	private String  processFunctionSelector(QueryFunctionSelector selector, String tableName)
-	{
-		//Sum(MovieBudget)
-		StringBuffer retBuffer = new StringBuffer();
-		// get the name of the column
+	/**
+	 * Process function calls for pandas date methods to extract fields from datetime objects. 
+	 * 
+	 * @param selector
+	 * @param tableName
+	 */
+	private void processDateFunctionSelector(QueryFunctionSelector selector, String tableName) {
+		StringBuilder sb = new StringBuilder();
 		String functionName = selector.getFunction();
-		List <IQuerySelector> paramSelectors = selector.getInnerSelector();
-		// usually this is a single parameter, if it is more, I dont know what to do
-		if(paramSelectors != null)
-		{
-			IQuerySelector curSelector = paramSelectors.get(0);
-			if(curSelector instanceof QueryColumnSelector)
-			{
-				QueryColumnSelector cs = (QueryColumnSelector)curSelector;
-				String columnName = cs.getAlias();
-				functionName = QueryFunctionHelper.convertFunctionToPandasSyntax(functionName);
-				retBuffer.append(tableName).append("['").append(columnName).append("'].").append(functionName).append("()");
+		String alias = selector.getAlias();
+		String columnName = selector.getAllQueryColumns().get(0).getAlias();
+		
+		String pandasFunction = QueryFunctionHelper.convertFunctionToPandasSyntax(functionName);
+		
+		dateKeys.add(alias);
+		sb.append(alias).append("=").append(tableName).append("['").append(columnName)
+		  .append("']").append(".apply(").append(PandasFrame.PANDAS_IMPORT_VAR).append(".to_datetime).")
+		  .append(pandasFunction).append(".values");
+		dateHash.put(alias, sb);
+		types.add(SemossDataType.STRING);
+		
+		// Add to functionMap. I need an example of this working, for processAgg and processDAte
+		functionMap.put(pandasFunction + columnName, selector.getAlias());
+	}
+	
+	/**
+	 * Combine any date methods previously called by SELECT variables. 
+	 */
+	private void genDateFunctionString() {		
+		for (String key : dateKeys) {
+			if (dateHash.containsKey(key)) {
+				if (dateCriteria.length() != 0) {
+					dateCriteria.append(",");
+				}
+				dateCriteria.append(dateHash.get(key));
 			}
-		}		
-		return retBuffer.toString();
+		} // end adding components to dateCriteria
+		
+		if (dateCriteria.length() > 0) {
+			dateCriteria = new StringBuilder(".assign(").append(dateCriteria).append(")");
+		}
+	}
+	
+	/**
+	 * Processes QueryFunctionSelector. Currently handles aggregate and date field extraction methods. 
+	 * 
+	 * @param selector
+	 * @param tableName
+	 * @return
+	 */
+	private String processFunctionSelector(QueryFunctionSelector selector, String tableName) {
+		if (DATE_FUNCTION_LIST.contains(selector.getFunction())) {
+			processDateFunctionSelector(selector, tableName);
+		}
+		else {
+			processAggSelector(selector);
+		}
+		return "";
 	}
 
-	
 	private String processIfElseSelector(QueryIfSelector selector,  String tableName, boolean includeTableName, boolean useAlias, boolean...useTable)
 	{
 		// get the condition first
@@ -736,11 +711,23 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		return buf.toString();
 	}
-
 	
+	/**
+	 * Process selectors that are normal columns. Accounts for columns that need to be renamed. 
+	 * 
+	 * @param selector
+	 * @param tableName
+	 * @return
+	 */
 	private String processColumnSelector(QueryColumnSelector selector, String tableName) {
+		StringBuilder sb = new StringBuilder();
 		String columnName = selector.getColumn();
 		String alias = selector.getAlias();
+		
+		if (!columnName.equalsIgnoreCase(alias)) {
+			sb.append("'" + columnName + "'").append(":").append("'" + alias + "'");
+			renameColList.add(sb);
+		}
 		
 		// just return the column name
 		if(tableName != null)
@@ -754,7 +741,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		this.wrapperFrameName = wrapperFrameName;
 	}
 	
-	
 	private String processConstantSelector(QueryConstantSelector selector) {
 		Object constant = selector.getConstant();
 		if(constant instanceof Number) {
@@ -762,19 +748,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		} else {
 			return "\"" + constant + "\"";
 		}
-	}
-
-	private String processColumnSelector(QueryColumnSelector selector, String tableName, boolean includeTableName, boolean useAlias) {
-		if(includeTableName) {
-			if(useAlias) {
-				return tableName + "$" + selector.getAlias();
-			}
-			return tableName + "$" + selector.getColumn();
-		}
-		if(useAlias) {
-			return selector.getAlias();
-		}
-		return selector.getColumn();
 	}
 	
 	private void processGroupSelectors() {
@@ -831,9 +804,21 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return this.functionMap;
 	}
 	
+	/**
+	 * Generates the aggregate string to use in the pandas query. Takes into account the instances when 
+	 * an aggregation is needed but no aggregation parameters are passed through (i.e when querying a column and 
+	 * using GROUPBY & having. 
+	 */
 	private void genAggString()	{
 		aggCriteria = new StringBuilder("");
-
+		
+		if (aggKeys.size() == 0 && !((SelectQueryStruct) this.qs).getGroupBy().isEmpty()) {
+			if (havingList.size() == 0) {
+				groupCriteria.delete(0, groupCriteria.length());
+			}
+			aggCriteria2.append(havingList.get(0));
+		}
+		
 		for(int cIndex = 0;cIndex < aggKeys.size();cIndex++) {
 			String colKey = aggKeys.get(cIndex);
 			// I need to replace this with aggHash2
@@ -850,7 +835,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 		
-		if(aggCriteria.length() > 0) {
+		if(aggCriteria.length() > 0 || aggCriteria2.length() > 0) {
 			aggCriteria = new StringBuilder(".agg({").append(aggCriteria);
 			aggCriteria2 = new StringBuilder(".agg(").append(aggCriteria2);
 		}
@@ -861,7 +846,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 	
-	private String processAggSelector(QueryFunctionSelector selector) {
+	/** Processes the Selectors that use aggregation. 
+	 * Need to be harmonized w/ addSelector. 	
+	 * 
+	 * @param selector
+	 * @return
+	 */
+	private void processAggSelector(QueryFunctionSelector selector) {
 		// if it is using a function.. usually it is an aggregation
 		String function = selector.getFunction();
 		String columnName = selector.getAllQueryColumns().get(0).getAlias();
@@ -891,7 +882,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		orderHash.put(selector.getAlias(), new StringBuilder("('").append(columnName).append("')"));
 		
-		headers.add(selector.getAlias());
+		//headers.add(selector.getAlias());
 		aggHash.put(columnName, aggBuilder);
 		// adding it through alias
 		aggHash2.put(aggAlias, aggBuilder2);
@@ -902,14 +893,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			aggKeys.add(aggAlias);
 		
 		// if it is a group concat.. dont add this to actual headers here.. since it will get added during group by
-		if(function.equalsIgnoreCase(QueryFunctionHelper.UNIQUE_GROUP_CONCAT)) {
-			actHeaders.add(columnName);
-			functionMap.put(pandasFunction+columnName, selector.getAlias());
-		} else {
-			actHeaders.add(selector.getAlias());
-			// else it will get added by the way of group by clause
-			functionMap.put(pandasFunction+columnName, selector.getAlias());
-		}
+		functionMap.put(pandasFunction + columnName, selector.getAlias());
 		
 		// I can avoid all of this by creating a dataframe and imputing.. but let us see how far we can inline this
 		// I am going to assume that this is the same type as header for most operations
@@ -919,6 +903,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// I have no idea what I am doing here
 		if(curType == SemossDataType.STRING || curType == SemossDataType.BOOLEAN) {
 			types.add(SemossDataType.INT);
+		} else if (curType == SemossDataType.INT && pandasFunction.equalsIgnoreCase("mean")) {
+			types.add(SemossDataType.DOUBLE);
 		} else {
 			types.add(curType);
 		}
@@ -946,11 +932,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		aggColList.add(columnName);
 		// EXPERIMENTAL BLOCK
 		
-		return "";
+		//return "";
 	}
 
-	
-	
 	private String processArithmeticSelector(QueryArithmeticSelector selector, String tableName, boolean includeTableName, boolean useAlias, boolean...useTable) {
 		IQuerySelector leftSelector = selector.getLeftSelector();
 		IQuerySelector rightSelector = selector.getRightSelector();
@@ -977,9 +961,14 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 	
+	/*
+	 * Process filters. Handles both SQL HAVING and WHERE syntax.
+	 */
 	private StringBuilder processFilter(IQueryFilter filter, String tableName, boolean useAlias, boolean...useTable) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
-		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+		if (filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE && isHavingFilter) {
+			return processSimpleHavingFilter((SimpleQueryFilter) filter, tableName, useAlias, useTable);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE && !isHavingFilter) {
 			return processSimpleQueryFilter((SimpleQueryFilter) filter, tableName, useAlias, useTable);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
 			return processAndQueryFilter((AndQueryFilter) filter, tableName, useAlias, useTable);
@@ -991,22 +980,32 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return null;
 	}
 	
+	/*
+	 * Process filter statements including OR parameter. Handles both SQL WHERE and HAVING syntax.
+	 */
 	private StringBuilder processOrQueryFilter(OrQueryFilter filter, String tableName, boolean useAlias, boolean...useTable) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
-		int numAnds = filterList.size();
-		for(int i = 0; i < numAnds; i++) {
+		int numOrs = filterList.size();
+		for(int i = 0; i < numOrs; i++) {
 			if(i == 0) {
 				filterBuilder.append("(");
 			} else {
-				filterBuilder.append(" ) | ( ");
+				if (isHavingFilter) {
+					filterBuilder.append(") or (");
+				} else {
+					filterBuilder.append(" ) | ( ");
+				}
 			}
 			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias, useTable));
 		}
 		filterBuilder.append(")");
 		return filterBuilder;
 	}
-
+	
+	/**
+	 * Process filter statements including AND parameter. Handles logic comparable to SQL WHERE and HAVING clauses. 
+	 */
 	private StringBuilder processAndQueryFilter(AndQueryFilter filter, String tableName, boolean useAlias, boolean...useTable) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
@@ -1015,7 +1014,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			if(i == 0) {
 				filterBuilder.append("(");
 			} else {
-				filterBuilder.append(") & (");
+				if (isHavingFilter) {
+					filterBuilder.append(") and (");
+				} else {
+					filterBuilder.append(") & (");			
+				}
 			}
 			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias, useTable));
 		}
@@ -1025,21 +1028,23 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	private StringBuilder processBetweenQueryFilter(BetweenQueryFilter filter, String tableName, boolean useAlias, boolean...useTable)
 	{
-		StringBuilder retBuilder = new StringBuilder();
+		StringBuilder retBuilder = new StringBuilder("(");
 		String columnName = processSelector(filter.getColumn(), tableName, true, useAlias, true); 
-		retBuilder.append("(");
-		retBuilder.append(columnName);
-		retBuilder.append("  >= ");
-		retBuilder.append(filter.getStart());
-		retBuilder.append(" ) & ( ");
-		retBuilder.append(columnName);
-		retBuilder.append("  <= ");
-		retBuilder.append(filter.getEnd());
-		retBuilder.append(")");
-		return retBuilder;
+		
+		if (isHavingFilter) {
+			//TODO - Currently reactor isn't set up for use with the Having reactor. 
+		} else {
+			retBuilder.append(columnName)
+					  .append("  >= ")
+					  .append(filter.getStart())
+					  .append(" ) & ( ")
+					  .append(columnName)
+					  .append("  <= ")
+					  .append(filter.getEnd());
+		}
+		return retBuilder.append(")");
 	}
 
-	
 	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String tableName, boolean useAlias, boolean...useTable) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
@@ -1049,9 +1054,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(fType == FILTER_TYPE.COL_TO_COL) {
 			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator, tableName, useAlias, useTable);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToValuesFilter2(leftComp, rightComp, thisComparator, tableName, useAlias, useTable);
+			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator, tableName, useAlias, useTable);
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
-			// same logic as above, just switch the order and reverse the comparator if it is numeric
 			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias, useTable);
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
@@ -1105,181 +1109,31 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		return filterBuilder;
 	}
+
 	
-	// tx2.loc[tx2['Sales Fact Number'].map(lambda x: x < 10000000) & tx2['Fiscal Year'].map(lambda x: x < 2011)].groupby('Fiscal Year').agg(Max_Sales_Fact= ('Sales Fact Number', 'max'))
-	// this needs to be all map operation to start with
+	/**
+	 * Method to create the filter syntax for pandas frames. Handles incorrect operand input for the given filter type. 
+	 * 
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 * @param tableName
+	 * @param useAlias
+	 * @param useTable
+	 * @return
+	 */
 	
-	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean...useTable) {
-		// get the left side
+	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, 
+			boolean useAlias, boolean...useTable) {
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
-		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias, useTable);
 		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
 		
-		// if it is null, then we know we have a column
-		// need to grab from metadata
-		if(leftDataType == null) {
+		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias, useTable);
+		
+		if (leftDataType == null) {
 			leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName());
 		}
-		
-		// grab the objects we are setting up for the comparison
-		List<Object> objects = new Vector<Object>();
-		// ugh... this is gross
-		if(rightComp.getValue() instanceof List) {
-			objects.addAll( (List) rightComp.getValue());
-		} else {
-			objects.add(rightComp.getValue());
-		}
-		
-		// need to account for null inputs
-		boolean addNullCheck = objects.remove(null);
-		if(leftDataType != null && SemossDataType.isNotString(leftDataType)) {
-			if(objects.remove("null")) {
-				addNullCheck = true;
-			}
-			if(objects.remove("nan")) {
-				addNullCheck = true;
-			}
-			if(thisComparator.equals("==") && objects.remove("")) {
-				addNullCheck = true;
-			}
-		}
-		if(!addNullCheck) {
-			// are we searching for null?
-			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && objects.contains("null");
-		}
-		
-		StringBuilder filterBuilder = new StringBuilder("(");;
-		// add the null check now
-		if(addNullCheck) {
-			// can only work if comparator is == or !=
-			if(thisComparator.equals("==")) {
-				filterBuilder.append("(~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
-			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
-				filterBuilder.append("(~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
-			}
-		}
-		SemossDataType objectsDataType = leftDataType;
-		
-		// if there are other instances as well
-		// also add that
-		if(!objects.isEmpty()) {
-			boolean multi = false;
-			String myFilterFormatted = null;
-			// format the objects based on the type of the column
-			boolean useStringForType = thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.contentEquals(NOT_SEARCH_COMPARATOR);
-			if(useStringForType) {
-				objectsDataType = SemossDataType.STRING;
-			}
-			// format the objects based on the type of the column
-			if(objects.size() > 1) {
-				multi = true;
-				// need a similar one for pandas
-				myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, objectsDataType);
-			} else if(objectsDataType == SemossDataType.DATE){
-				// dont bother doing this if we have a date
-				// since we cannot use "in" with dates
-				myFilterFormatted = PandasSyntaxHelper.formatFilterValue(objects.get(0), objectsDataType);
-			}else
-				myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, objectsDataType);
-				
-			
-			// account for bad input
-			// example - filtering out empty + null when its a number...
-			if(myFilterFormatted.isEmpty()) {
-				return filterBuilder;
-			}
-			
-			if(addNullCheck) {
-				// we added a null check above
-				// we need to wrap 
-				filterBuilder.insert(0, "(");
-				if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
-					filterBuilder.append("& ");
-				} else {
-					filterBuilder.append("| ");
-				}
-			}
-			
-			if(multi) {
-				if(thisComparator.equals("==")) {
-					filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
-				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-					filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
-				} else {
-					// this will probably break...
-					// this is where the like operator is coming through
-					// this needs to be resolved
-					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
-				}
-			}
-			else {
-				// need to see this a bit more when we get here
-				// dont know how the other types of comparator are being sent here
-				// this is going to be an interesting pattern
-				// I need to replace the entire command
-				if(thisComparator.equals(SEARCH_COMPARATOR)) {
-					overrideQuery = new StringBuilder(frameName).append("w.").append("column_like('',").append(leftSelectorExpression).append(", '").append(objects.get(0)).append("')");
-					this.headers.add(leftSelectorExpression);
-					if(SemossDataType.STRING == leftDataType) {
-						
-						// t[t['Title'].str.upper().str.contains('ALA')]
-						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
-					} else if(SemossDataType.DATE == leftDataType) {
-						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].dt.strftime('%Y-%m-%d').str.contains(").append(myFilterFormatted).append(",case=False)");
-					} else if(SemossDataType.TIMESTAMP == leftDataType) {
-						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].dt.strftime('%Y-%m-%d %H:%M:%s').str.contains(").append(myFilterFormatted).append(",case=False)");
-					} else if(SemossDataType.INT == leftDataType || SemossDataType.DOUBLE == leftDataType) {
-						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].astype('str').str.contains(").append(myFilterFormatted).append(",case=False)");
-					} else {
-						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
-					}
-				} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
-					if(SemossDataType.STRING == leftDataType) {
-						// t[t['Title'].str.upper().str.contains('ALA')]
-						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
-					} else if(SemossDataType.DATE == leftDataType) {
-						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].dt.strftime('%Y-%m-%d').str.contains(").append(myFilterFormatted).append(",case=False)");
-					} else if(SemossDataType.TIMESTAMP == leftDataType) {
-						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].dt.strftime('%Y-%m-%d %H:%M:%s').str.contains(").append(myFilterFormatted).append(",case=False)");
-					} else if(SemossDataType.INT == leftDataType || SemossDataType.DOUBLE == leftDataType) {
-						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].astype('str').str.contains(").append(myFilterFormatted).append(",case=False)");
-					} else {
-						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
-					}
-				} else if(objectsDataType != SemossDataType.DATE){
-					if(thisComparator.equals("==")) {
-						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
-					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
-					}
-				}
-				else{
-					filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
-				}
-			}
-		}
-		
-		if(addNullCheck && !objects.isEmpty()) {
-			// close due to wrapping
-			filterBuilder.append(")");
-		}
-		
-		return filterBuilder.append(")");
-	}
-
-	private StringBuilder addSelectorToValuesFilter2(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias, boolean...useTable) 
-	{
-		//swifter = "";
-		// get the left side
-		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
-		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias, useTable);
-		
-		// always index the column if it is string
-		
-		String gKey = leftSelectorExpression;
-		
-		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
-		if(leftDataType == null) {
+		if (leftDataType == null) {
 			String qsName = leftSelector.getQueryStructName();
 			if (!qsName.contains("__")) {
 				qsName = "__" + qsName;
@@ -1287,151 +1141,229 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			String colDataTypesKey = this.frameName + qsName;
 			leftDataType = this.colDataTypes.get(colDataTypesKey);
 		}
-		//if(leftDataType == SemossDataType.STRING)
-		//	gKey = indexColumn(leftSelectorExpression);
-			
-		// grab the objects we are setting up for the comparison
-		List<Object> objects = new Vector<Object>();
-		// ugh... this is gross
-		if(rightComp.getValue() instanceof List) {
-			objects.addAll( (List) rightComp.getValue());
+		
+		List<Object> objects = new ArrayList<>();
+		if (rightComp.getValue() instanceof List) {
+			objects.addAll((List) rightComp.getValue());
 		} else {
 			objects.add(rightComp.getValue());
 		}
 		
-		// if the left data type is string
-		// then use the is in operator
-		// if not then pretty much for everything else use the apply like
-		// tx2['Sales Fact Number'].map(lambda x: x < 10000000) 
-		// with swifter it looks like this
-		//  tx2.loc[tx2['Sales Fact Number'].swifter.apply(lambda x: x < 10000000) & tx2['Fiscal Year'].swifter.apply(lambda x: x < 2011)].groupby('Fiscal Year').agg(Max_Sales_Fact= ('Sales Fact Number', 'max'))
-		
-		// see if it is search if so.. move it to string call it a day
-		// this needs to account for filter
-		String finalFilter = filterCriteria + "";
-		if(finalFilter != null && finalFilter.length() > 0)
-			// add the frame name
-			finalFilter = "this.cache['data']" + finalFilter;
-		else
-			finalFilter = "''";
-			
-		if(thisComparator.equals(SEARCH_COMPARATOR)) {
-			overrideQuery = new StringBuilder(frameName).append("w.").append("column_like(").append(finalFilter).append(",").append(leftSelectorExpression).append(", '").append(objects.get(0)).append("')");
-			this.headers.add(leftSelectorExpression);
-			return new StringBuilder("");
-		} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
-			overrideQuery = new StringBuilder(frameName).append("w.").append("column_not_like(").append(finalFilter).append(",").append(leftSelectorExpression).append(", '").append(objects.get(0)).append("')");
-			this.headers.add(leftSelectorExpression);
-			return new StringBuilder("");
-		} else if(thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(ENDS_COMPARATOR)){
-			String function = thisComparator.equals(BEGINS_COMPARATOR) ? "startswith" : "endswith";
-			overrideQuery = new StringBuilder("{ 'data':"+tableName).append("[").append(tableName).append("[").append(leftSelectorExpression).append("].str.casefold().str.")
-					.append(function).append("('").append(objects.get(0).toString().toLowerCase()).append("')].values.tolist(), 'columns': list("+tableName+ ".columns)}");
-			this.headers.add(leftSelectorExpression);
-			return new StringBuilder("");
-		}
-		
-		// if it is null, then we know we have a column
-		// need to account for null inputs
 		boolean addNullCheck = objects.remove(null);
-		if(leftDataType != null && SemossDataType.isNotString(leftDataType)) {
-			if(objects.remove("null")) {
-				addNullCheck = true;
-			}
-			if(objects.remove("nan")) {
-				addNullCheck = true;
-			}
-			if(thisComparator.equals("==") && objects.remove("")) {
+		if (leftDataType != null && SemossDataType.isNotString(leftDataType)) {
+			if (objects.remove("null") || objects.remove("nan") || (thisComparator.equals("==") && objects.remove(""))) {
 				addNullCheck = true;
 			}
 		}
-		if(!addNullCheck) {
-			// are we searching for null?
+		if (!addNullCheck) {
 			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && objects.contains("null");
 		}
 		
 		StringBuilder filterBuilder = new StringBuilder("(");
-		// add the null check now
-		if(addNullCheck) {
-			if(thisComparator.equals("==") || IQueryInterpreter.getPosSearchComparators().contains(thisComparator)) {
-				filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
-			} else if(thisComparator.equals("!=") || thisComparator.equals("<>") || IQueryInterpreter.getNegSearchComparators().contains(thisComparator)) {
-				filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
+		StringBuilder retBuilder = new StringBuilder();
+		
+		if (addNullCheck) {
+			if (thisComparator.equals("==") || IQueryInterpreter.getPosSearchComparators().contains(thisComparator)) {
+				filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].isna())");
+			} else if (thisComparator.equals("!=") || thisComparator.equals("<>") || IQueryInterpreter.getPosSearchComparators().contains(thisComparator)) {
+				filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].isna())");
 			}
 		} else {
 			filterBuilder = null;
 		}
 		
-		// need to grab from metadata
-		if(leftDataType == null) {
-			leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName());
-		}
-		StringBuilder retBuilder = new StringBuilder();
+		// Why is this necessary? leftSelector should alwasy be a column. 
+		//if (leftSelectorExpression != null && leftSelectorExpression.contains("<>")) {
+		//	leftSelectorExpression = "!=";
+		//}
 		
-		// python doesnt recognize <>
-		if(leftSelectorExpression != null && leftSelectorExpression.contains("<>"))
-			leftSelectorExpression = " != ";
-		
-		if(leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.DATE || leftDataType == SemossDataType.TIMESTAMP)
-		{
-			// couple of things to check here
-			// is this a search string
+		if (leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.DATE || leftDataType == SemossDataType.TIMESTAMP) {
 			String myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, leftDataType);
-			// adding the paranthesis for sanity purposes
-			// i need to replace this with numpy
-			//  tx.loc[np.flatnonzero(np.isin(bnpy, a2))][:200]
-			// bnpy is the numpy representation of the column
-			// I dont know if the extra jep call would kill me
 			
-			
-			retBuilder.append("(");
-			if(thisComparator.contains("!="))
-				retBuilder.append("~");
-			
-			
-			retBuilder.append(frameName).append("[").append(leftSelectorExpression).append("].isin").append(myFilterFormatted);
-			retBuilder.append(") ");
-			return retBuilder;
-		}
-		
-		// ok so we we are done with string here
-		// next is number
-		// this can be > <
-		// at this point it is all the same
-		// that does it
-		else
-		{
-			// add one filter for each of it
-			for (int objIndex = 0;objIndex < objects.size();objIndex++)
-			{
-				if(retBuilder.length() > 0)
-					retBuilder.append(" | ");
+			if (leftDataType == SemossDataType.STRING && (thisComparator.equals("==") || thisComparator.equals("!="))) {
 				retBuilder.append("(");
-				retBuilder.append(frameName).append("[").append(leftSelectorExpression).append("]")
-						  .append(swifter).append(".apply(lambda x : x ")
-						  .append(thisComparator)
-						  .append(objects.get(objIndex)).append(")");
-				retBuilder.append(")  ");
-			}
-		}
-		
-		// if the null check was valid enable that too
-		if(filterBuilder != null) {
-			if(retBuilder.length() > 0) {
-				retBuilder = new StringBuilder("(").append(filterBuilder).append(" & ").append(retBuilder);
+				if (thisComparator.equals("!=")) {
+					retBuilder.append("~");
+				}
+				retBuilder.append(frameName).append("[").append(leftSelectorExpression).append("].isin").append(myFilterFormatted).append(")");
+			} else if (thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+				for (int i = 0; i < objects.size(); i++) {
+					if (retBuilder.length() > 0) {
+						retBuilder.append(" | ");
+					}
+					retBuilder.append("(");
+					if (thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+						retBuilder.append("~");
+					}
+					if (leftDataType == SemossDataType.DATE) {
+						retBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].apply(pd.to_datetime).dt.strftime('%Y-%m-%d').str.contains('")
+								  .append(objects.get(i)).append("',case=False)");
+					} else if (leftDataType == SemossDataType.TIMESTAMP) {
+						retBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].apply(pd.to_dateime).dt.strftime('%Y-%m-%d %H:%M:%s').str.contains('")
+								  .append(objects.get(i)).append("',case=False)");
+					} else {
+						retBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains('")
+								  .append(objects.get(i)).append("',case=False)");
+					}
+					retBuilder.append(")");
+				}
+			} else if (thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(ENDS_COMPARATOR)) {
+				String function = thisComparator.equals(BEGINS_COMPARATOR) ? "startswith" : "endswith";
+				for (int i = 0; i < objects.size(); i++) {
+					if (retBuilder.length() > 0) {
+						retBuilder.append(" | ");
+					}
+					retBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.casefold().str.")
+							  .append(function).append("('").append(objects.get(i).toString().toLowerCase()).append("'))");
+				}
+			} else if (thisComparator.equals(NOT_BEGINS_COMPARATOR) || thisComparator.equals(NOT_ENDS_COMPARATOR)) {
+				String function = thisComparator.equals(NOT_BEGINS_COMPARATOR) ? "startswith" : "endswith";
+				for (int i = 0; i < objects.size(); i++) {
+					if (retBuilder.length() > 0) {
+						retBuilder.append(" | ");
+					}
+					retBuilder.append("(~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.casefold().str.")
+							  .append(function).append("('").append(objects.get(i).toString().toLowerCase()).append("'))");
+				}
+			} else if (leftDataType != SemossDataType.STRING) {
+				for (int i = 0; i < objects.size(); i++) {
+					if (retBuilder.length() > 0) {
+						retBuilder.append(" | ");
+					}
+					retBuilder.append("(").append(frameName).append("[").append(leftSelectorExpression).append("].apply(pd.to_datetime) ").append(thisComparator)
+							  .append(" pd.to_datetime('").append(objects.get(i)).append("'))");
+				}
 			} else {
-				retBuilder = filterBuilder;
+				throw new IllegalArgumentException("Unsupported operand argument '" + thisComparator + "' for type String.");
+			}
+		} else {
+			if (!PandasSyntaxHelper.OPERATOR_LIST.contains(thisComparator)) {
+				throw new IllegalArgumentException("Unsupported operand argument '" + thisComparator + "' for type Numeric.");
+			}
+			for (int i = 0; i < objects.size(); i++) {
+				if (retBuilder.length() > 0) {
+					retBuilder.append(" | ");
+				}
+				retBuilder.append("(").append(frameName).append("[").append(leftSelectorExpression).append("].apply(lambda x: x")
+						  .append(thisComparator).append(objects.get(i)).append("))");
 			}
 		}
-
-		if(addNullCheck && !objects.isEmpty()) {
-			// close due to wrapping
-			retBuilder.append(") ");
-		}
 		
+		if (filterBuilder != null) {
+			if (retBuilder.length() > 0) {
+				retBuilder = new StringBuilder("(").append(filterBuilder).append(" & ").append(retBuilder).append(")");
+			}
+		}
 		return retBuilder;
 	}
 
+	
+	/** Passes the query containing the HAVING clause to be processed. Potentially could combine with other methods, doesn't
+	 *  need to be as fleshed out as addFilters. 
+	 * 
+	 * @param filters
+	 * @param tableName
+	 * @param builder
+	 * @param useAlias
+	 */
+	public void addHavingFilters(List<IQueryFilter> filters, String tableName, StringBuilder builder, boolean useAlias) {
+		ListIterator<IQueryFilter> iterator = filters.listIterator();
+		
+		if (filters.size() > 0) {
+			isHavingFilter = true;
+		}
+		for (IQueryFilter filter : filters) {
+			StringBuilder filterSyntax = processFilter(filter, tableName, useAlias);
+
+			if (filterSyntax != null) {
+				builder.append(filterSyntax.toString());
+				if (iterator.hasPrevious() && iterator.hasNext()) {
+					builder.append(" and ");
+					//Don't really know if this is necessary. Filters can be combined but HAVING statement
+					// would be single filter, then the complexity increases (and/or/between/etc.)
+				}
+			}
+		}
+		isHavingFilter = false;
+	} // end addHavingFilters
+		
+	/** additional processing of HAVING query. At the moment will only contain column - > value operation. Need to look at examples
+	 *  of other operations to see if they're relevant. 
+	 * 
+	 * @param filter
+	 * @param tableName
+	 * @param useAlias
+	 * @param useTable
+	 * @return
+	 */
+	private StringBuilder processSimpleHavingFilter(SimpleQueryFilter filter, String tableName, boolean useAlias, 
+			boolean...useTable) {
+		NounMetadata leftComp = filter.getLComparison();
+		NounMetadata rightComp = filter.getRComparison();
+		String thisOperator = filter.getComparator();
+		
+		FILTER_TYPE fType = filter.getSimpleFilterType();
+		if (fType == FILTER_TYPE.COL_TO_VALUES) {
+			return createHavingFilter(leftComp, rightComp, thisOperator, tableName, useAlias, useTable);
+		}
+		return null;
+	} // end processSimpleHavingFilter
+	
+	/** Creates the HAVING expression. StringBuilder is set up for (... operator ...) format. Populates a private
+	 * List that is used to construct an aggregate if none is passed through the query. 
+	 * 
+	 * @param leftComp
+	 * @param rightComp
+	 * @param operator
+	 * @param tableName
+	 * @param useAlias
+	 * @param useTable
+	 * @return
+	 */
+	private StringBuilder createHavingFilter(NounMetadata leftComp, NounMetadata rightComp, String operator, String tableName, 
+			boolean useAlias, boolean...useTable) {
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		QueryFunctionSelector selector = (QueryFunctionSelector) leftSelector;
+		
+		String function = selector.getFunction();
+		String columnName = selector.getAllQueryColumns().get(0).getAlias();
+		String pandasFunction = QueryFunctionHelper.convertFunctionToPandasSyntax(function);
+		
+		List<Object> values = new Vector<Object>();
+		// Not sure if I need this for HAVUNG clause. 
+		if (rightComp.getValue() instanceof List) {
+			values.addAll((List) rightComp.getValue());
+		} else {
+			values.add(rightComp.getValue());
+		}
+		
+		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
+		
+		
+		StringBuilder havingsAggBuilder = new StringBuilder();
+		StringBuilder retBuilder = new StringBuilder();
+		
+		havingsAggBuilder.append(selector.getAlias())
+						 .append("=('")
+						 .append(columnName)
+						 .append("','")
+						 .append(pandasFunction)
+						 .append("')");
+		havingList.add(havingsAggBuilder);
+		
+		for (int index = 0; index < values.size(); index++) {
+			retBuilder.append("(x['")
+					  .append(columnName)
+					  .append("'].")
+					  .append(pandasFunction)
+					  .append("()")
+					  .append(operator)
+					  .append(values.get(index))
+					  .append(")");
+		}
+		return retBuilder;
+	} // end createHavingFilter
+    
 	public void setPyTranslator(PyTranslator pyt) {
 		this.pyt = pyt;
 	}
