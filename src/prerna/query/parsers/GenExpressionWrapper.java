@@ -291,6 +291,7 @@ public class GenExpressionWrapper {
 			LEVEL thisStructLevel = thisStruct.getLevel();
 			
 			ParamStruct pStruct = detailsLookup.get(thisStruct);
+			boolean isMulti = pStruct.isMultiple();
 			String userDefinedParamName = pStruct.getParamName();
 			
 			if(thisStructLevel == LEVEL.COLUMN) {
@@ -304,13 +305,19 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String quote = "";
-							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
-								quote = "\"";
-							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
-								quote = "'";
+							String finalValue = "";
+							if(isMulti) {
+								finalValue = "[<" + userDefinedParamName + ">]";
+							} else {
+								String quote = "";
+								if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+									quote = "\"";
+								} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+									quote = "'";
+								}
+								finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 							}
-							String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
+							
 							GenExpression thisExpression = exprs.get(exprIndex);
 							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
 								thisExpression.setLeftExpresion(finalValue);	
@@ -336,13 +343,19 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String quote = "";
-							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
-								quote = "\"";
-							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
-								quote = "'";
+							String finalValue = "";
+							if(isMulti) {
+								finalValue = "[<" + userDefinedParamName + ">]";
+							} else {
+								String quote = "";
+								if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+									quote = "\"";
+								} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+									quote = "'";
+								}
+								finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 							}
-							String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
+							
 							GenExpression thisExpression = exprs.get(exprIndex);
 							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
 								thisExpression.setLeftExpresion(finalValue);	
@@ -369,13 +382,19 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String quote = "";
-							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
-								quote = "\"";
-							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
-								quote = "'";
+							String finalValue = "";
+							if(isMulti) {
+								finalValue = "[<" + userDefinedParamName + ">]";
+							} else {
+								String quote = "";
+								if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+									quote = "\"";
+								} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+									quote = "'";
+								}
+								finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 							}
-							String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
+							
 							GenExpression thisExpression = exprs.get(exprIndex);
 							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
 								thisExpression.setLeftExpresion(finalValue);	
@@ -399,13 +418,19 @@ public class GenExpressionWrapper {
 						// we will replace the existing parameter 
 						// again with the parameter name
 						// but this time that defined by the user
-						String quote = "";
-						if(targetStruct.getQuote() == QUOTE.DOUBLE) {
-							quote = "\"";
-						} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
-							quote = "'";
+						String finalValue = "";
+						if(isMulti) {
+							finalValue = "[<" + userDefinedParamName + ">]";
+						} else {
+							String quote = "";
+							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+								quote = "\"";
+							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+								quote = "'";
+							}
+							finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 						}
-						String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
+						
 						GenExpression thisExpression = exprs.get(exprIndex);
 						if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
 							thisExpression.setLeftExpresion(finalValue);	
@@ -449,95 +474,96 @@ public class GenExpressionWrapper {
 	
 	public String makeParameters(String columnName, Object constantValue, String operationName, String actualOperationName, String constantType, GenExpression exprToTrack, String tableName)
 	{
-			//String tableAliasName = columnName.substring(0, columnName.indexOf("."));
-			String tableAliasName = tableName;
-			if(tableAlias.containsKey(tableAliasName))
-				tableName = tableAlias.get(tableAliasName);
+		//String tableAliasName = columnName.substring(0, columnName.indexOf("."));
+		String tableAliasName = tableName;
+		if(tableAlias.containsKey(tableAliasName))
+			tableName = tableAlias.get(tableAliasName);
 
-			//columnName = columnName.replace(tableAliasName + ".", "");
-			//columnName = columnName.replace(".", "");
+		//columnName = columnName.replace(tableAliasName + ".", "");
+		//columnName = columnName.replace(".", "");
 
-			// add it to the column index first
-			List <String> tableColumnList = new Vector<String>();
-			if(this.columnTableIndex.containsKey(columnName))
-				tableColumnList = columnTableIndex.get(columnName);
+		// add it to the column index first
+		List <String> tableColumnList = new Vector<String>();
+		if(this.columnTableIndex.containsKey(columnName)) {
+			tableColumnList = columnTableIndex.get(columnName);
+		}
+		
+		String tableColumnComposite = tableName + "_" + columnName;
 
-			String tableColumnComposite = tableName + "_" + columnName;
+		if(!tableColumnList.contains(tableColumnComposite)) {
+			tableColumnList.add(tableColumnComposite);
+		}
+		columnTableIndex.put(columnName, tableColumnList);
 
-			if(!tableColumnList.contains(tableColumnComposite))
-				tableColumnList.add(tableColumnComposite);
-			columnTableIndex.put(columnName, tableColumnList);
-			
-			// next add the operator
-			// need to see if the operator exists
-			// if so i need to pop and do the left and right magic
-			List <String> operatorTableColumnList = new Vector<String>();
-			if(this.columnTableOperatorIndex.containsKey(tableColumnComposite))
-				operatorTableColumnList = columnTableOperatorIndex.get(tableColumnComposite);
-			
-			String tableColumnOperatorComposite = tableColumnComposite + operationName;
-			if(!operatorTableColumnList.contains(tableColumnOperatorComposite))
-				operatorTableColumnList.add(tableColumnOperatorComposite);
-			
-			
-			columnTableOperatorIndex.put(tableColumnComposite, operatorTableColumnList);
-			
-			
-			ParamStructDetails daStruct = null;
-			if(!operatorTableColumnParamIndex.containsKey(tableColumnOperatorComposite)) {
-				String context = "";
-				String contextPart = "";
-				if(contextExpression.size() > 0) {
-					context = contextExpression.pop();
-					// get the context part
-					contextPart = exprToTrack.printQS(exprToTrack, null) + "";
-				}
-				daStruct = new ParamStructDetails();
-				daStruct.setColumnName(columnName);
-				daStruct.setTableAlias(tableAliasName);
-				daStruct.setTableName(tableName);
-				daStruct.setCurrentValue(constantValue);
-				daStruct.setOperator(actualOperationName);
-				daStruct.setuOperator(operationName);
-				daStruct.setContext(context);
-				daStruct.setContextPart(contextPart);
-				
-				// need to get the current select struct to add to this
-				
-				if(constantType.equalsIgnoreCase("string")) {
-					daStruct.setType(PixelDataType.CONST_STRING);
-					daStruct.setQuote(QUOTE.SINGLE);
-				} else if(constantType.equalsIgnoreCase("double")) {
-					daStruct.setType(PixelDataType.CONST_DECIMAL);
-					daStruct.setQuote(QUOTE.NO);
-				} else if(constantType.equalsIgnoreCase("long")) {
-					daStruct.setType(PixelDataType.CONST_INT);
-					daStruct.setQuote(QUOTE.NO);
-				} else if(constantType.equalsIgnoreCase("date")) {
-					daStruct.setType(PixelDataType.CONST_DATE);
-					daStruct.setQuote(QUOTE.SINGLE);
-				} else if(constantType.equalsIgnoreCase("timestamp")) {
-					daStruct.setType(PixelDataType.CONST_TIMESTAMP);
-					daStruct.setQuote(QUOTE.SINGLE);
-				}
-				
-				operatorTableColumnParamIndex.put(tableColumnOperatorComposite, daStruct);						
-				if(context.length() > 0) {
-					contextExpression.push(context);
-				}
-			} else {
-				daStruct = operatorTableColumnParamIndex.get(tableColumnOperatorComposite);
+		// next add the operator
+		// need to see if the operator exists
+		// if so i need to pop and do the left and right magic
+		List <String> operatorTableColumnList = new Vector<String>();
+		if(this.columnTableOperatorIndex.containsKey(tableColumnComposite)) {
+			operatorTableColumnList = columnTableOperatorIndex.get(tableColumnComposite);
+		}
+		
+		String tableColumnOperatorComposite = tableColumnComposite + operationName;
+		if(!operatorTableColumnList.contains(tableColumnOperatorComposite)) {
+			operatorTableColumnList.add(tableColumnOperatorComposite);
+		}
+
+		columnTableOperatorIndex.put(tableColumnComposite, operatorTableColumnList);
+
+		ParamStructDetails daStruct = null;
+		if(!operatorTableColumnParamIndex.containsKey(tableColumnOperatorComposite)) {
+			String context = "";
+			String contextPart = "";
+			if(contextExpression.size() > 0) {
+				context = contextExpression.pop();
+				// get the context part
+				contextPart = exprToTrack.printQS(exprToTrack, null) + "";
 			}
-			List <GenExpression> allExpressions = new Vector<GenExpression>();
-			// now add this gen expression to it
-			if(paramToExpressionMap.containsKey(daStruct)) {
-				allExpressions = paramToExpressionMap.get(daStruct);
-			}
-			allExpressions.add(exprToTrack);
-			paramToExpressionMap.put(daStruct, allExpressions);
-			
-			return tableColumnOperatorComposite;
+			daStruct = new ParamStructDetails();
+			daStruct.setColumnName(columnName);
+			daStruct.setTableAlias(tableAliasName);
+			daStruct.setTableName(tableName);
+			daStruct.setCurrentValue(constantValue);
+			daStruct.setOperator(actualOperationName);
+			daStruct.setuOperator(operationName);
+			daStruct.setContext(context);
+			daStruct.setContextPart(contextPart);
 
+			// need to get the current select struct to add to this
+
+			if(constantType.equalsIgnoreCase("string")) {
+				daStruct.setType(PixelDataType.CONST_STRING);
+				daStruct.setQuote(QUOTE.SINGLE);
+			} else if(constantType.equalsIgnoreCase("double")) {
+				daStruct.setType(PixelDataType.CONST_DECIMAL);
+				daStruct.setQuote(QUOTE.NO);
+			} else if(constantType.equalsIgnoreCase("long")) {
+				daStruct.setType(PixelDataType.CONST_INT);
+				daStruct.setQuote(QUOTE.NO);
+			} else if(constantType.equalsIgnoreCase("date")) {
+				daStruct.setType(PixelDataType.CONST_DATE);
+				daStruct.setQuote(QUOTE.SINGLE);
+			} else if(constantType.equalsIgnoreCase("timestamp")) {
+				daStruct.setType(PixelDataType.CONST_TIMESTAMP);
+				daStruct.setQuote(QUOTE.SINGLE);
+			}
+
+			operatorTableColumnParamIndex.put(tableColumnOperatorComposite, daStruct);						
+			if(context.length() > 0) {
+				contextExpression.push(context);
+			}
+		} else {
+			daStruct = operatorTableColumnParamIndex.get(tableColumnOperatorComposite);
+		}
+		List <GenExpression> allExpressions = new Vector<GenExpression>();
+		// now add this gen expression to it
+		if(paramToExpressionMap.containsKey(daStruct)) {
+			allExpressions = paramToExpressionMap.get(daStruct);
+		}
+		allExpressions.add(exprToTrack);
+		paramToExpressionMap.put(daStruct, allExpressions);
+
+		return tableColumnOperatorComposite;
 	}
 	
 	// get all the param structs for 
