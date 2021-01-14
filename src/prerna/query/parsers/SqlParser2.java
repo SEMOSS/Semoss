@@ -19,6 +19,7 @@ import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.TimeValue;
+import net.sf.jsqlparser.expression.TimestampValue;
 import net.sf.jsqlparser.expression.WhenClause;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
@@ -1007,28 +1008,6 @@ public class SqlParser2 {
 			wep.parent = (GenExpression)qs;
 			return wep;
 		}
-		else if(joinExpr instanceof DoubleValue)
-		{
-			GenExpression gep = new GenExpression();
-			gep.aQuery = joinExpr.toString();
-			Double value = ((DoubleValue)joinExpr).getValue();
-			gep.setOperation("double");
-			gep.setExpression("double");
-			gep.setLeftExpresion(value);
-			gep.parent = (GenExpression)qs;
-			return gep;
-		}
-		else if(joinExpr instanceof TimeValue)
-		{
-			GenExpression gep = new GenExpression();
-			gep.aQuery = joinExpr.toString();
-			Time value = ((TimeValue)joinExpr).getValue();
-			gep.setOperation("time");
-			gep.setExpression("time");
-			gep.setLeftExpresion(value);
-			gep.parent = (GenExpression)qs;
-			return gep;
-		}
 		else if(joinExpr instanceof StringValue)
 		{
 			GenExpression gep = new GenExpression();
@@ -1037,6 +1016,28 @@ public class SqlParser2 {
 			gep.setOperation("string");
 			gep.setExpression("string");
 			gep.setLeftExpresion("'" + value + "'");
+			gep.parent = (GenExpression)qs;
+			return gep;
+		}
+		else if(joinExpr instanceof LongValue)
+		{
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Long value = ((LongValue)joinExpr).getValue();
+			gep.setOperation("long");
+			gep.setExpression("long");
+			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression)qs;
+			return gep;
+		}
+		else if(joinExpr instanceof DoubleValue)
+		{
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Double value = ((DoubleValue)joinExpr).getValue();
+			gep.setOperation("double");
+			gep.setExpression("double");
+			gep.setLeftExpresion(value);
 			gep.parent = (GenExpression)qs;
 			return gep;
 		}
@@ -1051,13 +1052,24 @@ public class SqlParser2 {
 			gep.parent = (GenExpression)qs;
 			return gep;
 		}
-		else if(joinExpr instanceof LongValue)
+		else if(joinExpr instanceof TimestampValue)
 		{
 			GenExpression gep = new GenExpression();
 			gep.aQuery = joinExpr.toString();
-			Long value = ((LongValue)joinExpr).getValue();
-			gep.setOperation("long");
-			gep.setExpression("long");
+			Date value = ((DateValue)joinExpr).getValue();
+			gep.setOperation("timestamp");
+			gep.setExpression("timestamp");
+			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression)qs;
+			return gep;
+		}
+		else if(joinExpr instanceof TimeValue)
+		{
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Time value = ((TimeValue)joinExpr).getValue();
+			gep.setOperation("time");
+			gep.setExpression("time");
 			gep.setLeftExpresion(value);
 			gep.parent = (GenExpression)qs;
 			return gep;
@@ -1183,15 +1195,36 @@ public class SqlParser2 {
 
 				gep.inList.add(ge);
 				Object constantValue = ge.getLeftExpr();
+				// try to inspect and get the value
 				String constantType = "string";
-				
-				if(columnName != null && parameterize)
 				{
+					ExpressionList list = (ExpressionList) itemList;
+					List<Expression> exprList = list.getExpressions();	
+					for(Expression e : exprList) {
+						if(e instanceof LongValue) {
+							constantType = "long";
+							break;
+						} else if(joinExpr instanceof DoubleValue) {
+							constantType = "long";
+							break;
+						} else if(joinExpr instanceof TimeValue) {
+							constantType = "time";
+							break;
+						} else if(joinExpr instanceof DateValue) {
+							constantType = "date";
+							break;
+						} else if(joinExpr instanceof TimestampValue) {
+							constantType = "timestamp";
+							break;
+						}
+					}
+				}
+				
+				if(columnName != null && parameterize) {
 					// removing the quotes for now
 					ge.setLeftExpr("(<" + tableName + "_" + columnName + "in" + ">)");
 				}
 				this.wrapper.makeParameters(columnName, constantValue, "in", "in", constantType, ge, tableName);
-
 			}
 				
 			//gep.setComposite(composite);
