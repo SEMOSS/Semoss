@@ -31,6 +31,7 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.AllTableColumns;
 import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.GroupByElement;
@@ -370,7 +371,7 @@ public class SqlParser2 {
 				}
 				
 			}
-			else if(si instanceof AllTableColumns)
+			else if(si instanceof AllTableColumns || si instanceof AllColumns)
 			{
 				GenExpression gep = new GenExpression();
 				gep.aQuery = si.toString();
