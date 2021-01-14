@@ -5,8 +5,11 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.om.Pixel;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
+import prerna.query.parsers.ParamStructDetails.BASE_QS_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -20,8 +23,12 @@ public class QSParseParamStruct {
 	
 	private static final Logger logger = LogManager.getLogger(QSParseParamStruct.class);
 	
-	private QSParseParamStruct() {
-
+	private Pixel pixelObj = null;
+	private SelectQueryStruct qs = null;;
+	
+	public QSParseParamStruct(SelectQueryStruct qs, Pixel pixelObj) {
+		this.qs = qs;
+		this.pixelObj = pixelObj;
 	}
 	
 	/**
@@ -29,7 +36,7 @@ public class QSParseParamStruct {
 	 * @param filter
 	 * @param paramList
 	 */
-	public static void parseFilter(IQueryFilter filter, List<ParamStruct> paramList) {
+	public void parseFilter(IQueryFilter filter, List<ParamStruct> paramList) {
 		if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 			convertSimpleQueryFilter((SimpleQueryFilter) filter, paramList);
 		} else if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
@@ -40,19 +47,19 @@ public class QSParseParamStruct {
 		
 	}
 
-	public static void parseOrQueryFilter(OrQueryFilter filter, List<ParamStruct> paramList) {
+	public void parseOrQueryFilter(OrQueryFilter filter, List<ParamStruct> paramList) {
 		for(IQueryFilter f : filter.getFilterList()) {
 			parseFilter(f, paramList);
 		}
 	}
 
-	public static void parseAndQueryFilter(AndQueryFilter filter, List<ParamStruct> paramList) {
+	public void parseAndQueryFilter(AndQueryFilter filter, List<ParamStruct> paramList) {
 		for(IQueryFilter f : filter.getFilterList()) {
 			parseFilter(f, paramList);
 		}
 	}
 
-	public static void convertSimpleQueryFilter(SimpleQueryFilter filter, List<ParamStruct> paramList) {
+	public void convertSimpleQueryFilter(SimpleQueryFilter filter, List<ParamStruct> paramList) {
 		boolean parameterizeLeft = false;
 		boolean parameterizeRight = false;
 		
@@ -86,8 +93,12 @@ public class QSParseParamStruct {
 		
 		ParamStruct param = new ParamStruct();
 		ParamStructDetails paramDetails = new ParamStructDetails();
+		paramDetails.setBaseQsType(BASE_QS_TYPE.SQS);
+		paramDetails.setAppId(qs.getEngineId());
+		paramDetails.setPixelId(pixelObj.getId());
+		paramDetails.setPixelString(pixelObj.getPixelString());
 		paramDetails.setOperator(comparator);
-		
+
 		QueryColumnSelector columnSelector = (QueryColumnSelector) selector;
 		paramDetails.setTableName(columnSelector.getTable());
 		paramDetails.setColumnName(columnSelector.getColumn());
