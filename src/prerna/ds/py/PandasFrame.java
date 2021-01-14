@@ -290,7 +290,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			if(proposedType != null && !pyproposedType.equalsIgnoreCase(colType)) {
 				// create and execute the type
 				if(proposedType == SemossDataType.DATE) {
-					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore')";
+					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore').dt.date";
 					allTypes.append(typeChanger).append("\n");
 					//pyt.runScript(typeChanger);
 				} else if(proposedType == SemossDataType.TIMESTAMP) {
