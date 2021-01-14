@@ -8,10 +8,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,10 +22,10 @@ public class PixelList implements Iterable<Pixel> {
 
 	private static final Logger logger = LogManager.getLogger(PixelList.class);
 
-	private AtomicInteger counter = new AtomicInteger(0);
-	private List<Pixel> pixelList = new Vector<>();
-	private Map<String, Integer> idToIndexHash = new ConcurrentHashMap<>();
-	private Map<String, LinkedList<Pixel>> frameDependency = new ConcurrentHashMap<>();
+//	private AtomicInteger counter = new AtomicInteger(0);
+	private List<Pixel> pixelList = new Vector<>(1_000);
+	private Map<String, Integer> idToIndexHash = new ConcurrentHashMap<>(1_000);
+	private Map<String, LinkedList<Pixel>> frameDependency = new ConcurrentHashMap<>(1_000);
 	
 	public PixelList() {
 		
@@ -42,7 +40,7 @@ public class PixelList implements Iterable<Pixel> {
 		idToIndexHash.put(p.getId(), this.pixelList.size()-1);
 		syncLastPixel();
 		// increment the counter
-		counter.getAndIncrement();
+//		counter.getAndIncrement();
 	}
 	
 	public void syncLastPixel() {
@@ -109,8 +107,8 @@ public class PixelList implements Iterable<Pixel> {
 		synchronized(this) {
 			List<Pixel> subset = new Vector<>();
 			for(int i = 0; i < pixelRecipe.size(); i++) {
-				int intVal = counter.getAndIncrement();
-				String uid = intVal + "__" + UUID.randomUUID().toString();
+				int intVal = this.pixelList.size();//counter.getAndIncrement();
+				String uid = intVal + "";// + "__" + UUID.randomUUID().toString();
 				Pixel pixel = new Pixel(uid, pixelRecipe.get(i));
 				this.pixelList.add(pixel);
 				idToIndexHash.put(uid, this.pixelList.size()-1);
@@ -131,8 +129,8 @@ public class PixelList implements Iterable<Pixel> {
 		synchronized(this) {
 			List<Pixel> subset = new Vector<>();
 			for(int i = 0; i < pixelRecipe.size(); i++) {
-				int intVal = counter.getAndIncrement();
-				String uid = intVal + "__" + UUID.randomUUID().toString();
+				int intVal = this.pixelList.size();//counter.getAndIncrement();
+				String uid = intVal + "";// + "__" + UUID.randomUUID().toString();
 				Pixel pixel = new Pixel(uid, pixelRecipe.get(i));
 				this.pixelList.add(index++, pixel);
 				// return the pixel object that was added
@@ -350,8 +348,18 @@ public class PixelList implements Iterable<Pixel> {
 			}
 			
 			// recalculate the hash
+			reorganizePixelIds();
 			recalculateIdToIndexHash();
 			return indices;
+		}
+	}
+	
+	/**
+	 * Recalculate the index hash
+	 */
+	public void reorganizePixelIds() {
+		for(int i = 0; i < this.pixelList.size(); i++) {
+			pixelList.get(i).setId(i + "");
 		}
 	}
 	
@@ -387,21 +395,21 @@ public class PixelList implements Iterable<Pixel> {
 		return copy;
 	}
 	
-	/**
-	 * Get the counter value
-	 * @return
-	 */
-	public int getCounter() {
-		return counter.intValue();
-	}
-	
-	/**
-	 * Set the counter value
-	 * @param value
-	 */
-	public void setCounter(int value) {
-		this.counter = new AtomicInteger(value);
-	}
+//	/**
+//	 * Get the counter value
+//	 * @return
+//	 */
+//	public int getCounter() {
+//		return counter.intValue();
+//	}
+//	
+//	/**
+//	 * Set the counter value
+//	 * @param value
+//	 */
+//	public void setCounter(int value) {
+//		this.counter = new AtomicInteger(value);
+//	}
 	
 	////////////////////////////////////////////////////////////
 	
