@@ -291,7 +291,6 @@ public class GenExpressionWrapper {
 			LEVEL thisStructLevel = thisStruct.getLevel();
 			
 			ParamStruct pStruct = detailsLookup.get(thisStruct);
-			boolean isMulti = pStruct.isMultiple();
 			String userDefinedParamName = pStruct.getParamName();
 			
 			if(thisStructLevel == LEVEL.COLUMN) {
@@ -305,18 +304,13 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String finalValue = "";
-							if(isMulti) {
-								finalValue = "[<" + userDefinedParamName + ">]";
-							} else {
-								String quote = "";
-								if(targetStruct.getQuote() == QUOTE.DOUBLE) {
-									quote = "\"";
-								} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
-									quote = "'";
-								}
-								finalValue = quote + "<" + userDefinedParamName + ">" + quote;
+							String quote = "";
+							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+								quote = "\"";
+							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+								quote = "'";
 							}
+							String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 							
 							GenExpression thisExpression = exprs.get(exprIndex);
 							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
@@ -343,18 +337,13 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String finalValue = "";
-							if(isMulti) {
-								finalValue = "[<" + userDefinedParamName + ">]";
-							} else {
-								String quote = "";
-								if(targetStruct.getQuote() == QUOTE.DOUBLE) {
-									quote = "\"";
-								} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
-									quote = "'";
-								}
-								finalValue = quote + "<" + userDefinedParamName + ">" + quote;
+							String quote = "";
+							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+								quote = "\"";
+							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+								quote = "'";
 							}
+							String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 							
 							GenExpression thisExpression = exprs.get(exprIndex);
 							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
@@ -382,18 +371,13 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String finalValue = "";
-							if(isMulti) {
-								finalValue = "[<" + userDefinedParamName + ">]";
-							} else {
-								String quote = "";
-								if(targetStruct.getQuote() == QUOTE.DOUBLE) {
-									quote = "\"";
-								} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
-									quote = "'";
-								}
-								finalValue = quote + "<" + userDefinedParamName + ">" + quote;
+							String quote = "";
+							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+								quote = "\"";
+							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+								quote = "'";
 							}
+							String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 							
 							GenExpression thisExpression = exprs.get(exprIndex);
 							if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
@@ -418,18 +402,13 @@ public class GenExpressionWrapper {
 						// we will replace the existing parameter 
 						// again with the parameter name
 						// but this time that defined by the user
-						String finalValue = "";
-						if(isMulti) {
-							finalValue = "[<" + userDefinedParamName + ">]";
-						} else {
-							String quote = "";
-							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
-								quote = "\"";
-							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
-								quote = "'";
-							}
-							finalValue = quote + "<" + userDefinedParamName + ">" + quote;
+						String quote = "";
+						if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+							quote = "\"";
+						} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
+							quote = "'";
 						}
+						String finalValue = quote + "<" + userDefinedParamName + ">" + quote;
 						
 						GenExpression thisExpression = exprs.get(exprIndex);
 						if(!thisExpression.operation.equalsIgnoreCase("opaque")) {
