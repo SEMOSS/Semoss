@@ -303,12 +303,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		// send the view data
 		try {
-			Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(cachedInsight);
-			List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
-			if(!pixelReturn.isEmpty()) {
-				runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
-			}
 			// logic to get all the frame headers
+			// add this first to the return object
 			{
 				// get all frame headers
 				VarStore vStore = cachedInsight.getVarStore();
@@ -319,8 +315,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 					if(type == PixelDataType.FRAME) {
 						try {
 							ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-							runner.addResult(0, "CACHED_FRAME_HEADERS", 
-									new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
+							runner.addResult("CACHED_FRAME_HEADERS", 
+									new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, 
+											PixelOperationType.FRAME_HEADERS), true);
 						} catch(Exception e) {
 							e.printStackTrace();
 							// ignore
@@ -328,6 +325,13 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 					}
 				}
 			}
+			// now add in the cached insight view dataw
+			Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(cachedInsight);
+			List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
+			if(!pixelReturn.isEmpty()) {
+				runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
+			}
+			
 			// get the insight config for layout
 			NounMetadata insightConfig = cachedInsight.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
 			if(insightConfig != null) {
