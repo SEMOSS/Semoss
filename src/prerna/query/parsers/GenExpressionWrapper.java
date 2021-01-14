@@ -291,6 +291,7 @@ public class GenExpressionWrapper {
 			LEVEL thisStructLevel = thisStruct.getLevel();
 			
 			ParamStruct pStruct = detailsLookup.get(thisStruct);
+			boolean multi = pStruct.isMultiple();
 			String userDefinedParamName = pStruct.getParamName();
 			
 			if(thisStructLevel == LEVEL.COLUMN) {
@@ -304,8 +305,10 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String quote = "";
-							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+							String quote = null;
+							if(multi || targetStruct.getQuote() == QUOTE.NO) {
+								quote = "";
+							} else if(targetStruct.getQuote() == QUOTE.DOUBLE) {
 								quote = "\"";
 							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
 								quote = "'";
@@ -337,8 +340,10 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String quote = "";
-							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+							String quote = null;
+							if(multi || targetStruct.getQuote() == QUOTE.NO) {
+								quote = "";
+							} else if(targetStruct.getQuote() == QUOTE.DOUBLE) {
 								quote = "\"";
 							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
 								quote = "'";
@@ -371,8 +376,10 @@ public class GenExpressionWrapper {
 							// we will replace the existing parameter 
 							// again with the parameter name
 							// but this time that defined by the user
-							String quote = "";
-							if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+							String quote = null;
+							if(multi || targetStruct.getQuote() == QUOTE.NO) {
+								quote = "";
+							} else if(targetStruct.getQuote() == QUOTE.DOUBLE) {
 								quote = "\"";
 							} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
 								quote = "'";
@@ -402,8 +409,10 @@ public class GenExpressionWrapper {
 						// we will replace the existing parameter 
 						// again with the parameter name
 						// but this time that defined by the user
-						String quote = "";
-						if(targetStruct.getQuote() == QUOTE.DOUBLE) {
+						String quote = null;
+						if(multi || targetStruct.getQuote() == QUOTE.NO) {
+							quote = "";
+						} else if(targetStruct.getQuote() == QUOTE.DOUBLE) {
 							quote = "\"";
 						} else if(targetStruct.getQuote() == QUOTE.SINGLE) {
 							quote = "'";
