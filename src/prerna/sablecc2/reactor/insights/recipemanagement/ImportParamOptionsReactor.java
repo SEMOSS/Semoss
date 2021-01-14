@@ -128,8 +128,9 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			GenRowFilters importFilters = qs.getExplicitFilters();
 			Set<String> filteredColumns = importFilters.getAllQsFilteredColumns();
 
+			QSParseParamStruct parser = new QSParseParamStruct(qs, pixelObj);
 			for(IQueryFilter filter : importFilters) {
-				QSParseParamStruct.parseFilter(filter, paramList);
+				parser.parseFilter(filter, paramList);
 			}
 			
 			// the above should be the filtered options
