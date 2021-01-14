@@ -13,7 +13,9 @@ public class ParamStruct {
 	private boolean searchable = false;
 	private boolean multiple = false;
 	private String paramName = null;
-	private String modelAppId = null;
+	// this is the model app id
+	// but consolidating the key for FE
+	private String appId = null;
 	private String modelQuery = null;
 	private Object manualChoices = null;
 	private String modelDisplay = null; // need to turn this into an enum
@@ -56,11 +58,11 @@ public class ParamStruct {
 	}
 	
 	public String getModelAppId() {
-		return modelAppId;
+		return appId;
 	}
 
 	public void setModelAppId(String modelAppId) {
-		this.modelAppId = modelAppId;
+		this.appId = modelAppId;
 	}
 
 	public String getModelQuery() {
@@ -142,7 +144,7 @@ public class ParamStruct {
 		Boolean searchable = (Boolean) mapInputs.get("searchable");
 		Boolean multiple = (Boolean) mapInputs.get("multiple");
 		String paramName = (String) mapInputs.get("paramName");
-		String modelAppId = (String) mapInputs.get("modelAppId");
+		String modelAppId = (String) mapInputs.get("appId");
 		String modelQuery = (String) mapInputs.get("modelQuery");
 		Object manualChoices = mapInputs.get("manualChoices");
 		String modelDisplay = (String) mapInputs.get("modelDisplay");
