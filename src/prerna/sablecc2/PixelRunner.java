@@ -166,6 +166,8 @@ public class PixelRunner {
 			// store this pixel
 			// in the return pixel list
 			pixel = new Pixel("meta_unstored", origExpression);
+			// make sure the pixel is set to meta
+			pixel.setMeta(true);
 			this.returnPixelList.add(pixel);
 			// add if there is an error or warning
 			determineErrorOrWarning(pixel, result);
