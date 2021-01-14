@@ -180,6 +180,9 @@ public class ParamStructDetails {
 	public static ParamStructDetails generateParamStructDetails(Map<String, Object> mapInputs) {
 		String appId = (String) mapInputs.get("appId");
 		String pixelId = (String) mapInputs.get("pixelId");
+		if(pixelId == null || pixelId.isEmpty()) {
+			throw new IllegalArgumentException("Must define the pixel id for the param struct");
+		}
 		String pixelString = (String) mapInputs.get("pixelString");
 		String tableName = (String) mapInputs.get("tableName");
 		String tableAlias = (String) mapInputs.get("tableAlias");
