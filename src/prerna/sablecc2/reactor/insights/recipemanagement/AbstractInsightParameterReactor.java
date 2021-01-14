@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.insights.recipemanagement;
 import java.util.List;
 import java.util.Map;
 
-import prerna.query.parsers.ParamStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -29,15 +28,5 @@ public abstract class AbstractInsightParameterReactor extends AbstractReactor {
 		}
 		
 		throw new NullPointerException("Could not find the input for the param struct map");
-	}
-	
-	/**
-	 * Generate the param struct object
-	 * @param inputMap
-	 * @return
-	 */
-	protected ParamStruct generateParamStruct(Map<String, Object> inputMap) {
-		
-		return null;
 	}
 }

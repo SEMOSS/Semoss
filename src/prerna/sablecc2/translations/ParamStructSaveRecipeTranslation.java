@@ -417,7 +417,6 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 			}
 		}
 		
-		
 		Insight in = new Insight();
 		ParamStructSaveRecipeTranslation translation = new ParamStructSaveRecipeTranslation(in);
 		translation.setInputsToParameterize(params);
