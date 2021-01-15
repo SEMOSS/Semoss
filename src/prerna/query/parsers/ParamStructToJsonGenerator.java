@@ -120,7 +120,8 @@ public class ParamStructToJsonGenerator {
 			if(fillType == FILL_TYPE.MANUAL) {
 				modelMap.put("defaultOptions", param.getManualChoices());
 			} else {
-
+				// sending empty default options for FE
+				modelMap.put("defaultOptions", new Object[0]);
 				if(requireSearch) {
 					// create search as well
 					// and add the paramList

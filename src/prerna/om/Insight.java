@@ -968,7 +968,9 @@ public class Insight {
 		synchronized(this) {
 			// set the mode
 			setRunSavedInsightMode(true);
-	
+			
+			Map<String, NounMetadata> currentParameters = this.varStore.pullParameters();
+			
 			// always add the insight config
 			boolean hasInsightConfig = false;
 			if(appendInsightConfig) {
@@ -1042,6 +1044,11 @@ public class Insight {
 			// so that way the counter doesn't exponentially
 			// increase with every rerun
 //			this.pixelList.setCounter(counterVal);
+			
+			// add back the insight parameters
+			for(String paramKey : currentParameters.keySet()) {
+				this.varStore.put(paramKey, currentParameters.get(paramKey));
+			}
 			
 			// set the mode back
 			setRunSavedInsightMode(false);

@@ -1,6 +1,7 @@
 package prerna.sablecc2.om;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -179,4 +180,18 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	private String cleanVarName(String varName) {
 		return varName.trim();
 	}
+	
+	/**
+	 * Pull the insight parameters
+	 * @return
+	 */
+	public Map<String, NounMetadata> pullParameters() {
+		Map<String, NounMetadata> retMap = new HashMap<>();
+		for(String paramKey : this.insightParametersSet) {
+			retMap.put(paramKey, this.varMap.get(paramKey));
+		}
+		
+		return retMap;
+	}
+	
 }
