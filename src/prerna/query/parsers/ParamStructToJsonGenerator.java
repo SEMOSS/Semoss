@@ -1,11 +1,9 @@
 package prerna.query.parsers;
 
 import java.lang.reflect.Modifier;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import com.google.gson.Gson;
@@ -21,35 +19,6 @@ public class ParamStructToJsonGenerator {
 
 	private static final int COLLECT_SIZE = 150;
 	private static final String COLLECT_STRING = "Collect(" + COLLECT_SIZE + ")";
-	
-	public static final Set<String> APPEND_SEARCH_PARAM_TYPES = new HashSet<>();
-	static {
-		APPEND_SEARCH_PARAM_TYPES.add("checklist");
-		APPEND_SEARCH_PARAM_TYPES.add("dropdown");
-		APPEND_SEARCH_PARAM_TYPES.add("typeahead");
-	}
-	
-	public static final Set<String> APPEND_QUICK_SELECT_TYPES = new HashSet<>();
-	static {
-		APPEND_QUICK_SELECT_TYPES.add("checklist");
-	}
-	
-	public static final Set<String> APPEND_USE_SELECTED_VALUES_TYPES = new HashSet<>();
-	static {
-		APPEND_USE_SELECTED_VALUES_TYPES.add("checklist");
-	}
-	
-	public static final Set<String> DEFAULT_VALUE_IS_ARRAY = new HashSet<>();
-	static {
-		DEFAULT_VALUE_IS_ARRAY.add("checklist");
-	}
-	
-	public static final Set<String> REQUIRE_MODEL_TYPES = new HashSet<>();
-	static {
-		REQUIRE_MODEL_TYPES.add("checklist");
-		REQUIRE_MODEL_TYPES.add("dropdown");
-		REQUIRE_MODEL_TYPES.add("typeahead");
-	}
 	
 	/**
 	 * Generate the final json object for the saved insight
@@ -88,9 +57,9 @@ public class ParamStructToJsonGenerator {
 			// grab the display type first
 			// since that determines some default values
 			final String DISPLAY_TYPE = getModelDisplay(param);
-			boolean requireSearch = APPEND_SEARCH_PARAM_TYPES.contains(DISPLAY_TYPE);
-			boolean useSelectedValues = APPEND_USE_SELECTED_VALUES_TYPES.contains(DISPLAY_TYPE);
-			boolean quickSelect = APPEND_QUICK_SELECT_TYPES.contains(DISPLAY_TYPE);
+			boolean requireSearch = ParamStruct.APPEND_SEARCH_PARAM_TYPES.contains(DISPLAY_TYPE);
+			boolean useSelectedValues = ParamStruct.APPEND_USE_SELECTED_VALUES_TYPES.contains(DISPLAY_TYPE);
+			boolean quickSelect = ParamStruct.APPEND_QUICK_SELECT_TYPES.contains(DISPLAY_TYPE);
 			
 			// need to create each param object
 			Map<String, Object> paramMap = new LinkedHashMap<>();
@@ -143,7 +112,7 @@ public class ParamStructToJsonGenerator {
 					
 					// now we just need to define the query supporting this model
 					String modelQuery = param.getModelQuery();
-					if(REQUIRE_MODEL_TYPES.contains(DISPLAY_TYPE)) {
+					if(ParamStruct.REQUIRE_MODEL_TYPES.contains(DISPLAY_TYPE)) {
 						String paramQ = null;
 						
 						if( (modelQuery == null || modelQuery.isEmpty()) && param.getFillType() == FILL_TYPE.QUERY) {
@@ -214,7 +183,7 @@ public class ParamStructToJsonGenerator {
 				// we require an array for default value for certain 
 				// display types
 				// so going to enforce that
-				if(DEFAULT_VALUE_IS_ARRAY.contains(DISPLAY_TYPE)) {
+				if(ParamStruct.DEFAULT_VALUE_IS_ARRAY.contains(DISPLAY_TYPE)) {
 					List<Object> defaultValArray = null;
 					if(defaultValue instanceof List) {
 						defaultValArray = (List<Object>) defaultValue;
