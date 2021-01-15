@@ -1,10 +1,60 @@
 package prerna.query.parsers;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 public class ParamStruct {
+
+	////////////////////////////////////////////////////////
+	
+	/*
+	 * Keeping static information in a central place around the param structs
+	 */
+	
+	// this is based on if the JSON requires a search
+	public static final Set<String> APPEND_SEARCH_PARAM_TYPES = new HashSet<>();
+	static {
+		APPEND_SEARCH_PARAM_TYPES.add("checklist");
+		APPEND_SEARCH_PARAM_TYPES.add("dropdown");
+		APPEND_SEARCH_PARAM_TYPES.add("typeahead");
+	}
+	
+	// if we need the "quickselect" key in the JSON
+	public static final Set<String> APPEND_QUICK_SELECT_TYPES = new HashSet<>();
+	static {
+		APPEND_QUICK_SELECT_TYPES.add("checklist");
+	}
+	
+	// if we need the "useSelectedValues" key in the JSON
+	public static final Set<String> APPEND_USE_SELECTED_VALUES_TYPES = new HashSet<>();
+	static {
+		APPEND_USE_SELECTED_VALUES_TYPES.add("checklist");
+	}
+	
+	// if we need the "defaultValue" value to be an array 
+	public static final Set<String> DEFAULT_VALUE_IS_ARRAY = new HashSet<>();
+	static {
+		DEFAULT_VALUE_IS_ARRAY.add("checklist");
+	}
+	
+	// if we need to generate a default model type if one does not exist
+	public static final Set<String> REQUIRE_MODEL_TYPES = new HashSet<>();
+	static {
+		REQUIRE_MODEL_TYPES.add("checklist");
+		REQUIRE_MODEL_TYPES.add("dropdown");
+		REQUIRE_MODEL_TYPES.add("typeahead");
+	}
+	
+	// if, for sqs, we need the parameter to be [<pName>] or just <pName>
+	public static final Set<String> PARAM_FILL_USE_ARRAY_TYPES = new HashSet<>();
+	static {
+		PARAM_FILL_USE_ARRAY_TYPES.add("checklist");
+	}
+	
+	////////////////////////////////////////////////////////
 
 	public enum FILL_TYPE {MANUAL, PIXEL, QUERY}
 	

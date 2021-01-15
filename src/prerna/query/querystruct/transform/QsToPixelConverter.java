@@ -394,8 +394,12 @@ public class QsToPixelConverter {
 				b.append("[null]");
 			} else if(val instanceof Number) {
 				b.append(val);
-			} else if(val.toString().startsWith("<") && val.toString().endsWith(">")){
-				b.append("[").append(values).append("]");
+			} else if( (val.toString().startsWith("[\"<") && val.toString().endsWith(">\"]"))
+					|| ((val.toString().startsWith("[<") && val.toString().endsWith(">]")))
+					|| ((val.toString().startsWith("\"<") && val.toString().endsWith(">\"")))
+					|| ((val.toString().startsWith("<") && val.toString().endsWith(">")))
+					){
+				b.append(values);
 			} else {
 				b.append("\"").append(values).append("\"");
 			}
