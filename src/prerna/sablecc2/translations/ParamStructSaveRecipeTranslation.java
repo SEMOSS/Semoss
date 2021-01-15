@@ -204,10 +204,23 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 							if(comparator == null || comparator.isEmpty()) {
 								comparator = "==";
 							}
+							// this is the replacement
+							String replacement = null;
+							if(ParamStruct.PARAM_FILL_USE_ARRAY_TYPES.contains(pStruct.getModelDisplay()) 
+									|| importParam.getQuote() == QUOTE.NO) {
+								replacement = "[<" + pStruct.getParamName() + ">]";
+							} else {
+								PixelDataType importType = importParam.getType();
+								if(importType == PixelDataType.CONST_INT || importType == PixelDataType.CONST_DECIMAL) {
+									replacement = "<" + pStruct.getParamName() + ">";
+								} else {
+									replacement = "\"<" + pStruct.getParamName() + ">\"";
+								}
+							}
 							SimpleQueryFilter paramF = new SimpleQueryFilter(
 									new NounMetadata(new QueryColumnSelector(importParam.getTableName() + "__" + importParam.getColumnName()), PixelDataType.COLUMN), 
 									comparator, 
-									new NounMetadata("<" + pStruct.getParamName() + ">", PixelDataType.CONST_STRING)
+									new NounMetadata(replacement, PixelDataType.CONST_STRING)
 									);
 							
 							// add these filters into the AND
