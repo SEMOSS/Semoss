@@ -12,7 +12,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -24,7 +25,7 @@ import prerna.sablecc2.PixelStreamUtility;
  */
 public class PixelJsonGenerator extends PixelUnit {
 	private static final String CLASS_NAME = PixelStreamUtility.class.getName();
-	private static final Logger LOGGER = Logger.getLogger(CLASS_NAME);
+	private static final Logger LOGGER = LogManager.getLogger(CLASS_NAME);
 	
 	protected static final String TESTS_CSV = Paths.get(TEST_RESOURCES_DIRECTORY, "tests.csv").toAbsolutePath().toString();
 
