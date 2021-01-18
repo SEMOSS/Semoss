@@ -37,10 +37,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.h2.tools.DeleteDbFiles;
+
+import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
@@ -68,7 +69,7 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 	boolean engineConnected = false;
 	boolean datasourceConnected = false;
 	private RdbmsTypeEnum dbType;
-	private BasicDataSource dataSource = null;
+	private HikariDataSource dataSource = null;
 	private Connection engineConn = null;
 	private boolean useConnectionPooling = false;
 	private boolean autoCommit = false;
@@ -229,8 +230,6 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {
 					this.dataSource = connBuilder.getDataSource();
-					this.dataSource.setMinIdle(this.poolMinSize);
-					this.dataSource.setMaxIdle(this.poolMaxSize);
 					this.datasourceConnected = true;
 				}
 				this.engineConnected = true;
@@ -280,7 +279,7 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 	 * Get the data source
 	 * @return
 	 */
-	public BasicDataSource getDataSource() {
+	public HikariDataSource getDataSource() {
 		return getContext().getDataSource();
 	}
 

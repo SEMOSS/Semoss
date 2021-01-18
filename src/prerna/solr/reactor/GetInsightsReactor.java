@@ -107,7 +107,12 @@ public class GetInsightsReactor extends AbstractReactor {
 				while(wrapper.hasNext()) {
 					Object[] data = wrapper.next().getValues();
 					String metaKey = (String) data[2];
-					String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[3]);
+					String value = null;
+					if(data[3] instanceof java.sql.Clob) {
+						value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[3]);
+					} else {
+						value = (String) data[3];
+					}
 					if(value == null) {
 						continue;
 					}
