@@ -9,9 +9,10 @@ import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -212,13 +213,12 @@ public class RdbmsConnectionHelper {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static BasicDataSource getDataSourceFromPool(String driver, String connectURI, String userName, String password) throws SQLException {
-		BasicDataSource ds = new BasicDataSource();
+	public static HikariDataSource getDataSourceFromPool(String driver, String connectURI, String userName, String password) throws SQLException {
+		HikariDataSource ds = new HikariDataSource();
 		ds.setDriverClassName(driver);
-		ds.setUrl(connectURI);
+		ds.setJdbcUrl(connectURI);
 		ds.setUsername(userName);
 		ds.setPassword(password);
-		ds.setDefaultAutoCommit(false);
 		return ds;
 	}
 

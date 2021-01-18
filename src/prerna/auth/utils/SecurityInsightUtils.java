@@ -424,6 +424,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -452,10 +459,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException("The user does not have access to view this insight");
 		}
 		
-//		String query = "SELECT USER.ID AS \"id\", "
-//				+ "USER.NAME AS \"name\", "
+//		String query = "SELECT SMSS_USER.ID AS \"id\", "
+//				+ "SMSS_USER.NAME AS \"name\", "
 //				+ "PERMISSION.NAME AS \"permission\" "
-//				+ "FROM USER "
+//				+ "FROM SMSS_USER "
 //				+ "INNER JOIN USERINSIGHTPERMISSION ON (USER.ID = USERINSIGHTPERMISSION.USERID) "
 //				+ "INNER JOIN PERMISSION ON (USERINSIGHTPERMISSION.PERMISSION = PERMISSION.ID) "
 //				+ "WHERE USERINSIGHTPERMISSION.ENGINEID='" + appId + "'"
@@ -465,11 +472,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
-		qs.addRelation("USER", "USERINSIGHTPERMISSION", "inner.join");
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "inner.join");
 		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
@@ -528,6 +535,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -566,6 +580,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -614,6 +635,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -645,6 +673,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -676,6 +711,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -715,6 +757,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -739,6 +788,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				if(ps != null) {
 					try {
 						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
@@ -775,6 +831,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -806,6 +869,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -839,6 +909,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -869,6 +946,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -1867,19 +1951,19 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		/*
 		 * String Query = 
-		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL FROM USER WHERE USER.ID NOT IN 
+		 * "SELECT SMSS_USER.ID, SMSS_USER.USERNAME, SMSS_USER.NAME, SMSS_USER.EMAIL FROM SMSS_USER WHERE SMSS_USER.ID NOT IN 
 		 * (SELECT u.USERID FROM USERINSIGHTPERMISSION u WHERE u.ENGINEID == '" + appID + "' AND u.INSIGHTID == '"+insightID +"'AND u.PERMISSION IS NOT NULL);"
 		 */
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME", "username"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		//Filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("USER__ID", "!=", subQs));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
 			//Sub-query itself
 			subQs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));

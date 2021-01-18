@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
 
-import org.apache.commons.dbcp2.BasicDataSource;
+import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 
@@ -14,7 +14,7 @@ public class RdbmsConnectionBuilder {
 	public enum CONN_TYPE {DIRECT_CONN_URL, BUILD_CONN_URL, BUILD_FROM_FILE, CONNECTION_POOL}
 
 	private Connection conn;
-	private BasicDataSource ds;
+	private HikariDataSource ds;
 	
 	private CONN_TYPE type;
 	private String driver;
@@ -77,7 +77,7 @@ public class RdbmsConnectionBuilder {
 		return this.conn;
 	}
 	
-	public BasicDataSource getDataSource() {
+	public HikariDataSource getDataSource() {
 		return this.ds;
 	}
 
@@ -86,7 +86,7 @@ public class RdbmsConnectionBuilder {
 		return this;
 	}
 
-	public RdbmsConnectionBuilder setDs(BasicDataSource ds) {
+	public RdbmsConnectionBuilder setDs(HikariDataSource ds) {
 		this.ds = ds;
 		return this;
 	}
@@ -161,7 +161,7 @@ public class RdbmsConnectionBuilder {
 		return conn;
 	}
 
-	public BasicDataSource getDs() {
+	public HikariDataSource getDs() {
 		return ds;
 	}
 

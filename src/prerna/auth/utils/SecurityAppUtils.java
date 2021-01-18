@@ -322,10 +322,10 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The user does not have access to view this app");
 		}
 		
-//		String query = "SELECT USER.ID AS \"id\", "
-//				+ "USER.NAME AS \"name\", "
+//		String query = "SELECT SMSS_USER.ID AS \"id\", "
+//				+ "SMSS_USER.NAME AS \"name\", "
 //				+ "PERMISSION.NAME AS \"permission\" "
-//				+ "FROM USER "
+//				+ "FROM SMSS_USER "
 //				+ "INNER JOIN ENGINEPERMISSION ON (USER.ID = ENGINEPERMISSION.USERID) "
 //				+ "INNER JOIN PERMISSION ON (ENGINEPERMISSION.PERMISSION = PERMISSION.ID) "
 //				+ "WHERE ENGINEPERMISSION.ENGINEID='" + appId + "';"
@@ -334,13 +334,13 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addRelation("USER", "ENGINEPERMISSION", "inner.join");
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("USER__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
@@ -460,8 +460,8 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		String query = "DELETE FROM ENGINEPERMISSION WHERE "
-				+ "USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
+		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID='" 
+				+ RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
 				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
 		try {
 			securityDb.insertData(query);
@@ -471,8 +471,8 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		}
 		
 		// need to also delete all insight permissions for this app
-		query = "DELETE FROM USERINSIGHTPERMISSION WHERE "
-				+ "USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
+		query = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID='" 
+				+ RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
 				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
 		try {
 			securityDb.insertData(query);
@@ -559,6 +559,13 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			if(stmt != null) {
 				try {
 					stmt.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							stmt.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -781,19 +788,19 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		
 		/*
 		 * String Query = 
-		 * "SELECT USER.ID, USER.USERNAME, USER.NAME, USER.EMAIL  FROM USER WHERE ID NOT IN 
+		 * "SELECT SMSS_USER.ID, SMSS_USER.USERNAME, SMSS_USER.NAME, SMSS_USER.EMAIL FROM SMSS_USER WHERE ID NOT IN 
 		 * (SELECT e.USERID FROM ENGINEPERMISSION e WHERE e.ENGINEID = '"+ appID + "' e.PERMISSION IS NOT NULL);"
 		 */
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME", "username"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		//Filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("USER__ID", "!=", subQs));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
 			//Sub-query itself
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",appId));

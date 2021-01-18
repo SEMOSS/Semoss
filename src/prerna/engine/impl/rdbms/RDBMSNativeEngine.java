@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.h2.tools.DeleteDbFiles;
@@ -51,6 +50,8 @@ import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
+
+import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
@@ -89,7 +90,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	boolean engineConnected = false;
 	boolean datasourceConnected = false;
 	private RdbmsTypeEnum dbType;
-	private BasicDataSource dataSource = null;
+	private HikariDataSource dataSource = null;
 	private Connection engineConn = null;
 	private boolean useConnectionPooling = false;
 	private boolean autoCommit = false;
@@ -275,8 +276,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {
 					this.dataSource = connBuilder.getDataSource();
-					this.dataSource.setMinIdle(this.poolMinSize);
-					this.dataSource.setMaxIdle(this.poolMaxSize);
+					setDataSourceProperties(this.dataSource);
 					this.datasourceConnected = true;
 				}
 				this.engineConnected = true;
@@ -308,6 +308,16 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	 */
 	protected void init(RdbmsConnectionBuilder connBuilder, boolean force) {
 		// default does nothing
+	}
+	
+	protected void setDataSourceProperties(HikariDataSource dataSource) {
+		dataSource.setMinimumIdle(this.poolMinSize);
+		dataSource.setMaximumPoolSize(this.poolMaxSize);
+		dataSource.setLeakDetectionThreshold(5_000);
+//		dataSource.setRemoveAbandonedOnBorrow(true);
+//		dataSource.setRemoveAbandonedOnMaintenance(true);
+//		dataSource.setRemoveAbandonedTimeout(5);
+//		dataSource.setMaxWaitMillis(30_000);
 	}
 
 	public AbstractSqlQueryUtil getQueryUtil() {
@@ -372,7 +382,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	 * Get the data source
 	 * @return
 	 */
-	public BasicDataSource getDataSource() {
+	public HikariDataSource getDataSource() {
 		return this.dataSource;
 	}
 
@@ -390,6 +400,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					this.engineConn = connBuilder.build();
 					if(useConnectionPooling) {
 						this.dataSource = connBuilder.getDataSource();
+						setDataSourceProperties(this.dataSource);
 						this.datasourceConnected = true;
 					}
 					this.engineConnected = true;
@@ -409,6 +420,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			this.engineConn = connBuilder.build();
 			if(useConnectionPooling) {
 				this.dataSource = connBuilder.getDataSource();
+				setDataSourceProperties(this.dataSource);
 				this.datasourceConnected = true;
 			}
 			this.engineConnected = true;
@@ -439,6 +451,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 		// if datasource, give back the conn to the pool
 		if(this.datasourceConnected) {
+			// you have to commit on the connection itself
+			if(!autoCommit) {
+				conn.commit();
+			}
 			conn.close();
 		}
 	}
@@ -628,6 +644,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public boolean isConnected() {
 		return engineConn !=null && this.engineConnected;
 	}
+	
+	public boolean isConnectionPooling() {
+		return this.useConnectionPooling;
+	}
 
 	@Override
 	public void closeDB() {
@@ -658,7 +678,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			try {
 				this.dataSource.close();
 				this.datasourceConnected = false;
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -753,6 +773,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 		// if datasource, give back the conn to the pool
 		if(this.datasourceConnected) {
+			// you have to commit on the connection itself
+			if(!autoCommit) {
+				conn.commit();
+			}
 			conn.close();
 		}
 	}
