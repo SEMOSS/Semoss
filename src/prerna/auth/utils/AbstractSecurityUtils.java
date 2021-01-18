@@ -535,15 +535,19 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("SMSS_USER", colNames, types));
 			}
 		}
-		SelectQueryStruct qs = new SelectQueryStruct();
+		StringBuilder query = new StringBuilder("SELECT ");
 		Object[] input = new Object[colNames.length+1];
 		input[0] = "SMSS_USER";
 		for(int i = 0; i < colNames.length; i++) {
 			input[i+1] = colNames[i];
-			qs.addSelector(new QueryColumnSelector("USER__" + colNames[i]));
+			if(i > 0) {
+				query.append(", ");
+			}
+			query.append(colNames[i]);
 		}
+		query.append(" FROM USER");
 		PreparedStatement insertPs = securityDb.bulkInsertPreparedStatement(input);
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(securityDb, query.toString());
 		try {
 			while(iterator.hasNext()) {
 				Object[] values = iterator.next().getValues();
