@@ -152,6 +152,8 @@ public interface IReactor {
 
 	String getHelp();
 	
+	String getReactorDescription();
+	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor
 	 * reactors work on the generic noun
