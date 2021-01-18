@@ -594,17 +594,23 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract boolean allowBlobDataType();
 	
 	/**
-	 * Get the RDBMS type equivalent for blobs
-	 * @return
-	 */
-	public abstract String getBlobReplacementDataType();
-	
-	/**
 	 * Does the RDBMS type support blob java object storage
 	 * i.e. - connection.createBlob();
 	 * @return
 	 */
 	public abstract boolean allowBlobJavaObject();
+	
+	/**
+	 * Get the RDBMS type name for blob type (BLOB is ANSI)
+	 * @return
+	 */
+	public abstract String getBlobDataTypeName();
+	
+	/**
+	 * Get the RDBMS type equivalent for clob type (CLOB is ANSI)
+	 * @return
+	 */
+	public abstract String getClobDataTypeName();
 	
 	/**
 	 * Does the RDBMS type support clob java object storage
@@ -1000,6 +1006,15 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract String deleteAllRowsFromTable(String tableName);
 
+	/**
+	 * Quick syntax to copy a table into another table
+	 * 
+	 * @param newTableName
+	 * @param oldTableName
+	 * @return
+	 */
+	public abstract String copyTable(String newTableName, String oldTableName);
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*

@@ -182,7 +182,7 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public String getBlobReplacementDataType() {
+	public String getBlobDataTypeName() {
 		return "VARBINARY(MAX)";
 	}
 	
