@@ -34,6 +34,13 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.PostgresSqlInterpreter;
+import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	
@@ -172,6 +179,11 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getRegexLikeFunctionSyntax() {
+		return "REGEXP_MATCHES";
+	}
+	
+	@Override
 	public boolean allowBlobJavaObject() {
 		return false;
 	}
@@ -189,6 +201,17 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getClobDataTypeName() {
 		return "TEXT";
+	}
+	
+	@Override
+	public void appendSearchRegexFilter(AbstractQueryStruct qs, String columnQs, String searchTerm) {
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector(columnQs));
+		NounMetadata lComparison = new NounMetadata(fun, PixelDataType.COLUMN);
+		NounMetadata rComparison = new NounMetadata(searchTerm.toLowerCase(), PixelDataType.CONST_STRING);
+		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, "~", rComparison);
+		qs.addExplicitFilter(filter);
 	}
 	
 	@Override
