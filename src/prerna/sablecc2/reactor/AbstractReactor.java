@@ -501,11 +501,22 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
+	public String getReactorDescription() {
+		return null;
+	}
+	
+	@Override
 	public String getHelp() {
 		if(keysToGet == null) {
 			return "No help text created for this reactor";
 		}
 		StringBuilder help = new StringBuilder();
+		String overallDescription = getReactorDescription();
+		if(overallDescription != null) {
+			help.append("Description:\n")
+				.append(overallDescription)
+				.append("\n");
+		}
 		help.append("Inputs:\n");
 		int size = keysToGet.length;
 		for(int i = 0; i < size; i++) {
