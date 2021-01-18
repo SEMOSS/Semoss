@@ -59,13 +59,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public static Boolean userIsAdmin(User user) {
 //		String userFilters = getUserFilters(user);
-//		String query = "SELECT * FROM USER WHERE ADMIN=TRUE AND ID IN " + userFilters + " LIMIT 1;";
+//		String query = "SELECT * FROM SMSS_USER WHERE ADMIN=TRUE AND ID IN " + userFilters + " LIMIT 1;";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", getUserFiltersQs(user)));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -93,18 +93,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public List<Map<String, Object>> getAllUsers() throws IllegalArgumentException{
-//		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER FROM USER ORDER BY NAME, TYPE";
+//		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER FROM SMSS_USER ORDER BY NAME, TYPE";
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME"));
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("USER__TYPE"));
-		qs.addSelector(new QueryColumnSelector("USER__ADMIN"));
-		qs.addSelector(new QueryColumnSelector("USER__PUBLISHER"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("USER__NAME"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("USER__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
 		return getSimpleQuery(qs);
 	}
 	
@@ -226,7 +226,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		// check new userID
 		if(newUserId != null) {
-			selectors.add(new QueryColumnSelector("USER__ID"));
+			selectors.add(new QueryColumnSelector("SMSS_USER__ID"));
 			values.add(newUserId);
 		}
 	
@@ -237,7 +237,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if(userEmailExists) {
 				throw new IllegalArgumentException("The user email already exists");
 			}
-			selectors.add(new QueryColumnSelector("USER__EMAIL"));
+			selectors.add(new QueryColumnSelector("SMSS_USER__EMAIL"));
 			values.add(newEmail);
 		}
 		if(newUsername != null && !newUsername.isEmpty()) {
@@ -245,33 +245,33 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if(usernameExists) {
 				throw new IllegalArgumentException("The username already exists");
 			}
-			selectors.add(new QueryColumnSelector("USER__USERNAME"));
+			selectors.add(new QueryColumnSelector("SMSS_USER__USERNAME"));
 			values.add(newUsername);
 		}
 		if(password != null && !password.isEmpty()){
             error += validPassword(password);
             if(error.isEmpty()){
                 String newSalt = SecurityQueryUtils.generateSalt();
-    			selectors.add(new QueryColumnSelector("USER__PASSWORD"));
+    			selectors.add(new QueryColumnSelector("SMSS_USER__PASSWORD"));
     			values.add(SecurityQueryUtils.hash(password, newSalt));
-    			selectors.add(new QueryColumnSelector("USER__SALT"));
+    			selectors.add(new QueryColumnSelector("SMSS_USER__SALT"));
     			values.add(newSalt);
             }
         }
 		if(name != null && !name.isEmpty()) {
-			selectors.add(new QueryColumnSelector("USER__NAME"));
+			selectors.add(new QueryColumnSelector("SMSS_USER__NAME"));
 			values.add(name);
 		}
 		if(type != null && !type.isEmpty()) {
-			selectors.add(new QueryColumnSelector("USER__TYPE"));
+			selectors.add(new QueryColumnSelector("SMSS_USER__TYPE"));
 			values.add(type);
 		}
 		if(adminChange != null) {
-			selectors.add(new QueryColumnSelector("USER__ADMIN"));
+			selectors.add(new QueryColumnSelector("SMSS_USER__ADMIN"));
 			values.add(adminChange);
 		}
 		if(publisherChange != null) {
-			selectors.add(new QueryColumnSelector("USER__PUBLISHER"));
+			selectors.add(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
 			values.add(publisherChange);
 		}
 		if(error != null && !error.isEmpty()) {
@@ -280,7 +280,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		UpdateQueryStruct qs = new UpdateQueryStruct();
 		qs.setEngine(securityDb);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
 		qs.setSelectors(selectors);
 		qs.setValues(values);
 		
@@ -305,7 +305,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 //		for(String groupId : groups){
 //			removeGroup(userToDelete, groupId);
 //		}
-		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1'; DELETE FROM USERINSIGHTPERMISSION WHERE USERID = '?1'; DELETE FROM USER WHERE ID = '?1';";
+		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1'; "
+				+ "DELETE FROM USERINSIGHTPERMISSION WHERE USERID = '?1'; "
+				+ "DELETE FROM SMSS_USER WHERE ID = '?1';";
 		query = query.replace("?1", RdbmsQueryBuilder.escapeForSQLStatement(userToDelete));
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
@@ -319,7 +321,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param isPublisher
 	 */
 	public void setUserPublisher(String userId, boolean isPublisher) {
-		String query = "UPDATE USER SET PUBLISHER=" + isPublisher + " WHERE ID ='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
+		String query = "UPDATE SMSS_USER SET PUBLISHER=" + isPublisher + " WHERE ID ='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
@@ -423,7 +425,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void grantAllApps(String userId, String permission) {
 		// delete all previous permissions for the user
-		String query = "DELETE FROM ENGINEPERMISSION WHERE " + "USERID='"
+		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID='"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
 		String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES('"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', ?, " + "TRUE, "
@@ -446,8 +448,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if (ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -480,8 +489,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -495,7 +511,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void grantAllAppInsights(String appId, String userId, String permission) {
 		// delete all previous permissions for the user
-		String query = "DELETE FROM USERINSIGHTPERMISSION WHERE " + "USERID='"
+		String query = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID='"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(userId) + "' AND ENGINEID = '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(appId) + "';";
 
@@ -523,8 +539,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if (ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -654,10 +677,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public List<Map<String, Object>> getInsightUsers(String appId, String insightId) throws IllegalAccessException {
-//		String query = "SELECT USER.ID AS \"id\", "
-//				+ "USER.NAME AS \"name\", "
+//		String query = "SELECT SMSS_USER.ID AS \"id\", "
+//				+ "SMSS_USER.NAME AS \"name\", "
 //				+ "PERMISSION.NAME AS \"permission\" "
-//				+ "FROM USER "
+//				+ "FROM SMSS_USER "
 //				+ "INNER JOIN USERINSIGHTPERMISSION ON (USER.ID = USERINSIGHTPERMISSION.USERID) "
 //				+ "INNER JOIN PERMISSION ON (USERINSIGHTPERMISSION.PERMISSION = PERMISSION.ID) "
 //				+ "WHERE USERINSIGHTPERMISSION.ENGINEID='" + appId + "'"
@@ -667,16 +690,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__ID", "pvalue"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
-		qs.addRelation("USER", "USERINSIGHTPERMISSION", "inner.join");
+		qs.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "inner.join");
 		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("PERMISSION__ID"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("USER__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
@@ -742,8 +765,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if (ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -833,14 +863,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		 */
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME", "username"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		//Filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("USER__ID", "!=", subQs));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
 			//Sub-query itself
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",appId));
@@ -863,14 +893,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		 */
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME", "username"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		//Filter for sub-query
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("USER__ID", "!=", subQs));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
 			//Sub-query itself
 			subQs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
@@ -924,8 +954,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -974,8 +1011,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			if (ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

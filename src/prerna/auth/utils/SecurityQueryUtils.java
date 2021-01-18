@@ -230,7 +230,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			qs.addSelector(fun);
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", new Vector<String>(engineIdsIncluded)));
+		// since some rdbms do not allow "not in ()" - we will only add if necessary
+		if(!engineIdsIncluded.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", new Vector<String>(engineIdsIncluded)));
+		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -619,23 +622,23 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		List<Map<String, Object>> users = null;
 		if(getGlobalEngineIds().contains(engineId)) {
 //			String query = "SELECT DISTINCT "
-//					+ "USER.NAME AS \"name\", "
+//					+ "SMSS_USER.NAME AS \"name\", "
 //					+ "PERMISSION.NAME as \"permission\" "
-//					+ "FROM USER "
+//					+ "FROM SMSS_USER "
 //					+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
 //					+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
 //					+ "WHERE PERMISSION.ID IN (1,2) AND ENGINEPERMISSION.ENGINEID='" + engineId + "'";
 //			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 						
 			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 			qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 			List<Integer> permissionValues = new Vector<Integer>(2);
 			permissionValues.add(new Integer(1));
 			permissionValues.add(new Integer(2));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", permissionValues, PixelDataType.CONST_INT));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-			qs.addRelation("USER", "ENGINEPERMISSION", "inner.join");
+			qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 			qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 			
 			users = QueryExecutionUtility.flushRsToMap(securityDb, qs);
@@ -646,9 +649,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			users.add(globalMap);
 		} else {
 //			String query = "SELECT DISTINCT "
-//					+ "USER.NAME AS \"name\", "
+//					+ "SMSS_USER.NAME AS \"name\", "
 //					+ "PERMISSION.NAME as \"permission\" "
-//					+ "FROM USER "
+//					+ "FROM SMSS_USER "
 //					+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
 //					+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
 //					+ "WHERE ENGINEPERMISSION.ENGINEID='" + engineId + "'";
@@ -661,14 +664,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	
 	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addRelation("USER", "ENGINEPERMISSION", "inner.join");
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("USER__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
@@ -769,19 +772,20 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public static Map<String, Map<String, Object>> getUserInfo(List<String> userIds) throws IllegalArgumentException {
-//		String query = "SELECT DISTINCT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER ";
+//		String query = "SELECT DISTINCT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM SMSS_USER ";
 //		String userFilter = createFilter(userIds);
 //		query += " WHERE ID " + userFilter + ";";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME"));
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("USER__TYPE"));
-		qs.addSelector(new QueryColumnSelector("USER__ADMIN"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", userIds));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
 
 		Map<String, Map<String, Object>> userMap = new HashMap<>();
 		IRawSelectWrapper wrapper = null;
@@ -866,13 +870,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userIsPublisher(User user) {
 //		String userFilters = getUserFilters(user);
-//		String query = "SELECT * FROM USER WHERE PUBLISHER=TRUE AND ID IN " + userFilters + " LIMIT 1;";
+//		String query = "SELECT * FROM SMSS_USER WHERE PUBLISHER=TRUE AND ID IN " + userFilters + " LIMIT 1;";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__PUBLISHER", "==", "TRUE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", getUserFiltersQs(user)));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__PUBLISHER", "==", "TRUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -895,22 +899,22 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> searchForUser(String searchTerm) {
-//		String query = "SELECT DISTINCT USER.ID AS ID, USER.NAME AS NAME, USER.EMAIL AS EMAIL FROM USER "
-//				+ "WHERE UPPER(USER.NAME) LIKE UPPER('%" + searchTerm + "%') "
-//				+ "OR UPPER(USER.EMAIL) LIKE UPPER('%" + searchTerm + "%') "
-//				+ "OR UPPER(USER.ID) LIKE UPPER('%" + searchTerm + "%');";
+//		String query = "SELECT DISTINCT SMSS_USER.ID AS ID, SMSS_USER.NAME AS NAME, SMSS_USER.EMAIL AS EMAIL FROM SMSS_USER "
+//				+ "WHERE UPPER(SMSS_USER.NAME) LIKE UPPER('%" + searchTerm + "%') "
+//				+ "OR UPPER(SMSS_USER.EMAIL) LIKE UPPER('%" + searchTerm + "%') "
+//				+ "OR UPPER(SMSS_USER.ID) LIKE UPPER('%" + searchTerm + "%');";
 //
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 
 		OrQueryFilter orFilter = new OrQueryFilter();
-		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER__NAME", "?like", searchTerm));
-		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER__EMAIL", "?like", searchTerm));
-		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "?like", searchTerm));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
 		qs.addExplicitFilter(orFilter);
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
@@ -927,12 +931,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return true if user is found otherwise false.
 	 */
 	public static boolean checkUserExist(String userId) {
-//		String query = "SELECT * FROM USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "'";
+//		String query = "SELECT * FROM SMSS_USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", userId));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -955,14 +959,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return true if user is found otherwise false.
 	 */
 	public static boolean checkUserExist(String username, String email){
-//		String query = "SELECT * FROM USER WHERE USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(username) + 
+//		String query = "SELECT * FROM SMSS_USER WHERE USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(username) + 
 //				"' OR EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(email) + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__EMAIL", "==", email));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", username));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", email));
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -981,8 +985,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	
 	public static boolean checkUserEmailExist(String email){
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__EMAIL", "==", email));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", email));
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1001,8 +1005,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	
 	public static boolean checkUsernameExist(String username){
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", username));
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1023,13 +1027,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId	String representing the id of the user to check
 	 */
 	public static Boolean isUserType(String userId, AuthProvider type) {
-//		String query = "SELECT NAME FROM USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "' AND TYPE = '"+ type + "';";
+//		String query = "SELECT NAME FROM SMSS_USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "' AND TYPE = '"+ type + "';";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__NAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", userId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__TYPE", "==", type.toString()));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", type.toString()));
 		
 		List<String[]> ret = QueryExecutionUtility.flushRsToListOfStrArray(securityDb, qs);
 		if(!ret.isEmpty()) {
