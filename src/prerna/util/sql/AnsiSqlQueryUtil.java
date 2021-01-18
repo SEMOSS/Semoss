@@ -522,13 +522,18 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 	
 	@Override
-	public String getBlobReplacementDataType() {
-		throw new UnsupportedOperationException("The blob replacement has not been identified for this RDBMS type");
+	public boolean allowBlobJavaObject() {
+		return true;
 	}
 	
 	@Override
-	public boolean allowBlobJavaObject() {
-		return true;
+	public String getBlobDataTypeName() {
+		return "BLOB";
+	}
+	
+	@Override
+	public String getClobDataTypeName() {
+		return "CLOB";
 	}
 	
 	@Override
@@ -1310,7 +1315,21 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 
 	@Override
 	public String deleteAllRowsFromTable(String tableName) {
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
 		return "DELETE FROM " + tableName; 
+	}
+	
+	@Override
+	public String copyTable(String newTableName, String oldTableName) {
+		if(isSelectorKeyword(newTableName)) {
+			newTableName = getEscapeKeyword(newTableName);
+		}
+		if(isSelectorKeyword(oldTableName)) {
+			oldTableName = getEscapeKeyword(oldTableName);
+		}
+		return "INSERT INTO " + newTableName + " SELECT * FROM " + oldTableName;
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////

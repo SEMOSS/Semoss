@@ -23,7 +23,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("INSIGHT");
 		conceptsRequired.add("INSIGHTMETA");
 		conceptsRequired.add("USERINSIGHTPERMISSION");
-		conceptsRequired.add("USER");
+		conceptsRequired.add("SMSS_USER");
 		conceptsRequired.add("PERMISSION");
 	}
 	
@@ -161,16 +161,16 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTMETA", "METAORDER", "INT");
 		
 		// USER
-		owler.addConcept("USER", null, null);
-		owler.addProp("USER", "ID", "VARCHAR(255)");
-		owler.addProp("USER", "NAME", "VARCHAR(255)");
-		owler.addProp("USER", "EMAIL", "VARCHAR(255)");
-		owler.addProp("USER", "TYPE", "VARCHAR(255)");
-		owler.addProp("USER", "PASSWORD", "VARCHAR(255)");
-		owler.addProp("USER", "SALT", "VARCHAR(255)");
-		owler.addProp("USER", "USERNAME", "VARCHAR(255)");
-		owler.addProp("USER", "ADMIN", "BOOLEAN");
-		owler.addProp("USER", "PUBLISHER", "BOOLEAN");
+		owler.addConcept("SMSS_USER", null, null);
+		owler.addProp("SMSS_USER", "ID", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "NAME", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "EMAIL", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "TYPE", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "PASSWORD", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "SALT", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "USERNAME", "VARCHAR(255)");
+		owler.addProp("SMSS_USER", "ADMIN", "BOOLEAN");
+		owler.addProp("SMSS_USER", "PUBLISHER", "BOOLEAN");
 
 		// PERMISSION
 		owler.addConcept("PERMISSION", null, null);
@@ -187,8 +187,8 @@ public class SecurityOwlCreator {
 
 		owler.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "INSIGHT.INSIGHTID.USERINSIGHTPERMISSION.INSIGHTID");
 		
-		owler.addRelation("USER", "USERINSIGHTPERMISSION", "USER.ID.USERINSIGHTPERMISSION.USERID");
-		owler.addRelation("USER", "ENGINEPERMISSION", "USER.ID.ENGINEPERMISSION.USERID");
+		owler.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "SMSS_USER.ID.USERINSIGHTPERMISSION.USERID");
+		owler.addRelation("SMSS_USER", "ENGINEPERMISSION", "SMSS_USER.ID.ENGINEPERMISSION.USERID");
 
 		owler.addRelation("ENGINEPERMISSION", "PERMISSION", "ENGINEPERMISSION.PERMISSION.PERMISSION.ID");
 		owler.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "USERINSIGHTPERMISSION.PERMISSION.PERMISSION.ID");

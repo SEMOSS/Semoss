@@ -172,7 +172,33 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
-	public String tableExistsQuery(String tableName, String schema) {
-		return "select table_name, table_type from information_schema.tables where table_schema='" + schema + "' and table_name='" + tableName + "'";
+	public boolean allowBlobJavaObject() {
+		return false;
 	}
+	
+	@Override
+	public String getBlobDataTypeName() {
+		return "BYTEA";
+	}
+	
+	@Override
+	public boolean allowClobJavaObject() {
+		return false;
+	}
+	
+	@Override
+	public String getClobDataTypeName() {
+		return "TEXT";
+	}
+	
+	@Override
+	public String tableExistsQuery(String tableName, String schema) {
+		return "select table_name, table_type from information_schema.tables where table_schema='" + schema.toLowerCase() + "' and table_name='" + tableName.toLowerCase() + "'";
+	}
+	
+	@Override
+	public String getAllColumnDetails(String tableName, String schema) {
+		return "select column_name, data_type from information_schema.columns where table_schema='" + schema.toLowerCase() + "' and table_name='" + tableName.toLowerCase() + "'";
+	}
+	
 }

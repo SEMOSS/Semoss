@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.scheduler;
 
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BIGINT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BIT;
-import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BLOB;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BLOB_DATA;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BOOLEAN;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BOOL_PROP_1;
@@ -1044,6 +1043,7 @@ public class SchedulerH2DatabaseUtility {
 		boolean allowBlobDataType = queryUtil.allowBlobDataType();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		String dateTimeType = queryUtil.getDateWithTimeDataType();
+		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
 		
 		String[] colNames = null;
 		String[] types = null;
@@ -1052,9 +1052,8 @@ public class SchedulerH2DatabaseUtility {
 		try {
 			// SMSS_JOB_RECIPES
 			colNames = new String[] { USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS };
-			types = new String[] { VARCHAR_120, VARCHAR_200,VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB, BLOB, VARCHAR_200, BOOLEAN, BLOB };
+			types = new String[] { VARCHAR_120, VARCHAR_200,VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB_DATATYPE_NAME, BLOB_DATATYPE_NAME, VARCHAR_200, BOOLEAN, BLOB_DATATYPE_NAME };
 			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
-			if(!allowBlobDataType) { types = cleanUpDataType(types, BLOB, queryUtil.getBlobReplacementDataType()); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null };
 
 			if (allowIfExistsTable) {
@@ -1075,9 +1074,7 @@ public class SchedulerH2DatabaseUtility {
 				// since we added the pixel recipe parameters at a later point...
 				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, schema).contains(PIXEL_RECIPE_PARAMETERS)) {
 					// alter table to add the column
-					String dataType = BLOB;
-					if(!allowBlobDataType) { dataType = queryUtil.getBlobReplacementDataType(); };
-					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, dataType));
+					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB_DATATYPE_NAME));
 				}
 			}
 

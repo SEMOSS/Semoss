@@ -13,9 +13,10 @@ import java.sql.Types;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -31,7 +32,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 	private static final Logger logger = LogManager.getLogger(RawRDBMSSelectWrapper.class);
 
-	protected BasicDataSource dataSource = null;
+	protected HikariDataSource dataSource = null;
 	protected Connection conn = null;
 	protected Statement stmt = null;
 	protected ResultSet rs = null;
@@ -61,7 +62,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			}
 			this.conn = (Connection) connObj;
 			this.rs = (ResultSet) map.get(RDBMSNativeEngine.RESULTSET_OBJECT);
-			this.dataSource = (BasicDataSource) map.get(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT);
+			this.dataSource = (HikariDataSource) map.get(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT);
 			// go through and collect the metadata around the query
 			setVariables();
 		} catch (Exception e) {

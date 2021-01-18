@@ -23,14 +23,14 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 
 	private static final Logger logger = LogManager.getLogger(NativeUserSecurityUtils.class);
 
-	private static final String USER_ID = "USER__ID";
-	private static final String USER_NAME = "USER__NAME";
-	private static final String USER_USERNAME = "USER__USERNAME";
-	private static final String USER_EMAIL = "USER__EMAIL";
-	private static final String USER_TYPE = "USER__TYPE";
-	private static final String USER_ADMIN = "USER__ADMIN";
-	private static final String USER_PASSWORD = "USER__PASSWORD";
-	private static final String USER_SALT = "USER__SALT";
+	private static final String SMSS_USER_ID = "SMSS_USER__ID";
+	private static final String SMSS_USER_NAME = "SMSS_USER__NAME";
+	private static final String SMSS_USER_USERNAME = "SMSS_USER__USERNAME";
+	private static final String SMSS_USER_EMAIL = "SMSS_USER__EMAIL";
+	private static final String SMSS_USER_TYPE = "SMSS_USER__TYPE";
+	private static final String SMSS_USER_ADMIN = "SMSS_USER__ADMIN";
+	private static final String SMSS_USER_PASSWORD = "SMSS_USER__PASSWORD";
+	private static final String SMSS_USER_SALT = "SMSS_USER__SALT";
 
 	private NativeUserSecurityUtils() {
 
@@ -58,11 +58,11 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(USER_ID));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_NAME, "==", ADMIN_ADDED_USER));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_ID));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_NAME, "==", ADMIN_ADDED_USER));
 		OrQueryFilter orFilter = new OrQueryFilter();
-		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(USER_ID, "==", newUser.getId()));
-		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(USER_ID, "==", newUser.getEmail()));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_ID, "==", newUser.getId()));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_ID, "==", newUser.getEmail()));
 		qs.addExplicitFilter(orFilter);
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -76,7 +76,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 				String salt = SecurityQueryUtils.generateSalt();
 				String hashedPassword = (SecurityQueryUtils.hash(password, salt));
 
-				String updateQuery = "UPDATE USER SET " + "ID='" + newId + "', " + "NAME='"
+				String updateQuery = "UPDATE SMSS_USER SET " + "ID='" + newId + "', " + "NAME='"
 						+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', " + "USERNAME='"
 						+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', " + "EMAIL='"
 						+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', " + "TYPE='"
@@ -178,8 +178,8 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(USER_NAME));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_ID, "==", userId));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_NAME));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_ID, "==", userId));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -203,14 +203,14 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getUserId(String username) {
-		/*	String query = "SELECT ID FROM USER WHERE USERNAME = '?1'";
+		/*	String query = "SELECT ID FROM SMSS_USER WHERE USERNAME = '?1'";
 			query = query.replace("?1", username);
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(USER_ID));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_USERNAME, "==", username));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_TYPE, "==", AuthProvider.NATIVE.toString()));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_ID));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_USERNAME, "==", username));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_TYPE, "==", AuthProvider.NATIVE.toString()));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -235,13 +235,13 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	 * @return email if it exists otherwise null
 	 */
 	public static String getUserEmail(String username) {
-		/*	String query = "SELECT EMAIL FROM USER WHERE USERNAME = '?1'";
+		/*	String query = "SELECT EMAIL FROM SMSS_USER WHERE USERNAME = '?1'";
 			query = query.replace("?1", username);
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(USER_EMAIL));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_USERNAME, "==", username));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_EMAIL));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_USERNAME, "==", username));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -265,13 +265,13 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getNameUser(String username) {
-		/*	String query = "SELECT NAME FROM USER WHERE USERNAME = '?1'";
+		/*	String query = "SELECT NAME FROM SMSS_USER WHERE USERNAME = '?1'";
 			query = query.replace("?1", username);
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(USER_NAME));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_USERNAME, "==", username));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_NAME));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_USERNAME, "==", username));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -303,16 +303,16 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(USER_ID));
-		qs.addSelector(new QueryColumnSelector(USER_NAME));
-		qs.addSelector(new QueryColumnSelector(USER_USERNAME));
-		qs.addSelector(new QueryColumnSelector(USER_EMAIL));
-		qs.addSelector(new QueryColumnSelector(USER_TYPE));
-		qs.addSelector(new QueryColumnSelector(USER_ADMIN));
-		qs.addSelector(new QueryColumnSelector(USER_PASSWORD));
-		qs.addSelector(new QueryColumnSelector(USER_SALT));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_USERNAME, "==", username));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USER_TYPE, "==", AuthProvider.NATIVE.toString()));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_ID));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_NAME));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_USERNAME));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_EMAIL));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_TYPE));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_ADMIN));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PASSWORD));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_SALT));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_USERNAME, "==", username));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_TYPE, "==", AuthProvider.NATIVE.toString()));
 
 		IRawSelectWrapper wrapper = null;
 		try {
