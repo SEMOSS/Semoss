@@ -237,6 +237,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		} // insert any remaining records
 		try {
 			ps.close();
+			if(securityDb.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -313,6 +320,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		} // insert any remaining records
 		try {
 			ps.close();
+			if(securityDb.isConnectionPooling()) {
+				try {
+					ps.getConnection().close();
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
@@ -450,6 +464,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				if(ps != null) {
 					try {
 						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
 					} catch (SQLException e) {
 						e.printStackTrace();
 					}
@@ -496,6 +517,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -523,6 +551,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -549,6 +584,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
@@ -577,6 +619,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				if(ps != null) {
 					try {
 						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
@@ -600,6 +649,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				if(ps != null) {
 					try {
 						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
@@ -621,7 +677,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// see if the user was added by an admin
 		// this means it could be on the ID or the EMAIL
 		// but name is the admin_added_user constant
-		String query = "SELECT ID FROM USER WHERE "
+		String query = "SELECT ID FROM SMSS_USER WHERE "
 				+ "(NAME='" + ADMIN_ADDED_USER + "' OR USERNAME='" + ADMIN_ADDED_USER + "')"
 				+ " AND "
 				// this matching the ID field to the email because admin added user only sets the id field
@@ -638,14 +694,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				{
 					UpdateQueryStruct uqs = new UpdateQueryStruct();
 					uqs.setEngine(securityDb);
-					uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", oldId));
+					uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", oldId));
 					
 					List<IQuerySelector> selectors = new Vector<>();
-					selectors.add(new QueryColumnSelector("USER__ID"));
-					selectors.add(new QueryColumnSelector("USER__NAME"));
-					selectors.add(new QueryColumnSelector("USER__USERNAME"));
-					selectors.add(new QueryColumnSelector("USER__EMAIL"));
-					selectors.add(new QueryColumnSelector("USER__TYPE"));
+					selectors.add(new QueryColumnSelector("SMSS_USER__ID"));
+					selectors.add(new QueryColumnSelector("SMSS_USER__NAME"));
+					selectors.add(new QueryColumnSelector("SMSS_USER__USERNAME"));
+					selectors.add(new QueryColumnSelector("SMSS_USER__EMAIL"));
+					selectors.add(new QueryColumnSelector("SMSS_USER__TYPE"));
 
 					List<Object> values = new Vector<>();
 					values.add(newId);
@@ -701,7 +757,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					// need to prevent 2 threads attempting to add the same user
 					userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 					if(!userExists) {
-						query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER) VALUES (?,?,?,?,?,?,?)";
+						query = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER) VALUES (?,?,?,?,?,?,?)";
 						PreparedStatement ps = null;
 						try {
 							ps = securityDb.getPreparedStatement(query);
@@ -721,6 +777,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							if(ps != null) {
 								try {
 									ps.close();
+									if(securityDb.isConnectionPooling()) {
+										try {
+											ps.getConnection().close();
+										} catch (SQLException e) {
+											logger.error(Constants.STACKTRACE, e);
+										}
+									}
 								} catch (SQLException e) {
 									logger.error(Constants.STACKTRACE, e);
 								}
@@ -759,12 +822,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		UpdateQueryStruct uqs = new UpdateQueryStruct();
 		uqs.setEngine(securityDb);
-		uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", existingToken.getId()));
+		uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", existingToken.getId()));
 		
 		List<IQuerySelector> selectors = new Vector<>();
-		selectors.add(new QueryColumnSelector("USER__NAME"));
-		selectors.add(new QueryColumnSelector("USER__USERNAME"));
-		selectors.add(new QueryColumnSelector("USER__EMAIL"));
+		selectors.add(new QueryColumnSelector("SMSS_USER__NAME"));
+		selectors.add(new QueryColumnSelector("SMSS_USER__USERNAME"));
+		selectors.add(new QueryColumnSelector("SMSS_USER__EMAIL"));
 		List<Object> values = new Vector<>();
 		values.add(name);
 		values.add(username);
@@ -830,7 +893,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(salt == null) salt = "";
 		if(type == null) type = "";
 
-		String query = "INSERT INTO USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES (?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, ADMIN, PUBLISHER) VALUES (?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -852,6 +915,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			if(ps != null) {
 				try {
 					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}

@@ -122,6 +122,8 @@ public abstract class AbstractSecurityUtils {
 		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
+		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
+		
 		// ENGINE
 		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "TYPE", "COST" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "VARCHAR(255)", "VARCHAR(255)" };
@@ -157,16 +159,17 @@ public abstract class AbstractSecurityUtils {
 		{
 			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "ENGINEMETA", schema);
 			// this should return in all upper case
-			if(!allCols.contains("METAORDER")) {
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!allCols.contains("METAORDER") && !allCols.contains("metaorder")) {
 				if(allowIfExistsTable) {
-					securityDb.insertData(queryUtil.dropTableIfExists("ENGINEMETA"));
+					securityDb.removeData(queryUtil.dropTableIfExists("ENGINEMETA"));
 				} else if(queryUtil.tableExists(conn, "ENGINEMETA", schema)) {
-					securityDb.insertData(queryUtil.dropTable("ENGINEMETA"));
+					securityDb.removeData(queryUtil.dropTable("ENGINEMETA"));
 				}
 			}
 		}
 		colNames = new String[] { "ENGINEID", "METAKEY", "METAVALUE", "METAORDER" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types));
 		} else {
@@ -259,7 +262,7 @@ public abstract class AbstractSecurityUtils {
 		
 		// INSIGHT
 		colNames = new String[] { "ENGINEID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", "CACHEABLE", "RECIPE" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "BIGINT", "TIMESTAMP", "TIMESTAMP", "VARCHAR(255)", "BOOLEAN", "CLOB" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "BIGINT", "TIMESTAMP", "TIMESTAMP", "VARCHAR(255)", "BOOLEAN", CLOB_DATATYPE_NAME };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
 		} else {
@@ -275,8 +278,9 @@ public abstract class AbstractSecurityUtils {
 		{
 			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "INSIGHT", schema);
 			// this should return in all upper case
-			if(!allCols.contains("RECIPE")) {
-				String addRecipeColumnSql = queryUtil.alterTableAddColumn("INSIGHT", "RECIPE", "CLOB");
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!allCols.contains("RECIPE") && !allCols.contains("recipe")) {
+				String addRecipeColumnSql = queryUtil.alterTableAddColumn("INSIGHT", "RECIPE", CLOB_DATATYPE_NAME);
 				securityDb.insertData(addRecipeColumnSql);
 			}
 		}
@@ -296,7 +300,6 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("INSIGHT_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
 			}
 		}
-
 
 		// USERINSIGHTPERMISSION
 		colNames = new String[] { "USERID", "ENGINEID", "INSIGHTID", "PERMISSION" };
@@ -329,7 +332,7 @@ public abstract class AbstractSecurityUtils {
 		
 		// INSIGHTMETA
 		colNames = new String[] { "ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTMETA", colNames, types));
 		} else {
@@ -352,24 +355,43 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 
-		// USER
+		// SMSS_USER
 		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", "ADMIN", "PUBLISHER" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "BOOLEAN" };
-		if(allowIfExistsTable) {
-			securityDb.insertData(queryUtil.createTableIfNotExists("USER", colNames, types));
+		// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
+		// but some rdbms types (postgres) does not allow it
+		// so i am going ahead and moving over user to smss_user
+		if(queryUtil.tableExists(conn, "USER", schema)) {
+			// we will move over all the data and create SMSS_USER
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "SMSS_USER", schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("SMSS_USER", colNames, types));
+				}
+			}
+			securityDb.insertData(queryUtil.copyTable("SMSS_USER", "USER"));
+			// now delete the user table
+			securityDb.removeData(queryUtil.dropTable("USER"));
 		} else {
-			// see if table exists
-			if(!queryUtil.tableExists(conn, "USER", schema)) {
-				// make the table
-				securityDb.insertData(queryUtil.createTable("USER", colNames, types));
+			if(allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER", colNames, types));
+			} else {
+				// see if table exists
+				if(!queryUtil.tableExists(conn, "SMSS_USER", schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("SMSS_USER", colNames, types));
+				}
 			}
 		}
 		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("USER_ID_INDEX", "USER", "ID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "USER_ID_INDEX", "USER", schema)) {
-				securityDb.insertData(queryUtil.createIndex("USER_ID_INDEX", "USER", "ID"));
+			if(!queryUtil.indexExists(securityDb, "SMSS_USER_ID_INDEX", "SMSS_USER", schema)) {
+				securityDb.insertData(queryUtil.createIndex("SMSS_USER_ID_INDEX", "SMSS_USER", "ID"));
 			}
 		}
 		
@@ -424,7 +446,6 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-
 		// ACCESSREQUEST
 		colNames = new String[] { "ID", "SUBMITTEDBY", "ENGINE", "PERMISSION" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT" };
@@ -494,7 +515,7 @@ public abstract class AbstractSecurityUtils {
 
 //		// SEED
 //		colNames = new String[] { "id", "name", "databaseid", "tablename", "columnname", "rlsvalue", "rlsjavacode", "owner" };
-//		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "varchar(255)", "varchar(255)", "clob", "varchar(255)" };
+//		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "varchar(255)", "varchar(255)", CLOB_DATATYPE_NAME, "varchar(255)" };
 //		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED", colNames, types));
 
 //		// USERSEEDPERMISSION
