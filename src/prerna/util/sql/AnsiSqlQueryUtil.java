@@ -11,6 +11,11 @@ import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
+import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.filters.FunctionQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.Join;
@@ -488,6 +493,17 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			sql.append("");
 		}
 		return sql.toString();
+	}
+	
+	public void appendSearchRegexFilter(AbstractQueryStruct qs, String columnQs, String searchTerm) {
+		FunctionQueryFilter filter = new FunctionQueryFilter();
+		QueryFunctionSelector regexFunction = new QueryFunctionSelector();
+		regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
+		regexFunction.addInnerSelector(new QueryColumnSelector(columnQs));
+		regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
+		regexFunction.addInnerSelector(new QueryConstantSelector("i"));
+		filter.setFunctionSelector(regexFunction);
+		qs.addExplicitFilter(filter);
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
