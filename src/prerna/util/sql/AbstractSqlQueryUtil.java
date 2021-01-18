@@ -53,6 +53,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
@@ -549,6 +550,14 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String createUpdatePreparedStatementString(String tableName, String[] columnsToUpdate,
 			String[] whereColumns);
 
+	/**
+	 * Append a regex filter search on a column
+	 * @param qs
+	 * @param columnQs
+	 * @param searchTerm
+	 */
+	public abstract void appendSearchRegexFilter(AbstractQueryStruct qs, String columnQs, String searchTerm);
+	
 	/**
 	 * Create the syntax to merge 2 tables together
 	 * 
