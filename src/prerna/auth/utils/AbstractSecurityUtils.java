@@ -1,9 +1,8 @@
 package prerna.auth.utils;
 
 import java.io.File;
-import java.io.IOException;
 import java.sql.Connection;
-import java.sql.SQLException;
+import java.sql.PreparedStatement;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -53,7 +52,7 @@ public abstract class AbstractSecurityUtils {
 		
 	}
 	
-	public static void loadSecurityDatabase() throws SQLException, IOException {
+	public static void loadSecurityDatabase() throws Exception {
 		securityDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
 		SecurityOwlCreator owlCreator = new SecurityOwlCreator(securityDb);
 		if(owlCreator.needsRemake()) {
@@ -109,7 +108,7 @@ public abstract class AbstractSecurityUtils {
 		return securityEnabled && adminSetPublisher;
 	}
 	
-	public static void initialize() throws SQLException {
+	public static void initialize() throws Exception {
 		String schema = securityDb.getSchema();
 		Connection conn = securityDb.getConnection();
 		String[] colNames = null;
@@ -362,19 +361,7 @@ public abstract class AbstractSecurityUtils {
 		// but some rdbms types (postgres) does not allow it
 		// so i am going ahead and moving over user to smss_user
 		if(queryUtil.tableExists(conn, "USER", schema)) {
-			// we will move over all the data and create SMSS_USER
-			if(allowIfExistsTable) {
-				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER", colNames, types));
-			} else {
-				// see if table exists
-				if(!queryUtil.tableExists(conn, "SMSS_USER", schema)) {
-					// make the table
-					securityDb.insertData(queryUtil.createTable("SMSS_USER", colNames, types));
-				}
-			}
-			securityDb.insertData(queryUtil.copyTable("SMSS_USER", "USER"));
-			// now delete the user table
-			securityDb.removeData(queryUtil.dropTable("USER"));
+			performSmssUserTemporaryUpdate(securityDb, queryUtil, colNames, types, conn, schema, allowIfExistsTable);
 		} else {
 			if(allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER", colNames, types));
@@ -529,6 +516,101 @@ public abstract class AbstractSecurityUtils {
 //		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
 	}
 	
+	@Deprecated
+	private static void performSmssUserTemporaryUpdate(RDBMSNativeEngine securityDb,
+			AbstractSqlQueryUtil queryUtil,
+			String[] colNames,
+			String[] types,
+			Connection conn, 
+			String schema,
+			boolean allowIfExistsTable
+			) throws Exception {
+		// we will move over all the data and create SMSS_USER
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("SMSS_USER", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "SMSS_USER", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("SMSS_USER", colNames, types));
+			}
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		Object[] input = new Object[colNames.length+1];
+		input[0] = "SMSS_USER";
+		for(int i = 0; i < colNames.length; i++) {
+			input[i+1] = colNames[i];
+			qs.addSelector(new QueryColumnSelector("USER__" + colNames[i]));
+		}
+		PreparedStatement insertPs = securityDb.bulkInsertPreparedStatement(input);
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try {
+			while(iterator.hasNext()) {
+				Object[] values = iterator.next().getValues();
+				int index = 0;
+				String name = (String) values[index++];
+				String email = (String) values[index++];
+				String type = (String) values[index++];
+				String id = (String) values[index++];
+				String password = (String) values[index++];
+				String salt = (String) values[index++];
+				String username = (String) values[index++];
+				Boolean admin = Boolean.parseBoolean( values[index++] + "" );
+				Boolean publisher = Boolean.parseBoolean( values[index++] + "" );
+
+				index = 1;
+				if(name == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, name);
+				}
+				if(email == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, email);
+				}
+				if(type == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, type);
+				}
+				if(id == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, id);
+				}
+				if(password == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, password);
+				}
+				if(salt == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, salt);
+				}
+				if(username == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, username);
+				}
+				insertPs.setBoolean(index++, admin);
+				insertPs.setBoolean(index++, publisher);
+				insertPs.addBatch();
+			}
+		} finally {
+			if(iterator != null) {
+				iterator.cleanUp();
+			}
+		}
+		insertPs.executeBatch();
+		if(securityDb.isConnectionPooling()) {
+			insertPs.getConnection().close();
+		}
+		// now delete the user table
+//		securityDb.removeData(queryUtil.dropTable("USER"));
+	}
+
 	/**
 	 * Does this engine name already exist
 	 * @param user
