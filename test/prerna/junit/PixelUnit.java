@@ -34,9 +34,10 @@ import java.util.regex.Pattern;
 import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.dbunit.DatabaseUnitException;
 import org.dbunit.IDatabaseTester;
 import org.dbunit.JdbcDatabaseTester;
@@ -54,7 +55,6 @@ import org.junit.BeforeClass;
 import org.quartz.SchedulerException;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -191,13 +191,23 @@ public class PixelUnit {
 
 	private static void configureLog4j() {
 		String log4JPropFile = Paths.get(TEST_RESOURCES_DIRECTORY, "log4j.properties").toAbsolutePath().toString();
-		Properties prop = new Properties();
+		FileInputStream fis = null;
+		ConfigurationSource source = null;
 		try {
-			prop.load(new FileInputStream(log4JPropFile));
-			PropertyConfigurator.configure(prop);
+			fis = new FileInputStream(log4JPropFile);
+			source = new ConfigurationSource(fis);
+			Configurator.initialize(null, source);
 			LOGGER.info("Successfully configured Log4j for JUnit suite.");
 		} catch (IOException e) {
 			LOGGER.warn("Unable to initialize log4j for testing.", e);
+		} finally {
+			if(fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
@@ -254,7 +264,7 @@ public class PixelUnit {
 	// Databases
 	//////////////////////////////
 
-	private static void loadDatabases() throws SQLException, IOException {
+	private static void loadDatabases() throws Exception {
 
 		// Local master database
 		SMSSWebWatcher.loadNewDB(Constants.LOCAL_MASTER_DB_NAME + ".smss", BASE_DB_DIRECTORY);
