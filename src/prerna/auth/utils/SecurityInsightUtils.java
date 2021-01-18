@@ -20,7 +20,6 @@ import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
-import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -1334,14 +1333,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		// add the search term filter
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			FunctionQueryFilter filter = new FunctionQueryFilter();
-			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
-			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
-			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
-			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
-			filter.setFunctionSelector(regexFunction);
-			qs.addExplicitFilter(filter);
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 		}
 		// if we have tag filters
 		boolean tagFiltering = tags != null && !tags.isEmpty();
@@ -1426,14 +1418,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
 		}
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			FunctionQueryFilter filter = new FunctionQueryFilter();
-			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
-			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
-			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
-			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
-			filter.setFunctionSelector(regexFunction);
-			qs.addExplicitFilter(filter);
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 		}
 		// if we have tag filters
 		boolean tagFiltering = tags != null && !tags.isEmpty();
@@ -1552,14 +1537,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		// add the search term filter
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			FunctionQueryFilter filter = new FunctionQueryFilter();
-			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
-			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
-			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
-			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
-			filter.setFunctionSelector(regexFunction);
-			qs.addExplicitFilter(filter);
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 		}
 		// if we have tag filters
 		boolean tagFiltering = tags != null && !tags.isEmpty();
@@ -1606,14 +1584,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
 		}
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			FunctionQueryFilter filter = new FunctionQueryFilter();
-			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
-			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
-			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
-			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
-			filter.setFunctionSelector(regexFunction);
-			qs.addExplicitFilter(filter);
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 		}
 		// if we have tag filters
 		boolean tagFiltering = tags != null && !tags.isEmpty();
@@ -1812,14 +1783,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		qs.addExplicitFilter(orFilters);
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			FunctionQueryFilter filter = new FunctionQueryFilter();
-			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
-			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
-			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
-			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
-			filter.setFunctionSelector(regexFunction);
-			qs.addExplicitFilter(filter);
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 		}
 		// sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
@@ -1855,14 +1819,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		fun.setAlias("low_name");
 		qs.addSelector(fun);
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			FunctionQueryFilter filter = new FunctionQueryFilter();
-			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
-			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
-			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
-			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
-			filter.setFunctionSelector(regexFunction);
-			qs.addExplicitFilter(filter);
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 		}
 		// sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
