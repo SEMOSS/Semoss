@@ -285,4 +285,15 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 		return "DROP INDEX " + tableName + "." + indexName + ";";
 	}
 	
+	@Override
+	public String copyTable(String newTableName, String oldTableName) {
+		if(isSelectorKeyword(newTableName)) {
+			newTableName = getEscapeKeyword(newTableName);
+		}
+		if(isSelectorKeyword(oldTableName)) {
+			oldTableName = getEscapeKeyword(oldTableName);
+		}
+		return "SELECT * INTO " + newTableName + " FROM " + oldTableName;
+	}
+	
 }
