@@ -32,9 +32,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -986,21 +984,9 @@ public class Insight {
 				}
 			}
 			
-			// clear the varStore
-			// but need to close the frames for memory / files
-			Set<String> tNames = new HashSet<>();
-			Iterator<String> keys = this.varStore.getFrameKeys().iterator();
-			while(keys.hasNext()) {
-				String key = keys.next();
-				NounMetadata noun = this.varStore.get(key);
-				ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-				if(!tNames.contains(frame.getName())) {
-					frame.close();
-					tNames.add(frame.getName());
-				}
-			}
-			// now clear everything inside
-			this.varStore.clear();
+			// clear the insight
+			// dropping frames and everything in the varstore
+			InsightUtility.clearInsight(this, false);
 			// clear the panels
 			this.insightPanels.clear();
 			// clear the sheets and add the default one
