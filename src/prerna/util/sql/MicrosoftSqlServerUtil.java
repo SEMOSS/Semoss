@@ -187,6 +187,11 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getBooleanDataTypeName() {
+		return "BIT";
+	}
+	
+	@Override
 	public boolean allowsIfExistsTableSyntax() {
 		return false;
 	}

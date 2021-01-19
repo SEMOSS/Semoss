@@ -622,6 +622,13 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getClobDataTypeName();
 	
 	/**
+	 * Get the RDBMS type equivalent for boolean type
+	 * @return
+	 */
+	public abstract String getBooleanDataTypeName();
+
+	
+	/**
 	 * Does the RDBMS type support clob java object storage
 	 * i.e. - connection.createClob();
 	 * @return
