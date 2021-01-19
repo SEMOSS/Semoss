@@ -46,15 +46,15 @@ public class AdminAllUsersReactor extends ToExcelReactor {
 		}
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__ID"));
-		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
-		qs.addSelector(new QueryColumnSelector("USER__NAME"));
-		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("USER__TYPE"));
-		qs.addSelector(new QueryColumnSelector("USER__ADMIN"));
-		qs.addSelector(new QueryColumnSelector("USER__PUBLISHER"));
-		qs.addSelector(new QueryColumnSelector("USER__PASSWORD"));
-		qs.addSelector(new QueryColumnSelector("USER__SALT"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__PASSWORD"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__SALT"));
 
 		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
 		IRawSelectWrapper iterator = null;;
