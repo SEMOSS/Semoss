@@ -552,6 +552,12 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		return "CLOB";
 	}
 	
+	
+	@Override
+	public String getBooleanDataTypeName() {
+		return "BOOLEAN";
+	}
+	
 	@Override
 	public boolean allowClobJavaObject() {
 		return true;
