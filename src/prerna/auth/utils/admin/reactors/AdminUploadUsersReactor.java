@@ -53,7 +53,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 	static {
 		String[] headers = new String[] {NAME, EMAIL, TYPE, ID, PASSWORD, SALT,
 				USERNAME, ADMIN, PUBLISHER};
-		StringBuilder builder = new StringBuilder("INSERT INTO USER (");
+		StringBuilder builder = new StringBuilder("INSERT INTO SMSS_USER (");
 		for(int i = 0; i < headers.length; i++) {
 			if(i > 0) {
 				builder.append(", ");
