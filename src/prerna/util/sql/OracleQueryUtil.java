@@ -127,4 +127,5 @@ public class OracleQueryUtil extends AnsiSqlQueryUtil {
 	public String dropIndex(String indexName, String tableName) {
 		return "DROP INDEX " + indexName;
 	}
+	
 }

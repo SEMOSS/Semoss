@@ -259,6 +259,11 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getBooleanDataTypeName() {
+		return "BOOL";
+	}
+	
+	@Override
 	public String getConnectionUserKey() {
 		return AbstractSqlQueryUtil.ACCESS_KEY;
 	}
