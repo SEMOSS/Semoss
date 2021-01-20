@@ -1,17 +1,19 @@
 package prerna.sablecc2.om;
 
+import prerna.algorithm.api.SemossDataType;
+
 public enum PixelDataType {
 	
 	CONST_DECIMAL ("CONST_DECIMAL", null), 					// constant double
 	CONST_INT ("CONST_INT", null), 							// constant int
 	CONST_STRING ("CONST_STRING", null), 					// constant string
 	CONST_DATE ("CONST_DATE", null), 						// constant date
+	CONST_TIMESTAMP ("CONST_TIMESTAMP", null), 				// constant timestamp
 	CONST_DAY ("CONST_DAY", null), 							// constant day
 	CONST_WEEK ("CONST_WEEK", null), 						// constant week
 	CONST_MONTH ("CONST_MONTH", null), 						// constant month
 	CONST_YEAR ("CONST_YEAR", null), 						// constant year
 
-	CONST_TIMESTAMP ("CONST_TIMESTAMP", null), 				// constant timestamp
 	NULL_VALUE ("NULL_VALUE", null), 						// null input
 	COLUMN ("COLUMN", null), 								// column name in database or frame
 	
@@ -100,6 +102,29 @@ public enum PixelDataType {
 			return this.reactorEnum.getKey();
 		}
 		return toString();
+	}
+	
+	/**
+	 * Convert between {@link prerna.algorithm.api.SemossDataType} and PixelDataType
+	 * @param type
+	 * @return
+	 */
+	public static PixelDataType convertFromSemossDataType(SemossDataType type) {
+		if(type == SemossDataType.BOOLEAN) {
+			return BOOLEAN;
+		} else if(type == SemossDataType.INT) {
+			return CONST_INT;
+		} else if(type == SemossDataType.DOUBLE) {
+			return CONST_DECIMAL;
+		} else if(type == SemossDataType.STRING || type == SemossDataType.FACTOR) {
+			return CONST_STRING;
+		} else if(type == SemossDataType.DATE) {
+			return CONST_DATE;
+		} else if(type == SemossDataType.TIMESTAMP) {
+			return CONST_TIMESTAMP;
+		}
+
+		return null;
 	}
 }
 
