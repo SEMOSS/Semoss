@@ -291,7 +291,9 @@ public class GenExpressionWrapper {
 			LEVEL thisStructLevel = thisStruct.getLevel();
 			
 			ParamStruct pStruct = detailsLookup.get(thisStruct);
-			boolean multi = pStruct.isMultiple();
+			// normally this is for using [<paramanme>] vs just <paramname>
+			// but here we are using it to indicate that quoting is defined by the FE
+			boolean noQuote = ParamStruct.PARAM_FILL_USE_ARRAY_TYPES.contains(pStruct.getModelDisplay());
 			String userDefinedParamName = pStruct.getParamName();
 			
 			if(thisStructLevel == LEVEL.COLUMN) {
@@ -306,7 +308,7 @@ public class GenExpressionWrapper {
 							// again with the parameter name
 							// but this time that defined by the user
 							String quote = null;
-							if(multi || targetStruct.getQuote() == QUOTE.NO) {
+							if(noQuote || targetStruct.getQuote() == QUOTE.NO) {
 								quote = "";
 							} else if(targetStruct.getQuote() == QUOTE.DOUBLE) {
 								quote = "\"";
@@ -341,7 +343,7 @@ public class GenExpressionWrapper {
 							// again with the parameter name
 							// but this time that defined by the user
 							String quote = null;
-							if(multi || targetStruct.getQuote() == QUOTE.NO) {
+							if(noQuote || targetStruct.getQuote() == QUOTE.NO) {
 								quote = "";
 							} else if(targetStruct.getQuote() == QUOTE.DOUBLE) {
 								quote = "\"";
@@ -377,7 +379,7 @@ public class GenExpressionWrapper {
 							// again with the parameter name
 							// but this time that defined by the user
 							String quote = null;
-							if(multi || targetStruct.getQuote() == QUOTE.NO) {
+							if(noQuote || targetStruct.getQuote() == QUOTE.NO) {
 								quote = "";
 							} else if(targetStruct.getQuote() == QUOTE.DOUBLE) {
 								quote = "\"";
@@ -410,7 +412,7 @@ public class GenExpressionWrapper {
 						// again with the parameter name
 						// but this time that defined by the user
 						String quote = null;
-						if(multi || targetStruct.getQuote() == QUOTE.NO) {
+						if(noQuote || targetStruct.getQuote() == QUOTE.NO) {
 							quote = "";
 						} else if(targetStruct.getQuote() == QUOTE.DOUBLE) {
 							quote = "\"";
