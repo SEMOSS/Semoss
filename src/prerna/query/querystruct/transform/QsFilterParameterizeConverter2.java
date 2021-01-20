@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
 import prerna.query.parsers.ParamStructDetails.LEVEL;
+import prerna.query.parsers.ParamStructDetails.QUOTE;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -63,6 +64,16 @@ public class QsFilterParameterizeConverter2 {
 		String comparator = filter.getComparator();
 		boolean parameterizeLeft = false;
 		boolean parameterizeRight = false;
+
+		boolean isArray = ParamStruct.PARAM_FILL_USE_ARRAY_TYPES.contains(paramStruct.getModelDisplay());
+		String quote = null;
+		if(isArray || paramDetails.getQuote() == QUOTE.NO) {
+			quote = "";
+		} else if(paramDetails.getQuote() == QUOTE.DOUBLE) {
+			quote = "\"";
+		} else if(paramDetails.getQuote() == QUOTE.SINGLE) {
+			quote = "'";
+		}
 		
 		NounMetadata origL = filter.getLComparison();
 		if(origL.getNounType() == PixelDataType.COLUMN) {
@@ -95,6 +106,7 @@ public class QsFilterParameterizeConverter2 {
 				
 			}
 		}
+		
 		NounMetadata origR = filter.getRComparison();
 		if(origR.getNounType() == PixelDataType.COLUMN) {
 			IQuerySelector selector = (IQuerySelector) origL.getValue();
@@ -131,14 +143,20 @@ public class QsFilterParameterizeConverter2 {
 			// keep the same right
 			newR = origR;
 			// create the new left hand side
-			newL = new NounMetadata("<" + paramStruct.getParamName() + ">", PixelDataType.CONST_STRING);
-
+			if(isArray) {
+				newL = new NounMetadata("[<" + paramStruct.getParamName() + ">]", PixelDataType.CONST_STRING);
+			} else {
+				newL = new NounMetadata(quote + "<" + paramStruct.getParamName() + ">" + quote, PixelDataType.CONST_STRING);
+			}
 		} else if(parameterizeRight) {
 			// keep the same left
 			newL = origL;
 			// create the new right hand side
-			newR = new NounMetadata("<" + paramStruct.getParamName() + ">", PixelDataType.CONST_STRING);
-			
+			if(isArray) {
+				newR = new NounMetadata("[<" + paramStruct.getParamName() + ">]" + quote, PixelDataType.CONST_STRING);
+			} else {
+				newR = new NounMetadata(quote + "<" + paramStruct.getParamName() + ">" + quote, PixelDataType.CONST_STRING);
+			}
 		} else {
 			// return the original
 			return filter;
