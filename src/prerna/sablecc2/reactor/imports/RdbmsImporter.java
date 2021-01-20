@@ -129,7 +129,6 @@ public class RdbmsImporter extends AbstractImporter {
 			newHeaders[i] = newSelectors.get(i).getAlias();
 		}
 		boolean performMerge = allHeadersAccounted(origHeaders, newHeaders, joins);
-		
 		if(performMerge) {
 			return performMerge(joins, origHeaders, newHeaders);
 		} else {
@@ -167,6 +166,9 @@ public class RdbmsImporter extends AbstractImporter {
 		
 		String mergeTable = rightTableName;
 		
+		//flag added since createNewTableFromJoiningTables function is called for merge and join, added a default flag here as well
+		boolean rightJoinFlag = false;
+		
 		// if the size is not the same
 		// we need to do a join to ensure that what we merge
 		// we get the new headers that are required
@@ -197,7 +199,8 @@ public class RdbmsImporter extends AbstractImporter {
 				}
 			}
 			leftTableTypes.keySet().removeAll(removeHeaders);
-			String joinQuery = queryUtil.createNewTableFromJoiningTables(innerJoinTable, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins, new HashMap<String, String>(), new HashMap<String, String>());
+			String joinQuery = queryUtil.createNewTableFromJoiningTables(innerJoinTable, leftTableName, leftTableTypes, 
+					rightTableName, rightTableTypes, joins, new HashMap<String, String>(), new HashMap<String, String>(), rightJoinFlag);
 			try {
 				this.dataframe.getBuilder().runQuery(joinQuery);
 			} catch (Exception e) {
@@ -285,6 +288,10 @@ public class RdbmsImporter extends AbstractImporter {
 		
 		boolean successfullyAddedData = true;
 		
+		//flag added to check for right join , default is false and if its right join this is updated to true.
+		// this flag is to make sure the outer join has no issues
+		boolean rightJoinFlag = false;
+		
 		try {
 			// now, flush the iterator into the right table 
 			this.dataframe.addRowsViaIterator(this.it, rightTableName, rightTableTypes);
@@ -301,13 +308,13 @@ public class RdbmsImporter extends AbstractImporter {
 				joins.get(0).setJoinType("left.outer.join");
 				leftJoinReturnTableName = Utility.getRandomString(6);
 				String leftOuterJoin = queryUtil.createNewTableFromJoiningTables(leftJoinReturnTableName, leftTableName, leftTableTypes, rightTableName, 
-						rightTableTypes, joins, leftTableAlias, rightTableAlias);
+						rightTableTypes, joins, leftTableAlias, rightTableAlias, rightJoinFlag);
 				this.dataframe.getBuilder().runQuery(leftOuterJoin);
 				
 				joins.get(0).setJoinType("right.outer.join");
 				rightJoinReturnTableName = Utility.getRandomString(6);
 				String rightOuterJoin = queryUtil.createNewTableFromJoiningTables(rightJoinReturnTableName, leftTableName, leftTableTypes, rightTableName, 
-						rightTableTypes, joins, leftTableAlias, rightTableAlias);
+						rightTableTypes, joins, leftTableAlias, rightTableAlias, rightJoinFlag);
 				this.dataframe.getBuilder().runQuery(rightOuterJoin);
 
 				// run a union between the 2 tables
@@ -316,8 +323,9 @@ public class RdbmsImporter extends AbstractImporter {
 			} else {
 				// this is the normal case
 				// we just need to make a basic join query
+				rightJoinFlag = true;
 				String joinQuery = queryUtil.createNewTableFromJoiningTables(returnTableName, leftTableName, leftTableTypes, rightTableName, 
-						rightTableTypes, joins, leftTableAlias, rightTableAlias);
+						rightTableTypes, joins, leftTableAlias, rightTableAlias, rightJoinFlag);
 				this.dataframe.getBuilder().runQuery(joinQuery);
 			}
 //		} catch(EmptyIteratorException e) {
