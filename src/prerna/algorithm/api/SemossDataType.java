@@ -1,5 +1,6 @@
 package prerna.algorithm.api;
 
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Utility;
 
 public enum SemossDataType {
@@ -51,4 +52,28 @@ public enum SemossDataType {
 			return SemossDataType.STRING;
 		}
 	}
+	
+	/**
+	 * Convert between {@link prerna.sablecc2.om.PixelDataType} and SemossDataType
+	 * @param type
+	 * @return
+	 */
+	public static SemossDataType convertFromSemossDataType(PixelDataType type) {
+		if(type == PixelDataType.BOOLEAN) {
+			return BOOLEAN;
+		} else if(type == PixelDataType.CONST_INT) {
+			return INT;
+		} else if(type == PixelDataType.CONST_DECIMAL) {
+			return DOUBLE;
+		} else if(type == PixelDataType.CONST_STRING) {
+			return STRING;
+		} else if(type == PixelDataType.CONST_DATE) {
+			return DATE;
+		} else if(type == PixelDataType.CONST_TIMESTAMP) {
+			return TIMESTAMP;
+		}
+
+		return null;
+	}
+
 }
