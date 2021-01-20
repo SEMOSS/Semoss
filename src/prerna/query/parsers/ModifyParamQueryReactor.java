@@ -20,10 +20,6 @@ public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
-		if(!(this.qs instanceof HardSelectQueryStruct)) {
-			throw new IllegalArgumentException("Can only modify a direct SQL query");
-		}
-		
 		organizeKeys();
 		String filterValue = this.keyValue.get(this.keysToGet[0]);
 		// if no value passed, do nothing
