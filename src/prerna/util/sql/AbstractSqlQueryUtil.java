@@ -560,20 +560,21 @@ public abstract class AbstractSqlQueryUtil {
 	
 	/**
 	 * Create the syntax to merge 2 tables together
-	 * 
-	 * @param returnTableName  The return table name
-	 * @param returnTableTypes
-	 * @param leftTableName    The left table
-	 * @param leftTableTypes   The {header -> type} of the left table
-	 * @param rightTableName   The right table name
-	 * @param rightTableTypes  The {header -> type} of the right table
-	 * @param joins            The joins between the right and left table
+	 * @param returnTableName	The return table name
+	 * @param leftTableName		The left table
+	 * @param leftTableTypes	The {header -> type} of the left table
+	 * @param rightTableName	The right table name
+	 * @param rightTableTypes	The {header -> type} of the right table
+	 * @param joins				The joins between the right and left table
+	 * @param leftTableAlias	The {header -> alias} of the left table
+	 * @param rightTableAlias	The {header -> alias} of the right table
+	 * @param rightJoinFlag		Flag if we are doing a right join to switch the ordering of the tables
 	 * @return
 	 */
 	public abstract String createNewTableFromJoiningTables(String returnTableName, String leftTableName,
 			Map<String, SemossDataType> leftTableTypes, String rightTableName,
 			Map<String, SemossDataType> rightTableTypes, List<Join> joins, Map<String, String> leftTableAlias,
-			Map<String, String> rightTableAlias);
+			Map<String, String> rightTableAlias, boolean rightJoinFlag);
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
