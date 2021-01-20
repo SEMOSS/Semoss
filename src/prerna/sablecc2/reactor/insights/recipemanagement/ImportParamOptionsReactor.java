@@ -20,6 +20,7 @@ import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
 import prerna.query.parsers.ParamStructDetails.BASE_QS_TYPE;
+import prerna.query.parsers.ParamStructDetails.QUOTE;
 import prerna.query.parsers.SqlParser2;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -167,6 +168,9 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 					detailsStruct.setOperator("==");
 					SemossDataType dataType = SemossDataType.convertStringToDataType(aliasToType.get(colS.getAlias()));
 					detailsStruct.setType(PixelDataType.convertFromSemossDataType(dataType));
+					if(dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE) {
+						detailsStruct.setQuote(QUOTE.NO);
+					}
 					ParamStruct pStruct = new ParamStruct();
 					pStruct.setMultiple(true);
 					pStruct.setSearchable(true);
