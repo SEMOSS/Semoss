@@ -81,9 +81,9 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				httppost.setEntity(new UrlEncodedFormEntity(paramList));
 				response = httpclient.execute(httppost);
 			} catch (ClientProtocolException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			
 			int status = response.getStatusLine().getStatusCode();
