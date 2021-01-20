@@ -128,7 +128,7 @@ public class ParamStructToJsonGenerator {
 							String physicalQs = detailParam.getTableName() + "__" + detailParam.getColumnName();
 							
 							paramQ = "(" + infiniteVar + " = Database(\"" + appId + "\") | Select(" + physicalQs + ")"
-									+ "| Filter(" + physicalQs + " ?like \"<" + searchParamName + ">\") "
+									+ "| ModifyParamQuery(\"<" + searchParamName + ">\")"
 									+ "| Iterate()"
 									+ ") "
 									+ "| " + ParamStructToJsonGenerator.COLLECT_STRING + ";";
@@ -139,19 +139,9 @@ public class ParamStructToJsonGenerator {
 							String base = "(" + infiniteVar + " = Database(\"" + param.getModelAppId() + "\") | ";
 
 							if(param.getFillType() == FILL_TYPE.PIXEL) {
-								// we will generate the model
-								// we will use the information from the first details to generate this
-								ParamStructDetails detailParam = param.getDetailsList().get(0);
-								String physicalQs = detailParam.getTableName() + "__" + detailParam.getColumnName();
-								
-								// TODO: is user enters their own thing - would need a way to go through the object								// TODO: is user enters their own thing - would need a way to go through the object
-								// TODO: is user enters their own thing - would need a way to go through the object
-								// TODO: is user enters their own thing - would need a way to go through the object
-								// TODO: is user enters their own thing - would need a way to go through the object
-
 								// model query is only select/filter/joins that are not part of search
 								paramQ = base + modelQuery
-										+ " Filter(" + physicalQs + " ?like \"<" + searchParamName + ">\")"
+										+ " | ModifyParamQuery(\"<" + searchParamName + ">\")"
 										+ " | Iterate()"
 										+ ") "
 										+ "| " + ParamStructToJsonGenerator.COLLECT_STRING + ";";  
