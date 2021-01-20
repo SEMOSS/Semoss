@@ -447,6 +447,27 @@ public class Pixel {
 		}
 	}
 	
+	/**
+	 * Parse the ending/starting frame headers map and get a map of alias to datatype
+	 * @param headers
+	 * @param frameName
+	 * @return
+	 */
+	public static Map<String, String> getFrameHeadersToDataType(Map<String, Map<String, Object>> headersObject, String frameName) {
+		Map<String, String> aliasToType = new HashMap<>();
+		
+		Map<String, Object> frameHeaders = headersObject.get(frameName);
+		Map<String, Object> headerInfo = (Map<String, Object>) frameHeaders.get("headerInfo");
+		List<Map<String, Object>> headers = (List<Map<String, Object>>) headerInfo.get("headers");
+		for(Map<String, Object> headerMap : headers) {
+			String alias = (String) headerMap.get("alias");
+			String dataType = (String) headerMap.get("dataType");
+			aliasToType.put(alias, dataType);
+		}
+		
+		return aliasToType;
+	}
+	
 	//////////////////////////////////////////
 	
 	// currently unused - just thinking of things to store
