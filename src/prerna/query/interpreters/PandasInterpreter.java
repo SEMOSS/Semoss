@@ -1,9 +1,9 @@
 package prerna.query.interpreters;
 
 import java.util.ArrayList;
-import java.util.ListIterator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Vector;
 
@@ -1156,7 +1156,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 		if (!addNullCheck) {
-			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && objects.contains("null");
+			// are we searching for null?
+			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && 
+					(objects.contains("n") || objects.contains("nu") || objects.contains("nul") || objects.contains("null"));
 		}
 		
 		StringBuilder filterBuilder = new StringBuilder("(");

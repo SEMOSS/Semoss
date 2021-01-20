@@ -746,7 +746,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		}
 		if(!addNullCheck) {
 			// are we searching for null?
-			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && objects.contains("null");
+			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && 
+					(objects.contains("n") || objects.contains("nu") || objects.contains("nul") || objects.contains("null"));
 		}
 		
 		StringBuilder filterBuilder = null;
