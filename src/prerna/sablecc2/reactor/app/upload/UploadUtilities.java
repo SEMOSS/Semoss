@@ -1388,7 +1388,7 @@ public class UploadUtilities {
 		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
 		File exploreF = new File(exploreLoc);
 		if(exploreF.exists()) {
-			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
 			try {
 				newPixel += new String(Files.readAllBytes(exploreF.toPath()))
 						.replaceAll("\n|\r|\t", "")
@@ -1457,7 +1457,7 @@ public class UploadUtilities {
 	public static Map<String, Object> addGridDeltaInsight(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new Vector<>();
-		pixelRecipeToSave.add("AddPanel(0); Panel(0)|SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + appId + "\"}</encode>\");");
+		pixelRecipeToSave.add("META | AddPanel(0); META | Panel(0) | SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + appId + "\"}</encode>\");");
 		String insightId = admin.addInsight(GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pixelRecipeToSave);
 		// write recipe to file
 		try {
@@ -1490,7 +1490,7 @@ public class UploadUtilities {
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditModificationView.json";
 		File jsonFile = new File(jsonLoc);
 		if (jsonFile.exists()) {
-			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
 			try {
 				newPixel += new String(Files.readAllBytes(jsonFile.toPath()))
 						.replaceAll("\n|\r|\t", "")
@@ -1531,7 +1531,7 @@ public class UploadUtilities {
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditTimelineView.json";
 		File jsonFile = new File(jsonLoc);
 		if (jsonFile.exists()) {
-			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
 			try {
 				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
 						.replace("<<ENGINE>>", appId)
@@ -1576,7 +1576,7 @@ public class UploadUtilities {
 		String insightName = getInsightFormName(sheetName);
 		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
 				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "}</encode>\");";
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
@@ -1613,7 +1613,7 @@ public class UploadUtilities {
 		String insightName = getInsightFormName(sheetName);
 		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
 				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "}</encode>\");";
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
@@ -1646,7 +1646,7 @@ public class UploadUtilities {
 		String insightName = getInsightFormName(sheetName);
 		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
 				+ gson.toJson(widgetJson) + "}</encode>\");";
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add(newPixel);
