@@ -573,7 +573,8 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		boolean nullCheckWithEquals = true;
 		if(!addNullCheck) {
 			// are we searching for null?
-			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && rightObjects.contains("null");
+			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && 
+					(rightObjects.contains("n") || rightObjects.contains("nu") || rightObjects.contains("nul") || rightObjects.contains("null"));
 		}
 		boolean hasMoreValuesThanNull = !rightObjects.isEmpty();
 		if(addNullCheck) {
