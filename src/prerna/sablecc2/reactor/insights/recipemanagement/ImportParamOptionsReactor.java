@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
@@ -152,6 +153,10 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 						continue;
 					}
 					
+					String frameOutput = pixelObj.getFrameOutputs().iterator().next();
+					Map<String, Map<String, Object>> endingHeaders = pixelObj.getEndingFrameHeaders();
+					Map<String, String> aliasToType = Pixel.getFrameHeadersToDataType(endingHeaders, frameOutput);
+					
 					ParamStructDetails detailsStruct = new ParamStructDetails();
 					detailsStruct.setBaseQsType(BASE_QS_TYPE.SQS);
 					detailsStruct.setAppId(qs.getEngineId());
@@ -160,6 +165,8 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 					detailsStruct.setTableName(colS.getTable());
 					detailsStruct.setColumnName(colS.getColumn());
 					detailsStruct.setOperator("==");
+					SemossDataType dataType = SemossDataType.convertStringToDataType(aliasToType.get(colS.getAlias()));
+					detailsStruct.setType(PixelDataType.convertFromSemossDataType(dataType));
 					ParamStruct pStruct = new ParamStruct();
 					pStruct.setMultiple(true);
 					pStruct.setSearchable(true);
