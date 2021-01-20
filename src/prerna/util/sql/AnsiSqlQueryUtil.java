@@ -271,7 +271,8 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			Map<String, SemossDataType> rightTableTypes, 
 			List<Join> joins,
 			Map<String, String> leftTableAlias,
-			Map<String, String> rightTableAlias) 
+			Map<String, String> rightTableAlias,
+			boolean rightJoinFlag) 
 	{
 		final String LEFT_TABLE_ALIAS = "A";
 		final String RIGHT_TABLE_ALIAS = "B";
@@ -383,39 +384,78 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		StringBuilder sql = new StringBuilder();
 		sql.append("CREATE TABLE ").append(returnTableName).append(" AS ( SELECT ");
 		
-		// select all the columns from the left side
-		int counter = 0;
-		int size = leftTableHeaders.size();
-		for(String leftTableCol : leftTableHeaders) {
-			if(leftTableCol.contains("__")) {
-				leftTableCol = leftTableCol.split("__")[1];
-			}
-			sql.append(LEFT_TABLE_ALIAS).append(".").append(leftTableCol);
-			// add the alias if there
-			if(leftTableAlias.containsKey(leftTableCol)) {
-				sql.append(" AS ").append(leftTableAlias.get(leftTableCol));
-			}
-			if(counter + 1 < size) {
-				sql.append(", ");
-			}
-			counter++;
-		}
-		
-		// select the columns from the right side which are not part of the join!!!
-		for(String rightTableCol : rightTableHeaders) {
-			if(rightTableCol.contains("__")) {
-				rightTableCol = rightTableCol.split("__")[1];
-			}
-			if(rightTableJoinCols.contains(rightTableCol.toUpperCase())) {
+		// this condition is satisfied only if the join is strictly Right outer join
+		// for outer join, the flag is false so this is not executed
+		if (rightJoinFlag && joins.get(0).getJoinType().equals("right.outer.join")) {
+			// select all the columns from the right side
+			int counter = 0;
+			int size = rightTableHeaders.size();
+			for (String rightTableCol : rightTableHeaders) {
+				if (rightTableCol.contains("__")) {
+					rightTableCol = rightTableCol.split("__")[1];
+				}
+				sql.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableCol);
+				// add the alias if there
+				if (leftTableAlias.containsKey(rightTableCol)) {
+					sql.append(" AS ").append(leftTableAlias.get(rightTableCol));
+				}
+				if (counter + 1 < size) {
+					sql.append(", ");
+				}
 				counter++;
-				continue;
 			}
-			sql.append(", ").append(RIGHT_TABLE_ALIAS).append(".").append(rightTableCol);
-			// add the alias if there
-			if(rightTableAlias.containsKey(rightTableCol)) {
-				sql.append(" AS ").append(rightTableAlias.get(rightTableCol));
+			// select the columns from the left side which are not part of the join!!!
+			for (String leftTableCol : leftTableHeaders) {
+				if (leftTableCol.contains("__")) {
+					leftTableCol = leftTableCol.split("__")[1];
+				}
+				if (rightTableJoinCols.contains(leftTableCol.toUpperCase())) {
+					counter++;
+					continue;
+				}
+				sql.append(", ").append(LEFT_TABLE_ALIAS).append(".").append(leftTableCol);
+				// add the alias if there
+				if (rightTableAlias.containsKey(leftTableCol)) {
+					sql.append(" AS ").append(rightTableAlias.get(leftTableCol));
+				}
+				counter++;
 			}
-			counter++;
+		}
+		else {
+			// select all the columns from the left side
+			int counter = 0;
+			int size = leftTableHeaders.size();
+			for(String leftTableCol : leftTableHeaders) {
+				if(leftTableCol.contains("__")) {
+					leftTableCol = leftTableCol.split("__")[1];
+				}
+				sql.append(LEFT_TABLE_ALIAS).append(".").append(leftTableCol);
+				// add the alias if there
+				if(leftTableAlias.containsKey(leftTableCol)) {
+					sql.append(" AS ").append(leftTableAlias.get(leftTableCol));
+				}
+				if(counter + 1 < size) {
+					sql.append(", ");
+				}
+				counter++;
+			}
+			
+			// select the columns from the right side which are not part of the join!!!
+			for(String rightTableCol : rightTableHeaders) {
+				if(rightTableCol.contains("__")) {
+					rightTableCol = rightTableCol.split("__")[1];
+				}
+				if(rightTableJoinCols.contains(rightTableCol.toUpperCase())) {
+					counter++;
+					continue;
+				}
+				sql.append(", ").append(RIGHT_TABLE_ALIAS).append(".").append(rightTableCol);
+				// add the alias if there
+				if(rightTableAlias.containsKey(rightTableCol)) {
+					sql.append(" AS ").append(rightTableAlias.get(rightTableCol));
+				}
+				counter++;
+			}
 		}
 		
 		// 3) combine everything
