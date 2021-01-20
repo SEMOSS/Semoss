@@ -168,17 +168,21 @@ public class ChromeDriverUtility {
 			driver.get(url);
 		}
 		driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
-
+		
 		if (sessionId != null && ChromeDriverUtility.sessionCookie != null) {
-			// name, value, domain, path, expiration, secure, http only
-//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, null, "/", null, secure, true);
-			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
-//			String domain = feUrl;
-//			if(domain.endsWith("/#!/")) {
-//				domain = domain.replace("/#!/", "");
-//			}
-//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, domain, "/", null);
-			driver.manage().addCookie(name);
+			// name, value, domain, path, expiration
+//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
+			updateCookie(driver, ChromeDriverUtility.sessionCookie, sessionId);
+			String route = ThreadStore.getRouteId();
+			if(route != null && !route.isEmpty()) {
+				String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
+				if (routeCookieName != null && !routeCookieName.isEmpty()) {
+					updateCookie(driver, routeCookieName, route);
+				}
+				
+			}
+			//Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+			//driver.manage().addCookie(name);
 		}
 
 		driver.navigate().to(url);
