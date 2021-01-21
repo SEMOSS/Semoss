@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -15,7 +14,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.om.HeadersDataRow;
 import prerna.util.gson.IHeadersDataRowAdapter.SerializedValuesAndTypes;
 
-public class HeadersDataRowAdapter extends TypeAdapter<HeadersDataRow> {
+public class HeadersDataRowAdapter extends AbstractSemossTypeAdapter<HeadersDataRow> {
 
 	@Override
 	public HeadersDataRow read(JsonReader in) throws IOException {

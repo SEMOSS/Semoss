@@ -6,8 +6,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import com.google.gson.TypeAdapter;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.om.InsightPanel;
@@ -16,6 +14,9 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Utility;
+import prerna.util.gson.AbstractSemossTypeAdapter;
+import prerna.util.gson.CsvQueryStructAdapter;
+import prerna.util.gson.ExcelQueryStructAdapter;
 import prerna.util.gson.HardSelectQueryStructAdapter;
 import prerna.util.gson.SelectQueryStructAdapter;
 import prerna.util.gson.TemporalEngineHardSelectQueryStructAdapter;
@@ -548,7 +549,7 @@ public abstract class AbstractQueryStruct {
 	 * @param type
 	 * @return
 	 */
-	static TypeAdapter getAdapterForQueryStruct(QUERY_STRUCT_TYPE type) {
+	public static AbstractSemossTypeAdapter getAdapterForQueryStruct(QUERY_STRUCT_TYPE type) {
 		if(type == QUERY_STRUCT_TYPE.ENGINE || type == QUERY_STRUCT_TYPE.FRAME) {
 			return new SelectQueryStructAdapter();
 		} else if(type == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || type == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
@@ -556,9 +557,9 @@ public abstract class AbstractQueryStruct {
 		} else if(type == QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY || type == QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY) {
 			return new TemporalEngineHardSelectQueryStructAdapter();
 		} else if(type == QUERY_STRUCT_TYPE.CSV_FILE) {
-			
+			return new CsvQueryStructAdapter();
 		} else if(type == QUERY_STRUCT_TYPE.EXCEL_FILE) {
-			
+			return new ExcelQueryStructAdapter();
 		} else if(type == QUERY_STRUCT_TYPE.LAMBDA) {
 			
 		}

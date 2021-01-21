@@ -2,7 +2,6 @@ package prerna.util.gson;
 
 import java.io.IOException;
 
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -11,7 +10,7 @@ import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
-public class FunctionQueryFilterAdapter extends TypeAdapter<FunctionQueryFilter> {
+public class FunctionQueryFilterAdapter extends AbstractSemossTypeAdapter<FunctionQueryFilter> {
 	
 	@Override
 	public FunctionQueryFilter read(JsonReader in) throws IOException {

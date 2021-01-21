@@ -2,7 +2,6 @@ package prerna.util.gson;
 
 import java.io.IOException;
 
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -10,7 +9,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 
-public class QueryColumnOrderBySelectorAdapter extends TypeAdapter<QueryColumnOrderBySelector> implements IQuerySortAdapterHelper {
+public class QueryColumnOrderBySelectorAdapter extends AbstractSemossTypeAdapter<QueryColumnOrderBySelector> implements IQuerySortAdapterHelper {
 
 	@Override 
 	public QueryColumnOrderBySelector read(JsonReader in) throws IOException {

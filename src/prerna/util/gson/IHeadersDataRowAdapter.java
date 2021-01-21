@@ -20,7 +20,7 @@ import cern.colt.Arrays;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 
-public class IHeadersDataRowAdapter extends TypeAdapter<IHeadersDataRow> {
+public class IHeadersDataRowAdapter extends AbstractSemossTypeAdapter<IHeadersDataRow> {
 	
 	private enum ValueType {
 
