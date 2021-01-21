@@ -9,7 +9,7 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.query.querystruct.selectors.IQuerySort;
 
-public class IQuerySortAdapter extends TypeAdapter<IQuerySort> {
+public class IQuerySortAdapter extends AbstractSemossTypeAdapter<IQuerySort> {
 
 	@Override
 	public IQuerySort read(JsonReader in) throws IOException {

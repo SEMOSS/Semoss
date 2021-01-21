@@ -19,7 +19,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 
-public class ExcelQueryStructAdapter  extends TypeAdapter<ExcelQueryStruct> {
+public class ExcelQueryStructAdapter  extends AbstractSemossTypeAdapter<ExcelQueryStruct> {
 
 	@Override
 	public ExcelQueryStruct read(JsonReader in) throws IOException {

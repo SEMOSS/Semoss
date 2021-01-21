@@ -13,7 +13,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 
-public class TemporalEngineHardSelectQueryStructAdapter  extends AbstractSemossTypeAdapter<TemporalEngineHardQueryStruct> {
+public class TemporalEngineHardSelectQueryStructAdapter extends AbstractSemossTypeAdapter<TemporalEngineHardQueryStruct> {
 
 	private static final Gson gson = new Gson();
 
