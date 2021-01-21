@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.date.SemossDate;
+import prerna.sablecc2.reactor.qs.SubQueryExpression;
 import prerna.util.Utility;
 
 public class QueryConstantSelector extends AbstractQuerySelector {
@@ -40,6 +41,9 @@ public class QueryConstantSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getQueryStructName() {
+		if(this.constant instanceof SubQueryExpression) {
+			return ((SubQueryExpression) this.constant).getQueryStructName();
+		}
 		return this.constant.toString();
 	}
 

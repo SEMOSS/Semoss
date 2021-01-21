@@ -209,7 +209,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 						currentImportFilters.add(andFilter);
 					}
 					
-					String newExpr = sourceStr + "|" + QsToPixelConverter.getPixel(this.importQs) + " | " + this.importStr + " ;";
+					String newExpr = sourceStr + "|" + QsToPixelConverter.getPixel(this.importQs, false) + " | " + this.importStr + " ;";
 					this.pixels.add(newExpr);
 					
 					// reset
