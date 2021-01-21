@@ -3,7 +3,6 @@ package prerna.util.gson;
 import java.io.IOException;
 
 import com.google.gson.Gson;
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -11,7 +10,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 
-public class ConstantDataTaskAdapter extends TypeAdapter<ConstantDataTask> {
+public class ConstantDataTaskAdapter extends AbstractSemossTypeAdapter<ConstantDataTask> {
 
 	private static final Gson GSON = new Gson();
 

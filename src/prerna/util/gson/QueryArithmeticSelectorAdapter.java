@@ -10,7 +10,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 
-public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticSelector> implements IQuerySelectorAdapterHelper {
+public class QueryArithmeticSelectorAdapter extends AbstractSemossTypeAdapter<QueryArithmeticSelector> implements IQuerySelectorAdapterHelper {
 	
 	@Override
 	public QueryArithmeticSelector read(JsonReader in) throws IOException {
@@ -47,6 +47,7 @@ public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticS
 						in.nextString();
 					} else if(in.peek() == JsonToken.BEGIN_OBJECT) {
 						IQuerySelectorAdapter leftAdapter = new IQuerySelectorAdapter();
+						leftAdapter.setInsight(this.insight);
 						IQuerySelector leftSelector = leftAdapter.read(in);
 						value.setLeftSelector(leftSelector);
 					}
@@ -60,6 +61,7 @@ public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticS
 						in.nextString();
 					} else if(in.peek() == JsonToken.BEGIN_OBJECT) {
 						IQuerySelectorAdapter rightAdapter = new IQuerySelectorAdapter();
+						rightAdapter.setInsight(this.insight);
 						IQuerySelector rightSelector = rightAdapter.read(in);
 						value.setRightSelector(rightSelector);
 					}
