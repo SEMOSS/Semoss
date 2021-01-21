@@ -176,6 +176,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// get the insight output
 		PixelRunner runner = null;
 		NounMetadata additionalMeta = null;
+		// if we have additional pixels
+		// do not use the cached insight
 		if(cacheable && hasCache && cachedInsight == null) {
 			// this means we have a cache
 			// but there was an error with it
@@ -183,14 +185,14 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
 		} else if(cacheable && hasCache) {
 			try {
-				runner = getCachedInsightData(cachedInsight);
+				runner = getCachedInsightData(cachedInsight, additionalPixels);
 			} catch (IOException | RuntimeException e) {
 				InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId, true);
 				additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
 				e.printStackTrace();
 			}
 		}
-
+		
 		if(runner == null) {
 			logger.info("Running insight");
 			runner = runNewInsight(newInsight, additionalPixels);
@@ -290,7 +292,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @param cachedInsight
 	 * @return
 	 */
-	protected PixelRunner getCachedInsightData(Insight cachedInsight) throws IOException, JsonSyntaxException {
+	protected PixelRunner getCachedInsightData(Insight cachedInsight, List<String> additionalPixels) throws IOException, JsonSyntaxException {
 		// so that I don't mess up the insight recipe
 		// use the object as it contains a ton of metadata
 		// around the pixel step
@@ -336,6 +338,13 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			NounMetadata insightConfig = cachedInsight.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
 			if(insightConfig != null) {
 				runner.addResult("META | GetInsightConfig()", insightConfig, true);
+			}
+			
+			// run any additional pixels that the user wants on top of the cached insight
+			if(additionalPixels != null) {
+				for(String expression : additionalPixels) {
+					runner.runPixel(expression, cachedInsight);
+				}
 			}
 		} finally {
 			// we need to reset the recipe
