@@ -36,6 +36,8 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.reactor.qs.SubQueryExpression;
 import prerna.util.Utility;
 
 public class SparqlInterpreter extends AbstractQueryInterpreter {
@@ -201,7 +203,30 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 
 	private String processConstantSelector(QueryConstantSelector selector) {
 		Object constant = selector.getConstant();
-		if(constant instanceof Number) {
+		if(constant instanceof SubQueryExpression) {
+			ITask innerTask = null;
+			try {
+				innerTask = ((SubQueryExpression) constant).generateQsTask();
+				innerTask.setLogger(logger);
+				if(innerTask.hasNext()) {
+					Object value = innerTask.next().getValues()[0];
+					if(value instanceof Number) {
+						return value.toString();
+					} else {
+						return "\"" + constant + "\"";
+					}
+				}
+			} catch(Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(innerTask != null) {
+					innerTask.cleanUp();
+				}
+			}
+			
+			// if this doesn't return anything...
+			return "\"NULL\"";
+		} else if(constant instanceof Number) {
 			return constant.toString();
 		} else {
 			return "\"" + constant + "\"";
