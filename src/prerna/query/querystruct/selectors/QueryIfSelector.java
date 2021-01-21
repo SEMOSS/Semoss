@@ -28,8 +28,20 @@ public class QueryIfSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getDataType() {
-		// need to figure out if this is a string or a number
-		// TODO: pushing now so FE doesn't get errors - always string
+		String dataType1 = precedent.getDataType();
+		String dataType2 = antecedent.getDataType();
+		if(dataType1 == null && dataType2 == null) {
+			return "STRING";
+		}
+		if(dataType1 != null && dataType2 == null) {
+			return dataType1;
+		}
+		if(dataType1 == null && dataType2 != null) {
+			return dataType2;
+		}
+		if(dataType1.equals(dataType2)) {
+			return dataType1;
+		}
 		return "STRING";
 	}
 
