@@ -81,29 +81,36 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			PixelList insightPixelList = this.insight.getPixelList();
 			recipeToSave = insightPixelList.getPixelRecipe();
 			recipeIds = insightPixelList.getPixelIds();
-			List<String> additionalSteps = PixelUtility.getMetaInsightRecipeSteps(this.insight);
-			int counter = 0;
-			for(String step : additionalSteps) {
-				recipeToSave.add(step);
-				recipeIds.add(counter++ + "_additionalStep");
-			}
-			params = InsightUtility.getInsightParams(insight);
 		} else {
 			// default for recipe encoded when no key is passed is true
 			if(recipeEncoded()) {
 				recipeToSave = decodeRecipe(recipeToSave);
 			}
 		}
+		
+		// get an updated recipe if there are files used
+		// and save the files in the correct location
+		try {
+			recipeToSave = saveFilesInInsight(recipeToSave, appId, existingId);
+		} catch(Exception e) {
+			throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
+		}
+		{
+			// now add the additional pixel steps on save
+			List<String> additionalSteps = PixelUtility.getMetaInsightRecipeSteps(this.insight);
+			int counter = 0;
+			for(String step : additionalSteps) {
+				recipeToSave.add(step);
+				recipeIds.add(counter++ + "_additionalStep");
+			}
+			params = InsightUtility.getInsightParams(this.insight);
+		}
 
 		String layout = getLayout();
 		boolean hidden = getHidden();
 
-		// get an updated recipe if there are files used
-		// and save the files in the correct location
-		recipeToSave = saveFilesInInsight(recipeToSave, appId, existingId);
-		
 		if(params != null && !params.isEmpty()) {
-			recipeToSave = PixelUtility.parameterizeRecipe(this.insight.getUser(), recipeToSave, recipeIds, params, insightName);
+			recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName);
 		}
 		
 		IEngine engine = Utility.getEngine(appId);
