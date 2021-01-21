@@ -93,7 +93,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 					if(this.importQs != null && this.headerMods != null) {
 						// need to replace the columns as well
 						newExpression = this.replacementSourcePixel 
-								+ " | " + QsToPixelConverter.getPixel(QSRenameColumnConverter.convertQs(this.importQs, this.headerMods, true))
+								+ " | " + QsToPixelConverter.getPixel(QSRenameColumnConverter.convertQs(this.importQs, this.headerMods, true), false)
 								+ " | " + this.importStr + ";";
 					} else {
 						// just replace the source
