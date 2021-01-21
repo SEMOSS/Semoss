@@ -12,7 +12,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
-public class QueryFunctionSelectorAdapter extends TypeAdapter<QueryFunctionSelector> implements IQuerySelectorAdapterHelper {
+public class QueryFunctionSelectorAdapter extends AbstractSemossTypeAdapter<QueryFunctionSelector> implements IQuerySelectorAdapterHelper {
 	
 	@Override
 	public QueryFunctionSelector read(JsonReader in) throws IOException {
@@ -53,6 +53,7 @@ public class QueryFunctionSelectorAdapter extends TypeAdapter<QueryFunctionSelec
 				in.beginArray();
 				while(in.hasNext()) {
 					IQuerySelectorAdapter innerAdapter = new IQuerySelectorAdapter();
+					innerAdapter.setInsight(this.insight);
 					IQuerySelector innerSelector = innerAdapter.read(in);
 					innerList.add(innerSelector);
 				}

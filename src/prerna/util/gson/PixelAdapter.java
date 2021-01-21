@@ -16,7 +16,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.om.Pixel;
 import prerna.sablecc2.om.task.options.TaskOptions;
 
-public class PixelAdapter  extends TypeAdapter<Pixel> {
+public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 	
 	private static final Gson GSON = GsonUtility.getDefaultGson();
 
