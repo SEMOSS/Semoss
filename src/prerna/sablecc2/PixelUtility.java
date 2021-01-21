@@ -32,6 +32,7 @@ import prerna.om.InsightSheet;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
 import prerna.query.parsers.ParamStruct;
+import prerna.query.parsers.ParamStructDetails.QUOTE;
 import prerna.query.parsers.ParamStructToJsonGenerator;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
@@ -477,7 +478,7 @@ public class PixelUtility {
 	 * @param insightName
 	 * @return
 	 */
-	public static List<String> parameterizeRecipe(User user, List<String> recipe, List<String> recipeIds, List<ParamStruct> params, String insightName) {
+	public static List<String> parameterizeRecipe(Insight currentInsight, List<String> recipe, List<String> recipeIds, List<ParamStruct> params, String insightName) {
 		Insight in = new Insight();
 		ParamStructSaveRecipeTranslation translation = new ParamStructSaveRecipeTranslation(in);
 		translation.setInputsToParameterize(params);
@@ -505,6 +506,10 @@ public class PixelUtility {
 		StringBuilder fullRecipe = new StringBuilder();
 		for(String s : paramedPixels) {
 			fullRecipe.append(s.trim());
+		}
+		List<String> setParameters = PixelUtility.getSetParamValuePixels(currentInsight);
+		for(String s : setParameters) {
+			fullRecipe.append(s);
 		}
 		List<Map<String, Object>> insightJsonObject = ParamStructToJsonGenerator.generateInsightJsonForParameters(insightName, fullRecipe.toString(), params);
 		
@@ -569,6 +574,41 @@ public class PixelUtility {
 			}
 		}
 		
+		return additionalSteps;
+	}
+	
+	/**
+	 * This will return pixel steps to set the current value for the insight parameters
+	 * NOTE ::: These have placeholders for params to be filled.  
+	 * This will NOT compile as proper pixel until they are filled in
+	 * @param in
+	 * @return
+	 */
+	public static List<String> getSetParamValuePixels(Insight in) {
+		List<String> additionalSteps = new Vector<>();
+		VarStore varStore = in.getVarStore();
+		Set<String> params = varStore.getInsightParameterKeys();
+		// loop through the keys
+		// and gson it
+		for(String paramKey : params) {
+			NounMetadata paramNoun = varStore.get(paramKey);
+			ParamStruct param = (ParamStruct) paramNoun.getValue();
+			String paramName = param.getParamName();
+			if(ParamStruct.PARAM_FILL_USE_ARRAY_TYPES.contains(param.getModelDisplay()) 
+					|| param.getDetailsList().get(0).getQuote() == QUOTE.NO) {
+				additionalSteps.add("META | SetInsightParamValue(paramName=\"" + paramName
+					+ "\", paramValue=[<" + paramName + ">]);");
+			} else {
+				PixelDataType importType = param.getDetailsList().get(0).getType();
+				if(importType == PixelDataType.CONST_INT || importType == PixelDataType.CONST_DECIMAL) {
+					additionalSteps.add("META | SetInsightParamValue(paramName=\"" + paramName
+							+ "\", paramValue=<" + paramName + ">);");
+				} else {
+					additionalSteps.add("META | SetInsightParamValue(paramName=\"" + paramName
+							+ "\", paramValue=\"<" + paramName + ">\");");
+				}
+			}
+		}
 		return additionalSteps;
 	}
 	
