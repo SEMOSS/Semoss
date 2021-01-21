@@ -1,6 +1,6 @@
 [
   {
-    "query": "CreateFrame(frameType=graph, override=true).as(['graphFrame']); Database(\"<<ENGINE>>\") | Select(<concept>) | Filter( (<concept> == [<instance>]) ) | Import(frame=[graphFrame]); Panel(<SMSS_PANEL_ID>) | SetPanelView(\"visualization\", \"<encode>{\"type\":\"standard\"}</encode>\" ); TaskOptions({\"<SMSS_PANEL_ID>\":{\"layout\": \"Graph\"}}) | CollectGraph(); Panel ( <SMSS_PANEL_ID> ) | AddPanelOrnaments ( { \"tools\" : { \"shared\" : { \"displayValues\" : true } } } ) ; Panel ( <SMSS_PANEL_ID> ) | RetrievePanelOrnaments ( \"tools.shared.displayValues\" ) ;",
+    "query": "AddPanel(\"0\"); CreateFrame(frameType=graph, override=true).as(['graphFrame']); Database(\"<<ENGINE>>\") | Select(<concept>) | Filter( (<concept> == [<instance>]) ) | Import(frame=[graphFrame]); Panel(<SMSS_PANEL_ID>) | SetPanelView(\"visualization\", \"<encode>{\"type\":\"standard\"}</encode>\" ); TaskOptions({\"<SMSS_PANEL_ID>\":{\"layout\": \"Graph\"}}) | CollectGraph(); Panel ( <SMSS_PANEL_ID> ) | AddPanelOrnaments ( { \"tools\" : { \"shared\" : { \"displayValues\" : true } } } ) ; Panel ( <SMSS_PANEL_ID> ) | RetrievePanelOrnaments ( \"tools.shared.displayValues\" ) ;",
     "label": "Explore an instance",
     "description": "Explore instances of a selected concept",
     "params": [
