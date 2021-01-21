@@ -339,6 +339,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			in.beginArray();
 			while(in.hasNext()) {
 				InsightSheetAdapter sheetAdapter = new InsightSheetAdapter();
+				sheetAdapter.setInsight(insight);
 				InsightSheet sheet = sheetAdapter.read(in);
 				insight.addNewInsightSheet(sheet);
 			}
@@ -377,6 +378,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		// this will be the recipe
 		in.nextName();
 		PixelListAdapter pAdapter = new PixelListAdapter();
+		pAdapter.setInsight(insight);
 		PixelList pixelList = pAdapter.read(in);
 		insight.setPixelList(pixelList);
 		

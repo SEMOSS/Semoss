@@ -11,7 +11,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 
-public class QueryIfSelectorAdapter extends TypeAdapter<QueryIfSelector> implements IQuerySelectorAdapterHelper {
+public class QueryIfSelectorAdapter extends AbstractSemossTypeAdapter<QueryIfSelector> implements IQuerySelectorAdapterHelper {
 
 	@Override 
 	public QueryIfSelector read(JsonReader in) throws IOException {
@@ -37,6 +37,7 @@ public class QueryIfSelectorAdapter extends TypeAdapter<QueryIfSelector> impleme
 		QueryIfSelector value = new QueryIfSelector();
 		
 		IQuerySelectorAdapter selectorAdapter = new IQuerySelectorAdapter();
+		selectorAdapter.setInsight(this.insight);
 		IQueryFilterAdapter filterAdapter = new IQueryFilterAdapter();
 		
 		in.beginObject();

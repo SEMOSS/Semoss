@@ -2,8 +2,7 @@ package prerna.query.querystruct.selectors;
 
 import java.util.List;
 
-import com.google.gson.TypeAdapter;
-
+import prerna.util.gson.AbstractSemossTypeAdapter;
 import prerna.util.gson.QueryArithmeticSelectorAdapter;
 import prerna.util.gson.QueryColumnSelectorAdapter;
 import prerna.util.gson.QueryConstantSelectorAdapter;
@@ -69,7 +68,7 @@ public interface IQuerySelector {
 	 * 
 	 */
 	
-	static TypeAdapter getAdapterForSelector(SELECTOR_TYPE type) {
+	static AbstractSemossTypeAdapter getAdapterForSelector(SELECTOR_TYPE type) {
 		if(type == SELECTOR_TYPE.OPAQUE) {
 			return new QueryOpaqueSelectorAdapter();
 		} else if(type == SELECTOR_TYPE.COLUMN) {

@@ -2,15 +2,15 @@ package prerna.util.gson;
 
 import java.io.IOException;
 
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.sablecc2.reactor.qs.SubQueryExpression;
 
-public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelector> implements IQuerySelectorAdapterHelper {
+public class QueryConstantSelectorAdapter extends AbstractSemossTypeAdapter<QueryConstantSelector> implements IQuerySelectorAdapterHelper {
 
 	@Override 
 	public QueryConstantSelector read(JsonReader in) throws IOException {
@@ -44,8 +44,15 @@ public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelec
 					value.setConstant(null);
 				} else if(in.peek() == JsonToken.NUMBER) {
 					value.setConstant(in.nextDouble());
-				} else {
+				} else if(in.peek() == JsonToken.BOOLEAN) {
+					value.setConstant(in.nextBoolean());
+				} else if(in.peek() == JsonToken.STRING) {
 					value.setConstant(in.nextString());
+				} else if(in.peek() == JsonToken.BEGIN_OBJECT){
+					SubQueryExpressionAdapter adapter = new SubQueryExpressionAdapter();
+					SubQueryExpression obj = adapter.read(in);
+					obj.setInsight(this.insight);
+					value.setConstant(obj);
 				}
 			}
 		}
@@ -72,6 +79,12 @@ public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelec
 			out.name("constant").nullValue();
 		} else if(val instanceof Number) {
 			out.name("constant").value((Number) val);
+		} else if(val instanceof Boolean) {
+			out.name("constant").value((Boolean) val);
+		} else if(val instanceof SubQueryExpression) {
+			out.name("constant");
+			SubQueryExpressionAdapter adapter = new SubQueryExpressionAdapter();
+			adapter.write(out, (SubQueryExpression) val);
 		} else {
 			out.name("constant").value(val.toString());
 		}

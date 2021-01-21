@@ -39,6 +39,7 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.qs.SubQueryExpression;
 
 public class GsonUtility {
 
@@ -69,10 +70,12 @@ public class GsonUtility {
 				.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter())
 				.registerTypeAdapter(QueryFunctionSelector.class, new QueryFunctionSelectorAdapter())
 				.registerTypeAdapter(QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter())
-				.registerTypeAdapter(QueryConstantSelector.class, new QueryConstantSelectorAdapter())
 				.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter())
 				.registerTypeAdapter(QueryIfSelector.class, new QueryIfSelectorAdapter())
-				
+				.registerTypeAdapter(QueryConstantSelector.class, new QueryConstantSelectorAdapter())
+				// part of query constants
+				.registerTypeAdapter(SubQueryExpression.class, new SubQueryExpressionAdapter())
+
 				// filters
 				.registerTypeAdapter(GenRowFilters.class, new GenRowFiltersAdapter())
 				.registerTypeAdapter(IQueryFilter.class, new IQueryFilterAdapter())
@@ -86,7 +89,7 @@ public class GsonUtility {
 				.registerTypeAdapter(QueryColumnOrderBySelector.class, new QueryColumnOrderBySelectorAdapter())
 				.registerTypeAdapter(QueryCustomOrderBy.class, new QueryCustomOrderByAdapter())
 
-				// noun meta
+				// object models
 				.registerTypeAdapter(NounMetadata.class, new NounMetadataAdapter())
 				.registerTypeAdapter(VarStore.class, new VarStoreAdapter())
 

@@ -64,6 +64,7 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 				List<IQuerySelector> selectors = new Vector<IQuerySelector>();
 				while(in.hasNext()) {
 					IQuerySelectorAdapter selectorAdapter = new IQuerySelectorAdapter();
+					selectorAdapter.setInsight(this.insight);
 					IQuerySelector selector = selectorAdapter.read(in);
 					selectors.add(selector);
 				}
@@ -89,15 +90,14 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 				
 				while(in.hasNext()) {
 					IQuerySelectorAdapter selectorAdapter = new IQuerySelectorAdapter();
+					selectorAdapter.setInsight(this.insight);
 					IQuerySelector selector = selectorAdapter.read(in);
 					
 					if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 						groupBy.add((QueryColumnSelector) selector);
-					}
-					else if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+					} else if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 						groupBy.add((QueryFunctionSelector) selector);
-					}
-					else {
+					} else {
 						String errorMessage = "Error: Cannot group by non QueryColumnSelector and QueryFunctionSelector types yet...";
 						logger.error(errorMessage);
 						throw new IllegalArgumentException(errorMessage);
@@ -114,6 +114,7 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 				orders = new Vector<IQuerySort>();
 				while(in.hasNext()) {
 					IQuerySortAdapter sortAdapter = new IQuerySortAdapter();
+					sortAdapter.setInsight(this.insight);
 					IQuerySort orderBy = sortAdapter.read(in);
 					orders.add(orderBy);
 				}
@@ -165,6 +166,7 @@ public class SelectQueryStructAdapter  extends AbstractSemossTypeAdapter<SelectQ
 	 */
 	private GenRowFilters readGrf(JsonReader in) throws IOException {
 		GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
+		adapter.setInsight(this.insight);
 		GenRowFilters grf = adapter.read(in);
 		if(grf == null) {
 			return new GenRowFilters();

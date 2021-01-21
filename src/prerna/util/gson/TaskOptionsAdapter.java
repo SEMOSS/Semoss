@@ -11,7 +11,7 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.sablecc2.om.task.options.TaskOptions;
 
-public class TaskOptionsAdapter extends TypeAdapter<TaskOptions> {
+public class TaskOptionsAdapter extends AbstractSemossTypeAdapter<TaskOptions> {
 
 	private static Gson GSON = GsonUtility.getDefaultGson();
 
