@@ -14,6 +14,7 @@ public enum PixelDataType {
 	CONST_MONTH ("CONST_MONTH", null), 						// constant month
 	CONST_YEAR ("CONST_YEAR", null), 						// constant year
 
+	SUB_QUERY_EXPRESSION("SUB_QUERY_EXPRESSION", null),
 	NULL_VALUE ("NULL_VALUE", null), 						// null input
 	COLUMN ("COLUMN", null), 								// column name in database or frame
 	

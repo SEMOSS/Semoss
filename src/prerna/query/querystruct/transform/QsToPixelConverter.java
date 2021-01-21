@@ -7,6 +7,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -30,18 +31,28 @@ public class QsToPixelConverter {
 
 	}
 	
-	public static String getHardQsPixel(HardSelectQueryStruct qs) {
-		StringBuilder b = new StringBuilder();
-		b.append("Database(").append(qs.getEngineId()).append(") | Query(")
-			.append(qs.getQuery().replace("\"", "\\\"")).append(")");
-		return b.toString();
+	public static String getHardQsPixel(HardSelectQueryStruct qs, boolean includeSource) {
+		StringBuilder pixel = new StringBuilder();
+		if(includeSource) {
+			if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+				pixel.append("Frame(");
+				if(qs.getFrameName() != null) {
+					pixel.append(qs.getFrameName());
+				}
+				pixel.append(") | ");
+			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+				pixel.append("Database(").append(qs.getEngineId()).append(") | ");
+			}
+		}
+		pixel.append("Query(").append(qs.getQuery().replace("\"", "\\\"")).append(")");
+		return pixel.toString();
 	}
 
-	public static String getPixel(SelectQueryStruct qs) {
+	public static String getPixel(SelectQueryStruct qs, boolean includeSource) {
 		if(qs instanceof HardSelectQueryStruct) {
-			return getHardQsPixel((HardSelectQueryStruct) qs);
+			return getHardQsPixel((HardSelectQueryStruct) qs, includeSource);
 		}
-
+		
 		// grab all the selectors
 		StringBuilder selectBuilder = new StringBuilder();
 		selectBuilder.append("Select(");
@@ -120,6 +131,17 @@ public class QsToPixelConverter {
 //		}
 		
 		StringBuilder pixel = new StringBuilder();
+		if(includeSource) {
+			if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+				pixel.append("Frame(");
+				if(qs.getFrameName() != null) {
+					pixel.append(qs.getFrameName());
+				}
+				pixel.append(") | ");
+			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+				pixel.append("Database(").append(qs.getEngineId()).append(") | ");
+			}
+		}
 		pixel.append(selectBuilder.toString());
 		if(hasFilters) {
 			pixel.append(" | ").append(filterBuilder.toString());
