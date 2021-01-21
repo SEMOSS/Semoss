@@ -1000,10 +1000,12 @@ public class SqlParser2 {
 				wep.addWhenThenE(when , then);
 			}
 			// I wonder if we should orient else as well
-			GenExpression elseE = processExpression(qs, cep.getElseExpression(), wep);
-
-			wep.setElse(cep.getElseExpression().toString());
-			wep.setElseE(elseE);
+			// if there is an else - process it
+			if(cep.getElseExpression() != null) {
+				GenExpression elseE = processExpression(qs, cep.getElseExpression(), wep);
+				wep.setElse(cep.getElseExpression().toString());
+				wep.setElseE(elseE);
+			}
 			
 			wep.parent = (GenExpression)qs;
 			return wep;
@@ -1234,8 +1236,9 @@ public class SqlParser2 {
 		else
 		{
 			System.err.println("Unhandled expression >>>>> " + joinExpr);
-			if(joinExpr == null)
+			if(joinExpr == null) {
 				return null;
+			}
 			GenExpression ge = new GenExpression();
 			ge.setOperation("opaque");
 			ge.setLeftExpr(joinExpr.toString());
