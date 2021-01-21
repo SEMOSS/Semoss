@@ -176,9 +176,9 @@ public class SqlParser2 {
 		
 		// can this be null ?
 		String alias = "";
-		if(fi.getAlias() != null)
+		if(fi.getAlias() != null) {
 			alias = fi.getAlias().getName();
-
+		}
 		List<SelectItem> items = sb.getSelectItems();		
 
 		// this is the simple case
@@ -200,16 +200,19 @@ public class SqlParser2 {
 			
 			if(fi instanceof Table)
 			{
-				String fromTableName = "";
 				Table fromTable = (Table) sb.getFromItem();
-				fromTableName = fromTable.getName();
+				String fromTableName = fromTable.getName();
+				String fromTableAlias = null;
 				Alias fromTableAliasObj = fromTable.getAlias();
 				if(fromTableAliasObj != null) {
-					this.wrapper.tableAlias.put(fromTable.getAlias().getName(), fromTable.getName());
+					fromTableAlias = fromTableAliasObj.getName();
+					this.wrapper.tableAlias.put(fromTableAlias, fromTableName);
 				} else {
 					this.wrapper.tableAlias.put(fromTableName, fromTableName);
 				}
 				thisQs.currentTable = fromTableName;
+				thisQs.currentTableAlias = fromTableAlias;
+				
 				GenExpression fromExpr = new GenExpression();
 				fromExpr.setOperation("from");
 				fromExpr.setComposite(false);
@@ -220,13 +223,14 @@ public class SqlParser2 {
 				
 				// tracking tables
 				List <GenExpression>selectList = null;
-				if(this.wrapper.tableSelect.containsKey(fromTableName))
+				if(this.wrapper.tableSelect.containsKey(fromTableName)) {
 					selectList = this.wrapper.tableSelect.get(fromTableName);
-				else
+				} else {
 					selectList = new Vector<GenExpression>();
-				if(!selectList.contains(qs))
+				}
+				if(!selectList.contains(qs)) {
 					selectList.add(qs);
-				
+				}
 				
 				this.wrapper.tableSelect.put(fromTableName, selectList);
 			}
@@ -311,7 +315,13 @@ public class SqlParser2 {
 			String fromTableName = "";
 			Table fromTable = (Table) fi;
 			fromTableName = fromTable.getName();
+			String fromTableAlias = null;
+			Alias tableAlias = fromTable.getAlias();
+			if(tableAlias != null) {
+				fromTableAlias = tableAlias.getName();
+			}
 			thisQs.currentTable = fromTableName;
+			thisQs.currentTableAlias = fromTableAlias;
 			GenExpression fromExpr = new GenExpression();
 			fromExpr.setOperation("from");
 			fromExpr.setComposite(false);
@@ -359,21 +369,18 @@ public class SqlParser2 {
 				Alias seiAlias = sei.getAlias();				
 				GenExpression gep = processExpression(qs, sei.getExpression(), null);
 				
-				if(seiAlias != null)
+				if(seiAlias != null) {
 					gep.setLeftAlias(seiAlias.getName());
+				}
 				qs.nselectors.add(gep);
 				
 				// process for colum cleanup
-				if(seiAlias != null && this.wrapper.columnSelect.containsKey(seiAlias.getName()))
-				{
+				if(seiAlias != null && this.wrapper.columnSelect.containsKey(seiAlias.getName())) {
 					// remove it / add it as the actual one
 					// it is already accomodated for some other place
 					this.wrapper.columnSelect.remove(seiAlias.getName());					
 				}
-				
-			}
-			else if(si instanceof AllTableColumns || si instanceof AllColumns)
-			{
+			} else if(si instanceof AllTableColumns || si instanceof AllColumns) 	{
 				GenExpression gep = new GenExpression();
 				gep.aQuery = si.toString();
 				gep.setLeftExpr(si.toString()); 
@@ -382,8 +389,6 @@ public class SqlParser2 {
 			}
 		}
 	}
-
-
 
 	/**
 	 * Add the joins and store table aliases used
@@ -907,38 +912,48 @@ public class SqlParser2 {
 			retExpr.setComposite(false);
 			retExpr.setOperation("column");
 			String tableName = "";
+			String tableAlias = "";
 			// need to fix the table name
-			if(thisCol.getTable() != null)
+			if(thisCol.getTable() != null) {
 				tableName = thisCol.getTable().getFullyQualifiedName();
-			else
+				Alias alias = thisCol.getTable().getAlias();
+				if(alias != null) {
+					tableAlias = alias.getName();
+				}
+			} else {
 				tableName = qs.currentTable;
+				tableAlias = qs.currentTableAlias;
+			}
 			// take out __ and put .
 			//retExpr.setLeftExpr(tableName + "." + thisCol.getColumnName());
 			retExpr.setLeftExpr(thisCol.getColumnName());
 			retExpr.tableName = tableName;
-			
+			retExpr.tableAlias = tableAlias;
 			
 			// starts keeping track of the columns
 			String columnName = thisCol.getColumnName();
 			
 			List <GenExpression>selectList = null;
-			if(this.wrapper.columnSelect.containsKey(tableName + "." + columnName))
+			if(this.wrapper.columnSelect.containsKey(tableName + "." + columnName)) {
 				selectList = this.wrapper.columnSelect.get(tableName + "." + columnName);
-			else
+			} else {
 				selectList = new Vector<GenExpression>();
-			if(!selectList.contains(qs))
+			}
+			if(!selectList.contains(qs)) {
 				selectList.add((GenExpression) qs);
-
+			}
 			this.wrapper.columnSelect.put(tableName + "." + columnName, selectList);
 			
 			// track based on select too
 			List <String> columnList = null;
-			if(this.wrapper.selectColumns.containsKey(qs))
+			if(this.wrapper.selectColumns.containsKey(qs)) {
 				columnList = this.wrapper.selectColumns.get(qs);
-			else
+			} else {
 				columnList = new Vector<String>();
-			if(!columnList.contains(tableName + "." + columnName))
+			}
+			if(!columnList.contains(tableName + "." + columnName)) {
 				columnList.add(tableName + "." + columnName);
+			}
 			
 			this.wrapper.selectColumns.put((GenExpression) qs, columnList);
 			
@@ -1415,7 +1430,22 @@ public class SqlParser2 {
 	}
 	
 	
-	
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 
 
 	public static void main(String [] args) throws Exception {
@@ -2625,6 +2655,9 @@ public class SqlParser2 {
 		wrapper.fillParameters();
 		test.printOutput(wrapper.root);
 
+//		String mkquery = "select abc from table xyz";
+//		GenExpressionWrapper wrapper = test.processQuery(mkquery);
+//		System.out.println(GenExpression.printQS(wrapper.root, null) + "");
 		
 		/*
 		Map <String, GenExpression> filterMap = new HashMap<String, GenExpression>();

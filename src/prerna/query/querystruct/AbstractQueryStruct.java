@@ -111,10 +111,11 @@ public abstract class AbstractQueryStruct {
 	public List<GenExpression> nselectors = new Vector<GenExpression>();
 	
 	// current table
+	// current table alias
 	public String currentTable = null;
+	public String currentTableAlias = null;
 	
 	public GenExpression from = null;
-	
 	
 	// sets the body
 	public GenExpression body = null;
