@@ -41,7 +41,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {
 		JobDataMap dataMap = context.getMergedJobDataMap();
-		jobId= context.getJobDetail().getKey().getName();
+		jobId = context.getJobDetail().getKey().getName();
 		jobGroup = context.getJobDetail().getKey().getGroup();
 		String pixel = dataMap.getString(JobConfigKeys.PIXEL);
 		String userAccess = RPAProps.getInstance().decrypt(dataMap.getString(JobConfigKeys.USER_ACCESS));
