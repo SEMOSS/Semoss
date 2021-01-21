@@ -11,7 +11,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 
-public class AndQueryFilterAdapter extends TypeAdapter<AndQueryFilter> implements IQueryFilterAdapterHelper {
+public class AndQueryFilterAdapter extends AbstractSemossTypeAdapter<AndQueryFilter> implements IQueryFilterAdapterHelper {
 
 	@Override
 	public AndQueryFilter read(JsonReader in) throws IOException {

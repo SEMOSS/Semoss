@@ -20,9 +20,10 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 
-public class UpdateQueryStructAdapter  extends TypeAdapter<UpdateQueryStruct> {
+public class UpdateQueryStructAdapter extends AbstractSemossTypeAdapter<UpdateQueryStruct> {
 	
-	private static final Logger logger = LogManager.getLogger(UpdateQueryStructAdapter.class.getName());
+	private static final Logger logger = LogManager.getLogger(UpdateQueryStructAdapter.class);
+	
 	private static final Gson GSON = GsonUtility.getDefaultGson();
 
 	@Override

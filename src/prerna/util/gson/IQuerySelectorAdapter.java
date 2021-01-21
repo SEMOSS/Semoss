@@ -9,7 +9,7 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
 
-public class IQuerySelectorAdapter extends TypeAdapter<IQuerySelector> {
+public class IQuerySelectorAdapter extends AbstractSemossTypeAdapter<IQuerySelector> {
 
 	@Override
 	public IQuerySelector read(JsonReader in) throws IOException {
@@ -25,11 +25,12 @@ public class IQuerySelectorAdapter extends TypeAdapter<IQuerySelector> {
 		
 		// get the correct adapter
 		IQuerySelector.SELECTOR_TYPE selectorType = IQuerySelector.convertStringToSelectorType(selectorTypeString);
-		IQuerySelectorAdapterHelper reader = (IQuerySelectorAdapterHelper) IQuerySelector.getAdapterForSelector(selectorType);
-
+		AbstractSemossTypeAdapter reader = IQuerySelector.getAdapterForSelector(selectorType);
+		reader.setInsight(this.insight);
+		
 		// now we should have the content object
 		in.nextName();
-		IQuerySelector selector = reader.readContent(in);
+		IQuerySelector selector = ((IQuerySelectorAdapterHelper) reader).readContent(in);
 		in.endObject();
 		
 		return selector;

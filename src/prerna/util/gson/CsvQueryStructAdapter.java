@@ -19,7 +19,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 
-public class CsvQueryStructAdapter  extends TypeAdapter<CsvQueryStruct> {
+public class CsvQueryStructAdapter  extends AbstractSemossTypeAdapter<CsvQueryStruct> {
 
 	@Override
 	public CsvQueryStruct read(JsonReader in) throws IOException {

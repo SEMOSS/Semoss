@@ -2,14 +2,13 @@ package prerna.util.gson;
 
 import java.io.IOException;
 
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.om.InsightSheet;
 
-public class InsightSheetAdapter extends TypeAdapter<InsightSheet> {
+public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet> {
 
 	@Override
 	public void write(JsonWriter out, InsightSheet value) throws IOException {

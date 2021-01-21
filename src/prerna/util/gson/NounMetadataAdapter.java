@@ -19,7 +19,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.IReactor;
 
-public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
+public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata> {
 
 	private static final Gson GSON = GsonUtility.getDefaultGson();
 

@@ -14,7 +14,7 @@ import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryCustomOrderBy;
 
-public class QueryCustomOrderByAdapter extends TypeAdapter<QueryCustomOrderBy> implements IQuerySortAdapterHelper {
+public class QueryCustomOrderByAdapter extends AbstractSemossTypeAdapter<QueryCustomOrderBy> implements IQuerySortAdapterHelper {
 
 	@Override 
 	public QueryCustomOrderBy read(JsonReader in) throws IOException {
