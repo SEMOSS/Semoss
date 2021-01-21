@@ -106,7 +106,6 @@ public class SQLQueryUtils {
 		{
 			String sql = expressions.get(expIndex);
 			
-			
 			GenExpression curExpr = null;
 			try {
 				curExpr = parser.processQuery(sql).root;
@@ -121,18 +120,19 @@ public class SQLQueryUtils {
 			if(curExpr.from  != null)
 			{
 				curTableAlias = curExpr.from.getLeftExpr();		
-				if(curTableAlias == null)
+				if(curTableAlias == null) {
 					curTableAlias = curExpr.from.leftAlias;
+				}
 				aliasForThisExpr = aliasForThisExpr + "_" + curTableAlias;
 				// add this for the joins later
 				aliasTranslationMap.put(curTableAlias, aliasForThisExpr);
 			}
 			
-			if(leftAlias == null)
+			if(leftAlias == null) {
 				leftAlias = aliasForThisExpr;
-			else
+			} else {
 				rightAlias = aliasForThisExpr;
-				
+			}
 			
 			// add these selectors to 
 			// our main selector
@@ -151,10 +151,11 @@ public class SQLQueryUtils {
 					// we could jsut keep the alias instead of the entire selector
 					GenExpression newSelector = new GenExpression();
 					newSelector.setOperation("column");
-					if(curSelector.leftAlias != null && curSelector.leftAlias.length() > 0)
+					if(curSelector.leftAlias != null && curSelector.leftAlias.length() > 0) {
 						newSelector.setLeftExpr(curSelector.leftAlias);
-					else
+					} else {
 						newSelector.setLeftExpr(curSelector.leftExpr);
+					}
 					newSelector.tableName = aliasForThisExpr;
 					
 					// replace the alias / name of this column this needs to be 

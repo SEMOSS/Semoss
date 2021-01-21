@@ -1,10 +1,7 @@
 package prerna.query.querystruct;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Vector;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -24,6 +21,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	
 	// put the table name as well
 	public String tableName = null;
+	public String tableAlias = null;
 	
 	String rightAlias = null;
 	String rightExpr = null;
@@ -222,14 +220,21 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				String columnName = qs.leftExpr;
 				//if(!columnName.startsWith("\""))
 				//	columnName = "\"" + columnName + "\"";
-				if(qs.paranthesis)
+				if(qs.paranthesis) {
 					buf.append("(");
-				buf.append(qs.tableName).append(".").append(columnName);
-				if(qs.leftAlias != null && qs.leftAlias.length() > 0)
+				}
+				if(qs.tableAlias != null && !qs.tableAlias.isEmpty()) {
+					buf.append(qs.tableAlias);
+				} else {
+					buf.append(qs.tableName);
+				}
+				buf.append(".").append(columnName);
+				if(qs.leftAlias != null && qs.leftAlias.length() > 0) {
 					buf.append(" as ").append(qs.leftAlias);
-				if(qs.paranthesis)
+				}
+				if(qs.paranthesis) {
 					buf.append(")");
-
+				}
 				processed = true;
 			}
 			else if(qs.operation.equalsIgnoreCase("double") || qs.operation.equalsIgnoreCase("date") || qs.operation.equalsIgnoreCase("time") || qs.operation.equalsIgnoreCase("string") || qs.operation.equalsIgnoreCase("long"))
