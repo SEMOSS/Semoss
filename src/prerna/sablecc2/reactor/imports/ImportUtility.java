@@ -33,6 +33,7 @@ import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.RawSesameSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -127,7 +128,7 @@ public class ImportUtility {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine
 		if(qsType == QUERY_STRUCT_TYPE.ENGINE || qsType == QUERY_STRUCT_TYPE.DIRECT_API_QUERY) {
-			parseEngineQsToFlatTable(dataframe, qs, frameTableName);
+			parseEngineQsToFlatTable(dataframe, qs, frameTableName, it);
 		}
 		// engine with raw query
 		else if(qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY 
@@ -169,8 +170,13 @@ public class ImportUtility {
 	 * @param dataframe
 	 * @param qs
 	 * @param frameTableName
+	 * @param it 
 	 */
-	private static void parseEngineQsToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName) {
+	private static void parseEngineQsToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName, Iterator<IHeadersDataRow> it) {
+		SemossDataType[] iteratorTypes = null;
+		if(it instanceof IRawSelectWrapper) {
+			iteratorTypes = ((IRawSelectWrapper) it).getTypes();
+		}
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String engineName = qs.getEngineId();
 		
@@ -188,36 +194,48 @@ public class ImportUtility {
 			String qsName = selector.getQueryStructName();
 			boolean isDerived = selector.isDerived();
 			String dataType = selector.getDataType();
-			
+			String itDataType = null;
+			if(iteratorTypes != null) {
+				itDataType = iteratorTypes[i].toString();
+			}
 			String uniqueHeader = frameTableName + "__" + alias;
 			metaData.addProperty(frameTableName, uniqueHeader);
 			metaData.setQueryStructNameToProperty(uniqueHeader, engineName, qsName);
 			metaData.setDerivedToProperty(uniqueHeader, isDerived);
 			metaData.setAliasToProperty(uniqueHeader, alias);
 
-			if(dataType == null) {
-				// this only happens when we have a column selector
-				// and we need to query the local master
-				QueryColumnSelector cSelect = (QueryColumnSelector) selector;
-				String table = cSelect.getTable();
-				String column = cSelect.getColumn();
-				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-					String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
-					String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineName, table, null);
-					metaData.setDataTypeToProperty(uniqueHeader, type);
-					if (adtlType != null) {
-						metaData.setAddtlDataTypeToProperty(uniqueHeader, adtlType);
+			// if we are doing a complex operation
+			// use the data type from the iterator
+			// if it is a column
+			// use the data type from the metadata
+			if(itDataType != null && selector.getSelectorType() != SELECTOR_TYPE.COLUMN) {
+				metaData.setDataTypeToProperty(uniqueHeader, itDataType);
+			} else {
+				if(dataType == null) {
+					// this only happens when we have a column selector
+					// and we need to query the local master
+					QueryColumnSelector cSelect = (QueryColumnSelector) selector;
+					String table = cSelect.getTable();
+					String column = cSelect.getColumn();
+					if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+						String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
+						String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineName, table, null);
+						metaData.setDataTypeToProperty(uniqueHeader, type);
+						if (adtlType != null) {
+							metaData.setAddtlDataTypeToProperty(uniqueHeader, adtlType);
+						}
+					} else {
+						String type = MasterDatabaseUtility.getBasicDataType(engineName, column, table);
+						String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineName, column, table);
+						metaData.setDataTypeToProperty(uniqueHeader, type);
+						if (adtlType != null) {
+							metaData.setAddtlDataTypeToProperty(uniqueHeader, adtlType);
+						}
 					}
 				} else {
-					String type = MasterDatabaseUtility.getBasicDataType(engineName, column, table);
-					String adtlType = MasterDatabaseUtility.getAdditionalDataType(engineName, column, table);
-					metaData.setDataTypeToProperty(uniqueHeader, type);
-					if (adtlType != null) {
-						metaData.setAddtlDataTypeToProperty(uniqueHeader, adtlType);
-					}
+					// use the data type
+					metaData.setDataTypeToProperty(uniqueHeader, dataType);
 				}
-			} else {
-				metaData.setDataTypeToProperty(uniqueHeader, dataType);
 			}
 		}
 	}
