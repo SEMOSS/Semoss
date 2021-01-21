@@ -21,6 +21,7 @@ import prerna.sablecc2.om.PixelDataType;
 public class GenExpressionWrapper {
 	
 	// keep table alias
+	// this is {alias => table name}
 	public Map<String, String> tableAlias = null;
 	// keep column alias
 	public  Map<String, String> columnAlias = null;
