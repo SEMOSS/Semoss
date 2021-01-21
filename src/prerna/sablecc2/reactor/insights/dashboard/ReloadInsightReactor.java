@@ -66,7 +66,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 			additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
 		} else if(cacheable && hasCache) {
 			try {
-				runner = getCachedInsightData(cachedInsight);
+				runner = getCachedInsightData(cachedInsight, null);
 			} catch (IOException | RuntimeException e) {
 				InsightCacheUtility.deleteCache(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId(), true);
 				additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
