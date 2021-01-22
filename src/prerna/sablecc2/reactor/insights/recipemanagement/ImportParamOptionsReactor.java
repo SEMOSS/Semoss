@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.Vector;
 
 import com.google.gson.Gson;
@@ -189,7 +190,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 	}
 	
 	public Map<String, Map <String, Map<String, Map<String, List<ParamStruct>>>>> organizeStruct(List <ParamStruct> structs) {
-		Map<String, Map <String, Map<String, Map<String, List<ParamStruct>>>>> columnMap = new HashMap<>();
+		Map<String, Map <String, Map<String, Map<String, List<ParamStruct>>>>> columnMap = new TreeMap<>();
 		// level 1 - column name
 		// column (key) -- List of tables (Value)
 		// level 2 - column + table
@@ -215,7 +216,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			if(columnMap.containsKey(columnName)) {
 				tableMap = (Map <String, Map<String, Map<String, List<ParamStruct>>>>) columnMap.get(columnName);
 			} else {
-				tableMap = new HashMap <String, Map<String, Map<String, List<ParamStruct>>>>();
+				tableMap = new TreeMap<>();
 			}
 			
 			// get the operator from the table
@@ -223,7 +224,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			if(tableMap.containsKey(tableName)) {
 				opMap = (Map <String, Map<String, List <ParamStruct>>>)tableMap.get(tableName);
 			} else {
-				opMap = new HashMap<String, Map<String, List<ParamStruct>>>();
+				opMap = new TreeMap<>();
 			}
 			
 			// get the table unique operator
@@ -231,7 +232,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			if(opMap.containsKey(opName)) {
 				opuMap = (Map<String, List <ParamStruct>>)opMap.get(opName);
 			} else {
-				opuMap = new HashMap<String, List<ParamStruct>>();
+				opuMap = new TreeMap<>();
 			}
 			
 			// get the actual paramstruct
@@ -239,7 +240,7 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			if(opuMap.containsKey(opuName)) {
 				curList = (List <ParamStruct>) opuMap.get(opuName);
 			} else {
-				curList = new ArrayList<ParamStruct>();
+				curList = new ArrayList<>();
 			}
 			
 			// add the paramstruct
