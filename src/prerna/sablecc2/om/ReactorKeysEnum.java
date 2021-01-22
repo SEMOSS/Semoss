@@ -54,6 +54,7 @@ public enum ReactorKeysEnum {
 	EXISTING("existing", 									"Add to exisitng app"),
 	END("end", 									            "Ending value for a between reactor"),
 	END_ROW("endRow", 									    "The ending row number to import from a file."),
+	EXPORT_AUDIT("exportAudit",                             "Boolean to include an audit sheet for parameters to excel exports"),
 	EXPORT_TEMPLATE("export_template",					    "Template file to use for the export of this data"),
 	FILE_NAME("fileName", 									"Name of the file"),
 	FILE_PATH("filePath", 									"Absolute file path location"),
@@ -122,6 +123,7 @@ public enum ReactorKeysEnum {
 	PASSWORD("password", 									"Password used in conjunction with the username for access to a service"),
 	PIXEL("pixel", 											"Pixel script as string"),
 	PIXEL_ID("pixelId", 									"The pixel id for this pixel step"),
+	PLACE_HOLDER_DATA("placeHolderData",                    "Updated place holder information of the template"),
 	PORT("port",                                            "The connection port."),
 	PLANNER("planner", 										"The planner"),
 	POSITION_MAP("positionMap", 							"Map containing positions for elements"),
@@ -142,6 +144,7 @@ public enum ReactorKeysEnum {
 	ROW_GROUPS("rowGroups",                                 "Row Grouping that needs to be done for pivot"),
 	ROW_GUTTER("rowgutter", 							    "Number of rows to pad between subsequent tables"),
 	RULES_MAP("rulesMap",                                   "The map of rules for validation, including information such as the name of the rule, the rule definition, the columns, and the description"),
+	SCALE("scale", 											"How much to scale the graph, default value is set at 20 based on screen size"),
 	SCHEMA("schema",                                        "The database schema."),
 	SEARCH("search",                                        "The search term."),
 	SESSION_ID("sessionId", 								"Id of the session"),
@@ -169,6 +172,9 @@ public enum ReactorKeysEnum {
 	TASK("task", 											"Task object (can retrieve the object by using Task(taskId) where taskId is the unique id for the task)"),
 	TASK_ID("taskId", 										"Unique id of the task within the insight"),
 	TRAVERSAL("traversal", 									"The traversal path within the map"),
+	TEMPLATE_NAME("template_name",                           "Name of the template which has been uploaded "),
+    TEMPLATE_FILE("template_file",                           "File Name of the template to be used for export"),
+    TEMPLATE("template",                                      "template folder name"),
 	UNIQUE_COLUMN("uniqueColumn", 							"Unique column identifier for csv/excel table uploads"),
 	USE_FRAME_FILTERS("useFrameFilters", 					"A boolean indication (true or false) to use frame filters"), 	
 	USERNAME("username", 									"Unique identifier for the user to access a service"),
@@ -181,9 +187,8 @@ public enum ReactorKeysEnum {
 	VALUES("values", 										"Numeric or string values used as input text or inputs to an operation"),
 	VARIABLE("variable", 									"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 										"The version"),
-	WIDTH("width", 										    "The width to use for screenshot capture."),
-	SCALE("scale", 											"How much to scale the graph, default value is set at 20 based on screen size");
-	
+	WIDTH("width", 										    "The width to use for screenshot capture.");
+
 	private String key;
 	private String description;
 	
