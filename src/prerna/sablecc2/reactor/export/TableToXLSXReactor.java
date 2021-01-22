@@ -1140,7 +1140,11 @@ public class TableToXLSXReactor	extends AbstractReactor {
 				NounMetadata param = insight.getVarStore().get(VarStore.PARAM_STRUCT_PREFIX + paramName);
 				String result = null;
 				if(param != null)
-					result = param.getValue() + "";
+				{
+					ParamStruct ps = (ParamStruct)param.getValue();
+					// going to get just the first psd and get data from that
+					result = ps.getDetailsList().get(0).getCurrentValue() + "";
+				}
 				//String result = ExportParamUtility.getParamValue(matcher.group(), insight);
 				if (result != null) //  && !result.isEmpty() - empty can be legit value
 				{
