@@ -124,7 +124,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				ReactorKeysEnum.TABLE_HEADER.getKey(),
 				ReactorKeysEnum.TABLE_FOOTER.getKey(),
 				ReactorKeysEnum.MERGE_CELLS.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey(),
-				ReactorKeysEnum.PANEL_ORDER_IDS.getKey()
+				ReactorKeysEnum.PANEL_ORDER_IDS.getKey(),
+				ReactorKeysEnum.EXPORT_AUDIT.getKey(),
+				ReactorKeysEnum.PLACE_HOLDER_DATA.getKey(),
+				ReactorKeysEnum.APP.getKey()
 			};
 		this.keyRequired = new int[] {0,0,0,0,0,0,0,0,0,0,0,0,0};
 		this.keyMulti = new int[] {0,0,0,0,0,0,1,0,0,0,0,0,0};
@@ -157,11 +160,16 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// get a random file name
 		String prefixName = exportMap.get("FILE_NAME") + ""; 
 		
-		// this whole logic will be moved eventually
-		//////>>>>>>>>>>>>>>>
 		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 		// grab file path to write the file
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+		
+		boolean exportAudit = false;
+		// check if the export audit has been selected for export
+		if (keyValue.containsKey(ReactorKeysEnum.EXPORT_AUDIT.getKey())) {
+			String auditParam = (String) keyValue.get(ReactorKeysEnum.EXPORT_AUDIT.getKey());
+			exportAudit = auditParam.equalsIgnoreCase("yes") || auditParam.equalsIgnoreCase("true");
+		}
 		
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
@@ -320,10 +328,20 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// fill the footers
 		if(exportMap.containsKey("footer"))
 			fillFooter(workbook, exportMap, (String)exportMap.get("footer"));
+		
+		// fill the place holders
+		if(exportMap.containsKey("placeholders"))
+			fillPlaceholders(workbook, exportMap, (Map<String, List<String>>) exportMap.get("placeholders"));
 
 		// close the driver
 		if(driver != null)
 		  driver.quit();
+		
+		// process and apply the audit param sheet if the export Audit has been opted
+		// 0 is passed as starting row index for the audit sheet
+		if (exportAudit) {
+			makeParamSheet(workbook, this.insight,true, 0);
+		}
 
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
 		
@@ -332,13 +350,23 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			// encrypt file
 			ExcelUtility.encrypt(workbook, fileLocation, password);
 		} else {
-			// write file
-			String newFileLocation = fileLocation.substring(0, fileLocation.indexOf(".xlsx"));
+			// write file			
+			String newFileLocation = fileLocation;
+			
+			if (this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()) != null) {
+				newFileLocation = fileLocation + DIR_SEPARATOR + exportName;
+			}
+			
+			newFileLocation = newFileLocation.substring(0, newFileLocation.indexOf(".xlsx"));
 			newFileLocation = newFileLocation + "1.xlsx";
 			
+			 
+			 
+			
 			ExcelUtility.writeToFile(workbook, newFileLocation);
-			new File(fileLocation).delete();
+			//new File(fileLocation).delete();
 			this.insight.addExportFile(exportName, newFileLocation);
+			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD); 
 		}
 		
 		return retNoun;
@@ -493,6 +521,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		CreationHelper createHelper = workbook.getCreationHelper();
 		String sheetName = sheetAlias.get(sheetId);
 		XSSFSheet sheet = workbook.getSheet(sheetName);
+		if (sheet != null) {
+			// create the data sheet as well
+			sheet = workbook.getSheet(sheetName + "_Data");
+		}
 		if (sheet == null) {
 			sheet = getSheet(workbook, sheetName);
 			// also create a data sheet
@@ -500,10 +532,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			// no need to worry about creating template for data sheet
 			sheet = workbook.createSheet(sheetName + "_Data");
 			workbook.setSheetHidden(workbook.getSheetIndex(sheet), true);
-		} else {
-			// create the data sheet as well
-			sheet = workbook.getSheet(sheetName + "_Data");
-		}
+		} 
 		// since we write veriticlaly
 		// shouldn't be doing this anymore
 //		// freeze the first row
@@ -674,10 +703,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		sheetMap.put("rowIndex", endRow + (excelRowCounter - endRow));		
 
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
-		List<String> headerList = Arrays.asList(headers);
 
 		// this map defines the start and end for each column
 		if (headers != null && headers.length > 0) {
+			List<String> headerList = Arrays.asList(headers);
 			for (String header : headers) {
 				Map<String, Object> columnMap = new HashMap<>();
 				columnMap.put("startRow", endRow + 1);
