@@ -11,6 +11,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.poi.ss.usermodel.BorderStyle;
@@ -29,6 +31,7 @@ import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.util.CellReference;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -45,11 +48,19 @@ import cz.vutbr.web.css.Term;
 import cz.vutbr.web.css.TermColor;
 import cz.vutbr.web.css.TermLength;
 import cz.vutbr.web.css.TermPercent;
+import prerna.om.Insight;
+import prerna.query.parsers.ParamStruct;
+import prerna.query.parsers.ParamStructDetails;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.VarStore;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.template.TemplateUtility;
 import prerna.util.Utility;
 
 public class TableToXLSXReactor	extends AbstractReactor {
@@ -71,6 +82,9 @@ public class TableToXLSXReactor	extends AbstractReactor {
 
 		public static final String ROW_COUNT = "ROW_COUNT";
 		public static final String COLUMN_COUNT = "COLUMN_COUNT";
+		public static final String HEADER = "header";
+		public static final String FOOTER = "footer";
+		public static final String PLACE_HOLDER = "placeholders";
 		
 		Map colspanMatrix = new HashMap();
 		Map rowspanMatrix = new HashMap();
@@ -143,11 +157,12 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			if(keyValue.containsKey(ReactorKeysEnum.MERGE_CELLS.getKey()))
 				mergeCells = keyValue.get(ReactorKeysEnum.MERGE_CELLS.getKey()).equalsIgnoreCase("true");
 
+			// check if any template has been selected to Export 
 			if(keyValue.containsKey(ReactorKeysEnum.EXPORT_TEMPLATE.getKey()))
-				exportTemplate = keyValue.get(ReactorKeysEnum.EXPORT_TEMPLATE.getKey());
-			else if(insight.getProperty(ReactorKeysEnum.EXPORT_TEMPLATE.getKey()) != null) // may be it is a var I dont know
-				exportTemplate = insight.getProperty(ReactorKeysEnum.EXPORT_TEMPLATE.getKey());
-
+			{
+				// fetch the template file with the provided template name and app id by calling getTemplateFile() method
+				exportTemplate = TemplateUtility.getTemplateFile(keyValue.get(ReactorKeysEnum.APP.getKey()), keyValue.get(ReactorKeysEnum.EXPORT_TEMPLATE.getKey()));
+			}
 			exportMap.put("EXPORT_TEMPLATE", exportTemplate);
 			// get the headers
 			GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.HEADERS.getKey());
@@ -209,20 +224,34 @@ public class TableToXLSXReactor	extends AbstractReactor {
 					{
 						String fileLocation = (String)exportMap.get("FILE_LOCATION");
 						try {
-							FileUtils.copyFile(new File(exportTemplate), new File(fileLocation));
-							wb = new XSSFWorkbook(fileLocation);
-							if(wb.getSheet("footer") != null)
+							if (fileLocation == null) {
+								// if file location null generate a random path and set location
+								String insightFolder = this.insight.getInsightFolder();
+								fileLocation = insightFolder + DIR_SEPARATOR + fileName + ".xlsx";
+							 }
+							 FileUtils.copyFile(new File(exportTemplate), new File(fileLocation));
+							 wb = new XSSFWorkbook(fileLocation);
+							if(wb.getSheet(FOOTER) != null)
 							{
-								Sheet aSheet = wb.getSheet("footer");
+								Sheet aSheet = wb.getSheet(FOOTER);
 								if(aSheet.getRow(0) != null)
 								{
 									Row row = aSheet.getRow(0);
 									if(row.getCell(0) != null)
 									{
 										String footer = row.getCell(0).getStringCellValue();
-										exportMap.put("footer", footer);
+										exportMap.put(FOOTER, footer);
 									}
 									
+								}
+							}
+							// check if the sheet contains place holders and export the place holder details.
+							if(wb.getSheet(PLACE_HOLDER) != null) {
+								Sheet aSheet = wb.getSheet(PLACE_HOLDER);
+								if(aSheet.getRow(0) != null) {
+									// fetch the updated place holder details from the UI by calling getPlaceHolderDetails method
+									Map<String, List<String>> placeholderInfo = getPlaceHolderDetails();
+									exportMap.put(PLACE_HOLDER, placeholderInfo);
 								}
 							}
 						} catch (IOException e) {
@@ -238,26 +267,41 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			return wb;
 		}
 		
+		/*
+		 * It will retrieve the required sheet from given workbook
+		 * @param wb
+		 * @param sheetName
+		 */
 		public XSSFSheet getSheet(XSSFWorkbook wb, String sheetName)
 		{
-			 XSSFSheet aSheet = wb.getSheet(sheetName);
-			 if(aSheet == null)
-			 {
-				 if(this.exportTemplate != null)
-				 {
-					 aSheet = wb.cloneSheet(wb.getSheetIndex("header"));
-					 wb.setSheetName(wb.getSheetIndex(aSheet), sheetName);
-					 startRow = 6;
-					 lastRow = 6;
-					 exportMap.put(sheetName + "ROW_COUNT", startRow);
-					 // need to find a way to remove disclaimer
-					 
-				 }
-				 else
-					 aSheet = wb.createSheet(sheetName);
-				
-			 }
-			 return aSheet;
+			XSSFSheet aSheet = wb.getSheet(sheetName);
+			if (aSheet == null) {
+				if (this.exportTemplate != null) {
+					// adding a check to throw an error on to the UI if the selected template does
+					// not have Header info
+					if (wb.getSheetIndex(HEADER) != -1) {
+						aSheet = wb.cloneSheet(wb.getSheetIndex(HEADER));
+						wb.setSheetName(wb.getSheetIndex(aSheet), sheetName);
+						startRow = 6;
+						lastRow = 6;
+						exportMap.put(sheetName + "ROW_COUNT", startRow);
+						// need to find a way to remove disclaimer
+					} else {
+						// throwing the pixel Exception in case of invalid template
+						throw new SemossPixelException(new NounMetadata("Selected template is in invalid format",
+								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+					}
+				} else
+					aSheet = wb.createSheet(sheetName);
+
+			} else {
+				if (this.exportTemplate != null && wb.getSheetIndex(HEADER) == -1) {
+					// throwing the pixel Exception in case of invalid template
+					throw new SemossPixelException(new NounMetadata("Selected template is in invalid format",
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				}
+			}
+			return aSheet;
 		}
 		
 		public void getMap(String fileName)
@@ -299,16 +343,16 @@ public class TableToXLSXReactor	extends AbstractReactor {
 					if(exportTemplate != null)
 					{
 						wb = new XSSFWorkbook(exportTemplate);
-						if(wb.getSheet("footer") != null)
+						if(wb.getSheet(FOOTER) != null)
 						{
-							Sheet aSheet = wb.getSheet("footer");
+							Sheet aSheet = wb.getSheet(FOOTER);
 							if(aSheet.getRow(0) != null)
 							{
 								Row row = aSheet.getRow(0);
 								if(row.getCell(0) != null)
 								{
 									String footer = row.getCell(0).getStringCellValue();
-									exportMap.put("footer", footer);
+									exportMap.put(FOOTER, footer);
 								}
 								
 							}
@@ -329,7 +373,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 				 {
 					 if(this.exportTemplate != null)
 					 {
-						 aSheet = wb.cloneSheet(wb.getSheetIndex("header"));
+						 aSheet = wb.cloneSheet(wb.getSheetIndex(HEADER));
 						 wb.setSheetName(wb.getSheetIndex(aSheet), sheetName);
 						 startRow = 6;
 						 // need to find a way to remove disclaimer
@@ -937,8 +981,8 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		{
 			try {
 				Workbook wb = (Workbook) exportMap.get(fileName);
-				if(exportMap.containsKey("footer"))
-					fillFooter(wb, exportMap, (String)exportMap.get("footer"));
+				if(exportMap.containsKey(FOOTER))
+					fillFooter(wb, exportMap, (String)exportMap.get(FOOTER));
 				fillHeader(wb, exportMap, "Mahers Magic Carpet", "Incurred through abc to def");
 				String exportName = AbstractExportTxtReactor.getExportFileName(fileName, "xlsx");
 				String fileLocation = "c:/temp" + DIR_SEPARATOR + exportName;
@@ -991,9 +1035,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		// can neel just send it as part of the information ?
 		public void fillFooter(Workbook wb, Map exportMap, String footer)
 		{
-			
-			wb.removeSheetAt(wb.getSheetIndex("header"));		
-			wb.removeSheetAt(wb.getSheetIndex("footer"));		
+			wb.removeSheetAt(wb.getSheetIndex(FOOTER));	
 			for(int sheetIndex = 0;sheetIndex < wb.getNumberOfSheets();sheetIndex++)
 			{
 				Sheet aSheet = wb.getSheetAt(sheetIndex);
@@ -1002,7 +1044,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 				// final row count 
 				int sheetTotalRows = 0;
 				int sheetTotalColumns = 0;
-				if(wb.getSheet("header") != null)
+				if(wb.getSheet(HEADER) != null)
 					sheetTotalRows = 5; // leave space foe headers
 				if(exportMap.containsKey(sheetName + "ROW_COUNT"))
 					sheetTotalRows = (Integer)exportMap.get(sheetName + "ROW_COUNT");
@@ -1020,8 +1062,237 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			}
 			
 		}
-
 		
+		
+		/** This method will update the placeholder cells with required values.
+		 * @param wb
+		 * @param exportMap
+		 * @param placeHolderData - is a Map that contains Placeholder label as the key and [Placeholder value, placeholder cell position] as the list value.
+		 */
+		public void fillPlaceholders(Workbook wb, Map exportMap, Map<String, List<String>> placeHolderData) {
+
+			// removing the place holder sheet of the exported workbook
+			wb.removeSheetAt(wb.getSheetIndex(PLACE_HOLDER));
+			Sheet headerTemplateSheet = wb.getSheet(HEADER);
+			for (int sheetIndex = 0; sheetIndex < wb.getNumberOfSheets(); sheetIndex++) {
+				Sheet sheet = wb.getSheetAt(sheetIndex);
+				String sheetName = sheet.getSheetName();
+				// skipping template sheets only to read Data Sheet
+				if (sheetName.equalsIgnoreCase(HEADER) || wb.isSheetHidden(sheetIndex)) {
+					continue;
+				}
+				for (List<String> placeHolderValues : placeHolderData.values()) {
+					// fetching cell reference/position since index 1 will hold place holder
+					// position
+					CellReference cellRef = new CellReference(placeHolderValues.get(1));
+					int rowIndex = cellRef.getRow();
+					int colIndex = cellRef.getCol();
+					
+					// identifying the required row in the target sheet
+					Row row = sheet.getRow(rowIndex);
+					// Identifying the required row in the template sheet
+					Row headerTemplateRow = headerTemplateSheet.getRow(rowIndex);
+
+					if (row == null) {
+						// creating a new target row
+						row = sheet.createRow(rowIndex);
+					}
+					if (headerTemplateRow == null)
+						headerTemplateRow = headerTemplateSheet.createRow(rowIndex);
+
+					// Identifying the required cell in the template sheet
+					Cell headerTemplateCell = headerTemplateRow.getCell(colIndex);
+					// identifying the required cell in the target sheet
+					Cell cell = row.getCell(colIndex);
+					if (cell == null) {
+						// creating a new target cell
+						cell = row.createCell(colIndex);
+					}
+					// retain the cell style provided in the header template
+					CellStyle headCellStyle = getPreferredCellStyle(headerTemplateCell);
+					cell.setCellStyle(headCellStyle);
+					// fetching place holder value since index 0 will hold the value
+					String resolvedValue = resolvePlaceHolderValue(placeHolderValues.get(0));
+					cell.setCellValue(resolvedValue);
+				}
+			}
+			// removing the header sheet of the workbook during export
+			wb.removeSheetAt(wb.getSheetIndex(HEADER));
+		}
+		
+		/** This method will resolve the place holder value parameters with dynamic filter values
+		 * @param placeHolderValue
+		 * @return
+		 */
+		private String resolvePlaceHolderValue(String placeHolderValue) {
+			// the dynamic params with format <param> will be resolved
+			Pattern pattern = Pattern.compile("<[a-z_0-9]+>", Pattern.CASE_INSENSITIVE);
+			Matcher matcher = pattern.matcher(placeHolderValue);
+			Iterator<String> insightParamKeys = insight.getVarStore().getInsightParameterKeys().iterator();
+
+			while (matcher.find()) {
+				// fetching the value if parameter from ExportParamutility
+				String paramName = matcher.group();
+				paramName = paramName.replace("<", "");
+				paramName = paramName.replace(">", "");
+				
+				// ok.. now I have the param name as if insight has it
+				NounMetadata param = insight.getVarStore().get(VarStore.PARAM_STRUCT_PREFIX + paramName);
+				String result = null;
+				if(param != null)
+					result = param.getValue() + "";
+				//String result = ExportParamUtility.getParamValue(matcher.group(), insight);
+				if (result != null) //  && !result.isEmpty() - empty can be legit value
+				{
+					placeHolderValue = placeHolderValue.replaceAll(matcher.group(), result);
+				}
+			}
+			return placeHolderValue;
+		}
+
+		/** This method will capture the place holder details from Pixel parameter
+		 * place holder is a bookmark tagged to a cell with a name, default value and cell value. 
+		 * intent is to dynamically place the content
+		 * @return
+		 */
+		private Map<String, List<String>> getPlaceHolderDetails() {
+			GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PLACE_HOLDER_DATA.getKey());
+			if (grs != null && !grs.isEmpty()) {
+				List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
+				if (mapInput != null && !mapInput.isEmpty()) {
+					// return the updated place holder information as map with key as place holder
+					// label and place holder value, cell position as value
+					return (Map<String, List<String>>) mapInput.get(0);
+				}
+			}
+
+			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
+			if (mapInput != null && !mapInput.isEmpty()) {
+				// return the updated place holder information as map with key as place holder
+				// label and place holder value, cell position as value
+				return (Map<String, List<String>>) mapInput.get(0);
+			}
+
+			return null;
+		}
+		
+		/** This method to get the preferred cell style for a cell
+		 * @param cell
+		 * @return
+		 */
+		public CellStyle getPreferredCellStyle(Cell cell) {
+			CellStyle cellStyle = cell.getCellStyle();
+			if (cellStyle.getIndex() == 0)
+				cellStyle = cell.getRow().getRowStyle();
+			if (cellStyle == null)
+				cellStyle = cell.getSheet().getColumnStyle(cell.getColumnIndex());
+			if (cellStyle == null)
+				cellStyle = cell.getCellStyle();
+			return cellStyle;
+		}
+		 
+		public static void makeParamSheet(Workbook wb, Insight insight, boolean applyDefaultColor, int startRowIndex) 
+		{
+			
+			String SECTION = "Section"; // This column various section of filter like Insight, Frame
+			String PARAMETER_NAME = "Parameter Name";
+			String OPERATOR = "Operator"; // Operator used in UI translated to English word
+			String PARAMETER_VALUE = "Parameter Value(s)";
+			String SEPARATOR = "<>";
+			int START_COLUMN_INDEX = 0;
+
+
+			// creating a new sheet Parameters Audit
+			Sheet paramSheet = wb.createSheet();
+			wb.setSheetName(wb.getSheetIndex(paramSheet), "Parameters Audit");
+
+			Row row = paramSheet.createRow(startRowIndex);
+
+			// print all the headers
+			Cell paramCellHeader = row.createCell(START_COLUMN_INDEX);
+			Cell paramNameCellHeader = row.createCell(START_COLUMN_INDEX + 1);
+			Cell operatorCellHeader = row.createCell(START_COLUMN_INDEX + 2);
+			Cell paramValCellHeader = row.createCell(START_COLUMN_INDEX + 3);
+			// applying style to the heading
+			if (applyDefaultColor) {
+				CellStyle cellHeaderStyle = getCellStyle(wb);
+				paramCellHeader.setCellStyle(cellHeaderStyle);
+				paramNameCellHeader.setCellStyle(cellHeaderStyle);
+				paramValCellHeader.setCellStyle(cellHeaderStyle);
+				operatorCellHeader.setCellStyle(cellHeaderStyle);
+			}
+			// Header text being appended
+			paramCellHeader.setCellValue(SECTION); 
+			paramNameCellHeader.setCellValue(PARAMETER_NAME);
+			operatorCellHeader.setCellValue(OPERATOR);
+			paramValCellHeader.setCellValue(PARAMETER_VALUE);
+
+			
+			
+			// fill the rows. 
+			// Ideally we can drop the section, but later
+			Iterator<String> insightParamKeys = insight.getVarStore().getInsightParameterKeys().iterator();
+
+			int rowIndex = startRowIndex + 1;
+			while(insightParamKeys.hasNext())
+			{
+				String paramName = insightParamKeys.next();
+				if (paramName != null) 
+				{
+					// extracting parameter structure from meta data
+					ParamStruct insightParamStruct = (ParamStruct) insight.getVarStore().get(paramName).getValue();
+					for (ParamStructDetails paramStructDetails : insightParamStruct.getDetailsList()) 
+					{
+						row = paramSheet.createRow(rowIndex);
+						// Friendly name given to param from UI
+						String friendlyParamName = paramStructDetails.getColumnName();
+						String paramValue = paramStructDetails.getCurrentValue() != null
+								? paramStructDetails.getCurrentValue() + ""
+								: null;
+						String operator = paramStructDetails.getOperator();
+						if(operator == null || operator.length() == 0)
+							operator = "=="; // forcing equals
+						
+						// set the values
+						Cell paramNameCell = row.createCell(START_COLUMN_INDEX + 1);
+						paramNameCell.setCellValue(friendlyParamName);					
+						Cell paramOperatorCell = row.createCell(START_COLUMN_INDEX + 2);
+						paramOperatorCell.setCellValue(IQueryFilter.getDisplayNameForComparator(operator));
+						Cell paramValueCell = row.createCell(START_COLUMN_INDEX + 3);
+						paramValueCell.setCellValue(paramValue);
+
+						// next row
+						rowIndex++;
+
+						// set eh styles
+					}
+				}
+			}
+			// auto sizing the columns after adding all the values to it
+			for (int colmnIndex = 0; colmnIndex < 4; colmnIndex++) {
+				paramSheet.autoSizeColumn(colmnIndex);
+			}
+
+		}
+
+		// default color and font to the audit sheet headers
+		private static CellStyle getCellStyle(Workbook wb) {
+			// create a CellStyle with the font
+			CellStyle headerCellStyle = wb.createCellStyle();
+			XSSFFont font = (XSSFFont) wb.createFont();
+			XSSFColor fontColor = new XSSFColor();
+			fontColor.setARGBHex("ffffff");
+			font.setColor(fontColor);
+			headerCellStyle.setFont(font);
+			// Cell Background color
+			XSSFColor color = new XSSFColor();
+			color.setARGBHex("00a8c1");
+			((XSSFCellStyle) headerCellStyle).setFillForegroundColor(color);
+			headerCellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+			return headerCellStyle;
+
+		}
+
 		
 		public static void main(String [] args)
 		{
