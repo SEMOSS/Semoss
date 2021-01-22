@@ -2,6 +2,7 @@ package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
@@ -24,7 +25,7 @@ public class ChromeDriverUtility {
 
 	protected static final Logger logger = LogManager.getLogger(InsightUtility.class.getName());
 
-	
+
 	private static String contextPath = null;
 	private static String sessionCookie = null;
 	private static ChromeDriver driver = null;
@@ -60,6 +61,12 @@ public class ChromeDriverUtility {
 		chromeOptions.addArguments("--disable-gpu");
 		chromeOptions.addArguments("--window-size=" + height + "," + width);
 		chromeOptions.addArguments("--remote-debugging-port=9222");
+		//logger.info("##CHROME DRIVER: allowing insecure local");
+		//logger.info("##CHROME DRIVER: ignore certs");
+
+		//chromeOptions.addArguments("--allow-insecure-localhost");
+		chromeOptions.addArguments("--ignore-certificate-errors");
+
 		if (linux) {
 			chromeOptions.addArguments("-disable-dev-shm-usage");
 			chromeOptions.addArguments("--no-sandbox");
@@ -115,6 +122,8 @@ public class ChromeDriverUtility {
 					updateCookie(driver, routeCookieName, route);
 				}
 
+			} else {
+				logger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
 			}
 			//Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
 			//driver.manage().addCookie(name);
@@ -153,8 +162,19 @@ public class ChromeDriverUtility {
 	protected static void updateCookie(ChromeDriver driver, String cookieName, String cookieValue)
 
 	{
+		logger.info("##CHROME DRIVER: driver is looking at " + driver.getCurrentUrl());
+		logger.info("##CHROME DRIVER: driver is looking page source at " + driver.getPageSource());
+
 		logger.info("##CHROME DRIVER: looking cookie with Name = "+ cookieName);
 
+		Iterator<Cookie> cooki2 = driver.manage().getCookies().iterator();
+		while (cooki2.hasNext()) {
+			Cookie cook3 = (Cookie) cooki2.next();
+			String name2 = cook3.getName();
+			logger.info("##CHROME DRIVER: INIT CHECK found cookie" + cook3.toJson());
+			
+		}
+		
 		Iterator<Cookie> cooki = driver.manage().getCookies().iterator();
 		boolean cookieFound = false;
 		Cookie cook = null;
@@ -165,7 +185,6 @@ public class ChromeDriverUtility {
 			String name = cook.getName();
 			if (name.equalsIgnoreCase(cookieName)) {
 				logger.info("##CHROME DRIVER: found cookie with Name = "+ cookieName);
-	
 
 				//driver.manage().deleteCookie(cook);
 
@@ -186,12 +205,12 @@ public class ChromeDriverUtility {
 			driver.manage().deleteCookie(cook);
 			logger.info("##CHROME DRIVER: deleted cookie with Name = "+ cookieName);
 			Cookie name= new Cookie(cook.getName(),
-		             cookieValue,
-		             cook.getDomain(),
-		              cook.getPath(),
-		              cook.getExpiry(),
-		               cook.isSecure(),
-		             cook.isHttpOnly());
+					cookieValue,
+					cook.getDomain(),
+					cook.getPath(),
+					cook.getExpiry(),
+					cook.isSecure(),
+					cook.isHttpOnly());
 			logger.info("##CHROME DRIVER: Adding cookie  - name: " + name.getName()
 			+ " domain: " + name.getDomain() 
 			+ " path: " +  name.getPath()
@@ -204,18 +223,35 @@ public class ChromeDriverUtility {
 		} else { 
 			logger.info("##CHROME DRIVER: cookie not found " + cookieName);
 
-		Cookie name = new Cookie(cookieName, cookieValue, "/"); // , null);
-		logger.info("##CHROME DRIVER: Adding cookie  - name: " + name.getName()
-		+ " domain: " + name.getDomain() 
-		+ " path: " +  name.getPath()
-		+ " isHttpOnly: " +  name.isHttpOnly()
-		+ " isSecure: " +  name.isSecure()	
-		+ " value: " + name.getValue()
-				);
-		// works - but doesnt login
-		driver.manage().addCookie(name);
+			//Date expiresDate = new Date(new Date().getTime() + 36000*1000); 
+
+			
+			//Cookie name = new Cookie(cookieName, cookieValue, "/", expiresDate); // , null);
+			Cookie name = new Cookie(cookieName, cookieValue, "/"); // , null);
+
+			
+//			logger.info("##CHROME DRIVER: MODDED COOKIE");
+//
+//			Cookie name= new Cookie(cookieName,
+//					cookieValue,
+//					"semosscontainer-healthx-dev.apps.ent-ocp-np1-har.antmdc.internal.das",
+//					"/Monolith",
+//					null,
+//					true,
+//					true);
+			logger.info("##CHROME DRIVER: BASE ADD Adding cookie  - name: " + name.getName()
+			+ " domain: " + name.getDomain() 
+			+ " path: " +  name.getPath()
+			+ " isHttpOnly: " +  name.isHttpOnly()
+			+ " isSecure: " +  name.isSecure()	
+			+ " value: " + name.getValue()
+			+ " age: " + name.getExpiry()
+			+ " json: " + name.toJson()
+					);
+			// works - but doesnt login
+			driver.manage().addCookie(name);
 		}
-		
+
 	}
 
 	public static void captureDataPersistent(ChromeDriver driver, String feUrl, String url, String sessionId) {
