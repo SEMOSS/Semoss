@@ -53,12 +53,12 @@ import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
 // export to excel non-native is the NN
-public class ExportToExcelNNReactor extends AbstractReactor {
+public class ExportToExcelNNReactor extends TableToXLSXReactor {
 
 	public static final String exportTemplate = "EXCEL_EXPORT_TEMPLATE";
 
 	public ExportToExcelNNReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey(), ReactorKeysEnum.EXPORT_AUDIT.getKey()};
 	}
 
 	@Override
@@ -83,6 +83,12 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 		if(keyValue.containsKey(ReactorKeysEnum.USE_PANEL.getKey())) {
 			String panelUse = (String) keyValue.get(ReactorKeysEnum.USE_PANEL.getKey());
 			panel = panelUse.equalsIgnoreCase("yes") || panelUse.equalsIgnoreCase("true");
+		}
+		
+		boolean exportAudit = false;
+		if (keyValue.containsKey(ReactorKeysEnum.EXPORT_AUDIT.getKey())) {
+			String auditParam = (String) keyValue.get(ReactorKeysEnum.EXPORT_AUDIT.getKey());
+			exportAudit = auditParam.equalsIgnoreCase("yes") || auditParam.equalsIgnoreCase("true");
 		}
 
 		// see if someone has pushed a template file into insight
@@ -263,8 +269,11 @@ public class ExportToExcelNNReactor extends AbstractReactor {
 			   if(driver != null)
 				   driver.quit();
 
-			
-			makeParamSheet(wb);
+				// process and apply the audit param sheet if the export Audit has been opted
+				// 0 is passed as starting row index for the audit sheet
+				if (exportAudit) {
+					makeParamSheet(wb, this.insight, false, 0);
+				}
 			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
 			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 			String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
