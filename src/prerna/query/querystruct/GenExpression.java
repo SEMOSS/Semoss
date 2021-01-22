@@ -39,6 +39,9 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	
 	public boolean paranthesis = false;
 	
+	public String userTableName = null;
+	public String userTableAlias = null;
+	
 	
 	public void setRightExpresion(Object rightItem)
 	{
@@ -223,12 +226,20 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				if(qs.paranthesis) {
 					buf.append("(");
 				}
+				// working with user table set
+				if(qs.userTableAlias != null)
+					buf.append(qs.userTableAlias).append(".");
+				else if(qs.userTableName != null)
+					buf.append(qs.userTableName).append(".");
+				
+				/*
 				if(qs.tableAlias != null && !qs.tableAlias.isEmpty()) {
 					buf.append(qs.tableAlias);
 				} else {
 					buf.append(qs.tableName);
 				}
-				buf.append(".").append(columnName);
+				*/
+				buf.append(columnName);
 				if(qs.leftAlias != null && qs.leftAlias.length() > 0) {
 					buf.append(" as ").append(qs.leftAlias);
 				}
