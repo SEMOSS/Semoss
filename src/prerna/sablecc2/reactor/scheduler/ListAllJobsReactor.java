@@ -50,7 +50,7 @@ public class ListAllJobsReactor extends AbstractReactor {
 		} else if (appId != null && userId == null) {
 			jobMap = SchedulerH2DatabaseUtility.retrieveJobsForApp(appId, jobTags);
 		} else if (appId == null) {
-			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobs(userId,jobTags);
+			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobs(userId, jobTags);
 		} else {
 			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobsForApp(appId, userId, jobTags);
 		}
