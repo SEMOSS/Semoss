@@ -437,7 +437,12 @@ public class GenExpressionWrapper {
 			}
 		}
 		
-		// replace all the other structs with the default values already present in the query
+		/*
+		 * replace all the other structs with the default values already present in the query
+		 * this does not take in inputs
+		 * it goes through all the remaining structs generated THROUGH the parsing
+		 * and places those back to the default values
+		 */
 		Iterator <ParamStructDetails> paramIterator = paramToExpressionMap.keySet().iterator();
 		while(paramIterator.hasNext()) {
 			ParamStructDetails structDetails = paramIterator.next();
