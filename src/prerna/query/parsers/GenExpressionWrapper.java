@@ -47,7 +47,7 @@ public class GenExpressionWrapper {
 	public Map<String, List <String>> columnTableIndex = new HashMap<>(); 
 	// this is the next highest level - clms.acctid, mbrshp.acctid
 	public Map<String, List <String>> columnTableOperatorIndex = new HashMap<>(); 
-	// this is the next level - clms.acctid=, clms.acctid <
+	// this is the next level - clms.acctid=, clms.acctid < - this now also includes the unique count
 	public Map <String, ParamStructDetails> operatorTableColumnParamIndex = new HashMap<>(); 
 	 // final level
 	public Map <ParamStructDetails, List <GenExpression>> paramToExpressionMap = new HashMap<>();
