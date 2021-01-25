@@ -91,6 +91,7 @@ public class Constants {
 	public static final String PROCESS_CURRENT_USER = "PROCESS_CURRENT_USER";
 	public static final String CURRENT_PLAYSHEET = "layoutValue";
 	public static final String BASE_FOLDER = "BaseFolder";
+	public static final String SHARED_FILE_PATH = "SHARED_FILE_PATH";
 
 	public static final String LOCAL_MASTER_DB_NAME = "LocalMasterDatabase";
 	
