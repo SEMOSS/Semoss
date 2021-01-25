@@ -37,7 +37,7 @@ public class USAJobsByStateDownload extends AbstractReactor {
 		u.runStateSearch(cred, state);
 		
 		// set the file for download
-		String exportName = "USA_JOBS" + UsaJobsUtil.getToday();
+		String exportName = "USA_JOBS" + UsaJobsUtil.getToday("_");
 		this.insight.addExportFile(exportName, fileName);
 		NounMetadata retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD); 
 		return retNoun;
