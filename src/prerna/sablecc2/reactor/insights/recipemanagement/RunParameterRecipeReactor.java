@@ -41,6 +41,12 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 		// and re-run it
 		logger.info("Re-executing the insight recipe... please wait as this operation may take some time");
 		List<String> pixelList = new Vector<String>();
+
+		// temporary? as long as user isn't doing some crazy thing
+		// this shouldn't affect anything
+		{
+			pixelList.add("AddPanel(0);");
+		}
 		try {
 			for(String pixelString : recipeInput) {
 				List<String> breakdown = PixelUtility.parsePixel(pixelString);

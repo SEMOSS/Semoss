@@ -131,7 +131,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					val = rs.getInt(colNum);
 				} else if (type == Types.BIGINT ) {
 					val = rs.getLong(colNum);
-				}else if(type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL|| type == Types.REAL) {
+				}else if(type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL || type == Types.REAL) {
 					val = rs.getDouble(colNum);
 				} else if(type == Types.DATE) {
 					try {
