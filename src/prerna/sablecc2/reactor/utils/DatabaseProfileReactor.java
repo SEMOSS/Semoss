@@ -8,7 +8,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -59,10 +59,10 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		
 		// output frame
 		ITableDataFrame table = getFrame();
-		if(!(table instanceof H2Frame)) {
+		if(!(table instanceof AbstractRdbmsFrame)) {
 			throw new IllegalArgumentException("Frame must be a grid to use DatabaseProfile");
 		}
-		H2Frame frame = (H2Frame) table;
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) table;
 		String tableName = frame.getName();
 
 		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "minValue", "averageValue", "maxValue", "sumValue", "numOfNullValues" };
