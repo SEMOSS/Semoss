@@ -385,7 +385,7 @@ public class SchedulerH2DatabaseUtility {
 		try (PreparedStatement statement = connection.prepareStatement("INSERT INTO SMSS_JOB_TAGS (JOB_ID, JOB_TAG) VALUES (?,?)")) {
 			for(String jobTag : jobTags) {
 				statement.setString(1, jobId);
-				statement.setString(2, jobTag);
+				statement.setString(2, jobTag.trim());
 				statement.addBatch();
 			}
 			statement.executeBatch();
