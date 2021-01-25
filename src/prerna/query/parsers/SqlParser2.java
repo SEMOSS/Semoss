@@ -658,7 +658,19 @@ public class SqlParser2 {
 				eqExpr.aQuery = joinExpr.toString();
 				BinaryExpression joinExpr2 = (BinaryExpression)joinExpr;
 				eqExpr.setOperation(joinExpr2.getStringExpression());
-				String modifier = "";
+				
+				// YEAR_ID(left Expression) = 123 (rightExpression)
+				String operator = eqExpr.aQuery;
+				/*
+				// remove left expression
+				operator = operator.replace(joinExpr2.getLeftExpression()+"", "");
+				operator = operator.replace(joinExpr2.getRightExpression()+"", "");
+				operator = operator.trim();
+				
+				// do need operator here again ?
+		
+				 */
+				String modifier = wrapper.uniqueCounter +"";
 
 				// need ome way to put the or here
 				/*
@@ -668,7 +680,7 @@ public class SqlParser2 {
 				}*/
 				if(wrapper.currentOperator.size() > 0)
 				{
-					String operator = wrapper.currentOperator.pop();
+					operator = wrapper.currentOperator.pop();
 					Boolean left = false;
 					int count = 0;
 					if(operator.equalsIgnoreCase("and")) {
@@ -841,7 +853,7 @@ public class SqlParser2 {
 			retExpr.setOperation("between");
 			retExpr.aQuery = joinExpr.toString();
 			retExpr.recursive = true;
-			
+			String modifier = wrapper.uniqueCounter + "";
 			// left and right re set as start and end
 			// the actual expression is set up as the body
 			
@@ -885,11 +897,11 @@ public class SqlParser2 {
 				
 				if(columnName != null && parameterize)
 				{
-					startExpression.setLeftExpresion("'<" + tableName + "_" + columnName + "between.start" + ">'");
+					startExpression.setLeftExpresion("'<" + tableName + "_" + columnName + modifier + "between.start" + ">'");
 				}
 				
 				String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
-				String compositeName = this.wrapper.makeParameters(columnName, constantValue, "between.start", "between.start",  constantType, startExpression, tableName, defQuery);
+				String compositeName = this.wrapper.makeParameters(columnName, constantValue, modifier + "between.start", "between.start",  constantType, startExpression, tableName, defQuery);
 				startExpression.setLeftExpresion("'<" + compositeName + ">'");
 				System.out.println("Parameterizing  " + columnName + endExpression);
 				System.out.println("Query is set to..  " + qs);
@@ -909,11 +921,11 @@ public class SqlParser2 {
 				
 				if(columnName != null && parameterize)
 				{
-					endExpression.setLeftExpresion("'<" + tableName + "_" + columnName  + "between.end" + ">'");
+					endExpression.setLeftExpresion("'<" + tableName + "_" + columnName  + modifier + "between.end" + ">'");
 				}
 				
 				String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
-				String compositeName = this.wrapper.makeParameters(columnName, constantValue, "between.end", "between.end",  constantType, endExpression, tableName, defQuery);
+				String compositeName = this.wrapper.makeParameters(columnName, constantValue, modifier + "between.end", "between.end",  constantType, endExpression, tableName, defQuery);
 				endExpression.setLeftExpresion("'<" + compositeName + ">'");
 				System.out.println("Parameterizing  " + columnName + endExpression);
 				System.out.println("Query is set to..  " + qs);
@@ -1162,6 +1174,10 @@ public class SqlParser2 {
 			// left expression is a gen expression
 			// rightItemsList is a list of expressions that need to be processed
 			gep.setOperation("in");
+			String operator = "in";
+			
+			String modifier = operator + wrapper.uniqueCounter;
+
 			
 			String tableName = null;
 			if(inExpr.getLeftExpression() != null)
@@ -1266,10 +1282,10 @@ public class SqlParser2 {
 				
 				if(columnName != null && parameterize) {
 					// removing the quotes for now
-					ge.setLeftExpr("(<" + tableName + "_" + columnName + "in" + ">)");
+					ge.setLeftExpr("(<" + tableName + "_" + columnName + modifier + ">)");
 				}
 				String defQuery = "Select q1." + columnName + " from (" + qs + ") q1";
-				this.wrapper.makeParameters(columnName, constantValue, "in", "in", constantType, ge, tableName, defQuery);
+				this.wrapper.makeParameters(columnName, constantValue, modifier + "in", "in", constantType, ge, tableName, defQuery);
 			}
 				
 			//gep.setComposite(composite);
@@ -3354,10 +3370,10 @@ public class SqlParser2 {
 				"                AND  CII_FACT_MBRSHP.MCID =CE.MCID     \r\n" + 
 				"                and CII_FACT_MBRSHP.MBR_CVRG_TYPE_CD = CE.MBR_CVRG_TYPE_CD INNER JOIN DIM_MCID ON CII_FACT_MBRSHP.MCID = DIM_MCID.MCID AND CII_FACT_MBRSHP.ACCT_ID = DIM_MCID.ACCT_ID INNER JOIN (Select ACCT_ID,SGMNTN_DIM_KEY, SGMNTN_NM, SRC_FLTR_ID from ACIISST_SGMNTN_BRDG where ACCT_ID in ('W0016437') and SRC_FLTR_ID in ('4733bea4-a055-4641-b834-2c6818e13f45'))SGMNTN on CII_FACT_MBRSHP.SGMNTN_DIM_KEY = SGMNTN.SGMNTN_DIM_KEY and CII_FACT_MBRSHP.ACCT_ID=SGMNTN.ACCT_ID WHERE CII_FACT_MBRSHP.ACCT_ID in ('W0016437')   GROUP BY CII_ACCT_PRFL.ACCT_ID,CII_FACT_MBRSHP.MCID,DIM_MBR_CVRG_TYPE.MBR_CVRG_TYPE_DESC,CII_FACT_MBRSHP.MBR_GNDR_CD,DIM_RPTG_MBR_RLTNSHP.RPTG_MBR_RLTNSHP_DESC,case when DIM_AGE_GRP.AGE_GRP_DESC='1-17' then '1 through 17' else  DIM_AGE_GRP.AGE_GRP_DESC end,CII_FACT_MBRSHP.AGE_IN_YRS_NBR,CII_FACT_MBRSHP.CNTRCT_TYPE_CD,CII_FACT_MBRSHP.ELGBLTY_CY_MNTH_END_NBR,CII_FACT_MBRSHP.ST_CD,DIM_CBSA.CBSA_NM,CII_FACT_MBRSHP.PCP_IND,CII_FACT_MBRSHP.SBSCRBR_ID,CE.CNTNUS_ENRLMNT_1_PRD_CD,DIM_MCID.MBR_BRTH_DT,CII_ACCT_PRFL.ACCT_NM,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 201910 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201810 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201801 end,CASE WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Current Period'  THEN 202009 WHEN TM_PRD_FNCTN.TM_PRD_NM= 'Prior Period' THEN 201909 WHEN TM_PRD_FNCTN.TM_PRD_NM=  'Prior Period 2'  THEN 201809 end,UT.Non_Utilizer_Ind,TM_PRD_FNCTN.TM_PRD_NM ) AS MBRSHP  GROUP BY MBRSHP.ACCT_ID,MBRSHP.MCID,MBRSHP.MBR_CVRG_TYPE_DESC,MBRSHP.MBR_GNDR_CD,MBRSHP.RPTG_MBR_RLTNSHP_DESC,MBRSHP.AGE_GRP_DESC,MBRSHP.AGE_IN_YRS_NBR,MBRSHP.CNTRCT_TYPE_CD,MBRSHP.ELGBLTY_CY_MNTH_END_NBR,MBRSHP.ST_CD,MBRSHP.CBSA_NM,MBRSHP.PCP_IND,MBRSHP.FMBRSHP_SBSCRBR_ID,MBRSHP.CNTNUS_ENRLMNT_1_PRD_CD,MBRSHP.MBR_BRTH_DT,MBRSHP.ACCT_NM,MBRSHP.TIME_PRD_STRT_NBR,MBRSHP.TIME_PRD_END_NBR,MBRSHP.Non_Utilizer_Ind,MBRSHP.TM_PRD_NM ) AS FNL   ORDER BY Account_ID,Master_Consumer_ID,Member_Coverage_Type_Description,Member_Gender_Code,Reporting_Member_Relationship_Description,Age_Group_Description,Age_In_Years,Contract_Type_Code,Eligibility_Year_Month_Ending_Number,State_Code,CBSA_Name,Member_PCP_Indicator,Subscriber_ID,Continuous_Enrollment_for_1_Period,Member_Birth_Date,Account_Name,Time_Period_Start,Time_Period_End,Non_Utilizer_Indicator,Member_Coverage_Count";
 		
-		String ageQuery = "Select a,b,c from d where (age > 20 and age < 40) or (age > 40 and age < 70)";
+		String query24 = "Select a,b,c from d where (age > 20 and age < 40) or (age > 40 and age < 70)";
 		
 		test.parameterize = false;
-		GenExpressionWrapper wrapper = test.processQuery(ageQuery);
+		GenExpressionWrapper wrapper = test.processQuery(query23);
 		test.printOutput(wrapper.root);
 		GenExpression root = wrapper.root;
 		List <ParamStructDetails> plist = new Vector<ParamStructDetails>();
@@ -3373,6 +3389,13 @@ public class SqlParser2 {
 		String finalQuery = GenExpressionWrapper.transformQueryWithParams(query20, plist);
 		System.err.println(" transformed query ..  " + finalQuery);
 		
+		// YEAR_ID
+		wrapper.replaceColumn("YEAR_ID", "123");
+		//wrapper.replaceColumn("YER_ID", "123456");
+
+		wrapper.fillParameters();
+		test.printOutput(wrapper.root);
+
 		// works with Query 2
 		//Object [] output = root.printLineage(root, "Member Engagement Tier", null ,null, null, 0);
 		
