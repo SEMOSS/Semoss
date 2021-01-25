@@ -46,12 +46,16 @@ public class UsaJobsUtil {
 	
 	public static void main(String[] args)
 	{
-		String date = getToday();
+		String date = getToday("_");
 		UsaJobsUtil test = new UsaJobsUtil("c:/temp/output" + date + ".csv");
 		//test.runStateSearch(new String[]{"CA", "CO", "CT", "GA", "IN", "KY", "MN", "MI", "NV", "NH", "NY", "OH", "VA", "WI"});
 		List <String> states = new ArrayList<String>();
 		states.add("VA");
 		List <String> cred = new ArrayList<String>();
+		cred.add("prabhuk12@gmail.com");
+		cred.add("v1y+niWf2+6TDnDU/uXyqtojViOvLryPIhBO7WfG5So=");
+		cred.add("data.usajobs.gov");
+
 		// make sure the credential is fulled properly
 		test.runStateSearch(cred, states); //", "CO", "CT", "GA", "IN", "KY", "MN", "MI", "NV", "NH", "NY", "OH", "VA", "WI"});
 	}
@@ -164,6 +168,7 @@ public class UsaJobsUtil {
 				
 				if(!header)
 				{
+					record.append("Generated_On").append(",");
 					record.append("State").append(",");
 					record.append("Position_ID").append(",");
 					record.append("End_Date").append(",");
@@ -193,6 +198,7 @@ public class UsaJobsUtil {
 					//for(int recIndex = 0;recIndex < arrNode.size();recIndex++)
 					{
 						record = new StringBuffer();
+						record.append(getToday("/")).append(",");
 						record.append(state).append(",");
 						String positionID = arrNode.get(0) + "";
 						record.append(positionID).append(",");
@@ -257,12 +263,12 @@ public class UsaJobsUtil {
 		}
 	}
 	
-	public static String getToday()
+	public static String getToday(String separator)
 	{
 		try {
-			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy_MM_dd");  
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy" + separator + "MM" + separator + "dd");  
 			   LocalDateTime now = LocalDateTime.now();  
-			   System.out.println(dtf.format(now));
+			   //System.out.println(dtf.format(now));
 			   return dtf.format(now);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
