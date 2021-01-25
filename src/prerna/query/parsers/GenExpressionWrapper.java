@@ -1085,8 +1085,6 @@ public class GenExpressionWrapper {
 			e.printStackTrace();
 		}
 		
-		
-		
 		return retQuery;
 	}
 	
