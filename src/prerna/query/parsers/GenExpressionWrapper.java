@@ -58,6 +58,7 @@ public class GenExpressionWrapper {
 	public Map <String, Boolean> procOrder = new HashMap<String, Boolean>();
 	int andCount = 0;
 	int orCount = 0;
+	int uniqueCounter = 0;
 	
 	
 	// keeps function to expression list
@@ -463,7 +464,7 @@ public class GenExpressionWrapper {
 		}
 	}
 	
-	public String makeParameters(String columnName, Object constantValue, String operationName, String actualOperationName, String constantType, GenExpression exprToTrack, String tableName)
+	public String makeParameters(String columnName, Object constantValue, String operationName, String actualOperationName, String constantType, GenExpression exprToTrack, String tableName, String defQuery)
 	{
 		//String tableAliasName = columnName.substring(0, columnName.indexOf("."));
 		String tableAliasName = tableName;
@@ -519,6 +520,7 @@ public class GenExpressionWrapper {
 			daStruct.setuOperator(operationName);
 			daStruct.setContext(context);
 			daStruct.setContextPart(contextPart);
+			daStruct.setDefQuery(defQuery);
 
 			// need to get the current select struct to add to this
 
@@ -553,6 +555,9 @@ public class GenExpressionWrapper {
 		}
 		allExpressions.add(exprToTrack);
 		paramToExpressionMap.put(daStruct, allExpressions);
+		uniqueCounter++;
+		
+		//System.err.println("Parameterizing " + columnName + " with <><> " + defQuery);
 
 		return tableColumnOperatorComposite;
 	}

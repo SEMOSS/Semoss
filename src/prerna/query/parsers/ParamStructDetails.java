@@ -1,5 +1,6 @@
 package prerna.query.parsers;
 
+import java.util.List;
 import java.util.Map;
 
 import prerna.sablecc2.om.PixelDataType;
@@ -28,6 +29,8 @@ public class ParamStructDetails {
 	private String uOperator = null;
 	private String context = null;
 	private String contextPart = null;
+	
+	private String defQuery = null;
 	
 	public BASE_QS_TYPE getBaseQsType() {
 		return baseQsType;
@@ -227,5 +230,41 @@ public class ParamStructDetails {
 		
 		return pStruct;
 	}
+	
+	public String getFormattedValue()
+	{
+		// four possibilities
+		// could be string
+		// could be int
+		// could be list of string
+		// could be list of int
+		StringBuffer formattedOutput = new StringBuffer("");
+		
+		if(currentValue instanceof List)
+		{
+			formattedOutput.append("[");
+			List itemList = (List)currentValue;
+			for(int itemIndex = 0;itemIndex < itemList.size();itemIndex++)
+			{
+				if(itemIndex != 0)
+					formattedOutput.append(", ");
+				formattedOutput.append(itemList.get(itemIndex));
+			}
+			formattedOutput.append("]");
+		}
+		else
+			formattedOutput.append(currentValue);
+		return formattedOutput.toString();
+	}
+
+	public String getDefQuery() {
+		return defQuery;
+	}
+
+	public void setDefQuery(String defQuery) {
+		this.defQuery = defQuery;
+	}
+	
+	
 	
 }
