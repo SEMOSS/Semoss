@@ -322,6 +322,13 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		if(exportMap.containsKey("para2"))
 			para2 = (String)exportMap.get("para2");
 
+		
+		// process and apply the audit param sheet if the export Audit has been opted
+		// exportMap stores all the export related properties
+		if (exportAudit) {
+			makeParamSheet(workbook, this.insight,true, exportMap);
+		}
+		//moved the footer and header logic under export audit to apply headers and disclaimers
 		if(para1 != null || para2 != null)
 			fillHeader(workbook, exportMap, para1, para2);
 		
@@ -330,20 +337,15 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			fillFooter(workbook, exportMap, (String)exportMap.get("footer"));
 		
 		// fill the place holders
-		if(exportMap.containsKey("placeholders"))
+		if(exportMap.containsKey("placeholders") && null!= exportMap.get("placeholders"))
 			fillPlaceholders(workbook, exportMap, (Map<String, List<String>>) exportMap.get("placeholders"));
 
 		// close the driver
 		if(driver != null)
 		  driver.quit();
 		
-		// process and apply the audit param sheet if the export Audit has been opted
-		// 0 is passed as starting row index for the audit sheet
-		if (exportAudit) {
-			makeParamSheet(workbook, this.insight,true, 0);
-		}
-
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
+		
 		
 		
 		if (password != null) {
