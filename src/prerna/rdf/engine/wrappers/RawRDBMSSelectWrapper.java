@@ -22,6 +22,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.MultiRDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
 import prerna.query.parsers.PraseSqlQueryForCount;
@@ -307,12 +308,19 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		if(this.numRows == 0) {
 			// since we pass via the engine object
 			if(this.engine != null) {
+				// account for multi rdbms engine as well as base rdmbs engine
+				RDBMSNativeEngine activeEngine = null;
+				if(this.engine instanceof MultiRDBMSNativeEngine) {
+					activeEngine = ((MultiRDBMSNativeEngine) this.engine).getContext();
+				} else {
+					activeEngine = (RDBMSNativeEngine) this.engine;
+				}
 				if(this.dataSource == null) {
-					this.dataSource = ((RDBMSNativeEngine) this.engine).getDataSource();
+					this.dataSource = activeEngine.getDataSource();
 				}
 				if(this.dataSource == null && this.conn == null) {
 					try {
-						this.conn = ((RDBMSNativeEngine) this.engine).getConnection();
+						this.conn = activeEngine.getConnection();
 					} catch (SQLException e) {
 						logger.error(Constants.STACKTRACE, e);
 					}
