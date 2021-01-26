@@ -166,7 +166,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	{
 		// if the type is join.. you need to do other things
 		//System.err.println("Processing  " + qs.aQuery + " <>" + qs.expression + "<>" + qs.operation);
-		String newLine = "";
+		String newLine = "\n";
 		if(buf == null)
 			buf = new StringBuffer();
 		boolean processed = false;
@@ -360,6 +360,8 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			if(qs.recursive)
 			{
 				printQSRecursive(qs, buf);
+				if(qs.leftAlias != null)
+					buf.append(" as ").append(qs.leftAlias);
 			}
 			else if(qs instanceof WhenExpression)
 			{
