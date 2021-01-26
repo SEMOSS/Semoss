@@ -270,9 +270,9 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 				   driver.quit();
 
 				// process and apply the audit param sheet if the export Audit has been opted
-				// 0 is passed as starting row index for the audit sheet
+				// exportMap stores all the export related properties
 				if (exportAudit) {
-					makeParamSheet(wb, this.insight, false, 0);
+					makeParamSheet(wb, this.insight, false,exportMap);
 				}
 			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
 			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
@@ -310,41 +310,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		return retNoun;
 	}
 
-	private void makeParamSheet(Workbook wb) {
-		// get to the insight
-		// pick the frame
-		// print the filter
-		// create a new sheet call it parameters / audit trail
-		// print it one by one
-		Sheet paramSheet = wb.createSheet();
-		wb.setSheetName(wb.getSheetIndex(paramSheet), "Parameters Audit");
-		Row row = paramSheet.createRow(2);
-		row.createCell(2).setCellValue("Parameter Name");
-		row.createCell(3).setCellValue("Parameter Value(s)");
-
-
-		Map <String, StringBuffer> colParams = this.insight.getCurFrame().printFilters(null, true);
-		Iterator <String> columns = colParams.keySet().iterator();
-
-		// print out all the parameters
-		for(int rowIndex = 3;columns.hasNext();rowIndex++) {
-			row = paramSheet.createRow(rowIndex);
-			String column = columns.next();
-			String values = colParams.get(column).toString();
-			row.createCell(2).setCellValue(column);
-			row.createCell(3).setCellValue(values);
-		}
-		
-		// auto fit
-		/*for(int columnIndex = 0; columnIndex < 10; columnIndex++) {
-		     paramSheet.autoSizeColumn(columnIndex);
-		}*/
-		
-		// set random width
-		//paramSheet.setColumnWidth(3, 30*256);
-
-	}
-
+	
 	private Map<String, Object> writeData(XSSFWorkbook workbook, XSSFSheet sheet, ITask task, Map<String, Map<String, String>> panelFormatting) {
 		CreationHelper createHelper = workbook.getCreationHelper();
 		// freeze the first row
