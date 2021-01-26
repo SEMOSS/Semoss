@@ -361,7 +361,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			{
 				printQSRecursive(qs, buf);
 				if(qs.leftAlias != null)
-					buf.append(" as ").append(qs.leftAlias);
+					buf.append(qs.leftAlias);
 			}
 			else if(qs instanceof WhenExpression)
 			{
