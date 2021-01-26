@@ -87,8 +87,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public static final String USE_FILE = "USE_FILE";
 	public static final String DATA_FILE = "DATA_FILE";
 
-	boolean engineConnected = false;
-	boolean datasourceConnected = false;
+	private boolean engineConnected = false;
+	private boolean datasourceConnected = false;
 	private RdbmsTypeEnum dbType;
 	private HikariDataSource dataSource = null;
 	private Connection engineConn = null;
@@ -118,7 +118,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public void openDB(String propFile)
 	{
-		if(propFile == null && prop == null){
+		if(propFile == null && this.prop == null){
 			if(dataSource!= null){
 				try{
 					this.engineConn = getConnection();
@@ -134,10 +134,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			// will mostly be sent the connection string and I will connect here
 			// I need to see if the connection pool has been initiated
 			// if not initiate the connection pool
-			if(prop == null) {
-				prop = Utility.loadProperties(propFile);
+			if(this.prop == null) {
+				this.prop = Utility.loadProperties(propFile);
 				// if this is not a temp then open the super
-				if(!prop.containsKey("TEMP")) { 
+				if(!this.prop.containsKey("TEMP")) { 
 					// not temp, in which case, this engine has a insights rdbms and an owl
 					// so call super to open them and set them in the engine
 					super.openDB(propFile);

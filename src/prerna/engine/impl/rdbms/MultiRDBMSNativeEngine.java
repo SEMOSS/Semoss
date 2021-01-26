@@ -29,12 +29,13 @@ package prerna.engine.impl.rdbms;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -43,56 +44,46 @@ import org.h2.tools.DeleteDbFiles;
 
 import com.zaxxer.hikari.HikariDataSource;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.ThreadStore;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactory;
 
 public class MultiRDBMSNativeEngine extends AbstractEngine {
 
+	// TODO: NEED TO ACCOUNT FOR PASSWORD ENCRYPTION
+	// TODO: NEED TO DETERMINE IF DELETE DB NEEDS ANYTHING DIFFERENT
+	
 	private static final Logger logger = LogManager.getLogger(MultiRDBMSNativeEngine.class);
 
+	public static final String DEFAULT_CONTEXT_KEY = "DEFAULT_CONTEXT";
+	public static final String CONNECTIONS_TO_FILL = "CONNECTIONS_TO_FILL";
+	public static final String SETUP_PREFIX = "SETUP_";
+	public static final String SETUP_QUERY_KEY = "SETUP_QUERY";
+	
+	private String defaultContext = null;
+	private String setupQuery = null;
+	private Properties contextProperties = new Properties();
+	private RDBMSNativeEngine contextEngine = null;
+	
 	// schema1 : connectionurl1/schema1 - snowflake
 	// schema2 : connectionurl1/schema2 - teradata
 	// schema3 : connectionurl2/schema3 - mysql
-	private Map<String, RDBMSNativeEngine> contextToConnectionMap = new HashMap<String, RDBMSNativeEngine>();
+	private Map<String, Properties> contextToProperties = new HashMap<>();
+	private Map<String, RDBMSNativeEngine> contextToConnectionMap = new HashMap<>();
 	
-	boolean engineConnected = false;
-	boolean datasourceConnected = false;
-	private RdbmsTypeEnum dbType;
-	private HikariDataSource dataSource = null;
-	private Connection engineConn = null;
-	private boolean useConnectionPooling = false;
-	private boolean autoCommit = false;
-	
-	private RdbmsConnectionBuilder connBuilder;
-	private String userName = null;
-	private String password = null;
-	private String driver = null;
-	private String connectionURL = null;
-	private String schema = null;
-	// parameterized in SMSS
-	// fetch size -1 which will 
-	private int fetchSize = -1;
-	private int poolMinSize = 1;
-	private int poolMaxSize = 16;
-	
-	private AbstractSqlQueryUtil queryUtil = null;
-
-	private String fileDB = null;
-
 	@Override
 	public void openDB(String propFile)
 	{
+		super.openDB(propFile);
+		
 		/*
 		 * contextToConnectionMap needs to be built
 		 * and the keys need to be stored
@@ -100,146 +91,70 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 		 * and populate the map
 		 */
 		
-		if(propFile == null && prop == null){
-			if(dataSource!= null){
-				try{
-					this.engineConn = getConnection();
-					this.engineConnected = true;
-					this.autoCommit = this.engineConn.getAutoCommit();
-				} catch (Exception e){
-					logger.error("error RDBMS opening database", e);
-				}
-			} else {
-				logger.info("using engine connection");
-			}
-		} else {
-			// will mostly be sent the connection string and I will connect here
-			// I need to see if the connection pool has been initiated
-			// if not initiate the connection pool
-			if(prop == null) {
-				prop = Utility.loadProperties(propFile);
-				// if this is not a temp then open the super
-				if(!prop.containsKey("TEMP")) { 
-					// not temp, in which case, this engine has a insights rdbms and an owl
-					// so call super to open them and set them in the engine
-					super.openDB(propFile);
-				}
-			}
-			
-			// grab the values from the prop file 
-			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
-			if(dbTypeString == null) {
-				dbTypeString = prop.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
-			}
-			this.connectionURL = prop.getProperty(Constants.CONNECTION_URL);
-			this.userName = prop.getProperty(Constants.USERNAME);
-			
-			if(propFile != null) {
-				this.password = decryptPass(propFile, false);
-			} 
-			if(this.password == null) {
-				this.password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
-			}
-			this.driver = prop.getProperty(Constants.DRIVER);
-			
-			// make a check to see if it is asking to use file
-			boolean useFile = false;
-			if(prop.containsKey(USE_FILE)) {
-				useFile = Boolean.valueOf(prop.getProperty(USE_FILE));
-			}
-			this.useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
-
-			// get the dbType from the input or from the driver itself
-			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
-			if(this.dbType == null) {
-				this.dbType = RdbmsTypeEnum.H2_DB;
-			}
-			if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
-				this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
-			}
-			
-			// fetch size
-			if(prop.getProperty(Constants.FETCH_SIZE) != null) {
-				String strFetchSize = prop.getProperty(Constants.FETCH_SIZE);
-				try {
-					this.fetchSize = Integer.parseInt(strFetchSize);
-				} catch(Exception e) {
-					System.out.println("Error occured trying to parse and get the fetch size");
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(prop.getProperty(Constants.POOL_MIN_SIZE) != null) {
-				String strMinPoolSize = prop.getProperty(Constants.POOL_MIN_SIZE);
-				try {
-					this.poolMinSize = Integer.parseInt(strMinPoolSize);
-				} catch(Exception e) {
-					System.out.println("Error occured trying to parse and get the min pool size");
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(prop.getProperty(Constants.POOL_MAX_SIZE) != null) {
-				String strMaxPoolSize = prop.getProperty(Constants.POOL_MAX_SIZE);
-				try {
-					this.poolMaxSize = Integer.parseInt(strMaxPoolSize);
-				} catch(Exception e) {
-					System.out.println("Error occured trying to parse and get the max pool size");
-					logger.error(Constants.STACKTRACE, e);
+		// this will contain something like 1,2
+		// which tells us there is 1_ and 2_ prefixes 
+		// for the options around how to connect to the data sources
+		String prefixes = prop.getProperty(CONNECTIONS_TO_FILL);
+		String[] prefixIds = prefixes.split(",");
+		
+		this.setupQuery = prop.getProperty(SETUP_QUERY_KEY);
+		if(this.setupQuery == null) {
+			throw new NullPointerException("Could not find the user defined query to determine the engine context");
+		}
+		
+		// if this exists...
+		this.defaultContext = prop.getProperty(DEFAULT_CONTEXT_KEY);
+		
+		// really easy way to go about this
+		// just loop through everything
+		// and make a new prop file that is temp
+		// this will create all the property files we need
+		for(Object key : this.prop.keySet()) {
+			// if it starts with our prefix
+			// we will separate it out into its own prop file
+			for(String prefix : prefixIds) {
+				if(key.toString().startsWith(prefix + "_")) {
+					// we found a match
+					Properties thisPropInput = null;
+					if(contextToProperties.containsKey(prefix)) {
+						thisPropInput = this.contextToProperties.get(prefix);
+					} else {
+						thisPropInput = new Properties();
+						thisPropInput.put("TEMP", true);
+						this.contextToProperties.put(prefix, thisPropInput);
+					}
+					
+					// now store the key without the prefix + "_"
+					// in thisPropInput object
+					String inputKey = key.toString().replaceFirst(prefix + "_", "");
+					thisPropInput.put(inputKey, this.prop.get(key));
 				}
 			}
 			
-			this.connBuilder = null;
-			if(useFile) {
-				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.BUILD_FROM_FILE);
-				
-				// determine the location of the file relative to where SEMOSS is installed
-				this.fileDB = SmssUtilities.getDataFile(prop).getAbsolutePath();
-				// set the file location
-				connBuilder.setFileLocation(this.fileDB);
-				
-				// set the types
-				Vector<String> concepts = this.getConcepts();
-				String [] conceptsArray = concepts.toArray(new String[concepts.size()]);
-				Map <String,String> conceptAndType = this.getDataTypes(conceptsArray);
-				for(int conceptIndex = 0;conceptIndex < conceptsArray.length;conceptIndex++) {
-					List<String> propList = getPropertyUris4PhysicalUri(conceptsArray[conceptIndex]);
-					String [] propArray = propList.toArray(new String[propList.size()]);
-					Map<String, String> typeMap = getDataTypes(propArray);
-					conceptAndType.putAll(typeMap);
-				}
-				connBuilder.setColumnToTypesMap(conceptAndType);
-				
-				// also update the connection url
-				Hashtable<String, String> paramHash = new Hashtable<String, String>();
-				String dbName = this.fileDB.replace(".csv", "").replace(".tsv", "");
-				paramHash.put("database", dbName);
-				this.connectionURL = Utility.fillParam2(connectionURL, paramHash);
-				
-			} else if(useConnectionPooling) {
-				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.CONNECTION_POOL);
-			} else {
-				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
-			}
-			
-			connBuilder.setConnectionUrl(this.connectionURL);
-			connBuilder.setUserName(this.userName);
-			connBuilder.setPassword(this.password);
-			connBuilder.setDriver(this.driver);
-			
-			try {
-				this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType, this.connectionURL, this.userName, this.password);
-				this.engineConn = connBuilder.build();
-				if(useConnectionPooling) {
-					this.dataSource = connBuilder.getDataSource();
-					this.datasourceConnected = true;
-				}
-				this.engineConnected = true;
-				this.autoCommit = this.engineConn.getAutoCommit();
-				this.queryUtil.enhanceConnection(this.engineConn);
-			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+			if(key.toString().startsWith(SETUP_PREFIX)) {
+				String inputKey = key.toString().replaceFirst(SETUP_PREFIX, "");
+				this.contextProperties.put(inputKey, this.prop.get(key));
 			}
 		}
-	}	
+		
+		// load in the SETUP engine
+		this.contextProperties.put("TEMP", true);
+		this.contextEngine = new RDBMSNativeEngine();
+		this.contextEngine.setProp(contextProperties);
+		this.contextEngine.openDB(null);
+		
+		// load all the other engines
+		for(String contextName : this.contextToProperties.keySet()) {
+			Properties thisProp = this.contextToProperties.get(contextName);
+			RDBMSNativeEngine engine = new RDBMSNativeEngine();
+			// set the OWL for each engine
+			engine.setBaseDataEngine(this.baseDataEngine);
+			engine.setProp(thisProp);
+			engine.openDB(null);
+			
+			contextToConnectionMap.put(contextName, engine);
+		}
+	}
 	
 	/**
 	 * For this user in the thread
@@ -258,13 +173,53 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 	 * @return
 	 */
 	public RDBMSNativeEngine lookUpContext(User user) {
-		// TODO
 		// execute query against base connection url
 		// get back a single valued string
 		// go to contextToConnectionMap with the string
 		// to get the correct rdbms native engine
 		
-		return null;
+		Object contextLookup = null;
+
+		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+		String userId = token.getId();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			// use the setup query that was provided in the smss
+			ps = contextEngine.getPreparedStatement(this.setupQuery);
+			// it should have 1 ? to fill in with the userid
+			ps.setString(1, userId);
+			rs = ps.executeQuery();
+			if(rs.next()) {
+				contextLookup = rs.getObject(1);
+			}
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		} finally {
+			try {
+				rs.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			try {
+				ps.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		// if nothing defined - do we have a default?
+		if(contextLookup == null) {
+			contextLookup = this.defaultContext;
+		}
+		
+		// still nothing - you are screwed....
+		if(contextLookup == null) {
+			throw new IllegalArgumentException("User has not been provisioned to any context for this app");
+		}
+		
+		// give the context that was found
+		return this.contextToConnectionMap.get(contextLookup);
 	}
 
 	public AbstractSqlQueryUtil getQueryUtil() {
@@ -304,17 +259,15 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 	}
 
 	@Override
-	public Vector<Object> getEntityOfType(String type)
-	{
+	public Vector<Object> getEntityOfType(String type) {
 		return getContext().getEntityOfType(type);
 	}
 
-	public Vector<Object> getCleanSelect(String query){
+	public Vector<Object> getCleanSelect(String query) {
 		return getContext().getCleanSelect(query);
 	}
 
-	public Map<String, Object> execQuery(String query) throws SQLException
-	{
+	public Map<String, Object> execQuery(String query) throws SQLException {
 		return getContext().execQuery(query);
 	}
 
@@ -337,6 +290,9 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public void closeDB() {
 		super.closeDB();
+		// close the setup engine
+		this.contextEngine.closeDB();
+		// close for all the engines we have
 		for(String key : this.contextToConnectionMap.keySet()) {
 			RDBMSNativeEngine contextE = this.contextToConnectionMap.get(key);
 			try {
@@ -358,8 +314,7 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	public void deleteDB() {
-		// TODO
-		logger.debug("Deleting RDBMS Engine: " + this.engineName);
+		logger.debug("Deleting Multi RDBMS Engine: " + this.engineName);
 
 		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
 		//WHY ARE WE DELETING THE SOURCE DATABSE????
@@ -382,9 +337,19 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 		// Clean up SMSS and DB files/folder
 		super.deleteDB();
 	}
+	
+	@Override
+	public void setBaseData(RDFFileSesameEngine eng) {
+		super.setBaseData(eng);
+		// also set for all the inner ones
+		for(String contextName : this.contextToConnectionMap.keySet()) {
+			RDBMSNativeEngine engine = this.contextToConnectionMap.get(contextName);
+			engine.setBaseDataEngine(this.baseDataEngine);
+		}
+	}
 
 	public RdbmsTypeEnum getDbType() {
-		return this.dbType;
+		return getContext().getDbType();
 	}
 
 	public void setAutoCommit(boolean autoCommit) {
