@@ -474,6 +474,8 @@ public class SqlParser2 {
 			joinType = "outer join";
 		} else if(thisJoin.isFull()) {
 			joinType = "full join";
+		}else if(thisJoin.isCross()) {
+			joinType = "cross join";
 		}
 		if(joinType == null)
 			joinType = "JOIN";
