@@ -57,6 +57,7 @@ import org.apache.poi.xslf.usermodel.XSLFTextParagraph;
 import org.apache.poi.xslf.usermodel.XSLFTextRun;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
 import prerna.engine.api.IHeadersDataRow;
@@ -597,7 +598,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// retrieve ornaments
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
 		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.position") + "";
-
+		List<String> pieCustomDisplayValues = (List<String>) panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.dimension");
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -616,7 +617,6 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		// Add in x vals
 		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSource(xColumnName);
-
 		// Add in y vals
 		for (String yColumnName : yColumnNames) {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
@@ -634,8 +634,30 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			CTDLbls dLbls = POIExportUtility.displayValues(ChartTypes.PIE, chart);
-			POIExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
+			CTPieChart ctPieChart = chart.getCTChart().getPlotArea().getPieChartArray(0);
+            ctPieChart.addNewDLbls();
+            CTDLbls dLbls = ctPieChart.getDLbls();
+            if(dLbls != null) {
+            	if(pieCustomDisplayValues.contains("Percentage")) {
+                    dLbls.addNewShowPercent().setVal(true);
+            	} else {
+                    dLbls.addNewShowPercent().setVal(false);
+            	}
+            	if(pieCustomDisplayValues.contains("Value")) {
+                    dLbls.addNewShowVal().setVal(true);
+            	} else {
+                    dLbls.addNewShowVal().setVal(false);
+            	}
+            	if(pieCustomDisplayValues.contains("Name")) {
+                    dLbls.addNewShowCatName().setVal(true);
+            	} else {
+                    dLbls.addNewShowCatName().setVal(false);
+            	}
+            	dLbls.addNewShowBubbleSize().setVal(false);
+                dLbls.addNewShowLegendKey().setVal(false);
+                dLbls.addNewShowSerName().setVal(false);
+    			POIExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
+            }
 		}
 
 		Rectangle bounds = createStandardPowerPointChartBounds();
