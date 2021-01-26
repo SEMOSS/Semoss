@@ -237,9 +237,13 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 					
 					JsonNode firstOne = data.get(dataIndex);
 					JsonNodeType nt = firstOne.getNodeType();
-					// there is no double in json type so... 
 					if(nt == JsonNodeType.NUMBER)
+						//check if it double, 
+						if(firstOne.isDouble()) {
+							types[dataIndex] = "double";
+						} else {
 						types[dataIndex] = "int";
+						}
 					else
 						types[dataIndex] = "String";
 				}
