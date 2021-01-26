@@ -1194,45 +1194,48 @@ public class TableToXLSXReactor	extends AbstractReactor {
 				cellStyle = cell.getCellStyle();
 			return cellStyle;
 		}
-		 
-		public static void makeParamSheet(Workbook wb, Insight insight, boolean applyDefaultColor, int startRowIndex) 
+		/*
+		 * It will add the parameters to excel file as new sheet
+		 * @param wb
+		 * @param insight
+		 * @param applyDefaultColor
+		 * @param exportMap-it stores all the export related properties
+		 */
+		public void makeParamSheet(Workbook wb, Insight insight, boolean applyDefaultColor, Map exportMap) 
 		{
 			
 			String SECTION = "Section"; // This column various section of filter like Insight, Frame
 			String PARAMETER_NAME = "Parameter Name";
 			String OPERATOR = "Operator"; // Operator used in UI translated to English word
 			String PARAMETER_VALUE = "Parameter Value(s)";
-			String SEPARATOR = "<>";
 			int START_COLUMN_INDEX = 0;
+			String AUDIT_SHEET_NAME= "Audit Parameters";
+			int startRowIndex = 0;
 
-
-			// creating a new sheet Parameters Audit
-			Sheet paramSheet = wb.createSheet();
-			wb.setSheetName(wb.getSheetIndex(paramSheet), "Parameters Audit");
-
+			// creating a new Audit Parameters sheet applying the template
+			Sheet paramSheet = getSheet((XSSFWorkbook)wb,AUDIT_SHEET_NAME);
+			//fetching the start ROW_COUNT after applying the template
+			Object startRow = exportMap.get(AUDIT_SHEET_NAME + "ROW_COUNT");				
+			if(startRow != null)
+				startRowIndex = ((Integer)startRow)+1;	
+			
 			Row row = paramSheet.createRow(startRowIndex);
 
 			// print all the headers
-			Cell paramCellHeader = row.createCell(START_COLUMN_INDEX);
 			Cell paramNameCellHeader = row.createCell(START_COLUMN_INDEX + 1);
 			Cell operatorCellHeader = row.createCell(START_COLUMN_INDEX + 2);
 			Cell paramValCellHeader = row.createCell(START_COLUMN_INDEX + 3);
 			// applying style to the heading
 			if (applyDefaultColor) {
 				CellStyle cellHeaderStyle = getCellStyle(wb);
-				paramCellHeader.setCellStyle(cellHeaderStyle);
 				paramNameCellHeader.setCellStyle(cellHeaderStyle);
 				paramValCellHeader.setCellStyle(cellHeaderStyle);
 				operatorCellHeader.setCellStyle(cellHeaderStyle);
 			}
 			// Header text being appended
-			paramCellHeader.setCellValue(SECTION); 
 			paramNameCellHeader.setCellValue(PARAMETER_NAME);
 			operatorCellHeader.setCellValue(OPERATOR);
 			paramValCellHeader.setCellValue(PARAMETER_VALUE);
-
-			
-			
 			// fill the rows. 
 			// Ideally we can drop the section, but later
 			Iterator<String> insightParamKeys = insight.getVarStore().getInsightParameterKeys().iterator();
@@ -1273,9 +1276,12 @@ public class TableToXLSXReactor	extends AbstractReactor {
 				}
 			}
 			// auto sizing the columns after adding all the values to it
-			for (int colmnIndex = 0; colmnIndex < 4; colmnIndex++) {
+			for (int colmnIndex = START_COLUMN_INDEX; colmnIndex < START_COLUMN_INDEX+4; colmnIndex++) {
 				paramSheet.autoSizeColumn(colmnIndex);
 			}
+			//storing the ROW_COUNT,COLUMN_COUNT information in map for appending footer
+			exportMap.put(paramSheet.getSheetName() + "ROW_COUNT", rowIndex);
+			exportMap.put(paramSheet.getSheetName() + "COLUMN_COUNT", START_COLUMN_INDEX+4);
 
 		}
 
