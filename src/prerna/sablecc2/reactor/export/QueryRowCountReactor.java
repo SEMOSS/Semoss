@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.export;
 
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
@@ -14,9 +15,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 
 public class QueryRowCountReactor  extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(QueryRowCountReactor.class);
 	private static final String CLASS_NAME = QueryRowCountReactor.class.getName();
 	
 	public QueryRowCountReactor() {
@@ -34,6 +37,7 @@ public class QueryRowCountReactor  extends AbstractReactor {
 		try {
 			 iterator = WrapperManager.getInstance().getRawWrapper(engine, qs, true);
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occured retrieving the query with message " + e.getMessage());
 		}
 		
@@ -45,6 +49,7 @@ public class QueryRowCountReactor  extends AbstractReactor {
 			logger.info("Engine execution time = " + (end-start) + "ms");
 			return new NounMetadata(numRows, PixelDataType.CONST_INT, PixelOperationType.QUERY_ROW_COUNT);
 		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occured retrieving the count of the query with message " + e.getMessage());
 		}
 	}
