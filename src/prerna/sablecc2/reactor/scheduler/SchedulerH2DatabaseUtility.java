@@ -97,10 +97,8 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_95;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.URLDecoder;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -788,26 +786,15 @@ public class SchedulerH2DatabaseUtility {
 			throw new IllegalArgumentException("Must provide a recipe");
 		}
 
-		try {
-			recipe = URLDecoder.decode(recipe, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			throw new IllegalArgumentException("Must be able to decode recipe");
-		}
-
-		return recipe;
+		return Utility.decodeURIComponent(recipe);
 	}
 	
 	public static String validateAndDecodeRecipeParameters(String recipeParameters) {
 		if(recipeParameters == null || recipeParameters.isEmpty()) {
 			return null;
 		}
-		try {
-			recipeParameters = URLDecoder.decode(recipeParameters, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			throw new IllegalArgumentException("Must be able to decode recipe");
-		}
-
-		return recipeParameters;
+		
+		return Utility.decodeURIComponent(recipeParameters);
 	}
 
 	private static void createQuartzTables(Connection connection, String schema) {
