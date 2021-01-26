@@ -2,10 +2,14 @@ package prerna.sablecc2.reactor.app.template;
 
 import java.util.Map;
 
+import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 /** This reactor will add update the existing template information in the app corresponding template property file. 
  * @author kprasannakumar
@@ -24,7 +28,10 @@ public class UpdateTemplateReactor extends AbstractReactor {
 		String templateFile = this.keyValue.get(ReactorKeysEnum.TEMPLATE_FILE.getKey());
 		String templateName = this.keyValue.get(ReactorKeysEnum.TEMPLATE_NAME.getKey());
 		
+		IEngine engine = Utility.getEngine(appId);
+		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
 		Map<String, String> templateDataMap = TemplateUtility.editTemplate(appId, templateFile, templateName);
+		ClusterUtil.reactorPushFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
 
 		// returning back the updated template information which will contain all the template information with 
 		// template name as key and file name as the value

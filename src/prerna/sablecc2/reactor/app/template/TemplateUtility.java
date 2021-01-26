@@ -187,30 +187,28 @@ public class TemplateUtility {
 	 * @return
 	 */
 	public static Map<String, String> addTemplate(String appId, String filename, String templateName) {
-		Map<String, String> templateDataMap;
-
-		templateDataMap = new HashMap<>();
+		Map<String, String> templateDataMap = new HashMap<>();
 		IEngine engine = Utility.getEngine(appId);
 		String appName = engine.getEngineName();
 		// fetching the app asset folder
 		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId);
 		assetFolder = assetFolder.replace('\\', '/');
 
+		FileInputStream in = null;
+		FileOutputStream out = null;
 		try {
 			// reading the template information from the template properties file
-			FileInputStream in = new FileInputStream(
+			in = new FileInputStream(
 					assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
 			Properties props = new Properties();
 			props.load(in);
-			in.close();
 
-			FileOutputStream out = new FileOutputStream(
+			out = new FileOutputStream(
 					assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
 			// adding the template from the properties due to addition of the template
 			props.put(templateName, filename);
 			// rewriting to the template property file the updated properties
 			props.store(out, null);
-			out.close();
 			// iterate through the properties and update in the templateDataMap with 
 			// Key(k) as template name and Value (v) as file name
 			props.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
@@ -219,7 +217,18 @@ public class TemplateUtility {
 		} catch (IOException e) {
 			logger.error("Error in addTemplate() :" + e.getMessage());
 		} finally {
-
+			try {
+				in.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			if(out != null) {
+				try {
+					out.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		
 		// returning back the updated template information which will contain all the template information with template name as key and file name as the value
