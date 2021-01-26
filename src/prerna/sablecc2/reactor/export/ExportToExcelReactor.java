@@ -60,6 +60,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
 import prerna.algorithm.api.SemossDataType;
@@ -184,7 +185,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		} else {
 			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
 		}
-		/// <<<<<<<
+
 		// Grab number of rows to export to know how many rows to iterate
 		// through
 		String limit = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
@@ -329,41 +330,37 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			makeParamSheet(workbook, this.insight,true, exportMap);
 		}
 		//moved the footer and header logic under export audit to apply headers and disclaimers
-		if(para1 != null || para2 != null)
+		if(para1 != null || para2 != null) {
 			fillHeader(workbook, exportMap, para1, para2);
+		}
 		
 		// fill the footers
-		if(exportMap.containsKey("footer"))
+		if(exportMap.containsKey("footer")) {
 			fillFooter(workbook, exportMap, (String)exportMap.get("footer"));
+		}
 		
 		// fill the place holders
-		if(exportMap.containsKey("placeholders") && null!= exportMap.get("placeholders"))
+		if(exportMap.containsKey("placeholders") && null!= exportMap.get("placeholders")) {
 			fillPlaceholders(workbook, exportMap, (Map<String, List<String>>) exportMap.get("placeholders"));
-
+		}
+		
 		// close the driver
-		if(driver != null)
+		if(driver != null) {
 		  driver.quit();
+		}
 		
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
-		
-		
-		
 		if (password != null) {
 			// encrypt file
 			ExcelUtility.encrypt(workbook, fileLocation, password);
 		} else {
 			// write file			
 			String newFileLocation = fileLocation;
-			
 			if (this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()) != null) {
 				newFileLocation = fileLocation + DIR_SEPARATOR + exportName;
 			}
-			
 			newFileLocation = newFileLocation.substring(0, newFileLocation.indexOf(".xlsx"));
 			newFileLocation = newFileLocation + "1.xlsx";
-			
-			 
-			 
 			
 			ExcelUtility.writeToFile(workbook, newFileLocation);
 			//new File(fileLocation).delete();
@@ -374,8 +371,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		return retNoun;
 	}
 	
-	
-
 	private void addLogo(XSSFWorkbook workbook, Map<String, String> sheetAlias) {
 		String semossLogoPath = DIHelper.getInstance().getProperty("EXPORT_SEMOSS_LOGO");
 		if (semossLogoPath != null) {
@@ -500,11 +495,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				insertRadarChart(sheet, dataSheet,options, panel);
 			} else if(!plotType.equals("Grid") && !plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
 				insertImage(workbook, sheet, sheetId, panelId);
-				//PivotTable
-			}else if(plotType.equals("Grid") || plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
+			} else if(plotType.equals("Grid") || plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
 				insertGrid(sheet.getSheetName(), panelId, sheetId);
 			}
-
 		} catch(Exception ex) {
 			ex.printStackTrace();
 			if(driver != null) {
@@ -537,7 +530,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		} 
 		// since we write veriticlaly
 		// shouldn't be doing this anymore
-//		// freeze the first row
+		// freeze the first row
 //		sheet.createFreezePane(0, 1);
 
 		int i = 0;
@@ -712,7 +705,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			for (String header : headers) {
 				Map<String, Object> columnMap = new HashMap<>();
 				columnMap.put("startRow", endRow + 1);
-				columnMap.put("endRow", excelRowCounter - 1);
+				// -2 for the extra line break between the data
+				columnMap.put("endRow", excelRowCounter - 2);
 				int headerIndex = headerList.indexOf(header);
 				columnMap.put("startCol", headerIndex);
 				columnMap.put("endCol", headerIndex);
@@ -1115,7 +1109,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// retrieve ornaments
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
 		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.position") + "";
-
+		List<String> pieCustomDisplayValues = (List<String>) panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.dimension");
+		
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -1156,8 +1151,30 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
-			CTDLbls dLbls = POIExportUtility.displayValues(ChartTypes.PIE, chart);
-			POIExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
+			CTPieChart ctPieChart = chart.getCTChart().getPlotArea().getPieChartArray(0);
+            ctPieChart.addNewDLbls();
+            CTDLbls dLbls = ctPieChart.getDLbls();
+            if(dLbls != null) {
+            	if(pieCustomDisplayValues.contains("Percentage")) {
+                    dLbls.addNewShowPercent().setVal(true);
+            	} else {
+                    dLbls.addNewShowPercent().setVal(false);
+            	}
+            	if(pieCustomDisplayValues.contains("Value")) {
+                    dLbls.addNewShowVal().setVal(true);
+            	} else {
+                    dLbls.addNewShowVal().setVal(false);
+            	}
+            	if(pieCustomDisplayValues.contains("Name")) {
+                    dLbls.addNewShowCatName().setVal(true);
+            	} else {
+                    dLbls.addNewShowCatName().setVal(false);
+            	}
+            	dLbls.addNewShowBubbleSize().setVal(false);
+                dLbls.addNewShowLegendKey().setVal(false);
+                dLbls.addNewShowSerName().setVal(false);
+    			POIExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
+            }
 		}
 	}
 
