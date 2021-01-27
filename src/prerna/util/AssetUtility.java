@@ -138,10 +138,20 @@ public class AssetUtility {
 		return assetFolder;
 	}
 	
+	public static String getAppAssetFolder(String appId) {
+		IEngine engine = Utility.getEngine(appId);
+		String appName = engine.getEngineName();
+		return AssetUtility.getAppAssetFolder(appName, appId);
+	}
+	
 	public static String getAppAssetFolder(String appName, String appId) {
-		String appFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version"
-				+ DIR_SEPARATOR + "assets";
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
+			baseFolder += DIR_SEPARATOR;
+		}
+		String appFolder = Utility.normalizePath(baseFolder + "db" + DIR_SEPARATOR 
+				+ SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" 
+				+ DIR_SEPARATOR + "assets");
 
 		// if this folder does not exist create it
 		File file = new File(appFolder);
@@ -149,12 +159,15 @@ public class AssetUtility {
 			file.mkdir();
 		}
 		return appFolder;
-		
 	}
 	
 	public static String getAppAssetVersionFolder(String appName, String appId) {
-		String gitFolder = Utility.normalizePath(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version");
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
+			baseFolder += DIR_SEPARATOR;
+		}
+		String gitFolder = Utility.normalizePath(baseFolder + "db" + DIR_SEPARATOR 
+				+ SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version");
 
 		// if this folder does not exist create it
 		File file = new File(gitFolder);
@@ -166,7 +179,6 @@ public class AssetUtility {
 			GitRepoUtils.init(gitFolder);
 		}
 		return gitFolder;
-		
 	}
 	
 	public static String getAssetRelativePath(Insight in, String space) {
