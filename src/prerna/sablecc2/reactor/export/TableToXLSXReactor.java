@@ -26,12 +26,12 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.ss.util.CellReference;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -1040,16 +1040,23 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			{
 				Sheet aSheet = wb.getSheetAt(sheetIndex);
 				String sheetName = aSheet.getSheetName();
+				// skipping template sheets only to read Data Sheet
+				if (sheetName.equalsIgnoreCase(HEADER) || sheetName.equalsIgnoreCase(PLACE_HOLDER) || wb.isSheetHidden(sheetIndex)) {
+					continue;
+				}
 				
 				// final row count 
 				int sheetTotalRows = 0;
 				int sheetTotalColumns = 0;
-				if(wb.getSheet(HEADER) != null)
+				if(wb.getSheet(HEADER) != null) {
 					sheetTotalRows = 5; // leave space foe headers
-				if(exportMap.containsKey(sheetName + "ROW_COUNT"))
+				}
+				if(exportMap.containsKey(sheetName + "ROW_COUNT")) {
 					sheetTotalRows = (Integer)exportMap.get(sheetName + "ROW_COUNT");
-				if(exportMap.containsKey(sheetName + "COLUMN_COUNT"))
+				}
+				if(exportMap.containsKey(sheetName + "COLUMN_COUNT")) {
 					sheetTotalColumns = (Integer)exportMap.get(sheetName + "COLUMN_COUNT");
+				}
 				
 				Row row = aSheet.createRow(sheetTotalRows + 2);
 				Cell cell = row.createCell(0);
