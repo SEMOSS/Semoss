@@ -19,20 +19,18 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IEngine;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-/** This class will contain all the utility methods for the template mananagement
- * @author kprasannakumar
- *
- */
 public class TemplateUtility {
+
+	private static final Logger logger = LogManager.getLogger(TemplateUtility.class);
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public static final String TEMPLATE_PROPS_FILE = "template.properties";
 	public static final String TEMPLATE = "template";
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final Logger logger = LogManager.getLogger(TemplateUtility.class.getName());
 
 	/**
 	 * This method is used to fetch the list of templates from the corresponding App
@@ -42,60 +40,28 @@ public class TemplateUtility {
 	 * @return
 	 */
 	public static Map<String, String> getTemplateList(String appId) {
-		Map<String, String> templateDataMap;
-
-		templateDataMap = new HashMap<>();
+		Map<String, String> templateDataMap = new HashMap<>();
 		IEngine engine = Utility.getEngine(appId);
 		// fetching the app base folder based on the app id
 		String appName = engine.getEngineName();
-		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId); // fetching the app base folder based on the app id
-		assetFolder = assetFolder.replace('\\', '/');
+		// fetching the app base folder based on the app id
+		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId).replace('\\', '/'); 
 
-		FileInputStream fis = null;
-		try {
-			// read the template.properties file of the corresponding app to fetch the templates list
-			File file = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);  
-			// creating the file and template root directory if the file does not exists
-			if (!file.exists()) {
-				file.getParentFile().mkdirs();
+		File file = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE); 
+		if (!file.exists()) {
+			file.getParentFile().mkdirs();
+			try {
 				file.createNewFile();
-				FileOutputStream fos = new FileOutputStream(file);
-				fos.close();
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
 			}
-			fis = new FileInputStream(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
-
-			Properties props = new Properties();
-            // loading the template data as props and saving it in the map
-			props.load(fis);
-			// iterate through the properties and update in the templateDataMap with 
-			// Key(k) as template name and Value (v) as file name
-			props.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
-			fis.close();
-		} catch (IOException e) {
-			logger.error("Error in getTemplateList() :" + e.getMessage());
-		} finally {
-
 		}
-		// templateDataMap will contain all the template information with template name as key and file name as the value 
+		Properties props = Utility.loadProperties(file.getAbsolutePath());
+		props.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
+
+		// templateDataMap will contain all the template information 
+		// with template name as key and file name as the value 
 		return templateDataMap;
-	}
-
-	/**
-	 * This method returns the template folder location of the corresponding App
-	 * 
-	 * @param appId
-	 * @return
-	 */
-	public static String getFilePath(String appId) {
-
-		IEngine engine = Utility.getEngine(appId);
-		String appName = engine.getEngineName();
-		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId);
-		assetFolder = assetFolder.replace('\\', '/');
-		
-		// returning the asset folder appended with the template folder location which contains all the template files
-		return assetFolder; // + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR;
-
 	}
 
 	/**
@@ -107,14 +73,12 @@ public class TemplateUtility {
 	 * @return
 	 */
 	public static String getTemplateFile(String appId, String templateName) {
-
-		String assetFolder = getFilePath(appId);
+		String assetFolder = AssetUtility.getAppAssetFolder(appId).replace('\\', '/');
 		String fileName = getTemplateList(appId).get(templateName);
 		// replace the insight folder
 		fileName = fileName.replace("INSIGHT_FOLDER", assetFolder);
 		// returns the app template folder appended with the template file name 
 		return fileName;
-
 	}
 
 	/**
@@ -122,59 +86,56 @@ public class TemplateUtility {
 	 * delete the template file for the corresponding template name
 	 * 
 	 * @param appId
-	 * @param filename
+	 * @param templateRelativeFilePath
 	 * @param templateName
 	 * @return
 	 */
-	public static Map<String, String> deleteTemplate(String appId, String filename, String templateName) {
-		Map<String, String> templateDataMap;
-
-		templateDataMap = new HashMap<>();
+	public static Map<String, String> deleteTemplate(String appId, String templateRelativeFilePath, String templateName) {
+		Map<String, String> templateDataMap = new HashMap<>();
+		
 		IEngine engine = Utility.getEngine(appId);
 		String appName = engine.getEngineName();
 		// fetching the app asset folder 
-		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId);
-		assetFolder = assetFolder.replace('\\', '/');
-
+		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId).replace('\\', '/');
+		templateRelativeFilePath = templateRelativeFilePath.replace('\\', '/');
+		// deleting the corresponding template file by appending 
+		// the template folder and filename to the app asset folder
 		File file = null;
-		try {
-			// deleting the corresponding template file by appending the template folder and filename to the app asset folder
-			file = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + filename);
-			file.delete();
-
-		} finally {
-
+		if(templateRelativeFilePath.startsWith("/") || templateRelativeFilePath.startsWith("\\")) {
+			file = new File(assetFolder + templateRelativeFilePath);
+		} else {
+			file = new File(assetFolder + DIR_SEPARATOR + templateRelativeFilePath);
 		}
+		file.delete();
 
+		File templatePropsFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
+		Properties templateProps = Utility.loadProperties(templatePropsFile.getAbsolutePath());
+		
+		FileOutputStream out = null;
 		try {
-			
-			// reading the template information from the template properties file
-			FileInputStream in = new FileInputStream(
-					assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
-			Properties props = new Properties();
-			props.load(in);
-			in.close();
-
-			FileOutputStream out = new FileOutputStream(
-					assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
+			out = new FileOutputStream(templatePropsFile.getAbsolutePath());
 			
 			// removing the template from the properties due to deletion of the template
-			props.remove(templateName);
+			templateProps.remove(templateName);
 			// rewriting to the template property file the updated properties 
-			props.store(out, null);
-			out.close();
+			templateProps.store(out, null);
 			// iterate through the properties and update in the templateDataMap with 
 			// Key(k) as template name and Value (v) as file name
-			props.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
+			templateProps.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
-			logger.error("Error in deleteTemplate() :" + e.getMessage());
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error("Error in deleteTemplate() :" + e.getMessage());
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
-
+			try {
+				out.close();
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
 		}
 		
-		// returning back the updated template information which will contain all the template information with template name as key and file name as the value
+		// returning back the updated template information which will contain all the template information
+		// with template name as key and file name as the value
 		return templateDataMap;
 	}
 
@@ -195,44 +156,41 @@ public class TemplateUtility {
 		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId);
 		assetFolder = assetFolder.replace('\\', '/');
 
-		FileInputStream in = null;
+		File templatePropsFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
+		if(templatePropsFile.exists()) {
+			templatePropsFile.getParentFile().mkdirs();
+			try {
+				templatePropsFile.createNewFile();
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+		Properties templateProps = Utility.loadProperties(templatePropsFile.getAbsolutePath());
+
 		FileOutputStream out = null;
 		try {
-			Properties props = new Properties();
-			// reading the template information from the template properties file
-			File templateFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
-			// if the file exists
-			// load it
-			if(templateFile.exists()) {
-				in = new FileInputStream(templateFile.getAbsolutePath());
-				props.load(in);
-			} else {
-				// make the directory
-				templateFile.getParentFile().mkdirs();
-				// make the empty file
-				templateFile.createNewFile();
+			if (templateProps.containsKey(templateName) && !filename.isEmpty()) {
+				// to get the template file name
+				filename = filename.replace("INSIGHT_FOLDER", "");
+				File fileToDelete = new File(assetFolder + filename);
+				// deleting the corresponding template file by appending the template folder and
+				// filename to the app asset folder before throwing exception
+				fileToDelete.delete();
+				throw new SemossPixelException("Template Name already exists");
 			}
-			
-			out = new FileOutputStream(templateFile.getAbsolutePath());
+			out = new FileOutputStream(templatePropsFile.getAbsolutePath());
 			// adding the template from the properties due to addition of the template
-			props.put(templateName, filename);
+			templateProps.put(templateName, filename);
 			// rewriting to the template property file the updated properties
-			props.store(out, null);
+			templateProps.store(out, null);
 			// iterate through the properties and update in the templateDataMap with 
 			// Key(k) as template name and Value (v) as file name
-			props.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
+			templateProps.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(in != null) {
-				try {
-					in.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
 			if(out != null) {
 				try {
 					out.close();
@@ -251,52 +209,65 @@ public class TemplateUtility {
 	 * information in template property file
 	 * 
 	 * @param appId
-	 * @param filename
+	 * @param templateRelativeFilePath
 	 * @param templateName
 	 * @return
 	 */
-	public static Map<String, String> editTemplate(String appId, String filename, String templateName) {
-		Map<String, String> templateDataMap;
-
-		templateDataMap = new HashMap<>();
+	public static Map<String, String> editTemplate(String appId, String templateRelativeFilePath, String templateName) {
+		Map<String, String> templateDataMap = new HashMap<>();
+		
 		IEngine engine = Utility.getEngine(appId);
 		String appName = engine.getEngineName();
-		// fetching the app asset folder
-		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId);
-		assetFolder = assetFolder.replace('\\', '/');
+		// fetching the app asset folder 
+		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId).replace('\\', '/');
+		templateRelativeFilePath = templateRelativeFilePath.replace('\\', '/');
+		
+		// get the properties file 
+		File templatePropsFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
+		Properties templateProps = Utility.loadProperties(templatePropsFile.getAbsolutePath());
 
+		// need to grab the existing file to delete from the prop file
+		String removeTemplateRelativePath = (String) templateProps.get(templateName);
+		// deleting the corresponding template file by appending 
+		// the template folder and filename to the app asset folder
+		File file = null;
+		if(removeTemplateRelativePath.startsWith("/") || removeTemplateRelativePath.startsWith("\\")) {
+			file = new File(assetFolder + removeTemplateRelativePath);
+		} else {
+			file = new File(assetFolder + DIR_SEPARATOR + removeTemplateRelativePath);
+		}
+		file.delete();
+		
+		// now we will update the prop file to point to the new file
+		FileOutputStream out = null;
 		try {
-			
-			// reading the template information from the template properties file
-			FileInputStream in = new FileInputStream(
-					assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
-			Properties props = new Properties();
-			props.load(in);
-			in.close();
-			File file = new File(
-					assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + props.getProperty(templateName));
-			file.delete();
-			FileOutputStream out = new FileOutputStream(
-					assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
-			// deleting the old template information and adding the updated template information from the properties due to updation of the template
-			props.remove(templateName);
-			props.put(templateName, filename);
+			out = new FileOutputStream(templatePropsFile.getAbsolutePath());
+			// deleting the old template information and adding the updated template information 
+			// from the properties due to updating of the template
+			templateProps.remove(templateName);
+			templateProps.put(templateName, templateRelativeFilePath);
 			
 			// rewriting to the template property file the updated properties
-			props.store(out, null);
-			out.close();
+			templateProps.store(out, null);
 			// iterate through the properties and update in the templateDataMap with 
 			// Key(k) as template name and Value (v) as file name
-			props.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
+			templateProps.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
-			logger.error("Error in editTemplate() :" + e.getMessage());
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error("Error in editTemplate() :" + e.getMessage());
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
-
+			if(out != null) {
+				try {
+					out.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		
-		// returning back the updated template information which will contain all the template information with template name as key and file name as the value
+		// returning back the updated template information which will contain all the template information 
+		// with template name as key and file name as the value
 		return templateDataMap;
 	}
 
@@ -309,30 +280,44 @@ public class TemplateUtility {
 	 * @return
 	 */
 	public static Map<String, List<String>> getPlaceHolderInfo(String appId, String templateName) {
-		// 
 		Map<String, List<String>> placeHolderData = new HashMap<String, List<String>>();
+		FileInputStream fis = null;
+		XSSFWorkbook wb = null;
 		try {
 			String exportTemplateFile = getTemplateFile(appId, templateName);
-			File file = new File(exportTemplateFile); // fetching the template file 
-			FileInputStream fis;
-
+			 // fetching the template file 
+			File file = new File(exportTemplateFile);
 			fis = new FileInputStream(file);
 			// creating Workbook instance that refers to template .xlsx file
-			XSSFWorkbook wb = new XSSFWorkbook(fis);
+			wb = new XSSFWorkbook(fis);
 			// creating a Sheet object to retrieve place holder sheet
-			XSSFSheet placeholderSheet = wb.getSheet("placeholders"); // creating a Sheet object to retrieve place holder sheet
+			 // creating a Sheet object to retrieve place holder sheet
+			XSSFSheet placeholderSheet = wb.getSheet("placeholders");
 			if (placeholderSheet != null) {
 				placeHolderData = extractPlaceHolderInfo(placeholderSheet);
 			}
-			wb.close();
 		} catch (FileNotFoundException e) {
-			logger.error("Error in getPlaceHolderInfo() :" + e.getMessage());
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error("Error in getPlaceHolderInfo() :" + e.getMessage());
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
-
+			if(wb != null) {
+				try {
+					wb.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if(fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
-		// returns the complete place holder data with key as placeholder label name and values containing place holder default value, cell position
+		// returns the complete place holder data with key as placeholder label name and values 
+		// containing place holder default value, cell position
 		return placeHolderData;
 	}
 
@@ -372,6 +357,5 @@ public class TemplateUtility {
 		// returns the complete place holder data with key as placeholder label name and values containing place holder default value, cell position
 		return placeHolderData;
 	}
-
 
 }
