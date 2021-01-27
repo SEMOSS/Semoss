@@ -198,14 +198,17 @@ public class TemplateUtility {
 		FileInputStream in = null;
 		FileOutputStream out = null;
 		try {
-			// reading the template information from the template properties file
-			in = new FileInputStream(
-					assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
 			Properties props = new Properties();
-			props.load(in);
-
-			out = new FileOutputStream(
-					assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
+			// reading the template information from the template properties file
+			File templateFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
+			// if the file exists
+			// load it
+			if(templateFile.exists()) {
+				in = new FileInputStream(templateFile.getAbsolutePath());
+				props.load(in);
+			}
+			
+			out = new FileOutputStream(templateFile.getAbsolutePath());
 			// adding the template from the properties due to addition of the template
 			props.put(templateName, filename);
 			// rewriting to the template property file the updated properties
