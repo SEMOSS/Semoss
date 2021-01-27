@@ -214,9 +214,9 @@ public class TemplateUtility {
 			// Key(k) as template name and Value (v) as file name
 			props.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, "Error in addTemplate() :" + e.getMessage());
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, "Error in addTemplate() :" + e.getMessage());
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(in != null) {
 				try {
