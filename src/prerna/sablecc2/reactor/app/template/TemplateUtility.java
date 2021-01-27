@@ -20,6 +20,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IEngine;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 /** This class will contain all the utility methods for the template mananagement
@@ -213,14 +214,16 @@ public class TemplateUtility {
 			// Key(k) as template name and Value (v) as file name
 			props.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
-			logger.error("Error in addTemplate() :" + e.getMessage());
+			logger.error(Constants.STACKTRACE, "Error in addTemplate() :" + e.getMessage());
 		} catch (IOException e) {
-			logger.error("Error in addTemplate() :" + e.getMessage());
+			logger.error(Constants.STACKTRACE, "Error in addTemplate() :" + e.getMessage());
 		} finally {
-			try {
-				in.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+			if(in != null) {
+				try {
+					in.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 			if(out != null) {
 				try {
