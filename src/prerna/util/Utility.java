@@ -3151,19 +3151,20 @@ public class Utility {
 	}
 
 	/**
-	 * Loads the properties from a specifed properties file.
+	 * Loads the properties from a specified properties file.
 	 * 
-	 * @param fileName String of the name of the properties file to be loaded.
+	 * @param filePath String of the name of the properties file to be loaded.
 	 * @return Properties The properties imported from the prop file.
 	 */
-	public static Properties loadProperties(String fileName) {
+	public static Properties loadProperties(String filePath) {
 		Properties retProp = new Properties();
 		FileInputStream fis = null;
-		if (fileName != null) {
+		if (filePath != null) {
 			try {
-				fis = new FileInputStream(Utility.normalizePath(fileName));
+				fis = new FileInputStream(Utility.normalizePath(filePath));
 				retProp.load(fis);
 			} catch (IOException ioe) {
+				logger.info("Unable to read properties file: " + filePath);
 				logger.error(Constants.STACKTRACE, ioe);
 			} finally {
 				if (fis != null) {
@@ -3174,7 +3175,6 @@ public class Utility {
 					}
 				}
 			}
-
 		}
 		return retProp;
 	}
