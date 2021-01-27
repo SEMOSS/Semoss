@@ -206,6 +206,11 @@ public class TemplateUtility {
 			if(templateFile.exists()) {
 				in = new FileInputStream(templateFile.getAbsolutePath());
 				props.load(in);
+			} else {
+				// make the directory
+				templateFile.getParentFile().mkdirs();
+				// make the empty file
+				templateFile.createNewFile();
 			}
 			
 			out = new FileOutputStream(templateFile.getAbsolutePath());
