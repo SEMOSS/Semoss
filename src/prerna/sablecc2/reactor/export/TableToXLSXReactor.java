@@ -1035,7 +1035,12 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		// can neel just send it as part of the information ?
 		public void fillFooter(Workbook wb, Map exportMap, String footer)
 		{
-			wb.removeSheetAt(wb.getSheetIndex(FOOTER));	
+			wb.removeSheetAt(wb.getSheetIndex(FOOTER));
+			// removing the header sheet of the workbook during export if there is no
+			// placeholder sheet in template
+			if (!exportMap.containsKey("placeholders")) {
+				wb.removeSheetAt(wb.getSheetIndex(HEADER));
+			}
 			for(int sheetIndex = 0;sheetIndex < wb.getNumberOfSheets();sheetIndex++)
 			{
 				Sheet aSheet = wb.getSheetAt(sheetIndex);
