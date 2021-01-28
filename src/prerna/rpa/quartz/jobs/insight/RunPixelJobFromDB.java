@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.http.NameValuePair;
-import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -14,7 +13,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.InterruptableJob;
@@ -90,13 +88,13 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			
 			int status = response.getStatusLine().getStatusCode();
 			logger.info("##SCHEDULED JOB: Response Code " + status);
-			try {
-				logger.info("##SCHEDULED JOB: Json return = " + EntityUtils.toString(response.getEntity()));
-			} catch (ParseException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
+//			try {
+//				logger.info("##SCHEDULED JOB: Json return = " + EntityUtils.toString(response.getEntity()));
+//			} catch (ParseException e) {
+//				logger.error(Constants.STACKTRACE, e);
+//			} catch (IOException e) {
+//				logger.error(Constants.STACKTRACE, e);
+//			}
 			
 			// store execution time and date in SMSS_AUDIT_TRAIL table
 			long end = System.currentTimeMillis();

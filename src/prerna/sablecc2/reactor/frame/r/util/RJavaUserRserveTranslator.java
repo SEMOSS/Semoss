@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -98,7 +99,11 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		} else {
 			AuthProvider primaryProvider = user.getPrimaryLogin();
 			AccessToken token = user.getAccessToken(primaryProvider);
-			userInfo = primaryProvider.name() + "___" + token.getName().replace(" ", "_");
+			if(token.getName() == null) {
+				userInfo = primaryProvider.name() + "___noname_" + UUID.randomUUID();
+			} else {
+				userInfo = primaryProvider.name() + "___" + token.getName().replace(" ", "_");
+			}
 		}
 		return userInfo; 
 	}
