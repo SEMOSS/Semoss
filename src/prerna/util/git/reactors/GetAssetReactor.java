@@ -25,7 +25,7 @@ public class GetAssetReactor extends AbstractReactor {
 
 		// check if user is logged in
 		String space = this.keyValue.get(this.keysToGet[2]);
-		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, false);
 
 		// relative path is used for git if the insight is saved
 		String assetDir = "";

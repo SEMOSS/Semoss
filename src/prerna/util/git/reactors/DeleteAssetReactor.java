@@ -46,7 +46,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 
 		// get asset base folder
 		String space = this.keyValue.get(this.keysToGet[2]);
-		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, true);
 		// relative path is used for git if insight is saved
 		String relativePath = "";
 		if (this.insight.isSavedInsight()) {
