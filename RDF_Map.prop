@@ -92,6 +92,10 @@ PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD	password123
 #SET IF INSIGHTS ON SAVE ARE CACHEABLE
 DEFAULT_INSIGHT_CACHEABLE	true
 
+#SET RESTRICTIONS ON PIVOT SIZE
+PIVOT_ROW_MAX	1000
+PIVOT_COL_MAX	100
+
 ##################################################
 ##################################################
 ##################################################
