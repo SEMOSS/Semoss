@@ -22,7 +22,7 @@ public class CtrlXAssetReactor extends AbstractReactor {
 
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		
 		// file / folder to be moved

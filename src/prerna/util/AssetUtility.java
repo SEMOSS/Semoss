@@ -9,7 +9,6 @@ import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.util.git.GitRepoUtils;
 
@@ -91,9 +90,10 @@ public class AssetUtility {
 	 * 
 	 * @param in
 	 * @param space
+	 * @param editRequired
 	 * @return
 	 */
-	public static String getAssetVersionBasePath(Insight in, String space) {
+	public static String getAssetVersionBasePath(Insight in, String space, boolean editRequired) {
 		String assetFolder = null;
 		if(in.isSavedInsight()) {
 			assetFolder = getAppAssetVersionFolder(in.getEngineName(), in.getEngineId());
@@ -116,21 +116,41 @@ public class AssetUtility {
 				}
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
+				// but need to perform check
+				if(editRequired && in.isSavedInsight() && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getEngineId(), in.getRdbmsId())) {
+					throw new IllegalArgumentException("User does not have permission for this insight");
+				}
 			} else {
 				// user has passed an id
 				String appId = space;
-				String appName = MasterDatabaseUtility.getEngineAliasForId(appId);
 				// check if the user has permission for the app
 				if (AbstractSecurityUtils.securityEnabled()) {
-					if (!SecurityAppUtils.userCanEditEngine(in.getUser(), space)) {
-						throw new IllegalArgumentException("User does not have permission for this app");
+					if(editRequired) {
+						if(!SecurityAppUtils.userCanEditEngine(in.getUser(), space)) {
+							throw new IllegalArgumentException("User does not have permission for this app");
+						}
+					} else {
+						// only read access
+						if(!SecurityAppUtils.userCanViewEngine(in.getUser(), space)) {
+							throw new IllegalArgumentException("User does not have permission for this app");
+						}
 					}
 				}
+				IEngine engine = Utility.getEngine(appId);
+				String appName = engine.getEngineName();
 				assetFolder = getAppAssetVersionFolder(appName, appId);
+			}
+		} else if(in.isSavedInsight() && editRequired){
+			// we are about to send back the insight folder 
+			// since that is the default
+			// FE very rarely sends the INSIGHT_SPACE_KEY
+			// and edit is required
+			// make sure user has access
+			if(!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getEngineId(), in.getRdbmsId())) {
+				throw new IllegalArgumentException("User does not have permission for this insight");
 			}
 		}
 		assetFolder = assetFolder.replace('\\', '/');
-		
 		
 		if(in.isSavedInsight() && !isGit(assetFolder)) {
 			GitRepoUtils.init(assetFolder);
