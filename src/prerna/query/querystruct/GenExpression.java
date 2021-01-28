@@ -42,6 +42,8 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	public String userTableName = null;
 	public String userTableAlias = null;
 	
+	public boolean distinct = false;
+	
 	
 	public void setRightExpresion(Object rightItem)
 	{
@@ -176,6 +178,8 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			{
 				buf.append(newLine);
 				buf.append("SELECT  ");
+				if(qs.distinct)
+					buf.append(" DISTINCT ");
 				for(int selIndex = 0;selIndex < qs.nselectors.size();selIndex++)
 				{
 					GenExpression sqs = qs.nselectors.get(selIndex);
@@ -324,11 +328,15 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			FunctionExpression thisExpr = (FunctionExpression)qs;
 			if(!thisExpr.neutralizeFunction)
 			{
-				buf.append(thisExpr.expression).append("(");				
+				buf.append(thisExpr.expression).append("(");	
+				if(qs.distinct)
+					buf.append(" DISTINCT ");
 			}
 			else if(thisExpr.expressions.size() == 1)
 			{
 				buf.append("(");
+				if(qs.distinct)
+					buf.append(" DISTINCT ");
 			}
 			// name of the function is in the left alias
 			//buf.append(qs.expression).append("(");
