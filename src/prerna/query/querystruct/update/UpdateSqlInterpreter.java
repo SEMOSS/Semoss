@@ -11,6 +11,7 @@ import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -24,13 +25,17 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 	
 	public UpdateSqlInterpreter(UpdateQueryStruct qs) {
 		this.qs = qs;
-		this.frame = qs.getFrame();
-		if(this.frame != null) {
-			this.queryUtil = ((AbstractRdbmsFrame) this.frame).getQueryUtil();
-		}
-		this.engine = qs.getEngine();
-		if(this.engine != null) {
-			this.queryUtil = ((RDBMSNativeEngine) this.engine).getQueryUtil();
+		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE 
+				|| this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+			this.engine = qs.retrieveQueryStructEngine();
+			if(this.engine != null) {
+				this.queryUtil = ((RDBMSNativeEngine) this.engine).getQueryUtil();
+			}
+		} else {
+			this.frame = qs.getFrame();
+			if(this.frame != null) {
+				this.queryUtil = ((AbstractRdbmsFrame) this.frame).getQueryUtil();
+			}
 		}
 	}
 	
