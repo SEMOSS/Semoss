@@ -23,7 +23,7 @@ public class CtrlCAssetReactor extends AbstractReactor {
 		
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, false);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		
 		if(space == null)

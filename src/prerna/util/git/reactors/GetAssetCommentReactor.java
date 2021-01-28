@@ -37,7 +37,7 @@ public class GetAssetCommentReactor extends AbstractReactor {
 				return NounMetadata.getWarningNounMessage("Unable to get comments the insight must be saved to allow commenting.");
 			}
 		}
-		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, false);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 
 		// specify a file
