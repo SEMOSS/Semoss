@@ -34,6 +34,7 @@ import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.AllTableColumns;
+import net.sf.jsqlparser.statement.select.Distinct;
 import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Join;
@@ -172,6 +173,18 @@ public class SqlParser2 {
 			thisQs.aliasHash = qs.aliasHash;
 			thisQs.randomHash = qs.randomHash;
 		}
+		
+		// calculate distinc
+		Distinct dis = sb.getDistinct();
+		if(dis != null)
+		{
+			thisQs.distinct = true;
+			/*
+			// not sure when this is even used.. but setting at qs level
+			List <SelectItem> allSelects = dis.getOnSelectItems();
+			System.err.println("Items .. " + allSelects);
+			*/
+		}		
 		FromItem fi = sb.getFromItem();
 		
 		// can this be null ?
@@ -1013,6 +1026,7 @@ public class SqlParser2 {
 			gep.setOperation("function");
 			// going to make this opaque
 			gep.setLeftExpr(fexpr.toString());
+			gep.distinct = fexpr.isDistinct();
 			
 			List <Expression> el = fexpr.getParameters().getExpressions();
 			// will work through expression later
@@ -3374,8 +3388,11 @@ public class SqlParser2 {
 		
 		String query24 = "Select a,b,c from d where (age > 20 and age < 40) or (age > 40 and age < 70)";
 		
+		String query25 = "Select  count(distinct a), c from b";
+		String query26 = "Select  distinct a, max(c) from b";
+		
 		test.parameterize = false;
-		GenExpressionWrapper wrapper = test.processQuery(query23);
+		GenExpressionWrapper wrapper = test.processQuery(query26);
 		test.printOutput(wrapper.root);
 		GenExpression root = wrapper.root;
 		List <ParamStructDetails> plist = new Vector<ParamStructDetails>();
