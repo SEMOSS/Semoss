@@ -50,7 +50,7 @@ public class CommitAssetReactor extends AbstractReactor {
 			}
 		}
 		
-		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		// add file to git
 		List<String> files = new Vector<>();
