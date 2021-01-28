@@ -75,10 +75,12 @@ public class TemplateUtility {
 	public static String getTemplateFile(String appId, String templateName) {
 		String assetFolder = AssetUtility.getAppAssetFolder(appId).replace('\\', '/');
 		String fileName = getTemplateList(appId).get(templateName);
-		// replace the insight folder
-		fileName = fileName.replace("INSIGHT_FOLDER", assetFolder);
 		// returns the app template folder appended with the template file name 
-		return fileName;
+		if(fileName.startsWith("/") || fileName.startsWith("\\")) {
+			return assetFolder + fileName;
+		} else {
+			return assetFolder + DIR_SEPARATOR + fileName;
+		}
 	}
 
 	/**
@@ -157,7 +159,7 @@ public class TemplateUtility {
 		assetFolder = assetFolder.replace('\\', '/');
 
 		File templatePropsFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
-		if(templatePropsFile.exists()) {
+		if(!templatePropsFile.exists()) {
 			templatePropsFile.getParentFile().mkdirs();
 			try {
 				templatePropsFile.createNewFile();
@@ -170,8 +172,6 @@ public class TemplateUtility {
 		FileOutputStream out = null;
 		try {
 			if (templateProps.containsKey(templateName) && !filename.isEmpty()) {
-				// to get the template file name
-				filename = filename.replace("INSIGHT_FOLDER", "");
 				File fileToDelete = new File(assetFolder + filename);
 				// deleting the corresponding template file by appending the template folder and
 				// filename to the app asset folder before throwing exception
