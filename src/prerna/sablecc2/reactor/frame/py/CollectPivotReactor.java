@@ -25,6 +25,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -322,13 +323,13 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	
 	private void getPivotLimits() {
 		if(row_max < 0 || col_max < 0) {
-			if(DIHelper.getInstance().getProperty("PIVOT_ROW_MAX") != null) {
-				row_max = Integer.parseInt(DIHelper.getInstance().getProperty("PIVOT_ROW_MAX"));
+			if(DIHelper.getInstance().getProperty(Constants.PIVOT_ROW_MAX) != null) {
+				row_max = Integer.parseInt(DIHelper.getInstance().getProperty(Constants.PIVOT_ROW_MAX));
 			} else {
 				row_max = 1000;
 			}
-			if(DIHelper.getInstance().getProperty("PIVOT_COL_MAX") != null) {
-				col_max = Integer.parseInt(DIHelper.getInstance().getProperty("PIVOT_COL_MAX"));
+			if(DIHelper.getInstance().getProperty(Constants.PIVOT_COL_MAX) != null) {
+				col_max = Integer.parseInt(DIHelper.getInstance().getProperty(Constants.PIVOT_COL_MAX));
 			} else {
 				col_max = 100;
 			}
