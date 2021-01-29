@@ -46,13 +46,13 @@ public class ListAllJobsReactor extends AbstractReactor {
 			// TODO: check if admin if not admin throw permissions error
 			// security utils. isAdmin() to check if user is admin *******
 			// return all jobs
-			jobMap = SchedulerH2DatabaseUtility.retrieveAllJobs(jobTags);
+			jobMap = SchedulerDatabaseUtility.retrieveAllJobs(jobTags);
 		} else if (appId != null && userId == null) {
-			jobMap = SchedulerH2DatabaseUtility.retrieveJobsForApp(appId, jobTags);
+			jobMap = SchedulerDatabaseUtility.retrieveJobsForApp(appId, jobTags);
 		} else if (appId == null) {
-			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobs(userId, jobTags);
+			jobMap = SchedulerDatabaseUtility.retrieveUsersJobs(userId, jobTags);
 		} else {
-			jobMap = SchedulerH2DatabaseUtility.retrieveUsersJobsForApp(appId, userId, jobTags);
+			jobMap = SchedulerDatabaseUtility.retrieveUsersJobsForApp(appId, userId, jobTags);
 		}
 
 		return new NounMetadata(jobMap, PixelDataType.MAP, PixelOperationType.LIST_JOB);

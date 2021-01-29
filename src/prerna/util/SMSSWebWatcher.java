@@ -46,7 +46,7 @@ import prerna.engine.impl.OwlPrettyPrintFixer;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.sablecc2.reactor.scheduler.SchedulerH2DatabaseUtility;
+import prerna.sablecc2.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 
 /**
@@ -277,7 +277,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			loadExistingDB(fileNames[schedulerDbNameIndex]);
 			// initialize the scheduler database
 			try {
-				SchedulerH2DatabaseUtility.startServer();
+				SchedulerDatabaseUtility.startServer();
 			} catch (SQLException sqe) {
 				// we couldn't initialize the db remove it from DIHelper
 				DIHelper.getInstance().removeLocalProperty(Constants.SCHEDULER_DB);

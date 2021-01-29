@@ -129,11 +129,13 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 
-public class SchedulerH2DatabaseUtility {
+public class SchedulerDatabaseUtility {
 	
-	private static final Logger logger = LogManager.getLogger(SchedulerH2DatabaseUtility.class);
+	private static final Logger logger = LogManager.getLogger(SchedulerDatabaseUtility.class);
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	public static final String TRIGGER_TIME_ZONE = "EST";
+	
 	/**
 	 * SELECT SMSS_JOB_RECIPES.USER_ID, SMSS_JOB_RECIPES.JOB_ID, SMSS_JOB_RECIPES.JOB_NAME, SMSS_JOB_RECIPES.JOB_GROUP, SMSS_JOB_RECIPES.CRON_EXPRESSION,
 	 * SMSS_JOB_RECIPES.PIXEL_RECIPE, SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, SMSS_JOB_RECIPES.PARAMETERS, QRTZ_TRIGGERS.NEXT_FIRE_TIME, QRTZ_TRIGGERS.PREV_FIRE_TIME
@@ -158,7 +160,7 @@ public class SchedulerH2DatabaseUtility {
 	static RDBMSNativeEngine schedulerDb;
 	static AbstractSqlQueryUtil queryUtil;
 
-	private SchedulerH2DatabaseUtility() {
+	private SchedulerDatabaseUtility() {
 		throw new IllegalStateException("Utility class");
 	}
 
