@@ -3193,7 +3193,21 @@ public class Utility {
 		return Boolean.parseBoolean(cacheSetting);
 	}
 	
-
+	/**
+	 * Get the application time zone
+	 * @return
+	 */
+	public static String getApplicationTimeZoneId() {
+		String timeZone = DIHelper.getInstance().getProperty(Constants.DEFAULT_TIME_ZONE);
+		if(timeZone == null || timeZone.trim().isEmpty()) {
+			// default cache is true
+			return "EST";
+		}
+		
+		return timeZone.trim();
+	}
+	
+	
 	public static void copyURLtoFile(String urlString, String filePath) {
 		try {
 			URL url = new URL(urlString);
