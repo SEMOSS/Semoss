@@ -48,7 +48,6 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.EXECUTION_DELTA));
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.SUCCESS));
 		qs.addRelation(SchedulerConstants.SMSS_JOB_RECIPES+"__"+SchedulerConstants.JOB_ID, SchedulerConstants.SMSS_AUDIT_TRAIL+"__"+SchedulerConstants.JOB_ID, "left.outer.join");
-		qs.addRelation(SchedulerConstants.SMSS_JOB_RECIPES+"__"+SchedulerConstants.JOB_ID, SchedulerConstants.SMSS_JOB_TAGS+"__"+SchedulerConstants.JOB_ID, "inner.join");
 
 /*		QueryFunctionSelector tagSelector = new QueryFunctionSelector();
 		tagSelector.addInnerSelector(new QueryColumnSelector(SchedulerConstants.SMSS_JOB_TAGS+ "__" + SchedulerConstants.JOB_TAG));
@@ -64,6 +63,8 @@ public class SchedulerHistoryReactor extends AbstractReactor {
  */
 		
 		if( jobTags != null ) {
+			// require specific job tags
+			qs.addRelation(SchedulerConstants.SMSS_JOB_RECIPES+"__"+SchedulerConstants.JOB_ID, SchedulerConstants.SMSS_JOB_TAGS+"__"+SchedulerConstants.JOB_ID, "inner.join");
 			for( String tag : jobTags ) {
 				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SchedulerConstants.SMSS_JOB_TAGS + "__" + SchedulerConstants.JOB_TAG, "==", tag, PixelDataType.CONST_STRING));
 			}
