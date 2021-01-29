@@ -3,10 +3,13 @@ package prerna.sablecc2.reactor.scheduler;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.CronScheduleBuilder;
+import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
@@ -22,6 +25,9 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityAppUtils;
+import prerna.rpa.config.IllegalConfigException;
+import prerna.rpa.config.JobConfig;
+import prerna.rpa.config.ParseConfigException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -109,6 +115,8 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 			// create json object for later use
 			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
+			JobConfig jobConfig = JobConfig.initialize(jsonObject);
+
 			// the id does not change
 			// but technically the group does change at the moment
 			JobKey jobKey = JobKey.jobKey(jobId, curJobGroup);
@@ -117,8 +125,16 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				logger.error("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
 				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
 			}
-
+			
 			try {
+				JobDetail currentJobDetail = scheduler.getJobDetail(jobKey);
+				JobDataMap currentJobDataMap = currentJobDetail.getJobDataMap();
+				currentJobDataMap.clear();
+				// add the new job data map into the job detail
+				currentJobDataMap.putAll(jobConfig.getJobDataMap());
+				// add back the updated job detail
+				scheduler.addJob(currentJobDetail, true);
+				
 				// edit the current recipe
 				SchedulerH2DatabaseUtility.updateJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default",
 						triggerOnLoad, parameters, curJobName, curJobGroup, jobTags);
@@ -128,12 +144,12 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				String triggerGroup = jobGroup.concat("TriggerGroup");
 				TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
 				Trigger trigger = TriggerBuilder.newTrigger().withIdentity(triggerName, triggerGroup)
-						.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
+						.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression).inTimeZone(TimeZone.getTimeZone("EST"))).build();
 				// reschedule job
 				if (scheduler.checkExists(jobKey)) {
 					scheduler.rescheduleJob(triggerKey, trigger);
 				}
-			} catch (SchedulerException e) {
+			} catch (SchedulerException | ParseConfigException | IllegalConfigException e) {
 				throw new RuntimeException("Failed to schedule the job", e);
 			}
 
