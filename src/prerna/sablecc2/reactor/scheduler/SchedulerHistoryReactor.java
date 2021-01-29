@@ -33,8 +33,8 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		// start up scheduler if it isn't on
-		SchedulerH2DatabaseUtility.startScheduler(scheduler);
-		RDBMSNativeEngine schedulerDb = SchedulerH2DatabaseUtility.getSchedulerDB();
+		SchedulerDatabaseUtility.startScheduler(scheduler);
+		RDBMSNativeEngine schedulerDb = SchedulerDatabaseUtility.getSchedulerDB();
 
 		List<String> jobTags = getJobTags();
 

@@ -80,7 +80,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 		List<String> jobTags = getJobTags();
 
-		SchedulerH2DatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
+		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
 
 		// the job group is the app the user is in
 		// user must be an admin or editor of the app
@@ -91,10 +91,10 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 		
 		String recipe = this.keyValue.get(this.keysToGet[3]);
-		recipe = SchedulerH2DatabaseUtility.validateAndDecodeRecipe(recipe);
+		recipe = SchedulerDatabaseUtility.validateAndDecodeRecipe(recipe);
 
 		String recipeParameters = this.keyValue.get(this.keysToGet[4]);
-		recipeParameters = SchedulerH2DatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
+		recipeParameters = SchedulerDatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
 		
 		// get triggers
 		boolean triggerOnLoad = getTriggerOnLoad();
@@ -108,7 +108,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
 			// start up scheduler
-			SchedulerH2DatabaseUtility.startScheduler(scheduler);
+			SchedulerDatabaseUtility.startScheduler(scheduler);
 
 			// get user access information
 			List<AuthProvider> authProviders = user.getLogins();
@@ -146,7 +146,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 			// insert into SMOSS_JOB_RECIPES table
 			logger.info("Saving JobId to database: "+jobId);
-			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default", triggerOnLoad, parameters, jobTags);
+			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default", triggerOnLoad, parameters, jobTags);
 
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
