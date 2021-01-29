@@ -60,7 +60,7 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
 			// start up scheduler
-			SchedulerH2DatabaseUtility.startScheduler(scheduler);
+			SchedulerDatabaseUtility.startScheduler(scheduler);
 
 			// reschedule job
 			if (scheduler.checkExists(jobKey)) {
