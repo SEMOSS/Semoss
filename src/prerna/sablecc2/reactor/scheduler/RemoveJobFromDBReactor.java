@@ -50,7 +50,7 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 			
 			// start up scheduler
-			SchedulerH2DatabaseUtility.startScheduler(scheduler);
+			SchedulerDatabaseUtility.startScheduler(scheduler);
 
 			if (scheduler.checkExists(job)) {
 				deleteJob = scheduler.deleteJob(job);
@@ -60,9 +60,9 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		}
 
 		// delete record from SMSS_JOB_RECIPES table in H2
-		boolean recordExists = SchedulerH2DatabaseUtility.existsInJobRecipesTable(jobId, jobGroup);
+		boolean recordExists = SchedulerDatabaseUtility.existsInJobRecipesTable(jobId, jobGroup);
 		if (recordExists) {
-			SchedulerH2DatabaseUtility.removeFromJobRecipesTable(jobId, jobGroup);
+			SchedulerDatabaseUtility.removeFromJobRecipesTable(jobId, jobGroup);
 		}
 
 		return new NounMetadata(deleteJob, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);

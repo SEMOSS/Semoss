@@ -24,7 +24,7 @@ import org.quartz.UnableToInterruptJobException;
 import prerna.rpa.RPAProps;
 import prerna.rpa.config.JobConfigKeys;
 import prerna.rpa.quartz.CommonDataKeys;
-import prerna.sablecc2.reactor.scheduler.SchedulerH2DatabaseUtility;
+import prerna.sablecc2.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -48,7 +48,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 
 		String execId = UUID.randomUUID().toString();
 		// insert the exec id so we allow the execution
-		SchedulerH2DatabaseUtility.insertIntoExecutionTable(execId, jobId, jobGroup);
+		SchedulerDatabaseUtility.insertIntoExecutionTable(execId, jobId, jobGroup);
 		
 		try {
 			// run the pixel endpoint
@@ -98,11 +98,11 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			
 			// store execution time and date in SMSS_AUDIT_TRAIL table
 			long end = System.currentTimeMillis();
-			SchedulerH2DatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, true);
+			SchedulerDatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, true);
 			logger.info("##SCHEDULED JOB: Execution time: " + (end - start) / 1000 + " seconds.");
 		} finally {
 			// always delete the UUID
-			SchedulerH2DatabaseUtility.removeExecutionId(execId);
+			SchedulerDatabaseUtility.removeExecutionId(execId);
 		}
 		
 //		// Execute job
