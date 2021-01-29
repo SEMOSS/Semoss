@@ -962,7 +962,22 @@ public class Insight {
 		return runPixel(newList);
 	}
 	
+	/**
+	 * 
+	 * @param appendInsightConfig
+	 * @return
+	 */
 	public PixelRunner reRunPixelInsight(boolean appendInsightConfig) {
+		return reRunPixelInsight(appendInsightConfig, false);
+	}
+	
+	/**
+	 * 
+	 * @param appendInsightConfig
+	 * @param appendPanel0
+	 * @return
+	 */
+	public PixelRunner reRunPixelInsight(boolean appendInsightConfig, boolean appendPanel0) {
 		synchronized(this) {
 			// set the mode
 			setRunSavedInsightMode(true);
@@ -987,12 +1002,15 @@ public class Insight {
 			// clear the insight
 			// dropping frames and everything in the varstore
 			InsightUtility.clearInsight(this, false);
-			// clear the panels
-			this.insightPanels.clear();
 			// clear the sheets and add the default one
 			this.insightSheets.clear();
 			this.insightSheets.put(DEFAULT_SHEET_ID, new InsightSheet(DEFAULT_SHEET_ID, DEFAULT_SHEET_LABEL));
-
+			// clear the panels
+			this.insightPanels.clear();
+			if(appendPanel0) {
+				this.insightPanels.put("0", new InsightPanel("0", DEFAULT_SHEET_ID));
+			}
+			
 			// copy over the recipe to a new list
 			// and clear the current container
 			// maintain the pixelIds so they are consistent
