@@ -106,13 +106,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -134,8 +134,6 @@ public class SchedulerDatabaseUtility {
 	private static final Logger logger = LogManager.getLogger(SchedulerDatabaseUtility.class);
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	public static final String TRIGGER_TIME_ZONE = "EST";
-	
 	/**
 	 * SELECT SMSS_JOB_RECIPES.USER_ID, SMSS_JOB_RECIPES.JOB_ID, SMSS_JOB_RECIPES.JOB_NAME, SMSS_JOB_RECIPES.JOB_GROUP, SMSS_JOB_RECIPES.CRON_EXPRESSION,
 	 * SMSS_JOB_RECIPES.PIXEL_RECIPE, SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, SMSS_JOB_RECIPES.PARAMETERS, QRTZ_TRIGGERS.NEXT_FIRE_TIME, QRTZ_TRIGGERS.PREV_FIRE_TIME
@@ -681,7 +679,7 @@ public class SchedulerDatabaseUtility {
 		if(nextExecTime != null && !tiggerState.equals("PAUSED")) {
 			Instant instant = Instant.ofEpochMilli(nextExecTime.longValue());
 			DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-			jobDetailsMap.put(NEXT_FIRE_TIME, fmt.format(instant.atZone(ZoneId.systemDefault())));
+			jobDetailsMap.put(NEXT_FIRE_TIME, fmt.format(instant.atZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()).toZoneId())));
 		} else {
 			jobDetailsMap.put(NEXT_FIRE_TIME, "INACTIVE");
 		}
@@ -691,7 +689,7 @@ public class SchedulerDatabaseUtility {
 			} else {
 				Instant instant = Instant.ofEpochMilli(prevExecTime.longValue());
 				DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-				jobDetailsMap.put(PREV_FIRE_TIME, fmt.format(instant.atZone(ZoneId.systemDefault())));
+				jobDetailsMap.put(PREV_FIRE_TIME, fmt.format(instant.atZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()).toZoneId())));
 			}
 		} else {
 			jobDetailsMap.put(PREV_FIRE_TIME, "INACTIVE");

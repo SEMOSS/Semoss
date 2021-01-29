@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.logging.log4j.Logger;
 
@@ -41,7 +42,9 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 	public static String getExportFileName(String customName, String extension) {
 		// get a random file name
 		Date date = new Date();
-		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS");
+		formatter.setTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		String modifiedDate = formatter.format(date);
 		if(customName != null && !customName.trim().isEmpty()) {
 			return Utility.normalizePath(customName.trim() + "_" + modifiedDate) + "." + extension;
 		}
