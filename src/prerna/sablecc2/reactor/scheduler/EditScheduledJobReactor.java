@@ -64,7 +64,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 		List<String> jobTags = getJobTags();
 
-		SchedulerH2DatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
+		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
 
 		// the job group is the app the user is in
 		// user must be an admin or editor of the app
@@ -75,10 +75,10 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		}
 
 		String recipe = this.keyValue.get(this.keysToGet[4]);
-		recipe = SchedulerH2DatabaseUtility.validateAndDecodeRecipe(recipe);
+		recipe = SchedulerDatabaseUtility.validateAndDecodeRecipe(recipe);
 
 		String recipeParameters = this.keyValue.get(this.keysToGet[5]);
-		recipeParameters = SchedulerH2DatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
+		recipeParameters = SchedulerDatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
 
 		// get triggers
 		boolean triggerOnLoad = getTriggerOnLoad();
@@ -97,7 +97,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
 			// start up scheduler
-			SchedulerH2DatabaseUtility.startScheduler(scheduler);
+			SchedulerDatabaseUtility.startScheduler(scheduler);
 
 			// get user access information
 			List<AuthProvider> authProviders = user.getLogins();
@@ -136,11 +136,11 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				scheduler.addJob(currentJobDetail, true);
 				
 				// edit the current recipe
-				SchedulerH2DatabaseUtility.updateJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default",
+				SchedulerDatabaseUtility.updateJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default",
 						triggerOnLoad, parameters, curJobName, curJobGroup, jobTags);
 
 				// update the trigger
-				String triggerName = jobName.concat("Trigger");
+				String triggerName = jobId.concat("Trigger");
 				String triggerGroup = jobGroup.concat("TriggerGroup");
 				TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
 				Trigger trigger = TriggerBuilder.newTrigger().withIdentity(triggerName, triggerGroup)
