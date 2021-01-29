@@ -196,7 +196,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		JobDetail job = newJob(jobClass).withIdentity(jobId, jobGroup).usingJobData(jobDataMap).storeDurably().build();
 		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup + "TriggerGroup")
 				.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)
-						.inTimeZone(TimeZone.getTimeZone(SchedulerDatabaseUtility.TRIGGER_TIME_ZONE))).build();
+						.inTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()))).build();
 
 		scheduler.scheduleJob(job, trigger);
 
