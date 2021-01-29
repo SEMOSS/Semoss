@@ -47,7 +47,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ChromeDriverUtility;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
@@ -58,7 +57,9 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 	public static final String exportTemplate = "EXCEL_EXPORT_TEMPLATE";
 
 	public ExportToExcelNNReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey(), ReactorKeysEnum.EXPORT_AUDIT.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), 
+				ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey(), ReactorKeysEnum.EXPORT_AUDIT.getKey()};
+		this.keyRequired = new int[] {0,0,0,0,0};
 	}
 
 	@Override
