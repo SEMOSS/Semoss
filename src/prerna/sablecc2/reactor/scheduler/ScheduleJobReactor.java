@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -194,7 +195,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		// Schedule the job
 		JobDetail job = newJob(jobClass).withIdentity(jobId, jobGroup).usingJobData(jobDataMap).storeDurably().build();
 		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup + "TriggerGroup")
-				.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
+				.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression).inTimeZone(TimeZone.getTimeZone("EST"))).build();
 
 		scheduler.scheduleJob(job, trigger);
 
