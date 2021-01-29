@@ -523,6 +523,9 @@ public class Constants {
 	// cache enabled by default
 	public static final String DEFAULT_INSIGHT_CACHEABLE = "DEFAULT_INSIGHT_CACHEABLE";
 	
+	// default time zone
+	public static final String DEFAULT_TIME_ZONE = "DEFAULT_TIME_ZONE";
+
 	// all frame limit
 	public static final String FRAME_SIZE_LIMIT = "FRAME_SIZE_LIMIT";
 	// default frame type for the application
