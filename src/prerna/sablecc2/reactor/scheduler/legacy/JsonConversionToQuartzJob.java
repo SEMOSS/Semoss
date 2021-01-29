@@ -37,8 +37,8 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
+import prerna.sablecc2.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.sablecc2.reactor.scheduler.SchedulerFactorySingleton;
-import prerna.sablecc2.reactor.scheduler.SchedulerH2DatabaseUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -209,7 +209,7 @@ public class JsonConversionToQuartzJob {
 
 			// insert into SMSS_JOB_RECIPES table
 			// THERE WAS NO POSSIBILITY OF RUNNING OLD JOBS WITH RECIPE PARAMETERS
-			SchedulerH2DatabaseUtility.insertIntoJobRecipesTable(userAccess, jobId, jobName, jobGroup, cronExpression, pixel, null, "Default", triggerOnLoad, parameters, new ArrayList<String>());
+			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userAccess, jobId, jobName, jobGroup, cronExpression, pixel, null, "Default", triggerOnLoad, parameters, new ArrayList<String>());
 
 			if (active) {
 				scheduler.scheduleJob(job, trigger);
