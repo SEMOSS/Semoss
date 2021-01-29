@@ -33,6 +33,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.PixelPlanner;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
@@ -90,7 +91,7 @@ public class PixelRunner {
 			// we only need to catch invalid syntax here
 			// other exceptions are caught in lazy translation
 			trackInvalidSyntaxError(expression, e);
-			logger.error("StackTrace: ", e);
+			logger.error(Constants.STACKTRACE, e);
 			String eMessage = e.getMessage();
 			if(eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
