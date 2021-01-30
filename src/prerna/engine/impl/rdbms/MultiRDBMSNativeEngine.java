@@ -211,12 +211,15 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 		// if nothing defined - do we have a default?
 		if(contextLookup == null) {
 			contextLookup = this.defaultContext;
+			logger.info("User " + userId + " is using the default context " + contextLookup);
 		}
 		
 		// still nothing - you are screwed....
 		if(contextLookup == null) {
+			logger.info("User " + userId + " does not have any context defined");
 			throw new IllegalArgumentException("User has not been provisioned to any context for this app");
 		}
+		logger.info("User " + userId + " is running with context " + contextLookup);
 		
 		// give the context that was found
 		return this.contextToConnectionMap.get(contextLookup);
