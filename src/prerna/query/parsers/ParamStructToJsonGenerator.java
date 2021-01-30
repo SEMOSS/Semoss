@@ -129,6 +129,7 @@ public class ParamStructToJsonGenerator {
 							
 							paramQ = "(" + infiniteVar + " = Database(\"" + appId + "\") | Select(" + physicalQs + ")"
 									+ "| ModifyParamQuery(\"<" + searchParamName + ">\")"
+									+ "| Sort(columns=[" + physicalQs + "], sort=['ASC'])"
 									+ "| Iterate()"
 									+ ") "
 									+ "| " + ParamStructToJsonGenerator.COLLECT_STRING + ";";
