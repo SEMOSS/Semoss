@@ -31,6 +31,7 @@ import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
+import prerna.engine.impl.rdbms.MultiRDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -118,7 +119,15 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		// make sure both fields exist
 		if (appId != null && userPassedExisting != null) {
 			existingApp = Boolean.parseBoolean(userPassedExisting);
-			nativeEngine = (RDBMSNativeEngine) Utility.getEngine(appId);
+			
+			IEngine engine = Utility.getEngine(appId);
+			if(engine instanceof RDBMSNativeEngine) {
+				nativeEngine = (RDBMSNativeEngine) engine;
+			} else if(engine instanceof MultiRDBMSNativeEngine) {
+				nativeEngine = ((MultiRDBMSNativeEngine) engine).getContext();
+			} else {
+				throw new IllegalArgumentException("Engine must be a valid JDBC engine");
+			}
 		}
 
 		// if user enters existing=true and the app doesn't exist

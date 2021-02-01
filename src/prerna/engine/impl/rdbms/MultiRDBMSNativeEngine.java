@@ -193,18 +193,18 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 			if(rs.next()) {
 				contextLookup = rs.getObject(1);
 			}
-		} catch (SQLException e1) {
-			e1.printStackTrace();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				rs.close();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			try {
 				ps.close();
 			} catch (SQLException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		

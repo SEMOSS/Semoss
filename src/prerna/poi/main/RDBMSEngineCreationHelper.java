@@ -19,6 +19,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.MetaHelper;
+import prerna.engine.impl.rdbms.MultiRDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -203,7 +204,14 @@ public class RDBMSEngineCreationHelper {
 	
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine, Set<String> tablesToRetrieve) {
 		// get the metadata from the connection
-		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) rdbmsEngine;
+		RDBMSNativeEngine rdbms = null;
+		if(rdbmsEngine instanceof RDBMSNativeEngine) {
+			rdbms = (RDBMSNativeEngine) rdbmsEngine;
+		} else if(rdbmsEngine instanceof MultiRDBMSNativeEngine) {
+			rdbms = ((MultiRDBMSNativeEngine) rdbmsEngine).getContext();
+		} else {
+			throw new IllegalArgumentException("Engine must be a valid JDBC engine");
+		}
 		Connection con = null;
 		try {
 			con = rdbms.makeConnection();
