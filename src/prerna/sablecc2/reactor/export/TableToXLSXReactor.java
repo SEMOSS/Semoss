@@ -85,6 +85,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	public static final String HEADER = "header";
 	public static final String FOOTER = "footer";
 	public static final String PLACE_HOLDER = "placeholders";
+	
 
 	Map colspanMatrix = new HashMap();
 	Map rowspanMatrix = new HashMap();
@@ -93,8 +94,10 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	String sheetName = null;
 	String html = null;
 
+	
 	Map <Integer, Integer> columnToWidth = new HashMap<Integer, Integer>();
 
+	Map <String, CellStyle> styleHash = new HashMap<String, CellStyle>();
 	public TableToXLSXReactor() {
 		// keep open specifies whether to keep this open or close it. if kept open then this will return open as noun metadata
 		// need to add table level header and tabel level footer
@@ -433,31 +436,44 @@ public class TableToXLSXReactor	extends AbstractReactor {
 					style = td.attr("style");
 				}
 				//System.err.println("Value is " + value + " Style is " + style);
-				if(style != null)
-				{
-					nameProps = mapCSS(style);
+                CellStyle input = null;
+                
+                if(style != null)
+                {
+                       // read it from the hash if it has it
+                       // no need to create it
+                	   nameProps = mapCSS(style);
+                       if(styleHash.containsKey(style))
+                              input = (CellStyle)styleHash.get(style);
+                       
+                       else
+                       {
 
-					CellStyle input = wb.createCellStyle();
-					// process border
-					input = processBorders(input, nameProps[0], nameProps[1]);
+                              input = wb.createCellStyle();
+                              // process border
+                              input = processBorders(input, nameProps[0], nameProps[1]);
+                              
+                              // process font
+                              input = processFont(input, nameProps[0], nameProps[1], wb);
 
-					// process font
-					input = processFont(input, nameProps[0], nameProps[1], wb);
+                              // process alignment
+                              input = processAlign(input, nameProps[0], nameProps[1]);
+                              
+                              // process background
+                              input = processBackground(input, nameProps[0], nameProps[1]);
+                              
+                              // store it for future
+                              styleHash.put(style, input);
+                       }
+                       
+                       cell.setCellStyle(input);
 
-					// process alignment
-					input = processAlign(input, nameProps[0], nameProps[1]);
+                       // THIS WILL ALSO SET THE CELL VALUE
+                       formatAndSetCellType(wb, input, cell, value);
 
-					// process background
-					input = processBackground(input, nameProps[0], nameProps[1]);
-
-					cell.setCellStyle(input);
-
-					// THIS WILL ALSO SET THE CELL VALUE
-					formatAndSetCellType(wb, input, cell, value);
-
-					// process background
-					processWidth(cell.getSheet(), cell.getColumnIndex(), nameProps[0], nameProps[1]); 
-				}
+                       // process background
+                       processWidth(cell.getSheet(), cell.getColumnIndex(), nameProps[0], nameProps[1]); 
+                }
 
 				if(rowSpan != null || colSpan != null) {
 					processSpan(cell, rowSpan, colSpan, value);
@@ -1005,8 +1021,8 @@ public class TableToXLSXReactor	extends AbstractReactor {
 				para2Cell = para2Row.createCell(3);
 			}
 			
-			CellStyle style = wb.createCellStyle(); //Create new style
-			style.setWrapText(true); //Set wordwrap
+			//CellStyle style = wb.createCellStyle(); //Create new style
+			//style.setWrapText(true); //Set wordwrap
 			if(para1 != null) {
 				para1Cell.setCellValue(para1);
 			}
@@ -1049,9 +1065,17 @@ public class TableToXLSXReactor	extends AbstractReactor {
 
 			Row row = aSheet.createRow(sheetTotalRows + 2);
 			Cell cell = row.createCell(0);
-			CellStyle style = wb.createCellStyle(); //Create new style
-			style.setWrapText(true); //Set wordwrap
-			cell.setCellStyle(style); //Apply style to cell
+            CellStyle footerStyle = null;
+            if(styleHash.containsKey("FOOTER"))
+                   footerStyle = (CellStyle)styleHash.get("FOOTER");
+            else
+            {
+				footerStyle = wb.createCellStyle(); //Create new style
+				footerStyle.setWrapText(true); //Set wordwrap
+				styleHash.put("FOOTER", footerStyle);	
+            }
+            
+            cell.setCellStyle(footerStyle); //Apply style to cell
 			cell.setCellValue(footer);
 
 			aSheet.addMergedRegion(new CellRangeAddress(sheetTotalRows + 2, sheetTotalRows +4, 0, sheetTotalColumns + 4));			
@@ -1285,23 +1309,28 @@ public class TableToXLSXReactor	extends AbstractReactor {
 
 	}
 
-	// default color and font to the audit sheet headers
-	private static CellStyle getCellStyle(Workbook wb) {
-		// create a CellStyle with the font
-		CellStyle headerCellStyle = wb.createCellStyle();
-		XSSFFont font = (XSSFFont) wb.createFont();
-		XSSFColor fontColor = new XSSFColor();
-		fontColor.setARGBHex("ffffff");
-		font.setColor(fontColor);
-		headerCellStyle.setFont(font);
-		// Cell Background color
-		XSSFColor color = new XSSFColor();
-		color.setARGBHex("00a8c1");
-		((XSSFCellStyle) headerCellStyle).setFillForegroundColor(color);
-		headerCellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-		return headerCellStyle;
-
-	}
+    // default color and font to the audit sheet headers
+    private CellStyle getCellStyle(Workbook wb) {
+           if(styleHash.containsKey("PARAM"))
+                 return (CellStyle)styleHash.get("PARAM");
+           else
+           {
+                 // create a CellStyle with the font
+                 CellStyle headerCellStyle = wb.createCellStyle();
+                 XSSFFont font = (XSSFFont) wb.createFont();
+                 XSSFColor fontColor = new XSSFColor();
+                 fontColor.setARGBHex("ffffff");
+                 font.setColor(fontColor);
+                 headerCellStyle.setFont(font);
+                 // Cell Background color
+                 XSSFColor color = new XSSFColor();
+                 color.setARGBHex("00a8c1");
+                 ((XSSFCellStyle) headerCellStyle).setFillForegroundColor(color);
+                 headerCellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                 styleHash.put("PARAM", headerCellStyle);
+                 return headerCellStyle;
+           }
+    }
 
 	public static void main(String [] args) {
 		TableToXLSXReactor tx = new TableToXLSXReactor();
