@@ -11,6 +11,8 @@ import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.MultiRDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.sablecc2.om.PixelDataType;
@@ -36,7 +38,15 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
-		RDBMSNativeEngine nativeEngine = (RDBMSNativeEngine) Utility.getEngine(appId);
+		IEngine engine = Utility.getEngine(appId);
+		RDBMSNativeEngine nativeEngine = null;
+		if(engine instanceof RDBMSNativeEngine) {
+			nativeEngine = (RDBMSNativeEngine) engine;
+		} else if(engine instanceof MultiRDBMSNativeEngine) {
+			nativeEngine = ((MultiRDBMSNativeEngine) engine).getContext();
+		} else {
+			throw new IllegalArgumentException("Engine must be a valid JDBC engine");
+		}
 		Connection connection = null;
 		try {
 			connection = nativeEngine.getConnection();
