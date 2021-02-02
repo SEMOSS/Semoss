@@ -81,11 +81,13 @@ public class InsightUtility {
 			}
 		}
 		newInsight.setBaseURL(origInsight.getBaseURL());
-		newInsight.setTupleSpace(origInsight.getTupleSpace());
+		newInsight.setSchedulerMode(origInsight.isSchedulerMode());
 		newInsight.setUser(origInsight.getUser());
+		// r
 		if(origInsight.rInstantiated()) {
 			newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(logger));
 		}
+		// py
 		newInsight.setTupleSpace(origInsight.getTupleSpace());
 	}
 	
@@ -296,12 +298,16 @@ public class InsightUtility {
 			insight.getVarStore().clear();
 			logger.debug("Successfully removed all variables from varstore");
 	
-			Map<String, String> fileExports = insight.getExportFiles();
-			if (fileExports != null && !fileExports.isEmpty()) {
-				for (String fileKey : fileExports.keySet()){
-					File f = new File(fileExports.get(fileKey));
-					f.delete();
-					logger.debug("Successfully deleted export file used in insight " + f.getName());
+			// if you are a scheduler mode
+			// we will not delete the files
+			if( !insight.isSchedulerMode() ) {
+				Map<String, String> fileExports = insight.getExportFiles();
+				if (fileExports != null && !fileExports.isEmpty()) {
+					for (String fileKey : fileExports.keySet()) {
+						File f = new File(fileExports.get(fileKey));
+						f.delete();
+						logger.debug("Successfully deleted export file used in insight " + f.getName());
+					}
 				}
 			}
 			
