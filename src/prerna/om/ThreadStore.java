@@ -58,6 +58,15 @@ public class ThreadStore {
 		Map<String, Object> map = getThreadMap();
 		map.put("jobId", jobId);
 	}
+	
+	public static Boolean isSchedulerMode() {
+		return (Boolean) getThreadMap().get("scheduler");
+	}
+	
+	public static void setSchedulerMode(Boolean scheduler) {
+		Map<String, Object> map = getThreadMap();
+		map.put("scheduler", scheduler);
+	}
 
 	public static String getJobId() {
 		return (String) getThreadMap().get("jobId");
@@ -75,4 +84,5 @@ public class ThreadStore {
 	public static void remove() {
 		CURRENT.remove();
 	}
+
 }
