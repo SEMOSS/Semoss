@@ -151,6 +151,7 @@ import prerna.sablecc2.reactor.expression.OpAsString;
 import prerna.sablecc2.reactor.expression.OpConcat;
 import prerna.sablecc2.reactor.expression.OpContains;
 import prerna.sablecc2.reactor.expression.OpIsEmpty;
+import prerna.sablecc2.reactor.expression.OpIsObjectEmpty;
 import prerna.sablecc2.reactor.expression.OpLarge;
 import prerna.sablecc2.reactor.expression.OpLen;
 import prerna.sablecc2.reactor.expression.OpList;
@@ -1326,6 +1327,7 @@ public class ReactorFactory {
 		expressionHash.put("IFERROR", IfError.class);
 		expressionHash.put("NOTEMPTY", OpNotEmpty.class);
 		expressionHash.put("ISEMPTY", OpIsEmpty.class);
+		expressionHash.put("ISOBJECTEMPTY", OpIsObjectEmpty.class);
 		expressionHash.put("ASSTRING", OpAsString.class);
 		expressionHash.put("CONCAT", OpConcat.class);
 		
