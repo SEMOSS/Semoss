@@ -102,7 +102,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 					String salt = AbstractSecurityUtils.generateSalt();
 					String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
 
-					String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('"
+					String query = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('"
 							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '"
 							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '"
 							+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '"
