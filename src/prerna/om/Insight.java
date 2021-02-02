@@ -178,6 +178,7 @@ public class Insight {
 	private transient boolean deleteREnvOnDropInsight = true;
 	private transient boolean deletePythonTupleOnDropInsight = true;
 
+	private transient boolean isSchedulerMode = false;
 	private transient boolean isSavedInsightMode = false;
 	
 	private transient List<String> queriedAppIds = new Vector<String>();
@@ -743,6 +744,14 @@ public class Insight {
 		return this.isSavedInsightMode;
 	}
 	
+	public boolean isSchedulerMode() {
+		return isSchedulerMode;
+	}
+
+	public void setSchedulerMode(boolean isSchedulerMode) {
+		this.isSchedulerMode = isSchedulerMode;
+	}
+
 	/**
 	 * Store the app ids that are queried
 	 * @param appId
