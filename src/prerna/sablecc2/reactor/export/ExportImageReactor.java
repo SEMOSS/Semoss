@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.export;
 
+import java.util.UUID;
+
+import prerna.om.InsightFile;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -25,7 +28,6 @@ public class ExportImageReactor extends AbstractReactor {
 
 		// get a random file name
 		// grab file path to write the file
-		NounMetadata retNoun = null;
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
@@ -34,13 +36,19 @@ public class ExportImageReactor extends AbstractReactor {
 			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
 			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "png");
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			// store it in the insight so the FE can download it
-			// only from the given insight
-			this.insight.addExportFile(exportName, fileLocation);
-			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-		} else {
-			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
 		}
+	
+		// store the insight file 
+		// in the insight so the FE can download it
+		// only from the given insight
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFilePath(fileLocation);
+		insightFile.setDeleteOnInsightClose(true);
+		insightFile.setFileKey(downloadKey);
+		this.insight.addExportFile(downloadKey, insightFile);
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+
 		ChromeDriverUtility.captureImage(baseUrl, imageUrl, fileLocation, sessionId);
 		return retNoun;
 	}

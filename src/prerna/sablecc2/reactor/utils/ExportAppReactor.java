@@ -17,6 +17,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.om.InsightFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -113,9 +114,13 @@ public class ExportAppReactor extends AbstractReactor {
 
 		// store it in the insight so the FE can download it
 		// only from the given insight
-		String randomKey = UUID.randomUUID().toString();
-		this.insight.addExportFile(randomKey, zipFilePath);
-		return new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		insightFile.setDeleteOnInsightClose(true);
+		insightFile.setFilePath(zipFilePath);
+		this.insight.addExportFile(downloadKey, insightFile);
+		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 
 }
