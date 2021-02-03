@@ -12,6 +12,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.om.InsightFile;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
@@ -185,15 +186,10 @@ public class ImportReactor extends AbstractReactor {
 
 	private void storeCsvFileMeta(CsvQueryStruct qs) {
 		if(qs.getSource() == CsvQueryStruct.ORIG_SOURCE.FILE_UPLOAD) {
-			FileMeta fileMeta = new FileMeta();
-			fileMeta.setFileLoc(qs.getFilePath());
-			fileMeta.setDataMap(qs.getColumnTypes());
-			fileMeta.setNewHeaders(qs.getNewHeaderNames());
-			fileMeta.setPixelString(this.originalSignature);
-			fileMeta.setSelectors(qs.getSelectors());
-			fileMeta.setAdditionalTypes(qs.getAdditionalTypes());
-			fileMeta.setType(FileMeta.FILE_TYPE.CSV);
-			this.insight.addFileUsedInInsight(fileMeta);
+			InsightFile insightFile = new InsightFile();
+			insightFile.setFilePath(qs.getFilePath());
+			insightFile.setFrameUpload(true);
+			this.insight.addLoadInsightFile(insightFile);
 		} else {
 			// it is from an API call of some sort
 			// delete it
@@ -204,16 +200,10 @@ public class ImportReactor extends AbstractReactor {
 	}
 	
 	private void storeExcelFileMeta(ExcelQueryStruct qs) {
-		FileMeta fileMeta = new FileMeta();
-		fileMeta.setFileLoc(qs.getFilePath());
-		fileMeta.setDataMap(qs.getColumnTypes());
-		fileMeta.setSheetName(qs.getSheetName());
-		fileMeta.setNewHeaders(qs.getNewHeaderNames());
-		fileMeta.setSelectors(qs.getSelectors());
-		fileMeta.setAdditionalTypes(qs.getAdditionalTypes());
-		fileMeta.setPixelString(this.originalSignature);
-		fileMeta.setType(FileMeta.FILE_TYPE.EXCEL);
-		this.insight.addFileUsedInInsight(fileMeta);
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFilePath(qs.getFilePath());
+		insightFile.setFrameUpload(true);
+		this.insight.addLoadInsightFile(insightFile);
 	}
 }
 

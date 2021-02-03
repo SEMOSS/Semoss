@@ -21,6 +21,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
+import prerna.om.InsightFile;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -397,14 +398,10 @@ public class MergeReactor extends AbstractReactor {
 	
 	private void storeCsvFileMeta(CsvQueryStruct qs, List<Join> joins) {
 		if(qs.getSource() == CsvQueryStruct.ORIG_SOURCE.FILE_UPLOAD) {
-			FileMeta fileMeta = new FileMeta();
-			fileMeta.setFileLoc(qs.getFilePath());
-			fileMeta.setDataMap(qs.getColumnTypes());
-			fileMeta.setNewHeaders(qs.getNewHeaderNames());
-			fileMeta.setPixelString(this.originalSignature);
-			fileMeta.setSelectors(qs.getSelectors());
-			fileMeta.setType(FileMeta.FILE_TYPE.CSV);
-			this.insight.addFileUsedInInsight(fileMeta);
+			InsightFile insightFile = new InsightFile();
+			insightFile.setFilePath(qs.getFilePath());
+			insightFile.setFrameUpload(true);
+			this.insight.addLoadInsightFile(insightFile);
 		} else {
 			// it is from an API call of some sort
 			// delete it
@@ -415,16 +412,10 @@ public class MergeReactor extends AbstractReactor {
 	}
 	
 	private void storeExcelFileMeta(ExcelQueryStruct qs, List<Join> joins) {
-		FileMeta fileMeta = new FileMeta();
-		fileMeta.setFileLoc(qs.getFilePath());
-		fileMeta.setDataMap(qs.getColumnTypes());
-		fileMeta.setSheetName(qs.getSheetName());
-		fileMeta.setNewHeaders(qs.getNewHeaderNames());
-		fileMeta.setSelectors(qs.getSelectors());
-		fileMeta.setTableJoin(joins);
-		fileMeta.setPixelString(this.originalSignature);
-		fileMeta.setType(FileMeta.FILE_TYPE.EXCEL);
-		this.insight.addFileUsedInInsight(fileMeta);
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFilePath(qs.getFilePath());
+		insightFile.setFrameUpload(true);
+		this.insight.addLoadInsightFile(insightFile);
 	}
 	
 	///////////////////////////////////////////////////////////////////////

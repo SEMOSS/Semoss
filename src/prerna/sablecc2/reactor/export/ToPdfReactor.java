@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
@@ -16,6 +17,7 @@ import org.jsoup.select.Elements;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.PageSizeUnits;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 
+import prerna.om.InsightFile;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -78,23 +80,28 @@ public class ToPdfReactor extends AbstractReactor {
 		// Convert from html to xhtml
 		doc.outputSettings().syntax(Document.OutputSettings.Syntax.xml);
 
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		
 		// get a random file name
+		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pdf");
 		// grab file path to write the file
-		NounMetadata retNoun = null;
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
 		if (fileLocation == null) {
-			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
-			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pdf");
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			// store it in the insight so the FE can download it
 			// only from the given insight
-			this.insight.addExportFile(exportName, fileLocation);
-			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
+			insightFile.setDeleteOnInsightClose(true);
 		} else {
-			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
+			fileLocation += DIR_SEPARATOR + exportName;
+			insightFile.setDeleteOnInsightClose(false);
 		}
+		insightFile.setFilePath(fileLocation);
 
 		// Flush xhtml to disk
 		String random = Utility.getRandomString(5);
@@ -147,6 +154,13 @@ public class ToPdfReactor extends AbstractReactor {
 			}
 		}
 
+		// store the insight file 
+		// in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(downloadKey, insightFile);
+		
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the tsv file"));
 		return retNoun;
 	}
 }
