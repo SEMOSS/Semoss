@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.export;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -225,21 +226,22 @@ public class TableToXLSXReactor	extends AbstractReactor {
 							fileLocation = insightFolder + DIR_SEPARATOR + fileName + ".xlsx";
 						}
 						FileUtils.copyFile(new File(exportTemplate), new File(fileLocation));
-						wb = new XSSFWorkbook(fileLocation);
+						wb = new XSSFWorkbook(new FileInputStream(fileLocation));
 						if(wb.getSheet(FOOTER) != null) {
 							Sheet aSheet = wb.getSheet(FOOTER);
 							if(aSheet.getRow(0) != null) {
 								Row row = aSheet.getRow(0);
-								if(row.getCell(0) != null) {
+								if(row.getCell(0) != null && !row.getCell(0).getStringCellValue().isEmpty()) {
 									String footer = row.getCell(0).getStringCellValue();
 									exportMap.put(FOOTER, footer);
 								}
 							}
 						}
 						// check if the sheet contains place holders and export the place holder details.
-						if(wb.getSheet(PLACE_HOLDER) != null) {
+						if(wb.getSheet(PLACE_HOLDER) != null && wb.getSheet(HEADER) != null ) {
 							Sheet aSheet = wb.getSheet(PLACE_HOLDER);
-							if(aSheet.getRow(0) != null) {
+							Sheet headerSheet = wb.getSheet(HEADER);
+							if(aSheet.getRow(0) != null && headerSheet.getRow(0) != null) {
 								// fetch the updated place holder details from the UI by calling getPlaceHolderDetails method
 								Map<String, List<String>> placeholderInfo = getPlaceHolderDetails();
 								exportMap.put(PLACE_HOLDER, placeholderInfo);
@@ -269,7 +271,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			if (this.exportTemplate != null) {
 				// adding a check to throw an error on to the UI if the selected template does
 				// not have Header info
-				if (wb.getSheetIndex(HEADER) != -1) {
+				if (wb.getSheetIndex(HEADER) != -1 && wb.getSheet(HEADER).getRow(0) != null) {
 					aSheet = wb.cloneSheet(wb.getSheetIndex(HEADER));
 					wb.setSheetName(wb.getSheetIndex(aSheet), sheetName);
 					startRow = 6;
@@ -540,7 +542,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 						values.add(thisProp);
 					}
 				}
-			}			
+			}
 
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -821,23 +823,32 @@ public class TableToXLSXReactor	extends AbstractReactor {
 				}
 				cell.setCellStyle(input);
 			}
-			//see if it is a number
-			// that starts with 0
-			// so treat as a string
-			else if(isNumeric && value.startsWith("0")) {
-				input.setDataFormat((short)0);
-				cell.setCellValue(value);
-				// or just a number
-			} else if(NumberUtils.isCreatable(value)) {
-				if(value.contains(".")) {
-					cell.setCellValue(Double.parseDouble(value));
-				} else {
-					try {
-						cell.setCellValue(Integer.parseInt(value));
-					} catch(Exception ex) {
-						// ignore and set value
-						cell.setCellValue(value);
+			else if(isNumeric) {
+				// see if it is a number
+				// that starts with 0
+				// so treat as a string
+				boolean leadingZero = value.startsWith("0");
+				try {
+					double val = Double.parseDouble(value);
+					if(leadingZero) {
+						if(val < 1) {
+							// it has a leading zero
+							// but is just a small #
+							cell.setCellValue(val);
+						} else {
+							// you are not a decimal
+							// and you have a leading zero
+							// so set you as a string
+							input.setDataFormat((short)0);
+							cell.setCellValue(value);
+						}
+					} else {
+						// just set the #
+						cell.setCellValue(val);
 					}
+				} catch(Exception ex) {
+					// ignore and set value
+					cell.setCellValue(value);
 				}
 			}
 			// see if this is a date yuck
@@ -1035,25 +1046,19 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	// can neel just send it as part of the information ?
 	public void fillFooter(Workbook wb, Map exportMap, String footer)
 	{
-		wb.removeSheetAt(wb.getSheetIndex(FOOTER));
-		// removing the header sheet of the workbook during export if there is no
-		// placeholder sheet in template
-		if (!exportMap.containsKey("placeholders")) {
-			wb.removeSheetAt(wb.getSheetIndex(HEADER));
-		}
 		for(int sheetIndex = 0;sheetIndex < wb.getNumberOfSheets();sheetIndex++)
 		{
 			Sheet aSheet = wb.getSheetAt(sheetIndex);
 			String sheetName = aSheet.getSheetName();
 			// skipping template sheets only to read Data Sheet
-			if (sheetName.equalsIgnoreCase(HEADER) || sheetName.equalsIgnoreCase(PLACE_HOLDER) || wb.isSheetHidden(sheetIndex)) {
+			if (sheetName.equalsIgnoreCase(HEADER) || sheetName.equalsIgnoreCase(PLACE_HOLDER) || sheetName.equalsIgnoreCase(FOOTER) || wb.isSheetHidden(sheetIndex)) {
 				continue;
 			}
 
 			// final row count 
 			int sheetTotalRows = 0;
 			int sheetTotalColumns = 0;
-			if(wb.getSheet(HEADER) != null) {
+			if(wb.getSheet(HEADER) != null && wb.getSheet(HEADER).getRow(0) != null) {
 				sheetTotalRows = 5; // leave space foe headers
 			}
 			if(exportMap.containsKey(sheetName + "ROW_COUNT")) {
@@ -1066,10 +1071,9 @@ public class TableToXLSXReactor	extends AbstractReactor {
 			Row row = aSheet.createRow(sheetTotalRows + 2);
 			Cell cell = row.createCell(0);
             CellStyle footerStyle = null;
-            if(styleHash.containsKey("FOOTER"))
-                   footerStyle = (CellStyle)styleHash.get("FOOTER");
-            else
-            {
+            if(styleHash.containsKey("FOOTER")) {
+            	footerStyle = (CellStyle)styleHash.get("FOOTER");
+            } else {
 				footerStyle = wb.createCellStyle(); //Create new style
 				footerStyle.setWrapText(true); //Set wordwrap
 				styleHash.put("FOOTER", footerStyle);	
@@ -1084,21 +1088,20 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	}
 
 
-	/** This method will update the placeholder cells with required values.
+	/** 
+	 * This method will update the placeholder cells with required values.
 	 * @param wb
 	 * @param exportMap
 	 * @param placeHolderData - is a Map that contains Placeholder label as the key and [Placeholder value, placeholder cell position] as the list value.
 	 */
 	public void fillPlaceholders(Workbook wb, Map exportMap, Map<String, List<String>> placeHolderData) {
 
-		// removing the place holder sheet of the exported workbook
-		wb.removeSheetAt(wb.getSheetIndex(PLACE_HOLDER));
 		Sheet headerTemplateSheet = wb.getSheet(HEADER);
 		for (int sheetIndex = 0; sheetIndex < wb.getNumberOfSheets(); sheetIndex++) {
 			Sheet sheet = wb.getSheetAt(sheetIndex);
 			String sheetName = sheet.getSheetName();
 			// skipping template sheets only to read Data Sheet
-			if (sheetName.equalsIgnoreCase(HEADER) || wb.isSheetHidden(sheetIndex)) {
+			if (sheetName.equalsIgnoreCase(HEADER) || sheetName.equalsIgnoreCase(PLACE_HOLDER) || sheetName.equalsIgnoreCase(FOOTER) || wb.isSheetHidden(sheetIndex)) {
 				continue;
 			}
 			for (List<String> placeHolderValues : placeHolderData.values()) {
@@ -1136,8 +1139,25 @@ public class TableToXLSXReactor	extends AbstractReactor {
 				cell.setCellValue(resolvedValue);
 			}
 		}
+	}
+
+	/** 
+	 * This method will remove the sheets from resulted export file after processing info
+	 * @param workBook
+	 */
+	public void removeSheet(Workbook workBook) {
 		// removing the header sheet of the workbook during export
-		wb.removeSheetAt(wb.getSheetIndex(HEADER));
+		if (workBook.getSheetIndex(HEADER) != -1) {
+			workBook.removeSheetAt(workBook.getSheetIndex(HEADER));
+		}
+		// removing the footer sheet of the workbook during export
+		if (workBook.getSheetIndex(FOOTER) != -1) {
+			workBook.removeSheetAt(workBook.getSheetIndex(FOOTER));
+		}
+		// removing the placeholder sheet of the workbook during export
+		if (workBook.getSheetIndex(PLACE_HOLDER) != -1) {
+			workBook.removeSheetAt(workBook.getSheetIndex(PLACE_HOLDER));
+		}
 	}
 
 	/** 
@@ -1310,27 +1330,27 @@ public class TableToXLSXReactor	extends AbstractReactor {
 	}
 
     // default color and font to the audit sheet headers
-    private CellStyle getCellStyle(Workbook wb) {
-           if(styleHash.containsKey("PARAM"))
-                 return (CellStyle)styleHash.get("PARAM");
-           else
-           {
-                 // create a CellStyle with the font
-                 CellStyle headerCellStyle = wb.createCellStyle();
-                 XSSFFont font = (XSSFFont) wb.createFont();
-                 XSSFColor fontColor = new XSSFColor();
-                 fontColor.setARGBHex("ffffff");
-                 font.setColor(fontColor);
-                 headerCellStyle.setFont(font);
-                 // Cell Background color
-                 XSSFColor color = new XSSFColor();
-                 color.setARGBHex("00a8c1");
-                 ((XSSFCellStyle) headerCellStyle).setFillForegroundColor(color);
-                 headerCellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-                 styleHash.put("PARAM", headerCellStyle);
-                 return headerCellStyle;
-           }
-    }
+	private CellStyle getCellStyle(Workbook wb) {
+		if(styleHash.containsKey("PARAM"))
+			return (CellStyle)styleHash.get("PARAM");
+		else
+		{
+			// create a CellStyle with the font
+			CellStyle headerCellStyle = wb.createCellStyle();
+			XSSFFont font = (XSSFFont) wb.createFont();
+			XSSFColor fontColor = new XSSFColor();
+			fontColor.setARGBHex("ffffff");
+			font.setColor(fontColor);
+			headerCellStyle.setFont(font);
+			// Cell Background color
+			XSSFColor color = new XSSFColor();
+			color.setARGBHex("00a8c1");
+			((XSSFCellStyle) headerCellStyle).setFillForegroundColor(color);
+			headerCellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+			styleHash.put("PARAM", headerCellStyle);
+			return headerCellStyle;
+		}
+	}
 
 	public static void main(String [] args) {
 		TableToXLSXReactor tx = new TableToXLSXReactor();
