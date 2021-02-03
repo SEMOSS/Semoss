@@ -333,6 +333,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			fillPlaceholders(workbook, exportMap, (Map<String, List<String>>) exportMap.get("placeholders"));
 		}
 		
+		// remove the sheets after processing from the resulted export file
+		removeSheet(workbook);
+		
 		// close the driver
 		if(driver != null) {
 			driver.quit();
