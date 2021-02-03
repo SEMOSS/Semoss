@@ -107,6 +107,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -295,13 +296,15 @@ public class SchedulerDatabaseUtility {
 
 		Timestamp startTimeStamp = new Timestamp(start);
 		Timestamp endTimeStamp = new Timestamp(end);
-
+		
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
+		
 		try (PreparedStatement statement = connection
 				.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL (JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS) VALUES (?,?,?,?,?,?)")) {
 			statement.setString(1, jobId);
 			statement.setString(2, jobGroup);
-			statement.setTimestamp(3, startTimeStamp);
-			statement.setTimestamp(4, endTimeStamp);
+			statement.setTimestamp(3, startTimeStamp, cal);
+			statement.setTimestamp(4, endTimeStamp, cal);
 			statement.setString(5, String.valueOf(end - start));
 			statement.setBoolean(6, success);
 			statement.executeUpdate();
