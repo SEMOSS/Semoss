@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -66,6 +67,7 @@ import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.ThreadStore;
@@ -134,21 +136,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		this.keyMulti = new int[] {0,0,0,0,0,0,1,0,0,0,0,0,0};
 	}
 	
-	public void processPayload() {
-		super.processPayload();
-		if(keyValue.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
-			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey())+"");
-		} else if(exportMap.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
-			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey())+"");
-		}
-		
-		if(keyValue.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
-			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey())+"");
-		} else if(exportMap.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
-			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey())+"");
-		}
-	}
-
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -156,11 +143,13 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		getMap(insight.getInsightId());
 		processPayload();
 		this.logger = getLogger(CLASS_NAME);
-		NounMetadata retNoun = null;
 
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		
 		// get a random file name
 		String prefixName = exportMap.get("FILE_NAME") + ""; 
-		
 		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 		// grab file path to write the file
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
@@ -177,14 +166,13 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		if (fileLocation == null) {
 			String insightFolder = this.insight.getInsightFolder();
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			exportMap.put("FILE_LOCATION", fileLocation);
-			// store it in the insight so the FE can download it
-			// only from the given insight
-			this.insight.addExportFile(exportName, fileLocation);
-			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+			insightFile.setDeleteOnInsightClose(true);
 		} else {
-			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
+			fileLocation += DIR_SEPARATOR + exportName;
+			insightFile.setDeleteOnInsightClose(false);
 		}
+		insightFile.setFilePath(fileLocation);
+		exportMap.put("FILE_LOCATION", fileLocation);
 
 		// Grab number of rows to export to know how many rows to iterate
 		// through
@@ -318,11 +306,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String para1 = null;
 		String para2 = null;
 		
-		if(exportMap.containsKey("para1"))
+		if(exportMap.containsKey("para1")) {
 			para1 = (String)exportMap.get("para1");
-		if(exportMap.containsKey("para2"))
+		}
+		if(exportMap.containsKey("para2")) {
 			para2 = (String)exportMap.get("para2");
-
+		}
 		
 		// process and apply the audit param sheet if the export Audit has been opted
 		// exportMap stores all the export related properties
@@ -346,29 +335,37 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		
 		// close the driver
 		if(driver != null) {
-		  driver.quit();
+			driver.quit();
 		}
-		
+
+		// write / encrypt file
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
 		if (password != null) {
-			// encrypt file
 			ExcelUtility.encrypt(workbook, fileLocation, password);
 		} else {
-			// write file			
-			String newFileLocation = fileLocation;
-			if (this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()) != null) {
-				newFileLocation = fileLocation + DIR_SEPARATOR + exportName;
-			}
-			newFileLocation = newFileLocation.substring(0, newFileLocation.indexOf(".xlsx"));
-			newFileLocation = newFileLocation + "1.xlsx";
-			
-			ExcelUtility.writeToFile(workbook, newFileLocation);
-			//new File(fileLocation).delete();
-			this.insight.addExportFile(exportName, newFileLocation);
-			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD); 
+			ExcelUtility.writeToFile(workbook, fileLocation);
 		}
 		
-		return retNoun;
+		// store the insight file 
+		// in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(downloadKey, insightFile);
+		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+	}
+	
+	public void processPayload() {
+		super.processPayload();
+		if(keyValue.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
+			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey())+"");
+		} else if(exportMap.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
+			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey())+"");
+		}
+		
+		if(keyValue.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
+			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey())+"");
+		} else if(exportMap.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
+			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey())+"");
+		}
 	}
 	
 	private void addLogo(XSSFWorkbook workbook, Map<String, String> sheetAlias) {

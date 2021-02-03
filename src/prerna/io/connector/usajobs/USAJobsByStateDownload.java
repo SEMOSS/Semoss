@@ -1,13 +1,14 @@
 package prerna.io.connector.usajobs;
 
 import java.util.List;
+import java.util.UUID;
 
+import prerna.om.InsightFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 public class USAJobsByStateDownload extends AbstractReactor {
@@ -24,11 +25,11 @@ public class USAJobsByStateDownload extends AbstractReactor {
 		List <String> state = (List)this.store.getNoun("state").getAllValues();
 		
 		String fileName = null;
-		if(keyValue.containsKey(keysToGet[2]))
+		if(keyValue.containsKey(keysToGet[2])) {
 			fileName = keyValue.get(keysToGet[2]);
-		else
+		} else {
 			fileName = Utility.getRandomString(5) + ".csv";
-		
+		}
 		
 		// should we put thi in temp
 		fileName  = this.insight.getInsightFolder() + java.nio.file.FileSystems.getDefault().getSeparator() + fileName;
@@ -37,9 +38,15 @@ public class USAJobsByStateDownload extends AbstractReactor {
 		u.runStateSearch(cred, state);
 		
 		// set the file for download
-		String exportName = "USA_JOBS" + UsaJobsUtil.getToday("_");
-		this.insight.addExportFile(exportName, fileName);
-		NounMetadata retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD); 
+//		String exportName = "USA_JOBS" + UsaJobsUtil.getToday("_");
+		
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		insightFile.setDeleteOnInsightClose(true);
+		insightFile.setFilePath(fileName);
+		this.insight.addExportFile(downloadKey, insightFile);
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD); 
 		return retNoun;
 	}
 }
