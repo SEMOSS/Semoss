@@ -1,11 +1,13 @@
 package prerna.auth.utils.admin.reactors;
 
 import java.io.File;
+import java.util.UUID;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.om.InsightFile;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -62,7 +64,6 @@ public class AdminAllUsersReactor extends ToExcelReactor {
 			iterator = WrapperManager.getInstance().getRawWrapper(database, qs);
 			this.task = new BasicIteratorTask(qs, iterator);
 			
-			NounMetadata retNoun = null;
 			// get a random file name
 			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
 			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
@@ -79,13 +80,19 @@ public class AdminAllUsersReactor extends ToExcelReactor {
 					}
 				}
 				this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-				// store it in the insight so the FE can download it
-				// only from the given insight
-				this.insight.addExportFile(exportName, this.fileLocation);
-				retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-			} else {
-				retNoun = new NounMetadata(this.fileLocation, PixelDataType.CONST_STRING);
 			}
+			
+			// store the insight file 
+			// in the insight so the FE can download it
+			// only from the given insight
+			String downloadKey = UUID.randomUUID().toString();
+			InsightFile insightFile = new InsightFile();
+			insightFile.setFilePath(this.fileLocation);
+			insightFile.setDeleteOnInsightClose(true);
+			insightFile.setFileKey(downloadKey);
+			this.insight.addExportFile(downloadKey, insightFile);
+			NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+			
 			buildTask();
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 			return retNoun;

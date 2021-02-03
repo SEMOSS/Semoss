@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -61,6 +62,7 @@ import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.ThreadStore;
@@ -102,7 +104,11 @@ public class ExportToPPTReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		NounMetadata retNoun = null;
+		
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		
 		// get a random file name
 		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
 		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pptx");
@@ -112,14 +118,18 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// location so that the front end will download
 		if (fileLocation == null) {
 			String insightFolder = this.insight.getInsightFolder();
+			File f = new File(insightFolder);
+			if(!f.exists()) {
+				f.mkdirs();
+			}
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			// store it in the insight so the FE can download it
-			// only from the given insight
-			this.insight.addExportFile(exportName, fileLocation);
-			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+			insightFile.setDeleteOnInsightClose(true);
 		} else {
-			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
+			fileLocation += DIR_SEPARATOR + exportName;
+			insightFile.setDeleteOnInsightClose(false);
 		}
+		insightFile.setFilePath(fileLocation);
+		
 		Map<String, InsightPanel> panelMap = this.insight.getInsightPanels();
 		Map<String, InsightSheet> sheetMap = this.insight.getInsightSheets();
 		// create Powerpoint slideshow
@@ -164,6 +174,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 		addLogo(slideshow);
 		
 		writeToFile(slideshow, fileLocation);
+		
+		// store the insight file 
+		// in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(downloadKey, insightFile);
+
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the ppt file"));
 		return retNoun;
 	}
 
@@ -216,10 +234,6 @@ public class ExportToPPTReactor extends AbstractReactor {
 			}
 		} catch(Exception ex) {
 			ex.printStackTrace();
-			if(driver != null) {
-				driver.quit();
-			}
-			driver = null;
 		} finally {
 			if(driver != null) {
 				driver.quit();

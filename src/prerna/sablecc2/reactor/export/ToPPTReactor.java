@@ -9,9 +9,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.sl.usermodel.PictureData.PictureType;
@@ -21,7 +23,7 @@ import org.apache.poi.xslf.usermodel.XSLFPictureData;
 import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
 
-import net.snowflake.client.jdbc.internal.apache.commons.io.IOUtils;
+import prerna.om.InsightFile;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -69,23 +71,25 @@ public class ToPPTReactor extends AbstractReactor {
 			imageNum += 1;
 		}
 
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		
 		// get a random file name
 		// grab file path to write the file
-		NounMetadata retNoun = null;
+		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
+		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pptx");
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
 		if (fileLocation == null) {
-			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
-			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "pptx");
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			// store it in the insight so the FE can download it
-			// only from the given insight
-			this.insight.addExportFile(exportName, fileLocation);
-			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+			insightFile.setDeleteOnInsightClose(true);
 		} else {
-			retNoun = new NounMetadata(fileLocation, PixelDataType.CONST_STRING);
+			fileLocation += DIR_SEPARATOR + exportName;
+			insightFile.setDeleteOnInsightClose(false);
 		}
+		insightFile.setFilePath(fileLocation);
 
 		// Insert images into powerpoint
 		XMLSlideShow slideshow = new XMLSlideShow();
@@ -117,10 +121,13 @@ public class ToPPTReactor extends AbstractReactor {
 				logger.error(Constants.STACKTRACE, e);
 			}
 		}
-
 		writeToFile(slideshow, fileLocation);
 
-		return retNoun;
+		// store the insight file 
+		// in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(downloadKey, insightFile);
+		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 
 	private List<String> getUrls() {
