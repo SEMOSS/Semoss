@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.zip.ZipOutputStream;
 
+import prerna.om.InsightFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -30,7 +31,6 @@ public class DownloadAssetReactor extends AbstractReactor {
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 		String downloadPath = assetFolder;
 		// create path for a zip file
-		String randomKey = UUID.randomUUID().toString();
 		String OUTPUT_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export"
 				+ DIR_SEPARATOR + "ZIPs";
 		String zipPath = OUTPUT_PATH + DIR_SEPARATOR + this.insight.getInsightName() + ".zip";
@@ -58,9 +58,18 @@ public class DownloadAssetReactor extends AbstractReactor {
 			zipFolder(assetFolder, zipPath);
 			downloadPath = zipPath;
 		}
-		this.insight.addExportFile(randomKey, downloadPath);
-		return new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-
+		
+		// store the insight file 
+		// in the insight so the FE can download it
+		// only from the given insight
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		insightFile.setFilePath(downloadPath);
+		insightFile.setDeleteOnInsightClose(false);
+		this.insight.addExportFile(downloadKey, insightFile);
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		return retNoun;
 	}
 
 	private void zipFolder(String folder, String downloadPath) {

@@ -20,6 +20,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.date.SemossDate;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.om.Insight;
+import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.InsightStore;
@@ -38,8 +39,8 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.job.JobReactor;
+import prerna.util.Constants;
 import prerna.util.gson.FrameCacheHelper;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.InsightSheetAdapter;
@@ -301,12 +302,19 @@ public class InsightUtility {
 			// if you are a scheduler mode
 			// we will not delete the files
 			if( !insight.isSchedulerMode() ) {
-				Map<String, String> fileExports = insight.getExportFiles();
+				Map<String, InsightFile> fileExports = insight.getExportInsightFiles();
 				if (fileExports != null && !fileExports.isEmpty()) {
 					for (String fileKey : fileExports.keySet()) {
-						File f = new File(fileExports.get(fileKey));
-						f.delete();
-						logger.debug("Successfully deleted export file used in insight " + f.getName());
+						InsightFile insightFile = fileExports.get(fileKey);
+						if(insightFile.isDeleteOnInsightClose()) {
+							try {
+								File f = new File(insightFile.getFilePath());
+								f.delete();
+								logger.debug("Successfully deleted export file used in insight " + f.getName());
+							} catch(Exception e) {
+								logger.debug(Constants.STACKTRACE, e);
+							}
+						}
 					}
 				}
 			}
@@ -337,13 +345,13 @@ public class InsightUtility {
 			// i will first grab all the files used then delete them
 			// only if this is not a saved insight + not a copied insight used for preview
 			if(insight.isDeleteFilesOnDropInsight() && !insight.isSavedInsight()) {
-				List<FileMeta> fileData = insight.getFilesUsedInInsight();
+				List<InsightFile> fileData = insight.getLoadInsightFiles();
 				if (fileData != null && !fileData.isEmpty()) {
 					for (int fileIdx = 0; fileIdx < fileData.size(); fileIdx++) {
-						FileMeta file = fileData.get(fileIdx);
-						File f = new File(file.getFileLoc());
+						InsightFile file = fileData.get(fileIdx);
+						File f = new File(file.getFilePath());
 						f.delete();
-						logger.debug("Successfully deleted File used in insight " + file.getFileLoc());
+						logger.debug("Successfully deleted File used in insight " + file.getFilePath());
 					}
 				}
 			}

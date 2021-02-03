@@ -2,7 +2,9 @@ package prerna.sablecc2.reactor.export;
 
 import java.io.File;
 import java.util.List;
+import java.util.UUID;
 
+import prerna.om.InsightFile;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -25,7 +27,11 @@ public class ToTxtReactor extends AbstractExportTxtReactor {
 		this.task = getTask();
 		// set to tab separated
 		this.setDelimiter(getDelimiter());
-		NounMetadata retNoun = null;
+		
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		
 		// get a random file name
 		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
 		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "txt");
@@ -35,21 +41,25 @@ public class ToTxtReactor extends AbstractExportTxtReactor {
 		// location so that the front end will download
 		if (this.fileLocation == null) {
 			String insightFolder = this.insight.getInsightFolder();
-			{
-				File f = new File(insightFolder);
-				if(!f.exists()) {
-					f.mkdirs();
-				}
+			File f = new File(insightFolder);
+			if(!f.exists()) {
+				f.mkdirs();
 			}
 			this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			// store it in the insight so the FE can download it
-			// only from the given insight
-			this.insight.addExportFile(exportName, this.fileLocation);
-			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+			insightFile.setDeleteOnInsightClose(true);
 		} else {
-			retNoun = new NounMetadata(this.fileLocation, PixelDataType.CONST_STRING);
+			insightFile.setDeleteOnInsightClose(false);
+			this.fileLocation += DIR_SEPARATOR + exportName;
 		}
+		insightFile.setFilePath(this.fileLocation);
 		buildTask();
+
+		// store the insight file 
+		// in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(downloadKey, insightFile);
+		
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the txt file"));
 		return retNoun;
 	}

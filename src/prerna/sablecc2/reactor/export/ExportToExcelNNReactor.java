@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.export;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,6 +9,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
@@ -38,6 +38,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.ThreadStore;
@@ -70,12 +71,17 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		// embed each of the sheet
 		organizeKeys();
 
-		NounMetadata retNoun = null;
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		insightFile.setDeleteOnInsightClose(true);
+
 		String insightFolder = this.insight.getInsightFolder();
 		if(keyValue.containsKey(ReactorKeysEnum.FILE_PATH.getKey())) {
 			insightFolder = (String)keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+			insightFile.setDeleteOnInsightClose(false);
 		}
-		
+
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
 		String imageUrl = this.insight.getLiveURL();
@@ -85,7 +91,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			String panelUse = (String) keyValue.get(ReactorKeysEnum.USE_PANEL.getKey());
 			panel = panelUse.equalsIgnoreCase("yes") || panelUse.equalsIgnoreCase("true");
 		}
-		
+
 		boolean exportAudit = false;
 		if (keyValue.containsKey(ReactorKeysEnum.EXPORT_AUDIT.getKey())) {
 			String auditParam = (String) keyValue.get(ReactorKeysEnum.EXPORT_AUDIT.getKey());
@@ -118,12 +124,10 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		if(panel) {
 			keys = allPanels.keySet().iterator();
 		}
-		
+
 		Workbook wb = null;
 		FileOutputStream fileOut = null;
-		
-	   ChromeDriver driver = null;
-
+		ChromeDriver driver = null;
 		try {
 			if(template != null) {
 				wb = new XSSFWorkbook(template);
@@ -165,7 +169,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 				} else {
 					sheet = wb.createSheet(sheetLabel);
 				}
-				
+
 				if(!pivotPanelsBySheet.containsKey(thisKey)) {
 					// now capture the image and fill it
 					String prefixName = Utility.getRandomString(8);
@@ -266,30 +270,32 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			if(template != null) {
 				wb.removeSheetAt(wb.getSheetIndex(wb.getSheet("Template")));
 			}
-			
-			   if(driver != null)
-				   driver.quit();
 
-				// process and apply the audit param sheet if the export Audit has been opted
-				// exportMap stores all the export related properties
-				if (exportAudit) {
-					makeParamSheet(wb, this.insight, false,exportMap);
-				}
+			// process and apply the audit param sheet if the export Audit has been opted
+			// exportMap stores all the export related properties
+			if (exportAudit) {
+				makeParamSheet(wb, this.insight, false,exportMap);
+			}
 			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
 			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 			String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			
+
 			// write the file
 			fileOut = new FileOutputStream(fileLocation);
 			wb.write(fileOut);
-			
-			// set in insight so FE can download the file
-			this.insight.addExportFile(exportName, fileLocation);
-			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+
+			insightFile.setFilePath(fileLocation);
+			// store the insight file 
+			// in the insight so the FE can download it
+			// only from the given insight
+			this.insight.addExportFile(downloadKey, insightFile);
+
+			NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
+			return retNoun;
 		} catch (IOException e) {
 			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured generating the excel file");
 		} finally {
 			if(fileOut != null) {
 				try {
@@ -298,20 +304,13 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 					e.printStackTrace();
 				}
 			}
-//			if(wb != null) {
-//				try {
-//					wb.close();
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-//			}
+			if(driver != null) {
+				driver.quit();
+			}
 		}
-		// now that the file location has been set
-		// create the excel file there
-		return retNoun;
 	}
 
-	
+
 	private Map<String, Object> writeData(XSSFWorkbook workbook, XSSFSheet sheet, ITask task, Map<String, Map<String, String>> panelFormatting) {
 		CreationHelper createHelper = workbook.getCreationHelper();
 		// freeze the first row
@@ -324,7 +323,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		SemossDataType[] typesArr = null;
 		String[] additionalDataTypeArr = null;
 		CellStyle[] stylingArr = null;
-		
+
 		// style dates
 		CellStyle dateCellStyle = workbook.createCellStyle();
 		dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy"));
@@ -429,7 +428,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 					} else {
 						cell.setCellValue(value + "");
 					}
-					
+
 					if(stylingArr[i] != null) {
 						cell.setCellStyle(stylingArr[i]);
 					}
@@ -475,14 +474,14 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 					} else {
 						cell.setCellValue(value + "");
 					}
-					
+
 					if(stylingArr[i] != null) {
 						cell.setCellStyle(stylingArr[i]);
 					}
 				}
 			}
 		}
-		
+
 		Map<String, Object> columnMap = new HashMap<>();
 		// Update col and row bounds for sheet
 		int endCol = curSheetCol;
@@ -592,9 +591,9 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 
 		// use this for the section once the section comes in
 		// this adds a report filter
-	    //pivotTable.addReportFilter(3);
+		//pivotTable.addReportFilter(3);
 
-		
+
 		//		try {
 		//		FileOutputStream fileOut = null;
 		//		   fileOut = new FileOutputStream("c:/users/pkapaleeswaran/workspacej3/temp/myTFile.xlsx");
@@ -608,8 +607,5 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		//		e.printStackTrace();
 		//	}
 	}
-
-
-
 
 }
