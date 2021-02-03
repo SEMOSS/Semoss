@@ -80,7 +80,6 @@ import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.PyTranslatorFactory;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
-import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -171,8 +170,8 @@ public class Insight {
 	private transient String insightFolder;
 	private transient String appFolder;
 	private transient String userFolder;
-	private transient List<FileMeta> filesUsedInInsight = new Vector<FileMeta>();
-	private transient Map<String, String> exportFiles = new Hashtable<String, String>();
+	private transient List<InsightFile> loadInsightFiles = new Vector<>();
+	private transient Map<String, InsightFile> exportInsightFiles = new HashMap<>();
 
 	private transient boolean deleteFilesOnDropInsight = true;
 	private transient boolean deleteREnvOnDropInsight = true;
@@ -332,10 +331,6 @@ public class Insight {
 	public PixelRunner getPixelRunner() {
 		PixelRunner runner = new PixelRunner();
 		return runner;
-	}
-	
-	public void addFileUsedInInsight(FileMeta fileMeta) {
-		this.filesUsedInInsight.add(fileMeta);
 	}
 	
 	private SaveInsightIntoWorkspace getWorkspaceCacheThread() {
@@ -683,12 +678,13 @@ public class Insight {
 	 * For getting file exports from the insight
 	 */
 	
-	public void addExportFile(String uniqueKey, String fileLocation) {
-		this.exportFiles.put(uniqueKey, fileLocation);
+	public void addExportFile(String uniqueKey, InsightFile fileLocation) {
+		this.exportInsightFiles.put(uniqueKey, fileLocation);
 	}
 	
 	public String getExportFileLocation(String uniqueKey) {
-		String fileLocation = this.exportFiles.get(uniqueKey);
+		InsightFile insightFile = this.exportInsightFiles.get(uniqueKey);
+		String fileLocation = insightFile.getFilePath();
 		String relPath = Insight.getInsightRelativeFolderKey();
 		if(fileLocation.startsWith(relPath)) {
 			fileLocation = fileLocation.replaceFirst(relPath, Matcher.quoteReplacement(getInsightFolder()));
@@ -696,20 +692,20 @@ public class Insight {
 		return fileLocation;
 	}
 	
-	public Map<String, String> getExportFiles() {
-		return this.exportFiles;
+	public Map<String, InsightFile> getExportInsightFiles() {
+		return this.exportInsightFiles;
 	}
 	
-	/////////////////////////////////////////////////////////////////
+	public void addLoadInsightFile(InsightFile fileMeta) {
+		this.loadInsightFiles.add(fileMeta);
+	}
 	
-	// TODO: need a better way of doing this...
-	// need to keep track of files that made this insight
-	public void setFilesUsedInInsight(List<FileMeta> filesUsed) {
-		this.filesUsedInInsight = filesUsed;
+	public void setLoadInsightFiles(List<InsightFile> insightFiles) {
+		this.loadInsightFiles = insightFiles;
 	}
 
-	public List<FileMeta> getFilesUsedInInsight() {
-		return this.filesUsedInInsight;
+	public List<InsightFile> getLoadInsightFiles() {
+		return this.loadInsightFiles;
 	}
 	
 	public boolean isDeleteFilesOnDropInsight() {
@@ -720,6 +716,8 @@ public class Insight {
 		this.deleteFilesOnDropInsight = deleteFilesOnDropInsight;
 	}
 	
+	/////////////////////////////////////////////////////////////////
+
 	public boolean isDeleteREnvOnDropInsight() {
 		return this.deleteREnvOnDropInsight;
 	}

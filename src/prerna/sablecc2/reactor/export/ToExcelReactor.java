@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Logger;
@@ -27,6 +28,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.poi.main.helper.excel.ExcelUtility;
@@ -57,7 +59,11 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		organizeKeys();
 		this.logger = getLogger(CLASS_NAME);
 		this.task = getTask();
-		NounMetadata retNoun = null;
+		
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		
 		// get a random file name
 		String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
 		String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
@@ -67,21 +73,25 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		// location so that the front end will download
 		if (this.fileLocation == null) {
 			String insightFolder = this.insight.getInsightFolder();
-			{
-				File f = new File(insightFolder);
-				if(!f.exists()) {
-					f.mkdirs();
-				}
+			File f = new File(insightFolder);
+			if(!f.exists()) {
+				f.mkdirs();
 			}
 			this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			// store it in the insight so the FE can download it
-			// only from the given insight
-			this.insight.addExportFile(exportName, this.fileLocation);
-			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+			insightFile.setDeleteOnInsightClose(true);
 		} else {
-			retNoun = new NounMetadata(this.fileLocation, PixelDataType.CONST_STRING);
+			this.fileLocation += DIR_SEPARATOR + exportName;
+			insightFile.setDeleteOnInsightClose(false);
 		}
+		insightFile.setFilePath(this.fileLocation);
 		buildTask();
+
+		// store the insight file 
+		// in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(downloadKey, insightFile);
+
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 		return retNoun;
 	}

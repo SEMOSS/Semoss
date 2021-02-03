@@ -28,6 +28,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.om.InsightFile;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -187,9 +188,19 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		Utility.writeWorkbook(workbook, fileLoc);
 		logger.info("Done exporting worksheet for engine = " + app);
 
-		String randomKey = UUID.randomUUID().toString();
-		this.insight.addExportFile(randomKey, fileLoc);
-		return new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		insightFile.setDeleteOnInsightClose(true);
+		insightFile.setFilePath(fileLoc);
+		// store the insight file 
+		// in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(downloadKey, insightFile);
+
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel loader workbook"));
+		return retNoun;
 	}
 	
 	public static void writeNodePropSheet(
