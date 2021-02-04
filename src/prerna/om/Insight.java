@@ -425,22 +425,14 @@ public class Insight {
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Get the prefix as APP_FOLDER/INSIGHT_FOLDER or INSIGHT_FOLDER depending on if it is saved
-	 * This is so we know what to send the FE
-	 * @return
-	 */
-	public static String getInsightRelativeFolderKey() {
-		return Insight.INSIGHT_FOLDER_KEY;
-	}
-	
 	public String getInsightFolder() {
 		if(this.insightFolder == null) {
 			// account for unsaved insights vs. saved insights
 			if(!isSavedInsight()) {
 				String sessionId = ThreadStore.getSessionId();
 				sessionId = InsightUtility.getFolderDirSessionId(sessionId);
-				this.insightFolder = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + DIR_SEPARATOR + sessionId + DIR_SEPARATOR + this.insightId;
+				this.insightFolder = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
+						DIR_SEPARATOR + sessionId + DIR_SEPARATOR + this.insightId;
 			} else {
 				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
 				// need to grab from engine
@@ -503,11 +495,24 @@ public class Insight {
 	 * @return
 	 */
 	public String getAbsoluteInsightFolderPath(String filePath) {
-		String relPath = Insight.getInsightRelativeFolderKey();
-		if(filePath.startsWith(relPath)) {
-			filePath = Pattern.compile(Matcher.quoteReplacement(relPath))
+		// is this one that starts with INSIGHT_FOLDER
+		if(filePath.startsWith(Insight.INSIGHT_FOLDER_KEY)) {
+			filePath = Pattern.compile(Matcher.quoteReplacement(Insight.INSIGHT_FOLDER_KEY))
 					.matcher(filePath).replaceFirst(Matcher.quoteReplacement(getInsightFolder()));
+		} else {
+			// make sure this is not relative
+			// if it is
+			// turn to absolute based on the insight folder location
+			if(!(new File(filePath).exists())) {
+				String filePrefix = getInsightFolder();
+				if(filePath.startsWith("\\") || filePath.startsWith("/")) {
+					filePath = filePrefix + filePath;
+				} else {
+					filePath = filePrefix + DIR_SEPARATOR + filePath;
+				}
+			}
 		}
+		
 		return filePath;
 	}
 	
@@ -685,11 +690,7 @@ public class Insight {
 	public String getExportFileLocation(String uniqueKey) {
 		InsightFile insightFile = this.exportInsightFiles.get(uniqueKey);
 		String fileLocation = insightFile.getFilePath();
-		String relPath = Insight.getInsightRelativeFolderKey();
-		if(fileLocation.startsWith(relPath)) {
-			fileLocation = fileLocation.replaceFirst(relPath, Matcher.quoteReplacement(getInsightFolder()));
-		}
-		return fileLocation;
+		return getAbsoluteInsightFolderPath(fileLocation);
 	}
 	
 	public Map<String, InsightFile> getExportInsightFiles() {
