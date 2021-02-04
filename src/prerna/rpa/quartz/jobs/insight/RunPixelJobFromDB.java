@@ -77,8 +77,8 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				url += "/api/schedule/executePixel";
 			}
 			
-			CloseableHttpClient httpclient = HttpClients.createDefault();
-//			CloseableHttpClient httpclient = getCustomClient();
+//			CloseableHttpClient httpclient = HttpClients.createDefault();
+			CloseableHttpClient httpclient = getCustomClient();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
 			// add the body
