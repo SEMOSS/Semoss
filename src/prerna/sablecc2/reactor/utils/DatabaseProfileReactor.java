@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.utils;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
@@ -27,6 +28,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
+import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.Utility;
 
 public class DatabaseProfileReactor extends AbstractFrameReactor {
@@ -58,9 +61,19 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		}
 		
 		// output frame
-		ITableDataFrame table = getFrame();
-		if(!(table instanceof AbstractRdbmsFrame)) {
-			throw new IllegalArgumentException("Frame must be a grid to use DatabaseProfile");
+		ITableDataFrame table = null;
+		try {
+			table = getFrame();
+			if(!(table instanceof AbstractRdbmsFrame)) {
+				throw new IllegalArgumentException("Frame must be a grid to use DatabaseProfile");
+			}
+		} catch(NullPointerException e) {
+			// ignore - make a new frame
+			try {
+				table = FrameFactory.getFrame(this.insight, DataFrameTypeEnum.GRID.getTypeAsString(), "");
+			} catch (Exception e2) {
+				throw new IllegalArgumentException("Error occured trying to create frame of type " + DataFrameTypeEnum.GRID.getTypeAsString(), e2);
+			}
 		}
 		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) table;
 		String tableName = frame.getName();
@@ -69,16 +82,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double", "Double" , "Double" };
 		// add headers to metadata output frame
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
-		for (int i = 0; i < headers.length; i++) {
-			String alias = headers[i];
-			String dataType = dataTypes[i];
-			String uniqueHeader = tableName + "__" + alias;
-			metaData.addProperty(tableName, uniqueHeader);
-			// metaData.setQueryStructNameToProperty(uniqueHeader, source,
-			// qsName);
-			metaData.setAliasToProperty(uniqueHeader, alias);
-			metaData.setDataTypeToProperty(uniqueHeader, dataType);
-		}
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(metaData, headers, dataTypes, tableName);
 		
 		List<String> conceptList = getConceptList();
 		// get concept properties from local master
