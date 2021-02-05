@@ -312,11 +312,11 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// need a way to evaluate if the rowgroups etc. are within the limits
 		long rowCount = getCount(frameName, rowGroups);
 		if(rowCount > row_max) {
-			return getError("Max number of rows allowed : 1000. This pivot has " + rowCount +". Please filter and try again");
+			return getError("Max number of rows allowed : "+ row_max +". This pivot has " + rowCount +". Please filter and try again");
 		}
 		long colCount = getCount(frameName, colGroups);
 		if(colCount > col_max) {
-			return getError("Max number of columns allowed : 100. This pivot has " + colCount +". Please filter and try again");
+			return getError("Max number of columns allowed : "+ col_max +". This pivot has " + colCount +". Please filter and try again");
 		}
 		return null;
 	}
