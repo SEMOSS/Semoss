@@ -201,6 +201,7 @@ import prerna.sablecc2.reactor.frame.graph.FindPathsConnectingNodesReactor;
 import prerna.sablecc2.reactor.frame.graph.RemoveIntermediaryNodeReactor;
 import prerna.sablecc2.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.reactor.frame.py.PyReactor;
+import prerna.sablecc2.reactor.frame.py.PySourceReactor;
 import prerna.sablecc2.reactor.frame.r.CancelRReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
@@ -1142,6 +1143,7 @@ public class ReactorFactory {
 		reactorHash.put("REnableUserRecovery", REnableUserRecoveryReactor.class);
 		reactorHash.put("RClearAllUserRservesReactor", RClearAllUserRservesReactor.class);
 		reactorHash.put("RSource", RSourceReactor.class);
+		reactorHash.put("PySource", PySourceReactor.class);
 		reactorHash.put("Java", JavaReactor.class);
 		
 		// Pixel Recipe Parsing / Manipulation
