@@ -1,14 +1,15 @@
 package prerna.sablecc2.reactor.app.upload.rdf;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
-import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
@@ -100,11 +101,31 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 			// now we try to convert the object
 			try {
 				Object newObject = null;
-				if(newDataType == SemossDataType.STRING) {
+				if(newDataType == SemossDataType.STRING
+						|| newDataType == SemossDataType.FACTOR) {
 					newObject = object + "";
 				} else if(newDataType == SemossDataType.INT 
 						|| newDataType == SemossDataType.DOUBLE) {
 					newObject = Double.parseDouble(object + "");
+				} else if(newDataType == SemossDataType.DATE
+						|| newDataType == SemossDataType.TIMESTAMP) {
+					
+					if(object instanceof SemossDate) {
+						newObject = ((SemossDate) object).getDate();
+					} else if(object instanceof String){
+						SemossDate dateObject = SemossDate.genDateObj(object + "");
+						if(dateObject == null) {
+							warning = "Some values did not property parse";
+							continue;
+						}
+						
+						newObject = dateObject.getDate();
+					} else {
+						warning = "Some values did not property parse";
+						continue;
+					}
+				} else if(newDataType == SemossDataType.BOOLEAN) {
+					newObject = Boolean.parseBoolean(object + "");
 				}
 				
 				// add
