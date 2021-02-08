@@ -4,6 +4,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -109,6 +110,8 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			qs.addSelector(new QueryColumnSelector(conceptPixelName));
 			
 			List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysicalUri);
+			// sort the properties for easier lookup
+			Collections.sort(properties);
 			for(int i = 0; i < properties.size(); i++) {
 				String propertyPhysicalUri = properties.get(i);
 				String propertyPixelUri = engine.getPropertyPixelUriFromPhysicalUri(conceptPhysicalUri, propertyPhysicalUri);
