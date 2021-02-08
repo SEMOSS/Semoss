@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 import java.util.Vector;
 
 import net.sf.jsqlparser.expression.Alias;
@@ -103,6 +104,9 @@ public class SqlParser2 {
 	boolean column = false;
 	public boolean parameterize = true;
 	String columnName = null;
+	
+	boolean processCase = false;
+	Stack <Boolean> processParam = new Stack<Boolean>();
 	
 
 	public SqlParser2() {
@@ -661,6 +665,15 @@ public class SqlParser2 {
 		// only the binary expression has 2 sides
 		else if(joinExpr instanceof BinaryExpression)
 		{
+			boolean paramBinary = true;
+			
+			if(processParam.size() > 0)
+			{
+				// get the latest and push it back
+				paramBinary = processParam.pop();
+				processParam.push(paramBinary);
+			}
+
 			
 			    this.binary = true;
 			// do the regular stuff.. I need to accomodate for other pieces but
@@ -731,74 +744,76 @@ public class SqlParser2 {
 				String tableName = null;
 				String aliasName = null;
 				
-				if(((GenExpression)sqs).getOperation().equalsIgnoreCase("column"))
+				if(paramBinary) // dont do it for case
 				{
-					full_from = ((GenExpression)sqs).getLeftExpr();
-					column = true;
-					columnName = full_from;
-					tableName = ((GenExpression)sqs).tableName;
-					aliasName = columnName;
-					if(sqs.userTableAlias != null)
-						aliasName = sqs.userTableAlias;
-
-				}
-				else if( (((GenExpression)sqs).getOperation().equalsIgnoreCase("string")) 
-						|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("double")) 
-						|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("date")) 
-						|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("time")) 
-						|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("long")) )
-				{
-					// we got our target
-					constantValue = ((GenExpression)sqs).leftItem;
-					constantType = ((GenExpression)sqs).getOperation();
-					if(columnName != null)
+					if(((GenExpression)sqs).getOperation().equalsIgnoreCase("column"))
 					{
-						((GenExpression)sqs).setLeftExpresion("'<" + tableName + "_" + columnName + modifier + eqExpr.getOperation().trim() + ">'");
+						full_from = ((GenExpression)sqs).getLeftExpr();
+						column = true;
+						columnName = full_from;
+						tableName = ((GenExpression)sqs).tableName;
+						aliasName = columnName;
+						if(sqs.userTableAlias != null)
+							aliasName = sqs.userTableAlias;
+	
 					}
-					exprToTrack = sqs;
-					
-				}
-
-				if(((GenExpression)sqs2).getOperation().equalsIgnoreCase("column"))
-				{
-					// who knows you could be a sadist after all
-					full_To = ((GenExpression)sqs2).getLeftExpr();
-					column = true;
-					columnName = full_from;
-					tableName = ((GenExpression)sqs2).tableName;
-					aliasName = columnName;
-					if(sqs2.userTableAlias != null)
-						aliasName = sqs2.userTableAlias;
-				}
-				else if( (((GenExpression)sqs2).getOperation().equalsIgnoreCase("string")) 
-						|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("double")) 
-						|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("date")) 
-						|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("time")) 
-						|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("long")) )
-				{
-					// we got our target
-					constantValue = ((GenExpression)sqs2).leftItem;
-					constantType = ((GenExpression)sqs2).getOperation();
-					
-					if(columnName != null && parameterize)
+					else if( (((GenExpression)sqs).getOperation().equalsIgnoreCase("string")) 
+							|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("double")) 
+							|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("date")) 
+							|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("time")) 
+							|| (((GenExpression)sqs).getOperation().equalsIgnoreCase("long")) )
 					{
-						((GenExpression)sqs2).setLeftExpresion("<" + tableName + "_" + columnName + modifier + eqExpr.getOperation().trim() + ">");
+						// we got our target
+						constantValue = ((GenExpression)sqs).leftItem;
+						constantType = ((GenExpression)sqs).getOperation();
+						if(columnName != null)
+						{
+							((GenExpression)sqs).setLeftExpresion("'<" + tableName + "_" + columnName + modifier + eqExpr.getOperation().trim() + ">'");
+						}
+						exprToTrack = sqs;
+						
 					}
-					exprToTrack = sqs2;
-
-				}
-				
-				if(binary && column && constantValue != null)
-				{
-					String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
-					this.wrapper.makeParameters(columnName, constantValue, modifier + eqExpr.getOperation().trim(), eqExpr.getOperation().trim(), constantType, exprToTrack, tableName, defQuery);
-				}
-				
-				binary = false;
-				column = false;
-				columnName = null;
-				
-				
+	
+					if(((GenExpression)sqs2).getOperation().equalsIgnoreCase("column"))
+					{
+						// who knows you could be a sadist after all
+						full_To = ((GenExpression)sqs2).getLeftExpr();
+						column = true;
+						columnName = full_from;
+						tableName = ((GenExpression)sqs2).tableName;
+						aliasName = columnName;
+						if(sqs2.userTableAlias != null)
+							aliasName = sqs2.userTableAlias;
+					}
+					else if( (((GenExpression)sqs2).getOperation().equalsIgnoreCase("string")) 
+							|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("double")) 
+							|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("date")) 
+							|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("time")) 
+							|| (((GenExpression)sqs2).getOperation().equalsIgnoreCase("long")) )
+					{
+						// we got our target
+						constantValue = ((GenExpression)sqs2).leftItem;
+						constantType = ((GenExpression)sqs2).getOperation();
+						
+						if(columnName != null && parameterize)
+						{
+							((GenExpression)sqs2).setLeftExpresion("<" + tableName + "_" + columnName + modifier + eqExpr.getOperation().trim() + ">");
+						}
+						exprToTrack = sqs2;
+	
+					}
+					
+					if(binary && column && constantValue != null)
+					{
+						String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
+						this.wrapper.makeParameters(columnName, constantValue, modifier + eqExpr.getOperation().trim(), eqExpr.getOperation().trim(), constantType, exprToTrack, tableName, defQuery);
+					}
+					
+					binary = false;
+					column = false;
+					columnName = null;
+					
+				}				
 				
 //				// keep track of column and table in schema
 //				// from 
@@ -862,6 +877,15 @@ public class SqlParser2 {
 		}
 		else if(joinExpr instanceof Between)// between // this needs to be handled better
 		{
+			boolean paramBetween = true;
+			
+			if(processParam.size() > 0)
+			{
+				// get the latest and push it back
+				paramBetween = processParam.pop();
+				processParam.push(paramBetween);
+			}
+			
 			//System.err.println("This is a between expression " + joinExpr);
 			GenExpression retExpr = new GenExpression();
 			retExpr.setComposite(true);
@@ -899,59 +923,59 @@ public class SqlParser2 {
 	
 			}
 
-			// process the start value if it is a constant
-			if( (startExpression.getOperation().equalsIgnoreCase("string")) 
-					|| startExpression.getOperation().equalsIgnoreCase("double") 
-					|| startExpression.getOperation().equalsIgnoreCase("date") 
-					|| startExpression.getOperation().equalsIgnoreCase("time") 
-					|| startExpression.getOperation().equalsIgnoreCase("long") )
+			if(paramBetween)
 			{
-				// we got our target
-				Object constantValue = startExpression.leftItem;
-				String constantType = startExpression.getOperation();
-				
-				if(columnName != null && parameterize)
+				// process the start value if it is a constant
+				if( (startExpression.getOperation().equalsIgnoreCase("string")) 
+						|| startExpression.getOperation().equalsIgnoreCase("double") 
+						|| startExpression.getOperation().equalsIgnoreCase("date") 
+						|| startExpression.getOperation().equalsIgnoreCase("time") 
+						|| startExpression.getOperation().equalsIgnoreCase("long") )
 				{
-					startExpression.setLeftExpresion("'<" + tableName + "_" + columnName + modifier + "between.start" + ">'");
+					// we got our target
+					Object constantValue = startExpression.leftItem;
+					String constantType = startExpression.getOperation();
+					
+					if(columnName != null && parameterize)
+					{
+						startExpression.setLeftExpresion("'<" + tableName + "_" + columnName + modifier + "between.start" + ">'");
+					}
+					
+					String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
+					String compositeName = this.wrapper.makeParameters(columnName, constantValue, modifier + "between.start", "between.start",  constantType, startExpression, tableName, defQuery);
+					startExpression.setLeftExpresion("'<" + compositeName + ">'");
+					System.out.println("Parameterizing  " + columnName + endExpression);
+					System.out.println("Query is set to..  " + qs);
+	
 				}
-				
-				String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
-				String compositeName = this.wrapper.makeParameters(columnName, constantValue, modifier + "between.start", "between.start",  constantType, startExpression, tableName, defQuery);
-				startExpression.setLeftExpresion("'<" + compositeName + ">'");
-				System.out.println("Parameterizing  " + columnName + endExpression);
-				System.out.println("Query is set to..  " + qs);
-
-			}
-		
-			// process the end value if it is a constant
-			if( (endExpression.getOperation().equalsIgnoreCase("string")) 
-					|| endExpression.getOperation().equalsIgnoreCase("double") 
-					|| endExpression.getOperation().equalsIgnoreCase("date") 
-					|| endExpression.getOperation().equalsIgnoreCase("time") 
-					|| endExpression.getOperation().equalsIgnoreCase("long") )
-			{
-				// we got our target
-				Object constantValue = endExpression.leftItem;
-				String constantType = endExpression.getOperation();
-				
-				if(columnName != null && parameterize)
-				{
-					endExpression.setLeftExpresion("'<" + tableName + "_" + columnName  + modifier + "between.end" + ">'");
-				}
-				
-				String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
-				String compositeName = this.wrapper.makeParameters(columnName, constantValue, modifier + "between.end", "between.end",  constantType, endExpression, tableName, defQuery);
-				endExpression.setLeftExpresion("'<" + compositeName + ">'");
-				System.out.println("Parameterizing  " + columnName + endExpression);
-				System.out.println("Query is set to..  " + qs);
-			}
 			
+				// process the end value if it is a constant
+				if( (endExpression.getOperation().equalsIgnoreCase("string")) 
+						|| endExpression.getOperation().equalsIgnoreCase("double") 
+						|| endExpression.getOperation().equalsIgnoreCase("date") 
+						|| endExpression.getOperation().equalsIgnoreCase("time") 
+						|| endExpression.getOperation().equalsIgnoreCase("long") )
+				{
+					// we got our target
+					Object constantValue = endExpression.leftItem;
+					String constantType = endExpression.getOperation();
+					
+					if(columnName != null && parameterize)
+					{
+						endExpression.setLeftExpresion("'<" + tableName + "_" + columnName  + modifier + "between.end" + ">'");
+					}
+					
+					String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
+					String compositeName = this.wrapper.makeParameters(columnName, constantValue, modifier + "between.end", "between.end",  constantType, endExpression, tableName, defQuery);
+					endExpression.setLeftExpresion("'<" + compositeName + ">'");
+					System.out.println("Parameterizing  " + columnName + endExpression);
+					System.out.println("Query is set to..  " + qs);
+				}
+			}				
 			binary = false;
 			column = false;
 			columnName = null;
 
-			
-			
 			return retExpr;
 		}
 		else if(joinExpr instanceof Column)
@@ -1046,7 +1070,9 @@ public class SqlParser2 {
 		{
 			//System.err.println("This is not being handled in expression " + joinExpr);
 			CaseExpression cep = (CaseExpression)joinExpr;
-
+			if(!processCase) // so while this idea is good.. this needs to be eventually a stack since you are running recursion.. for now it might work
+				processParam.push(false);
+			
 			WhenExpression wep = new WhenExpression();
 			wep.aQuery = joinExpr.toString();
 			wep.setOperation("case");
@@ -1078,6 +1104,8 @@ public class SqlParser2 {
 			}
 			
 			wep.parent = (GenExpression)qs;
+			if(!processCase) // so while this idea is good.. this needs to be eventually a stack since you are running recursion.. for now it might work
+				processParam.pop();
 			return wep;
 		}
 		else if(joinExpr instanceof StringValue)
@@ -1184,6 +1212,16 @@ public class SqlParser2 {
 		}
 		else if(joinExpr instanceof InExpression)
 		{
+			boolean paramIn = true;
+			
+			if(processParam.size() > 0)
+			{
+				// get the latest and push it back
+				paramIn = processParam.pop();
+				processParam.push(paramIn);
+			}
+
+			
 			// need to parameterize this
 			InExpression inExpr = (InExpression)joinExpr;
 			InGenExpression gep = new InGenExpression();
@@ -1300,8 +1338,11 @@ public class SqlParser2 {
 					// removing the quotes for now
 					ge.setLeftExpr("(<" + tableName + "_" + columnName + modifier + ">)");
 				}
-				String defQuery = "Select q1." + columnName + " from (" + qs + ") q1";
-				this.wrapper.makeParameters(columnName, constantValue, modifier + "in", "in", constantType, ge, tableName, defQuery);
+				if(paramIn)
+				{
+					String defQuery = "Select q1." + columnName + " from (" + qs + ") q1";
+					this.wrapper.makeParameters(columnName, constantValue, modifier + "in", "in", constantType, ge, tableName, defQuery);
+				}
 			}
 				
 			//gep.setComposite(composite);
@@ -2563,7 +2604,7 @@ public class SqlParser2 {
 		
 		String query9 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR IS NULL THEN 0 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title ";
 
-		String query10 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR in ('a', 'b') THEN 0 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title ";
+		String query10 = "SELECT DISTINCT Title.Title AS \"Genre\" , CASE WHEN TMBRSHP.MIN_CVRG_PRTY_NBR in ('a', 'b') THEN 0 WHEN TMBRSHP.MIN_CVRG_PRTY_NBR=30 THEN 21 ELSE CII_FACT_MBRSHP.MBR_CVRG_CNT END AS mango, sum(MovieBudget), ( CAST(( CAST(Title.MovieBudget  AS DECIMAL) * CAST(2 AS DECIMAL) )  AS DECIMAL) + CAST(Title.RevenueDomestic AS DECIMAL) ) AS \"Der_value\" FROM Title Title WHERE Genre in ('abc', 'y') or Genre=20";
 		
 		String query11 = "SELECT DISTINCT Title.MovieBudget AS \"MovieBudget\" , Title.RevenueDomestic AS \"RevenueDomestic\" , Title.RevenueInternational AS \"RevenueInternational\" , Title.RottenTomatoesAudience AS \"RottenTomatoesAudience\" , Title.RottenTomatoesCritics AS \"RottenTomatoesCritics\" , Title.Title AS \"Title\" FROM Title Title  WHERE (Title.MovieBudget) IN ( 1000000 , 1700000 ) \r\n";
 
@@ -3389,10 +3430,11 @@ public class SqlParser2 {
 		String query24 = "Select a,b,c from d where (age > 20 and age < 40) or (age > 40 and age < 70)";
 		
 		String query25 = "Select  count(distinct a), c from b";
-		String query26 = "Select  distinct a, max(c) from b";
+		String query26 = "Select  distinct a, max(distinct c) from b";
 		
 		test.parameterize = false;
-		GenExpressionWrapper wrapper = test.processQuery(query26);
+		//test.processCase = true;
+		GenExpressionWrapper wrapper = test.processQuery(query10);
 		test.printOutput(wrapper.root);
 		GenExpression root = wrapper.root;
 		List <ParamStructDetails> plist = new Vector<ParamStructDetails>();
