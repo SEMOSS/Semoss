@@ -40,7 +40,6 @@ public class MetaHelper implements IExplorable {
 
 	private static final Logger logger = LogManager.getLogger(MetaHelper.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
 	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
@@ -156,9 +155,9 @@ public class MetaHelper implements IExplorable {
 		try {
 			baseDataEngine.getRc().export(new RDFXMLWriter(output));
 		} catch (RepositoryException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (RDFHandlerException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return output.toString();
 	}
@@ -207,7 +206,7 @@ public class MetaHelper implements IExplorable {
 				baseUri = data.getRawValues()[0] + "";
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrap != null) {
 				wrap.cleanUp();
@@ -263,7 +262,7 @@ public class MetaHelper implements IExplorable {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -297,7 +296,7 @@ public class MetaHelper implements IExplorable {
 				retMap.put(node, type);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -320,7 +319,7 @@ public class MetaHelper implements IExplorable {
 				return adtlType;
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -358,7 +357,7 @@ public class MetaHelper implements IExplorable {
 				retMap.put(node, type);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -405,7 +404,7 @@ public class MetaHelper implements IExplorable {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -445,7 +444,7 @@ public class MetaHelper implements IExplorable {
 				relationships.add(edgeMap);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -719,7 +718,7 @@ public class MetaHelper implements IExplorable {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -760,7 +759,7 @@ public class MetaHelper implements IExplorable {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (it != null) {
 				it.cleanUp();
@@ -785,7 +784,7 @@ public class MetaHelper implements IExplorable {
 				conceptualName = wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (wrapper != null) {
 				wrapper.cleanUp();
@@ -809,7 +808,7 @@ public class MetaHelper implements IExplorable {
 				logicals.add(wrapper.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -833,7 +832,7 @@ public class MetaHelper implements IExplorable {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
@@ -858,7 +857,7 @@ public class MetaHelper implements IExplorable {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
