@@ -516,7 +516,7 @@ public class PixelUtility {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		List<String> paramedRecipe = new Vector<>(2);
 		paramedRecipe.add("META | AddPanel(0);");
-		paramedRecipe.add("META | Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(insightJsonObject) + "}</encode>\");");
+		paramedRecipe.add("META | Panel (0) | SetPanelView(\"param\", \"<encode> {\"beFill\":true, \"json\":" + gson.toJson(insightJsonObject) + "}</encode>\");");
 		return paramedRecipe;
 	}
 	
