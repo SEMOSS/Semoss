@@ -1,5 +1,6 @@
 package prerna.query.parsers;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -265,6 +266,80 @@ public class ParamStructDetails {
 		this.defQuery = defQuery;
 	}
 	
+	/**
+	 * Get the pixel string to replace a parameter input
+	 * @return
+	 */
+	public String getPixelStringReplacement(Object defaultValue) {
+		final String FILL_QUOTE = getStringForQuote(this.quote);
+		StringBuilder builder = new StringBuilder();
+
+		if(currentValue != null) {
+			// loop through results
+			if(currentValue instanceof Collection) {
+				Collection<Object> inputList = (Collection<Object>) currentValue;
+				boolean notFirst = false;
+				for(Object val : inputList) {
+					if(notFirst) {
+						builder.append(",");
+					}
+					notFirst = true;
+					
+					// add the value
+					appendNewValue(builder, val, FILL_QUOTE);
+				}
+				
+			} else {
+				// scalar value
+				appendNewValue(builder, currentValue, FILL_QUOTE);
+			}
+			
+			// return the string builder
+			return builder.toString();
+		}
+
+		// return the default value
+		// same logic as scalar
+		// but default value instead of scalar value
+		appendNewValue(builder, defaultValue, FILL_QUOTE);
+		return builder.toString();
+	}
 	
+	/**
+	 * Append a single value to the string builder for generating pixel replacement 
+	 * for parameter input
+	 * @param builder
+	 * @param value
+	 * @param FILL_QUOTE
+	 */
+	private void appendNewValue(final StringBuilder builder, Object value, final String FILL_QUOTE) {
+		builder.append(FILL_QUOTE);
+		if(this.quote == QUOTE.DOUBLE) {
+			// replace existing quotes for input values
+			builder.append((value + "").replace("\"", "\\\""));
+		} else if(this.quote == QUOTE.SINGLE && this.baseQsType == BASE_QS_TYPE.HQS){
+			builder.append((value + "").replace("'", "''"));
+		} else {
+			builder.append(value);
+		}
+		builder.append(FILL_QUOTE);
+	}
+	
+	/**
+	 * 
+	 * @param quote
+	 * @return
+	 */
+	public static String getStringForQuote(QUOTE quote) {
+		if(quote == QUOTE.NO) {
+			return "";
+		} else if(quote == QUOTE.SINGLE) {
+			return "'";
+		} else if(quote == QUOTE.NO) {
+			return "\"";
+		}
+		
+		throw new IllegalArgumentException("Unknown quote type value = " + quote);
+	}
 	
 }
