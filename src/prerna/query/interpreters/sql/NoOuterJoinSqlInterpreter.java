@@ -226,34 +226,36 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	@Override
 	protected void addJoin(String fromCol, String thisComparator, String toCol) {
 		// get the parts of the join
-		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
-		String sourceTable = relConProp[0];
-		String sourceColumn = relConProp[1];
-		String targetTable = relConProp[2];
-		String targetColumn = relConProp[3];
-		
-		String compName = thisComparator.replace(".", " ");
-		jTypeList.add(compName);
-		
-		SqlJoinStruct jStruct = new SqlJoinStruct();
-		jStruct.setJoinType(compName);
-		// add source
-		jStruct.setSourceTable(sourceTable);
-		jStruct.setSourceTableAlias(sourceTable);
-		jStruct.setSourceCol(sourceColumn);
-		// add target
-		jStruct.setTargetTable(targetTable);
-		jStruct.setTargetTableAlias(targetTable);
-		jStruct.setTargetCol(targetColumn);
-		
-		joinStructList.addJoin(jStruct);
-		
-		// need to add the join keys to the retTableToSelectors map
-		for (int i=0; i < relConProp.length; i+=2){
-			QueryColumnSelector selector = new QueryColumnSelector();
-			selector.setTable(relConProp[i]);
-			selector.setColumn(relConProp[i+1]);
-			processColumnSelector(selector, false);
+		List<String[]> relConPropList = getRelationshipConceptProperties(fromCol, toCol);
+		for(String[] relConProp : relConPropList) {
+			String sourceTable = relConProp[0];
+			String sourceColumn = relConProp[1];
+			String targetTable = relConProp[2];
+			String targetColumn = relConProp[3];
+			
+			String compName = thisComparator.replace(".", " ");
+			jTypeList.add(compName);
+			
+			SqlJoinStruct jStruct = new SqlJoinStruct();
+			jStruct.setJoinType(compName);
+			// add source
+			jStruct.setSourceTable(sourceTable);
+			jStruct.setSourceTableAlias(sourceTable);
+			jStruct.setSourceCol(sourceColumn);
+			// add target
+			jStruct.setTargetTable(targetTable);
+			jStruct.setTargetTableAlias(targetTable);
+			jStruct.setTargetCol(targetColumn);
+			
+			joinStructList.addJoin(jStruct);
+			
+			// need to add the join keys to the retTableToSelectors map
+			for (int i=0; i < relConProp.length; i+=2){
+				QueryColumnSelector selector = new QueryColumnSelector();
+				selector.setTable(relConProp[i]);
+				selector.setColumn(relConProp[i+1]);
+				processColumnSelector(selector, false);
+			}
 		}
 	}
 	
