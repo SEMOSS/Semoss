@@ -78,7 +78,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	protected List<String> filterStatements = new Vector<>();
 	protected List<String> havingFilterStatements = new Vector<>();
 	
-	protected transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<>();
+	protected transient Map<String, List<String[]>> relationshipConceptPropertiesMap = new HashMap<>();
 	
 	protected String selectors = "";
 	protected Set<String> selectorList = new HashSet<>();
@@ -509,25 +509,27 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	 */
 	protected void addJoin(String fromCol, String thisComparator, String toCol) {
 		// get the parts of the join
-		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
-		String sourceTable = relConProp[0];
-		String sourceColumn = relConProp[1];
-		String targetTable = relConProp[2];
-		String targetColumn = relConProp[3];
-		
-		String compName = thisComparator.replace(".", " ");
-		SqlJoinStruct jStruct = new SqlJoinStruct();
-		jStruct.setJoinType(compName);
-		// add source
-		jStruct.setSourceTable(sourceTable);
-		jStruct.setSourceTableAlias(getAlias(sourceTable));
-		jStruct.setSourceCol(sourceColumn);
-		// add target
-		jStruct.setTargetTable(targetTable);
-		jStruct.setTargetTableAlias(getAlias(targetTable));
-		jStruct.setTargetCol(targetColumn);
-		
-		joinStructList.addJoin(jStruct);
+		List<String[]> relConPropList = getRelationshipConceptProperties(fromCol, toCol);
+		for(String[] relConProp : relConPropList) {
+			String sourceTable = relConProp[0];
+			String sourceColumn = relConProp[1];
+			String targetTable = relConProp[2];
+			String targetColumn = relConProp[3];
+			
+			String compName = thisComparator.replace(".", " ");
+			SqlJoinStruct jStruct = new SqlJoinStruct();
+			jStruct.setJoinType(compName);
+			// add source
+			jStruct.setSourceTable(sourceTable);
+			jStruct.setSourceTableAlias(getAlias(sourceTable));
+			jStruct.setSourceCol(sourceColumn);
+			// add target
+			jStruct.setTargetTable(targetTable);
+			jStruct.setTargetTableAlias(getAlias(targetTable));
+			jStruct.setTargetCol(targetColumn);
+			
+			joinStructList.addJoin(jStruct);
+		}
 	}
 	
 	////////////////////////////////////////// end adding joins ///////////////////////////////////////
@@ -1450,7 +1452,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	 * @return							String[] of length 4 where the indices are
 	 * 									[startTable, startCol, endTable, endCol]
 	 */
-	protected String[] getRelationshipConceptProperties(String fromString, String toString){
+	protected List<String[]> getRelationshipConceptProperties(String fromString, String toString){
 		if(relationshipConceptPropertiesMap.containsKey(fromString + "__" + toString)) {
 			return relationshipConceptPropertiesMap.get(fromString + "__" + toString);
 		}
@@ -1490,6 +1492,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 		
+		// will return an array of values
+		List<String[]> retArr = new Vector<>();
+		
 		// if both have table and property defined, then we know exactly what we need to do
 		// for the join... so we are done!
 		
@@ -1501,12 +1506,16 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			String[] toConProp = getConceptProperty(toString);
 			toTable = toConProp[0];
 			toCol = toConProp[1];
+			// store the single result
+			retArr.add(new String[]{fromTable, fromCol, toTable, toCol});
 		}
 		
 		else if(fromTable == null && toTable != null){
 			String[] fromConProp = getConceptProperty(fromString);
 			fromTable = fromConProp[0];
 			fromCol = fromConProp[1];
+			// store the single result
+			retArr.add(new String[]{fromTable, fromCol, toTable, toCol});
 		}
 		
 		// if neither has a property specified, use owl to look up foreign key relationship
@@ -1527,42 +1536,47 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			TupleQueryResult res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
 			String predURI = " unable to get pred from owl for " + fromURI + " and " + toURI;
 			try {
-				if(res.hasNext()){
-					predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
-				}
-				else {
+				if(!res.hasNext()){
 					query = "SELECT ?relationship WHERE {<" + toURI + "> ?relationship <" + fromURI + "> } ORDER BY DESC(?relationship)";
 					logger.debug("Relationship query " + query);
 					res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
-					if(res.hasNext()){
-						predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
+				}
+				
+				// now loop through all of them
+				while(res.hasNext()) {
+					predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
+					// ignore for silly reflection
+					if(predURI.equals("http://semoss.org/ontologies/Relation")) {
+						continue;
 					}
+					
+					String[] predPieces = Utility.getInstanceName(predURI).split("[.]");
+					if(predPieces.length == 4)
+					{
+						fromTable = predPieces[0];
+						fromCol = predPieces[1];
+						toTable = predPieces[2];
+						toCol = predPieces[3];
+					}
+					else if(predPieces.length == 6) // this is coming in with the schema
+					{
+						// EHUB_CLM_SDS . EHUB_CLM_EVNT . CLM_EVNT_KEY . EHUB_CLM_SDS . EHUB_CLM_PROV_DMGRPHC . CLM_EVNT_KEY
+						// [0]               [1]            [2]             [3]             [4]                    [5]
+						fromTable = predPieces[0] + "." + predPieces[1];
+						fromCol = predPieces[2];
+						toTable = predPieces[3] + "." + predPieces[4];
+						toCol = predPieces[5];
+					}
+					
+					// store all the results
+					retArr.add(new String[]{fromTable, fromCol, toTable, toCol});
 				}
 			} catch (QueryEvaluationException e) {
 				logger.error("ERROR in query for metadata ::: predURI = " + predURI);
 			}
-			String[] predPieces = Utility.getInstanceName(predURI).split("[.]");
-			if(predPieces.length == 4)
-			{
-				fromTable = predPieces[0];
-				fromCol = predPieces[1];
-				toTable = predPieces[2];
-				toCol = predPieces[3];
-			}
-			else if(predPieces.length == 6) // this is coming in with the schema
-			{
-				// EHUB_CLM_SDS . EHUB_CLM_EVNT . CLM_EVNT_KEY . EHUB_CLM_SDS . EHUB_CLM_PROV_DMGRPHC . CLM_EVNT_KEY
-				// [0]               [1]            [2]             [3]             [4]                    [5]
-				fromTable = predPieces[0] + "." + predPieces[1];
-				fromCol = predPieces[2];
-				toTable = predPieces[3] + "." + predPieces[4];
-				toCol = predPieces[5];
-			}
 		}
 		
-		String[] retArr = new String[]{fromTable, fromCol, toTable, toCol};
 		relationshipConceptPropertiesMap.put(fromString + "__" + toString, retArr);
-		
 		return retArr;
 	}
 	
