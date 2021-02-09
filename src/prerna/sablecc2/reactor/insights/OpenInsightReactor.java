@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.JsonSyntaxException;
@@ -46,6 +47,7 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class OpenInsightReactor extends AbstractInsightReactor {
 	
+	private static final Logger classLogger = LogManager.getLogger(OpenInsightReactor.class);
 	private static final String CLASS_NAME = OpenInsightReactor.class.getName();
 	
 	public OpenInsightReactor() {
@@ -59,7 +61,28 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 
 	@Override
 	public NounMetadata execute() {
+		
+		/*
+		 * Workflow for this insight
+		 * 
+		 * 1) Permission checks / pulling the recipe from the insights database
+		 * 2) Legacy insight check - not really important for most developers
+		 * 3) Running the base insight recipe or pulling the cached insight
+		 * 4) Parameter insight
+		 * ******* Params are set in THIS current insight (not the new insight being created from the reactor)
+		 * ******* If they are set, we then look for Panel 0 and make sure it has a param view
+		 * ******* If yes - then we do the replacement and run that pixel
+		 * 5) Run any additional pixels that are also passed in 
+		 * ******* This is things like scheduling an export post insight execution (but post the parameter filled recipe)
+		 * 
+		 */
+		
+		
 		Logger logger = getLogger(CLASS_NAME);
+
+		/*
+		 * 1) Start Permission checks / pulling the recipe from the insights database
+		 */
 		
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
@@ -119,25 +142,20 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 		
+		/*
+		 * 2) Legacy insight check - not really important for most developers
+		 */
+		
 		// OLD INSIGHT
 		if(newInsight instanceof OldInsight) {
-			Map<String, Object> insightMap = new HashMap<String, Object>();
-			// return to the FE the recipe
-			insightMap.put("name", newInsight.getInsightName());
-			// keys below match those in solr
-			insightMap.put("app_id", newInsight.getEngineId());
-			insightMap.put("app_name", newInsight.getEngineName());
-			insightMap.put("app_insight_id", newInsight.getRdbmsId());
-			
-			// LEGACY PARAMS
-			insightMap.put("core_engine", newInsight.getEngineName());
-			insightMap.put("core_engine_id", newInsight.getRdbmsId());
-			
-			insightMap.put("layout", ((OldInsight) newInsight).getOutput());
-			return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OLD_INSIGHT);
+			return getOldInsightReturn((OldInsight) newInsight);
 		}
 		
 		// yay... not legacy
+		
+		/*
+		 * 3) Running the base insight recipe or pulling the cached insight
+		 */
 		
 		Boolean cacheable = getUserDefinedCacheable();
 		if(cacheable == null) {
@@ -163,7 +181,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				}
 			} catch (IOException | RuntimeException e) {
 				hasCache = true;
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -185,17 +203,17 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
 		} else if(cacheable && hasCache) {
 			try {
-				runner = getCachedInsightData(cachedInsight, additionalPixels);
+				runner = getCachedInsightData(cachedInsight);
 			} catch (IOException | RuntimeException e) {
 				InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId, true);
 				additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
 		if(runner == null) {
 			logger.info("Running insight");
-			runner = runNewInsight(newInsight, additionalPixels);
+			runner = newInsight.reRunPixelInsight(false);
 			logger.info("Done running insight");
 			logger.info("Painting results");
 //			now I want to cache the insight
@@ -207,9 +225,30 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 					Path relative = appFolder.relativize( Paths.get(cacheFolder));
 					ClusterUtil.reactorPushFolder(appId,cacheFolder, relative.toString());
 				} catch (IOException e) {
-					e.printStackTrace();
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
+		}
+		
+		/*
+		 * 4) Parameter insight
+		 */
+		
+		
+		
+		
+		
+		
+		/*
+		 * 5) Run any additional pixels that are also passed in 
+		 */
+		
+		// after we have gotten back either the insight or cached insight
+		// now we can add the additional pixels if any were past in / exist
+		if(additionalPixels != null && !additionalPixels.isEmpty()) {
+			// use the existing runner
+			// and run the additional pixels
+			newInsight.runPixel(runner, additionalPixels);
 		}
 		
 		// update the universal view count
@@ -249,25 +288,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	}
 	
 	/**
-	 * Run an insight with the additional pixels
-	 * @param insight
-	 * @param additionalPixels
-	 * @return
-	 */
-	protected PixelRunner runNewInsight(Insight insight, List<String> additionalPixels) {
-		// add additional pixels if necessary
-		if(additionalPixels != null && !additionalPixels.isEmpty()) {
-			// just add it directly to the pixel list
-			// and the reRunPiexelInsight will do its job
-			insight.getPixelList().addPixel(additionalPixels);
-		}
-		
-		// rerun the insight
-		PixelRunner runner = insight.reRunPixelInsight(false);
-		return runner;
-	}
-	
-	/**
 	 * Get the cached insight
 	 * @param engineId
 	 * @param insightId
@@ -292,7 +312,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @param cachedInsight
 	 * @return
 	 */
-	protected PixelRunner getCachedInsightData(Insight cachedInsight, List<String> additionalPixels) throws IOException, JsonSyntaxException {
+	protected PixelRunner getCachedInsightData(Insight cachedInsight) throws IOException, JsonSyntaxException {
 		// so that I don't mess up the insight recipe
 		// use the object as it contains a ton of metadata
 		// around the pixel step
@@ -321,7 +341,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 									new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, 
 											PixelOperationType.FRAME_HEADERS), true);
 						} catch(Exception e) {
-							e.printStackTrace();
+							classLogger.error(Constants.STACKTRACE, e);
 							// ignore
 						}
 					}
@@ -338,13 +358,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			NounMetadata insightConfig = cachedInsight.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
 			if(insightConfig != null) {
 				runner.addResult("META | GetInsightConfig()", insightConfig, true);
-			}
-			
-			// run any additional pixels that the user wants on top of the cached insight
-			if(additionalPixels != null) {
-				for(String expression : additionalPixels) {
-					runner.runPixel(expression, cachedInsight);
-				}
 			}
 		} finally {
 			// we need to reset the recipe
@@ -369,6 +382,30 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		return varsToExclude;
+	}
+	
+	
+	/**
+	 * For legacy insights
+	 * Do not use other than to handle that case
+	 * @param oldInsight
+	 * @return
+	 */
+	private NounMetadata getOldInsightReturn(OldInsight oldInsight) {
+		Map<String, Object> insightMap = new HashMap<String, Object>();
+		// return to the FE the recipe
+		insightMap.put("name", oldInsight.getInsightName());
+		// keys below match those in solr
+		insightMap.put("app_id", oldInsight.getEngineId());
+		insightMap.put("app_name", oldInsight.getEngineName());
+		insightMap.put("app_insight_id", oldInsight.getRdbmsId());
+		
+		// LEGACY PARAMS
+		insightMap.put("core_engine", oldInsight.getEngineName());
+		insightMap.put("core_engine_id", oldInsight.getRdbmsId());
+		
+		insightMap.put("layout", oldInsight.getOutput());
+		return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OLD_INSIGHT);
 	}
 	
 	
