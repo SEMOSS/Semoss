@@ -1575,7 +1575,10 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				logger.error("ERROR in query for metadata ::: predURI = " + predURI);
 			}
 		}
-		
+		// if everything is provided
+		else {
+			retArr.add(new String[]{fromTable, fromCol, toTable, toCol});
+		}
 		relationshipConceptPropertiesMap.put(fromString + "__" + toString, retArr);
 		return retArr;
 	}
