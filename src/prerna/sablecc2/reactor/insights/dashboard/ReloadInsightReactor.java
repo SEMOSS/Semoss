@@ -66,7 +66,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 			additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
 		} else if(cacheable && hasCache) {
 			try {
-				runner = getCachedInsightData(cachedInsight, null);
+				runner = getCachedInsightData(cachedInsight);
 			} catch (IOException | RuntimeException e) {
 				InsightCacheUtility.deleteCache(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId(), true);
 				additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
@@ -106,5 +106,24 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 			noun.addAdditionalReturn(additionalMeta);
 		}
 		return noun;
+	}
+	
+	/**
+	 * Run an insight with the additional pixels
+	 * @param insight
+	 * @param additionalPixels
+	 * @return
+	 */
+	protected PixelRunner runNewInsight(Insight insight, List<String> additionalPixels) {
+		// add additional pixels if necessary
+		if(additionalPixels != null && !additionalPixels.isEmpty()) {
+			// just add it directly to the pixel list
+			// and the reRunPiexelInsight will do its job
+			insight.getPixelList().addPixel(additionalPixels);
+		}
+		
+		// rerun the insight
+		PixelRunner runner = insight.reRunPixelInsight(false);
+		return runner;
 	}
 }
