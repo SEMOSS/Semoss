@@ -79,7 +79,10 @@ public enum PixelDataType {
 	
 	// running cached and new insights
 	CACHED_PIXEL_RUNNER ("CACHED_PIXEL_RUNNER", null),
-	PIXEL_RUNNER ("PIXEL_RUNNER", null);
+	PIXEL_RUNNER ("PIXEL_RUNNER", null),
+	
+	// param values on open insight
+	PARAM_VALUES_MAP("PARAM_VALUES_MAP", ReactorKeysEnum.PARAM_VALUES_MAP);
 	
 	private final String strValue;
 	private final ReactorKeysEnum reactorEnum;

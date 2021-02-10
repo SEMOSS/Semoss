@@ -26,9 +26,12 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
+import prerna.om.InsightPanel;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.om.PixelList;
+import prerna.query.parsers.ParamStruct;
+import prerna.query.parsers.ParamStructDetails;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -56,12 +59,12 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				ReactorKeysEnum.ID.getKey(), 
 				ReactorKeysEnum.PARAM_KEY.getKey(), 
 				ReactorKeysEnum.ADDITIONAL_PIXELS.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
 				CACHEABLE};
 	}
 
 	@Override
 	public NounMetadata execute() {
-		
 		/*
 		 * Workflow for this insight
 		 * 
@@ -76,7 +79,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		 * ******* This is things like scheduling an export post insight execution (but post the parameter filled recipe)
 		 * 
 		 */
-		
 		
 		Logger logger = getLogger(CLASS_NAME);
 
@@ -106,9 +108,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		} else {
 			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
 		}
-		
-		Object params = getExecutionParams();
-		List<String> additionalPixels = getAdditionalPixels();
 		
 		// get the engine so i can get the new insight
 		IEngine engine = Utility.getEngine(appId);
@@ -164,6 +163,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// TODO: i am cheating here
 		// we do not cache dashboards or param insights currently
 		// so adding the cacheable check before hand
+		Object params = getExecutionParams();
 		boolean isParam = cacheable && (params != null || PixelUtility.hasParam(newInsight.getPixelList().getPixelRecipe()));
 		boolean isDashoard = cacheable && PixelUtility.isDashboard(newInsight.getPixelList().getPixelRecipe());
 		
@@ -184,6 +184,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
+		// note! if we have a cached insight
+		// the cached insight and new insight both point to the same object now
 		
 		// add the insight to the insight store
 		InsightStore.getInstance().put(newInsight);
@@ -193,20 +195,22 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		// get the insight output
 		PixelRunner runner = null;
-		NounMetadata additionalMeta = null;
+		List<NounMetadata> additionalMetas = new Vector<>();
 		// if we have additional pixels
 		// do not use the cached insight
 		if(cacheable && hasCache && cachedInsight == null) {
 			// this means we have a cache
 			// but there was an error with it
 			InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId, true);
-			additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
+			additionalMetas.add(getWarning("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight."));
 		} else if(cacheable && hasCache) {
 			try {
+				logger.info("Pulling cached insight");
 				runner = getCachedInsightData(cachedInsight);
 			} catch (IOException | RuntimeException e) {
+				logger.info("Error occured pulling cached insight. Deleting cache and executing original recipe.");
 				InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId, true);
-				additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
+				additionalMetas.add(getWarning("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight."));
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -215,9 +219,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			logger.info("Running insight");
 			runner = newInsight.reRunPixelInsight(false);
 			logger.info("Done running insight");
-			logger.info("Painting results");
-//			now I want to cache the insight
+			// now I want to cache the insight
 			if(cacheable && !isParam && !isDashoard) {
+				logger.info("Caching insight for future use");
 				try {
 					InsightCacheUtility.cacheInsight(newInsight, getCachedRecipeVariableExclusion(runner));
 					Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), appId));
@@ -234,10 +238,65 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		 * 4) Parameter insight
 		 */
 		
-		
-		
-		
-		
+		// see if we have any insights
+		Map<String, String> paramValues = getInsightParamValueMap();
+		if(paramValues != null && !paramValues.isEmpty()) {
+			logger.info("Executing parameters within insight recipe");
+			String paramPixel = null;
+			// we will assume we have panel 0
+			// and that we are filling this in via the BE
+			Insight paramInsight = runner.getInsight();
+			Map<String, NounMetadata> insightParamInput = paramInsight.getVarStore().pullParameters();
+			
+			InsightPanel panel0 = paramInsight.getInsightPanel("0");
+			// make sure we have a param
+			if(panel0 != null) {
+				String panel0View = panel0.getPanelView();
+				if("param".equals(panel0View)) {
+					Map<String, Map<String, Object>> panelViewMap = panel0.getPanelViewOptions();
+					Map<String, Object> paramMap = panelViewMap.get("param");
+					if(paramMap != null) {
+						List<Map<String, Object>> jsonMapArray = (List<Map<String, Object>>) paramMap.get("json");
+						if(jsonMapArray != null && !jsonMapArray.isEmpty()) {
+							Map<String, Object> jsonMap = jsonMapArray.get(0);
+							paramPixel = (String) jsonMap.get("query");
+						}
+					}
+				}
+			}
+			
+			if(paramPixel == null) {
+				additionalMetas.add(getWarning("Could not properly parse the insight recipe to generate the parameterized pixel expression"));
+			} else {
+				// move the parameters into the new insight
+				// and set the user defined default values
+				VarStore newInsightVarStore = newInsight.getVarStore();
+				for(String paramKey : insightParamInput.keySet()) {
+					NounMetadata paramNoun = insightParamInput.get(paramKey);
+					ParamStruct pStruct = (ParamStruct) paramNoun.getValue();
+					
+					Object setValue = paramValues.get(pStruct.getParamName());
+					if(setValue != null) {
+						List<ParamStructDetails> details = pStruct.getDetailsList();
+						for(ParamStructDetails detail : details) {
+							detail.setCurrentValue(setValue);
+						}
+					}
+					
+					// still set the value
+					// since we will pull the default from the param struct otherwise
+					newInsightVarStore.put(paramKey, paramNoun);
+				}
+				
+				String executionPixel = "META | RunParameterRecipe(recipe=[\"<encode>" + paramPixel + "</encode>\"], fill=true);";
+				// get a NEW runner object
+				PixelRunner innerRunner = newInsight.runPixel(executionPixel);
+				// pull the inner pixel runner out
+				// since FE is not recursive in how it deals with the payload
+				Map<String, Object> innerRunnerMap = (Map<String, Object>) innerRunner.getResults().get(0).getValue();
+				runner = (PixelRunner) innerRunnerMap.get("runner");
+			}
+		}
 		
 		/*
 		 * 5) Run any additional pixels that are also passed in 
@@ -245,12 +304,15 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		// after we have gotten back either the insight or cached insight
 		// now we can add the additional pixels if any were past in / exist
+		List<String> additionalPixels = getAdditionalPixels();
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
+			logger.info("Running additional pixels in addition to the insight recipe");
 			// use the existing runner
 			// and run the additional pixels
 			newInsight.runPixel(runner, additionalPixels);
 		}
 		
+		logger.info("Painting results");
 		// update the universal view count
 		GlobalInsightCountUpdater.getInstance().addToQueue(appId, rdbmsId);
 
@@ -263,17 +325,19 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", runner);
+		// this is old way of doing/passing params
+		// where FE sends to the BE and then the BE echos it back to the FE
 		runnerWraper.put("params", params);
 		runnerWraper.put("additionalPixels", additionalPixels);
 		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
-		if(additionalMeta != null) {
-			noun.addAdditionalReturn(additionalMeta);
+		if(additionalMetas != null && !additionalMetas.isEmpty()) {
+			noun.addAllAdditionalReturn(additionalMetas);
 		}
 		return noun;
 	}
 
 	protected List<String> getAdditionalPixels() {
-		GenRowStruct additionalPixels = this.store.getNoun(keysToGet[3]);
+		GenRowStruct additionalPixels = this.store.getNoun(ReactorKeysEnum.ADDITIONAL_PIXELS.getKey());
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
 			List<String> pixels = new Vector<String>();
 			int size = additionalPixels.size();
@@ -281,6 +345,16 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				pixels.add(additionalPixels.get(i).toString());
 			}
 			return pixels;
+		}
+
+		// no additional pixels to run
+		return null;
+	}
+	
+	protected Map<String, String> getInsightParamValueMap() {
+		GenRowStruct paramValues = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if(paramValues != null && !paramValues.isEmpty()) {
+			return (Map<String, String>) paramValues.get(0);
 		}
 
 		// no additional pixels to run
@@ -383,7 +457,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		return varsToExclude;
 	}
-	
 	
 	/**
 	 * For legacy insights
