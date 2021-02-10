@@ -77,8 +77,8 @@ import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.py.PyTranslatorFactory;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
@@ -275,6 +275,12 @@ public class Insight {
 		List<String> pixelList = new Vector<String>();
 		pixelList.add(pixelString);
 		return runPixel(pixelList);
+	}
+	
+	public PixelRunner runPixel(PixelRunner runner, String pixelString) {
+		List<String> pixelList = new Vector<String>();
+		pixelList.add(pixelString);
+		return runPixel(runner, pixelList);
 	}
 
 	public PixelRunner runPixel(List<String> pixelList) {
