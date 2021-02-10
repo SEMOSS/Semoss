@@ -36,7 +36,7 @@ public class SetPanelViewReactor extends AbstractInsightPanelReactor {
 		// get the view and options
 		String view = getPanelView();
 		String viewOptions = getPanelViewOptions();
-		Map<String, String> viewOptionsMap = new HashMap<String, String>();;
+		Map<String, Object> viewOptionsMap = new HashMap<String, Object>();
 		if(viewOptions != null && !viewOptions.isEmpty()) {
 			try {
 				viewOptionsMap = GSON.fromJson(viewOptions, Map.class);

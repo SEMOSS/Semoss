@@ -36,8 +36,20 @@ public class SetInsightParamValueReactor extends AbstractInsightParameterReactor
 		NounMetadata paramNoun = this.insight.getVarStore().get(variableName);
 		if(paramNoun == null ||
 				(paramNoun.getNounType() != PixelDataType.PARAM_STRUCT) ) {
+			// will make my own param struct
+			// and also fill in
+			ParamStruct p = new ParamStruct();
+			p.setParamName(paramName);
+			ParamStructDetails d = new ParamStructDetails();
+			d.setCurrentValue(setValue);
+			p.addParamStructDetails(d);
+			// store in the insight
+			paramNoun = new NounMetadata(p, PixelDataType.PARAM_STRUCT);
+			this.insight.getVarStore().put(variableName, paramNoun);
+			// still just return false to denote it wasn't pre-existing
 			return new NounMetadata(false, PixelDataType.BOOLEAN);
 		}
+		
 		ParamStruct pStruct = (ParamStruct) paramNoun.getValue();
 		List<ParamStructDetails> details = pStruct.getDetailsList();
 		for(ParamStructDetails detail : details) {

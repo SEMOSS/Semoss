@@ -58,6 +58,7 @@ import prerna.util.Constants;
 public class PixelUtility {
 
 	private static final Logger logger = LogManager.getLogger(PixelUtility.class);
+	private static final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 	/**
 	 * 
@@ -515,6 +516,8 @@ public class PixelUtility {
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		List<String> paramedRecipe = new Vector<>(2);
+		// if i add parameters here
+		appendAddInsightParameter(currentInsight, paramedRecipe);
 		paramedRecipe.add("META | AddPanel(0);");
 		paramedRecipe.add("META | Panel (0) | SetPanelView(\"param\", \"<encode> {\"beFill\":true, \"json\":" + gson.toJson(insightJsonObject) + "}</encode>\");");
 		return paramedRecipe;
@@ -528,14 +531,32 @@ public class PixelUtility {
 	 */
 	public static List<String> getMetaInsightRecipeSteps(Insight in) {
 		List<String> additionalSteps = new Vector<>();
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		PixelList pixelList = in.getPixelList();
-		VarStore varStore = in.getVarStore();
-		
 		// add the pipeline positions
 		{
+			appendPositionInsightRecipeStep(in, additionalSteps);
+		}
+//		// add the semoss parameters
+//		{
+//			appendAddInsightParameter(in, additionalSteps);
+//		}
+		// add the insight config
+		{
+			appendSetInsightConfig(in, additionalSteps);
+		}
+		
+		return additionalSteps;
+	}
+	
+	/**
+	 * Append the position insight recipe step to the recipe list
+	 * @param in
+	 * @param additionalSteps
+	 */
+	public static void appendPositionInsightRecipeStep(Insight in, List<String> additionalSteps) {
+		PixelList pixelList = in.getPixelList();
+		int size = pixelList.size();
+		if(size > 0) {
 			StringBuilder builder = new StringBuilder("META | PositionInsightRecipe(");
-			int size = pixelList.size();
 			for(int i = 0; i < size; i++) {
 				Pixel pixel = pixelList.get(i);
 				Map<String, Object> position = pixel.getPositionMap();
@@ -552,29 +573,39 @@ public class PixelUtility {
 			builder.append(");");
 			additionalSteps.add(builder.toString());
 		}
-		// add the semoss parameters
-		{
-			Set<String> params = varStore.getInsightParameterKeys();
-			// loop through the keys
-			// and gson it
-			for(String paramKey : params) {
-				NounMetadata paramNoun = varStore.get(paramKey);
-				ParamStruct param = (ParamStruct) paramNoun.getValue();
-				additionalSteps.add("META | AddInsightParameter(" + gson.toJson(param) + ");");
-			}
+	}
+	
+	/**
+	 * Append add insight parameter to the recipe list
+	 * @param in
+	 * @param additionalSteps
+	 */
+	public static void appendAddInsightParameter(Insight in, List<String> additionalSteps) {
+		VarStore varStore = in.getVarStore();
+		Set<String> params = varStore.getInsightParameterKeys();
+		// loop through the keys
+		// and gson it
+		for(String paramKey : params) {
+			NounMetadata paramNoun = varStore.get(paramKey);
+			ParamStruct param = (ParamStruct) paramNoun.getValue();
+			additionalSteps.add("META | AddInsightParameter(" + gson.toJson(param) + ");");
 		}
-		// add the insight config
-		{
-			NounMetadata noun = varStore.get(SetInsightConfigReactor.INSIGHT_CONFIG);
-			if(noun != null) {
-				StringBuilder builder = new StringBuilder("META | SetInsightConfig(");
-				builder.append(gson.toJson(noun.getValue()));
-				builder.append(");");
-				additionalSteps.add(builder.toString());
-			}
+	}
+	
+	/**
+	 * Add set insight config to the recipe list
+	 * @param in
+	 * @param additionalSteps
+	 */
+	public static void appendSetInsightConfig(Insight in, List<String> additionalSteps) {
+		VarStore varStore = in.getVarStore();
+		NounMetadata noun = varStore.get(SetInsightConfigReactor.INSIGHT_CONFIG);
+		if(noun != null) {
+			StringBuilder builder = new StringBuilder("META | SetInsightConfig(");
+			builder.append(gson.toJson(noun.getValue()));
+			builder.append(");");
+			additionalSteps.add(builder.toString());
 		}
-		
-		return additionalSteps;
 	}
 	
 	/**

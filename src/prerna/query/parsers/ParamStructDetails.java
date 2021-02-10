@@ -335,7 +335,7 @@ public class ParamStructDetails {
 			return "";
 		} else if(quote == QUOTE.SINGLE) {
 			return "'";
-		} else if(quote == QUOTE.NO) {
+		} else if(quote == QUOTE.DOUBLE) {
 			return "\"";
 		}
 		
