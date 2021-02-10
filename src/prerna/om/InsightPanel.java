@@ -30,7 +30,7 @@ public class InsightPanel {
 	// panel configuration - opacity, etc.
 	private Map<String, Object> config;
 	// view options on the current view
-	private transient Map<String, Map<String, String>> viewOptionsMap;
+	private transient Map<String, Map<String, Object>> viewOptionsMap;
 	// state held for UI options on the panel
 	private transient Map<String, Object> ornaments;
 	// state held for events on the panel
@@ -58,7 +58,7 @@ public class InsightPanel {
 	public InsightPanel(String panelId, String sheetId) {
 		this.panelId = panelId;
 		this.sheetId = sheetId;
-		this.viewOptionsMap = new HashMap<String, Map<String, String>>();
+		this.viewOptionsMap = new HashMap<String, Map<String, Object>>();
 		this.config = new HashMap<String, Object>();
 		this.ornaments = new HashMap<String, Object>();
 		this.events = new HashMap<String, Object>();
@@ -452,7 +452,7 @@ public class InsightPanel {
 //		}
 		
 		// set the current view options
-		Map<String, String> thisViewMap = this.viewOptionsMap.get(view);
+		Map<String, Object> thisViewMap = this.viewOptionsMap.get(view);
 		// set the current view options
 		if(thisViewMap == null) {
 			this.viewOptions = null;
@@ -470,18 +470,18 @@ public class InsightPanel {
 	 * @param view
 	 * @param viewOptions
 	 */
-	public void appendPanelViewOptions(String view, Map<String, String> viewOptions) {
+	public void appendPanelViewOptions(String view, Map<String, Object> viewOptions) {
 		if(viewOptions != null && !viewOptions.isEmpty()) {
 			// view options is append only
 			if(this.viewOptionsMap.containsKey(view)) {
-				Map<String, String> thisViewMap = this.viewOptionsMap.get(view);
+				Map<String, Object> thisViewMap = this.viewOptionsMap.get(view);
 				thisViewMap.putAll(viewOptions);
 			} else {
 				this.viewOptionsMap.put(view, viewOptions);
 			}
 		}
 		
-		Map<String, String> thisViewMap = this.viewOptionsMap.get(view);
+		Map<String, Object> thisViewMap = this.viewOptionsMap.get(view);
 		// set the current view options
 		if(thisViewMap == null) {
 			this.viewOptions = null;
@@ -498,17 +498,17 @@ public class InsightPanel {
 		return this.viewOptions;
 	}
 	
-	public Map<String, Map<String, String>> getPanelViewOptions() {
+	public Map<String, Map<String, Object>> getPanelViewOptions() {
 		return this.viewOptionsMap;
 	}
 	
-	public void setPanelViewOptions(Map<String, Map<String, String>> viewOptions) {
+	public void setPanelViewOptions(Map<String, Map<String, Object>> viewOptions) {
 		if(viewOptions != null) {
 			this.viewOptionsMap = viewOptions;
 		}
 		
 		// set the current view options
-		Map<String, String> thisViewMap = this.viewOptionsMap.get(view);
+		Map<String, Object> thisViewMap = this.viewOptionsMap.get(view);
 		if(thisViewMap != null) {
 			this.viewOptions = GSON.toJson(thisViewMap);
 		}

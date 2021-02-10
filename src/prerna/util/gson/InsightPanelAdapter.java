@@ -54,7 +54,7 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		String panelLabel = null;
 		String view = null;
 		String viewOptions = null;
-		Map<String, Map<String, String>> viewOptionsMap = null;
+		Map<String, Map<String, Object>> viewOptionsMap = null;
 		Map<String, Object> config = null;
 		Map<String, Object> ornaments = null;
 		Map<String, Object> events = null;
@@ -95,7 +95,7 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 				viewOptions = value;
 			} else if(key.equals("viewOptionsMap")) {
 				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
-				viewOptionsMap = (Map<String, Map<String, String>>) adapter.read(in);
+				viewOptionsMap = (Map<String, Map<String, Object>>) adapter.read(in);
 				
 			} else if(key.equals("config")) {
 				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
@@ -222,7 +222,7 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		out.name("viewOptions").value(value.getPanelActiveViewOptions());
 		out.name("viewOptionsMap");
 		{
-			Map<String, Map<String, String>> obj = value.getPanelViewOptions();
+			Map<String, Map<String, Object>> obj = value.getPanelViewOptions();
 			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
 			adapter.write(out, obj);
 		}
