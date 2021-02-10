@@ -119,6 +119,7 @@ public enum ReactorKeysEnum {
 	PARAM_KEY("params", 									"The parameters for the insight map"),
 	PARAM_NAME("paramName", 								"The name of the parameter"),
 	PARAM_STRUCT("paramStruct",								"Map containing the details for the parameter"),
+	PARAM_VALUES_MAP("paramValues",							"Map containing the param name to param values"),
 	PARALLEL_WORKER("parallel_worker", 						"Class that will run as a thread"),
 	PASSWORD("password", 									"Password used in conjunction with the username for access to a service"),
 	PIXEL("pixel", 											"Pixel script as string"),
