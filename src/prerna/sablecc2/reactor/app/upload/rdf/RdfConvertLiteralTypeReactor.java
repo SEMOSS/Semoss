@@ -88,6 +88,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 			}
 		}
 		
+		int counter = 0;
 		String warning = null;
 		for(Object[] modification : collection) {
 			String subject = modification[0] + "";
@@ -95,9 +96,13 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 			
 			logger.info("Modifying object " + Arrays.toString(modification));
 			// remove
-			engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, 
-					new Object[] {subject, propertyUri, object, false});
-			
+			if(object instanceof SemossDate) {
+				engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, 
+						new Object[] {subject, propertyUri, ((SemossDate) object).getDate(), false});
+			} else {
+				engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, 
+						new Object[] {subject, propertyUri, object, false});
+			}
 			// now we try to convert the object
 			try {
 				Object newObject = null;
@@ -115,13 +120,13 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 					} else if(object instanceof String){
 						SemossDate dateObject = SemossDate.genDateObj(object + "");
 						if(dateObject == null) {
-							warning = "Some values did not property parse";
+							warning = "Some values did not properly parse";
 							continue;
 						}
 						
 						newObject = dateObject.getDate();
 					} else {
-						warning = "Some values did not property parse";
+						warning = "Some values did not properly parse";
 						continue;
 					}
 				} else if(newDataType == SemossDataType.BOOLEAN) {
@@ -131,15 +136,16 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 				// add
 				engine.doAction(ACTION_TYPE.ADD_STATEMENT, 
 						new Object[] {subject, propertyUri, newObject, false});
+				counter++;
 			} catch(Exception e) {
-				warning = "Some values did not property parse";
+				warning = "Some values did not properly parse";
 			}
 		}
 		engine.commit();
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		if(warning == null) {
-			noun.addAdditionalReturn(getSuccess("Successfully modified the data type of " + property + " to " + newDataType));
+			noun.addAdditionalReturn(getSuccess("Successfully modified the data type of " + property + " to " + newDataType + ". Number of rows modifed = " + counter));
 		} else {
 			noun.addAdditionalReturn(getWarning(warning));
 		}
