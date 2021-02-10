@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
+import prerna.om.Pixel;
 import prerna.query.parsers.ParamStruct;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelUtility;
@@ -80,6 +81,21 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 		this.insight.setPixelRecipe(pixelList);
 		// rerun the recipe
 		PixelRunner runner = this.insight.reRunPixelInsight(false, true);
+		
+		// THIS IS BECAUSE SOMEONE MADE REALLY ANNOYING TAP CORE PARAMETER INSIGHTS
+		// AND DIDN'T PUT AddPanel(0) INSIDE THE QUERY PORTION OF THE JSON
+		{
+			if(this.insight.getInsightPanels().containsKey("0")) {
+				List<Pixel> runnerPixelReturn = runner.getReturnPixelList();
+				Pixel meta = new Pixel("meta", "AddPanel(\"0\")");
+				meta.setMeta(true);
+				runnerPixelReturn.add(0, meta);
+				List<NounMetadata> runnerResults = runner.getResults();
+				runnerResults.add(0, new NounMetadata(insight.getInsightPanel("0"), 
+						PixelDataType.PANEL, PixelOperationType.PANEL_OPEN));
+			}
+		}
+		
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", runner);
