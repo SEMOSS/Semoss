@@ -47,6 +47,7 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.EXECUTION_END));
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.EXECUTION_DELTA));
 		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.SUCCESS));
+		qs.addSelector(new QueryColumnSelector(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.IS_LATEST));
 		qs.addRelation(SchedulerConstants.SMSS_JOB_RECIPES+"__"+SchedulerConstants.JOB_ID, SchedulerConstants.SMSS_AUDIT_TRAIL+"__"+SchedulerConstants.JOB_ID, "left.outer.join");
 
 /*		QueryFunctionSelector tagSelector = new QueryFunctionSelector();
@@ -62,7 +63,7 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 		qs.addRelation(SchedulerConstants.SMSS_AUDIT_TRAIL+"__"+SchedulerConstants.JOB_ID, SchedulerConstants.SMSS_JOB_TAGS+"__"+SchedulerConstants.JOB_ID, "inner.join");
  */
 		
-		if( jobTags != null ) {
+		if(jobTags != null && !jobTags.isEmpty()) {
 			// require specific job tags
 			qs.addRelation(SchedulerConstants.SMSS_JOB_RECIPES+"__"+SchedulerConstants.JOB_ID, SchedulerConstants.SMSS_JOB_TAGS+"__"+SchedulerConstants.JOB_ID, "inner.join");
 			for( String tag : jobTags ) {
@@ -88,7 +89,6 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 		IRawSelectWrapper iterator = null;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(schedulerDb, qs);
-//			diagnose(iterator);
 		} catch (Exception e) {
 			e.printStackTrace();
 			String message = e.getMessage();
@@ -160,19 +160,4 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 		}
 		return jobTags;
 	}
-
-//	private void diagnose( IRawSelectWrapper iterator )
-//	{
-//	    try {
-//		    String query = iterator.getQuery();
-//			System.out.println("***********************************");
-//			System.out.println(query);
-//			System.out.println("***********************************");
-//		}
-//	    catch( Throwable t )
-//		{
-//			t.printStackTrace();
-//		}
-//	}
-
 }
