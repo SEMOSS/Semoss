@@ -26,6 +26,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INTEGER;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INT_PROP_1;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INT_PROP_2;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IS_DURABLE;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IS_LATEST;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IS_NONCONCURRENT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IS_UPDATE_DATA;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_CATEGORY;
@@ -161,7 +162,14 @@ public class SchedulerOwlCreator {
 			//ignore
 		}
 
-		return !cleanConcepts.containsAll(conceptsRequired);
+		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
+		if(check1) {
+			List<String> props = schedulerDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_AUDIT_TRAIL");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/IS_LATEST/SMSS_AUDIT_TRAIL")) {
+				return true;
+			}
+		}
+		return !check1;
 	}
 
 	/**
@@ -337,6 +345,7 @@ public class SchedulerOwlCreator {
 		owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_END, TIMESTAMP);
 		owler.addProp(SMSS_AUDIT_TRAIL, EXECUTION_DELTA, VARCHAR_255);
 		owler.addProp(SMSS_AUDIT_TRAIL, SUCCESS, BOOLEAN);
+		owler.addProp(SMSS_AUDIT_TRAIL, IS_LATEST, BOOLEAN);
 
 		// SMSS_JOB_TAGS
 		owler.addConcept(SMSS_JOB_TAGS, null, null);

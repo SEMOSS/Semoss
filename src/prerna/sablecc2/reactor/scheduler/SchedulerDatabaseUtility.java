@@ -1,9 +1,7 @@
 package prerna.sablecc2.reactor.scheduler;
 
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BIGINT;
-import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BIT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BLOB_DATA;
-import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BOOLEAN;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BOOL_PROP_1;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.BOOL_PROP_2;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.CALENDAR;
@@ -26,6 +24,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INTEGER;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INT_PROP_1;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.INT_PROP_2;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IS_DURABLE;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IS_LATEST;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IS_NONCONCURRENT;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.IS_UPDATE_DATA;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.JOB_CATEGORY;
@@ -149,12 +148,16 @@ public class SchedulerDatabaseUtility {
 			+ "SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, "
 			+ "SMSS_JOB_RECIPES.PARAMETERS, "
 			+ "QRTZ_TRIGGERS.NEXT_FIRE_TIME, "
-			+ "QRTZ_TRIGGERS.PREV_FIRE_TIME, "
+			// fetching the execution start time value from audit trail table 
+			+ "SMSS_AUDIT_TRAIL.EXECUTION_START, "
 			+ "QRTZ_TRIGGERS.TRIGGER_STATE";
 
 	private static final String JOIN_JOB_DETAILS_QUERY = "LEFT OUTER JOIN QRTZ_TRIGGERS ON "
 			+ "SMSS_JOB_RECIPES.JOB_ID = QRTZ_TRIGGERS.JOB_NAME "
-			+ "AND SMSS_JOB_RECIPES.JOB_GROUP = QRTZ_TRIGGERS.JOB_GROUP ";
+			+ "AND SMSS_JOB_RECIPES.JOB_GROUP = QRTZ_TRIGGERS.JOB_GROUP "
+			// added join on audit trail table to fetch the previous run time based on is_latest 
+			+ "LEFT OUTER JOIN SMSS_AUDIT_TRAIL ON SMSS_JOB_RECIPES.JOB_ID = SMSS_AUDIT_TRAIL.JOB_ID "
+			+ "AND SMSS_AUDIT_TRAIL.IS_LATEST=? ";
 
 	static RDBMSNativeEngine schedulerDb;
 	static AbstractSqlQueryUtil queryUtil;
@@ -298,15 +301,27 @@ public class SchedulerDatabaseUtility {
 		Timestamp endTimeStamp = new Timestamp(end);
 		
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		
+		// update is_latest to false for all the existing records of this job id
+		try{
+			PreparedStatement updateAuditTrailStatement = connection
+					.prepareStatement("UPDATE SMSS_AUDIT_TRAIL SET IS_LATEST=? WHERE JOB_ID=?");
+			updateAuditTrailStatement.setBoolean(1, false);
+			updateAuditTrailStatement.setString(2, jobId);
+			updateAuditTrailStatement.executeUpdate();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+			return false;
+		}
+		// now insert the new record with is_latest as true
 		try (PreparedStatement statement = connection
-				.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL (JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS) VALUES (?,?,?,?,?,?)")) {
+				.prepareStatement("INSERT INTO SMSS_AUDIT_TRAIL (JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS, IS_LATEST) VALUES (?,?,?,?,?,?,?)")) {
 			statement.setString(1, jobId);
 			statement.setString(2, jobGroup);
 			statement.setTimestamp(3, startTimeStamp, cal);
 			statement.setTimestamp(4, endTimeStamp, cal);
 			statement.setString(5, String.valueOf(end - start));
 			statement.setBoolean(6, success);
+			statement.setBoolean(7, true);
 			statement.executeUpdate();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -508,7 +523,9 @@ public class SchedulerDatabaseUtility {
 
 		try (PreparedStatement statement = connection
 				.prepareStatement(createJobQuery("WHERE SMSS_JOB_RECIPES.JOB_GROUP=?",jobTags))) {
-			statement.setString(1, appId);
+			// always have the is_latest value
+			statement.setBoolean(1, true);
+			statement.setString(2, appId);
 
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
@@ -527,8 +544,10 @@ public class SchedulerDatabaseUtility {
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
 				.prepareStatement(createJobQuery(" WHERE SMSS_JOB_RECIPES.USER_ID=? AND SMSS_JOB_RECIPES.JOB_GROUP=?",jobTags))) {
-			statement.setString(1, userId);
-			statement.setString(2, appId);
+			// always have the is_latest value
+			statement.setBoolean(1, true);
+			statement.setString(2, userId);
+			statement.setString(3, appId);
 
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
@@ -547,7 +566,9 @@ public class SchedulerDatabaseUtility {
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = connection
 				.prepareStatement(createJobQuery(" WHERE SMSS_JOB_RECIPES.USER_ID=?",jobTags))) {
-			statement.setString(1, userId);
+			// always have the is_latest value
+			statement.setBoolean(1, true);
+			statement.setString(2, userId);
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
 					fillJobDetailsMap(jobMap, result);
@@ -574,7 +595,6 @@ public class SchedulerDatabaseUtility {
 		queryBuilder.append(", (SELECT ")
 			.append(queryUtil.processGroupByFunction("JOB_TAG", ",", true))
 			.append(" FROM SMSS_JOB_TAGS WHERE SMSS_JOB_TAGS.JOB_ID=SMSS_JOB_RECIPES.JOB_ID) AS JOB_TAGS ");
-
 		if(jobTags == null) {
 			queryBuilder.append( "FROM SMSS_JOB_RECIPES ");
 		} else {
@@ -612,6 +632,8 @@ public class SchedulerDatabaseUtility {
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		String query = createJobQuery(null, jobTags);
 		try (PreparedStatement statement = connection.prepareStatement(query)) {
+			// always have the is_latest value
+			statement.setBoolean(1, true);
 			try (ResultSet result = statement.executeQuery()) {
 				while (result.next()) {
 					fillJobDetailsMap(jobMap, result);
@@ -623,7 +645,7 @@ public class SchedulerDatabaseUtility {
 
 		return jobMap;
 	}
-	
+		
 	private static void fillJobDetailsMap(Map<String, Map<String, String>> jobMap, ResultSet result) throws SQLException {
 		Map<String, String> jobDetailsMap = new HashMap<>();
 
@@ -636,14 +658,11 @@ public class SchedulerDatabaseUtility {
 		String recipe = null;
 		String recipeParameters = null;
 		String parameters = null;
-		BigInteger prevExecTime = null;
 		BigInteger nextExecTime = null;
-		BigDecimal pExecTimeD = result.getBigDecimal(PREV_FIRE_TIME);
 		BigDecimal nExecTimeD = result.getBigDecimal(NEXT_FIRE_TIME);
 		String tiggerState = result.getString(TRIGGER_STATE);
-		if(pExecTimeD != null) {
-			prevExecTime = pExecTimeD.toBigInteger();
-		}
+		Timestamp previousRun = result.getTimestamp(EXECUTION_START);
+		
 		if(nExecTimeD != null) {
 			nextExecTime = nExecTimeD.toBigInteger();
 		}
@@ -678,6 +697,13 @@ public class SchedulerDatabaseUtility {
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), recipeParameters);
 		jobDetailsMap.put(ScheduleJobReactor.PARAMETERS, parameters);
+		// setting the prev_fire_time fom the smss audit table
+		if(previousRun != null) {
+			jobDetailsMap.put(PREV_FIRE_TIME, previousRun.toString());			
+		} else {
+			jobDetailsMap.put(PREV_FIRE_TIME, "N/A");
+		}
+
 		// add next fire time
 		if(nextExecTime != null && !tiggerState.equals("PAUSED")) {
 			Instant instant = Instant.ofEpochMilli(nextExecTime.longValue());
@@ -686,18 +712,6 @@ public class SchedulerDatabaseUtility {
 		} else {
 			jobDetailsMap.put(NEXT_FIRE_TIME, "INACTIVE");
 		}
-		if(prevExecTime != null) {
-			if(BigInteger.valueOf(-1).equals(prevExecTime)) {
-				jobDetailsMap.put(PREV_FIRE_TIME, "N/A");
-			} else {
-				Instant instant = Instant.ofEpochMilli(prevExecTime.longValue());
-				DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-				jobDetailsMap.put(PREV_FIRE_TIME, fmt.format(instant.atZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()).toZoneId())));
-			}
-		} else {
-			jobDetailsMap.put(PREV_FIRE_TIME, "INACTIVE");
-		}
-
 		// add to the job map
 		JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 		jobMap.put(jobKey.toString(), jobDetailsMap);
@@ -724,7 +738,6 @@ public class SchedulerDatabaseUtility {
 				JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 				logger.info("Triggering job on startup " + jobName);
 				scheduler.triggerJob(jobKey);
-				
 			}
 
 			logger.info("All trigger on load jobs executed successfully");
@@ -802,8 +815,8 @@ public class SchedulerDatabaseUtility {
 
 	private static void createQuartzTables(Connection connection, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-		boolean allowBooleanDataType = queryUtil.allowBooleanDataType();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
 		String[] colNames = null;
@@ -814,7 +827,6 @@ public class SchedulerDatabaseUtility {
 			// QRTZ_CALENDARS
 			colNames = new String[] { SCHED_NAME, CALENDAR_NAME, CALENDAR };
 			types = new String[] { VARCHAR_120, VARCHAR_200, IMAGE };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
  			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL };
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(queryUtil.createTableIfNotExistsWithCustomConstraints(QRTZ_CALENDARS, colNames,
@@ -831,7 +843,6 @@ public class SchedulerDatabaseUtility {
 			// QRTZ_CRON_TRIGGERS
 			colNames = new String[] { SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP, CRON_EXPRESSION, TIME_ZONE_ID };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_120, VARCHAR_80 };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null };
 	
 			if (allowIfExistsTable) {
@@ -850,8 +861,7 @@ public class SchedulerDatabaseUtility {
 			colNames = new String[] { SCHED_NAME, ENTRY_ID, TRIGGER_NAME, TRIGGER_GROUP, INSTANCE_NAME, FIRED_TIME,
 					SCHED_TIME, PRIORITY, STATE, JOB_NAME, JOB_GROUP, IS_NONCONCURRENT, REQUESTS_RECOVERY };
 			types = new String[] { VARCHAR_120, VARCHAR_95, VARCHAR_200, VARCHAR_200, VARCHAR_200, BIGINT, BIGINT, INTEGER,
-					VARCHAR_16, VARCHAR_200, VARCHAR_200, BOOLEAN, BOOLEAN };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
+					VARCHAR_16, VARCHAR_200, VARCHAR_200, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL,
 					NOT_NULL, null, null, null, null };
 	
@@ -870,7 +880,6 @@ public class SchedulerDatabaseUtility {
 			// QRTZ_PAUSED_TRIGGER_GRPS
 			colNames = new String[] { SCHED_NAME, TRIGGER_GROUP };
 			types = new String[] { VARCHAR_120, VARCHAR_200 };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL };
 	
 			if (allowIfExistsTable) {
@@ -888,7 +897,6 @@ public class SchedulerDatabaseUtility {
 			// QRTZ_SCHEDULER_STATE
 			colNames = new String[] { SCHED_NAME, INSTANCE_NAME, LAST_CHECKIN_TIME, CHECKIN_INTERVAL };
 			types = new String[] { VARCHAR_120, VARCHAR_200, BIGINT, BIGINT };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL };
 	
 			if (allowIfExistsTable) {
@@ -906,7 +914,6 @@ public class SchedulerDatabaseUtility {
 			// QRTZ_LOCKS
 			colNames = new String[] { SCHED_NAME, LOCK_NAME };
 			types = new String[] { VARCHAR_120, VARCHAR_40 };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL };
 	
 			if (allowIfExistsTable) {
@@ -924,9 +931,8 @@ public class SchedulerDatabaseUtility {
 			// QRTZ_JOB_DETAILS
 			colNames = new String[] { SCHED_NAME, JOB_NAME, JOB_GROUP, DESCRIPTION, JOB_CLASS_NAME, IS_DURABLE,
 					IS_NONCONCURRENT, IS_UPDATE_DATA, REQUESTS_RECOVERY, JOB_DATA };
-			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_250, VARCHAR_250, BOOLEAN, BOOLEAN,
-					BOOLEAN, BOOLEAN, IMAGE };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
+			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_250, VARCHAR_250, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE,
+					BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, IMAGE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL,
 					NOT_NULL, null };
 	
@@ -946,7 +952,6 @@ public class SchedulerDatabaseUtility {
 			colNames = new String[] { SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP, REPEAT_COUNT, REPEAT_INTERVAL,
 					TIMES_TRIGGERED };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, BIGINT, BIGINT, BIGINT };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL };
 	
 			if (allowIfExistsTable) {
@@ -965,8 +970,7 @@ public class SchedulerDatabaseUtility {
 			colNames = new String[] { SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP, STR_PROP_1, STR_PROP_2, STR_PROP_3,
 					INT_PROP_1, INT_PROP_2, LONG_PROP_1, LONG_PROP_2, DEC_PROP_1, DEC_PROP_2, BOOL_PROP_1, BOOL_PROP_2 };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_512, VARCHAR_512, VARCHAR_512, INTEGER,
-					INTEGER, BIGINT, BIGINT, NUMERIC_13_4, NUMERIC_13_4, BOOLEAN, BOOLEAN };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
+					INTEGER, BIGINT, BIGINT, NUMERIC_13_4, NUMERIC_13_4, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null, null, null, null,
 					null, null };
 	
@@ -985,7 +989,6 @@ public class SchedulerDatabaseUtility {
 			// QRTZ_BLOB_TRIGGERS
 			colNames = new String[] { SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP, BLOB_DATA };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, IMAGE };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null };
 	
 			if (allowIfExistsTable) {
@@ -1006,7 +1009,6 @@ public class SchedulerDatabaseUtility {
 					CALENDAR_NAME, MISFIRE_INSTR, JOB_DATA };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_250, BIGINT,
 					BIGINT, INTEGER, VARCHAR_16, VARCHAR_8, BIGINT, BIGINT, VARCHAR_200, SMALLINT, IMAGE };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, NOT_NULL,
 					NOT_NULL, NOT_NULL, null, null, null, null };
 	
@@ -1029,21 +1031,22 @@ public class SchedulerDatabaseUtility {
 	private static void createSemossTables(Connection connection, String schema) {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-		boolean allowBooleanDataType = queryUtil.allowBooleanDataType();
 		boolean allowBlobDataType = queryUtil.allowBlobDataType();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		String dateTimeType = queryUtil.getDateWithTimeDataType();
 		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
-		
+		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
+
 		String[] colNames = null;
 		String[] types = null;
 		Object[] constraints = null;
 
 		try {
 			// SMSS_JOB_RECIPES
-			colNames = new String[] { USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS };
-			types = new String[] { VARCHAR_120, VARCHAR_200,VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB_DATATYPE_NAME, BLOB_DATATYPE_NAME, VARCHAR_200, BOOLEAN, BLOB_DATATYPE_NAME };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
+			colNames = new String[] { USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, 
+					JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS };
+			types = new String[] { VARCHAR_120, VARCHAR_200,VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB_DATATYPE_NAME, BLOB_DATATYPE_NAME, 
+					VARCHAR_200, BOOLEAN_DATATYPE, BLOB_DATATYPE_NAME };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null };
 
 			if (allowIfExistsTable) {
@@ -1099,9 +1102,9 @@ public class SchedulerDatabaseUtility {
 			}
 
 			// SMSS_AUDIT_TRAIL
-			colNames = new String[] { JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS };
-			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN };
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
+			// adding is_latest flag to mark the latest record
+			colNames = new String[] { JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS, IS_LATEST};
+			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE};
 			if(!dateTimeType.equals(TIMESTAMP)) { types = cleanUpDataType(types, TIMESTAMP, dateTimeType); };
 			constraints = new String[] { NOT_NULL, NOT_NULL, null, null, null, null, null };
 			if (allowIfExistsTable) {
@@ -1114,7 +1117,7 @@ public class SchedulerDatabaseUtility {
 					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types, constraints));
 				}
 			}
-
+			
 			// ADDED 2020-11-30
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
 			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
@@ -1125,11 +1128,29 @@ public class SchedulerDatabaseUtility {
 					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.modColumnName("SMSS_AUDIT_TRAIL", "JOB_NAME", "JOB_ID"), true);
 				}
 			}
+			// ADDED 2021-02-11
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			{
+				// adding the column is_latest 
+				if(!queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, schema).contains(IS_LATEST)) {
+					schedulerDb.execUpdateAndRetrieveStatement(queryUtil.alterTableAddColumn(SMSS_AUDIT_TRAIL, IS_LATEST, BOOLEAN_DATATYPE), true);
+					// being lazy - just update all the existing ones to be is_latest false
+					// in theory should go and find the last instance of each job id and update...
+					try{
+						PreparedStatement updateAuditTrailStatement = connection
+								.prepareStatement("UPDATE SMSS_AUDIT_TRAIL SET IS_LATEST=?");
+						updateAuditTrailStatement.setBoolean(1, false);
+						updateAuditTrailStatement.executeUpdate();
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
 
 			// SMSS_EXECUTION_SCHEDULE
 			colNames = new String[] { EXEC_ID, JOB_ID, JOB_GROUP};
 			types = new String[] { VARCHAR_200, VARCHAR_200, VARCHAR_200};
-			if(!allowBooleanDataType) { types = cleanUpBooleans(types); };
 			if(!dateTimeType.equals(TIMESTAMP)) { types = cleanUpDataType(types, TIMESTAMP, dateTimeType); };
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(queryUtil.createTableIfNotExists(SMSS_EXECUTION, colNames, types));
@@ -1156,20 +1177,6 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 	
-	/**
-	 * Clean up boolean for bit data type
-	 * @param arrays
-	 * @return
-	 */
-	private static String[] cleanUpBooleans(String[] arrays) {
-		for(int i = 0; i < arrays.length; i++) {
-			if(arrays[i].equals(BOOLEAN)) {
-				arrays[i] = BIT;
-			}
-		}
-		return arrays;
-	}
-
 	/**
 	 * Clean up blob data types
 	 * @param arrays
