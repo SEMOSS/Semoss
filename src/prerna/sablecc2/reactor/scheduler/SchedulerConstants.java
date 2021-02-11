@@ -85,6 +85,7 @@ public final class SchedulerConstants {
 	public static final String TRIGGER_ON_LOAD = "TRIGGER_ON_LOAD";
 	public static final String PARAMETERS = "PARAMETERS";
 	public static final String EXEC_ID = "EXEC_ID";
+	public static final String IS_LATEST = "IS_LATEST";
 	
 	// SQL data types
 	public static final String VARCHAR_8 = "VARCHAR (8)";
