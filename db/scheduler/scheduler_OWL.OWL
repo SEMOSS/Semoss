@@ -1445,6 +1445,20 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SUCCESS</Conceptual>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/SMSS_AUDIT_TRAIL">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_AUDIT_TRAIL">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/SMSS_AUDIT_TRAIL"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/SMSS_AUDIT_TRAIL">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:BOOLEAN"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_LATEST/SMSS_AUDIT_TRAIL"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_LATEST</Conceptual>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SMSS_JOB_TAGS">
 	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<domain xmlns="http://www.w3.org/2000/01/rdf-schema#">noData</domain>
@@ -1626,7 +1640,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2020:11:30 17:47:24</TIME>
+	<TIME xmlns="ENGINE:">2021:02:11 12:55:19</TIME>
 </rdf:Description>
 
 </rdf:RDF>
