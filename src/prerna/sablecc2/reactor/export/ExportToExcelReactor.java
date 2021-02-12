@@ -1363,7 +1363,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		txl.exportMap = exportMap;
 		txl.sheetName = excelSheetName;
 		String fileName = (String) exportMap.get("FILE_NAME");
+		Boolean gridSpanRows = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRIDSPANROWS) + "");
 		txl.processTable(excelSheetName, generateGridHtml(task, panel), fileName);
+		if(gridSpanRows) {
+			txl.mergeAreas();
+		}
 		logger.info("Done processing grid");
 	}
 
