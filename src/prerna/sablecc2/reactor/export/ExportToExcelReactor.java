@@ -67,6 +67,7 @@ import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.om.ColorByValueRule;
 import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -103,6 +104,14 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	private static final String CUSTOM_COLOR_ARRAY = "tools.shared.customColors";
 	private static final String COLOR_ARRAY = "tools.shared.color";
 	private static final String CHART_TITLE = "tools.shared.chartTitle.text";
+	
+	// for exporting grid
+	private static final String GRIDSPANROWS = "tools.shared.gridSpanRows";
+	private static final String TABLE_STYLE = "table-layout: fixed;border-collapse: collapse; border: 1px solid #d9d9d9; font-family: Arial, Helvetica, sans-serif; width: 100%; max-width: 600px;";
+	private static final String THEAD_STYLE = "background: #f5f5f5; color: #5c5c5c;";
+	private static final String TH_STYLE = "border: 1px solid #d9d9d9; padding: 8px;width: 200px; background-color: #00A8C1;color: #FFFFFF;font-size: .875em;";
+	private static final String TD_STYLE = "border: 1px solid #d9d9d9; padding: 8px;font-size: .875em;";
+
 	
 	protected String fileLocation = null;
 	Map <String, List<String>> orderOfPanelsMap = null;
@@ -495,9 +504,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				insertRadarChart(sheet, dataSheet,options, panel);
 			} else if(!plotType.equals("Grid") && !plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
 				insertImage(workbook, sheet, sheetId, panelId);
-			} else if(plotType.equals("Grid") || plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
-				insertGrid(sheet.getSheetName(), panelId, sheetId);
+			} else if (plotType.equals("Grid")) {
+				insertGrid(sheet.getSheetName(), task, panel);
+			} else if(plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
+				insertPivot(sheet.getSheetName(), panelId, sheetId);
 			}
+			
 		} catch(Exception ex) {
 			ex.printStackTrace();
 			if(driver != null) {
@@ -1303,7 +1315,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		return ys;
 	}
 	
-	private void insertGrid(String excelSheetName, String panelId, String sheetId) {
+	private void insertPivot(String excelSheetName, String panelId, String sheetId) {
 		//http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0 
 		//http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0  
 		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5 - this worked
@@ -1336,6 +1348,25 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		txl.processTable(excelSheetName, html2, fileName);
 		logger.info("Done processing grid");
 	}
+	
+	
+	/**
+	 * Creating Html content and passed TableToXLSXReactor
+	 * @param excelSheetName  
+	 * @param task complete data 
+	 * @param panel insight panel information
+	 */
+	private void insertGrid(String excelSheetName, ITask task, InsightPanel panel) {
+		//get the string HTML from task
+		TableToXLSXReactor txl = new TableToXLSXReactor();
+		//it contains the all the param info
+		txl.exportMap = exportMap;
+		txl.sheetName = excelSheetName;
+		String fileName = (String) exportMap.get("FILE_NAME");
+		txl.processTable(excelSheetName, generateGridHtml(task, panel), fileName);
+		logger.info("Done processing grid");
+	}
+
 
 	/**
 	 * 
@@ -1413,6 +1444,146 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		sheetLastRow = sheetLastRow + height + rowGutter;
 		exportMap.put(targetSheet.getSheetName() + "ROW_COUNT", sheetLastRow);		
+	}
+	
+	/*
+	 * generate HTML string from the grid data
+	 * 
+	 * task contains the dataframe
+	 * panel contains the all the ornaments and panel formats and color by values
+	 */
+	private String generateGridHtml(ITask task, InsightPanel panel) {
+        // get the gridSpanRows param from the ornaments for the grid rowspan
+		Boolean gridSpanRows = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRIDSPANROWS) + "");
+		Map<String, Map<String, String>> panelFormatting = panel.getPanelFormatValues();
+		// get the color by value details like on which  data we have to apply the color
+		Map<ColorByValueRule, List<Object>> colorByValueMap = getColorByValueData(panel);
+
+		StringBuilder html = new StringBuilder();
+		String[] headers = null;
+		List<Map<String, Object>> headerInfo = null;
+		List<Object[]> rowList = new ArrayList<>();
+
+		logger.info("Generating html view");
+		// now we have the data, create the table
+		html.append("<table style=\"" + TABLE_STYLE + "\">");
+		// create the header
+		if (task.hasNext()) {
+			IHeadersDataRow row = task.next();
+			headerInfo = task.getHeaderInfo();
+			headers = row.getHeaders();
+			
+			html.append("<thead style=\"" + THEAD_STYLE + "\">");
+			html.append("<tr>");
+			// creating header row
+			for (String header : headers) {
+				html.append("<th style=\"" + TH_STYLE.toString() + "\">" + header + "</th>");
+			}
+			html.append("</tr>");
+			html.append("</thead>");
+			
+			// creating body
+			html.append("<tbody>");
+			// add the first row to the list
+			rowList.add(row.getValues());
+			// adding the rest of the rows
+			while (task.hasNext()) {
+				row = task.next();
+				rowList.add(row.getValues());
+			}
+
+			int[] rowSpan = new int[headers.length];
+			for (int rowIdx = 0, rowLen = rowList.size(); rowIdx < rowLen; rowIdx++) {
+				Object[] rowData = rowList.get(rowIdx);
+				// creating data rows
+				html.append("<tr>");
+				for (int colIdx = 0, colLen = rowData.length; colIdx < colLen; colIdx++) {
+					Object cell = rowData[colIdx];
+					// check for row span flag
+					if (gridSpanRows) {
+						if (rowSpan[colIdx] > 1) {
+							rowSpan[colIdx]--;
+							continue;
+						}
+						// restart the spanning
+						rowSpan[colIdx] = 1;
+						// look at the next row
+						for (int nextIdx = rowIdx + 1; nextIdx < rowLen; nextIdx++) {
+							Object next = rowList.get(nextIdx)[colIdx];
+							//break the loop if current row cell and next row cell
+							if ( !((cell == null && next == null) || cell.equals(next)) ) {
+								break;
+							}
+							// increment
+							rowSpan[colIdx]++;
+						}
+					}
+					// get the background color of each cell or rows
+					Object cellColor = FormattingUtility.getBackgroundColor(colorByValueMap, headers, rowData, colIdx);
+					//get the formatted data values based on formatdatavalue tool applied 
+					Object formattedDataValue = FormattingUtility.formatDataValues(
+							cell,
+							(String) headerInfo.get(colIdx).get("type"),
+							(String) headerInfo.get(colIdx).get("additionalDataType"),
+							panelFormatting.get(headers[colIdx]));
+					//getting rowspancount as String
+				   String rowSpanCount= rowSpan[colIdx] > 1 ? String.valueOf(rowSpan[colIdx]):""; 
+
+					// creating td with data and styles (rowspan if applicable)
+					html.append("<td style=\"" + TD_STYLE +
+								cellColor.toString()+ 
+							    "\"+ rowspan=" + rowSpanCount + ">" +
+							    formattedDataValue+
+							   "</td>");
+				}
+				html.append("</tr>");
+			}
+			html.append("</tbody>");
+			html.append("</table>");
+		}
+		// write html to your C drive for testing purpose
+		// WriteToFile(html.toString(), "test.html");		
+		return html.toString();
+	}
+
+	/*
+	 * write file to the local for testing purpose
+	 * 
+	 * public static void WriteToFile(String fileContent, String fileName) { try{
+	 * String projectPath = "C:\\workspace"; String tempFile = projectPath +
+	 * File.separator+fileName; File file = new File(tempFile); // if file does
+	 * exists, then delete and create a new file //write to file with
+	 * OutputStreamWriter OutputStream outputStream = new
+	 * FileOutputStream(file.getAbsoluteFile()); Writer writer=new
+	 * OutputStreamWriter(outputStream); writer.write(fileContent); writer.close();}
+	 * catch(Exception e){ System.out.println(e); }
+	 * 
+	 * }
+	 */
+
+	/**
+	 * This method returns the map with color by value rules and the raw values to
+	 * apply color on
+	 * @param panel
+	 * @return
+	 */
+	private Map<ColorByValueRule, List<Object>> getColorByValueData(InsightPanel panel) {
+		Map<ColorByValueRule, List<Object>> colorByValueMap = new HashMap<>();
+		for (ColorByValueRule cbv : panel.getColorByValue()) {
+			// you can grab the query struct
+			SelectQueryStruct cbvQS = cbv.getQueryStruct();
+			// turn the query struct to a task
+			// you can iterator through to know which values to paint
+			ITask cbvTask = InsightUtility.constructTaskFromQs(this.insight, cbvQS);
+			cbvTask.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
+			List<Object> colorByValues = new ArrayList<>();
+
+			while (cbvTask.hasNext()) {
+				colorByValues.add(cbvTask.next().getRawValues()[0]);
+			}
+			colorByValueMap.put(cbv, colorByValues);
+		}
+		return colorByValueMap;
 	}
 	
 }
