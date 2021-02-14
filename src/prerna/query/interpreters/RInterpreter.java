@@ -190,7 +190,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			if(type == SemossDataType.DATE) {
 				javaFormat = "yyyy-MM-dd";
 			} else if(type == SemossDataType.TIMESTAMP) {
-				javaFormat = "yyyy-MM-dd HH:mm:ss";
+				javaFormat = "yyyy-MM-dd HH:mm:ss.SSS";
 			}
 		}
 		String[] rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(javaFormat).split("\\|");
