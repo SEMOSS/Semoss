@@ -49,8 +49,8 @@ public class RSyntaxHelper {
 //		javaRDatTimeTranslationMap.put("K", value); 	//Hour in am/pm (0-11)
 		javaRDatTimeTranslationMap.put("h", "%I"); 		//Hour in am/pm (1-12)
 		javaRDatTimeTranslationMap.put("m", "%M"); 		//Minute in hour
-//		javaRDatTimeTranslationMap.put("s", "%S"); 		//Second in minute
-		javaRDatTimeTranslationMap.put("s", "%OS"); 	//Handles milliseconds as well
+		javaRDatTimeTranslationMap.put("s", "%S"); 		//Second in minute
+//		javaRDatTimeTranslationMap.put("s", "%OS"); 	//Handles milliseconds as well
 		javaRDatTimeTranslationMap.put("S", "%OS"); 	//Millisecond
 //		javaRDatTimeTranslationMap.put("z", "%Z"); 		//tz (Pacific Standard Time; PST; GMT-08:00) ???? - TODO needs to be handled via the tz param
 		javaRDatTimeTranslationMap.put("Z", "%z"); 		//tz (-0800)
@@ -116,10 +116,10 @@ public class RSyntaxHelper {
 				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d')");
 			} else if(SemossDataType.TIMESTAMP == dataType) {
 				if(additionalParameter != null && !additionalParameter.isEmpty()) {
-					str.append("as.POSIXct(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d %H:%M:%S', ")
+					str.append("as.POSIXct(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d %H:%M:%OS', ")
 						.append(additionalParameter).append(")");
 				} else {
-					str.append("as.POSIXct(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d %H:%M:%S')");
+					str.append("as.POSIXct(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d %H:%M:%OS')");
 				}
 			} else {
 				// just in case this is not defined yet...
@@ -880,9 +880,9 @@ public class RSyntaxHelper {
 			return "as.Date(\"" + value.toString() + "\", format='%Y-%m-%d')";
 		} else if(SemossDataType.TIMESTAMP == dataType) {
 			if(additionalParameter != null && !additionalParameter.isEmpty()) {
-				return "as.POSIXct(\"" + value.toString() + "\", format='%Y-%m-%d %H:%M:%S', " + additionalParameter + ")";
+				return "as.POSIXct(\"" + value.toString() + "\", format='%Y-%m-%d %H:%M:%OS', " + additionalParameter + ")";
 			} else {
-				return "as.POSIXct(\"" + value.toString() + "\", format='%Y-%m-%d %H:%M:%S')";
+				return "as.POSIXct(\"" + value.toString() + "\", format='%Y-%m-%d %H:%M:%OS')";
 			}
 		} else {
 			// just in case this is not defined yet...
