@@ -1,7 +1,6 @@
 package prerna.ds.r;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -159,6 +158,7 @@ public class RFrameBuilder {
 				script.append(RSyntaxHelper.alterColumnName(tableName, oldHeader, newHeader));
 			}
 			this.rJavaTranslator.runR(script.toString());
+			fileType = "excel";
 			loaded = true;
 		}
 		
@@ -333,9 +333,6 @@ public class RFrameBuilder {
 	 * @param javaDateFormatMap
 	 */
 	private void alterColumnTypes(String tableName, Map<String, SemossDataType> typesMap, Map<String, String> javaDateFormatMap, String fileType) {
-		List<String> excelDateNumHeaders = new ArrayList<String>();
-		List<String> excelDTNumHeaders = new ArrayList<String>();
-		
 		// go through all the headers
 		// and collect similar types
 		// so we can execute with a single r script line
@@ -374,7 +371,7 @@ public class RFrameBuilder {
 			} else if( type == SemossDataType.TIMESTAMP) {
 				String format = javaDateFormatMap.get(header);
 				if(format == null) {
-					format = "yyyy-MM-dd HH:mm:ss";
+					format = "yyyy-MM-dd HH:mm:ss.SSS";
 				}
 				if(dateTimeMap.containsKey(format)) {
 					// add to existing list
@@ -402,63 +399,69 @@ public class RFrameBuilder {
 			evalR( RSyntaxHelper.alterColumnTypeToBoolean(tableName, booleanColumns) );
 		}
 		
+		// seeing dates are now loader as the proper data type and not as numbers...
 		// if the original file type is excel, then need to assess if there are date/time cols that have been parsed to numbers first 
 		// and handle those separately
-		if (fileType.equals("excel")) {
-			//handle date numbers
-			if (!datesMap.isEmpty()) {
-				List<String> dateHeaders = new ArrayList<String>();
-				datesMap.values().forEach(dateHeaders::addAll);
-				List<String> dateExcelR = RSyntaxHelper.alterColumnTypeToDate_Excel(tableName, dateHeaders);
-				this.rJavaTranslator.runR(dateExcelR.get(0));
-				//retrieve cols have been converted to Date type
-				if (this.rJavaTranslator.getInt("length(" + dateExcelR.get(1) + ")") > 0) {
-					excelDateNumHeaders.addAll(Arrays.asList(this.rJavaTranslator.getStringArray(dateExcelR.get(1))));
-				}
-				//clean up the handledcol var in R
-				this.rJavaTranslator.runR("rm(" + dateExcelR.get(1) + ";gc();");
-			}
-			//handle datetime numbers
-			if (!dateTimeMap.isEmpty()) {
-				List<String> dateTimeHeaders = new ArrayList<String>();
-				dateTimeMap.values().forEach(dateTimeHeaders::addAll);
-				//TODO track millisecond digits
-				List<String> dateTimeExcelR = RSyntaxHelper.alterColumnTypeToDateTime_Excel(tableName, dateTimeHeaders);
-				this.rJavaTranslator.runR(dateTimeExcelR.get(0));
-				//retrieve cols have been converted to Date/Time type
-				if (this.rJavaTranslator.getInt("length(" + dateTimeExcelR.get(1) + ")") > 0) {
-					excelDTNumHeaders.addAll(Arrays.asList(this.rJavaTranslator.getStringArray(dateTimeExcelR.get(1))));
-				}
-				//clean up the handledcol var in R
-				this.rJavaTranslator.runR("rm(" + dateTimeExcelR.get(1) + ";gc();");
-			}
-		}
+//		if (fileType.equals("excel")) {
+//			//handle date numbers
+//			if (!datesMap.isEmpty()) {
+//				List<String> dateHeaders = new ArrayList<String>();
+//				datesMap.values().forEach(dateHeaders::addAll);
+//				List<String> dateExcelR = RSyntaxHelper.alterColumnTypeToDate_Excel(tableName, dateHeaders);
+//				this.rJavaTranslator.runR(dateExcelR.get(0));
+//				//retrieve cols have been converted to Date type
+//				if (this.rJavaTranslator.getInt("length(" + dateExcelR.get(1) + ")") > 0) {
+//					excelDateNumHeaders.addAll(Arrays.asList(this.rJavaTranslator.getStringArray(dateExcelR.get(1))));
+//				}
+//				//clean up the handledcol var in R
+//				this.rJavaTranslator.runR("rm(" + dateExcelR.get(1) + ";gc();");
+//			}
+//			//handle datetime numbers
+//			if (!dateTimeMap.isEmpty()) {
+//				List<String> dateTimeHeaders = new ArrayList<String>();
+//				dateTimeMap.values().forEach(dateTimeHeaders::addAll);
+//				//TODO track millisecond digits
+//				List<String> dateTimeExcelR = RSyntaxHelper.alterColumnTypeToDateTime_Excel(tableName, dateTimeHeaders);
+//				for(int i = 0; i < dateTimeExcelR.size(); i++) {
+//					System.out.println(dateTimeExcelR.get(i));
+//				}
+//				this.rJavaTranslator.runR(dateTimeExcelR.get(0));
+//				//retrieve cols have been converted to Date/Time type
+//				if (this.rJavaTranslator.getInt("length(" + dateTimeExcelR.get(1) + ")") > 0) {
+//					excelDTNumHeaders.addAll(Arrays.asList(this.rJavaTranslator.getStringArray(dateTimeExcelR.get(1))));
+//				}
+//				//clean up the handledcol var in R
+//				this.rJavaTranslator.runR("rm(" + dateTimeExcelR.get(1) + ";gc();");
+//			}
+//		}
 		
 		// loop through normal dates
 		for(String format : datesMap.keySet()) {
 			List<String> dateHeaders = datesMap.get(format);
-			dateHeaders.removeAll(excelDateNumHeaders);
 			if (!dateHeaders.isEmpty()){
 				String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
 				this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDate(tableName, rFormat, dateHeaders) ) ;
 			}
 		}
-		// loop through time stamps dates
-		if(isEmpty(tableName)) {
-			for(String format : dateTimeMap.keySet()) {
-				List<String> dateTimeHeaders = dateTimeMap.get(format);
-				dateTimeHeaders.removeAll(excelDTNumHeaders);
-				if (!dateTimeHeaders.isEmpty()){
-					this.rJavaTranslator.runR( RSyntaxHelper.alterEmptyTableColumnTypeToDateTime(tableName, dateTimeHeaders) );
+		// excel reading already loads as POSIXct types
+		// so no need to modify again
+		// TODO: need to handle strings that we are trying to parse as timestamps?
+		if(!fileType.equals("excel")) {
+			// loop through time stamps dates
+			if(isEmpty(tableName)) {
+				for(String format : dateTimeMap.keySet()) {
+					List<String> dateTimeHeaders = dateTimeMap.get(format);
+					if (!dateTimeHeaders.isEmpty()){
+						this.rJavaTranslator.runR( RSyntaxHelper.alterEmptyTableColumnTypeToDateTime(tableName, dateTimeHeaders) );
+					}
 				}
-			}
-		} else {
-			for(String format : dateTimeMap.keySet()) {
-				List<String> dateTimeHeaders = dateTimeMap.get(format);
-				dateTimeHeaders.removeAll(excelDTNumHeaders);
-				if (!dateTimeHeaders.isEmpty()){
-					String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
-					this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDateTime(tableName, rFormat, dateTimeHeaders) );
+			} else {
+				for(String format : dateTimeMap.keySet()) {
+					List<String> dateTimeHeaders = dateTimeMap.get(format);
+					if (!dateTimeHeaders.isEmpty()){
+						String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
+						this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDateTime(tableName, rFormat, dateTimeHeaders) );
+					}
 				}
 			}
 		}
