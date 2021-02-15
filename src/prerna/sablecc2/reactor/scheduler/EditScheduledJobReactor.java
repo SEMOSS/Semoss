@@ -114,7 +114,8 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			}
 
 			// create json object for later use
-			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
+			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters,
+					triggerOnLoad, parameters, providerInfo.toString());
 			JobConfig jobConfig = JobConfig.initialize(jsonObject);
 
 			// the id does not change

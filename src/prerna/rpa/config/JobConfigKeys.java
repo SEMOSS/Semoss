@@ -18,6 +18,7 @@ public class JobConfigKeys {
 	public static final String ACTIVE = "-active";
 	public static final String USER_ACCESS = "-userAccess";
 	public static final String PIXEL = "pixel"; 
+	public static final String PIXEL_PARAMETERS = "pixelParameters"; 
 	public static final String PARAMETERS = "parameters"; // Cannot have the dash due to FE
 
 	// execution side
