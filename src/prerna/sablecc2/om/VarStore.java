@@ -3,11 +3,10 @@ package prerna.sablecc2.om;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.eclipse.jetty.util.ConcurrentHashSet;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
@@ -33,8 +32,8 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	public VarStore() {
 		varMap = new ConcurrentHashMap<>();
-		frameSet = new ConcurrentHashSet<>();
-		insightParametersSet = new ConcurrentHashSet<>();
+		frameSet = new LinkedHashSet<>();
+		insightParametersSet = new LinkedHashSet<>();
 	}
 	
 	@Override
