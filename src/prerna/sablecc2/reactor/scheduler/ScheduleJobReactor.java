@@ -125,7 +125,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 			}
 
 			// create json object for later use
-			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, triggerOnLoad, parameters, providerInfo.toString());
+			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters,
+					triggerOnLoad, parameters, providerInfo.toString());
 
 			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 			// if job exists throw error, job already exists
@@ -207,7 +208,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 	}
 
 	public static JsonObject createJsonObject(String jobId, String jobName, String jobGroup, String cronExpression, String recipe,
-			boolean triggerOnLoad, String parameters, String providerInfo) {
+			String recipeParameters, boolean triggerOnLoad, String parameters, String providerInfo) {
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.addProperty(JobConfigKeys.JOB_ID, jobId);
 		jsonObject.addProperty(JobConfigKeys.JOB_NAME, jobName);
@@ -220,7 +221,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 		// need this for the job config
 		jsonObject.addProperty(JobConfigKeys.JOB_CLASS_NAME, ConfigurableJob.RUN_PIXEL_JOB.getJobClassName());
 		jsonObject.addProperty(JobConfigKeys.PIXEL, recipe);
-		
+		if(recipeParameters != null) {
+			jsonObject.addProperty(JobConfigKeys.PIXEL_PARAMETERS, recipeParameters);
+		}
 		return jsonObject;
 	}
 

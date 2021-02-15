@@ -58,6 +58,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		jobId = context.getJobDetail().getKey().getName();
 		jobGroup = context.getJobDetail().getKey().getGroup();
 		String pixel = dataMap.getString(JobConfigKeys.PIXEL);
+		String pixelParameters = dataMap.getString(JobConfigKeys.PIXEL_PARAMETERS);
 		String userAccess = RPAProps.getInstance().decrypt(dataMap.getString(JobConfigKeys.USER_ACCESS));
 
 		String execId = UUID.randomUUID().toString();
@@ -87,7 +88,11 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_ID, jobId));
 			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_GROUP, jobGroup));
 			paramList.add(new BasicNameValuePair(JobConfigKeys.USER_ACCESS, userAccess));
-			paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixel));
+			if(pixelParameters != null && !pixelParameters.isEmpty()) {
+				paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixelParameters + " | " + pixel));
+			} else {
+				paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixel));
+			}
 			
 			long start = System.currentTimeMillis();
 			
