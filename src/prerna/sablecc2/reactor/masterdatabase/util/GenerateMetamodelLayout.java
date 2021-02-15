@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.graphstream.algorithm.Toolkit;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
@@ -33,6 +35,8 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GenerateMetamodelLayout {
+	
+	private static final Logger logger = LogManager.getLogger(GenerateMetamodelLayout.class);
 	
 	public static void generateLayout(String appId) {
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
@@ -227,14 +231,22 @@ public class GenerateMetamodelLayout {
 
 		for (Map<String, Object> nodes : databaseTables) {
 			String tableName = (String) nodes.get("table");
-			graph.addNode(tableName);
+			try {
+				graph.addNode(tableName);
+			} catch(org.graphstream.graph.IdAlreadyInUseException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
 		}
 
 		for (Map<String, String> relations : databaseJoins) {
 			String start = relations.get("fromTable");
 			String end = relations.get("toTable");
 			String edge = relations.get("fromCol") + "_" + relations.get("toCol") + "-" + start + "-" + end;
-			graph.addEdge(edge, start, end);
+			try {
+				graph.addEdge(edge, start, end);
+			} catch(org.graphstream.graph.IdAlreadyInUseException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
 		}
 
 		while (layout.getStabilization() < 0.9) {
