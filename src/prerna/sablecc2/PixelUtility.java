@@ -515,7 +515,7 @@ public class PixelUtility {
 		List<Map<String, Object>> insightJsonObject = ParamStructToJsonGenerator.generateInsightJsonForParameters(insightName, fullRecipe.toString(), params);
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		List<String> paramedRecipe = new Vector<>(2);
+		List<String> paramedRecipe = new Vector<>(currentInsight.getVarStore().getInsightParameterKeys().size()+2);
 		// if i add parameters here
 		appendAddInsightParameter(currentInsight, paramedRecipe);
 		paramedRecipe.add("META | AddPanel(0);");
