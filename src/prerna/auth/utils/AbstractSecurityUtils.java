@@ -612,7 +612,7 @@ public abstract class AbstractSecurityUtils {
 			insertPs.getConnection().close();
 		}
 		// now delete the user table
-//		securityDb.removeData(queryUtil.dropTable("USER"));
+		securityDb.insertData(queryUtil.alterTableName("USER", "OLD_USER_TABLE"));
 	}
 
 	/**
