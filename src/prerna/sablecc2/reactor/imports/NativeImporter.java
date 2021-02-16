@@ -65,8 +65,10 @@ public class NativeImporter extends AbstractImporter {
 			// if you are RDBMS
 			// we will make a new QS
 			// and we will wrap you
-			String query = ((HardSelectQueryStruct) this.qs).getQuery();
-
+			String query = ((HardSelectQueryStruct) this.qs).getQuery().trim();
+			if(query.endsWith(";")) {
+				query = query.substring(0, query.length()-1);
+			}
 			if(this.it == null) {
 				try {
 					String newQuery = "select * from (" + query + ") as customQuery where 1 = 0";
