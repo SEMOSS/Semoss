@@ -12,6 +12,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -60,6 +61,12 @@ public class RefreshAllPanelTasksReactor extends AbstractReactor {
 				Set<String> layers = lQs.keySet();
 				LAYER_LOOP : for(String layerId : layers) {
 					SelectQueryStruct qs = lQs.get(layerId);
+					// reset the panel specific objects so we can pick up the latest state
+					qs.setPanelList(new Vector<InsightPanel>());
+					qs.setPanelIdList(new Vector<String>());
+					qs.setPanelOrderBy(new Vector<IQuerySort>());
+					// add the panel
+					qs.addPanel(panel);
 					qs.resetPanelState();
 					TaskOptions taskOptions = lTaskOption.get(layerId);
 					
