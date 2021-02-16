@@ -6,11 +6,16 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.locks.InterProcessMultiLock;
+import org.apache.curator.retry.RetryOneTime;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -61,13 +66,13 @@ public class ZKClient implements Watcher{
 	
 	ZooKeeper zk = null;
 	Map <String, String> env = null;
-	public String zkServer = "192.168.99.100:2181";
-	public String host = "192.168.99.100:8888";
+	public String zkServer = "localhost:2181";
+	public String host = "localhost:8888";
 	public String user = "generic";
 	public String home = "/semoss_root";
 	public String container = "/container";
 	public String app = "/app";
-	public String semossHome = "/opt/semosshome/";
+	public static String semossHome = "/opt/semosshome/";
 	
 	
 	boolean connected = false;
@@ -77,7 +82,7 @@ public class ZKClient implements Watcher{
 	Map <String, List<IZKListener>> listeners = new HashMap<String, List<IZKListener>>();
 	Map <String, Boolean> repeat = new HashMap<String, Boolean>();
 	
-	
+	CuratorFramework client = null;
 	
 	int version = 0;
 
@@ -92,6 +97,7 @@ public class ZKClient implements Watcher{
 		{
 			zkClient = new ZKClient();
 			zkClient.init();
+			zkClient.initCurator();
 		}
 		if(zkClient.connected)
 		{
@@ -105,6 +111,18 @@ public class ZKClient implements Watcher{
 		zkClient.init();
 	}
 	
+	public void initCurator()
+	{
+		// make the curator here also
+		try {
+			client =  CuratorFrameworkFactory.newClient(zkServer, new RetryOneTime(1));
+			client.start();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
 	
 	public void waitHere()
 	{
@@ -493,4 +511,133 @@ public class ZKClient implements Watcher{
 	}
 	
 	
+	// new methods
+	// create the nodes for 
+	// each db
+	// and within each db, load for each insight
+	public String createIfNotExist(String namespace, String newNode, String version, Watcher watcher)
+	{
+		try {
+			Stat stat = zk.exists(namespace + "/" + newNode, watcher);
+			
+			if(stat == null)
+			{
+				// create the node
+				zk.create(namespace + "/" + newNode, version.getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+				
+				// also create the lock
+				// this is the node that is used for locking
+				zk.create(namespace + "/" + newNode + "/lock", version.getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+			}
+			else
+			{
+				version = new String(zk.getData(namespace + "/" + newNode, watcher, stat));
+				// somebody already created the lock node
+			}
+		} catch (KeeperException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return version;
+	}
+	
+	// new methods
+	// create the nodes for 
+	// each db
+	// and within each db, load for each insight
+	public void createIfNotExist(String namespace, String newNode, String data)
+	{
+		System.err.println("Registering.. " + namespace + "/" + newNode);
+		try {
+			Stat stat = zk.exists(namespace + "/" + newNode, false);
+			
+			if(stat == null)
+			{
+				// create the node
+				zk.create(namespace + "/" + newNode, data.getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+				
+			}
+			else
+			{
+				zk.getData(namespace + "/" + newNode, false, stat);
+				// somebody already created the lock node
+			}
+		} catch (KeeperException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	
+	// updates the node to say there is new data now
+	private void updateNode(String namespace, String node, String newValue)
+	{
+		// get the lock if youa re able to
+		// then update the main node
+		// release the lock
+		try {
+			InterProcessMultiLock lock = getLockOnPath(namespace + "/" + node + "/lock");
+			lock.acquire();
+			// alrite time to update
+			Stat stat = new Stat();
+			byte [] data = zk.getData(namespace, false, stat);
+			int nextVersion = Integer.parseInt(new String(data));
+			nextVersion++;
+			int statVersion = stat.getVersion(); 
+			// need a way to tell the watcher ignore this one
+			zk.setData(namespace + "/" + node, (nextVersion + "").getBytes(), statVersion + 1);
+			// release the lock
+			lock.release();			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public InterProcessMultiLock getLockOnPath(String path)
+	{
+		List <String> paths = new ArrayList<String>();
+		paths.add(path);
+		return new InterProcessMultiLock(client, paths);
+	}
+	
+	
+
+	public void watch4Data(String path)
+	{
+		try 
+		{
+			Stat stat = new Stat();
+			zk.getData(path, true, stat);
+			System.out.println(stat.getVersion());
+			
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
+	public void watch4Children(String path)
+	{
+		try 
+		{
+			Stat stat = new Stat();
+			zk.getChildren(path, true);
+			
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
 }
