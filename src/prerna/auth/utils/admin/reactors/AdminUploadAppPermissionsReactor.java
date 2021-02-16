@@ -38,12 +38,12 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 	
 	static final String ENGINE_ID = "ENGINEID";
 	static final String USER_ID = "USERID";
-	static final String ROLE = "ROLE";
+	static final String PERMISSION = "PERMISSION";
 	
 	private static String insertQuery = null;
 	private static Map<String, Integer> psIndex = new HashMap<>();
 	static {
-		String[] headers = new String[] {ENGINE_ID, USER_ID, ROLE};
+		String[] headers = new String[] {ENGINE_ID, USER_ID, PERMISSION};
 		StringBuilder builder = new StringBuilder("INSERT INTO ENGINEPERMISSION (");
 		for(int i = 0; i < headers.length; i++) {
 			if(i > 0) {
@@ -166,7 +166,7 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 
 		int idxEngine = excelHeadersList.indexOf(ENGINE_ID);
 		int idxUser = excelHeadersList.indexOf(USER_ID);
-		int idxRole = excelHeadersList.indexOf(ROLE);
+		int idxRole = excelHeadersList.indexOf(PERMISSION);
 
 		if(idxEngine < 0 
 				|| idxUser < 0
@@ -210,7 +210,7 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 				// add to insert ps
 				insertPs.setString(psIndex.get(ENGINE_ID), engineId);
 				insertPs.setString(psIndex.get(USER_ID), userId);
-				insertPs.setInt(psIndex.get(ROLE), permission.getId());
+				insertPs.setInt(psIndex.get(PERMISSION), permission.getId());
 
 				insertPs.addBatch();
 			}
