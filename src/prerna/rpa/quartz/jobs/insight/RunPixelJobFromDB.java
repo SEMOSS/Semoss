@@ -89,6 +89,10 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_GROUP, jobGroup));
 			paramList.add(new BasicNameValuePair(JobConfigKeys.USER_ACCESS, userAccess));
 			if(pixelParameters != null && !pixelParameters.isEmpty()) {
+				pixelParameters = pixelParameters.trim();
+				if(pixelParameters.endsWith(";")) {
+					pixelParameters = pixelParameters.substring(0, pixelParameters.length()-1);
+				}
 				paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixelParameters + " | " + pixel));
 			} else {
 				paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixel));
