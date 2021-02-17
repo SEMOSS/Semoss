@@ -404,7 +404,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			{
 				// get all frame headers
 				VarStore vStore = cachedInsight.getVarStore();
-				Set<String> keys = vStore.getFrameKeys();
+				List<String> keys = vStore.getFrameKeys();
 				for(String k : keys) {
 					NounMetadata noun = vStore.get(k);
 					PixelDataType type = noun.getNounType();
