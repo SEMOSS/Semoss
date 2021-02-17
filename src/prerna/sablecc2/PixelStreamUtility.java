@@ -70,7 +70,7 @@ public class PixelStreamUtility {
 	 * @param runner
 	 * @return
 	 */
-	public static StreamingOutput collectPixelData(PixelRunner runner) {
+	public static StreamingOutput collectPixelData(PixelRunner runner, Long sessionTimeRemaining) {
 		// get the default gson object
 		Gson gson = GsonUtility.getDefaultGson();
 
@@ -85,7 +85,7 @@ public class PixelStreamUtility {
 						// we want to ignore the first index since it will be a job
 						logger.debug("Starting to generate response");
 						long start = System.currentTimeMillis();
-						processPixelRunner(ps, gson, runner);
+						processPixelRunner(ps, gson, runner, sessionTimeRemaining);
 						long end = System.currentTimeMillis();
 						logger.debug("Time to generate json response = " + (end-start) + "ms");
 					} catch(Exception e) {
@@ -122,7 +122,7 @@ public class PixelStreamUtility {
 					try {
 						ps = new PrintStream(outputStream, false, "UTF-8");
 						// we want to ignore the first index since it will be a job
-						processPixelRunner(ps, gson, runner);
+						processPixelRunner(ps, gson, runner, null);
 					} catch(Exception e) {
 						logger.error(Constants.STACKTRACE, e);
 						// ugh... this is unfortunate
@@ -190,7 +190,7 @@ public class PixelStreamUtility {
 		return fileToWrite;
 	}
 
-	private static void processPixelRunner(PrintStream ps, Gson gson, PixelRunner runner) {
+	private static void processPixelRunner(PrintStream ps, Gson gson, PixelRunner runner, Long sessionTimeRemaining) {
 		// get the values we need from the runner
 		Insight in = runner.getInsight();
 		List<NounMetadata> resultList = runner.getResults();
@@ -201,6 +201,9 @@ public class PixelStreamUtility {
 		// start of the map
 		// and the insight id
 		ps.print("{\"insightID\":\"" + in.getInsightId() + "\",");
+		if(sessionTimeRemaining != null) {
+			ps.print("\"sessionTimeRemaining\":\"" + sessionTimeRemaining + "\",");
+		}
 		ps.flush();
 
 		// now flush array of pixel returns
@@ -686,7 +689,7 @@ public class PixelStreamUtility {
 			ps.flush();
 			ps.print(",\"insightData\":");
 			// process the inner recipe
-			processPixelRunner(ps, gson, runner);
+			processPixelRunner(ps, gson, runner, null);
 			ps.print("}");
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(noun.getOpType()));
