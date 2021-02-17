@@ -504,6 +504,79 @@ public class PyTranslator
 		
 	}
 	
+	
+	//overloading the run script method to pass in the user map
+	
+	public String runScript(Map<String, StringBuffer> appMap, String script) {
+		
+		String removePathVariables = "";
+		String insightRootAssignment = "";
+		String appRootAssignment = "";
+		String userRootAssignment = "";
+
+		String insightRootPath = null;
+		String appRootPath = null;
+		String userRootPath = null;	
+		
+		if(this.insight != null) {
+			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
+			insightRootAssignment = "ROOT = '" + insightRootPath + "';";
+			removePathVariables = ", ROOT";
+			
+			if(this.insight.isSavedInsight()) {
+				appRootPath = this.insight.getAppFolder();
+				appRootPath = appRootPath.replace('\\', '/');
+				appRootAssignment = "APP_ROOT = '" + appRootPath + "';";
+				removePathVariables += ", APP_ROOT";
+			}
+			try {
+				userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+				userRootPath = userRootPath.replace('\\', '/');
+				userRootAssignment = "USER_ROOT = '" + userRootPath + "';";
+				removePathVariables += ", USER_ROOT";
+			} catch(Exception ignore) {
+				// ignore
+			}
+			
+		} 
+		
+		// get the custom var String
+		String varFolderAssignment = "";
+		if(appMap != null && appMap.containsKey("PY_VAR_STRING"))
+			varFolderAssignment = appMap.get("PY_VAR_STRING").toString();	
+		
+		//flatten the FolderAssignment string
+		varFolderAssignment = varFolderAssignment.replaceAll("[\\r\\n]+", ";");
+		
+		String assignmentString = insightRootAssignment  + appRootAssignment + userRootAssignment + varFolderAssignment ;
+		
+		
+		//String assignmentScript = getAssignments(appMap);
+		executeEmptyPyDirect(assignmentString);
+		String output =  runScript(script) + "";
+		
+		
+		// clean up the output
+		if(userRootPath != null && output.contains(userRootPath)) {
+			output = output.replace(userRootPath, "$USER_IF");
+		}
+		if(appRootPath != null && output.contains(appRootPath)) {
+			output = output.replace(appRootPath, "$APP_IF");
+		}
+		if(insightRootPath != null && output.contains(insightRootPath)) {
+			output = output.replace(insightRootPath, "$IF");
+		}
+		if(varFolderAssignment != null && varFolderAssignment.length() > 0)
+		{
+			output = cleanCustomVar(output, appMap);
+		}
+		
+		// Successful case
+		return output;
+	}
+	
+	
+	
 	/**
 	 * Run the script
 	 * By default return the first script passed in
@@ -606,6 +679,8 @@ public class PyTranslator
 		String output = py.runPyAndReturnOutput(command);
 		System.out.println("Output >> " + output);
 	}
+
+
 	
 	
 	
