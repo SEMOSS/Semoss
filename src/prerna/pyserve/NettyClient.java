@@ -87,8 +87,8 @@ public class NettyClient implements Runnable{
 		            nc.f = b.connect(HOST, PORT).sync();          
 		            logger.info("CLIENT Connection complete !!!!!!!");
 		            Thread.sleep(100); // sleep some before executing command
-		            // prime it
-		            logger.info("First command.. Prime" + executeCommand("2+2"));
+		            // prime it 
+		            //logger.info("First command.. Prime" + executeCommand("2+2"));
 		            connected = true;
 		            ready = true;
 		            // Wait until the connection is closed.
