@@ -582,7 +582,7 @@ public class PixelUtility {
 	 */
 	public static void appendAddInsightParameter(Insight in, List<String> additionalSteps) {
 		VarStore varStore = in.getVarStore();
-		Set<String> params = varStore.getInsightParameterKeys();
+		List<String> params = varStore.getInsightParameterKeys();
 		// loop through the keys
 		// and gson it
 		for(String paramKey : params) {
@@ -618,7 +618,7 @@ public class PixelUtility {
 	public static List<String> getSetParamValuePixels(Insight in) {
 		List<String> additionalSteps = new Vector<>();
 		VarStore varStore = in.getVarStore();
-		Set<String> params = varStore.getInsightParameterKeys();
+		List<String> params = varStore.getInsightParameterKeys();
 		// loop through the keys
 		// and gson it
 		for(String paramKey : params) {

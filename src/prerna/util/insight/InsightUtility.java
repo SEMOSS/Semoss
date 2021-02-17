@@ -147,7 +147,7 @@ public class InsightUtility {
 	public static List<ParamStruct> getInsightParams(Insight insight) {
 		List<ParamStruct> params = new Vector<>();
 		VarStore varStore = insight.getVarStore();
-		Set<String> paramKeys = varStore.getInsightParameterKeys();
+		List<String> paramKeys = varStore.getInsightParameterKeys();
 		for(String paramKey : paramKeys) {
 			NounMetadata noun = varStore.get(paramKey);
 			params.add((ParamStruct) noun.getValue());
