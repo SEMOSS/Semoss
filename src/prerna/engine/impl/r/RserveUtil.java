@@ -6,6 +6,7 @@ import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -19,6 +20,8 @@ import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
+
+import com.google.common.base.Strings;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -116,6 +119,12 @@ public class RserveUtil {
 				pb = new ProcessBuilder(rBin, "-e",
 						"\"library(Rserve);" +
 						"Rserve(FALSE," + port + ",args='--vanilla option(error=function() NULL)')\"");
+			} else if(!(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty("ULIMIT_R_MEM_LIMIT")))){
+				String ulimit = DIHelper.getInstance().getProperty("ULIMIT_R_MEM_LIMIT");
+				pb = new ProcessBuilder("/bin/bash", "-c","ulimit -v " + ulimit + " && " + rBin+" CMD Rserve --vanilla --RS-port " + port);
+				List<String> coms = pb.command();
+				logger.info(Arrays.toString(coms.toArray()));
+
 			} else {
 				pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "option(error=function() NULL)", "--RS-port", port + "");
 			}
