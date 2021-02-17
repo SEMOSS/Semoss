@@ -188,9 +188,9 @@ public class LazyTranslation extends DepthFirstAdapter {
         	try {
         		// we will start to keep track of some metadata
         		// at the start of each pixel being processed
+        		this.resultKey = "$RESULT_" + e.hashCode();
         		pixelObj = new Pixel("tempStorage", e.toString());
         		pixelObj.setStartingFrameHeaders(InsightUtility.getAllFrameHeaders(this.planner.getVarStore()));
-        		this.resultKey = "$RESULT_" + e.hashCode();
         		
         		// actually run the operation
         		e.apply(this);

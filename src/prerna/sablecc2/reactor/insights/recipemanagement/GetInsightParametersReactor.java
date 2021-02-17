@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.insights.recipemanagement;
 
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +20,7 @@ public class GetInsightParametersReactor extends AbstractInsightParameterReactor
 		VarStore varStore = this.insight.getVarStore();
 		// loop through all the parameters
 		// and return the parameter list
-		Set<String> parameterKeys = varStore.getInsightParameterKeys();
+		List<String> parameterKeys = varStore.getInsightParameterKeys();
 		List<ParamStruct> paramList = new Vector<>();
 		for(String paramName : parameterKeys) {
 			NounMetadata paramNoun = varStore.get(paramName);
