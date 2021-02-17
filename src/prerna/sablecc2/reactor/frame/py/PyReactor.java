@@ -59,7 +59,9 @@ public class PyReactor extends AbstractPyFrameReactor {
 			if(tokens > 1)
 				output = pyTranslator.runPyAndReturnOutput(insight.getUser().getAppMap(), code) + "";
 			else
-				output = pyTranslator.runScript(code) + "";
+				//output = pyTranslator.runScript(code) + "";
+			output = pyTranslator.runScript(insight.getUser().getAppMap(), code) + "";
+
 		} else {
 			if(tokens > 1)
 				output = pyTranslator.runPyAndReturnOutput(code) + "";
