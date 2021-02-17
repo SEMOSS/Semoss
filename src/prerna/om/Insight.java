@@ -307,6 +307,8 @@ public class Insight {
 					if(!e.isContinueThreadOfExecution()) {
 						break;
 					}
+				} catch(Exception e) {
+					logger.error(Constants.ERROR_MESSAGE, e);
 				} finally {
 					if(this.user != null && !this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace() && AbstractSecurityUtils.securityEnabled() 
 							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {

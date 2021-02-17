@@ -3,10 +3,11 @@ package prerna.sablecc2.om;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
@@ -24,16 +25,16 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	// for quick searching
 	// storing the varNames for all frames
-	private Set<String> frameSet;
+	private List<String> frameKeys;
 	
 	// for quick searching
 	// storing the varnames for all insight parameters
-	private Set<String> insightParametersSet;
+	private List<String> insightParametersKeys;
 	
 	public VarStore() {
 		varMap = new ConcurrentHashMap<>();
-		frameSet = new LinkedHashSet<>();
-		insightParametersSet = new LinkedHashSet<>();
+		frameKeys = new CopyOnWriteArrayList<>();
+		insightParametersKeys = new CopyOnWriteArrayList<>();
 	}
 	
 	@Override
@@ -47,16 +48,20 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		varMap.put(varName, variable);
 		// keep quick reference to frames
 		if(variable.getNounType() == PixelDataType.FRAME) {
-			frameSet.add(varName);
+			if(!frameKeys.contains(varName)) {
+				frameKeys.add(varName);
+			}
 		} else if(variable.getNounType() == PixelDataType.PARAM_STRUCT) {
-			insightParametersSet.add(varName);
+			if(!insightParametersKeys.contains(varName)) {
+				insightParametersKeys.add(varName);
+			}
 		}
 	}
 	
 	public void putAll(VarStore otherStore) {
 		varMap.putAll(otherStore.varMap);
-		frameSet.addAll(otherStore.frameSet);
-		insightParametersSet.addAll(otherStore.insightParametersSet);
+		frameKeys.addAll(otherStore.frameKeys);
+		insightParametersKeys.addAll(otherStore.insightParametersKeys);
 	}
 	
 	@Override
@@ -98,8 +103,8 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	@Override
 	public NounMetadata remove(String varName) {
 		// also try to remove from frameSet if its a frame
-		this.frameSet.remove(varName);
-		this.insightParametersSet.remove(varName);
+		this.frameKeys.remove(varName);
+		this.insightParametersKeys.remove(varName);
 		return varMap.remove(varName);
 	}
 	
@@ -109,15 +114,15 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	 */
 	public void removeAll(Collection<String> keys) {
 		// also try to remove from frameSet if its a frame
-		this.frameSet.removeAll(keys);
-		this.insightParametersSet.removeAll(keys);
+		this.frameKeys.removeAll(keys);
+		this.insightParametersKeys.removeAll(keys);
 		this.varMap.keySet().removeAll(keys);
 	}
 	
 	@Override
 	public void clear() {
-		this.frameSet.clear();
-		this.insightParametersSet.clear();
+		this.frameKeys.clear();
+		this.insightParametersKeys.clear();
 		this.varMap.clear();
 	}
 	
@@ -137,8 +142,8 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		return varMap.keySet();
 	}
 	
-	public Set<String> getFrameKeys() {
-		return frameSet;
+	public List<String> getFrameKeys() {
+		return frameKeys;
 	}
 	
 	/**
@@ -148,7 +153,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	 */
 	public Set<String> findAllVarReferencesForFrame(ITableDataFrame frame) {
 		Set<String> referenceSet = new HashSet<>();
-		for(String frameKey : frameSet) {
+		for(String frameKey : frameKeys) {
 			NounMetadata possibleFrameVar = this.varMap.get(frameKey);
 			if(possibleFrameVar.getValue() == frame) {
 				referenceSet.add(frameKey);
@@ -157,8 +162,8 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		return referenceSet;
 	}
 	
-	public Set<String> getInsightParameterKeys() {
-		return insightParametersSet;
+	public List<String> getInsightParameterKeys() {
+		return insightParametersKeys;
 	}
 	
 	/**
@@ -186,7 +191,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	 */
 	public Map<String, NounMetadata> pullParameters() {
 		Map<String, NounMetadata> retMap = new HashMap<>();
-		for(String paramKey : this.insightParametersSet) {
+		for(String paramKey : this.insightParametersKeys) {
 			retMap.put(paramKey, this.varMap.get(paramKey));
 		}
 		
