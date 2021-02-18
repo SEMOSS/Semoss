@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,12 +18,12 @@ public class TaskStore {
 	// store for the task
 	private Map<String, ITask> taskMap = new LinkedHashMap<String, ITask>(); 
 	// count when we generate unique job ids
-	private long count = 0;
+	private AtomicInteger count = new AtomicInteger(0);
 
 	public String addTask(String taskId, ITask task) {
 		LOGGER.info("Adding new task = " + taskId);
 		this.taskMap.put(taskId, task);
-		++count;
+		count.incrementAndGet();
 		return taskId;
 	}
 	
@@ -61,14 +62,14 @@ public class TaskStore {
 	}
 	
 	private String generateID() {
-		return "task"+ ++count;
+		return "task"+ count.incrementAndGet();
 	}
 	
-	public long getCount() {
+	public AtomicInteger getCount() {
 		return this.count;
 	}
 	
-	public void setCount(long count) {
+	public void setCount(AtomicInteger count) {
 		this.count = count;
 	}
 	
