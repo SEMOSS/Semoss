@@ -164,7 +164,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// we do not cache dashboards or param insights currently
 		// so adding the cacheable check before hand
 		Object params = getExecutionParams();
-		boolean isParam = cacheable && (params != null || PixelUtility.hasParam(newInsight.getPixelList().getPixelRecipe()));
+		boolean isParam = cacheable && (params != null || PixelUtility.isNotCacheable(newInsight.getPixelList().getPixelRecipe()));
 		boolean isDashoard = cacheable && PixelUtility.isDashboard(newInsight.getPixelList().getPixelRecipe());
 		
 		// if not param or dashboard, we can try to load a cache

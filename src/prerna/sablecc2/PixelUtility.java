@@ -213,31 +213,34 @@ public class PixelUtility {
 	}
 	
 	/**
-	 * Checks if recipe has a param
+	 * Checks if recipe is not cacheable 
+	 * True if it is a parameter insight, or grid-delta, etc.
 	 * @param pixels
 	 * @return
 	 */
-	public static boolean hasParam(String[] pixels) {
+	public static boolean isNotCacheable(String[] pixels) {
 		String recipe = String.join("", pixels);
-		return PixelUtility.hasParam(recipe);
+		return PixelUtility.isNotCacheable(recipe);
 	}
 	
 	/**
-	 * Checks if recipe has a param
+	 * Checks if recipe is not cacheable 
+	 * True if it is a parameter insight, or grid-delta, etc.
 	 * @param pixels
 	 * @return
 	 */
-	public static boolean hasParam(List<String> pixels) {
+	public static boolean isNotCacheable(List<String> pixels) {
 		String recipe = String.join("", pixels);
-		return PixelUtility.hasParam(recipe);
+		return PixelUtility.isNotCacheable(recipe);
 	}
 	
 	/**
-	 * Checks if recipe has a param
+	 * Checks if recipe is not cacheable 
+	 * True if it is a parameter insight, or grid-delta, etc.
 	 * @param pixel
 	 * @return
 	 */
-	public static boolean hasParam(String pixel) {
+	public static boolean isNotCacheable(String pixel) {
 		pixel = PixelPreProcessor.preProcessPixel(pixel, new ArrayList<String>(), new HashMap<String, String>());
 		try {
 			Parser p = new Parser(
@@ -250,7 +253,7 @@ public class PixelUtility {
 			Start tree = p.parse();
 			// apply the translation.
 			tree.apply(translation);
-			return translation.hasParam();
+			return translation.notCacheable();
 		} catch (ParserException | LexerException | IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 			String eMessage = e.getMessage();
@@ -267,6 +270,45 @@ public class PixelUtility {
 			logger.info(eMessage);
 		}
 		return false;
+	}
+	
+	/**
+	 * Get the insight json parameter if it exists
+	 * @param pixelList
+	 * @return
+	 */
+	public static Map<String, Object> getInsightParameterJson(List<String> pixelList) {
+		String pixel = String.join("", pixelList);
+		pixel = PixelPreProcessor.preProcessPixel(pixel, new ArrayList<String>(), new HashMap<String, String>());
+		try {
+			Parser p = new Parser(
+					new Lexer(
+							new PushbackReader(
+									new InputStreamReader(
+											new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
+			InsightParamTranslation translation = new InsightParamTranslation();
+			// parsing the pixel - this process also determines if expression is syntactically correct
+			Start tree = p.parse();
+			// apply the translation.
+			tree.apply(translation);
+			return translation.getPanelViewJson();
+		} catch (ParserException | LexerException | IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+			String eMessage = e.getMessage();
+			if(eMessage.startsWith("[")) {
+				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
+				Matcher matcher = pattern.matcher(eMessage);
+				if(matcher.find()) {
+					String location = matcher.group(0);
+					location = location.substring(1, location.length()-1);
+					int findIndex = Integer.parseInt(location.split(",")[1]);
+					eMessage += ". Error in syntax around " + pixel.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
+				}
+			}
+			logger.info(eMessage);
+		}
+		
+		return null;
 	}
 	
 	/**

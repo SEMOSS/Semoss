@@ -35,7 +35,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		// we do not cache dashboards or param insights currently
 		// so adding the cacheable check before hand
 		List<String> pixelRecipe = this.insight.getPixelList().getPixelRecipe();
-		boolean isParam = cacheable && PixelUtility.hasParam(pixelRecipe);
+		boolean isParam = cacheable && PixelUtility.isNotCacheable(pixelRecipe);
 		boolean isDashoard = cacheable && PixelUtility.isDashboard(pixelRecipe);
 		
 		// if not param or dashboard, we can try to load a cache
