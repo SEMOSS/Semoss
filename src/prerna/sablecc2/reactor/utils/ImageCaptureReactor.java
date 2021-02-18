@@ -97,7 +97,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 			return;
 		}
 		List<String> recipe = insight.getPixelList().getPixelRecipe();
-		if(params != null || !PixelUtility.hasParam(recipe)) {
+		if(params != null || !PixelUtility.isNotCacheable(recipe)) {
 			runHeadlessChrome(feUrl, insight, params, sessionId);
 		}
 		
