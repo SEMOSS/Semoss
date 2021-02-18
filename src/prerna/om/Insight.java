@@ -304,6 +304,7 @@ public class Insight {
 				try {
 					runner.runPixel(pixelString, this);
 				} catch(SemossPixelException e) {
+					logger.error(Constants.ERROR_MESSAGE, e);
 					if(!e.isContinueThreadOfExecution()) {
 						break;
 					}
@@ -327,12 +328,16 @@ public class Insight {
 	}
 	
 	private void trackPixel(PixelRunner runner) {
-		IUserTracker tracker = UserTrackerFactory.getInstance();
-		if(tracker.isActive()) {
-			List<Pixel> returnedPixelList = runner.getReturnPixelList();
-			for(Pixel p : returnedPixelList) {
-				tracker.trackPixelExecution(this, p.getPixelString(), p.isMeta());
+		try {
+			IUserTracker tracker = UserTrackerFactory.getInstance();
+			if(tracker.isActive()) {
+				List<Pixel> returnedPixelList = runner.getReturnPixelList();
+				for(Pixel p : returnedPixelList) {
+					tracker.trackPixelExecution(this, p.getPixelString(), p.isMeta());
+				}
 			}
+		} catch(Exception e) {
+			logger.error(Constants.ERROR_MESSAGE, e);
 		}
 	}
 
