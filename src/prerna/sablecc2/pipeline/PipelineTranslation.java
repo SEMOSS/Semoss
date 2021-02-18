@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.om.Insight;
+import prerna.om.Pixel;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.sablecc2.LazyTranslation;
@@ -118,6 +119,8 @@ public class PipelineTranslation extends LazyTranslation {
         	PRoutine e = copy.get(pixelstep);
         	try {
         		this.resultKey = "$RESULT_" + e.hashCode();
+        		this.pixelObj = new Pixel("tempStorage", e.toString());
+
             	this.curRoutine = new Vector<>();
         		// add the routine
             	this.allRoutines.add(this.curRoutine);
@@ -126,7 +129,7 @@ public class PipelineTranslation extends LazyTranslation {
         		// reset the state of the frame
         		this.currentFrame = null;
         	} catch(SemossPixelException ex) {
-        		trackError(e.toString(), this.isMeta, ex);
+        		trackError(e.toString(), this.pixelObj.isMeta(), ex);
         		logger.error(Constants.STACKTRACE, ex);
         		// if we want to continue the thread of execution
         		// nothing special
@@ -143,7 +146,7 @@ public class PipelineTranslation extends LazyTranslation {
         			throw ex;
         		}
         	} catch(Exception ex) {
-        		trackError(e.toString(), this.isMeta, ex);
+        		trackError(e.toString(), this.pixelObj.isMeta(), ex);
         		logger.error(Constants.STACKTRACE, ex);
         		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
