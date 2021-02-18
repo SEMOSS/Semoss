@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.scheduler;
 
-import static org.quartz.JobBuilder.newJob;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.Job;
+import org.quartz.JobBuilder;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
@@ -95,6 +94,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 		String recipeParameters = this.keyValue.get(this.keysToGet[4]);
 		recipeParameters = SchedulerDatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
+		if(recipeParameters == null) {
+			recipeParameters = "";
+		}
 		
 		// get triggers
 		boolean triggerOnLoad = getTriggerOnLoad();
@@ -194,7 +196,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 
 		// Schedule the job
-		JobDetail job = newJob(jobClass).withIdentity(jobId, jobGroup).usingJobData(jobDataMap).storeDurably().build();
+		JobDetail job = JobBuilder.newJob(jobClass).withIdentity(jobId, jobGroup).usingJobData(jobDataMap).storeDurably().build();
 		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup + "TriggerGroup")
 				.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)
 						.inTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()))).build();
@@ -221,9 +223,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		// need this for the job config
 		jsonObject.addProperty(JobConfigKeys.JOB_CLASS_NAME, ConfigurableJob.RUN_PIXEL_JOB.getJobClassName());
 		jsonObject.addProperty(JobConfigKeys.PIXEL, recipe);
-		if(recipeParameters != null) {
-			jsonObject.addProperty(JobConfigKeys.PIXEL_PARAMETERS, recipeParameters);
-		}
+		jsonObject.addProperty(JobConfigKeys.PIXEL_PARAMETERS, recipeParameters);
 		return jsonObject;
 	}
 

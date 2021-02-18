@@ -79,6 +79,9 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 		String recipeParameters = this.keyValue.get(this.keysToGet[5]);
 		recipeParameters = SchedulerDatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
+		if(recipeParameters == null) {
+			recipeParameters = "";
+		}
 
 		// get triggers
 		boolean triggerOnLoad = getTriggerOnLoad();
