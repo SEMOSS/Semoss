@@ -1,6 +1,8 @@
 package prerna.sablecc2.reactor.insights;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
@@ -105,8 +107,15 @@ public class IsInsightParameterizedReactor extends AbstractInsightReactor {
 		// yay... not legacy
 		
 		// parse the recipe and return if it is a param
-		boolean isParam = PixelUtility.hasParam(newInsight.getPixelList().getPixelRecipe());
-		return new NounMetadata(isParam, PixelDataType.BOOLEAN);
+		Map<String, Object> viewOptionsMap = PixelUtility.getInsightParameterJson(newInsight.getPixelList().getPixelRecipe());
+		Map<String, Object> retMap = new HashMap<>();
+		if(viewOptionsMap == null) {
+			retMap.put("hasParameter", false);
+		} else {
+			retMap.put("hasParameter", true);
+			retMap.put("viewOptionsMap", viewOptionsMap);
+		}
+		return new NounMetadata(retMap, PixelDataType.MAP);
 	}
 
 }
