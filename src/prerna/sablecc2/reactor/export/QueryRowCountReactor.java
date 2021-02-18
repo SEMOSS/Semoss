@@ -43,10 +43,10 @@ public class QueryRowCountReactor  extends AbstractReactor {
 		
 		try {
 			long start = System.currentTimeMillis();
-			logger.info("Executing query on engine " + engine.getEngineId());
+			logger.info("Query Row Count : Executing query on engine " + engine.getEngineId());
 			long numRows = iterator.getNumRows();
 			long end = System.currentTimeMillis();
-			logger.info("Engine execution time = " + (end-start) + "ms");
+			logger.info("Query Row Count : Engine execution time = " + (end-start) + "ms");
 			return new NounMetadata(numRows, PixelDataType.CONST_INT, PixelOperationType.QUERY_ROW_COUNT);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
