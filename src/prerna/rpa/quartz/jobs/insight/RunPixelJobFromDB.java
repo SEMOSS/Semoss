@@ -13,7 +13,6 @@ import java.util.UUID;
 import javax.net.ssl.HostnameVerifier;
 
 import org.apache.http.NameValuePair;
-import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -26,7 +25,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.InterruptableJob;
@@ -88,13 +86,18 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_ID, jobId));
 			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_GROUP, jobGroup));
 			paramList.add(new BasicNameValuePair(JobConfigKeys.USER_ACCESS, userAccess));
-			if(pixelParameters != null && !pixelParameters.trim().isEmpty()) {
-				pixelParameters = pixelParameters.trim();
+			boolean hasParam = false;
+			if(pixelParameters != null && !(pixelParameters = pixelParameters.trim()).isEmpty()) {
 				if(pixelParameters.endsWith(";")) {
 					pixelParameters = pixelParameters.substring(0, pixelParameters.length()-1);
 				}
-				paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixelParameters + " | " + pixel));
-			} else {
+				// account for just a ";" being sent as the pixel parameter
+				if(!pixelParameters.isEmpty()) {
+					hasParam = true;
+					paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixelParameters + " | " + pixel));
+				}
+			}
+			if(!hasParam) {
 				paramList.add(new BasicNameValuePair(JobConfigKeys.PIXEL, pixel));
 			}
 			
