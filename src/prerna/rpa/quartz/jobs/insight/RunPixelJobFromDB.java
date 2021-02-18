@@ -88,7 +88,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_ID, jobId));
 			paramList.add(new BasicNameValuePair(JobConfigKeys.JOB_GROUP, jobGroup));
 			paramList.add(new BasicNameValuePair(JobConfigKeys.USER_ACCESS, userAccess));
-			if(pixelParameters != null && !pixelParameters.isEmpty()) {
+			if(pixelParameters != null && !pixelParameters.trim().isEmpty()) {
 				pixelParameters = pixelParameters.trim();
 				if(pixelParameters.endsWith(";")) {
 					pixelParameters = pixelParameters.substring(0, pixelParameters.length()-1);
@@ -112,13 +112,13 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			
 			int status = response.getStatusLine().getStatusCode();
 			logger.info("##SCHEDULED JOB: Response Code " + status);
-			try {
-				logger.info("##SCHEDULED JOB: Json return = " + EntityUtils.toString(response.getEntity()));
-			} catch (ParseException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
+//			try {
+//				logger.info("##SCHEDULED JOB: Json return = " + EntityUtils.toString(response.getEntity()));
+//			} catch (ParseException e) {
+//				logger.error(Constants.STACKTRACE, e);
+//			} catch (IOException e) {
+//				logger.error(Constants.STACKTRACE, e);
+//			}
 			
 			// store execution time and date in SMSS_AUDIT_TRAIL table
 			long end = System.currentTimeMillis();
