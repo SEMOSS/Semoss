@@ -2,6 +2,7 @@ package prerna.util.gson;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -55,7 +56,7 @@ public class TaskStoreAdapter extends AbstractSemossTypeAdapter<TaskStore> {
 		out.endArray();
 		
 		// also output the counter
-		out.name("taskCounter").value(value.getCount());
+		out.name("taskCounter").value(value.getCount().intValue());
 		out.endObject();
 	}
 
@@ -140,8 +141,8 @@ public class TaskStoreAdapter extends AbstractSemossTypeAdapter<TaskStore> {
 		
 		// get the count
 		in.nextName();
-		long taskCount = in.nextLong();
-		tStore.setCount(taskCount);
+		int taskCount = in.nextInt();
+		tStore.setCount(new AtomicInteger(taskCount));
 		
 		// end the task store
 		in.endObject();
