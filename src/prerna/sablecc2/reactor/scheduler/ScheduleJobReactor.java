@@ -91,11 +91,14 @@ public class ScheduleJobReactor extends AbstractReactor {
 		
 		String recipe = this.keyValue.get(this.keysToGet[3]);
 		recipe = SchedulerDatabaseUtility.validateAndDecodeRecipe(recipe);
-
+		recipe = recipe.trim();
+		
 		String recipeParameters = this.keyValue.get(this.keysToGet[4]);
 		recipeParameters = SchedulerDatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
 		if(recipeParameters == null) {
 			recipeParameters = "";
+		} else {
+			recipeParameters = recipeParameters.trim();
 		}
 		
 		// get triggers
