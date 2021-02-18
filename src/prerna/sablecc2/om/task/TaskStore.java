@@ -1,9 +1,9 @@
 package prerna.sablecc2.om.task;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,14 +16,13 @@ public class TaskStore {
 	private static final Logger LOGGER = LogManager.getLogger(TaskStore.class.getName());
 	
 	// store for the task
-	private Map<String, ITask> taskMap = new LinkedHashMap<String, ITask>(); 
+	private Map<String, ITask> taskMap = new ConcurrentHashMap<String, ITask>(); 
 	// count when we generate unique job ids
 	private AtomicInteger count = new AtomicInteger(0);
 
 	public String addTask(String taskId, ITask task) {
 		LOGGER.info("Adding new task = " + taskId);
 		this.taskMap.put(taskId, task);
-		count.incrementAndGet();
 		return taskId;
 	}
 	
