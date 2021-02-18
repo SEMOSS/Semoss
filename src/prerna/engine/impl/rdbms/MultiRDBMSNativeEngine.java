@@ -152,7 +152,7 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 			engine.setProp(thisProp);
 			engine.openDB(null);
 			
-			contextToConnectionMap.put(contextName, engine);
+			this.contextToConnectionMap.put(contextName, engine);
 		}
 	}
 	
