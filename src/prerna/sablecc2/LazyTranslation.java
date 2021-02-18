@@ -119,7 +119,6 @@ public class LazyTranslation extends DepthFirstAdapter {
 
 	protected String resultKey = null;
 	
-	protected boolean isMeta = false;
 	// if we have META and a variable definition
 	// we need to not record this variable
 	// this includes embedded expressions
@@ -130,7 +129,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	protected TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
 	
 	protected ITableDataFrame currentFrame = null;
-	Pixel pixelObj = null;
+	protected Pixel pixelObj = null;
 	
 	public static String envClassPath = null;
 	
@@ -189,8 +188,8 @@ public class LazyTranslation extends DepthFirstAdapter {
         		// we will start to keep track of some metadata
         		// at the start of each pixel being processed
         		this.resultKey = "$RESULT_" + e.hashCode();
-        		pixelObj = new Pixel("tempStorage", e.toString());
-        		pixelObj.setStartingFrameHeaders(InsightUtility.getAllFrameHeaders(this.planner.getVarStore()));
+        		this.pixelObj = new Pixel("tempStorage", e.toString());
+        		this.pixelObj.setStartingFrameHeaders(InsightUtility.getAllFrameHeaders(this.planner.getVarStore()));
         		
         		// actually run the operation
         		e.apply(this);
@@ -198,7 +197,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         		// reset the state of the frame
         		this.currentFrame = null;
         	} catch(SemossPixelException ex) {
-        		trackError(e.toString(), this.isMeta, ex);
+        		trackError(e.toString(), this.pixelObj.isMeta(), ex);
         		logger.error(Constants.STACKTRACE, ex);
         		// if we want to continue the thread of execution
         		// nothing special
@@ -215,7 +214,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         			throw ex;
         		}
         	} catch(Exception ex) {
-        		trackError(e.toString(), this.isMeta, ex);
+        		trackError(e.toString(), this.pixelObj.isMeta(), ex);
         		logger.error(Constants.STACKTRACE, ex);
         		planner.addVariable(this.resultKey, new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
@@ -296,7 +295,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void inAMetaRoutine(AMetaRoutine node) {
 		defaultIn(node);
-		this.isMeta = true;
+		this.pixelObj.setMeta(true);
 	}
 
     public void outAMetaRoutine(AMetaRoutine node) {
@@ -329,13 +328,13 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	String var = node.getId().toString().trim();
 
-    	if(this.isMeta) {
-    		if(this.planner.hasVariable(var)) {
-    			this.prevVariables.put(var, this.planner.getVariable(var));
-    		}
-    		// make sure we remove this at the end
-    		this.metaVariables.add(var);
-    	}
+//    	if(this.pixelObj.isMeta()) {
+//    		if(this.planner.hasVariable(var)) {
+//    			this.prevVariables.put(var, this.planner.getVariable(var));
+//    		}
+//    		// make sure we remove this at the end
+//    		this.metaVariables.add(var);
+//    	}
     	
     	AssignmentReactor assignmentReactor = new AssignmentReactor(this.resultKey);
         assignmentReactor.setPixel(var, node.toString().trim());
