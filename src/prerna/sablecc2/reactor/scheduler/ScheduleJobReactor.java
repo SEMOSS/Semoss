@@ -51,7 +51,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 	// Inputs
 	public static final String TRIGGER_NOW = "triggerNow";
 	public static final String TRIGGER_ON_LOAD = "triggerOnLoad";
-	public static final String PARAMETERS = "parameters";
+	public static final String UI_STATE = "uiState";
 
 	// Outputs
 	public static final String JSON_CONFIG = "jsonConfig";
@@ -61,7 +61,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 	public ScheduleJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
 				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(),
-				TRIGGER_ON_LOAD, TRIGGER_NOW, PARAMETERS, ReactorKeysEnum.JOB_TAGS.getKey() };
+				TRIGGER_ON_LOAD, TRIGGER_NOW, UI_STATE, ReactorKeysEnum.JOB_TAGS.getKey() };
 	}
 
 	@Override
@@ -105,9 +105,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 
-		String parameters = this.keyValue.get(this.keysToGet[7]);
-		if(parameters == null) {
-			parameters = "";
+		String uiState = this.keyValue.get(this.keysToGet[7]);
+		if(uiState == null) {
+			uiState = "";
 		}
 		try {
 			scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
@@ -131,7 +131,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 			// create json object for later use
 			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters,
-					triggerOnLoad, parameters, providerInfo.toString());
+					triggerOnLoad, uiState, providerInfo.toString());
 
 			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 			// if job exists throw error, job already exists
@@ -152,7 +152,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 			// insert into SMOSS_JOB_RECIPES table
 			logger.info("Saving JobId to database: "+jobId);
-			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default", triggerOnLoad, parameters, jobTags);
+			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default", triggerOnLoad, uiState, jobTags);
 
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
