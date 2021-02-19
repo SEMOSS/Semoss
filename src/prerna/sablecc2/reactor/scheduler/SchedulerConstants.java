@@ -83,7 +83,7 @@ public final class SchedulerConstants {
 	public static final String SUCCESS = "SUCCESS";
 	public static final String JOB_CATEGORY = "JOB_CATEGORY";
 	public static final String TRIGGER_ON_LOAD = "TRIGGER_ON_LOAD";
-	public static final String PARAMETERS = "PARAMETERS";
+	public static final String UI_STATE = "UI_STATE";
 	public static final String EXEC_ID = "EXEC_ID";
 	public static final String IS_LATEST = "IS_LATEST";
 	
