@@ -43,7 +43,6 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.MISFIRE_INSTR
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.NEXT_FIRE_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.NOT_NULL;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.NUMERIC_13_4;
-import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PARAMETERS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PIXEL_RECIPE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PIXEL_RECIPE_PARAMETERS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PREV_FIRE_TIME;
@@ -83,6 +82,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.TRIGGER_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.TRIGGER_ON_LOAD;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.TRIGGER_STATE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.TRIGGER_TYPE;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.UI_STATE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.USER_ID;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_120;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_16;
@@ -136,7 +136,7 @@ public class SchedulerDatabaseUtility {
 
 	/**
 	 * SELECT SMSS_JOB_RECIPES.USER_ID, SMSS_JOB_RECIPES.JOB_ID, SMSS_JOB_RECIPES.JOB_NAME, SMSS_JOB_RECIPES.JOB_GROUP, SMSS_JOB_RECIPES.CRON_EXPRESSION,
-	 * SMSS_JOB_RECIPES.PIXEL_RECIPE, SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, SMSS_JOB_RECIPES.PARAMETERS, QRTZ_TRIGGERS.NEXT_FIRE_TIME, QRTZ_TRIGGERS.PREV_FIRE_TIME
+	 * SMSS_JOB_RECIPES.PIXEL_RECIPE, SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, SMSS_JOB_RECIPES.UI_STATE, QRTZ_TRIGGERS.NEXT_FIRE_TIME, QRTZ_TRIGGERS.PREV_FIRE_TIME
 	 * FROM SMSS_JOB_RECIPES LEFT OUTER JOIN QRTZ_TRIGGERS ON SMSS_JOB_RECIPES.JOB_NAME = QRTZ_TRIGGERS.JOB_NAME AND SMSS_JOB_RECIPES.JOB_GROUP = QRTZ_TRIGGERS.JOB_GROUP
 	 */
 	private static final String BASE_JOB_DETAILS_QUERY = "SELECT SMSS_JOB_RECIPES.USER_ID, "
@@ -146,7 +146,7 @@ public class SchedulerDatabaseUtility {
 			+ "SMSS_JOB_RECIPES.CRON_EXPRESSION, "
 			+ "SMSS_JOB_RECIPES.PIXEL_RECIPE, "
 			+ "SMSS_JOB_RECIPES.PIXEL_RECIPE_PARAMETERS, "
-			+ "SMSS_JOB_RECIPES.PARAMETERS, "
+			+ "SMSS_JOB_RECIPES.UI_STATE, "
 			+ "QRTZ_TRIGGERS.NEXT_FIRE_TIME, "
 			// fetching the execution start time value from audit trail table 
 			+ "SMSS_AUDIT_TRAIL.EXECUTION_START, "
@@ -332,11 +332,11 @@ public class SchedulerDatabaseUtility {
 	}
 
 	public static boolean insertIntoJobRecipesTable(String userId, String jobId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters,
-			String jobCategory, boolean triggerOnLoad, String parameters, List<String> jobTags ) {
+			String jobCategory, boolean triggerOnLoad, String uiState, List<String> jobTags ) {
 		
 		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
-				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS) VALUES (?,?,?,?,?,?,?,?,?,?)")) {
+				.prepareStatement("INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE) VALUES (?,?,?,?,?,?,?,?,?,?)")) {
 			statement.setString(1, userId);
 			statement.setString(2, jobId);
 			statement.setString(3, jobName);
@@ -352,7 +352,7 @@ public class SchedulerDatabaseUtility {
 				} else {
 					statement.setBlob(7, stringToBlob(connection, recipeParameters));
 				}
-				statement.setBlob(10, stringToBlob(connection, parameters));
+				statement.setBlob(10, stringToBlob(connection, uiState));
 			} else {
 				statement.setString(6, recipe);
 				if(recipeParameters == null || recipeParameters.isEmpty()) {
@@ -360,7 +360,7 @@ public class SchedulerDatabaseUtility {
 				} else {
 					statement.setString(7, recipeParameters);
 				}
-				statement.setString(10, parameters);
+				statement.setString(10, uiState);
 			}
 
 
@@ -369,7 +369,6 @@ public class SchedulerDatabaseUtility {
 			logger.error(Constants.STACKTRACE, e);
 			return false;
 		}
-
 
 		return updateJobTags(jobId, jobTags);
 	}
@@ -413,12 +412,12 @@ public class SchedulerDatabaseUtility {
 	}
 	
 	public static boolean updateJobRecipesTable(String userId, String jobId, String jobName, String jobGroup, String cronExpression, String recipe, String recipeParameters,
-			String jobCategory, boolean triggerOnLoad, String parameters, String existingJobName, String existingJobGroup, List<String> jobTags) {
+			String jobCategory, boolean triggerOnLoad, String uiState, String existingJobName, String existingJobGroup, List<String> jobTags) {
 		
 		Connection connection = connectToScheduler();
 		try (PreparedStatement statement = connection
 				.prepareStatement("UPDATE SMSS_JOB_RECIPES SET USER_ID = ?, JOB_NAME = ?, JOB_GROUP = ?, CRON_EXPRESSION = ?, PIXEL_RECIPE = ?, "
-						+ "PIXEL_RECIPE_PARAMETERS = ?, JOB_CATEGORY = ?, TRIGGER_ON_LOAD = ?, PARAMETERS = ? WHERE JOB_ID = ? AND JOB_GROUP = ?")) {
+						+ "PIXEL_RECIPE_PARAMETERS = ?, JOB_CATEGORY = ?, TRIGGER_ON_LOAD = ?, UI_STATE = ? WHERE JOB_ID = ? AND JOB_GROUP = ?")) {
 			statement.setString(1, userId);
 			statement.setString(2, jobName);
 			statement.setString(3, jobGroup);
@@ -433,7 +432,7 @@ public class SchedulerDatabaseUtility {
 				} else {
 					statement.setBlob(6, stringToBlob(connection, recipeParameters));
 				}
-				statement.setBlob(9, stringToBlob(connection, parameters));
+				statement.setBlob(9, stringToBlob(connection, uiState));
 			} else {
 				statement.setString(5, recipe);
 				if(recipeParameters == null || recipeParameters.isEmpty()) {
@@ -441,7 +440,7 @@ public class SchedulerDatabaseUtility {
 				} else {
 					statement.setString(6, recipeParameters);
 				}
-				statement.setString(9, parameters);
+				statement.setString(9, uiState);
 			}
 			
 			// where clause filters
@@ -657,7 +656,7 @@ public class SchedulerDatabaseUtility {
 		String cronExpression = result.getString(CRON_EXPRESSION);
 		String recipe = null;
 		String recipeParameters = null;
-		String parameters = null;
+		String uiState = null;
 		BigInteger nextExecTime = null;
 		BigDecimal nExecTimeD = result.getBigDecimal(NEXT_FIRE_TIME);
 		String tiggerState = result.getString(TRIGGER_STATE);
@@ -678,14 +677,14 @@ public class SchedulerDatabaseUtility {
 				logger.error(Constants.STACKTRACE, e);
 			}
 			try {
-				parameters = RDBMSUtility.flushBlobToString(result.getBlob(PARAMETERS));
+				uiState = RDBMSUtility.flushBlobToString(result.getBlob(UI_STATE));
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
 		} else {
 			recipe = result.getString(PIXEL_RECIPE);
 			recipeParameters = result.getString(PIXEL_RECIPE_PARAMETERS);
-			parameters = result.getString(PARAMETERS);
+			uiState = result.getString(UI_STATE);
 		}
 		
 		jobDetailsMap.put(USER_ID, userId);
@@ -696,7 +695,7 @@ public class SchedulerDatabaseUtility {
 		jobDetailsMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cronExpression);
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
 		jobDetailsMap.put(ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), recipeParameters);
-		jobDetailsMap.put(ScheduleJobReactor.PARAMETERS, parameters);
+		jobDetailsMap.put(ScheduleJobReactor.UI_STATE, uiState);
 		// setting the prev_fire_time fom the smss audit table
 		if(previousRun != null) {
 			jobDetailsMap.put(PREV_FIRE_TIME, previousRun.toString());			
@@ -1044,7 +1043,7 @@ public class SchedulerDatabaseUtility {
 		try {
 			// SMSS_JOB_RECIPES
 			colNames = new String[] { USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, 
-					JOB_CATEGORY, TRIGGER_ON_LOAD, PARAMETERS };
+					JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE };
 			types = new String[] { VARCHAR_120, VARCHAR_200,VARCHAR_200, VARCHAR_200, VARCHAR_250, BLOB_DATATYPE_NAME, BLOB_DATATYPE_NAME, 
 					VARCHAR_200, BOOLEAN_DATATYPE, BLOB_DATATYPE_NAME };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null };
@@ -1057,6 +1056,21 @@ public class SchedulerDatabaseUtility {
 				if (!queryUtil.tableExists(connection, SMSS_JOB_RECIPES, schema)) {
 					// make the table
 					schedulerDb.insertData(queryUtil.createTableWithCustomConstraints(SMSS_JOB_RECIPES, colNames, types, constraints));
+				}
+			}
+			
+			// ADDED 2021-02-19
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
+			{
+				// since we added the pixel recipe parameters at a later point...
+				if(!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, schema).contains(UI_STATE)) {
+					// alter table to add the column
+					schedulerDb.insertData(queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, UI_STATE, BLOB_DATATYPE_NAME));
+					// set it to the value of the previous name "PARAMETER"
+					schedulerDb.insertData("UPDATE " + SMSS_JOB_RECIPES + " SET " + UI_STATE + "=PARAMETERS");
+					// now delete
+					schedulerDb.removeData(queryUtil.alterTableDropColumn(SMSS_JOB_RECIPES, "PARAMETERS"));
 				}
 			}
 
