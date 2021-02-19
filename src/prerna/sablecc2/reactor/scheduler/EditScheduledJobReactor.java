@@ -46,7 +46,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 	public EditScheduledJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
 				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), 
-				TRIGGER_ON_LOAD, TRIGGER_NOW, PARAMETERS, CURRENT_JOB_NAME, CURRENT_JOB_GROUP, ReactorKeysEnum.JOB_TAGS.getKey()};
+				TRIGGER_ON_LOAD, TRIGGER_NOW, UI_STATE, CURRENT_JOB_NAME, CURRENT_JOB_GROUP, ReactorKeysEnum.JOB_TAGS.getKey()};
 	}
 
 	@Override
@@ -87,9 +87,9 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 
-		String parameters = this.keyValue.get(this.keysToGet[8]);
-		if(parameters == null) {
-			parameters = "";
+		String uiState = this.keyValue.get(this.keysToGet[8]);
+		if(uiState == null) {
+			uiState = "";
 		}
 
 		// existing name/group
@@ -118,7 +118,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 			// create json object for later use
 			JsonObject jsonObject = createJsonObject(jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters,
-					triggerOnLoad, parameters, providerInfo.toString());
+					triggerOnLoad, uiState, providerInfo.toString());
 			JobConfig jobConfig = JobConfig.initialize(jsonObject);
 
 			// the id does not change
@@ -141,7 +141,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				
 				// edit the current recipe
 				SchedulerDatabaseUtility.updateJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression, recipe, recipeParameters, "Default",
-						triggerOnLoad, parameters, curJobName, curJobGroup, jobTags);
+						triggerOnLoad, uiState, curJobName, curJobGroup, jobTags);
 
 				// update the trigger
 				String triggerName = jobId.concat("Trigger");

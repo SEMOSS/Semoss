@@ -43,7 +43,6 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.LONG_PROP_2;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.MISFIRE_INSTR;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.NEXT_FIRE_TIME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.NUMERIC_13_4;
-import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PARAMETERS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PIXEL_RECIPE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PIXEL_RECIPE_PARAMETERS;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.PREV_FIRE_TIME;
@@ -83,6 +82,7 @@ import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.TRIGGER_NAME;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.TRIGGER_ON_LOAD;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.TRIGGER_STATE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.TRIGGER_TYPE;
+import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.UI_STATE;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.USER_ID;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_120;
 import static prerna.sablecc2.reactor.scheduler.SchedulerConstants.VARCHAR_16;
@@ -166,6 +166,11 @@ public class SchedulerOwlCreator {
 		if(check1) {
 			List<String> props = schedulerDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_AUDIT_TRAIL");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/IS_LATEST/SMSS_AUDIT_TRAIL")) {
+				return true;
+			}
+			
+			props = schedulerDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_JOB_RECIPES");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/UI_STATE/SMSS_JOB_RECIPES")) {
 				return true;
 			}
 		}
@@ -334,7 +339,7 @@ public class SchedulerOwlCreator {
 		owler.addProp(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS, BLOB);
 		owler.addProp(SMSS_JOB_RECIPES, JOB_CATEGORY, VARCHAR_200);
 		owler.addProp(SMSS_JOB_RECIPES, TRIGGER_ON_LOAD, BOOLEAN);
-		owler.addProp(SMSS_JOB_RECIPES, PARAMETERS, BLOB);
+		owler.addProp(SMSS_JOB_RECIPES, UI_STATE, BLOB);
 
 		// SMSS_AUDIT_TRAIL
 		owler.addConcept(SMSS_AUDIT_TRAIL, null, null);
