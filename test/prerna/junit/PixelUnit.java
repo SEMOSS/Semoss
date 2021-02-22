@@ -995,7 +995,7 @@ public class PixelUnit {
 		}
 
 		protected static JsonArray getPixelReturns(PixelRunner data) throws IOException {
-			StreamingOutput so = PixelStreamUtility.collectPixelData(data);
+			StreamingOutput so = PixelStreamUtility.collectPixelData(data, null);
 			try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
 				so.write(output);
 				String jsonString = new String(output.toByteArray(), TEXT_ENCODING);
