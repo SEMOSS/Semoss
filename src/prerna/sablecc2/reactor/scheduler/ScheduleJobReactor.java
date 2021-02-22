@@ -213,14 +213,14 @@ public class ScheduleJobReactor extends AbstractReactor {
 	}
 
 	public static JsonObject createJsonObject(String jobId, String jobName, String jobGroup, String cronExpression, String recipe,
-			String recipeParameters, boolean triggerOnLoad, String parameters, String providerInfo) {
+			String recipeParameters, boolean triggerOnLoad, String uiState, String providerInfo) {
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.addProperty(JobConfigKeys.JOB_ID, jobId);
 		jsonObject.addProperty(JobConfigKeys.JOB_NAME, jobName);
 		jsonObject.addProperty(JobConfigKeys.JOB_GROUP, jobGroup);
 		jsonObject.addProperty(JobConfigKeys.JOB_CRON_EXPRESSION, cronExpression);
 		jsonObject.addProperty(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
-		jsonObject.addProperty(JobConfigKeys.PARAMETERS, parameters);
+		jsonObject.addProperty(JobConfigKeys.UI_STATE, uiState);
 		jsonObject.addProperty(JobConfigKeys.USER_ACCESS, providerInfo);
 
 		// need this for the job config
