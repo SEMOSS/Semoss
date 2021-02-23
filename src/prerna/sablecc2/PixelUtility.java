@@ -786,7 +786,7 @@ public class PixelUtility {
 //								clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
 //							}
 							// or store to drop the panel
-							if(!closePanels.contains(originalPanel)){
+							if(!panels.containsKey(originalPanel) && !closePanels.contains(originalPanel)){
 								closePanels.add(originalPanel);
 							}
 							// now store this
@@ -803,7 +803,7 @@ public class PixelUtility {
 //								clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
 //							}
 							// or store to drop the panel
-							if(!closePanels.contains(originalPanel)){
+							if(!panels.containsKey(originalPanel) && !closePanels.contains(originalPanel)){
 								closePanels.add(originalPanel);
 							}
 							// now store this
