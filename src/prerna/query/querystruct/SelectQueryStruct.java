@@ -298,7 +298,10 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 				addDataType((QueryColumnSelector) selector, frameQuery, engineQuery, selectorMap);
 				
 			} else {
-				selectorMap.put("derived", true);
+				// if we have a constant, we will have it be derived false
+				// otherwise derived is true
+				boolean derived = selectorType != IQuerySelector.SELECTOR_TYPE.CONSTANT;
+				selectorMap.put("derived", derived);
 				List<String> groupBy = new Vector<String>();
 				for(IQuerySelector groupBySelector : this.groupBy) {
 					String groupQs = groupBySelector.getQueryStructName();
