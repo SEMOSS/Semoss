@@ -780,12 +780,13 @@ public class PixelUtility {
 							
 							// add in the clone step
 							clonePanelSteps.add("Panel(\"" + originalPanel + "\") | CachedPanelClone(\"" + clonePanel + "\");");
-							// + reset the panel view
-							if(panels.containsKey(originalPanel)) {
-								clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
-							} 
+							// not required anymore
+//							// + reset the panel view
+//							if(panels.containsKey(originalPanel)) {
+//								clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
+//							}
 							// or store to drop the panel
-							else if(!closePanels.contains(originalPanel)){
+							if(!closePanels.contains(originalPanel)){
 								closePanels.add(originalPanel);
 							}
 							// now store this
@@ -796,12 +797,13 @@ public class PixelUtility {
 							List<String> clonePanelSteps = new Vector<>(cloneMapToViewSteps.get(originalPanel));
 							// add in the clone step
 							clonePanelSteps.add("Panel(\"" + originalPanel + "\") | CachedPanelClone(\"" + clonePanel + "\");");
+							// not required anymore
 							// + reset the panel view
-							if(panels.containsKey(originalPanel)) {
-								clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
-							}
+//							if(panels.containsKey(originalPanel)) {
+//								clonePanelSteps.add("CachedPanel(\"" + originalPanel + "\");");
+//							}
 							// or store to drop the panel
-							else if(!closePanels.contains(originalPanel)){
+							if(!closePanels.contains(originalPanel)){
 								closePanels.add(originalPanel);
 							}
 							// now store this
