@@ -62,6 +62,7 @@ public enum PixelOperationType {
 	PANEL_FILTER_MODEL,
 	PANEL_SORT,
 	CACHED_PANEL,
+	CACHED_PANEL_CLONE,
 	
 	// this is only for legacy insights/dashboards
 	@Deprecated
