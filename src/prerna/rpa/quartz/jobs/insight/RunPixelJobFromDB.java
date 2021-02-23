@@ -65,6 +65,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		
 		try {
 			// run the pixel endpoint
+			boolean success;
 			String url = DIHelper.getInstance().getProperty(Constants.SCHEDULER_ENDPOINT);
 			if(url == null) {
 				throw new IllegalArgumentException("Must define the scheduler endpoint to run scheduled jobs");
@@ -114,6 +115,12 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			}
 			
 			int status = response.getStatusLine().getStatusCode();
+			
+			if (status == 200 ) {
+				success = true;
+			} else {
+				success = false;
+			}
 			logger.info("##SCHEDULED JOB: Response Code " + status);
 //			try {
 //				logger.info("##SCHEDULED JOB: Json return = " + EntityUtils.toString(response.getEntity()));
@@ -125,7 +132,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			
 			// store execution time and date in SMSS_AUDIT_TRAIL table
 			long end = System.currentTimeMillis();
-			SchedulerDatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, true);
+			SchedulerDatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, success);
 			logger.info("##SCHEDULED JOB: Execution time: " + (end - start) / 1000 + " seconds.");
 		} finally {
 			// always delete the UUID

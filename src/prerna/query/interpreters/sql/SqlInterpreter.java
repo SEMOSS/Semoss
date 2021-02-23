@@ -157,12 +157,14 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// thus, the order matters 
 			// so get a good starting from table
 			// we can use any of the froms that is not part of the join
-			List<String> startPoints = new Vector<>();
 			if(joinStructList.isEmpty()) {
 				query.append(" FROM ");
-				String[] startPoint = froms.get(0);
-				query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
-				startPoints.add(startPoint[1]);
+				if(froms.isEmpty() && this.frame != null) {
+					query.append(frame.getName());
+				} else {
+					String[] startPoint = froms.get(0);
+					query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
+				}
 			} else {
 				query.append(" ").append(joinStructList.getJoinSyntax());
 			}
