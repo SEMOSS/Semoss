@@ -386,7 +386,19 @@ public class SqlParser2 {
 				Alias seiAlias = sei.getAlias();				
 				GenExpression gep = processExpression(qs, sei.getExpression(), null);
 				
-				if(seiAlias != null) {
+				// in case we have double alias
+				// cast('input' as char(20)) as abc
+				if(gep.getOperation().equals("cast") && seiAlias != null) {
+					// realign to a new outer expression
+					GenExpression outerGep = new GenExpression();
+					outerGep.aQuery = gep.aQuery;
+					outerGep.setOperation("column");
+					outerGep.setLeftAlias(seiAlias.getName());
+					outerGep.setLeftExpr(GenExpression.printQS(gep, new StringBuffer()).toString());
+					outerGep.parent = gep.parent;
+					gep.parent = outerGep;
+					gep = outerGep;
+				} else if(seiAlias != null) {
 					gep.setLeftAlias(seiAlias.getName());
 				}
 				qs.nselectors.add(gep);
