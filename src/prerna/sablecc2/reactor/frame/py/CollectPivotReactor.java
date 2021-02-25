@@ -182,20 +182,17 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 
 			// get the operator and selector
 			//String [] composite = curValue.split("(");
-			if(curValue.contains("("))
-			{
+			if(curValue.contains("(")) {
 				String operator = curValue.substring(0, curValue.indexOf("(")).trim();
 				String operand = curValue.substring(curValue.indexOf("(") + 1, curValue.length()-1).trim();
 				newValues.add(operand);
 				functions.add(operator);
 				// pass back the original operator before converting
 				valueMap.put("math", operator);
-	
 				valueMap.put("alias", operand);
 				valuesList.add(valueMap);
-			}
-			else
-			{
+			} else {
+				newValues.add(curValue);
 				valueMap.put("math", "");
 				valueMap.put("alias", curValue);
 				valuesList.add(valueMap);
