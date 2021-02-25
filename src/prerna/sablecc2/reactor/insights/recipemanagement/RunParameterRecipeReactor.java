@@ -53,6 +53,14 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 					ParamStruct pStruct = (ParamStruct) paramNoun.getValue();
 					String paramLookup = "<" + pStruct.getParamName() + ">";
 					String paramReplacement = pStruct.getDetailsList().get(0).getPixelStringReplacement(pStruct.getDefaultValue());
+					// for some reason
+					// on FE, we do "<paramName>" for single and [<paramName>] for multi
+					// so dont want to have the duplicate quotes
+					if(pStruct.isMultiple()) {
+						if(paramReplacement.startsWith("\"") && paramReplacement.endsWith("\"")) {
+							paramReplacement = paramReplacement.substring(1, paramReplacement.length()-1);
+						}
+					}
 					filledPixel = filledPixel.replace(paramLookup, paramReplacement);
 				}
 				// add back
