@@ -791,7 +791,7 @@ public class SqlParser2 {
 						// who knows you could be a sadist after all
 						full_To = ((GenExpression)sqs2).getLeftExpr();
 						column = true;
-						columnName = full_from;
+						columnName = full_To;
 						tableName = ((GenExpression)sqs2).tableName;
 						aliasName = columnName;
 						if(sqs2.userTableAlias != null)
