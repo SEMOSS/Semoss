@@ -56,7 +56,7 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 					// for some reason
 					// on FE, we do "<paramName>" for single and [<paramName>] for multi
 					// so dont want to have the duplicate quotes
-					if(pStruct.isMultiple()) {
+					if(!pStruct.isMultiple()) {
 						if(paramReplacement.startsWith("\"") && paramReplacement.endsWith("\"")) {
 							paramReplacement = paramReplacement.substring(1, paramReplacement.length()-1);
 						}
