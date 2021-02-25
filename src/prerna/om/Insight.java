@@ -1044,6 +1044,12 @@ public class Insight {
 			// create a new pixelList
 			this.pixelList = new PixelList();
 			
+			// add back the insight parameters
+			// so that we can set the value inside of them
+			for(String paramKey : currentParameters.keySet()) {
+				this.varStore.put(paramKey, currentParameters.get(paramKey));
+			}
+			
 			// execution
 			PixelRunner results = getPixelRunner();
 			results.setMaintainErrors(true);
@@ -1069,11 +1075,6 @@ public class Insight {
 			// so that way the counter doesn't exponentially
 			// increase with every rerun
 //			this.pixelList.setCounter(counterVal);
-			
-			// add back the insight parameters
-			for(String paramKey : currentParameters.keySet()) {
-				this.varStore.put(paramKey, currentParameters.get(paramKey));
-			}
 			
 			// set the mode back
 			setRunSavedInsightMode(false);
