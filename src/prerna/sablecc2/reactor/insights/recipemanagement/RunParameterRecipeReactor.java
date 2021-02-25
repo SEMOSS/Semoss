@@ -41,7 +41,7 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 		if(recipeInput.isEmpty()) {
 			throw new NullPointerException("Must pass in a new recipe");
 		}
-		
+		System.out.println("again");
 		if(fillRecipe()) {
 			recipeToRun = new Vector<>(recipeInput.size());
 			// we fill in based on existing parameter values
@@ -58,6 +58,8 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 					// so dont want to have the duplicate quotes
 					if(!ParamStruct.PARAM_FILL_USE_ARRAY_TYPES.contains(pStruct.getModelDisplay())) {
 						if(paramReplacement.startsWith("\"") && paramReplacement.endsWith("\"")) {
+							paramReplacement = paramReplacement.substring(1, paramReplacement.length()-1);
+						} else if(paramReplacement.startsWith("'") && paramReplacement.endsWith("'")) {
 							paramReplacement = paramReplacement.substring(1, paramReplacement.length()-1);
 						}
 					}
