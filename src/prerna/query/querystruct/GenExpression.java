@@ -314,11 +314,14 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		{
 			// name of the function is in the left alias
 			buf.append("CAST ").append("(");
-			if(qs.leftItem != null && qs.leftItem instanceof GenExpression)
+			if(qs.leftItem != null && qs.leftItem instanceof GenExpression) {
 				printQS((GenExpression)qs.leftItem, buf);
-			else
+			} else {
 				buf.append(qs.leftItem);
-			buf.append(" AS ").append(qs.leftAlias);
+			}
+			if(qs.leftAlias != null) {
+                buf.append(" AS ").append(qs.leftAlias);
+			}
 			buf.append(")");
 			processed = true;
 		}
