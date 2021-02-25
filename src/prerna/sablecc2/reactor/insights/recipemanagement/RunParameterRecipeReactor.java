@@ -54,9 +54,9 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 					String paramLookup = "<" + pStruct.getParamName() + ">";
 					String paramReplacement = pStruct.getDetailsList().get(0).getPixelStringReplacement(pStruct.getDefaultValue());
 					// for some reason
-					// on FE, we do "<paramName>" for single and [<paramName>] for multi
+					// on FE, we do "<paramName>" for all model views except for checklist we use [<paramName>]
 					// so dont want to have the duplicate quotes
-					if(!pStruct.isMultiple()) {
+					if(!ParamStruct.PARAM_FILL_USE_ARRAY_TYPES.contains(pStruct.getModelDisplay())) {
 						if(paramReplacement.startsWith("\"") && paramReplacement.endsWith("\"")) {
 							paramReplacement = paramReplacement.substring(1, paramReplacement.length()-1);
 						}
