@@ -319,10 +319,10 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			} else {
 				buf.append(qs.leftItem);
 			}
+			buf.append(")");
 			if(qs.leftAlias != null) {
                 buf.append(" AS ").append(qs.leftAlias);
 			}
-			buf.append(")");
 			processed = true;
 		}
 		
