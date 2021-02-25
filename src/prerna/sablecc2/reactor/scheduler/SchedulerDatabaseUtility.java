@@ -705,9 +705,13 @@ public class SchedulerDatabaseUtility {
 
 		// add next fire time
 		if(nextExecTime != null && !tiggerState.equals("PAUSED")) {
-			Instant instant = Instant.ofEpochMilli(nextExecTime.longValue());
-			DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-			jobDetailsMap.put(NEXT_FIRE_TIME, fmt.format(instant.atZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()).toZoneId())));
+			if(nextExecTime.intValue() == -1) {
+				jobDetailsMap.put(NEXT_FIRE_TIME, "EXECUTING");
+			} else {
+				Instant instant = Instant.ofEpochMilli(nextExecTime.longValue());
+				DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+				jobDetailsMap.put(NEXT_FIRE_TIME, fmt.format(instant.atZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()).toZoneId())));
+			}
 		} else {
 			jobDetailsMap.put(NEXT_FIRE_TIME, "INACTIVE");
 		}
