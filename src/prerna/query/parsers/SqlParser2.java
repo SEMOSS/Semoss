@@ -386,27 +386,15 @@ public class SqlParser2 {
 				Alias seiAlias = sei.getAlias();				
 				GenExpression gep = processExpression(qs, sei.getExpression(), null);
 				
-				// in case we have double alias
-				// cast('input' as char(20)) as abc
-				if(gep.getOperation().equals("cast") && seiAlias != null) {
-					// realign to a new outer expression
-					GenExpression outerGep = new GenExpression();
-					outerGep.aQuery = gep.aQuery;
-					outerGep.setOperation("column");
-					outerGep.setLeftAlias(seiAlias.getName());
-					outerGep.setLeftExpr(GenExpression.printQS(gep, new StringBuffer()).toString());
-					outerGep.parent = gep.parent;
-					gep.parent = outerGep;
-					gep = outerGep;
-				} else if(seiAlias != null) {
+				if(seiAlias != null) {
 					gep.setLeftAlias(seiAlias.getName());
 				}
 				qs.nselectors.add(gep);
 				
-				// process for colum cleanup
+				// process for column cleanup
 				if(seiAlias != null && this.wrapper.columnSelect.containsKey(seiAlias.getName())) {
 					// remove it / add it as the actual one
-					// it is already accomodated for some other place
+					// it is already accommodated for some other place
 					this.wrapper.columnSelect.remove(seiAlias.getName());					
 				}
 			} else if(si instanceof AllTableColumns || si instanceof AllColumns) 	{
@@ -1193,8 +1181,10 @@ public class SqlParser2 {
 			gep.aQuery = ce.toString();
 			//gep.setLeftExpr(ce.toString()); 
 			gep.setOperation("cast");
-			gep.setLeftAlias(ce.getType().toString());			
-			gep.setLeftExpresion(processExpression(qs, ce.getLeftExpression(), null));
+			GenExpression innerExpression = processExpression(qs, ce.getLeftExpression(), null);
+			innerExpression.setLeftAlias(ce.getType().toString());	
+			innerExpression.paranthesis = true;
+			gep.setLeftExpresion(innerExpression);
 			gep.parent = (GenExpression)qs;
 			return gep;
 		}
