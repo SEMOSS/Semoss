@@ -89,7 +89,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 		String uiState = this.keyValue.get(this.keysToGet[8]);
 		if(uiState == null) {
-			uiState = "";
+			throw new NullPointerException("UI State is null and needs to be passed");
 		}
 
 		// existing name/group
