@@ -107,8 +107,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 		String uiState = this.keyValue.get(this.keysToGet[7]);
 		if(uiState == null) {
-			uiState = "";
+			throw new NullPointerException("UI State is null and needs to be passed");
 		}
+		
 		try {
 			scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
