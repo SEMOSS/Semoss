@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.py;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import prerna.ds.py.PyTranslator;
@@ -43,7 +44,8 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		System.err.println("Hello");
 		//pyt.runScript("smssutil.runwrapper(" +  path + ", " + assetOutput + ", " + assetOutput + "globals()\")");
 		//pyt.runScript(name +  " = smssutil.loadScript('smss', '" + path + "')");
-		pyt.runScript("smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())");
+		
+		pyt.runScript(this.insight.getUser().getAppMap(), "smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())");
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));
