@@ -1336,12 +1336,9 @@ public class SqlParser2 {
 					}
 				}
 				
-				if(columnName != null && parameterize) {
+				if(columnName != null && parameterize && paramIn) {
 					// removing the quotes for now
 					ge.setLeftExpr("(<" + tableName + "_" + columnName + modifier + ">)");
-				}
-				if(paramIn)
-				{
 					String defQuery = "Select q1." + columnName + " from (" + qs + ") q1";
 					this.wrapper.makeParameters(columnName, constantValue, modifier + "in", "in", constantType, ge, tableName, defQuery);
 				}
