@@ -41,7 +41,7 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 		if(recipeInput.isEmpty()) {
 			throw new NullPointerException("Must pass in a new recipe");
 		}
-		System.out.println("again");
+		
 		if(fillRecipe()) {
 			recipeToRun = new Vector<>(recipeInput.size());
 			// we fill in based on existing parameter values
