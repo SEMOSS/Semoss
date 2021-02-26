@@ -1183,7 +1183,7 @@ public class SqlParser2 {
 			gep.setOperation("cast");
 			GenExpression innerExpression = processExpression(qs, ce.getLeftExpression(), null);
 			innerExpression.setLeftAlias(ce.getType().toString());	
-			innerExpression.paranthesis = true;
+			//innerExpression.paranthesis = true;
 			gep.setLeftExpresion(innerExpression);
 			gep.parent = (GenExpression)qs;
 			return gep;
@@ -3430,6 +3430,9 @@ public class SqlParser2 {
 		
 		String query25 = "Select  count(distinct a), c from b";
 		String query26 = "Select  distinct a, max(distinct c) from b";
+		
+		String query27 = "select cast('Traditional' as char(20)) as abc from table123";
+		String query28 = "select '123' as abc from table123";
 		
 		test.parameterize = false;
 		//test.processCase = true;
