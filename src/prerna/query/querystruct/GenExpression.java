@@ -443,7 +443,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				buf.append(")");
 				
 				if(qs.leftAlias != null && qs.leftAlias.length() > 0)
-					buf.append(" ").append(qs.leftAlias);				
+					buf.append(" AS ").append(qs.leftAlias);				
 			}
 			else if(qs.leftExpr != null) // accomodating for the paranthesis from
 			{
