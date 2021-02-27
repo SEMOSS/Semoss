@@ -21,6 +21,7 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 
+import org.h2.tools.DeleteDbFiles;
 import org.h2.tools.RunScript;
 import org.h2.tools.Server;
 
@@ -52,6 +53,7 @@ import prerna.util.sql.SqlQueryUtilFactory;
 public class H2Frame extends AbstractRdbmsFrame {
 
 	private String fileLocation;
+	private String fileNameToUse;
 	
 	private Server server = null;
 	private String serverURL = null;
@@ -80,16 +82,15 @@ public class H2Frame extends AbstractRdbmsFrame {
 		String insightId = ThreadStore.getInsightId();
 		
 		String folderToUsePath = null;
-		String fileNameToUse = null;
 		if(sessionId != null && insightId != null) {
 			sessionId = InsightUtility.getFolderDirSessionId(sessionId);
 			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
 					DIR_SEPARATOR + sessionId +  DIR_SEPARATOR + insightId;
-			fileNameToUse = "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".mv.db";
+			this.fileNameToUse = "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".mv.db";
 		} else {
 			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
 					DIR_SEPARATOR + "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
-			fileNameToUse = "database.mv.db";
+			this.fileNameToUse = "database.mv.db";
 		}
 		
 		// create the location of the file if it doesn't exist
@@ -98,7 +99,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 			folderToUse.mkdirs();
 		}
 
-		this.fileLocation = folderToUsePath + DIR_SEPARATOR + fileNameToUse;
+		this.fileLocation = folderToUsePath + DIR_SEPARATOR + this.fileNameToUse;
 		// make the actual file so the connection helper knows its not a tcp protocol
 		File fileToUse = new File(this.fileLocation);
 		if(!fileToUse.exists()) {
@@ -121,6 +122,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	public void close() {
 		super.close();
 		File f = new File(this.fileLocation);
+		DeleteDbFiles.execute(f.getParent().replace('\\','/'), this.fileNameToUse.replace(".mv.db", ""), false);
 		if(f.exists()) {
 			f.delete();
 		}
