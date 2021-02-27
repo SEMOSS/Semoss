@@ -177,6 +177,7 @@ public class Insight {
 	private transient boolean deleteREnvOnDropInsight = true;
 	private transient boolean deletePythonTupleOnDropInsight = true;
 
+	private transient boolean isTemporaryInsight = false;
 	private transient boolean isSchedulerMode = false;
 	private transient boolean isSavedInsightMode = false;
 	
@@ -762,6 +763,14 @@ public class Insight {
 
 	public void setSchedulerMode(boolean isSchedulerMode) {
 		this.isSchedulerMode = isSchedulerMode;
+	}
+	
+	public boolean isTemporaryInsight() {
+		return isTemporaryInsight;
+	}
+
+	public void setTemporaryInsight(boolean isTemporaryInsight) {
+		this.isTemporaryInsight = isTemporaryInsight;
 	}
 
 	/**
