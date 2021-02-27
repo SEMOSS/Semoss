@@ -24,7 +24,8 @@ import prerna.util.sql.SqlQueryUtilFactory;
 public class SQLiteFrame extends AbstractRdbmsFrame {
 
 	private String fileLocation;
-	
+	private String fileNameToUse;
+
 	public SQLiteFrame() {
 		super();
 	}
@@ -48,16 +49,15 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		String insightId = ThreadStore.getInsightId();
 		
 		String folderToUsePath = null;
-		String fileNameToUse = null;
 		if(sessionId != null && insightId != null) {
 			sessionId = InsightUtility.getFolderDirSessionId(sessionId);
 			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
 					DIR_SEPARATOR + sessionId +  DIR_SEPARATOR + insightId;
-			fileNameToUse = "SQLite_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".sqlite";
+			this.fileNameToUse = "SQLite_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".sqlite";
 		} else {
 			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
 					DIR_SEPARATOR + "SQLite_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
-			fileNameToUse = "database.sqlite";
+			this.fileNameToUse = "database.sqlite";
 		}
 		
 		// create the location of the file if it doesn't exist
@@ -66,7 +66,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 			folderToUse.mkdirs();
 		}
 
-		this.fileLocation = folderToUsePath + DIR_SEPARATOR + fileNameToUse;
+		this.fileLocation = folderToUsePath + DIR_SEPARATOR + this.fileNameToUse;
 		File fileToUse = new File(this.fileLocation);
 		if(!fileToUse.exists()) {
 			fileToUse.createNewFile();
