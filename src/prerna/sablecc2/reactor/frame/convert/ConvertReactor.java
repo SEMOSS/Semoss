@@ -93,7 +93,6 @@ public class ConvertReactor extends AbstractFrameReactor {
 		ImportUtility.mergeFlatTableAdditionalDataTypes(newFrame.getMetaData(), frame.getMetaData().getHeaderToAdtlTypeMap());
 		ImportUtility.mergeFlatTableSources(newFrame.getMetaData(), frame.getMetaData().getHeaderToSources());
 
-		
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		// see if this is overriding any reference
 		VarStore varStore = this.insight.getVarStore();

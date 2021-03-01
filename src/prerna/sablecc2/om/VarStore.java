@@ -23,6 +23,9 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	// the main object where all the nouns are stored
 	private Map<String, NounMetadata> varMap;
 	
+	// all the frames that are generated
+	private Set<ITableDataFrame> allCreatedFrames;
+	
 	// for quick searching
 	// storing the varNames for all frames
 	private List<String> frameKeys;
@@ -35,6 +38,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		varMap = new ConcurrentHashMap<>();
 		frameKeys = new CopyOnWriteArrayList<>();
 		insightParametersKeys = new CopyOnWriteArrayList<>();
+		allCreatedFrames = new HashSet<>();
 	}
 	
 	@Override
@@ -51,6 +55,10 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 			if(!frameKeys.contains(varName)) {
 				frameKeys.add(varName);
 			}
+			// we will store a hash of all the frames
+			// just in case a reference gets overwritten
+			// so we can clear them out
+			allCreatedFrames.add((ITableDataFrame) variable.getValue());
 		} else if(variable.getNounType() == PixelDataType.PARAM_STRUCT) {
 			if(!insightParametersKeys.contains(varName)) {
 				insightParametersKeys.add(varName);
@@ -144,6 +152,10 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	public List<String> getFrameKeys() {
 		return frameKeys;
+	}
+	
+	public Set<ITableDataFrame> getAllCreatedFrames() {
+		return allCreatedFrames;
 	}
 	
 	/**
