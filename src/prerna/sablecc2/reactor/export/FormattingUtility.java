@@ -4,12 +4,15 @@ import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.math.NumberUtils;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -18,6 +21,11 @@ import com.google.gson.JsonSyntaxException;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.om.ColorByValueRule;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /*
  * Utility class to process additional tools applied on the data while exporting.
@@ -101,6 +109,7 @@ public class FormattingUtility {
 							}
 						}
 						formatted = formatted.toString() + type;
+						dontRound = true;
 					}
 
 					else if (formatType.equalsIgnoreCase(ACCOUNTING)) {
@@ -121,7 +130,7 @@ public class FormattingUtility {
 								double shift = Math.pow(10, round);
 								if (!Double.isNaN(numericValue)) {
 									formatted = new BigDecimal(Math.round(shift * numericValue) / shift)
-											.setScale(round);
+											.setScale(round, BigDecimal.ROUND_HALF_EVEN);
 
 								}
 								dontRound = true;
@@ -147,7 +156,7 @@ public class FormattingUtility {
 				if ((round != null) && !dontRound) {
 					double shift = Math.pow(10, round);
 					if (!Double.isNaN(numericValue)) {
-						formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round);
+						formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round , BigDecimal.ROUND_HALF_EVEN);
 					}
 				}
 
@@ -168,12 +177,12 @@ public class FormattingUtility {
 				}
 			}
 			
-			if (prepend != null && !prepend.equals("") && !prepend.equals(0)) {
+			if (prepend != null && !prepend.isEmpty()) {
 				// prepend the value to beginning of string
 				formatted = prepend + formatted;
 			}
 
-			if (append != null && !prepend.equals("0")) {
+			if (append != null && !append.isEmpty()) {
 				// append the value to the end
 				formatted = formatted + append;
 			}
@@ -187,7 +196,8 @@ public class FormattingUtility {
 		}
 		
 		// now we will try to do the metamodel level
-		if(metamodelAdditionalDataType != null) {
+		// Adding Empty Check as it was breaking the Date export.
+		if(metamodelAdditionalDataType != null && !metamodelAdditionalDataType.isEmpty()) {
 			// first check if this is a map
     		Map<String, String> customDataFormat = null;
     		try {
@@ -270,7 +280,7 @@ public class FormattingUtility {
 								double shift = Math.pow(10, round);
 								if (!Double.isNaN(numericValue)) {
 									formatted = new BigDecimal(Math.round(shift * numericValue) / shift)
-											.setScale(round);
+											.setScale(round, BigDecimal.ROUND_HALF_EVEN);
 
 								}
 								dontRound = true;
@@ -296,7 +306,7 @@ public class FormattingUtility {
 				if ((round != null) && !dontRound) {
 					double shift = Math.pow(10, round);
 					if (!Double.isNaN(numericValue)) {
-						formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round);
+						formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round, BigDecimal.ROUND_HALF_EVEN);
 					}
 				}
 
@@ -416,22 +426,160 @@ public class FormattingUtility {
 			List<Object> valuesToColorList = cbvRuleValues.getValue();
 			Object colorOn = optionsMap.get("colorOn");
 
+			// Added condition for the restrict 
+			boolean restrict=optionsMap.containsKey("restrict")?Boolean.parseBoolean(optionsMap.get("restrict")+""): false;
+			//restrict check
+			if(restrict && valuesToColorList.size() > 0 ){
+				if(!isColoringValid(cbv,rowData,headers)){
+					 continue;
+				}
+			}
+
 			boolean highlightRow = Boolean.parseBoolean(optionsMap.get("highlightRow") + "");
 			// check if the color is applied for entire row
 			// headers are used here to find the colorOn value index
 			boolean isRowColor = highlightRow && valuesToColorList != null && valuesToColorList.size() > 0
-					&& valuesToColorList.indexOf(rowData[Arrays.asList(headers).indexOf(colorOn)]) > -1;
+					&& isCellEligibleForColor(valuesToColorList, rowData[Arrays.asList(headers).indexOf(colorOn)]);
 
 			Object cell = rowData[colIdx];
-			// check if the color is applied for cell
-			boolean isCellColor = !highlightRow && Arrays.asList(headers).indexOf(colorOn) == colIdx
-					&& valuesToColorList.indexOf(cell) > -1;
 
+			// check if the color is applied for cell
+			boolean isCellColor = !highlightRow && valuesToColorList != null && valuesToColorList.size() > 0
+					&& Arrays.asList(headers).indexOf(colorOn) == colIdx
+					&& isCellEligibleForColor(valuesToColorList, cell);
+			
 			if (isRowColor || isCellColor) {
 				backgroundColor = "background-color: " + optionsMap.get("color");
 			}
 		}
 		return backgroundColor;
+	}
+	
+	/**
+	 * @param cellData
+	 *            -Cell Data
+	 * @param selectedValue-Selected
+	 *            column value
+	 * @param comparator-comparator
+	 * @return true or false if criteria matches
+	 */
+	public static boolean passedSimpleFilterCheck(Object cellData, Object selectedValue, String comparator) {
+		boolean isValid = true;
+		 boolean selectedValueType=	selectedValue instanceof Collection;
+		 List selectedListValue= selectedValueType? (List)selectedValue: Arrays.asList(selectedValue);
+		 
+		 if (comparator.equals("==")) {
+				isValid =  selectedListValue.indexOf(cellData.toString()) > -1;
+			} else if (comparator.equals("!=")) {
+				isValid = selectedListValue.indexOf(cellData.toString()) == -1;
+			}
+		 
+		// String type comparator check
+			else if (cellData instanceof String && comparator == "?like") {
+				isValid = cellData.toString().toLowerCase().contains(selectedValue.toString());
+
+		}
+		// Number type and Date type comparator check
+		else if ((cellData instanceof Number || cellData instanceof SemossDate) && !selectedValueType) {
+			double formattedCellData = NumberUtils.isCreatable(selectedValue.toString())
+					? Double.parseDouble(cellData.toString()) : ((SemossDate) cellData).getDate().getTime();
+			double formattedSelectedValue = NumberUtils.isCreatable(selectedValue.toString())
+					? Double.parseDouble(selectedValue.toString())
+					: new SemossDate(selectedValue.toString(), ((SemossDate) cellData).getPattern()).getDate()
+							.getTime();
+
+			if (comparator.equals(">")) {
+				isValid = formattedCellData > formattedSelectedValue;
+			} else if (comparator.equals("<")) {
+				isValid = formattedCellData < formattedSelectedValue;
+			} else if (comparator.equals(">=")) {
+				isValid = formattedCellData >= formattedSelectedValue;
+			} else if (comparator.equals("<=")) {
+				isValid = formattedCellData <= formattedSelectedValue;
+			}
+
+		}
+		
+		return isValid;
+	}
+	
+	
+
+	/**
+	 * @param rule
+	 *            ColorbyValue Rule Filter
+	 * @param rowData
+	 *            -row Data
+	 * @param headers-header
+	 *            data
+	 * @return true or false- if true particular cell or row will be colored
+	 */
+	public static boolean isColoringValid(ColorByValueRule rule, Object[] rowData, String[] headers) {
+
+		boolean isValid = true;
+		List<IQueryFilter> filterVec = rule.getQueryStruct().getExplicitFilters().getFilters();
+
+		for (IQueryFilter iQueryFilter : filterVec) {
+
+			IQueryFilter.QUERY_FILTER_TYPE filterType = iQueryFilter.getQueryFilterType();
+			if (filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				NounMetadata leftComp = ((SimpleQueryFilter) iQueryFilter).getLComparison(); // this is the column, I am not going to bother ?
+				NounMetadata rightComp = ((SimpleQueryFilter) iQueryFilter).getRComparison();
+				String comparator = ((SimpleQueryFilter) iQueryFilter).getComparator();
+
+				Object cellData = rowData[Arrays.asList(headers).indexOf(leftComp.getValue().toString())];
+
+				isValid= passedSimpleFilterCheck(cellData, rightComp.getValue(), comparator);
+			} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {// And Query Filter process
+
+				for (IQueryFilter andQueryFilter : ((AndQueryFilter) iQueryFilter).getFilterList()) {
+					NounMetadata leftComp = ((SimpleQueryFilter) andQueryFilter).getLComparison(); // this is the column,I am not going to bother ?																									// 
+					NounMetadata rightComp = ((SimpleQueryFilter) andQueryFilter).getRComparison();
+					String thisComparator = ((SimpleQueryFilter) andQueryFilter).getComparator();
+					Object cellData = rowData[Arrays.asList(headers).indexOf(leftComp.getValue().toString())];
+
+					// if one is false, we will return false.
+					if (!passedSimpleFilterCheck(cellData, rightComp.getValue(), thisComparator)) {
+						isValid = false;
+						break;
+					}
+
+				}
+
+			} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {// Or Query Filter process
+
+				for (IQueryFilter orQueryFilter : ((OrQueryFilter) iQueryFilter).getFilterList()) {
+					NounMetadata leftComp = ((SimpleQueryFilter) orQueryFilter).getLComparison(); 
+					NounMetadata rightComp = ((SimpleQueryFilter) orQueryFilter).getRComparison();
+					String thisComparator = ((SimpleQueryFilter) orQueryFilter).getComparator();
+					Object cellData = rowData[Arrays.asList(headers).indexOf(leftComp.getValue().toString())];
+
+					// if one is true, we will return true.
+					if (passedSimpleFilterCheck(cellData, rightComp.getValue(), thisComparator)) {
+						isValid = true;
+						break;
+					}
+				}
+			}
+
+		}
+		return isValid;
+
+	}
+	
+	
+
+	/**
+	 * @param valuesToColorList - Filtered Rule Result
+	 * @param cell - Actual Cell Value
+	 * @return - Boolean - Return true if 'valuesToColorList' contains 'cell' Value
+	 */
+	public static boolean isCellEligibleForColor(List<Object> valuesToColorList, Object cell) {
+		return valuesToColorList.stream()
+				.anyMatch(valuesColorObj -> ((cell instanceof SemossDate && valuesColorObj instanceof SemossDate)
+						? (((SemossDate) valuesColorObj).getDate().getTime() == ((SemossDate) cell).getDate().getTime())
+						: valuesColorObj.equals(cell)));
+
 	}
 
 	/*
