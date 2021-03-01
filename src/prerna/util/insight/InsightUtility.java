@@ -282,17 +282,31 @@ public class InsightUtility {
 	
 			// drop all the frame connections
 			VarStore varStore = insight.getVarStore();
-			Set<String> keys = varStore.getKeys();
+			List<String> keys = varStore.getFrameKeys();
+			Set<ITableDataFrame> allCreatedFrames = varStore.getAllCreatedFrames();
+			
 			// find all the vars which are frames
 			// and drop them
 			for(String key : keys) {
 				NounMetadata noun = varStore.get(key);
-				PixelDataType nType = noun.getNounType();
-				if(nType == PixelDataType.FRAME) {
+				try {
 					ITableDataFrame dm = (ITableDataFrame) noun.getValue();
 					dm.close();
+				} catch(Exception e) {
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
+			for(ITableDataFrame dm : allCreatedFrames) {
+				if(!dm.isClosed()) {
+					try {
+						logger.info("There are untracked frames in this insight. Frame with name = " + dm.getName() );
+						dm.close();
+					} catch(Exception e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+			
 			logger.debug("Successfully removed all frames from insight");
 			
 			// clear insight
@@ -312,7 +326,7 @@ public class InsightUtility {
 								f.delete();
 								logger.debug("Successfully deleted export file used in insight " + f.getName());
 							} catch(Exception e) {
-								logger.debug(Constants.STACKTRACE, e);
+								logger.error(Constants.STACKTRACE, e);
 							}
 						}
 					}
@@ -327,7 +341,7 @@ public class InsightUtility {
 					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(logger);
 					rJava.runR("rm(list=ls())");
 				} catch(Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			
@@ -379,7 +393,7 @@ public class InsightUtility {
 					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(logger);
 					rJava.removeEnv();
 				} catch(Exception e) {
-					e.printStackTrace();
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			// if Python is instantiated
