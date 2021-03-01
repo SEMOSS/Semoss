@@ -445,9 +445,17 @@ public class TableToXLSXReactor	extends AbstractReactor {
                        // read it from the hash if it has it
                        // no need to create it
                 	   nameProps = mapCSS(style);
-                       if(styleHash.containsKey(style))
-                              input = (CellStyle)styleHash.get(style);
-                       
+                       if(styleHash.containsKey(style)) {
+                           // input = (CellStyle)styleHash.get(style); 
+                    	   // Commenting this line as its repeating the Formats for all the cells
+                    	   
+                    	   // Creating a new cell style
+                    	   input = wb.createCellStyle();
+                    	   // Cloning the already existing style from the styleHash
+                    	   input.cloneStyleFrom((CellStyle)styleHash.get(style));
+                    	   // Setting the Format to "General"
+                    	   input.setDataFormat((short)0);
+                       }
                        else
                        {
 

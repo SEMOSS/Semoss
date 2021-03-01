@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -1514,12 +1515,16 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 						// look at the next row
 						for (int nextIdx = rowIdx + 1; nextIdx < rowLen; nextIdx++) {
 							Object next = rowList.get(nextIdx)[colIdx];
-							//break the loop if current row cell and next row cell
-							if ( !((cell == null && next == null) || cell.equals(next)) ) {
+							
+							// Check if the current cell is equal to the next cell
+							if (cell == next || (cell != null && next != null && cell.equals(next))) {
+								// increment
+								rowSpan[colIdx]++;								
+							}
+							//break the loop if current row cell and next row cell are not equal.
+							else {
 								break;
 							}
-							// increment
-							rowSpan[colIdx]++;
 						}
 					}
 					// get the background color of each cell or rows
@@ -1527,7 +1532,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 					//get the formatted data values based on formatdatavalue tool applied 
 					Object formattedDataValue = FormattingUtility.formatDataValues(
 							cell,
-							(String) headerInfo.get(colIdx).get("type"),
+							(String) headerInfo.get(colIdx).get("dataType"),
 							(String) headerInfo.get(colIdx).get("additionalDataType"),
 							panelFormatting.get(headers[colIdx]));
 					//getting rowspancount as String
@@ -1572,7 +1577,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	 * @return
 	 */
 	private Map<ColorByValueRule, List<Object>> getColorByValueData(InsightPanel panel) {
-		Map<ColorByValueRule, List<Object>> colorByValueMap = new HashMap<>();
+		// Using LinkedHashMap - To Maintain insertion order
+		Map<ColorByValueRule, List<Object>> colorByValueMap = new LinkedHashMap<>();
 		for (ColorByValueRule cbv : panel.getColorByValue()) {
 			// you can grab the query struct
 			SelectQueryStruct cbvQS = cbv.getQueryStruct();
