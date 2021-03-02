@@ -42,6 +42,10 @@ public class InsertReactor extends AbstractReactor {
 
 	private NounMetadata qStruct = null;
 	
+	public InsertReactor() {
+		this.keysToGet = new String[] {"into", "values", "commit"};
+	}
+	
 	/*
 	 * Pixel can contain a <UUID> value which 
 	 * will be replaced with UUID.randomUUID() 
@@ -93,6 +97,11 @@ public class InsertReactor extends AbstractReactor {
 		
 		GenRowStruct colGrs = this.store.getNoun("into");
 		GenRowStruct valGrs = this.store.getNoun("values");
+		GenRowStruct commitGrs = this.store.getNoun("commit");
+		Boolean commit = false;
+		if(commitGrs != null && !commitGrs.isEmpty()) {
+			commit = Boolean.parseBoolean(commitGrs.get(0) + "");
+		}
 		
 		List<IQuerySelector> selectors = new Vector<>();
 		for(int i = 0; i < colGrs.size(); i++) {
@@ -192,15 +201,18 @@ public class InsertReactor extends AbstractReactor {
 			String query = initial + valuesSb.toString();
 			logger.info("SQL QUERY...." + query);
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+				if(engine == null) {
+					throw new NullPointerException("No engine passed in to insert the data");
+				}
 				try {
-					if (engine != null) {
-						engine.insertData(query);
+					engine.insertData(query);
+					if(commit) {
+						engine.commit();
 					}
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occured trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-
 				}
 
 				if (engine != null) {
