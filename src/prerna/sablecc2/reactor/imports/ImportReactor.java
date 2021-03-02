@@ -18,7 +18,6 @@ import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SQLQueryUtils;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -65,9 +64,7 @@ public class ImportReactor extends AbstractReactor {
 			NativeFrame queryFrame = (NativeFrame) qs.getFrame();
 			// make sure it is RDBMSNativeEngine
 			if(queryFrame.getQueryStruct().retrieveQueryStructEngine() instanceof RDBMSNativeEngine) {
-			
-				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, qs.getFrame().getMetaData());
-				NativeFrame newFrame = SQLQueryUtils.subQuery(queryFrame.getQueryStruct(), qs);
+				NativeFrame newFrame = SQLQueryUtils.subQueryNativeFrame(queryFrame.prepQsForExecution(qs));
 				newFrame.setName(frame.getName());
 				newFrame.setLogger(logger);
 	
@@ -85,7 +82,6 @@ public class ImportReactor extends AbstractReactor {
 				
 				// track GA data
 				UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
-				
 				return frameNoun;
 			}
 		}

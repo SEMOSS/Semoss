@@ -384,6 +384,43 @@ public class SQLQueryUtils {
 		return emptyFrame;
 	}
 	
+	/**
+	 * SubQuery on a Native Frame
+	 * @param queryStruct
+	 * @return
+	 */
+	public static NativeFrame subQueryNativeFrame(SelectQueryStruct queryStruct) {
+		NativeFrame emptyFrame = null;
+		try {
+			RDBMSNativeEngine engine = (RDBMSNativeEngine) queryStruct.retrieveQueryStructEngine();
+			IQueryInterpreter interp = engine.getQueryInterpreter();
+
+			SqlParser2 parser = new SqlParser2();
+			parser.parameterize = false;
+
+			interp.setQueryStruct(queryStruct);
+			String mainQuery = interp.composeQuery();
+			GenExpression mainQueryExpression = parser.processQuery(mainQuery).root;
+
+			StringBuffer finalOutput = GenExpression.printQS(mainQueryExpression, null);
+
+			HardSelectQueryStruct hqs = new HardSelectQueryStruct();
+			hqs.customFrom = finalOutput.toString();
+			hqs.engineId = queryStruct.engineId;
+			hqs.engine = queryStruct.retrieveQueryStructEngine();
+			hqs.qsType = QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY;
+			hqs.setQuery(finalOutput.toString());
+
+			emptyFrame = new NativeFrame();
+			emptyFrame.setName(queryStruct.getFrameName());
+			NativeImporter importer = new NativeImporter(emptyFrame, hqs);
+			importer.insertData();
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+		return emptyFrame;
+	}
+
 
 	/**
 	 * Merge 2 native frame query structs together based on the joins defined
