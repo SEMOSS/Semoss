@@ -38,7 +38,7 @@ public class ExecQueryReactor extends AbstractReactor {
 	private NounMetadata qStruct = null;
 
 	public ExecQueryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey(), "commit" };
 	}
 
 	@Override
@@ -47,6 +47,12 @@ public class ExecQueryReactor extends AbstractReactor {
 			qStruct = getQueryStruct();
 		}
 
+		GenRowStruct commitGrs = this.store.getNoun("commit");
+		Boolean commit = false;
+		if(commitGrs != null && !commitGrs.isEmpty()) {
+			commit = Boolean.parseBoolean(commitGrs.get(0) + "");
+		}
+		
 		IEngine engine = null;
 		ITableDataFrame frame = null;
 		AbstractQueryStruct qs = null;
@@ -108,6 +114,9 @@ public class ExecQueryReactor extends AbstractReactor {
 			}
 			try {
 				engine.insertData(query);
+				if(commit) {
+					engine.commit();
+				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 				String errorMessage = "An error occured trying to execute the query in the database";
