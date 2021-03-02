@@ -30,8 +30,6 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
 	private static final Logger logger = LogManager.getLogger(RJavaUserRserveTranslator.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
-
 	private IRUserConnection rcon;
 	private boolean envConfig = false;
 	
@@ -250,7 +248,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			
 			return arr;
 		} catch (REXPMismatchException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -417,7 +415,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 				// in case values cannot be put into an array
 				// for an integer
@@ -429,7 +427,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 
 			} else {
@@ -445,7 +443,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 				// for a string
 				try {
@@ -456,7 +454,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
