@@ -59,6 +59,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
+		boolean savingThisInsight = false;
 		String appId = getApp();
 		User user = this.insight.getUser();
 		String author = null;
@@ -97,6 +98,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.isEmpty()) {
+			savingThisInsight = true;
 			PixelList insightPixelList = this.insight.getPixelList();
 			recipeToSave = insightPixelList.getPixelRecipe();
 			recipeIds = insightPixelList.getPixelIds();
@@ -244,6 +246,11 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// this is to reset it
 		this.insight.setInsightFolder(null);
 		this.insight.setAppFolder(null);
+		
+		// add to the users opened insights
+		if(savingThisInsight && this.insight.getUser() != null) {
+			this.insight.getUser().addOpenInsight(engine.getEngineId(), newRdbmsId, this.insight.getInsightId());
+		}
 		
 		ClusterUtil.reactorPushInsightDB(appId);
 		ClusterUtil.reactorPushFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));

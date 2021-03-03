@@ -311,12 +311,15 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			// and run the additional pixels
 			newInsight.runPixel(runner, additionalPixels);
 		}
-		
 		logger.info("Painting results");
+		
+		// add to the users opened insights
+		if(this.insight.getUser() != null) {
+			this.insight.getUser().addOpenInsight(appId, rdbmsId, newInsight.getInsightId());
+		}
 		// update the universal view count
 		GlobalInsightCountUpdater.getInstance().addToQueue(appId, rdbmsId);
-
-		// NEW TRACKING
+		// tracking execution
 		UserTrackerFactory.getInstance().trackInsightExecution(newInsight);
 		
 		// add to user workspace
