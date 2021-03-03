@@ -39,21 +39,24 @@ import prerna.util.Utility;
 public class User extends AbstractValueObject implements Serializable {
 
 	private static Logger logger = LogManager.getLogger(User.class);
-	
-	// name of this user in the SEMOSS system if there is one
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
+	// store the users insights
+	private transient Map<String, List<String>> openInsights = new HashMap<>();
 	
 	// need to have an access token store
-	private IRUserConnection rcon; 
-	private RRemoteRserve rconRemote;
+	private transient IRUserConnection rcon; 
+	private transient RRemoteRserve rconRemote;
 
 	// python related stuff
-	private NettyClient pyServe;
-	private PyTranslator pyt = null;
+	private transient NettyClient pyServe;
+	private transient PyTranslator pyt = null;
 	private String port = "undefined";
 	public String pyTupleSpace = null;
-	
+	public String tupleSpace = null;
+		
 	// keeping this for a later time when personal experimental stuff
-	private ClassLoader customLoader = new SemossClassloader(this.getClass().getClassLoader());
+	private transient ClassLoader customLoader = new SemossClassloader(this.getClass().getClassLoader());
 	
 	private Map<AuthProvider, String> workspaceEngineMap = new HashMap<>();
 	private Map<AuthProvider, String> assetEngineMap = new HashMap<>();
@@ -70,22 +73,15 @@ public class User extends AbstractValueObject implements Serializable {
 	List<String> sharedSessions = new Vector<>();
 	
 	Map <String, String> engineIdMap = new HashMap<>();
-	
 	Map <String, StringBuffer> appMap = new HashMap<>();
-
 	Map <String, IStorageEngine> externalMounts = new HashMap<String, IStorageEngine>();
 
-	// gets the tuplespace
-	String tupleSpace = null;
-	
 	private boolean anonymous;
 	private String anonymousId;
 	
-	CopyObject cp = null;
+	public transient CopyObject cp = null;
 
-	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	
-	private CmdExecUtil cmdUtil = null;
+	private transient CmdExecUtil cmdUtil = null;
 
 	/**
 	 * Set the access token for a given provider
@@ -352,6 +348,47 @@ public class User extends AbstractValueObject implements Serializable {
 	public String getTupleSpace()
 	{
 		return this.tupleSpace;
+	}
+	
+	/**
+	 * Store the open insight
+	 * @param engine
+	 * @param rdbms
+	 * @param insightId
+	 */
+	public void addOpenInsight(String engineId, String rdbms, String insightId) {
+		String id = engineId + "__" + rdbms;
+		List<String> openInstances = null;
+		if(this.openInsights.containsKey(id)) {
+			openInstances = this.openInsights.get(id);
+		} else {
+			openInstances = new Vector<>();
+			this.openInsights.put(id, openInstances);
+		}
+		openInstances.add(insightId);
+	}
+	
+	/**
+	 * Remove open insight
+	 * @param engineId
+	 * @param rdbms
+	 * @param insightId
+	 */
+	public void removeOpenInsight(String engineId, String rdbms, String insightId) {
+		String id = engineId + "__" + rdbms;
+		List<String> openInstances = null;
+		if(this.openInsights.containsKey(id)) {
+			openInstances = this.openInsights.get(id);
+			openInstances.remove(insightId);
+		}
+	}
+	
+	/**
+	 * Get the user open insights
+	 * @return
+	 */
+	public Map<String, List<String>> getOpenInsights() {
+		return openInsights;
 	}
 	
 	/////////////////////////////////////////////////////

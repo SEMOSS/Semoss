@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 public class InsightStore extends Hashtable<String, Insight> {
 
-	private static final Logger LOGGER = LogManager.getLogger(InsightStore.class.getName());
+	private static final Logger logger = LogManager.getLogger(InsightStore.class.getName());
 	private Map<String, Set<String>> sessionIdHash = new Hashtable<String, Set<String>>();
 	
 	// required for thick client
