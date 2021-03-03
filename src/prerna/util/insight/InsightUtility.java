@@ -2,6 +2,7 @@ package prerna.util.insight;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -15,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.date.SemossDate;
@@ -29,6 +31,8 @@ import prerna.query.parsers.ParamStruct;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -90,6 +94,18 @@ public class InsightUtility {
 		}
 		// py
 		newInsight.setTupleSpace(origInsight.getTupleSpace());
+	}
+	
+	/**
+	 * User to transfer the insight id / saved components for identification of the insight
+	 * @param origInsight
+	 * @param newInsight
+	 */
+	public static void transferInsightIdentifiers(Insight origInsight, Insight newInsight) {
+		newInsight.setInsightId(origInsight.getInsightId());
+		newInsight.setEngineId(origInsight.getEngineId());
+		newInsight.setEngineName(origInsight.getEngineName());
+		newInsight.setRdbmsId(origInsight.getRdbmsId());
 	}
 	
 	/**
@@ -427,6 +443,80 @@ public class InsightUtility {
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	// Insight State Methods
+	
+	/**
+	 * Give the FE all the data needed to get to the same UI for the existing insight
+	 * @param in
+	 */
+	public static PixelRunner recreateInsightState(Insight in) {
+		List<String> recipe = PixelUtility.getCachedInsightRecipe(in);
+		
+		Insight rerunInsight = new Insight();
+		rerunInsight.setVarStore(in.getVarStore());
+		rerunInsight.setUser(in.getUser());
+		InsightUtility.transferDefaultVars(in, rerunInsight);
+		InsightUtility.transferInsightIdentifiers(in, rerunInsight);
+		
+		// set in thread
+		ThreadStore.setInsightId(in.getInsightId());
+		ThreadStore.setSessionId(in.getVarStore().get(JobReactor.SESSION_KEY).getValue() + "");
+		ThreadStore.setUser(in.getUser());
+		
+		try {
+			// add a copy of all the insight sheets
+			Map<String, InsightSheet> sheets = in.getInsightSheets();
+			for(String sheetId : sheets.keySet()) {
+				InsightSheetAdapter adapter = new InsightSheetAdapter();
+				StringWriter writer = new StringWriter();
+				JsonWriter jWriter = new JsonWriter(writer);
+				adapter.write(jWriter, sheets.get(sheetId));
+				String sheetStr = writer.toString();
+				InsightSheet sheetClone = adapter.fromJson(sheetStr);
+				rerunInsight.addNewInsightSheet(sheetClone);
+			}
+			
+			// add a copy of all the insight panels
+			Map<String, InsightPanel> panels = in.getInsightPanels();
+			for(String panelId : panels.keySet()) {
+				InsightPanelAdapter adapter = new InsightPanelAdapter();
+				StringWriter writer = new StringWriter();
+				JsonWriter jWriter = new JsonWriter(writer);
+				adapter.write(jWriter, panels.get(panelId));
+				String panelStr = writer.toString();
+				InsightPanel panelClone = adapter.fromJson(panelStr);
+				rerunInsight.addNewInsightPanel(panelClone);
+			}
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		PixelRunner pixelRunner = new PixelRunner();
+		// add all the frame headers to the payload first
+		try {
+			VarStore vStore = in.getVarStore();
+			List<String> keys = vStore.getFrameKeys();
+			for(String k : keys) {
+				NounMetadata noun = vStore.get(k);
+				PixelDataType type = noun.getNounType();
+				if(type == PixelDataType.FRAME) {
+					try {
+						ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+						pixelRunner.addResult("CACHED_FRAME_HEADERS", 
+								new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, 
+										PixelOperationType.FRAME_HEADERS), true);
+					} catch(Exception e) {
+						logger.error(Constants.STACKTRACE, e);
+						// ignore
+					}
+				}
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		// now rerun the recipe and append to the runner
+		return rerunInsight.runPixel(pixelRunner, recipe);
+	}
+	
 	
 	/**
 	 * Get the recipe to generate the end state of the FE UI
