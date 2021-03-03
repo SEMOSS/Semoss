@@ -353,11 +353,11 @@ public class User extends AbstractValueObject implements Serializable {
 	/**
 	 * Store the open insight
 	 * @param engine
-	 * @param rdbms
+	 * @param rdbmsId
 	 * @param insightId
 	 */
-	public void addOpenInsight(String engineId, String rdbms, String insightId) {
-		String id = engineId + "__" + rdbms;
+	public void addOpenInsight(String engineId, String rdbmsId, String insightId) {
+		String id = getUid(engineId, rdbmsId);
 		List<String> openInstances = null;
 		if(this.openInsights.containsKey(id)) {
 			openInstances = this.openInsights.get(id);
@@ -371,16 +371,31 @@ public class User extends AbstractValueObject implements Serializable {
 	/**
 	 * Remove open insight
 	 * @param engineId
-	 * @param rdbms
+	 * @param rdbmsId
 	 * @param insightId
 	 */
-	public void removeOpenInsight(String engineId, String rdbms, String insightId) {
-		String id = engineId + "__" + rdbms;
+	public void removeOpenInsight(String engineId, String rdbmsId, String insightId) {
+		String id = getUid(engineId, rdbmsId);
 		List<String> openInstances = null;
 		if(this.openInsights.containsKey(id)) {
 			openInstances = this.openInsights.get(id);
 			openInstances.remove(insightId);
 		}
+	}
+	
+	/**
+	 * Grab the open insight ids for a specific saved insight
+	 * @param engineId
+	 * @param rdbmsId
+	 * @return
+	 */
+	public List<String> getOpenInsightInstances(String engineId, String rdbmsId) {
+		String id = getUid(engineId, rdbmsId);
+		return this.openInsights.get(id);
+	}
+	
+	private String getUid(String engineId, String rdbmsId) {
+		return engineId + "__" + rdbmsId;
 	}
 	
 	/**
