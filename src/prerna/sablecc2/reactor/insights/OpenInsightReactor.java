@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.JsonSyntaxException;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -60,7 +61,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				ReactorKeysEnum.PARAM_KEY.getKey(), 
 				ReactorKeysEnum.ADDITIONAL_PIXELS.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				CACHEABLE};
+				CACHEABLE,
+				USE_EXISTING_OPEN};
 	}
 
 	@Override
@@ -70,12 +72,14 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		 * 
 		 * 1) Permission checks / pulling the recipe from the insights database
 		 * 2) Legacy insight check - not really important for most developers
-		 * 3) Running the base insight recipe or pulling the cached insight
-		 * 4) Parameter insight
+		 * 3) Do we want to use an existing insight that the user has opened? 
+		 * ******* If yes and it is opened - redirect to the UI State
+		 * 4) Running the base insight recipe or pulling the cached insight
+		 * 5) Parameter insight
 		 * ******* Params are set in THIS current insight (not the new insight being created from the reactor)
 		 * ******* If they are set, we then look for Panel 0 and make sure it has a param view
 		 * ******* If yes - then we do the replacement and run that pixel
-		 * 5) Run any additional pixels that are also passed in 
+		 * 6) Run any additional pixels that are also passed in 
 		 * ******* This is things like scheduling an export post insight execution (but post the parameter filled recipe)
 		 * 
 		 */
@@ -97,9 +101,10 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to input the id for the insight");
 		}
 		
+		User user = this.insight.getUser();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), appId, rdbmsId)) {
+			appId = SecurityQueryUtils.testUserEngineIdForAlias(user, appId);
+			if(!SecurityInsightUtils.userCanViewInsight(user, appId, rdbmsId)) {
 				NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -153,7 +158,30 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// yay... not legacy
 		
 		/*
-		 * 3) Running the base insight recipe or pulling the cached insight
+		 * 3) Do we want to use an existing insight that the user has opened? 
+		 */
+		if(user != null && useExistingInsightIfOpen()) {
+			List<String> userOpen = user.getOpenInsightInstances(appId, rdbmsId);
+			if(userOpen != null && !userOpen.isEmpty()) {
+				Insight alreadyOpenedInsight = InsightStore.getInstance().get(userOpen.get(0));
+				if(alreadyOpenedInsight == null) {
+					// this is weird -- just do a cleanup
+					user.removeOpenInsight(appId, rdbmsId, userOpen.get(0));
+				} else {
+					// return the recipe steps
+					PixelRunner runner = InsightUtility.recreateInsightState(alreadyOpenedInsight);
+					Map<String, Object> runnerWraper = new HashMap<String, Object>();
+					runnerWraper.put("runner", runner);
+					// this is old way of doing/passing params
+					// where FE sends to the BE and then the BE echos it back to the FE
+					NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
+					return noun;
+				}
+			}
+		}
+		
+		/*
+		 * 4) Running the base insight recipe or pulling the cached insight
 		 */
 		
 		Boolean cacheable = getUserDefinedCacheable();
@@ -191,7 +219,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		InsightStore.getInstance().put(newInsight);
 		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 		// set user 
-		newInsight.setUser(this.insight.getUser());
+		newInsight.setUser(user);
 		
 		// get the insight output
 		PixelRunner runner = null;
@@ -235,7 +263,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		/*
-		 * 4) Parameter insight
+		 * 5) Parameter insight
 		 */
 		
 		// see if we have any insights
@@ -299,7 +327,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		/*
-		 * 5) Run any additional pixels that are also passed in 
+		 * 6) Run any additional pixels that are also passed in 
 		 */
 		
 		// after we have gotten back either the insight or cached insight
@@ -314,9 +342,10 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		logger.info("Painting results");
 		
 		// add to the users opened insights
-		if(this.insight.getUser() != null) {
-			this.insight.getUser().addOpenInsight(appId, rdbmsId, newInsight.getInsightId());
+		if(user != null) {
+			user.addOpenInsight(appId, rdbmsId, newInsight.getInsightId());
 		}
+		
 		// update the universal view count
 		GlobalInsightCountUpdater.getInstance().addToQueue(appId, rdbmsId);
 		// tracking execution

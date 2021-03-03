@@ -44,6 +44,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String CACHEABLE = "cache";
 	protected static final String ENCODED_KEY = "encoded";
 	protected static final String PIPELINE_FILE = "pipeline.json";
+	protected static final String USE_EXISTING_OPEN = "useExistingIfOpen";
 	
 	public static String USER_SPACE_KEY = "USER";
 	public static final String SPACE = ReactorKeysEnum.SPACE.getKey();
@@ -264,6 +265,19 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		
 		// default to true
 		return true;
+	}
+	
+	/**
+	 * Do we use the same insight if it is open
+	 * @return 	default value of false
+	 */
+	protected boolean useExistingInsightIfOpen() {
+		GenRowStruct grs = this.store.getNoun(USE_EXISTING_OPEN);
+		if(grs != null && !grs.isEmpty()) {
+			return Boolean.parseBoolean(grs.get(0).toString());
+		}
+		
+		return false;
 	}
 	
 	/**
