@@ -412,6 +412,10 @@ public class InsightUtility {
 //			}
 			
 			logger.info("Successfully dropped insight " + insight.getInsightId());
+			// also remove from the user object as an open insight
+			if(insight.isSavedInsight() && insight.getUser() != null) {
+				insight.getUser().removeOpenInsight(insight.getEngineId(), insight.getRdbmsId(), insightId);
+			}
 			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DROP_INSIGHT);
 		}
 	}
