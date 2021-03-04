@@ -12,7 +12,7 @@ public class CoalesceReactor extends SelectReactor {
 	protected AbstractQueryStruct createQueryStruct() {
 		GenRowStruct qsInputs = this.getCurRow();
 		if(qsInputs != null && !qsInputs.isEmpty()) {
-			for(int selectIndex = 0;selectIndex < qsInputs.size();selectIndex++) {
+			for(int selectIndex = 0; selectIndex < qsInputs.size(); selectIndex++) {
 				NounMetadata input = qsInputs.getNoun(selectIndex);
 				IQuerySelector innerSelector = getSelector(input);
 				qs.addSelector(genFunctionSelector(QueryFunctionHelper.COALESCE, innerSelector));
