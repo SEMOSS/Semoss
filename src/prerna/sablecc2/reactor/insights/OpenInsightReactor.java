@@ -170,12 +170,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				} else {
 					// return the recipe steps
 					PixelRunner runner = InsightUtility.recreateInsightState(alreadyOpenedInsight);
-					// TODO: should i put this inside the insight state???
-					// get the insight config for layout
-					NounMetadata insightConfig = alreadyOpenedInsight.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
-					if(insightConfig != null) {
-						runner.addResult("META | GetInsightConfig()", insightConfig, true);
-					}
 					Map<String, Object> runnerWraper = new HashMap<String, Object>();
 					runnerWraper.put("runner", runner);
 					// this is old way of doing/passing params
