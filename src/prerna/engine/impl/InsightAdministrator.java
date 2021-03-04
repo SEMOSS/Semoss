@@ -129,7 +129,7 @@ public class InsightAdministrator {
 	 * @param layout
 	 * @param pixelRecipeToSave
 	 */
-	public String addInsight(String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, boolean cacheable) {
+	public String addInsight(final String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden, boolean cacheable) {
 		logger.info("Adding new question with insight id :::: " + insightId);
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
