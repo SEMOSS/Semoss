@@ -76,10 +76,10 @@ public class DeleteInsightReactor extends AbstractReactor {
 		}
 		IEngine engine = Utility.getEngine(appId);
 		String appName = engine.getEngineName();
+		
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		ClusterUtil.reactorPullInsightsDB(appId);
 		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(appName, appId));
-		//ClusterUtil.reactorPullApp(appId, true);
 
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		int size = grs.size();
@@ -135,9 +135,11 @@ public class DeleteInsightReactor extends AbstractReactor {
 					e.printStackTrace();
 				}
 			}
+			
+			// now delete from security db
 			SecurityInsightUtils.deleteInsight(appId, insightId);
 		}
-		//ClusterUtil.reactorPushApp(appId);
+		
 		ClusterUtil.reactorPushInsightDB(appId);
 		ClusterUtil.reactorPushFolder(engine, AssetUtility.getAppAssetVersionFolder(appName, appId));
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_INSIGHT);
