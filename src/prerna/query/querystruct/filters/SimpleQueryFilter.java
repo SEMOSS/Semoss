@@ -1203,7 +1203,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 * @param rightDataType		The data type for the object (if list, the values inside the list)
 	 * @return
 	 */
-	public static SimpleQueryFilter makeColToValFilter(QueryColumnSelector colSelector, String comparator, Object values, PixelDataType rightDataType) {
+	public static SimpleQueryFilter makeColToValFilter(IQuerySelector colSelector, String comparator, Object values, PixelDataType rightDataType) {
 		NounMetadata lComparison = new NounMetadata(colSelector, PixelDataType.COLUMN);
 		NounMetadata rComparison = new NounMetadata(values, rightDataType);
 		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, comparator, rComparison);
