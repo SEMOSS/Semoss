@@ -43,6 +43,7 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.util.Constants;
 import prerna.util.gson.FrameCacheHelper;
@@ -106,6 +107,7 @@ public class InsightUtility {
 		newInsight.setEngineId(origInsight.getEngineId());
 		newInsight.setEngineName(origInsight.getEngineName());
 		newInsight.setRdbmsId(origInsight.getRdbmsId());
+		newInsight.setInsightName(origInsight.getInsightName());
 	}
 	
 	/**
@@ -514,9 +516,13 @@ public class InsightUtility {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		// now rerun the recipe and append to the runner
-		return rerunInsight.runPixel(pixelRunner, recipe);
+		pixelRunner = rerunInsight.runPixel(pixelRunner, recipe);
+		NounMetadata insightConfig = in.getVarStore().get(SetInsightConfigReactor.INSIGHT_CONFIG);
+		if(insightConfig != null) {
+			pixelRunner.addResult("META | GetInsightConfig()", insightConfig, true);
+		}
+		return pixelRunner;
 	}
-	
 	
 	/**
 	 * Get the recipe to generate the end state of the FE UI
