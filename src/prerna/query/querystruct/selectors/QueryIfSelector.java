@@ -56,26 +56,50 @@ public class QueryIfSelector extends AbstractQuerySelector {
 		return null;
 	}
 
+	/**
+	 * This is the condition for the if statement
+	 * @param condition
+	 */
 	public void setCondition(IQueryFilter condition) {
 		this.condition = condition;
 	}
 	
+	/**
+	 * This is the true case for the if statement
+	 * @param precedent
+	 */
 	public void setPrecedent(IQuerySelector precedent) {
 		this.precedent = precedent;
 	}
 	
+	/**
+	 * This is the false case for the if statement
+	 * @param antecedent
+	 */
 	public void setAntecedent(IQuerySelector antecedent) {
 		this.antecedent = antecedent;
 	}
 	
+	/**
+	 * Get the condition for the if statement
+	 * @return
+	 */
 	public IQueryFilter getCondition() {
 		return this.condition;
 	}
 	
+	/**
+	 * Get the true case for the if statement
+	 * @return
+	 */
 	public IQuerySelector getPrecedent() {
 		return this.precedent;
 	}
 	
+	/**
+	 * Get the false case for the if statement
+	 * @return
+	 */
 	public IQuerySelector getAntecedent() {
 		return this.antecedent;
 	}

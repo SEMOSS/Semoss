@@ -255,19 +255,23 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.OPAQUE) {
 			return processOpaqueSelector((QueryOpaqueSelector) selector);
 		}else if(selectorType == IQuerySelector.SELECTOR_TYPE.IF_ELSE) {
-			return processIfElseSelector((QueryIfSelector) selector, addProcessedColumn);
+			return processIfElseSelector((QueryIfSelector) selector, addProcessedColumn, false);
 		}
 		return null;
 	}
 	
-	private String processIfElseSelector(QueryIfSelector selector, boolean addProcessedColumn)
+	private String processIfElseSelector(QueryIfSelector selector, boolean addProcessedColumn, boolean anotherCondition)
 	{
 		// get the condition first
 		IQueryFilter condition = selector.getCondition();
-		StringBuffer buf = new StringBuffer("CASE WHEN ");
+		StringBuffer buf = null;
+		if(anotherCondition) {
+			buf = new StringBuffer("WHEN ");
+		} else {
+			buf = new StringBuffer("CASE WHEN ");
+		}
 		
 		StringBuilder filterBuilder = new StringBuilder();
-
 		filterBuilder = this.processFilter(condition);
 
 		// builder shoudl have what we need at this point
@@ -276,26 +280,31 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		
 		// get the precedent
 		IQuerySelector precedent = selector.getPrecedent();
-		buf.append(processSelector(precedent, addProcessedColumn));
+		if(precedent.getSelectorType() == IQuerySelector.SELECTOR_TYPE.IF_ELSE) {
+			// note - this is a full case when that is embedded and has its own CASE WHEN + END
+			buf.append(" ( ").append(processIfElseSelector((QueryIfSelector) precedent, addProcessedColumn, false))
+				.append(" ) ");
+		} else {
+			buf.append(processSelector(precedent, addProcessedColumn));
+		}
 
 		IQuerySelector antecedent = selector.getAntecedent();
-		if(antecedent != null)
-		{
+		if(antecedent != null) {
 			// if the antecedent is another if reactor.. we need to pull this and then continue
 			// if queryifselector - then start with another case
 			// otherwise go with else
-			if(antecedent instanceof QueryIfSelector) 
-			{
-				buf.append("    ");
+			if(antecedent instanceof QueryIfSelector) {
+				buf.append(" ");
+				buf.append(processIfElseSelector((QueryIfSelector) antecedent, addProcessedColumn, true));
+			} else {
+				buf.append(" ELSE ");
 				buf.append(processSelector(antecedent, addProcessedColumn));
 			}
-			else
-			{
-				buf.append("  ELSE  ");
-				buf.append(processSelector(antecedent, addProcessedColumn));
-			}			
 		}
-		buf.append("  END ");
+		// only add the end once 
+		if(!anotherCondition) {
+			buf.append(" END ");
+		}
 		
 		return buf.toString();
 	}
@@ -328,6 +337,17 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			return "NULL";
 		} else if(constant instanceof Number) {
 			return constant.toString();
+		} else if(constant instanceof Boolean){ 
+			if(queryUtil.allowBooleanDataType()) {
+				return Boolean.parseBoolean(constant + "") + "";
+			} else {
+				// append 1 or 0 based on true/false
+				if(Boolean.parseBoolean(constant + "")) {
+					return "CAST(1 as " + queryUtil.getBooleanDataTypeName() + ")";
+				} else {
+					return "CAST(0 as " + queryUtil.getBooleanDataTypeName() + ")";
+				}
+			}
 		} else {
 			return "'" + RdbmsQueryBuilder.escapeForSQLStatement(constant + "") + "'";
 		}
