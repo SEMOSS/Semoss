@@ -19,6 +19,8 @@ public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet>
 		Boolean hideHeaders = value.getHideHeaders();
 		Boolean hideBorders = value.getHideBorders();
 		int borderSize = value.getBorderSize();
+		String height = value.getHeight();
+		String width = value.getWidth();
 		
 		out.beginObject();
 		out.name("sheetId").value(sheetId);
@@ -42,7 +44,16 @@ public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet>
 		} else {
 			out.name("hideBorders").value(hideBorders);
 		}
-		
+		if(height == null) {
+			out.name("height").nullValue();
+		} else {
+			out.name("height").value(height);
+		}
+		if(width == null) {
+			out.name("width").nullValue();
+		} else {
+			out.name("width").value(width);
+		}
 		// border size has default of 2
 		out.name("borderSize").value(borderSize);
 		
@@ -57,6 +68,8 @@ public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet>
 		Boolean hideHeaders = null;
 		Boolean hideBorders = null;
 		Integer borderSize = null;
+		String height = null;
+		String width = null;
 		
 		in.beginObject();
 		while(in.hasNext()) {
@@ -78,6 +91,10 @@ public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet>
 				hideBorders = in.nextBoolean();
 			} else if(key.equals("borderSize")) {
 				borderSize = in.nextInt();
+			} else if(key.equals("height")) {
+				height = in.nextString();
+			} else if(key.equals("width")) {
+				width = in.nextString();
 			}
 		}
 		in.endObject();
@@ -90,6 +107,8 @@ public class InsightSheetAdapter extends AbstractSemossTypeAdapter<InsightSheet>
 		if(borderSize != null) {
 			sheet.setBorderSize(borderSize);
 		}
+		sheet.setHeight(height);
+		sheet.setWidth(width);
 		return sheet;
 	}
 
