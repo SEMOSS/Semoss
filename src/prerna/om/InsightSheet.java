@@ -8,6 +8,8 @@ public class InsightSheet {
 	private Boolean hideHeaders;
 	private Boolean hideBorders;
 	private int borderSize = 2;
+	private String height;
+	private String width;
 	
 	/*
 	 * Basic setter/getters for the sheet state
@@ -64,5 +66,21 @@ public class InsightSheet {
 
 	public void setBorderSize(int borderSize) {
 		this.borderSize = borderSize;
+	}
+
+	public String getHeight() {
+		return height;
+	}
+
+	public void setHeight(String height) {
+		this.height = height;
+	}
+
+	public String getWidth() {
+		return width;
+	}
+
+	public void setWidth(String width) {
+		this.width = width;
 	}
 }
