@@ -37,6 +37,12 @@ public class SetSheetConfigReactor extends AbstractSheetReactor {
 		if(sheetConfig.containsKey("borderSize")) {
 			insightSheet.setBorderSize( ((Number) sheetConfig.get("borderSize")).intValue() );
 		}
+		if(sheetConfig.containsKey("height")) {
+			insightSheet.setHeight((String) sheetConfig.get("height"));
+		}
+		if(sheetConfig.containsKey("width")) {
+			insightSheet.setWidth((String) sheetConfig.get("width"));
+		}
 		
 		return new NounMetadata(insightSheet, PixelDataType.SHEET, PixelOperationType.SHEET_CONFIG);
 	}
