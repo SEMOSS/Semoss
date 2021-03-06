@@ -15,11 +15,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.insight.InsightUtility;
 
 public class ConvertToQueryReactor extends AbstractReactor {
 
+	private static final String IGNORE_STATE_KEY = "ignoreState";
+	
+	public ConvertToQueryReactor() {
+		this.keysToGet = new String[] {IGNORE_STATE_KEY};
+	}
+	
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
+		Boolean addInsightState = !Boolean.parseBoolean(keyValue.get(this.keysToGet[0]) + "");
 		String query = null;
 
 		SelectQueryStruct qs = getQs();
@@ -39,6 +48,10 @@ public class ConvertToQueryReactor extends AbstractReactor {
 		if(qs instanceof HardSelectQueryStruct) {
 			query = ((HardSelectQueryStruct) qs).getQuery();
 			return new NounMetadata(query, PixelDataType.CONST_STRING);
+		}
+		
+		if(addInsightState) {
+			InsightUtility.fillQsReferencesAndMergeOptions(this.insight, qs);
 		}
 		
 		// else, we grab the interpreter 
@@ -99,6 +112,14 @@ public class ConvertToQueryReactor extends AbstractReactor {
 		}
 		
 		return null;
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(IGNORE_STATE_KEY)) {
+			return "Boolean flag to ignore/not add the frame and panel level options to the query struct";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }
