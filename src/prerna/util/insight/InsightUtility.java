@@ -649,6 +649,21 @@ public class InsightUtility {
 	 * @return
 	 */
 	public static BasicIteratorTask constructTaskFromQs(Insight insight, SelectQueryStruct qs) {
+		fillQsReferencesAndMergeOptions(insight, qs);
+
+		BasicIteratorTask task = new BasicIteratorTask(qs);
+		// add the task to the store
+		insight.getTaskStore().addTask(task);
+		return task;
+	}
+	
+	/**
+	 * Fill and move over the QS state stored in the insight via frame/panels to the QS
+	 * @param qs
+	 * @param insight
+	 * @return
+	 */
+	public static void fillQsReferencesAndMergeOptions(Insight insight, SelectQueryStruct qs) {
 		// handle some defaults
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// first, do a basic check
@@ -687,11 +702,6 @@ public class InsightUtility {
 		} else if(insight.getPragmap() != null) {
 			qs.setPragmap(insight.getPragmap());
 		}
-
-		BasicIteratorTask task = new BasicIteratorTask(qs);
-		// add the task to the store
-		insight.getTaskStore().addTask(task);
-		return task;
 	}
 	
 	/**
