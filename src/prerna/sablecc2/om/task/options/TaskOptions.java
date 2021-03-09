@@ -87,10 +87,6 @@ public class TaskOptions {
 		return this.options.isEmpty();
 	}
 
-	public void clear() {
-		this.options.clear();
-	}
-
 	public void setFormatter(IFormatter formatter) {
 		this.formatter = formatter;
 	}
