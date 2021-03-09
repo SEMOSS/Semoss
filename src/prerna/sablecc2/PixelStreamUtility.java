@@ -373,11 +373,11 @@ public class PixelStreamUtility {
 			ps.print(gson.toJson(noun.getOpType()));
 
 		} else if(nounT == PixelDataType.VECTOR) {
+			ps.print("\"output\":[");
 			Object multiValue = noun.getValue();
 			if(multiValue instanceof List) {
 				List<Object> listOutputs = (List<Object>) multiValue;
 				int numOutputs = listOutputs.size();
-				ps.print("\"output\":[");
 				for(int i = 0; i < numOutputs; i++) {
 					if(i > 0) {
 						ps.print(",");
@@ -391,7 +391,6 @@ public class PixelStreamUtility {
 			} else if(multiValue instanceof Object[]) {
 				Object[] listOutputs = (Object[]) multiValue;
 				int numOutputs = listOutputs.length;
-				ps.print("\"output\":[");
 				for(int i = 0; i < numOutputs; i++) {
 					if(i > 0) {
 						ps.print(",");
@@ -402,6 +401,8 @@ public class PixelStreamUtility {
 						ps.print(gson.toJson(listOutputs[i]));
 					}
 				}
+			} else {
+				ps.print(gson.toJson(multiValue));
 			}
 			
 			ps.print("]");

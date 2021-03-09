@@ -719,6 +719,7 @@ public class PixelUtility {
 		int size = pixelList.size();
 		for(int pIndex = 0; pIndex < size; pIndex++) {
 			Pixel pixelObj = pixelList.get(pIndex);
+			System.out.println(pixelObj);
 			// based on new tasks
 			// we will store their pixels
 			List<TaskOptions> taskOptions = pixelObj.getTaskOptions();
@@ -793,7 +794,8 @@ public class PixelUtility {
 							cloneMapToViewSteps.put(clonePanel, clonePanelSteps);
 						}
 						// is this another clone?
-						else if(panelIsCloneView.containsKey(originalPanel)) {
+						else if(panelIsCloneView.containsKey(originalPanel) 
+								&& cloneMapToViewSteps.containsKey(originalPanel)) {
 							List<String> clonePanelSteps = new Vector<>(cloneMapToViewSteps.get(originalPanel));
 							// add in the clone step
 							clonePanelSteps.add("Panel(\"" + originalPanel + "\") | CachedPanelClone(\"" + clonePanel + "\");");
