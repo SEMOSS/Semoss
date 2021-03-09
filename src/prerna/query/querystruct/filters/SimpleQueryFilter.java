@@ -699,7 +699,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	
 	@Override
 	public Set<String> getAllUsedColumns() {
-		Set<String> usedCols = new HashSet<String>();
+		Set<String> usedCols = new HashSet<>();
 		//is the left hand side a column?
 		if(isCol(lComparison)) {
 			usedCols.add( ((IQuerySelector) lComparison.getValue()).getAlias());
@@ -713,8 +713,23 @@ public class SimpleQueryFilter implements IQueryFilter {
 	}
 	
 	@Override
+	public List<QueryColumnSelector> getAllQueryColumns() {
+		List<QueryColumnSelector> usedCols = new Vector<>();
+		//is the left hand side a column?
+		if(isCol(lComparison)) {
+			usedCols.addAll( ((IQuerySelector) lComparison.getValue()).getAllQueryColumns() );
+		}
+
+		// guess the left hand didn't... now try the right hand side
+		if(isCol(rComparison)) {
+			usedCols.addAll( ((IQuerySelector) rComparison.getValue()).getAllQueryColumns() );
+		}
+		return usedCols;
+	}
+	
+	@Override
 	public Set<String> getAllQueryStructColumns() {
-		Set<String> usedCols = new HashSet<String>();
+		Set<String> usedCols = new HashSet<>();
 		//is the left hand side a column?
 		if(isCol(lComparison)) {
 			usedCols.add( ((IQuerySelector) lComparison.getValue()).getQueryStructName());
