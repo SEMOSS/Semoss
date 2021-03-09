@@ -41,6 +41,13 @@ public class FunctionQueryFilter implements IQueryFilter {
 		usedColumns.add(functionSelector.getAlias());
 		return usedColumns;
 	}
+	
+	@Override
+	public List<QueryColumnSelector> getAllQueryColumns() {
+		List<QueryColumnSelector> usedCol = new Vector<>();
+		usedCol.addAll(functionSelector.getAllQueryColumns());
+		return usedCol;
+	}
 
 	@Override
 	public Set<String> getAllQueryStructColumns() {
