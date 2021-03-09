@@ -5,7 +5,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
@@ -63,6 +65,13 @@ public class BetweenQueryFilter implements IQueryFilter, Serializable {
 		Set <String> retSet = new HashSet<String>();
 		retSet.add(((QueryColumnSelector)column).getColumn());
 		return retSet;
+	}
+	
+	@Override
+	public List<QueryColumnSelector> getAllQueryColumns() {
+		List<QueryColumnSelector> usedCol = new Vector<>();
+		usedCol.add(((QueryColumnSelector)column));
+		return usedCol;
 	}
 
 	@Override

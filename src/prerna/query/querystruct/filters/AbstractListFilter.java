@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+
 public abstract class AbstractListFilter implements IQueryFilter {
 
 	protected List<IQueryFilter> filterList;
@@ -28,7 +30,7 @@ public abstract class AbstractListFilter implements IQueryFilter {
 	
 	@Override
 	public Set<String> getAllUsedColumns() {
-		Set<String> usedCols = new HashSet<String>();
+		Set<String> usedCols = new HashSet<>();
 		for(IQueryFilter f : this.filterList) {
 			usedCols.addAll(f.getAllUsedColumns());
 		}
@@ -36,8 +38,17 @@ public abstract class AbstractListFilter implements IQueryFilter {
 	}
 	
 	@Override
+	public List<QueryColumnSelector> getAllQueryColumns() {
+		List<QueryColumnSelector> usedCols = new Vector<>();
+		for(IQueryFilter f : this.filterList) {
+			usedCols.addAll(f.getAllQueryColumns());
+		}
+		return usedCols;
+	}
+	
+	@Override
 	public Set<String> getAllQueryStructColumns() {
-		Set<String> usedCols = new HashSet<String>();
+		Set<String> usedCols = new HashSet<>();
 		for(IQueryFilter f : this.filterList) {
 			usedCols.addAll(f.getAllQueryStructColumns());
 		}
@@ -47,7 +58,7 @@ public abstract class AbstractListFilter implements IQueryFilter {
 
 	@Override
 	public Set<String> getAllUsedTables() {
-		Set<String> usedCols = new HashSet<String>();
+		Set<String> usedCols = new HashSet<>();
 		for(IQueryFilter f : this.filterList) {
 			usedCols.addAll(f.getAllUsedTables());
 		}
