@@ -1,9 +1,11 @@
 package prerna.query.querystruct.filters;
 
+import java.util.List;
 import java.util.Set;
 
 import com.google.gson.TypeAdapter;
 
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.gson.AndQueryFilterAdapter;
 import prerna.util.gson.OrQueryFilterAdapter;
 import prerna.util.gson.SelectQueryStructAdapter;
@@ -24,6 +26,12 @@ public interface IQueryFilter {
 	 * @return
 	 */
 	Set<String> getAllUsedColumns();
+	
+	/**
+	 * Get all the Query Column Selectors
+	 * @return
+	 */
+	List<QueryColumnSelector> getAllQueryColumns();
 	
 	/**
 	 * Get all columns used by the filter

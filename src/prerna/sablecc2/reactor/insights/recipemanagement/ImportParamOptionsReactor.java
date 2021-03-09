@@ -146,6 +146,9 @@ public class ImportParamOptionsReactor extends AbstractReactor {
 			List<IQuerySelector> selectors = qs.getSelectors();
 			for(IQuerySelector select : selectors) {
 				List<QueryColumnSelector> allColumnSelectors = select.getAllQueryColumns();
+				if(allColumnSelectors == null) {
+					System.out.println("null");
+				}
 				for(QueryColumnSelector colS : allColumnSelectors) {
 					
 					String colQS = colS.getQueryStructName();
