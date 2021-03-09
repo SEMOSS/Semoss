@@ -70,14 +70,23 @@ public class NativeImporter extends AbstractImporter {
 				query = query.substring(0, query.length()-1);
 			}
 			if(this.it == null) {
+				RDBMSNativeEngine engine = (RDBMSNativeEngine) this.qs.retrieveQueryStructEngine();
 				try {
-					String newQuery = "select * from (" + query + ") as customQuery where 1 = 0";
-					this.it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), newQuery);
+					StringBuilder newQueryB = new StringBuilder(" select * from (" + query + ") as customQuery ");
+					engine.getQueryUtil().addLimitOffsetToQuery(newQueryB, 1, 0);
+					this.it = WrapperManager.getInstance().getRawWrapper(engine, newQueryB.toString());
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
-					throw new SemossPixelException(
-							new NounMetadata("Error occured executing query before loading into frame", 
-									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+					// one more time
+					// try as well w/o changes - too bad on size...
+					try {
+						this.it = WrapperManager.getInstance().getRawWrapper(engine, query);
+					} catch (Exception e1) {
+						logger.error(Constants.STACKTRACE, e1);
+						throw new SemossPixelException(
+								new NounMetadata("Error occured executing query before loading into frame", 
+										PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+					}
 				} finally {
 					if(this.it != null) {
 						((IRawSelectWrapper) this.it).cleanUp();
