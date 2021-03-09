@@ -194,10 +194,7 @@ public class BasicIteratorTask extends AbstractTask {
 		}
 
 		// help java gc
-		if(this.taskOptions != null) {
-			this.taskOptions.clear();
-			this.taskOptions = null;
-		}
+		this.taskOptions = null;
 		if(this.headerInfo != null) {
 			this.headerInfo.clear();
 			this.headerInfo = null;
