@@ -1,5 +1,6 @@
 package prerna.query.querystruct.selectors;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -53,7 +54,11 @@ public class QueryIfSelector extends AbstractQuerySelector {
 	// will come back to this
 	@Override
 	public List<QueryColumnSelector> getAllQueryColumns() {
-		return null;
+		// TODO: when we start allowing parameterization 
+		// of the if statement in normal pixel 
+		// we can return the actual columns used
+		return new ArrayList<>();
+//		return this.condition.getAllQueryColumns();
 	}
 
 	/**
