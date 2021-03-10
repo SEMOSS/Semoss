@@ -1790,6 +1790,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAExplicitRelationship(node);
     }
 
+    public void inAExplicitComparatorRelationship(AExplicitComparatorRelationship node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAExplicitComparatorRelationship(AExplicitComparatorRelationship node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAExplicitComparatorRelationship(AExplicitComparatorRelationship node)
+    {
+        inAExplicitComparatorRelationship(node);
+        if(node.getExplicitRelComparator() != null)
+        {
+            node.getExplicitRelComparator().apply(this);
+        }
+        outAExplicitComparatorRelationship(node);
+    }
+
     public void inAImplicitRelationship(AImplicitRelationship node)
     {
         defaultIn(node);
@@ -1854,6 +1875,59 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getLPar().apply(this);
         }
         outAImplicitRel(node);
+    }
+
+    public void inAExplicitRelComparator(AExplicitRelComparator node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAExplicitRelComparator(AExplicitRelComparator node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAExplicitRelComparator(AExplicitRelComparator node)
+    {
+        inAExplicitRelComparator(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getComparator() != null)
+        {
+            node.getComparator().apply(this);
+        }
+        if(node.getComma3() != null)
+        {
+            node.getComma3().apply(this);
+        }
+        if(node.getRcol() != null)
+        {
+            node.getRcol().apply(this);
+        }
+        if(node.getComma2() != null)
+        {
+            node.getComma2().apply(this);
+        }
+        if(node.getRelType() != null)
+        {
+            node.getRelType().apply(this);
+        }
+        if(node.getComma1() != null)
+        {
+            node.getComma1().apply(this);
+        }
+        if(node.getLcol() != null)
+        {
+            node.getLcol().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        outAExplicitRelComparator(node);
     }
 
     public void inAExplicitRel(AExplicitRel node)

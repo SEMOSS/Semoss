@@ -100,8 +100,8 @@ public class GenRowStruct {
 		add(join, PixelDataType.JOIN);
 	}
 	
-	public void addRelation(String leftCol, String joinType, String rightCol, String relationshipName) {
-		Join join = new Join(leftCol, joinType, rightCol, relationshipName);
+	public void addRelation(String leftCol, String joinType, String rightCol, String comparator, String relationshipName) {
+		Join join = new Join(leftCol, joinType, rightCol, comparator, relationshipName);
 		add(join, PixelDataType.JOIN);
 	}
 

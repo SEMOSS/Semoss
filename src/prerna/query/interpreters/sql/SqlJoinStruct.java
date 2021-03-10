@@ -15,6 +15,8 @@ public class SqlJoinStruct {
 	private String targetTableAlias;
 	private String targetCol;
 	
+	private String comparator = "=";
+	
 	public SqlJoinStruct() {
 		
 	}
@@ -159,4 +161,12 @@ public class SqlJoinStruct {
 		this.targetCol = targetCol;
 	}
 
+	public String getComparator() {
+		return comparator;
+	}
+
+	public void setComparator(String comparator) {
+		this.comparator = comparator;
+	}
+	
 }

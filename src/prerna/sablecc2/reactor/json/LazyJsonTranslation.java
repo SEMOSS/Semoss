@@ -24,6 +24,7 @@ import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.AEmbeddedAssignmentExpr;
 import prerna.sablecc2.node.AEmbeddedScriptchainExprComponent;
 import prerna.sablecc2.node.AExplicitRel;
+import prerna.sablecc2.node.AExplicitRelComparator;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFractionDecimal;
 import prerna.sablecc2.node.AIdWordOrId;
@@ -552,23 +553,6 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     // this is of the form colDef followed by type of relation and another col def
     
     @Override
-    public void inAExplicitRel(AExplicitRel node) {
-    	defaultIn(node);    
-    	// Need some way to track the state to say all the other things are interim
-    	// so I can interpret the dot notation etc for frame columns
-    }
-
-    @Override
-    public void outAExplicitRel(AExplicitRel node) {
-        defaultOut(node);
-    	String leftCol = node.getLcol().toString().trim();
-    	String rightCol = node.getRcol().toString().trim();
-    	String relType = node.getRelType().toString().trim();
-    	String relName = node.getRelationshipName().toString().trim();
-    	curReactor.getCurRow().addRelation(leftCol, relType, rightCol, relName);
-    }
-    
-    @Override
     public void inAImplicitRel(AImplicitRel node) {
     	defaultIn(node);    
     	// Need some way to track the state to say all the other things are interim
@@ -583,6 +567,43 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	String relType = node.getRelType().toString().trim();
     	curReactor.getCurRow().addRelation(leftCol, relType, rightCol);
     }
+    
+    @Override
+    public void inAExplicitRelComparator(AExplicitRelComparator node) {
+    	defaultIn(node);    
+    	// Need some way to track the state to say all the other things are interim
+    	// so I can interpret the dot notation etc for frame columns
+    }
+    
+    @Override
+    public void outAExplicitRelComparator(AExplicitRelComparator node) {
+        defaultOut(node);
+    	String leftCol = node.getLcol().toString().trim();
+    	String rightCol = node.getRcol().toString().trim();
+    	String relType = node.getRelType().toString().trim();
+    	String comparator = node.getComparator().toString().trim();
+    	curReactor.getCurRow().addRelation(leftCol, relType, rightCol, comparator, null);
+    }
+    
+    @Override
+    public void inAExplicitRel(AExplicitRel node) {
+    	defaultIn(node);    
+    	// Need some way to track the state to say all the other things are interim
+    	// so I can interpret the dot notation etc for frame columns
+    }
+
+    @Override
+    public void outAExplicitRel(AExplicitRel node) {
+        defaultOut(node);
+    	String leftCol = node.getLcol().toString().trim();
+    	String rightCol = node.getRcol().toString().trim();
+    	String relType = node.getRelType().toString().trim();
+    	String relName = node.getRelationshipName().toString().trim();
+    	curReactor.getCurRow().addRelation(leftCol, relType, rightCol, null, relName);
+    }
+    
+    /////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
     
     @Override
     public void inABaseSimpleComparison(ABaseSimpleComparison node) {
