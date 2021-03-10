@@ -15,10 +15,11 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.MetadataUtility;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -61,7 +62,9 @@ public class NativeImporter extends AbstractImporter {
 	public void insertData() {
 		// see if we can parse the query into a valid qs object
 		SemossDataType[] executedDataTypes = null;
-		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && this.qs.retrieveQueryStructEngine() instanceof RDBMSNativeEngine) {
+		IEngine app = this.qs.retrieveQueryStructEngine();
+		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY 
+				&& app instanceof IRDBMSEngine) {
 			// if you are RDBMS
 			// we will make a new QS
 			// and we will wrap you
@@ -70,17 +73,16 @@ public class NativeImporter extends AbstractImporter {
 				query = query.substring(0, query.length()-1);
 			}
 			if(this.it == null) {
-				RDBMSNativeEngine engine = (RDBMSNativeEngine) this.qs.retrieveQueryStructEngine();
 				try {
 					StringBuilder newQueryB = new StringBuilder(" select * from (" + query + ") as customQuery ");
-					engine.getQueryUtil().addLimitOffsetToQuery(newQueryB, 1, 0);
-					this.it = WrapperManager.getInstance().getRawWrapper(engine, newQueryB.toString());
+					((IRDBMSEngine) app).getQueryUtil().addLimitOffsetToQuery(newQueryB, 1, 0);
+					this.it = WrapperManager.getInstance().getRawWrapper(app, newQueryB.toString());
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 					// one more time
 					// try as well w/o changes - too bad on size...
 					try {
-						this.it = WrapperManager.getInstance().getRawWrapper(engine, query);
+						this.it = WrapperManager.getInstance().getRawWrapper(app, query);
 					} catch (Exception e1) {
 						logger.error(Constants.STACKTRACE, e1);
 						throw new SemossPixelException(
