@@ -15,8 +15,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdbms.MultiRDBMSNativeEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -47,11 +46,9 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		IEngine engine = Utility.getEngine(appId);
-		RDBMSNativeEngine nativeEngine = null;
-		if(engine instanceof RDBMSNativeEngine) {
-			nativeEngine = (RDBMSNativeEngine) engine;
-		} else if(engine instanceof MultiRDBMSNativeEngine) {
-			nativeEngine = ((MultiRDBMSNativeEngine) engine).getContext();
+		IRDBMSEngine nativeEngine = null;
+		if(engine instanceof IRDBMSEngine) {
+			nativeEngine = (IRDBMSEngine) engine;
 		} else {
 			throw new IllegalArgumentException("Engine must be a valid JDBC engine");
 		}
