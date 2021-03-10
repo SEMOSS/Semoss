@@ -296,6 +296,11 @@ public abstract class AbstractQueryStruct {
 		relationsSet.add(eachSet);
 	}
 	
+	public void addRelation(String fromConcept, String toConcept, String joinType, String comparator, String relName) {
+		String[] eachSet = new String[]{fromConcept, joinType, toConcept, comparator, relName};
+		relationsSet.add(eachSet);
+	}
+	
 	public Set<String[]> getRelations(){
 		return this.relationsSet;
 	}

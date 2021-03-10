@@ -445,13 +445,13 @@ public class MergeFramesReactor extends AbstractReactor {
 			// an alias was used - replace and make a new Join
 			// and add it to the list
 			else if(newLCol != null && newRCol == null) {
-				Join newJ = new Join(newLCol, j.getJoinType(), j.getRColumn(), j.getJoinRelName());
+				Join newJ = new Join(newLCol, j.getJoinType(), j.getRColumn(), j.getComparator(), j.getJoinRelName());
 				convertedJoins.add(newJ);
 			} else if(newLCol == null && newRCol != null) {
-				Join newJ = new Join(j.getLColumn(), j.getJoinType(), newRCol, j.getJoinRelName());
+				Join newJ = new Join(j.getLColumn(), j.getJoinType(), newRCol, j.getComparator(), j.getJoinRelName());
 				convertedJoins.add(newJ);
 			} else {
-				Join newJ = new Join(newLCol, j.getJoinType(), newRCol, j.getJoinRelName());
+				Join newJ = new Join(newLCol, j.getJoinType(), newRCol, j.getComparator(), j.getJoinRelName());
 				convertedJoins.add(newJ);
 			}
 		}

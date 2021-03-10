@@ -224,7 +224,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	 * 									or table__column
 	 */
 	@Override
-	protected void addJoin(String fromCol, String thisComparator, String toCol) {
+	protected void addJoin(String fromCol, String thisComparator, String toCol, String comparator) {
 		// get the parts of the join
 		List<String[]> relConPropList = getRelationshipConceptProperties(fromCol, toCol);
 		for(String[] relConProp : relConPropList) {
@@ -246,6 +246,12 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 			jStruct.setTargetTable(targetTable);
 			jStruct.setTargetTableAlias(targetTable);
 			jStruct.setTargetCol(targetColumn);
+			
+			if(comparator == null || comparator.equals("==")) {
+				jStruct.setComparator("=");
+			} else {
+				jStruct.setComparator(comparator);
+			}
 			
 			joinStructList.addJoin(jStruct);
 			

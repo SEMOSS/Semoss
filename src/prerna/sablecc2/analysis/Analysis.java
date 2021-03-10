@@ -82,8 +82,10 @@ public interface Analysis extends Switch
     void caseAProp(AProp node);
     void caseAAsop(AAsop node);
     void caseAExplicitRelationship(AExplicitRelationship node);
+    void caseAExplicitComparatorRelationship(AExplicitComparatorRelationship node);
     void caseAImplicitRelationship(AImplicitRelationship node);
     void caseAImplicitRel(AImplicitRel node);
+    void caseAExplicitRelComparator(AExplicitRelComparator node);
     void caseAExplicitRel(AExplicitRel node);
     void caseATermComparisonExpr(ATermComparisonExpr node);
     void caseAComparisonGroupComparisonExpr(AComparisonGroupComparisonExpr node);
