@@ -110,10 +110,16 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	}
 	
 	@Override
+	public void initREnv(String env) {
+		this.env = env;
+		initREnv();
+	}
+
+	@Override
 	public void initREnv() {
 		this.executeEmptyRDirect("if(!exists(\"" + this.env + "\")) {" + this.env  + " <- new.env();}");
 	}
-	
+
 	protected void removeRFunctions() {
 		//adding all the calls i want removed from R. GG hackers. 
 		String rScript="getenv <- function() {};Sys.chmod<-getenv;Sys.date<-getenv;Sys.getenv<-getenv;Sys.getlocate<-getenv;"
@@ -609,6 +615,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		} else {
 			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
 		}
+		logger.info("Executing file at " + rTemp);
 		File rTempF = new File(rTemp);
 		if(!rTempF.exists()) {
 			rTempF.mkdirs();
