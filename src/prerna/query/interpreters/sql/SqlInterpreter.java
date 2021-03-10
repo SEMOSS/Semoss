@@ -16,6 +16,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.AbstractQueryInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -98,7 +99,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 
 	public SqlInterpreter(IEngine engine) {
 		this.engine = engine;
-		this.queryUtil = ((RDBMSNativeEngine) engine).getQueryUtil();
+		this.queryUtil = ((IRDBMSEngine) engine).getQueryUtil();
 	}
 	
 	public SqlInterpreter(ITableDataFrame frame) {

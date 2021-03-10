@@ -19,6 +19,7 @@ import prerna.date.SemossDate;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -68,10 +69,10 @@ public class InsertReactor extends AbstractReactor {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
 				engine = qs.retrieveQueryStructEngine();
-				if(!(engine instanceof RDBMSNativeEngine)) {
+				if(!(engine instanceof IRDBMSEngine)) {
 					throw new IllegalArgumentException("Insert query only works for rdbms databases");
 				}
-				queryUtil = ((RDBMSNativeEngine) engine).getQueryUtil();
+				queryUtil = ((IRDBMSEngine) engine).getQueryUtil();
 				// If an engine and the user is defined, then grab it for the audit log
 				User user = this.insight.getUser();
 				if (user != null) {
