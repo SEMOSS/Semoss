@@ -19,15 +19,11 @@ public class PostgresSqlInterpreter extends SqlInterpreter {
 		super(frame);
 	}
 	
-	/**
-	 * Adds the join to the relationHash which gets added to the query in composeQuery
-	 * @param fromCol					The starting column, this can be just a table
-	 * 									or table__column
-	 * @param thisComparator			The comparator for the type of join
-	 * @param toCol						The ending column, this can be just a table
-	 * 									or table__column
+	/*
+	 * Same as parent but replacing "outer join" with "full outer join"
 	 */
-	protected void addJoin(String fromCol, String thisComparator, String toCol) {
+	@Override
+	protected void addJoin(String fromCol, String thisComparator, String toCol, String comparator) {
 		// get the parts of the join
 		List<String[]> relConPropList = getRelationshipConceptProperties(fromCol, toCol);
 		for(String[] relConProp : relConPropList) {
@@ -52,6 +48,12 @@ public class PostgresSqlInterpreter extends SqlInterpreter {
 			jStruct.setTargetTable(targetTable);
 			jStruct.setTargetTableAlias(getAlias(targetTable));
 			jStruct.setTargetCol(targetColumn);
+			
+			if(comparator == null || comparator.equals("==")) {
+				jStruct.setComparator("=");
+			} else {
+				jStruct.setComparator(comparator);
+			}
 			
 			joinStructList.addJoin(jStruct);
 		}
