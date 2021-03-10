@@ -495,6 +495,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAExplicitComparatorRelationship(AExplicitComparatorRelationship node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAImplicitRelationship(AImplicitRelationship node)
     {
         defaultCase(node);
@@ -502,6 +508,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAImplicitRel(AImplicitRel node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAExplicitRelComparator(AExplicitRelComparator node)
     {
         defaultCase(node);
     }
