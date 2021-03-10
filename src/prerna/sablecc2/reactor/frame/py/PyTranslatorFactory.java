@@ -4,7 +4,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.ds.py.FilePyTranslator;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -146,8 +145,6 @@ public class PyTranslatorFactory {
 		{
 			if (pyt instanceof prerna.ds.py.PyTranslator)
 				PyUtils.getInstance().killPyThread(pyt.getPy());
-			if (pyt instanceof FilePyTranslator)
-				PyUtils.getInstance().killTempTupleSpace(nouser);
 			if (pyt instanceof TCPPyTranslator) {
 				String dir = pyTupleSpace;
 				nc.stopPyServe(dir);
