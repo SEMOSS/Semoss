@@ -1051,21 +1051,53 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return filterBuilder;
 	}
 	
-	private StringBuilder processBetweenQueryFilter(BetweenQueryFilter filter, String tableName, boolean useAlias, boolean...useTable)
-	{
-		StringBuilder retBuilder = new StringBuilder("(");
-		String columnName = processSelector(filter.getColumn(), tableName, true, useAlias, true); 
+	/**
+	 * Process the BetweenQueryFilter content. Output is either attached to filterCriteria or havingCriteria, depending on 
+	 * whether a function is being used as input. 
+	 * 
+	 * @param filter
+	 * @param tableName
+	 * @param useAlias
+	 * @param useTable
+	 * @return
+	 */
+	private StringBuilder processBetweenQueryFilter(BetweenQueryFilter filter, String tableName, boolean useAlias, boolean...useTable) {
+		StringBuilder retBuilder = new StringBuilder("((");
+		StringBuilder havingsAggBuilder = new StringBuilder();
 		
-		if (isHavingFilter) {
-			//TODO - Currently reactor isn't set up for use with the Having reactor. 
-		} else {
-			retBuilder.append(columnName)
-					  .append("  >= ")
-					  .append(filter.getStart())
-					  .append(" ) & ( ")
-					  .append(columnName)
-					  .append("  <= ")
-					  .append(filter.getEnd());
+		IQuerySelector selector = filter.getColumn();
+		
+		if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+			SemossDataType selectorDataType = SemossDataType.convertStringToDataType(selector.getDataType());
+			if (selectorDataType == null) {
+				selectorDataType = this.colDataTypes.get(selector.getQueryStructName());
+			}
+			
+			String columnName = processSelector(selector, tableName, true, useAlias, true);
+			if (selectorDataType == SemossDataType.INT || selectorDataType == SemossDataType.DOUBLE) {
+				retBuilder.append(columnName).append(" >= ").append(filter.getStart()).append(") & (")
+						  .append(columnName).append(" <= ").append(filter.getEnd()).append(")");
+			} else if (selectorDataType == SemossDataType.DATE) {
+				retBuilder.append(columnName).append(".apply(pd.to_datetime).dt.date >= pd.to_datetime('").append(filter.getStart()).append("').date()) & (")
+						  .append(columnName).append(".apply(pd.to_datetime).dt.date <= pd.to_datetime('").append(filter.getEnd()).append("').date())");
+			} else if (selectorDataType == SemossDataType.TIMESTAMP) {
+				retBuilder.append(columnName).append(".apply(od.to_datetime) >= pd.to_datetime('").append(filter.getStart()).append("')) & (")
+						  .append(columnName).append(".apply(pd.to_datetime) <= pd.to_datetime('").append(filter.getEnd()).append("'))");
+			} else {
+				throw new IllegalArgumentException("Invalid column input.");
+			}
+		} else if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+			String function = ((QueryFunctionSelector) selector).getFunction();
+			String pandasFunction = QueryFunctionHelper.convertFunctionToPandasSyntax(function);
+			String columnName = selector.getAllQueryColumns().get(0).getAlias();
+			
+			havingsAggBuilder.append(selector.getAlias()).append("=('").append(columnName).append("','")
+							 .append(pandasFunction).append("')");
+			havingList.add(havingsAggBuilder);
+			
+			retBuilder.append("x['").append(columnName).append("'].").append(pandasFunction).append("() >= ")
+					  .append(filter.getStart()).append(") & (x['").append(columnName).append("'].").append(pandasFunction)
+					  .append("() <= ").append(filter.getEnd()).append(")");
 		}
 		return retBuilder.append(")");
 	}
@@ -1168,8 +1200,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		List<Object> objects = new ArrayList<>();
+		boolean multi = false;
 		if (rightComp.getValue() instanceof List) {
 			objects.addAll((List) rightComp.getValue());
+			multi = true;
 		} else {
 			objects.add(rightComp.getValue());
 		}
@@ -1198,11 +1232,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		} else {
 			filterBuilder = null;
 		}
-		
-		// Why is this necessary? leftSelector should alwasy be a column. 
-		//if (leftSelectorExpression != null && leftSelectorExpression.contains("<>")) {
-		//	leftSelectorExpression = "!=";
-		//}
 		
 		if (leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.DATE || leftDataType == SemossDataType.TIMESTAMP) {
 			String myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, leftDataType);
@@ -1253,12 +1282,18 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 							  .append(function).append("('").append(objects.get(i).toString().toLowerCase()).append("'))");
 				}
 			} else if (leftDataType != SemossDataType.STRING) {
-				for (int i = 0; i < objects.size(); i++) {
-					if (retBuilder.length() > 0) {
-						retBuilder.append(" | ");
+				if (multi) {
+					if (!(thisComparator.equals("==") || thisComparator.equals("!="))) {
+						throw new IllegalArgumentException("Unsupported operand argument '" + thisComparator + "' for filtering by multiple values.");
 					}
+					retBuilder.append("(");
+					if (thisComparator.equals("!=")) {
+						retBuilder.append("~");
+					}
+					retBuilder.append(frameName).append("[").append(leftSelectorExpression).append("].apply(pd.to_datetime).isin").append(myFilterFormatted).append(")");
+				} else {
 					retBuilder.append("(").append(frameName).append("[").append(leftSelectorExpression).append("].apply(pd.to_datetime) ").append(thisComparator)
-							  .append(" pd.to_datetime('").append(objects.get(i)).append("'))");
+							  .append(" pd.to_datetime('").append(objects.get(0)).append("'))");
 				}
 			} else {
 				throw new IllegalArgumentException("Unsupported operand argument '" + thisComparator + "' for type String.");
@@ -1293,26 +1328,25 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	 * @param builder
 	 * @param useAlias
 	 */
-	public void addHavingFilters(List<IQueryFilter> filters, String tableName, StringBuilder builder, boolean useAlias) {
-		ListIterator<IQueryFilter> iterator = filters.listIterator();
-		
+	public void addHavingFilters(List<IQueryFilter> filters, String tableName, StringBuilder builder, boolean useAlias) {	
 		if (filters.size() > 0) {
 			isHavingFilter = true;
 		}
+		if (isHavingFilter && ((SelectQueryStruct) this.qs).getGroupBy().isEmpty()) {
+			throw new IllegalArgumentException("Invalid query statement. A GroupBy(...) is required for filtering by functions.");
+		}
 		for (IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter, tableName, useAlias);
-
+			
+			if (builder.length() > 0) {
+				builder.append(" and ");
+			}
 			if (filterSyntax != null) {
 				builder.append(filterSyntax.toString());
-				if (iterator.hasPrevious() && iterator.hasNext()) {
-					builder.append(" and ");
-					//Don't really know if this is necessary. Filters can be combined but HAVING statement
-					// would be single filter, then the complexity increases (and/or/between/etc.)
-				}
 			}
 		}
 		isHavingFilter = false;
-	} // end addHavingFilters
+	} 
 		
 	/** additional processing of HAVING query. At the moment will only contain column - > value operation. Need to look at examples
 	 *  of other operations to see if they're relevant. 
@@ -1334,7 +1368,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			return createHavingFilter(leftComp, rightComp, thisOperator, tableName, useAlias, useTable);
 		}
 		return null;
-	} // end processSimpleHavingFilter
+	}
 	
 	/** Creates the HAVING expression. StringBuilder is set up for (... operator ...) format. Populates a private
 	 * List that is used to construct an aggregate if none is passed through the query. 
@@ -1357,15 +1391,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		String pandasFunction = QueryFunctionHelper.convertFunctionToPandasSyntax(function);
 		
 		List<Object> values = new Vector<Object>();
-		// Not sure if I need this for HAVUNG clause. 
 		if (rightComp.getValue() instanceof List) {
 			values.addAll((List) rightComp.getValue());
 		} else {
 			values.add(rightComp.getValue());
-		}
-		
-		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
-		
+		}		
 		
 		StringBuilder havingsAggBuilder = new StringBuilder();
 		StringBuilder retBuilder = new StringBuilder();
@@ -1389,7 +1419,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					  .append(")");
 		}
 		return retBuilder;
-	} // end createHavingFilter
+	}
     
 	public void setPyTranslator(PyTranslator pyt) {
 		this.pyt = pyt;
