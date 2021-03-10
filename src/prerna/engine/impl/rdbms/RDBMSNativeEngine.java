@@ -54,6 +54,7 @@ import org.openrdf.query.TupleQueryResult;
 import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -74,7 +75,7 @@ import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
-public class RDBMSNativeEngine extends AbstractEngine {
+public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	private static final Logger logger = LogManager.getLogger(RDBMSNativeEngine.class);
 	
@@ -320,10 +321,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 //		dataSource.setMaxWaitMillis(30_000);
 	}
 
+	@Override
 	public AbstractSqlQueryUtil getQueryUtil() {
 		return this.queryUtil;
 	}
 	
+	@Override
 	public String getSchema() {
 		if(this.schema == null) {
 			DatabaseMetaData meta = getConnectionMetadata();
@@ -378,19 +381,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 	
-	/**
-	 * Get the data source
-	 * @return
-	 */
+	@Override
 	public HikariDataSource getDataSource() {
 		return this.dataSource;
 	}
 
-	/**
-	 * Get the connection
-	 * @return
-	 * @throws SQLException
-	 */
+	@Override
 	public Connection getConnection() throws SQLException {
 		if(this.dataSource != null) {
 			// re-establish bad connections
@@ -431,7 +427,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 
 	@Override
-	// need to clean up the exception it will never be thrown
 	public void insertData(String query) throws SQLException {
 		Connection conn = getConnection(); 
 		if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
@@ -905,13 +900,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 
-	/**
-	 * This is intended to be executed via doAction
-	 * @param args			Object[] where the first index is the table name
-	 * 						and every other entry are the column names
-	 * @return				PreparedStatement to perform a bulk insert
-	 * @throws SQLException 
-	 */
+	@Override
 	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException {
 		// if a table name and a column name are not specified, do nothing
 		// not enough information to be meaningful
@@ -935,19 +924,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return getPreparedStatement(sql.toString());
 	}
 	
-	/**
-	 * This is to get a prepared statement based on the input query
-	 * @param query
-	 * @return
-	 */
+	@Override
 	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
 		return makeConnection().prepareStatement(sql);
 	}
 
-	/**
-	 * Return the engine metadata
-	 * @return
-	 */
+	@Override
 	public DatabaseMetaData getConnectionMetadata() {
 		try {
 			return this.engineConn.getMetaData();
@@ -957,6 +939,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return null;
 	}
 	
+	@Override
 	// does not account for a pooled connection need to ensure
 	public Connection makeConnection() throws SQLException {
 		Connection retObject = getConnection();
@@ -1001,6 +984,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		this.queryUtil = queryUtil;
 	}
 	
+	@Override
 	public String getConnectionUrl() {
 		return this.connectionURL;
 	}

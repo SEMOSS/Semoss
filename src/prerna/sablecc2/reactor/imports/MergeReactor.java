@@ -18,8 +18,8 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.om.InsightFile;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -170,12 +170,12 @@ public class MergeReactor extends AbstractReactor {
 					curEngine = curQS.retrieveQueryStructEngine();
 
 				// check to see they are RDBMS
-				if(curEngine instanceof RDBMSNativeEngine && thisEngine instanceof RDBMSNativeEngine) {
+				if(curEngine instanceof IRDBMSEngine && thisEngine instanceof IRDBMSEngine) {
 					// get the url now
 					// we get the url because the focus area can be an app too
 					// this way we can be sure
-					String curURL = ((RDBMSNativeEngine)curEngine).getConnectionMetadata().getURL();
-					String thisURL = ((RDBMSNativeEngine)thisEngine).getConnectionMetadata().getURL();
+					String curURL = ((IRDBMSEngine)curEngine).getConnectionMetadata().getURL();
+					String thisURL = ((IRDBMSEngine)thisEngine).getConnectionMetadata().getURL();
 
 
 					if(curURL.equalsIgnoreCase(thisURL)) {

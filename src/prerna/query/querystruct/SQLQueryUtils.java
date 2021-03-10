@@ -12,7 +12,8 @@ import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import prerna.ds.nativeframe.NativeFrame;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.parsers.GenExpressionWrapper;
@@ -332,7 +333,7 @@ public class SQLQueryUtils {
 		
 		try {
 			// grab the specific interpreter type from the engine itself
-			RDBMSNativeEngine engine = (RDBMSNativeEngine) subQueryStruct.retrieveQueryStructEngine();
+			IRDBMSEngine engine = (IRDBMSEngine) subQueryStruct.retrieveQueryStructEngine();
 			IQueryInterpreter interp = engine.getQueryInterpreter();
 			
 			SqlParser2 parser = new SqlParser2();
@@ -392,7 +393,7 @@ public class SQLQueryUtils {
 	public static NativeFrame subQueryNativeFrame(SelectQueryStruct queryStruct) {
 		NativeFrame emptyFrame = null;
 		try {
-			RDBMSNativeEngine engine = (RDBMSNativeEngine) queryStruct.retrieveQueryStructEngine();
+			IEngine engine = queryStruct.retrieveQueryStructEngine();
 			IQueryInterpreter interp = engine.getQueryInterpreter();
 
 			SqlParser2 parser = new SqlParser2();

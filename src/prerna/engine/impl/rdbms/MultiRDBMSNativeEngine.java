@@ -47,6 +47,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.ThreadStore;
@@ -56,7 +57,7 @@ import prerna.util.DIHelper;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public class MultiRDBMSNativeEngine extends AbstractEngine {
+public class MultiRDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 
 	// TODO: NEED TO ACCOUNT FOR PASSWORD ENCRYPTION
 	// TODO: NEED TO DETERMINE IF DELETE DB NEEDS ANYTHING DIFFERENT
@@ -225,27 +226,22 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 		return this.contextToConnectionMap.get(contextLookup);
 	}
 
+	@Override
 	public AbstractSqlQueryUtil getQueryUtil() {
 		return getContext().getQueryUtil();
 	}
 	
+	@Override
 	public String getSchema() {
 		return getContext().getSchema();
 	}
 	
-	/**
-	 * Get the data source
-	 * @return
-	 */
+	@Override
 	public HikariDataSource getDataSource() {
 		return getContext().getDataSource();
 	}
 
-	/**
-	 * Get the connection
-	 * @return
-	 * @throws SQLException
-	 */
+	@Override
 	public Connection getConnection() throws SQLException {
 		return getContext().getConnection();
 	}
@@ -351,6 +347,7 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 
+	@Override
 	public RdbmsTypeEnum getDbType() {
 		return getContext().getDbType();
 	}
@@ -359,36 +356,22 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 		getContext().setAutoCommit(autoCommit);
 	}
 
-	/**
-	 * This is intended to be executed via doAction
-	 * @param args			Object[] where the first index is the table name
-	 * 						and every other entry are the column names
-	 * @return				PreparedStatement to perform a bulk insert
-	 * @throws SQLException 
-	 */
+	@Override
 	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException {
 		return getContext().bulkInsertPreparedStatement(args);
 	}
 	
-	/**
-	 * This is to get a prepared statement based on the input query
-	 * @param query
-	 * @return
-	 * @throws SQLException 
-	 */
+	@Override
 	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
 		return getContext().getPreparedStatement(sql);
 	}
 
-	/**
-	 * Return the engine metadata
-	 * @return
-	 */
+	@Override
 	public DatabaseMetaData getConnectionMetadata() {
 		return getContext().getConnectionMetadata();
 	}
 	
-	// does not account for a pooled connection need to ensure
+	@Override
 	public Connection makeConnection() throws SQLException {
 		return getContext().makeConnection();
 	}
@@ -398,13 +381,9 @@ public class MultiRDBMSNativeEngine extends AbstractEngine {
 		return getContext().getQueryInterpreter();
 	}
 
+	@Override
 	public String getConnectionUrl() {
 		return getContext().getConnectionUrl();
 	}
 	
-	///////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-
 }
