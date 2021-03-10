@@ -207,8 +207,9 @@ Productions
  asop = as_op l_par gen_row r_par;
  
  // relationship is used for joins within a database and table joining when adding new data to existing frame
- relationship = {explicit} explicit_rel | {implicit} implicit_rel;
- implicit_rel = l_par [lcol]:col_def [comma1]:comma rel_type [comma2]:comma [rcol]:col_def r_par; 
+ relationship = {explicit} explicit_rel | {explicit_comparator} explicit_rel_comparator | {implicit} implicit_rel;
+ implicit_rel = l_par [lcol]:col_def [comma1]:comma rel_type [comma2]:comma [rcol]:col_def r_par;
+ explicit_rel_comparator = l_par [lcol]:col_def [comma1]:comma rel_type [comma2]:comma [rcol]:col_def [comma3]:comma [comparator]:comparator r_par;
  explicit_rel = l_par [lcol]:col_def [comma1]:comma rel_type [comma2]:comma [rcol]:col_def [comma3]:comma [relationship_name]:col_def r_par;
  
  ///////////////////////////////////////////////////////////////////////
