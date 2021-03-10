@@ -252,3 +252,6 @@ install.packages("qs", dependencies=TRUE)
 
 # Pivot Tables
 install.packages("pivottabler", dependencies=TRUE)
+
+#Complex Joins
+install.packages("sqldf", dependencies=TRUE)
