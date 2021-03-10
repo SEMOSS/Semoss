@@ -371,7 +371,7 @@ public class UnionReactor extends AbstractReactor {
 			}
 			// or an alias was used
 			// so make a new Join and add it to the list
-			Join newJ = new Join(newLCol, j.getJoinType(), j.getRColumn(), j.getJoinRelName());
+			Join newJ = new Join(newLCol, j.getJoinType(), j.getRColumn(), j.getComparator(), j.getJoinRelName());
 			convertedJoins.add(newJ);
 		}
 		

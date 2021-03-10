@@ -18,7 +18,8 @@ public class JoinReactor extends AbstractQueryStructReactor {
 		for (int i = 0; i < joins.size(); i++) {
 			if (joins.get(i) instanceof Join) {
 				Join join = (Join) joins.get(i);
-				qs.addRelation(join.getLColumn(), join.getRColumn(), join.getJoinType());
+				qs.addRelation(join.getLColumn(), join.getRColumn(), join.getJoinType(), 
+						join.getComparator(), join.getJoinRelName());
 			}
 		}
 
