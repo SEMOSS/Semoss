@@ -5,12 +5,15 @@ package prerna.sablecc2.om;
 // type of join
 public class Join {
 
-	//public enum JOIN_TYPE {INNER, OUTER, RIGHT_OUTER, LEFT_OUTER, CROSS_JOIN, SELF_JOIN};
-	// there is no reason I cannot split this into 2 different classes other than laziness --it has been split
+	// public enum JOIN_TYPE {INNER, OUTER, RIGHT_OUTER, LEFT_OUTER, CROSS_JOIN,
+	// SELF_JOIN};
+	// there is no reason I cannot split this into 2 different classes other than
+	// laziness --it has been split
 
 	private String joinType = null;
 	private String lColumn = null;
 	private String rColumn = null;
+	private String comparator = null;
 	private String joinRelName = null;
 
 	public Join(String lCol, String joinType, String rCol) {
@@ -19,11 +22,11 @@ public class Join {
 		this.joinType = joinType;
 	}
 
-
-	public Join(String lCol, String joinType, String rCol, String joinRelName) {
+	public Join(String lCol, String joinType, String rCol, String comparator, String joinRelName) {
 		this.lColumn = lCol;
 		this.rColumn = rCol;
 		this.joinType = joinType;
+		this.comparator = comparator;
 		this.joinRelName = joinRelName;
 	}
 
@@ -49,6 +52,14 @@ public class Join {
 
 	public void setRColumn(String rColumn) {
 		this.rColumn = rColumn;
+	}
+
+	public String getComparator() {
+		return comparator;
+	}
+
+	public void setComparator(String comparator) {
+		this.comparator = comparator;
 	}
 
 	public String getJoinRelName() {

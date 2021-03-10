@@ -74,6 +74,7 @@ public class SqlJoinStructList {
 			String targetCol = j.getTargetCol();
 			
 			String jType = j.getJoinType();
+			String comparator = j.getComparator();
 			
 			if(i == 0) {
 				// we gotta define the first from
@@ -83,7 +84,7 @@ public class SqlJoinStructList {
 
 				jSyntax.append(" on ")
 				.append(sourceTableAlias).append(".").append(sourceCol)
-				.append("=")
+				.append(comparator)
 				.append(targetTableAlias).append(".").append(targetCol);
 				
 				definedTables.add(sourceTable);
@@ -126,7 +127,7 @@ public class SqlJoinStructList {
 				// define the rest of the join portion
 				jSyntax.append(append)
 				.append(sourceTableAlias).append(".").append(sourceCol)
-				.append("=")
+				.append(comparator)
 				.append(targetTableAlias).append(".").append(targetCol);
 			}
 		}
