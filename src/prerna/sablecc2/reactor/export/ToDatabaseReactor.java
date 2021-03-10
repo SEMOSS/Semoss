@@ -17,8 +17,8 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -103,10 +103,10 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		IEngine targetEngine = Utility.getEngine(engineId);
 
 		// only for RDBMS right now
-		if(!(targetEngine instanceof RDBMSNativeEngine)) {
+		if(!(targetEngine instanceof IRDBMSEngine)) {
 			throw new SemossPixelException(new NounMetadata("Can only persist data to a relational database at the moment", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		AbstractSqlQueryUtil queryUtil = ((RDBMSNativeEngine) targetEngine).getQueryUtil();
+		AbstractSqlQueryUtil queryUtil = ((IRDBMSEngine) targetEngine).getQueryUtil();
 		Map<String, String> typeConversionMap = queryUtil.getTypeConversionMap();
 		// create prepared statement of all inserts from task
 		List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();

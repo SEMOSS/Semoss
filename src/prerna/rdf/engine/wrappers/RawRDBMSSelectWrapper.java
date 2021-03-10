@@ -21,8 +21,8 @@ import com.zaxxer.hikari.HikariDataSource;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.MultiRDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
 import prerna.query.parsers.PraseSqlQueryForCount;
@@ -309,12 +309,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			// since we pass via the engine object
 			if(this.engine != null) {
 				// account for multi rdbms engine as well as base rdmbs engine
-				RDBMSNativeEngine activeEngine = null;
-				if(this.engine instanceof MultiRDBMSNativeEngine) {
-					activeEngine = ((MultiRDBMSNativeEngine) this.engine).getContext();
-				} else {
-					activeEngine = (RDBMSNativeEngine) this.engine;
-				}
+				IRDBMSEngine activeEngine = (IRDBMSEngine) this.engine;
 				if(this.dataSource == null) {
 					this.dataSource = activeEngine.getDataSource();
 				}

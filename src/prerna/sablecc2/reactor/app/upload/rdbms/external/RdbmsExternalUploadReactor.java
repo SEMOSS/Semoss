@@ -28,10 +28,10 @@ import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
-import prerna.engine.impl.rdbms.MultiRDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -114,17 +114,15 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		String appId = this.keyValue.get(this.keysToGet[1]);
 		String userPassedExisting = this.keyValue.get(this.keysToGet[3]);
 		boolean existingApp = false;
-		RDBMSNativeEngine nativeEngine = null;
+		IRDBMSEngine nativeEngine = null;
 
 		// make sure both fields exist
 		if (appId != null && userPassedExisting != null) {
 			existingApp = Boolean.parseBoolean(userPassedExisting);
 			
 			IEngine engine = Utility.getEngine(appId);
-			if(engine instanceof RDBMSNativeEngine) {
-				nativeEngine = (RDBMSNativeEngine) engine;
-			} else if(engine instanceof MultiRDBMSNativeEngine) {
-				nativeEngine = ((MultiRDBMSNativeEngine) engine).getContext();
+			if(engine instanceof IRDBMSEngine) {
+				nativeEngine = (IRDBMSEngine) engine;
 			} else {
 				throw new IllegalArgumentException("Engine must be a valid JDBC engine");
 			}

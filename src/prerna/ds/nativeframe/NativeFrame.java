@@ -24,8 +24,8 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -319,7 +319,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// account for potential double aggregations
 		// TODO: account for double aggregation on other DB types...
 		boolean doubleAggregation = false;
-		if(engine instanceof RDBMSNativeEngine) {
+		if(engine instanceof IRDBMSEngine) {
 			if(this.qs.getGroupBy() != null && !this.qs.getGroupBy().isEmpty()) {
 				// we have a double aggregation
 				// need to properly account for this
