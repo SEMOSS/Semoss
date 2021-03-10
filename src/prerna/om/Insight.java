@@ -28,6 +28,7 @@
 package prerna.om;
 
 import java.io.File;
+import java.io.Serializable;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
@@ -80,6 +81,7 @@ import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.frame.py.PyTranslatorFactory;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
+import prerna.sablecc2.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -92,7 +94,8 @@ import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class Insight {
+public class Insight implements Serializable
+{
 
 	public static Boolean isjavac = null;
 	public static final String DEFAULT_SHEET_ID = "0";
@@ -111,7 +114,7 @@ public class Insight {
 	protected String insightId;
 	
 	// new user object
-	protected User user;
+	protected transient User user;
 	protected String insightName;
 
 	// if this is a saved insight
@@ -124,7 +127,7 @@ public class Insight {
 	protected String tupleSpace = null;
 	
 	// list to store the pixels that make this insight
-	private PixelList pixelList;
+	private transient PixelList pixelList;
 	
 	// keep a map to store various properties
 	// new variable assignments in pixel are also stored here
@@ -200,7 +203,7 @@ public class Insight {
 	// pragamp for all the pragmas like cache / raw / parquet etc. 
 	private Map pragmap = new HashMap();
 	
-	public NettyClient nc = null;
+	public transient NettyClient nc = null;
 	
 	// base URL
 	private String baseURL = null;
@@ -666,9 +669,33 @@ public class Insight {
 	}
 	
 	public AbstractRJavaTranslator getRJavaTranslator(Logger logger) {
+		
+		
 		if(this.rJavaTranslator == null) {
 			this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this, logger);
-		} else {
+		
+			// set the netty client if the translator is TCP R translator
+			if(this.rJavaTranslator instanceof TCPRTranslator)
+			{
+				// do this so that the netty client is initialized
+				getPyTranslator();
+				// now set the netty client
+				((TCPRTranslator)this.rJavaTranslator).nc = this.user.getPyServe();
+				this.rJavaTranslator.setInsight(this);
+				this.rJavaTranslator.startR();
+			}			
+		}
+		else { // do I need this ?
+			
+			if(this.rJavaTranslator instanceof TCPRTranslator)
+			{
+				// do this so that the netty client is initialized
+				//getPyTranslator();
+				// now set the netty client
+				((TCPRTranslator)this.rJavaTranslator).nc = this.user.getPyServe();
+				this.rJavaTranslator.setInsight(this);
+			}			
+			
 			this.rJavaTranslator.setLogger(logger);
 		}
 		return this.rJavaTranslator;

@@ -9,20 +9,9 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.Filter;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
-import org.apache.logging.log4j.core.config.Configurator;
-import org.apache.logging.log4j.core.config.builder.api.AppenderComponentBuilder;
-import org.apache.logging.log4j.core.config.builder.api.ComponentBuilder;
-import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
-import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
-import org.apache.logging.log4j.core.config.builder.api.LayoutComponentBuilder;
-import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -30,9 +19,11 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
@@ -40,6 +31,7 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import jep.Jep;
 import prerna.ds.py.PyExecutorThread;
+import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -50,7 +42,7 @@ public class TCPPyWorker
 	private static final String CLASS_NAME = TCPPyWorker.class.getName();
 
 	List <String> commandList = new ArrayList<String>(); // this is giving the file name and that too relative
-	public static Logger LOGGER = LogManager.getLogger(CLASS_NAME);
+	public  static Logger LOGGER = null;
 
 	String internalLock = "Internal Lock";
 	private static boolean first = true;
@@ -68,6 +60,7 @@ public class TCPPyWorker
 	List foldersBeingWatched = new ArrayList();
 	public String mainFolder = null;
 	PyExecutorThread pt = null;
+	RJavaJriTranslator rt = null;
 
 	static boolean test = false;
 
@@ -89,11 +82,14 @@ public class TCPPyWorker
 		
 		if(args == null || args.length == 0)
 		{
-			args = new String[3];
-			args[0] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/InsightCache/keeper";
+			args = new String[4];
+			args[0] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/InsightCache/a8609888735144439579";
 			args[1] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/RDF_MAP.prop";
 			args[2] = "8007";
+			//args[3] = "py";
+			args[3] = "r";
 			test = true;
+				
 		}
 		
 		String log4JPropFile = Paths.get(args[0], "log4j2.properties").toAbsolutePath().toString();
@@ -141,7 +137,10 @@ public class TCPPyWorker
 			e.printStackTrace();
 		}
 		worker.mainFolder = args[0];
-		worker.bootServer(Integer.parseInt(args[2]));
+		String engine = "r"; // setting it up for r
+		if(args.length == 4)
+			engine = args[3];
+		worker.bootServer(Integer.parseInt(args[2]), engine);
 	}
 	
 	public void startPyExecutor()
@@ -169,12 +168,20 @@ public class TCPPyWorker
 		}
 	}
 	
-	public void bootServer(int PORT)
+	public void startRExecutor()
+	{
+		rt = new RJavaJriTranslator();
+		rt.setLogger(LogManager.getLogger());
+		rt.startR();
+	}
+	
+	public void bootServer(int PORT, String engine)
 	{
         // Configure SSL.
         // Configure the server.
-        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+		LOGGER = LogManager.getLogger(CLASS_NAME);
+        EventLoopGroup bossGroup = new NioEventLoopGroup();
+        EventLoopGroup workerGroup = new NioEventLoopGroup(20);
         try {
             final SslContext sslCtx;
             if (SSL) {
@@ -188,6 +195,8 @@ public class TCPPyWorker
             b.group(bossGroup, workerGroup)
              .channel(NioServerSocketChannel.class)
              .option(ChannelOption.SO_BACKLOG, 100)
+             .option(ChannelOption.TCP_NODELAY, true)
+            // .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(256*1024, 512*1024))
 //             .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, (1024*1024))
 //             .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, (512*1024))
              .handler(new LoggingHandler(LogLevel.INFO))
@@ -199,21 +208,42 @@ public class TCPPyWorker
                          p.addLast(sslCtx.newHandler(ch.alloc()));
                      }
                      //p.addLast(new LoggingHandler(LogLevel.INFO));
-                     TCPServerHandler tsh = new TCPServerHandler();
-                     tsh.setBossGroup(bossGroup);
-                     tsh.setWorkerGroup(workerGroup);
-                     tsh.setLogger(LOGGER);
-                     tsh.setPyExecutorThread(pt);
-                     tsh.setMainFolder(mainFolder);
-                     tsh.setTest(test);
-                     p
-                     //.addLast(new LengthFieldPrepender(4))
-                     .addLast(tsh);
+                     if(engine.equalsIgnoreCase("py"))
+                     {
+	                     TCPServerHandler tsh = new TCPServerHandler();
+	                     tsh.setBossGroup(bossGroup);
+	                     tsh.setWorkerGroup(workerGroup);
+	                     tsh.setLogger(LOGGER);
+	                     tsh.setPyExecutorThread(pt);
+	                     tsh.setMainFolder(mainFolder);
+	                     tsh.setTest(test);
+	                     p
+	                     //.addLast(new LengthFieldPrepender(4))
+	                     .addLast(tsh);
+                     }
+                     // soon we can remove this dichotomy
+                     else if(engine.equalsIgnoreCase("r"))
+                     {
+                    	 // start the R engine
+	                     //TCPRServerHandler tsh = new TCPRServerHandler();
+	                     TCPBinaryServerHandler tsh = new TCPBinaryServerHandler();
+	                     tsh.setBossGroup(bossGroup);
+	                     tsh.setWorkerGroup(workerGroup);
+	                     tsh.setLogger(LOGGER);
+	                     tsh.setRJavaTranslator(rt);
+	                     tsh.setPyExecutorThread(pt);
+	                     tsh.setMainFolder(mainFolder);
+	                     tsh.setTest(test);
+	                     p
+	                     .addLast(new LengthFieldPrepender(4))
+	                     .addLast(tsh);
+                     }
                  }
              });
-            // start python thread
-    		startPyExecutor();
-
+            
+            // create the engines
+        	startPyExecutor();
+        	startRExecutor();
             
             // Start the server.
             ChannelFuture f = b.bind(PORT).sync();
