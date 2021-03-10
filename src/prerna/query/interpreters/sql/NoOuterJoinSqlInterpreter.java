@@ -246,12 +246,8 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 			jStruct.setTargetTable(targetTable);
 			jStruct.setTargetTableAlias(targetTable);
 			jStruct.setTargetCol(targetColumn);
-			
-			if(comparator == null || comparator.equals("==")) {
-				jStruct.setComparator("=");
-			} else {
-				jStruct.setComparator(comparator);
-			}
+			// set the comparator
+			jStruct.setComparator(comparator);
 			
 			joinStructList.addJoin(jStruct);
 			

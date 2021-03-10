@@ -13,7 +13,8 @@ public class Join {
 	private String joinType = null;
 	private String lColumn = null;
 	private String rColumn = null;
-	private String comparator = null;
+	// default comparator is =
+	private String comparator = "=";
 	private String joinRelName = null;
 
 	public Join(String lCol, String joinType, String rCol) {
@@ -26,6 +27,9 @@ public class Join {
 		this.lColumn = lCol;
 		this.rColumn = rCol;
 		this.joinType = joinType;
+		if(comparator.equals("==")) {
+			comparator = "=";
+		}
 		this.comparator = comparator;
 		this.joinRelName = joinRelName;
 	}
