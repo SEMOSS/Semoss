@@ -8,7 +8,7 @@ import java.util.Set;
 import prerna.date.SemossDate;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -29,7 +29,7 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 				|| this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			this.engine = qs.retrieveQueryStructEngine();
 			if(this.engine != null) {
-				this.queryUtil = ((RDBMSNativeEngine) this.engine).getQueryUtil();
+				this.queryUtil = ((IRDBMSEngine) this.engine).getQueryUtil();
 			}
 		} else {
 			this.frame = qs.getFrame();

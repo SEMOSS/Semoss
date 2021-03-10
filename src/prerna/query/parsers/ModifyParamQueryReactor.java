@@ -2,9 +2,8 @@ package prerna.query.parsers;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.MultiRDBMSNativeEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -58,11 +57,9 @@ public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 		// execute query to get the alias name
 		String updatedQuery = "select * from (" + query + ") t12345 where 1=0;";
 		IEngine engine = this.qs.retrieveQueryStructEngine();
-		RDBMSNativeEngine rdbms = null;
-		if(engine instanceof RDBMSNativeEngine) {
-			rdbms = (RDBMSNativeEngine) engine;
-		} else if(engine instanceof MultiRDBMSNativeEngine) {
-			rdbms = ((MultiRDBMSNativeEngine) engine).getContext();
+		IRDBMSEngine rdbms = null;
+		if(engine instanceof IRDBMSEngine) {
+			rdbms = (IRDBMSEngine) engine;
 		} else {
 			throw new IllegalArgumentException("Engine must be of type RDBMS to use this reactor");
 		}
