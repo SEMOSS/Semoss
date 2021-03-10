@@ -299,6 +299,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			// keep track of join columns on the right table
 			rightTableJoinCols.add(rightTableJoinCol.toUpperCase());
 			
+			String joinComparator = j.getComparator();
 			String joinType = j.getJoinType();
 			String joinSql = null;
 			if(joinType.equalsIgnoreCase("inner.join")) {
@@ -329,7 +330,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			if(leftColType == rightColType) {
 				joinString.append(" ")
 						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-						.append(" = ")
+						.append(" ").append(joinComparator).append(" ")
 						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
 			} else {
 				if(leftColType == SemossDataType.DOUBLE && rightColType == SemossDataType.INT) {
@@ -338,7 +339,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 					// need to cast the right hand side
 					joinString.append(" ")
 						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-						.append(" = CAST(")
+						.append(" ").append(joinComparator).append(" CAST(")
 						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol)
 						.append(" AS DOUBLE)");
 				} else if(leftColType == SemossDataType.INT && rightColType == SemossDataType.DOUBLE) {
@@ -355,7 +356,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 					// convert the string to a number
 					joinString.append(" ")
 						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-						.append(" = CAST(")
+						.append(" ").append(joinComparator).append(" CAST(")
 						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol)
 						.append(" AS DOUBLE)");
 				} else if( (rightColType == SemossDataType.INT || rightColType == SemossDataType.DOUBLE ) && leftColType == SemossDataType.STRING) {
@@ -364,13 +365,13 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 					// convert the string to a number
 					joinString.append(" CAST(")
 						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-						.append(" AS DOUBLE) =")
+						.append(" AS DOUBLE) ").append(joinComparator).append(" ")
 						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
 				} else {
 					// not sure... just make everything a string
 					joinString.append(" CAST(")
 					.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-					.append(" AS VARCHAR(800)) = CAST(")
+					.append(" AS VARCHAR(800)) ").append(joinComparator).append(" CAST(")
 					.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol)
 					.append(" AS VARCHAR(800))");
 				}

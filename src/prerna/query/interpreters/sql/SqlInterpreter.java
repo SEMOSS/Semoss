@@ -519,7 +519,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	public void addJoins() {
 		for(String[] relationsData : qs.getRelations()) {
 			if(relationsData.length == 3) {
-				addJoin(relationsData[0], relationsData[1], relationsData[2], "==");
+				addJoin(relationsData[0], relationsData[1], relationsData[2], "=");
 			} else if(relationsData.length == 5) {
 				addJoin(relationsData[0], relationsData[1], relationsData[2], relationsData[3]);
 			}
@@ -554,12 +554,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			jStruct.setTargetTable(targetTable);
 			jStruct.setTargetTableAlias(getAlias(targetTable));
 			jStruct.setTargetCol(targetColumn);
-			
-			if(comparator == null || comparator.equals("==")) {
-				jStruct.setComparator("=");
-			} else {
-				jStruct.setComparator(comparator);
-			}
+			// set the comparator
+			jStruct.setComparator(comparator);
 			
 			joinStructList.addJoin(jStruct);
 		}
