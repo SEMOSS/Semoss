@@ -3530,9 +3530,9 @@ public class Utility {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String jep = System.getenv("LD_LIBRARY_PATH");
+			String jep = DIHelper.getInstance().getProperty("LD_LIBRARY_PATH");
 			if (jep == null) {
-				jep = DIHelper.getInstance().getProperty("LD_LIBRARY_PATH");
+				jep = System.getenv("LD_LIBRARY_PATH");
 			}
 			// account for spaces in the path to jep
 			if (jep.contains(" ")) {

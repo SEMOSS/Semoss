@@ -38,6 +38,8 @@ public class PyTranslator
 
 	PyExecutorThread pt = null;
 	public static String curEncoding = null;
+	public static String NO_OUTPUT = "<e>";
+	public static String NEED_OUTPUT = "<o>";
 
 	
 	Map <Object, Object> responseCache = new HashMap<Object, Object>();
@@ -59,7 +61,7 @@ public class PyTranslator
 	public PyTranslator()
 	{
 		//startDisruptor();
-		System.out.println("Py Translator created");
+		//System.out.println("Py Translator created");
 	}
 
 	public SemossDataType convertDataType(String pDataType) {
@@ -338,7 +340,7 @@ public class PyTranslator
 			runScript("smssutil.run_empty_wrapper(\"" + scriptPath + "\", globals())");
 			
 		} catch (IOException e1) {
-			System.out.println("Error in writing Py script for execution!");
+			//System.out.println("Error in writing Py script for execution!");
 			e1.printStackTrace();
 		}
 	}
@@ -607,6 +609,31 @@ public class PyTranslator
 	}
 
 
+	// the output pragma here is not useful. This is purely done so as to avoid copying over all the other methods to TCPPyTranslator
+	// and to avoid casting everywhere
+	public synchronized Object runScript(String script, String outputPragma) {
+		this.pt.command = new String[] {script};
+		Object monitor = this.pt.getMonitor();
+		Object response = null;
+		synchronized(monitor) {
+			try {
+				monitor.notify();
+				monitor.wait(4000);
+			} catch (Exception ignored) {
+				
+			}
+			/*if(script.length == 1) {
+				response = this.pt.response.get(script[0]);
+			} else {
+				response = this.pt.response;
+			}*/
+			response = this.pt.response;
+		}
+		
+		return ((Hashtable)response).get(script);
+	}
+
+	
 	
 	private String convertArrayToString(String... script) {
 		StringBuilder retString = new StringBuilder("");
