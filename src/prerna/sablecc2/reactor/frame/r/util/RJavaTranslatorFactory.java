@@ -55,6 +55,7 @@ public class RJavaTranslatorFactory {
 	 */
 	private static void init() {
 		String useRStr =  DIHelper.getInstance().getProperty(Constants.USE_R);
+		String netty =  DIHelper.getInstance().getProperty("NETTY_R");
 		if(useRStr != null) {
 			RJavaTranslatorFactory.USE_R = Boolean.parseBoolean(useRStr);
 			if(!RJavaTranslatorFactory.USE_R) {
@@ -75,7 +76,13 @@ public class RJavaTranslatorFactory {
 
 		final String basePackage = "prerna.sablecc2.reactor.frame.r.util.";
 		String className = null;
-		if(useJri) {
+		// making netty take precedence so we dont need to set multiple variabled
+		if (netty != null && Boolean.parseBoolean(netty)) {
+			
+			className = basePackage + "TCPRTranslator";
+			
+		} 
+		else if(useJri) {
 			
 			className = basePackage + "RJavaJriTranslator";
 			
@@ -192,7 +199,8 @@ public class RJavaTranslatorFactory {
 					newInstance.setConnection(((RDataTable) dm).getConnection());
 					newInstance.setPort(((RDataTable) dm).getPort());
 					
-					newInstance.initREnv();
+					// set the environment
+					newInstance.initREnv(newInstance.env);
 
 				}
 			}
