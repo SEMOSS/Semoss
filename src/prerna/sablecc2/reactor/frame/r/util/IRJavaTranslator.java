@@ -1,10 +1,13 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
+import prerna.algorithm.api.SemossDataType;
+import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 
 public interface IRJavaTranslator {
@@ -18,7 +21,12 @@ public interface IRJavaTranslator {
 	 * Initialize the environment 
 	 */
 	void initREnv();
-	
+
+	/**
+	 * Initialize the environment 
+	 */
+	void initREnv(String env);
+
 	/**
 	 * start r server
 	 */
@@ -163,5 +171,32 @@ public interface IRJavaTranslator {
 	 * Stop R process
 	 */
 	void stopRProcess();
+	
+	public String[] getColumnTypes(String frameName);
+
+	public boolean isEmpty(String frameName);
+	
+	public boolean varExists(String varname);
+	
+	public void changeColumnType(String frameName, String columnName, SemossDataType typeToConvert) ;
+	
+	public void changeColumnType(String frameName, String columnName, SemossDataType typeToConvert, SemossDataType currentType);
+	
+	public String getColumnType(String frameName, String column);
+	
+	public void changeColumnType(RDataTable frame, String frameName, String colName, String newType, String dateFormat);
+	
+	public int getNumRows(String frameName);
+	
+	public void initEmptyMatrix(List<Object[]> matrix, int numRows, int numCols);
+	
+	public void checkPackages(String[] packages);
+	
+	public void checkPackages(String fileName);
+	
+    public boolean checkPackages(String[] packages, Logger logger);
+    
+    
+	
 	
 }
