@@ -420,7 +420,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void inAOperation(AOperation node) {
 		defaultIn(node);
-        logger.debug("Starting an operation");
+        logger.debug("Starting an operation " + node.toString());
         
         String reactorId = node.getId().toString().trim();
         IReactor newReactor = getReactor(reactorId, node.toString().trim());
@@ -431,7 +431,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void outAOperation(AOperation node) {
 		defaultOut(node);
-		logger.debug("Ending operation");
+		logger.debug("Ending operation " + node.toString());
     	// if we have an if reactor
     	// we will not deInit and just add this as a lambda within
     	// the if statement and only deinit when necessary
