@@ -37,11 +37,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.h2.tools.DeleteDbFiles;
 
+import com.google.common.cache.CacheBuilder;
 import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.auth.AccessToken;
@@ -79,6 +82,8 @@ public class MultiRDBMSNativeEngine extends AbstractEngine implements IRDBMSEngi
 	// schema3 : connectionurl2/schema3 - mysql
 	private Map<String, Properties> contextToProperties = new HashMap<>();
 	private Map<String, RDBMSNativeEngine> contextToConnectionMap = new HashMap<>();
+	
+	private ConcurrentMap<String, Object> lruCache = null;
 	
 	@Override
 	public void openDB(String propFile)
@@ -155,6 +160,11 @@ public class MultiRDBMSNativeEngine extends AbstractEngine implements IRDBMSEngi
 			
 			this.contextToConnectionMap.put(contextName, engine);
 		}
+		
+		// startup a least recently used cache
+		this.lruCache = CacheBuilder.newBuilder().maximumSize(100L)
+				.expireAfterWrite(10L, TimeUnit.MINUTES)
+				.<String, Object>build().asMap();
 	}
 	
 	/**
@@ -179,40 +189,56 @@ public class MultiRDBMSNativeEngine extends AbstractEngine implements IRDBMSEngi
 		// go to contextToConnectionMap with the string
 		// to get the correct rdbms native engine
 		
-		Object contextLookup = null;
-
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			// use the setup query that was provided in the smss
-			ps = contextEngine.getPreparedStatement(this.setupQuery);
-			// it should have 1 ? to fill in with the userid
-			ps.setString(1, userId);
-			rs = ps.executeQuery();
-			if(rs.next()) {
-				contextLookup = rs.getObject(1);
-			}
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			try {
-				rs.close();
-			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-			try {
-				ps.close();
-			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
 		
-		// if nothing defined - do we have a default?
+		// first see if in the cache
+		Object contextLookup = this.lruCache.get(userId);
+
 		if(contextLookup == null) {
-			contextLookup = this.defaultContext;
-			logger.info("User " + userId + " is using the default context " + contextLookup);
+			synchronized (token) {
+				// try again in case a previous thread went through and pulled
+				// the context for this user object
+				contextLookup = this.lruCache.get(userId);
+				if(contextLookup == null) {
+					PreparedStatement ps = null;
+					ResultSet rs = null;
+					try {
+						// use the setup query that was provided in the smss
+						ps = contextEngine.getPreparedStatement(this.setupQuery);
+						// it should have one ? to fill in with the userid
+						ps.setString(1, userId);
+						rs = ps.executeQuery();
+						if(rs.next()) {
+							contextLookup = rs.getObject(1);
+						}
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					} finally {
+						try {
+							rs.close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+						try {
+							ps.close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+					
+					// if nothing defined - do we have a default?
+					if(contextLookup == null) {
+						contextLookup = this.defaultContext;
+						logger.info("User " + userId + " is using the default context " + contextLookup);
+					}
+					
+					// now store in the cache for next time used
+					if(contextLookup != null) {
+						this.lruCache.put(userId, contextLookup);
+					}
+				}
+			}
 		}
 		
 		// still nothing - you are screwed....
