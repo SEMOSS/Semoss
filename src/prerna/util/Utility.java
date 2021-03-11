@@ -88,6 +88,7 @@ import javax.swing.JOptionPane;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.SystemUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -3550,7 +3551,18 @@ public class Utility {
 			}
 			String finalDir = insightFolder.replace("\\", "/");
 			commands[0] = java;
-			commands[1] = "-Djava.library.path=" + jep;
+			// just append all the environment variables
+			// on the windows machine as well
+			if(SystemUtils.IS_OS_WINDOWS) {
+				// since we will wrap quotes around the entire thing as PATH likely has spaces
+				// remove from jep
+				if(jep.startsWith("\"") && jep.endsWith("\"")) {
+					jep = jep.substring(1, jep.length()-1);
+				}
+				commands[1] = "-Djava.library.path=\"%PATH%;" + jep + "\"";
+			} else {
+				commands[1] = "-Djava.library.path=" + jep;
+			}
 			commands[2] = "-cp";
 			commands[3] = specificPath;
 			commands[4] = pyWorker;
