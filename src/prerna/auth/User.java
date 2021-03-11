@@ -3,7 +3,6 @@ package prerna.auth;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -26,7 +25,6 @@ import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
-import prerna.om.AbstractValueObject;
 import prerna.om.CopyObject;
 import prerna.pyserve.NettyClient;
 import prerna.util.CmdExecUtil;
@@ -35,7 +33,7 @@ import prerna.util.DIHelper;
 import prerna.util.SemossClassloader;
 import prerna.util.Utility;
 
-public class User extends AbstractValueObject implements Serializable {
+public class User implements Serializable {
 
 	private static Logger logger = LogManager.getLogger(User.class);
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -65,7 +63,7 @@ public class User extends AbstractValueObject implements Serializable {
 	private transient Object workspaceSyncObject = new Object();
 
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
-	List<AuthProvider> loggedInProfiles = new ArrayList<>();
+	List<AuthProvider> loggedInProfiles = new Vector<>();
 	// keeps the secret for every insight
 	Hashtable <String, InsightToken> insightSecret = new Hashtable <>();
 	// shared sessions
