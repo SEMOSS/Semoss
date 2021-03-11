@@ -98,7 +98,7 @@ public class PixelStreamUtility {
 					}
 				}};
 		} catch (Exception e) {
-			logger.error("Failed to write object to stream");
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -175,7 +175,7 @@ public class PixelStreamUtility {
 			fos = new FileOutputStream(fileToWrite);
 			output.write(fos);
 		} catch (Exception e) {
-			logger.error("Failed to write object to stream");
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if (fos != null) {
@@ -424,6 +424,7 @@ public class PixelStreamUtility {
 				// if we have a task
 				// we gotta iterate through it to return the data
 				ITask task = (ITask) noun.getValue();
+				logger.debug("Start flushing task = " + task.getId());
 				int numCollect = task.getNumCollect();
 				boolean collectAll = numCollect == -1;
 				String formatType = task.getFormatter().getFormatType();
@@ -444,7 +445,8 @@ public class PixelStreamUtility {
 					// this can come by the way of pragma as well
 					String xCache = "False";
 					String qsPragma = task.getPragma("xCache");
-					if(qsPragma != null) {// try to see if the query is telling you to - obviously the server setting overrides ?
+					if(qsPragma != null) {
+						// try to see if the query is telling you to - obviously the server setting overrides ?
 						xCache = qsPragma;
 					}
 					
@@ -610,6 +612,7 @@ public class PixelStreamUtility {
 					ps.print("}" );
 					ps.flush();
 
+					logger.debug("Done flushing sending task = " + task.getId());
 				} else if(formatType.equals("GRAPH")){
 //					// format type is probably graph
 //					ps.print("\"output\":{");

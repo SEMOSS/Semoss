@@ -94,8 +94,7 @@ import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class Insight implements Serializable
-{
+public class Insight implements Serializable {
 
 	public static Boolean isjavac = null;
 	public static final String DEFAULT_SHEET_ID = "0";

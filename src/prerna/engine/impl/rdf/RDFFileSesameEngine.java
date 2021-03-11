@@ -87,8 +87,6 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 
 	private static final Logger logger = LogManager.getLogger(RDFFileSesameEngine.class);
 
-	private static final String STACKTRACE = "StackTrace: ";
-
 	RepositoryConnection rc = null;
 	ValueFactory vf = null;
 	String rdfFileType = "RDF/XML";
@@ -141,16 +139,16 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			this.connected = true;
 		} catch(RuntimeException ignored) {
 			this.connected = false;
-			logger.error(STACKTRACE, ignored);
+			logger.error(Constants.STACKTRACE, ignored);
 		} catch (RDFParseException e) {
 			this.connected = false;
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException re) {
 			this.connected = false;
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (IOException ioe) {
 			this.connected = false;
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		}
 	}
 
@@ -185,16 +183,16 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			this.connected = true;
 		} catch(RuntimeException ignored) {
 			this.connected = false;
-			ignored.printStackTrace();
+			logger.error(Constants.STACKTRACE, ignored);
 		} catch (RDFParseException e) {
 			this.connected = false;
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException re) {
 			this.connected = false;
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (IOException ioe) {
 			this.connected = false;
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		}
 	}
 
@@ -209,7 +207,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			rc.close();
 			connected = false;
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -239,11 +237,11 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				return bool;
 			}
 		} catch (RepositoryException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException mqe) {
-			logger.error(STACKTRACE, mqe);
+			logger.error(Constants.STACKTRACE, mqe);
 		} catch (QueryEvaluationException qee) {
-			logger.error(STACKTRACE, qee);
+			logger.error(Constants.STACKTRACE, qee);
 		}
 		return null;
 	}
@@ -289,11 +287,11 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			}
 			return retVec;
 		} catch (RepositoryException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException mqe) {
-			logger.error(STACKTRACE, mqe);
+			logger.error(Constants.STACKTRACE, mqe);
 		} catch (QueryEvaluationException qee) {
-			logger.error(STACKTRACE, qee);
+			logger.error(Constants.STACKTRACE, qee);
 		}
 		return null;
 	}
@@ -396,9 +394,9 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			}
 			rc.commit();
 		} catch (SailException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (RepositoryException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		}
 	}
 
@@ -472,7 +470,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			}
 			sc.commit();
 		} catch (SailException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -498,13 +496,13 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			//rc.commit();
 			sc.commit();
 		} catch (RepositoryException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (MalformedQueryException mqe) {
-			logger.error(STACKTRACE, mqe);
+			logger.error(Constants.STACKTRACE, mqe);
 		} catch (SailException se) {
-			logger.error(STACKTRACE, se);
+			logger.error(Constants.STACKTRACE, se);
 		} catch (UpdateExecutionException uee) {
-			logger.error(STACKTRACE, uee);
+			logger.error(Constants.STACKTRACE, uee);
 		}
 	}
 
@@ -525,7 +523,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				try{
 					writer.close();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -546,7 +544,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				try{
 					writer.close();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -604,7 +602,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		try {
 			sc.commit();
 		} catch (SailException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -612,10 +610,10 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		try {
 			rc.export(writer);
 		} catch (RepositoryException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 			throw new RepositoryException("Could not export base relationships from OWL database");
 		} catch (RDFHandlerException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new RDFHandlerException("Could not export base relationships from OWL database");
 		}
 	}
@@ -627,17 +625,17 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			RDFXMLWriter writer = new RDFXMLWriter(fw);
 			writeData(writer);
 		} catch (RepositoryException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (RDFHandlerException rhe) {
-			logger.error(STACKTRACE, rhe);
+			logger.error(Constants.STACKTRACE, rhe);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} finally {
 			if(fw != null) {
 				try {
 					fw.close();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

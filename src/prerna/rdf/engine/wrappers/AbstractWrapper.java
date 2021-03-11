@@ -37,7 +37,7 @@ import prerna.engine.api.IRemoteQueryable;
 
 public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrapper {
 
-	private static final Logger LOGGER = LogManager.getLogger(AbstractWrapper.class.getName());
+	private static final Logger logger = LogManager.getLogger(AbstractWrapper.class);
 	
 	protected transient IEngine engine = null;
 	protected transient String query = null;
@@ -92,7 +92,7 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 
 	@Override
 	public void setQuery(String query) {
-		LOGGER.debug("Setting the query " + query);
+		logger.debug("Setting the query " + query);
 		this.query = query;
 	}
 	
@@ -103,7 +103,7 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	
 	@Override
 	public void setEngine(IEngine engine) {
-		LOGGER.debug("Set the engine to " + engine.getEngineId());
+		logger.debug("Set the engine to " + engine.getEngineId());
 		this.engine = engine;
 	}
 	
