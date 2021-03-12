@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -28,6 +29,8 @@ public class CollectNewColReactor extends TaskBuilderReactor {
 			reactor = new prerna.sablecc2.reactor.frame.r.RCollectNewColReactor();
 		} else if(frame instanceof PandasFrame) {
 			reactor = new prerna.sablecc2.reactor.frame.py.PyCollectNewColReactor();
+		} else if(frame instanceof NativeFrame) {
+			reactor = new prerna.sablecc2.reactor.frame.nativeframe.NativeCollectNewColReactor();
 		} else {
 			throw new IllegalArgumentException("Can only add a new column using an R or Pandas frame");
 		}
