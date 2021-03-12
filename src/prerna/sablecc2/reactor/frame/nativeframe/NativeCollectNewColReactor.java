@@ -1,12 +1,10 @@
-package prerna.sablecc2.reactor.frame.py;
+package prerna.sablecc2.reactor.frame.nativeframe;
 
 import java.util.List;
 import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PyTranslator;
-import prerna.query.interpreters.PandasInterpreter;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -15,20 +13,15 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.sablecc2.reactor.imports.NativeImporter;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 
-public class PyCollectNewColReactor extends TaskBuilderReactor {
+public class NativeCollectNewColReactor extends TaskBuilderReactor {
 
-	/**
-	 * This class is responsible for collecting data from a task and returning it
-	 */
-
-	PyTranslator pyt = null;
-
-	public PyCollectNewColReactor() {
+	public NativeCollectNewColReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey() };
 	}
-
+	
 	public NounMetadata execute() {
 		String warning = null;
 		
@@ -38,14 +31,13 @@ public class PyCollectNewColReactor extends TaskBuilderReactor {
 		
 		// get the query struct
 		SelectQueryStruct sqs = ((BasicIteratorTask) this.task).getQueryStruct();
-		PandasFrame frame = (PandasFrame) sqs.getFrame();
-		pyt = insight.getPyTranslator();
+		NativeFrame frame = (NativeFrame) sqs.getFrame();
 		
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
 		SelectQueryStruct pqs = null;
 
 		try {
-			// if the columns are not there. 
+			// convert to to the physical structure
 			pqs = QSAliasToPhysicalConverter.getPhysicalQs(sqs, metadata);
 		} catch(Exception ex) {
 			return getWarning("Calculation is using columns that do not exist in the frame. Cannot perform this operation");
@@ -60,24 +52,19 @@ public class PyCollectNewColReactor extends TaskBuilderReactor {
 		// there should be only one selector
 		List <IQuerySelector> allSelectors = sqs.getSelectors();
 		if(allSelectors.size() > 0) {
-			IQuerySelector onlySelector = allSelectors.get(0);
-			PandasInterpreter interp = new PandasInterpreter();
-			interp.setDataTableName(frame.getName(), frame.getName() + "w.cache['data']");
-			interp.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
-			// I should also possibly set up pytranslator so I can run command for creating filter
-			interp.setPyTranslator(pyt);
-			String mainQuery = interp.processSelector(onlySelector, frame.getName(), false, false);
-
-			//String mainQuery = processSelector(onlySelector, frame.getName()).toString();
+			NativeImporter importer;
+			try {
+				// set the engine id for the sqs to be that of the native frame
+				pqs.setEngineId(frame.getEngineId());
+				// now we can import without the importer needed to be modified
+				importer = new NativeImporter(frame, pqs, ((BasicIteratorTask) task).getIterator());
+				importer.insertData();
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new IllegalArgumentException(e.getMessage());
+			}
 			
-			String alias = onlySelector.getAlias();
-			mainQuery = frame.getName() + "['" + alias + "'] = " + mainQuery;
-			pyt.runEmptyPy(mainQuery);
-
-			// recreate the metadata
-			frame.recreateMeta();
-			
-			outputs.add(new NounMetadata("Added Col " + alias, PixelDataType.CONST_STRING));
+			outputs.add(new NounMetadata("Added Col " + allSelectors.get(0).getAlias(), PixelDataType.CONST_STRING));
 			outputs.add(new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
 			if(warning != null) {
 				outputs.add(getWarning(warning));
