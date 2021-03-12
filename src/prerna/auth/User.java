@@ -26,7 +26,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.CopyObject;
-import prerna.pyserve.NettyClient;
+import prerna.tcp.client.Client;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -46,7 +46,7 @@ public class User implements Serializable {
 	private transient RRemoteRserve rconRemote;
 
 	// python related stuff
-	private transient NettyClient pyServe;
+	private transient Client tcpServer;
 	private transient PyTranslator pyt = null;
 	private String port = "undefined";
 	public String pyTupleSpace = null;
@@ -443,14 +443,16 @@ public class User implements Serializable {
 		return token.getId();
 	}
 	
-	public void setPyServe(NettyClient nc)
+	public void setTCPServer(Client nc)
 	{
-		this.pyServe = nc;
+		this.tcpServer = nc;
 	}
 	
-	public NettyClient getPyServe()
+	public Client getTCPServer()
 	{
-		return this.pyServe;
+		if(this.tcpServer == null)
+			startTCPServer();
+		return this.tcpServer;
 	}
 	
 	public void setEngines(List<Map<String, Object>> allEngines)
@@ -635,30 +637,17 @@ public class User implements Serializable {
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is set to false for this instance");
 		}
-
-		
 		if(this.pyt == null && create)
 		{
 			// all of the logic should go here now ?
 			synchronized(this)
 			{
 				if (AbstractSecurityUtils.securityEnabled() && PyUtils.pyEnabled()) 
-				{
-		
-					//boolean useFilePy = DIHelper.getInstance().getProperty("USE_PY_FILE") != null
-					//		&& DIHelper.getInstance().getProperty("USE_PY_FILE").equalsIgnoreCase("true");
-//					boolean useTCP = DIHelper.getInstance().getProperty("USE_TCP_PY") != null
-//							&& DIHelper.getInstance().getProperty("USE_TCP_PY").equalsIgnoreCase("true");
+				{		
 					boolean useNettyPy = DIHelper.getInstance().getProperty("NETTY_PYTHON") != null
 							&& DIHelper.getInstance().getProperty("NETTY_PYTHON").equalsIgnoreCase("true");
-					boolean useNettyR = DIHelper.getInstance().getProperty("NETTY_R") != null
-							&& DIHelper.getInstance().getProperty("NETTY_R").equalsIgnoreCase("true");
-	//				useTCP = useNetty ; // forcing it to be same as TCP // if it is netty start it up dont use a py thread
-					//if(!useFilePy)	
-					//	useFilePy = useNetty;
-					boolean useNetty = useNettyPy || useNettyR;
-					
-					if (!useNettyPy) {
+					if (!useNettyPy) 
+					{
 						PyExecutorThread jepThread = null;
 						if (jepThread == null) {
 							jepThread = PyUtils.getInstance().getJep();
@@ -667,11 +656,13 @@ public class User implements Serializable {
 							int logSleeper = 1;
 							while(!jepThread.isReady())
 							{
-								try {
+								try 
+								{
 									// wait for it to start
 									Thread.sleep(logSleeper*1000);
 									logSleeper++;
-								} catch (InterruptedException e) {
+								} catch (InterruptedException e) 
+								{
 									logger.error(Constants.STACKTRACE, e);
 								}
 							}
@@ -680,65 +671,16 @@ public class User implements Serializable {
 					}
 					// check to see if the py translator needs to be set ?
 					// check to see if the py translator needs to be set ?
-					if (useNetty) {
-						if (pyServe == null)  // start only if it not already in progress
-						{
-							port = DIHelper.getInstance().getProperty("FORCE_PORT"); // this means someone has
-																							// started it for debug
-							if (port == null) // port has not been forced
-							{
-									port = Utility.findOpenPort();
-								if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
-									pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
-								} else {
-								pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-								}
-								pyTupleSpace = PyUtils.getInstance().startPyServe(this, pyTupleSpace, port);
-							}
-							
-							NettyClient nc = new NettyClient();
-							this.setPyServe(nc);
-
-							nc.connect("127.0.0.1", Integer.parseInt(port), false);
-							
-							//nc.run(); - you cannot do this because then the client goes into listener mode
-							Thread t = new Thread(nc);
-							t.start();
-
-							while(!nc.isReady())
-							{
-								synchronized(nc)
-								{
-									try 
-									{
-										nc.wait();
-										logger.info("Setting the netty client ");
-									} catch (InterruptedException e) {
-										logger.error(Constants.STACKTRACE, e);
-									}								
-								}
-							}
-							if(useNettyPy)
-							{
-								pyt = new TCPPyTranslator();
-								((TCPPyTranslator) pyt).nc = nc;
-							}
-						}
-						// not sure this is valid anymore
-						/*
-						else {
-							PyUtils.getInstance().getTempTupleSpace(this, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
-							pyt = new FilePyTranslator();
-						}
-						*/
+					else 
+					{
+						pyt = new TCPPyTranslator();
+						((TCPPyTranslator) pyt).nc = getTCPServer(); // starts it
 					}
 				}
 			}
 		}
 		return this.pyt;
 	}
-	
-	// need something that just connects a netty client and gives back
 	
 	
 	
@@ -762,6 +704,48 @@ public class User implements Serializable {
 	public CmdExecUtil getCmdUtil()
 	{
 		return this.cmdUtil;
+	}
+	
+	private void startTCPServer()
+	{
+		if (tcpServer == null)  // start only if it not already in progress
+		{
+			port = DIHelper.getInstance().getProperty("FORCE_PORT"); // this means someone has
+																			// started it for debug
+			if (port == null) // port has not been forced
+			{
+					port = Utility.findOpenPort();
+				if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
+					pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
+				} else {
+				pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+				}
+				pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
+			}
+			
+			Client nc = new Client();
+			this.setTCPServer(nc);
+
+			nc.connect("127.0.0.1", Integer.parseInt(port), false);
+			
+			//nc.run(); - you cannot do this because then the client goes into listener mode
+			Thread t = new Thread(nc);
+			t.start();
+
+			while(!nc.isReady())
+			{
+				synchronized(nc)
+				{
+					try 
+					{
+						nc.wait();
+						logger.info("Setting the netty client ");
+					} catch (InterruptedException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}								
+				}
+			}
+		}
 	}
 	
 }

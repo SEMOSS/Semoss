@@ -2,13 +2,13 @@ package prerna.ds.py;
 
 import java.util.Hashtable;
 
-import prerna.pyserve.NettyClient;
-import prerna.sablecc2.reactor.frame.r.PayloadStruct;
+import prerna.tcp.PayloadStruct;
+import prerna.tcp.client.Client;
 
 public class TCPPyTranslator extends PyTranslator {
 
 	public static final String METHOD_DELIMITER = "$$##";
-	public NettyClient nc = null;
+	public Client nc = null;
 	String method = null;
 	
 	@Override
@@ -31,6 +31,7 @@ public class TCPPyTranslator extends PyTranslator {
 		PayloadStruct ps = constructPayload(methodName, script);
 		ps.engine = PayloadStruct.ENGINE.PYTHON;
 		ps.payloadClasses = new Class[] {String.class};
+		ps.longRunning = true;
 		ps = (PayloadStruct)nc.executeCommand(ps);
 		if(ps.ex != null)
 		{

@@ -111,7 +111,7 @@ public class PyUtils {
 				userTupleMap.put(user, tempDirForUser.toString());
 				// this should possibly also launch the thread
 				String cp = DIHelper.getInstance().getProperty("PY_WORKER_CP");
-				Process p = Utility.startPyProcess(cp, tempDirForUser.toString(), null);
+				Process p = Utility.startTCPServer(cp, tempDirForUser.toString(), null);
 				userProcessMap.put(user,  p);
 				LOGGER.info(">>>TUPLS SPACE SET TO  " + tempDirForUser + " <<<");
 				return tempDirForUser.toString();
@@ -125,7 +125,7 @@ public class PyUtils {
 		return null;
 	}
 
-	public String startPyServe(Object user, String dir, String port)
+	public String startTCPServe(Object user, String dir, String port)
 	{
 		if(user != null && !userTupleMap.containsKey(user))
 		{
@@ -138,8 +138,10 @@ public class PyUtils {
 				writeLogConfigurationFile(tempDirForUser.toString());
 				userTupleMap.put(user, tempDirForUser.toString());
 				// this should possibly also launch the thread
-				String cp = DIHelper.getInstance().getProperty("PY_WORKER_CP");
-				Process  p = Utility.startPyProcess(cp, tempDirForUser.toString(), port);
+				String cp = DIHelper.getInstance().getProperty("TCP_WORKER_CP");
+				if(cp == null)
+					LOGGER.info("Unable to see class path ");
+				Process  p = Utility.startTCPServer(cp, tempDirForUser.toString(), port);
 				if(p != null)
 					userProcessMap.put(user,  p);
 				LOGGER.info(">>>Pyserve Open on " + port + " <<<");
