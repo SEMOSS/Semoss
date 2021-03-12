@@ -101,7 +101,7 @@ public class RCollectNewColReactor extends TaskBuilderReactor {
 			outputs.add(new NounMetadata("No New Columns to add", PixelDataType.CONST_STRING));
 		}
 
-		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
+		return new NounMetadata(outputs, PixelDataType.VECTOR, PixelOperationType.VECTOR);
 	}
 
 	@Override
