@@ -142,6 +142,10 @@ public class NativeImporter extends AbstractImporter {
 //				// we were not successful in parsing :/
 //				e.printStackTrace();
 //			}
+		} else {
+			if(it != null && (it instanceof IRawSelectWrapper)) {
+				executedDataTypes = ((IRawSelectWrapper) it).getTypes();
+			}
 		}
 		boolean ignore = MetadataUtility.ignoreConceptData(this.qs.getEngineId());
 		ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs, ignore, executedDataTypes);
