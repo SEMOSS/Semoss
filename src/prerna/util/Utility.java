@@ -3507,7 +3507,7 @@ public class Utility {
 		return envClassPath.toString();
 	}
 
-	public static Process startPyProcess(String cp, String insightFolder, String port) {
+	public static Process startTCPServer(String cp, String insightFolder, String port) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		Process thisProcess = null;
@@ -3541,7 +3541,9 @@ public class Utility {
 			}
 			jep = jep.replace("\\", "/");
 
-			String pyWorker = DIHelper.getInstance().getProperty("PY_WORKER");
+			String pyWorker = DIHelper.getInstance().getProperty("TCP_WORKER");
+			if(pyWorker == null)
+				pyWorker = "prerna.tcp.Server";
 			String[] commands = null;
 			if (port == null)
 				commands = new String[7];
@@ -3936,7 +3938,7 @@ public class Utility {
 
 	public static void main(String[] args) {
 		DIHelper.getInstance().loadCoreProp("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop");
-		Utility.startPyProcess(null, "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer", "6666");
+		Utility.startTCPServer(null, "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer", "6666");
 	}
 
 }
