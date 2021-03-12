@@ -65,7 +65,6 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.engine.impl.SmssUtilities;
-import prerna.pyserve.NettyClient;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
@@ -78,12 +77,13 @@ import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
-import prerna.sablecc2.reactor.frame.py.PyTranslatorFactory;
+import prerna.sablecc2.reactor.frame.py.PySingleton;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
+import prerna.tcp.client.Client;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.AssetUtility;
 import prerna.util.CmdExecUtil;
@@ -202,7 +202,7 @@ public class Insight implements Serializable {
 	// pragamp for all the pragmas like cache / raw / parquet etc. 
 	private Map pragmap = new HashMap();
 	
-	public transient NettyClient nc = null;
+	public transient Client nc = null;
 	
 	// base URL
 	private String baseURL = null;
@@ -677,25 +677,12 @@ public class Insight implements Serializable {
 			if(this.rJavaTranslator instanceof TCPRTranslator)
 			{
 				// do this so that the netty client is initialized
-				getPyTranslator();
+				//getPyTranslator();
 				// now set the netty client
-				((TCPRTranslator)this.rJavaTranslator).nc = this.user.getPyServe();
+				((TCPRTranslator)this.rJavaTranslator).nc = this.user.getTCPServer();
 				this.rJavaTranslator.setInsight(this);
 				this.rJavaTranslator.startR();
 			}			
-		}
-		else { // do I need this ?
-			
-			if(this.rJavaTranslator instanceof TCPRTranslator)
-			{
-				// do this so that the netty client is initialized
-				//getPyTranslator();
-				// now set the netty client
-				((TCPRTranslator)this.rJavaTranslator).nc = this.user.getPyServe();
-				this.rJavaTranslator.setInsight(this);
-			}			
-			
-			this.rJavaTranslator.setLogger(logger);
 		}
 		return this.rJavaTranslator;
 	}
@@ -1522,14 +1509,14 @@ public class Insight implements Serializable {
 			this.pyt = user.getPyTranslator();
 		} else {
 			// there is no user
-			this.pyt = PyTranslatorFactory.getTranslator();			
+			this.pyt = PySingleton.getTranslator();			
 		}		
 		
 		if(this.pyt == null) {
 			this.pyt = user.getPyTranslator();
 			// need to recreate the translator
 			if(this.pyt instanceof TCPPyTranslator) {
-				NettyClient nc1 = ((TCPPyTranslator)pyt).nc;
+				Client nc1 = ((TCPPyTranslator)pyt).nc;
 				this.pyt = new TCPPyTranslator();
 				((TCPPyTranslator)pyt).nc = nc1;
 			} else if(this.pyt instanceof PyTranslator) {
@@ -1548,7 +1535,7 @@ public class Insight implements Serializable {
 	}
 	
 	
-	public void setNettyClient(NettyClient nc) {
+	public void setNettyClient(Client nc) {
 		if(nc != null) {
 			this.nc = nc;
 			this.pyt = new prerna.ds.py.TCPPyTranslator();

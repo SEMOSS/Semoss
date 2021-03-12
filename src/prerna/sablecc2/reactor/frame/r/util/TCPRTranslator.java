@@ -9,15 +9,15 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
-import prerna.pyserve.NettyClient;
-import prerna.sablecc2.reactor.frame.r.PayloadStruct;
+import prerna.tcp.PayloadStruct;
+import prerna.tcp.client.Client;
 
 public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	Logger logger = null;
 	String port = null;
 	Insight insight = null;
-	public NettyClient nc = null;
+	public Client nc = null;
 	boolean started = false;
 	boolean insightSet = false;
 	
