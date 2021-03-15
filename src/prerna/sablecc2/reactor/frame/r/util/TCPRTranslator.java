@@ -725,23 +725,6 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	}
 
 	@Override
-	public void checkPackages(String fileName) {
-		if(nc != null)
-		{
-			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-			PayloadStruct ps = constructPayload(methodName, fileName);
-			ps.payloadClasses = new Class[] {String.class};
-			ps.hasReturn = false;
-			ps = (PayloadStruct)nc.executeCommand(ps);
-			if(ps != null  &&  ps.ex!= null)
-			{
-				logger.info(ps.ex);
-			}
-		}
-		
-	}
-
-	@Override
 	public boolean checkPackages(String[] packages, Logger logger) {
 		// we cannot do this I dont think
 		return false;
