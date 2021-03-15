@@ -575,6 +575,24 @@ public abstract class AbstractSqlQueryUtil {
 			Map<String, SemossDataType> leftTableTypes, String rightTableName,
 			Map<String, SemossDataType> rightTableTypes, List<Join> joins, Map<String, String> leftTableAlias,
 			Map<String, String> rightTableAlias, boolean rightJoinFlag);
+	
+	/**
+	 * Similar to {@link #createNewTableFromJoiningTables()} but only returns the select portion without 
+	 * the "CREATE TABLE AS " syntax
+	 * @param leftTableName
+	 * @param leftTableTypes
+	 * @param rightTableName
+	 * @param rightTableTypes
+	 * @param joins
+	 * @param leftTableAlias
+	 * @param rightTableAlias
+	 * @param rightJoinFlag
+	 * @return
+	 */
+	public abstract String selectFromJoiningTables(String leftTableName,
+			Map<String, SemossDataType> leftTableTypes, String rightTableName,
+			Map<String, SemossDataType> rightTableTypes, List<Join> joins, Map<String, String> leftTableAlias,
+			Map<String, String> rightTableAlias, boolean rightJoinFlag);
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
