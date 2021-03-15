@@ -108,6 +108,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter //MessageToMessa
 			byte[]  data = new byte[totalBytes];			
 			buf.readBytes(data);
 			PayloadStruct ps = (PayloadStruct)FstUtil.deserialize(data);
+			System.out.println("Ps epoc " + ps.epoc + " Method " + ps.methodName);
 	    	try
 	    	{
 	    		printFinalOutput(ps);
@@ -144,9 +145,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter //MessageToMessa
 				// put it in response
 				nc.responseMap.put(id, ps);
 				
-				synchronized(lock)
+				if(lock != null)
 				{
-					lock.notifyAll();
+					synchronized(lock)
+					{
+						lock.notifyAll();
+					}
 				}
 			}		
 		}catch(Exception ex)
