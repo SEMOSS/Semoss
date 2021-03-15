@@ -311,7 +311,7 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 		ctx.flush();
 		
 		// try to process it
-		processUnProcessed(ctx);
+		//processUnProcessed(ctx);
 		inputSoFar = "";
 		LOGGER.info("Result Flushed " + ps.methodName);
 	}

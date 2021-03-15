@@ -24,6 +24,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import prerna.tcp.PayloadStruct;
+import prerna.util.DIHelper;
 import prerna.util.FstUtil;
 
 public class Client implements Runnable{
@@ -68,6 +69,11 @@ public class Client implements Runnable{
         // Configure SSL.git
     	boolean connected = false;
     	int attempt = 1;
+    	int SLEEP_TIME = 800;
+    	if(DIHelper.getInstance().getProperty("SLEEP_TIME") != null)
+    		SLEEP_TIME = Integer.parseInt(DIHelper.getInstance().getProperty("SLEEP_TIME"));
+    	
+    	logger.info("Trying with the sleep time of " + SLEEP_TIME);
     	while(!connected && attempt < 6) // I do an attempt here too hmm.. 
     	{
 	    	try
@@ -127,7 +133,7 @@ public class Client implements Runnable{
 	    		{
 	    			// sleeping only for 1 second here
 	    			// but the py executor sleeps in 2 second increments
-	    			Thread.sleep(attempt*300);
+	    			Thread.sleep(attempt*SLEEP_TIME);
 	    		}catch(Exception ex2)
 	    		{
 	    			
@@ -277,7 +283,7 @@ public class Client implements Runnable{
 	    	synchronized(ps)
 	    	{
 	    		writePayload(ps);
-	    		try
+	    		try 
 	    		{
 	    			lock.wait();
 	    		}catch(Exception ex)
