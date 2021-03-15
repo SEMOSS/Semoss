@@ -192,11 +192,6 @@ public interface IRJavaTranslator {
 	
 	public void checkPackages(String[] packages);
 	
-	public void checkPackages(String fileName);
-	
     public boolean checkPackages(String[] packages, Logger logger);
     
-    
-	
-	
 }
