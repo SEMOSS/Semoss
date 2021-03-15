@@ -428,40 +428,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		}
 	}
 	
-	// check packages 2
-	public void checkPackages(String fileName)
-	{
-        String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-        String rFolder = baseFolder + "/R/util/smssutil.r";
-        rFolder = rFolder.replaceAll("\\\\", "/");
-		
-        executeEmptyRDirect("source('" + rFolder + "');" );
-
-		try {
-				Object outObject = executeRDirect("canLoad('" + fileName + "')");
-				
-				String output = "";
-				if(outObject instanceof org.rosuda.REngine.REXPString)
-					output = ((org.rosuda.REngine.REXPString)outObject).asString();
-				
-				else if(outObject instanceof org.rosuda.JRI.REXP)
-					output = ((org.rosuda.JRI.REXP)outObject).asString();
-
-				output = output.replaceAll("\\\"", "");
-				
-				if(output.length() != 0)
-				{
-					String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + output;
-					throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-				}	
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-
 	/**
 	 * Check if r packages are installed
 	 * 
