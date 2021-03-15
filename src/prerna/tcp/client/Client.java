@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,7 +42,7 @@ public class Client implements Runnable{
     boolean ready = false;
 	private static final String CLASS_NAME = Client.class.getName();
 	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
-	int count = 0;
+	AtomicInteger count = new AtomicInteger(0);
 	long averageMillis = 200;
 	boolean warmup;
 	String status = "not_started";
@@ -152,7 +153,7 @@ public class Client implements Runnable{
     public Object executeCommand(PayloadStruct ps)
     {
     	int attempt = 0;
-    	String id = "ps"+ count++;
+    	String id = "ps"+ count.getAndIncrement();
     	ps.epoc = id;
     	
     	
@@ -184,26 +185,27 @@ public class Client implements Runnable{
     		// time to wait = average time * 10
     		
 			int pollNum = 1; // 1 second
-			while(!responseMap.containsKey(ps.epoc) && pollNum <  10)
+			while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning))
 			{
 				//logger.info("Checking to see if there was a response");
 				try
 				{
-					if(pollNum != 1)
+					if(pollNum < 10)
 						ps.wait(averageMillis);
 					else if(ps.longRunning)
 						ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
-					pollNum--;
+					pollNum++;
 				}catch (InterruptedException e) 
 				{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				/*
 				if(pollNum == 2 && !ps.longRunning)
 				{
 					logger.info("Writing empty message " + ps.epoc);
 					writeEmptyPayload();
-				}
+				}*/
 			}
 			if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
 			{

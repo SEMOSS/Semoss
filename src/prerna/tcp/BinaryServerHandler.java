@@ -151,7 +151,7 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 		    		// how does it even get here ?
 		    		LOGGER.info("exception while sending " + ex);
 		    		ex.printStackTrace();
-		    	}finally
+		    	}finally 
 		    	{
 	    			writeResponse(ctx, ps2);
 		    	}
@@ -183,7 +183,8 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 					{
 						Method method = findRMethod(getTranslator(ps.env), ps.methodName, ps.payloadClasses);
 						Object output = runMethodR(getTranslator(ps.env), method, ps.payload);
-						//LOGGER.info("Output.. " + output);
+						if(output != null)
+							LOGGER.info("Output is not null - R");
 						Object [] retObject = new Object[1];
 						retObject[0] = output;
 						ps.payload = retObject;
@@ -213,7 +214,8 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 					{
 						Method method = findPyMethod(ps.methodName, ps.payloadClasses);
 						Object output = runMethodPy(method, ps.payload);
-						//LOGGER.info("Output.. " + output);
+						if(output != null)
+							LOGGER.info("Output is not null - PY");
 						Object [] retObject = new Object[1];
 						retObject[0] = output;
 						ps.payload = retObject;
@@ -311,7 +313,7 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 		// try to process it
 		processUnProcessed(ctx);
 		inputSoFar = "";
-		LOGGER.info("Result Flushed");
+		LOGGER.info("Result Flushed " + ps.methodName);
 	}
 	
 	private void processUnProcessed(ChannelHandlerContext ctx)
