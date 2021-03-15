@@ -21,6 +21,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class RImporter extends AbstractImporter {
 
@@ -82,9 +85,9 @@ public class RImporter extends AbstractImporter {
 
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
-//		RFrameBuilder builder = this.dataframe.getBuilder();
-//		String tableName = this.dataframe.getName();
-		
+		//		RFrameBuilder builder = this.dataframe.getBuilder();
+		//		String tableName = this.dataframe.getName();
+
 		// need to ensure no names overlap
 		// otherwise we R will create a weird renaming for the column
 		Map<String, SemossDataType> leftTableTypes = this.dataframe.getMetaData().getHeaderToTypeMap();
@@ -98,7 +101,7 @@ public class RImporter extends AbstractImporter {
 		Set<String> leftTableHeaders = leftTableTypes.keySet();
 		Set<String> rightTableHeaders = rightTableTypes.keySet();
 		Set<String> rightTableJoinCols = getRightJoinColumns(joins);
-		
+
 		Map<String, String> rightTableAlias = new HashMap<String, String>();
 
 		// note, we are not going to modify the existing headers
@@ -115,54 +118,41 @@ public class RImporter extends AbstractImporter {
 				rightTableAlias.put(dupRightTableHeader, leftTableHeader + "_1");
 			}
 		}
-		
-//		System.out.println(Arrays.toString(builder.getColumnNames()));
-//		System.out.println(Arrays.toString(builder.getColumnTypes()));
-		
+
+		//		System.out.println(Arrays.toString(builder.getColumnNames()));
+		//		System.out.println(Arrays.toString(builder.getColumnTypes()));
+
 		// define new temporary table with random name
 		// we will flush out the iterator into a CSV file
 		// and use fread() into the temp name
 		String tempTableName = Utility.getRandomString(6);
 		Map<String, SemossDataType> newColumnsToTypeMap = ImportUtility.getTypesFromQs(this.qs, it);
-		
-//		try {
+
+		try {
 			this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
-//		} catch(EmptyIteratorException e) {
-//			if(!joins.get(0).getJoinType().equals("inner.join")) {
-//				throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
-//			}
-//			// TODO: add alter missing columns logic
-//			throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
-//		}
-		// we may need to alias the headers in this new temp table
-//		if(!rightTableAlias.isEmpty()) {
+			// we may need to alias the headers in this new temp table
 			for(String oldColName : rightTableAlias.keySet()) {
 				this.dataframe.executeRScript(RSyntaxHelper.alterColumnName(tempTableName, oldColName, rightTableAlias.get(oldColName)));
 			}
-//		}
-		
-//		if(builder.isEmpty(tempTableName)) {
-//			if(joins.get(0).getJoinType().equals("inner.join")) {
-//				// clear the fake table
-//				builder.evalR("rm(" + tempTableName + ");");
-//				throw new EmptyIteratorException("Iterator returned no results. Joining this data would result in no data.");
-//			}
-			// we are merging w/ no data
-			// just add an empty column with the column name
-//			String alterTable = RSyntaxHelper.alterMissingColumns(tableName, newColumnsToTypeMap, joins, new HashMap<String, String>());
-//			this.dataframe.executeRScript(alterTable);
-//		} else {
+	
 			//define parameters that we will pass into mergeSyntax method to get the R command
 			String returnTable = this.dataframe.getName();
 			String leftTableName = returnTable;
-			
+	
 			// only a single join type can be passed at a time
 			String joinType = null;
+			String joinComparator = null;
+			Boolean isBetweenJoin = false;
 			Set<String> joinTypeSet = new HashSet<>();
 			List<Map<String, String>> joinCols = new ArrayList<>();
 			for(Join joinItem : joins) {
 				joinType = joinItem.getJoinType();
 				joinTypeSet.add(joinType);
+				joinComparator = joinItem.getComparator();
+				//set betweenJoin Flag to true if join in ON between two column conditions
+				if (joinComparator!=null && (joinComparator.equals(">=") || joinComparator.equals("<="))) {
+					isBetweenJoin = true;
+				}
 				// in R, the existing column is referenced as frame__column
 				// but the R syntax only wants the col
 				Map<String, String> joinColMapping = new HashMap<>();
@@ -177,7 +167,7 @@ public class RImporter extends AbstractImporter {
 				joinColMapping.put(jSelector, jQualifier);
 				joinCols.add(joinColMapping);
 			}
-			
+	
 			if(joinTypeSet.size() > 1) {
 				// perform clean up
 				this.dataframe.executeRScript("rm("+tempTableName+")");
@@ -185,25 +175,53 @@ public class RImporter extends AbstractImporter {
 						new NounMetadata("Mixed join conditions cannot be applied on the R frame type", 
 								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
-			
+	
 			// need to account for the data types being different for the join columns
 			updateTypesForJoin(leftTableTypes, tempTableName, newColumnsToTypeMap, joinCols);
-			
-//			System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));
-//			System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
-
-			//execute r command
-			String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, tempTableName, joinType, joinCols);
-			this.dataframe.executeRScript(mergeString);
+	
+			//System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));
+			//System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
+	
+			//generate SQL query when tables are joined on between (>= & <=) condition and execute through sqldf R package
+			if(isBetweenJoin) {			
+				Map<String, String> leftTableAlias = new HashMap<String, String>();
+				//build the SQL query
+				AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.POSTGRES);
+				String joinQuery = queryUtil.selectFromJoiningTables(leftTableName, leftTableTypes, tempTableName, newColumnsToTypeMap, 
+						joins, leftTableAlias, rightTableAlias, false);
+	
+				try {
+					String[] packages = { "sqldf" };
+					this.dataframe.getBuilder().getRJavaTranslator().checkPackages(packages);
+				} catch(Exception e) {
+					throw new IllegalArgumentException("Must install sqldf package in order to perform between joins in R");
+				} finally {
+	
+				}
+	
+				StringBuilder rsb = new StringBuilder();
+				rsb.append("library(\"sqldf\");");
+				// probably need to escape inside quotes in the join query?
+				joinQuery = joinQuery.replace("\"", "\\\"");
+				rsb.append(leftTableName).append(" <- sqldf(\" ").append(joinQuery).append(" \");");
+				rsb.append(leftTableName).append(" <- as.data.table(").append(leftTableName).append(");");
+				//execute r command
+				this.dataframe.executeRScript(rsb.toString());
+			} else {
+				//execute r command
+				String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, tempTableName, joinType, joinCols);
+				this.dataframe.executeRScript(mergeString);	
+			}
 			this.dataframe.removeAllColumnIndex();
-//			System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
-//			System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
-			
+			//System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
+			//System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
+	
+			updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
+		} finally {
 			// clean r temp table name
 			this.dataframe.executeRScript("rm("+tempTableName+")");
-//		}
+		}
 		
-		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
 		return this.dataframe;
 	}
 	
