@@ -180,7 +180,7 @@ public class Client implements Runnable{
     	//else
     	//	logger.info("Context is set !!");
     	
-    	synchronized(ps)
+    	synchronized(lock) // going back to single threaded .. earlier it was ps
     	{	
     		//if(ps.hasReturn)
     		requestMap.put(id, ps);
@@ -197,9 +197,9 @@ public class Client implements Runnable{
 				try
 				{
 					if(pollNum < 10)
-						ps.wait(averageMillis);
+						lock.wait(averageMillis);
 					else if(ps.longRunning)
-						ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
+						lock.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
 					pollNum++;
 				}catch (InterruptedException e) 
 				{
@@ -207,11 +207,13 @@ public class Client implements Runnable{
 					e.printStackTrace();
 				}
 				/*
+				// trigger after 400 milliseconds
 				if(pollNum == 2 && !ps.longRunning)
 				{
 					logger.info("Writing empty message " + ps.epoc);
 					writeEmptyPayload();
-				}*/
+				}
+				*/
 			}
 			if(!responseMap.containsKey(ps.epoc) && ps.hasReturn)
 			{
@@ -226,16 +228,16 @@ public class Client implements Runnable{
     
     private void writePayload(PayloadStruct ps)
     {
-		byte [] bytes = FstUtil.serialize(ps);
-		logger.info("Firing operation " + ps.methodName + " with payload length >> " + bytes.length +"   " + ps.epoc + " Writeable ?" + ctx.channel().isWritable());
-		ByteBuf buff = Unpooled.buffer(bytes.length);
-		buff.writeBytes(bytes);
-		ChannelFuture cf = ctx.write(buff);
-		ctx.flush();
-		
-		//if(buff.refCnt() > 0)
-		//	buff.release();
-		
+    	if(ctx.channel().isWritable())
+    	{
+	    	byte [] bytes = FstUtil.serialize(ps);
+			logger.info("Firing operation " + ps.methodName + " with payload length >> " + bytes.length +"   " + ps.epoc + " Writeable ?" + ctx.channel().isWritable());
+			ByteBuf buff = Unpooled.buffer(bytes.length);
+			buff.writeBytes(bytes);
+			ChannelFuture cf = ctx.write(buff);
+			
+			ctx.flush();
+    	}
     }
     
     private void writeEmptyPayload()
