@@ -228,10 +228,20 @@ public class Client implements Runnable{
     
     private void writePayload(PayloadStruct ps)
     {
-    	if(ctx.channel().isWritable())
+    	/*while(!ctx.channel().isWritable())
+    	{
+    		try
+    		{
+    			Thread.sleep(200);
+    		}catch(Exception ignored)
+    		{
+    			
+    		}
+    	}*/
+    	//if(ctx.channel().isWritable())
     	{
 	    	byte [] bytes = FstUtil.serialize(ps);
-			logger.info("Firing operation " + ps.methodName + " with payload length >> " + bytes.length +"   " + ps.epoc + " Writeable ?" + ctx.channel().isWritable());
+			logger.info("Firing operation " + ps.methodName + " with payload length >> " + bytes.length +"   " + ps.epoc + " Writeable ?" + ctx.channel().isWritable() + " Current write index " + ctx.channel().bytesBeforeWritable());
 			logger.info("Low: " + ctx.channel().config().getWriteBufferLowWaterMark() +  " <> High: " + ctx.channel().config().getWriteBufferHighWaterMark());
 			ByteBuf buff = Unpooled.buffer(bytes.length);
 			buff.writeBytes(bytes);
