@@ -18,6 +18,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.ssl.SslContext;
@@ -97,7 +98,7 @@ public class Client implements Runnable{
 		            b.group(group)
 		             .channel(NioSocketChannel.class)
 		             .option(ChannelOption.TCP_NODELAY, true)
-		             //.option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(256*1024, 512*1024))
+		             .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(800*1024, 1024*1024))
 		             //.option(ChannelOption.SO_BACKLOG, 100)
 
 		             //.option(ChannelOption.TCP_NODELAY, true)
@@ -248,6 +249,9 @@ public class Client implements Runnable{
 			ChannelFuture cf = ctx.write(buff);
 			
 			ctx.flush();
+			if(buff.refCnt() > 1)
+				buff.release();
+			buff = null;
     	}
     }
     
