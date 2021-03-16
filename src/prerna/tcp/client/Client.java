@@ -229,7 +229,7 @@ public class Client implements Runnable{
     
     private void writePayload(PayloadStruct ps)
     {
-    	/*while(!ctx.channel().isWritable())
+    	while(!ctx.channel().isWritable())
     	{
     		try
     		{
@@ -238,7 +238,7 @@ public class Client implements Runnable{
     		{
     			
     		}
-    	}*/
+    	}
     	//if(ctx.channel().isWritable())
     	{
 	    	byte [] bytes = FstUtil.serialize(ps);
