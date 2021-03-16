@@ -713,7 +713,7 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 		if(nc != null)
 		{
 			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-			PayloadStruct ps = constructPayload(methodName, packages);
+			PayloadStruct ps = constructPayload(methodName, new Object[] {packages});
 			ps.payloadClasses = new Class[] {String[].class};
 			ps.hasReturn = false;
 			ps = (PayloadStruct)nc.executeCommand(ps);
