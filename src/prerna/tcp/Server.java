@@ -190,6 +190,8 @@ public class Server
              .channel(NioServerSocketChannel.class)
              .option(ChannelOption.SO_BACKLOG, 100)
              .option(ChannelOption.TCP_NODELAY, true)
+             .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(800*1024, 1024*1024))
+
             // .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(256*1024, 512*1024))
 //             .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, (1024*1024))
 //             .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, (512*1024))
