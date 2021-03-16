@@ -780,6 +780,20 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		return "CLOB";
 	}
 	
+	@Override
+	public String getVarcharDataTypeName() {
+		return "VARCHAR(800)";
+	}
+
+	@Override
+	public String getIntegerDataTypeName() {
+		return "INT";
+	}
+	
+	@Override
+	public String getDoubleDataTypeName() {
+		return "DOUBLE";
+	}
 	
 	@Override
 	public String getBooleanDataTypeName() {

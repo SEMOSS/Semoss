@@ -228,7 +228,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 							if (value != null) {
 								ps.setInt(colIndex + 1, value);
 							} else {
-								ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
+								ps.setNull(colIndex + 1, java.sql.Types.INTEGER);
 							}
 						}
 					} else if(type == SemossDataType.DOUBLE) {
