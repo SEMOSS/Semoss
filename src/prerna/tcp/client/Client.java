@@ -176,11 +176,11 @@ public class Client implements Runnable{
     		}
     	}
     	if(ctx == null)// need a way to kill this thread as well
-    		return "Connection failed to get the context.!! ";
+    		logger.info( "Connection failed to get the context.!! ");
     	//else
     	//	logger.info("Context is set !!");
     	
-    	synchronized(lock) // going back to single threaded .. earlier it was ps
+    	synchronized(ps) // going back to single threaded .. earlier it was ps
     	{	
     		//if(ps.hasReturn)
     		requestMap.put(id, ps);
@@ -197,9 +197,9 @@ public class Client implements Runnable{
 				try
 				{
 					if(pollNum < 10)
-						lock.wait(averageMillis);
-					else if(ps.longRunning)
-						lock.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
+						ps.wait(averageMillis);
+					else //if(ps.longRunning)
+						ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
 					pollNum++;
 				}catch (InterruptedException e) 
 				{
@@ -232,6 +232,7 @@ public class Client implements Runnable{
     	{
 	    	byte [] bytes = FstUtil.serialize(ps);
 			logger.info("Firing operation " + ps.methodName + " with payload length >> " + bytes.length +"   " + ps.epoc + " Writeable ?" + ctx.channel().isWritable());
+			logger.info("Low: " + ctx.channel().config().getWriteBufferLowWaterMark() +  " <> High: " + ctx.channel().config().getWriteBufferHighWaterMark());
 			ByteBuf buff = Unpooled.buffer(bytes.length);
 			buff.writeBytes(bytes);
 			ChannelFuture cf = ctx.write(buff);
