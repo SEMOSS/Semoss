@@ -148,9 +148,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter //MessageToMessa
 				
 				if(lock != null)
 				{
-					synchronized(nc.lock)
+					synchronized(lock)
 					{
-						nc.lock.notifyAll();
+						lock.notifyAll();
 					}
 				}
 			}		
