@@ -135,12 +135,12 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			PayloadStruct ps = constructPayload(methodName, rScript);
 			ps.longRunning = true;
 			ps.payloadClasses = new Class[] {String.class};
-			String output = (String)nc.executeCommand(ps);
+			PayloadStruct retPS = (PayloadStruct)nc.executeCommand(ps);
 			//System.err.println("Output is " + output);
-			if(ps.processed)
-				return output;
+			if(retPS.processed)
+				return retPS.payload[0] + "";
 			else
-				return " Script " + ps.payload[0] + " Failed with " + ps.ex;
+				return " Script " + ps.payload[0] + " Failed with " + retPS.ex;
 		}
 		return null;
 	}
@@ -204,7 +204,8 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 				//System.err.println("Output is " + ps.payload[0]);
 				return (String [])ps.payload[0];
 			}
-			logger.info(ps.ex);
+			if(ps != null)
+				logger.info(ps.ex);
 		}
 		return null;
 	}
