@@ -641,11 +641,28 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getClobDataTypeName();
 	
 	/**
+	 * Get the RDBMS type equivalent for varchar() type
+	 * @return
+	 */
+	public abstract String getVarcharDataTypeName();
+	
+	/**
 	 * Get the RDBMS type equivalent for boolean type
 	 * @return
 	 */
 	public abstract String getBooleanDataTypeName();
 
+	/**
+	 * Get the RDBMS type equivalent for int type
+	 * @return
+	 */
+	public abstract String getIntegerDataTypeName();
+	
+	/**
+	 * Get the RDBMS type equivalent for double type
+	 * @return
+	 */
+	public abstract String getDoubleDataTypeName();
 	
 	/**
 	 * Does the RDBMS type support clob java object storage
