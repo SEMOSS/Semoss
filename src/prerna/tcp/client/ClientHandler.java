@@ -145,11 +145,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter //MessageToMessa
 				// put it in response
 				nc.responseMap.put(id, ps);
 				
+				
 				if(lock != null)
 				{
-					synchronized(lock)
+					synchronized(nc.lock)
 					{
-						lock.notifyAll();
+						nc.lock.notifyAll();
 					}
 				}
 			}		
