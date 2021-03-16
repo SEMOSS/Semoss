@@ -124,7 +124,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			int counter = 0;
 			for(String step : additionalSteps) {
 				recipeToSave.add(step);
-				recipeIds.add(counter++ + "_additionalStep");
+				// in case we are saving a not run recipe like forms
+				if(recipeIds != null) {
+					recipeIds.add(counter++ + "_additionalStep");
+				}
 			}
 			params = InsightUtility.getInsightParams(this.insight);
 		}
