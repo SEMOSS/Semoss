@@ -10,6 +10,24 @@ import prerna.query.interpreters.sql.BigQuerySqlInterpreter;
 
 public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 
+	@Override
+	public void initTypeConverstionMap() {
+		typeConversionMap.put("INT", "INT64");
+		typeConversionMap.put("LONG", "INT64");
+		
+		typeConversionMap.put("DOUBLE", "FLOAT64");
+		typeConversionMap.put("NUMBER", "FLOAT64");
+		typeConversionMap.put("FLOAT", "FLOAT64");
+
+		typeConversionMap.put("DATE", "DATE");
+		typeConversionMap.put("TIMESTAMP", "TIMESTAMP");
+		
+		typeConversionMap.put("STRING", "STRING");
+		typeConversionMap.put("FACTOR", "STRING");
+
+		typeConversionMap.put("BOOLEAN", "BOOL");
+	}
+	
 	BigQueryQueryUtil() {
 		super();
 		setDbType(RdbmsTypeEnum.BIG_QUERY);
@@ -256,6 +274,21 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 		}
 		
 		return connectionString;
+	}
+	
+	@Override
+	public String getVarcharDataTypeName() {
+		return "STRING";
+	}
+	
+	@Override
+	public String getIntegerDataTypeName() {
+		return "INT64";
+	}
+	
+	@Override
+	public String getDoubleDataTypeName() {
+		return "FLOAT64";
 	}
 	
 	@Override
