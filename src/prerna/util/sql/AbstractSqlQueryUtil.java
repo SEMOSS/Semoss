@@ -94,12 +94,13 @@ public abstract class AbstractSqlQueryUtil {
 	public static final String OAUTH_REFRESH_TOKEN = "oauthRefreshToken";
 	public static final String OAUTH_CLIENT_ID = "oauthClientId";
 	public static final String OAUTH_CLIENT_SECRET = "oauthClientSecret";
-
 	public static final String DEFAULT_DATASET = "defaultDataSet";
 	// snowflake
 	public static final String WAREHOUSE = "warehouse";
 	public static final String ROLE = "role";
-	
+	// elasticsearch
+	public static final String HTTP_TYPE = "httpType";
+
 	private static final Logger logger = LogManager.getLogger(AbstractSqlQueryUtil.class);
 
 	protected RdbmsTypeEnum dbType = null;
