@@ -1291,7 +1291,8 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		// fill the rows. 
 		// Ideally we can drop the section, but later
 		Iterator<String> insightParamKeys = insight.getVarStore().getInsightParameterKeys().iterator();
-
+		CellStyle input = getCellStyle(wb);
+		
 		int rowIndex = startRowIndex + 1;
 		while(insightParamKeys.hasNext())
 		{
@@ -1311,14 +1312,17 @@ public class TableToXLSXReactor	extends AbstractReactor {
 					String operator = paramStructDetails.getOperator();
 					if(operator == null || operator.length() == 0)
 						operator = "=="; // forcing equals
-
+					
 					// set the values
 					Cell paramNameCell = row.createCell(START_COLUMN_INDEX + 1);
 					paramNameCell.setCellValue(friendlyParamName);					
 					Cell paramOperatorCell = row.createCell(START_COLUMN_INDEX + 2);
 					paramOperatorCell.setCellValue(IQueryFilter.getDisplayNameForComparator(operator));
 					Cell paramValueCell = row.createCell(START_COLUMN_INDEX + 3);
-					paramValueCell.setCellValue(paramValue);
+					input = wb.createCellStyle();
+					input.setDataFormat((short)0);
+					// Calling formatAndSetCellType() instead of just setting the string value in the Cell.
+					formatAndSetCellType(wb, input, paramValueCell, paramValue);
 
 					// next row
 					rowIndex++;
