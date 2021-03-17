@@ -7,6 +7,7 @@ import static prerna.util.sql.RdbmsTypeEnum.CASSANDRA;
 import static prerna.util.sql.RdbmsTypeEnum.CLICKHOUSE;
 import static prerna.util.sql.RdbmsTypeEnum.DB2;
 import static prerna.util.sql.RdbmsTypeEnum.DERBY;
+import static prerna.util.sql.RdbmsTypeEnum.ELASTIC_SEARCH;
 import static prerna.util.sql.RdbmsTypeEnum.H2_DB;
 import static prerna.util.sql.RdbmsTypeEnum.HIVE;
 import static prerna.util.sql.RdbmsTypeEnum.IMPALA;
@@ -60,6 +61,8 @@ public class SqlQueryUtilFactory {
 			queryUtil = new DB2QueryUtil();
 		} else if(dbType == DERBY) {
 			queryUtil = new DerbyQueryUtil();
+		} else if(dbType == ELASTIC_SEARCH) {
+			queryUtil = new ElasticSearchQueryUtil();
 		} else if(dbType == H2_DB) {
 			queryUtil = new H2QueryUtil();
 		} else if(dbType == SQLITE) {
@@ -116,6 +119,8 @@ public class SqlQueryUtilFactory {
 			queryUtil = new DB2QueryUtil(connectionUrl, username, password);
 		} else if(dbType == DERBY) {
 			queryUtil = new DerbyQueryUtil(connectionUrl, username, password);
+		} else if(dbType == ELASTIC_SEARCH) {
+			queryUtil = new ElasticSearchQueryUtil(connectionUrl, username, password);
 		} else if(dbType == H2_DB) {
 			queryUtil = new H2QueryUtil(connectionUrl, username, password);
 		} else if(dbType == SQLITE) {

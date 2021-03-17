@@ -9,6 +9,7 @@ public enum RdbmsTypeEnum {
 	CLICKHOUSE("CLICKHOUSE", "ru.yandex.clickhouse.ClickHouseDriver", "jdbc:clickhouse"),
 	DB2("DB2", "com.ibm.db2.jcc.DB2Driver", "jdbc:db2"),
 	DERBY("DERBY", "org.apache.derby.jdbc.EmbeddedDriver", "jdbc:derby"),
+	ELASTIC_SEARCH("ELASTIC_SEARCH", "org.elasticsearch.xpack.sql.jdbc.EsDriver", "jdbc:es"),
 	H2_DB("H2_DB", "org.h2.Driver", "jdbc:h2"),
 	HIVE("HIVE","org.apache.hive.jdbc.HiveDriver","jdbc:hive2"),
 	IMPALA("IMPALA", "com.cloudera.impala.jdbc4.Driver", "jdbc:impala"),
