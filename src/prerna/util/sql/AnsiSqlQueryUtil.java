@@ -472,6 +472,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	public String selectFromJoiningTables(String leftTableName, Map<String, SemossDataType> leftTableTypes, 
 			String rightTableName, Map<String, SemossDataType> rightTableTypes, List<Join> joins, 
 			Map<String, String> leftTableAlias, Map<String, String> rightTableAlias, boolean rightJoinFlag) {
+
 		final String LEFT_TABLE_ALIAS = leftTableName;
 		final String RIGHT_TABLE_ALIAS = rightTableName;
 
@@ -504,10 +505,6 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 				joinSql = "INNER JOIN";
 			} else if (joinType.equalsIgnoreCase("left.outer.join")) {
 				joinSql = "LEFT OUTER JOIN";
-			} else if (joinType.equalsIgnoreCase("right.outer.join")) {
-				joinSql = "RIGHT OUTER JOIN";
-			} else if (joinType.equalsIgnoreCase("outer.join")) {
-				joinSql = "FULL OUTER JOIN";
 			} else {
 				joinSql = "INNER JOIN";
 			}
@@ -515,7 +512,13 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			if (jIdx != 0) {
 				joinString.append(" AND ");
 			} else {
-				joinString.append(joinSql).append(" ").append(rightTableName).append(" ON (");
+				joinString.append(joinSql).append(" ");
+				if (rightJoinFlag) {
+					joinString.append(leftTableName);
+				} else {
+					joinString.append(rightTableName);
+				}
+				joinString.append(" ON (");
 			}
 
 			// need to make sure the data types are good to go
@@ -574,83 +577,49 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		StringBuilder sql = new StringBuilder();
 		sql.append(" SELECT ");
 
-		// this condition is satisfied only if the join is strictly Right outer join
-		// for outer join, the flag is false so this is not executed
-		if (rightJoinFlag && joins.get(0).getJoinType().equals("right.outer.join")) {
-			// select all the columns from the right side
-			int counter = 0;
-			int size = rightTableHeaders.size();
-			for (String rightTableCol : rightTableHeaders) {
-				if (rightTableCol.contains("__")) {
-					rightTableCol = rightTableCol.split("__")[1];
-				}
-				sql.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableCol);
-				// add the alias if there
-				if (leftTableAlias.containsKey(rightTableCol)) {
-					sql.append(" AS ").append(leftTableAlias.get(rightTableCol));
-				}
-				if (counter + 1 < size) {
-					sql.append(", ");
-				}
-				counter++;
+		// select all the columns from the left side
+		int counter = 0;
+		int size = leftTableHeaders.size();
+		for (String leftTableCol : leftTableHeaders) {
+			if (leftTableCol.contains("__")) {
+				leftTableCol = leftTableCol.split("__")[1];
 			}
-			// select the columns from the left side which are not part of the join!!!
-			for (String leftTableCol : leftTableHeaders) {
-				if (leftTableCol.contains("__")) {
-					leftTableCol = leftTableCol.split("__")[1];
-				}
-				if (rightTableJoinCols.contains(leftTableCol.toUpperCase())) {
-					counter++;
-					continue;
-				}
-				sql.append(", ").append(LEFT_TABLE_ALIAS).append(".").append(leftTableCol);
-				// add the alias if there
-				if (rightTableAlias.containsKey(leftTableCol)) {
-					sql.append(" AS ").append(rightTableAlias.get(leftTableCol));
-				}
-				counter++;
+			sql.append(LEFT_TABLE_ALIAS).append(".").append(leftTableCol);
+			// add the alias if there
+			if (leftTableAlias.containsKey(leftTableCol)) {
+				sql.append(" AS ").append(leftTableAlias.get(leftTableCol));
 			}
-		} else {
-			// select all the columns from the left side
-			int counter = 0;
-			int size = leftTableHeaders.size();
-			for (String leftTableCol : leftTableHeaders) {
-				if (leftTableCol.contains("__")) {
-					leftTableCol = leftTableCol.split("__")[1];
-				}
-				sql.append(LEFT_TABLE_ALIAS).append(".").append(leftTableCol);
-				// add the alias if there
-				if (leftTableAlias.containsKey(leftTableCol)) {
-					sql.append(" AS ").append(leftTableAlias.get(leftTableCol));
-				}
-				if (counter + 1 < size) {
-					sql.append(", ");
-				}
-				counter++;
+			if (counter + 1 < size) {
+				sql.append(", ");
 			}
+			counter++;
+		}
 
-			// select the columns from the right side which are not part of the join!!!
-			for (String rightTableCol : rightTableHeaders) {
-				if (rightTableCol.contains("__")) {
-					rightTableCol = rightTableCol.split("__")[1];
-				}
-				if (rightTableJoinCols.contains(rightTableCol.toUpperCase())) {
-					counter++;
-					continue;
-				}
-				sql.append(", ").append(RIGHT_TABLE_ALIAS).append(".").append(rightTableCol);
-				// add the alias if there
-				if (rightTableAlias.containsKey(rightTableCol)) {
-					sql.append(" AS ").append(rightTableAlias.get(rightTableCol));
-				}
-				counter++;
+		// select the columns from the right side which are not part of the join!!!
+		for (String rightTableCol : rightTableHeaders) {
+			if (rightTableCol.contains("__")) {
+				rightTableCol = rightTableCol.split("__")[1];
 			}
+			if (rightTableJoinCols.contains(rightTableCol.toUpperCase())) {
+				counter++;
+				continue;
+			}
+			sql.append(", ").append(RIGHT_TABLE_ALIAS).append(".").append(rightTableCol);
+			// add the alias if there
+			if (rightTableAlias.containsKey(rightTableCol)) {
+				sql.append(" AS ").append(rightTableAlias.get(rightTableCol));
+			}
+			counter++;
 		}
 
 		// 3) combine everything
-
-		sql.append(" FROM ").append(leftTableName).append(" ").append(joinString.toString());
-
+		sql.append(" FROM ");
+		if (rightJoinFlag) {
+			sql.append(rightTableName);
+		} else {
+			sql.append(leftTableName);
+		}
+		sql.append(" ").append(joinString.toString());
 		return sql.toString();
 	}
 	
