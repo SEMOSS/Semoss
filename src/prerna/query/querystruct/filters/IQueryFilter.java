@@ -74,7 +74,8 @@ public interface IQueryFilter {
 	 * @return
 	 */
 	public static String getDisplayNameForComparator(String comparator) {
-		if(comparator.equals("==")) {
+		// Added IN and '=' to accommodate query needs
+		if(comparator.equals("==") || comparator.equalsIgnoreCase("IN")) {
 			return "In";
 		} else if(comparator.equals("!=") || comparator.equals("<>")) {
 			return "Not In";
@@ -98,6 +99,8 @@ public interface IQueryFilter {
 			return "Ends With";
 		} else if(comparator.equals("?nends")) {
 			return "Not Ends With";
+		} else if (comparator.equals("=")) {
+			return "Equals ( = )";
 		}
 		return null;
 	}
