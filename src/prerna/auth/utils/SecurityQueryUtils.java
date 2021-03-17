@@ -310,6 +310,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		fun.setAlias("low_app_name");
 		qs.addSelector(fun);
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__FAVORITE", "is_favorite"));
 		// filters
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();

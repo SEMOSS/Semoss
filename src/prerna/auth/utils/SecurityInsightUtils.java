@@ -1272,7 +1272,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
 		fun.setAlias("low_name");
 		qs.addSelector(fun);
-		
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__FAVORITE", "insight_favorite"));
+
 		// filters
 		// if we have an engine filter
 		// i'm assuming you want these even if visibility is false
