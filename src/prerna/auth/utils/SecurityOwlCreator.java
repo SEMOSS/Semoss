@@ -60,6 +60,16 @@ public class SecurityOwlCreator {
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/METAORDER/ENGINEMETA")) {
 				return true;
 			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/USERINSIGHTPERMISSION");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/FAVORITE/USERINSIGHTPERMISSION")) {
+				return true;
+			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEPERMISSION");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/FAVORITE/ENGINEPERMISSION")) {
+				return true;
+			}
 		}
 		return !check1;
 	}
@@ -120,6 +130,7 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "USERID", "VARCHAR(255)");
 		owler.addProp("ENGINEPERMISSION", "PERMISSION", "INT");
 		owler.addProp("ENGINEPERMISSION", "VISIBILITY", "BOOLEAN");
+		owler.addProp("ENGINEPERMISSION", "FAVORITE", "BOOLEAN");
 
 		// WORKSPACEENGINE
 		owler.addConcept("WORKSPACEENGINE", null, null);
@@ -151,6 +162,7 @@ public class SecurityOwlCreator {
 		owler.addProp("USERINSIGHTPERMISSION", "USERID", "VARCHAR(255)");
 		owler.addProp("USERINSIGHTPERMISSION", "ENGINEID", "VARCHAR(255)");
 		owler.addProp("USERINSIGHTPERMISSION", "PERMISSION", "INT");
+		owler.addProp("USERINSIGHTPERMISSION", "FAVORITE", "BOOLEAN");
 
 		// INSIGHTMETA
 		owler.addConcept("INSIGHTMETA", null, null);
