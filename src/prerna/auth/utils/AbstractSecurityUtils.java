@@ -122,10 +122,11 @@ public abstract class AbstractSecurityUtils {
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
+		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		
 		// ENGINE
 		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "TYPE", "COST" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "VARCHAR(255)", "VARCHAR(255)" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
@@ -180,9 +181,9 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// ENGINEPERMISSION
-		colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY" };
-		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", "boolean" };
-		defaultValues = new Object[]{null, null, null, true};
+		colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE" };
+		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+		defaultValues = new Object[]{null, null, null, true, false};
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues));
 		} else {
@@ -192,10 +193,24 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("ENGINEPERMISSION", colNames, types));
 			}
 		}
+		// TEMPORARY CHECK! - ADDED 03/17/2021
+		{
+			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "ENGINEPERMISSION", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
+				if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+					securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
+				} else {
+					securityDb.insertData(queryUtil.alterTableAddColumn("ENGINEPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
+				}
+			}
+		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE"));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", schema)) {
@@ -206,6 +221,9 @@ public abstract class AbstractSecurityUtils {
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
+			}
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE"));
 			}
 		}
 
@@ -261,7 +279,7 @@ public abstract class AbstractSecurityUtils {
 		
 		// INSIGHT
 		colNames = new String[] { "ENGINEID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", "CACHEABLE", "RECIPE" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "BIGINT", "TIMESTAMP", "TIMESTAMP", "VARCHAR(255)", "BOOLEAN", CLOB_DATATYPE_NAME };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "BIGINT", "TIMESTAMP", "TIMESTAMP", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, CLOB_DATATYPE_NAME };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
 		} else {
@@ -301,8 +319,8 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		// USERINSIGHTPERMISSION
-		colNames = new String[] { "USERID", "ENGINEID", "INSIGHTID", "PERMISSION" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INTEGER" };
+		colNames = new String[] { "USERID", "ENGINEID", "INSIGHTID", "PERMISSION", "FAVORITE" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", BOOLEAN_DATATYPE_NAME };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types));
 		} else {
@@ -312,10 +330,24 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("USERINSIGHTPERMISSION", colNames, types));
 			}
 		}
+		// TEMPORARY CHECK! - ADDED 03/17/2021
+		{
+			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "USERINSIGHTPERMISSION", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
+				if(queryUtil.allowIfExistsModifyColumnSyntax()) {
+					securityDb.insertData(queryUtil.alterTableAddColumnIfNotExists("USERINSIGHTPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
+				} else {
+					securityDb.insertData(queryUtil.alterTableAddColumn("USERINSIGHTPERMISSION", "FAVORITE", BOOLEAN_DATATYPE_NAME));
+				}
+			}
+		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", "ENGINEID"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", "FAVORITE"));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", schema)) {
@@ -326,6 +358,9 @@ public abstract class AbstractSecurityUtils {
 			}
 			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
+			}
+			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", "FAVORITE"));
 			}
 		}
 		
@@ -356,7 +391,7 @@ public abstract class AbstractSecurityUtils {
 
 		// SMSS_USER
 		colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", "ADMIN", "PUBLISHER" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BOOLEAN", "BOOLEAN" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
 		// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 		// but some rdbms types (postgres) does not allow it
 		// so i am going ahead and moving over user to smss_user
