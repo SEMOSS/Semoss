@@ -22,11 +22,14 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
+import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
@@ -433,6 +436,88 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				} catch (SQLException e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
+			}
+		}
+	}
+	
+	/**
+	 * Change the user favorite (is favorite / not favorite) for a database. Without removing its permissions.
+	 * @param user
+	 * @param engineId
+	 * @param visibility
+	 * @throws SQLException 
+	 * @throws IllegalAccessException 
+	 */
+	public static void setInsightFavorite(User user, String appId, String insightId, boolean isFavorite) throws SQLException, IllegalAccessException {
+		if(!SecurityInsightUtils.userCanViewInsight(user, appId, insightId)) {
+			throw new IllegalAccessException("The user doesn't have the permission to modify this insight");
+		}
+		Collection<String> userIdFilters = getUserFiltersQs(user);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIdFilters));
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()){
+				UpdateQueryStruct uqs = new UpdateQueryStruct();
+				uqs.setEngine(securityDb);
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIdFilters));
+
+				List<IQuerySelector> selectors = new Vector<>();
+				selectors.add(new QueryColumnSelector("USERINSIGHTPERMISSION__FAVORITE"));
+				List<Object> values = new Vector<>();
+				values.add(isFavorite);
+				uqs.setSelectors(selectors);
+				uqs.setValues(values);
+				
+				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
+				String updateQuery = updateInterp.composeQuery();
+				securityDb.insertData(updateQuery);
+				
+			} else {
+				// need to insert
+				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO USERINSIGHTPERMISSION "
+						+ "(USERID, ENGINEID, INSIGHTID, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set app visibility");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, appId);
+						ps.setString(parameterIndex++, insightId);
+						ps.setBoolean(parameterIndex++, isFavorite);
+						ps.setInt(parameterIndex++, 3);
+	
+						ps.addBatch();
+					}
+					ps.executeBatch();
+				} catch(Exception e) {
+					logger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					if(ps != null) {
+						ps.close();
+					}
+				}
+			}
+			
+			// commit regardless of insert or update
+			securityDb.commit();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
 			}
 		}
 	}
