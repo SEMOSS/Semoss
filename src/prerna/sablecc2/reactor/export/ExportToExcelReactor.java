@@ -1329,7 +1329,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 		logger.info("Generating grid view");
 		ChromeDriverUtility.captureDataPersistent(driver, baseUrl, htmlUrl, sessionId);
-		WebElement we = driver.findElement(By.xpath("//html/body//table"));
+		WebElement we = driver.findElement(By.xpath("//html/body"));// This is to support multiple tables for export
 		String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
 		
 		//WebElement elem1 = new WebDriverWait(driver, 10)
