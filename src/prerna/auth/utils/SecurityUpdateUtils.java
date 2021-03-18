@@ -974,16 +974,37 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				
 			} else {
 				// need to insert
-				StringBuilder inserts = new StringBuilder();
-				// we will set the permission to read only
-				for(AuthProvider loginType : user.getLogins()) {
-					String userId = user.getAccessToken(loginType).getId();
-					inserts.append("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES ('")
-						.append(userId).append("', '").append(engineId).append("', ").append(visibility).append(", 3);");
+				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION "
+						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set app visibility");
 				}
-
-				securityDb.insertData(inserts.toString());
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, engineId);
+						ps.setBoolean(parameterIndex++, visibility);
+						// default favorite as false
+						ps.setBoolean(parameterIndex++, false);
+						ps.setInt(parameterIndex++, 3);
+	
+						ps.addBatch();
+					}
+					ps.executeBatch();
+				} catch(Exception e) {
+					logger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					if(ps != null) {
+						ps.close();
+					}
+				}
 			}
+			
+			securityDb.commit();
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -991,7 +1012,87 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				wrapper.cleanUp();
 			}
 		}
-		securityDb.commit();
+	}
+	
+	/**
+	 * Change the user favorite (is favorite / not favorite) for a database. Without removing its permissions.
+	 * @param user
+	 * @param engineId
+	 * @param visibility
+	 * @throws SQLException 
+	 * @throws IllegalAccessException 
+	 */
+	public static void setDbFavorite(User user, String engineId, boolean isFavorite) throws SQLException, IllegalAccessException {
+		if(!SecurityAppUtils.userCanViewEngine(user, engineId)) {
+			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this app.");
+		}
+		Collection<String> userIdFilters = getUserFiltersQs(user);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()){
+				UpdateQueryStruct uqs = new UpdateQueryStruct();
+				uqs.setEngine(securityDb);
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
+
+				List<IQuerySelector> selectors = new Vector<>();
+				selectors.add(new QueryColumnSelector("ENGINEPERMISSION__FAVORITE"));
+				List<Object> values = new Vector<>();
+				values.add(isFavorite);
+				uqs.setSelectors(selectors);
+				uqs.setValues(values);
+				
+				UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(uqs);
+				String updateQuery = updateInterp.composeQuery();
+				securityDb.insertData(updateQuery);
+				
+			} else {
+				// need to insert
+				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION "
+						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
+				if(ps == null) {
+					throw new IllegalArgumentException("Error generating prepared statement to set app visibility");
+				}
+				try {
+					// we will set the permission to read only
+					for(AuthProvider loginType : user.getLogins()) {
+						String userId = user.getAccessToken(loginType).getId();
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, engineId);
+						// default visibility as true
+						ps.setBoolean(parameterIndex++, true);
+						ps.setBoolean(parameterIndex++, isFavorite);
+						ps.setInt(parameterIndex++, 3);
+	
+						ps.addBatch();
+					}
+					ps.executeBatch();
+				} catch(Exception e) {
+					logger.error(Constants.STACKTRACE, e);
+					throw e;
+				} finally {
+					if(ps != null) {
+						ps.close();
+					}
+				}
+			}
+			
+			// commit regardless of insert or update
+			securityDb.commit();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
 	}
 	
 	/**
