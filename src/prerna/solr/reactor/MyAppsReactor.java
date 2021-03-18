@@ -17,6 +17,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class MyAppsReactor extends AbstractReactor {
@@ -92,7 +93,7 @@ public class MyAppsReactor extends AbstractReactor {
 				}
 			}
 		} catch (Exception e) {
-			logger.error("StackTrace: ", e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				wrapper.cleanUp();
