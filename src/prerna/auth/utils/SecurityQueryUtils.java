@@ -276,10 +276,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Get the list of the engine information that the user has access to
+	 * @param favoritesOnly 
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user) {
+	public static List<Map<String, Object>> getUserDatabaseList(User user, Boolean favoritesOnly) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT "
 //				+ "ENGINE.ENGINEID as \"app_id\", "
@@ -327,6 +328,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+		}
+		// favorites only
+		if(favoritesOnly) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
 		}
 		// joins
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");

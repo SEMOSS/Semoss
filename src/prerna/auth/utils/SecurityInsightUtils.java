@@ -1266,11 +1266,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @param searchTerm
 	 * @param tags
+	 * @param favoritesOnly 
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchUserInsights(User user, List<String> engineFilter, String searchTerm, List<String> tags, String limit, String offset) {
+	public static List<Map<String, Object>> searchUserInsights(User user, List<String> engineFilter, String searchTerm, List<String> tags, Boolean favoritesOnly, String limit, String offset) {
 //		String userFilters = getUserFilters(user);
 //
 //		String query = "SELECT DISTINCT "
@@ -1426,6 +1427,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		if(tagFiltering) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+		}
+		// favorites only
+		if(favoritesOnly) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
 		}
 		
 		// joins
