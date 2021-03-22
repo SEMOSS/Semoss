@@ -29,8 +29,15 @@ public class ChromeDriverUtility {
 //	private static ChromeDriver driver = null;
 
 	public static void captureImage(String feUrl, String url, String imagePath, String sessionId) {
-		ChromeDriver thisDriver = makeChromeDriver(feUrl, url, 1920, 1080);
-		captureImagePersistent(thisDriver, feUrl, url, imagePath, sessionId);
+		ChromeDriver thisDriver = null;
+		try {
+			thisDriver = makeChromeDriver(feUrl, url, 1920, 1080);
+			captureImagePersistent(thisDriver, feUrl, url, imagePath, sessionId);
+		} finally {
+			if(thisDriver != null) {
+				thisDriver.close();
+			}
+		}
 	}
 
 	public static ChromeDriver makeChromeDriver(String feUrl, String url, int height, int width) {
