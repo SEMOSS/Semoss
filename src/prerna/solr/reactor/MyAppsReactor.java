@@ -15,6 +15,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
@@ -31,15 +32,17 @@ public class MyAppsReactor extends AbstractReactor {
 	}
 
 	public MyAppsReactor() {
-
+		this.keysToGet = new String[] {ReactorKeysEnum.ONLY_FAVORITES.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
+		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[0]));
 		List<Map<String, Object>> appInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser());
+			appInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly);
 			this.insight.getUser().setEngines(appInfo);
 		} else {
 			appInfo = SecurityQueryUtils.getAllDatabaseList();
