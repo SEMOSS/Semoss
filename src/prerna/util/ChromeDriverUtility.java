@@ -72,6 +72,9 @@ public class ChromeDriverUtility {
 
 		//chromeOptions.addArguments("--allow-insecure-localhost");
 		chromeOptions.addArguments("--ignore-certificate-errors");
+		chromeOptions.addArguments("--ignore-ssl-errors");
+		chromeOptions.addArguments("--ignore-ssl-errors=yes");
+		chromeOptions.addArguments("--ignore-ssl-errors=true");
 
 		if (linux) {
 			chromeOptions.addArguments("-disable-dev-shm-usage");
