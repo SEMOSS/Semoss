@@ -25,12 +25,12 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ChromeDriverUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ToPdfReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = ToPdfReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
 
 	public ToPdfReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
@@ -111,7 +111,7 @@ public class ToPdfReactor extends AbstractReactor {
 			FileUtils.writeStringToFile(tempXhtml, doc.html());
 			tempPaths.add(tempXhtmlPath);
 		} catch (IOException e1) {
-			logger.error(STACKTRACE, e1);
+			logger.error(Constants.STACKTRACE, e1);
 		}
 
 		// Convert from xhtml to pdf
@@ -127,11 +127,11 @@ public class ToPdfReactor extends AbstractReactor {
 			pdfBuilder.run();
 			logger.info("Done converting html to PDF...");
 		} catch (FileNotFoundException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} catch (Exception ex) {
-			logger.error(STACKTRACE, ex);
+			logger.error(Constants.STACKTRACE, ex);
 		} finally {
 			if(fos != null) {
 				try {
@@ -150,7 +150,7 @@ public class ToPdfReactor extends AbstractReactor {
 					FileUtils.forceDelete(f);
 				}
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 
