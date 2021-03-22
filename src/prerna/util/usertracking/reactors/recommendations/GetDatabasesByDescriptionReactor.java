@@ -114,7 +114,7 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 					access = true;
 					dbName = Utility.getEngine(id).getEngineName();
 					type = Utility.getEngine(id).getEngineType() + "";
-					lmDate = SecurityQueryUtils.getLastExecutedInsightInApp(id);
+					lmDate = SecurityQueryUtils.getLastModifiedDateForInsightInApp(id);
 					//insights = SecurityQueryUtils.getUserInsightsForEngine(this.insight.getUser(), id);
 				}
 				// add all data to a list of maps

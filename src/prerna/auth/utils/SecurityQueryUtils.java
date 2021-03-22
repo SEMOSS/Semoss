@@ -725,7 +725,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
-	public static SemossDate getLastExecutedInsightInApp(String engineId) {
+	public static SemossDate getLastModifiedDateForInsightInApp(String engineId) {
 //		String query = "SELECT DISTINCT INSIGHT.LASTMODIFIEDON "
 //				+ "FROM INSIGHT "
 //				+ "WHERE INSIGHT.ENGINEID='" + engineId + "'"
