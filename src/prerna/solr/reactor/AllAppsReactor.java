@@ -44,7 +44,7 @@ public class AllAppsReactor extends AbstractReactor {
 		for(int i = 0; i < size; i++) {
 			Map<String, Object> app = appInfo.get(i);
 			String appId = app.get("app_id").toString();
-			SemossDate lmDate = SecurityQueryUtils.getLastExecutedInsightInApp(appId);
+			SemossDate lmDate = SecurityQueryUtils.getLastModifiedDateForInsightInApp(appId);
 			// could be null when there are no insights in an app
 			if(lmDate != null) {
 				app.put("lastModified", lmDate.getFormattedDate());
