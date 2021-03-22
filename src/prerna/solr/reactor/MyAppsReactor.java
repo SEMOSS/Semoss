@@ -1,5 +1,7 @@
 package prerna.solr.reactor;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,13 +34,18 @@ public class MyAppsReactor extends AbstractReactor {
 	}
 
 	public MyAppsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ONLY_FAVORITES.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[0]));
+		String sortCol = this.keyValue.get(this.keysToGet[1]);
+		if(sortCol == null) {
+			sortCol = "name";
+		}
+		
 		List<Map<String, Object>> appInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
@@ -54,9 +61,10 @@ public class MyAppsReactor extends AbstractReactor {
 		for(int i = 0; i < size; i++) {
 			Map<String, Object> app = appInfo.get(i);
 			String appId = app.get("app_id").toString();
-			SemossDate lmDate = SecurityQueryUtils.getLastExecutedInsightInApp(appId);
+			SemossDate lmDate = SecurityQueryUtils.getLastModifiedDateForInsightInApp(appId);
 			// could be null when there are no insights in an app
 			if(lmDate != null) {
+				app.put("lastModifiedDate", lmDate);
 				app.put("lastModified", lmDate.getFormattedDate());
 			}
 
@@ -102,8 +110,37 @@ public class MyAppsReactor extends AbstractReactor {
 				wrapper.cleanUp();
 			}
 		}
+		
+		if(sortCol.equalsIgnoreCase("date")) {
+			Collections.sort(appInfo, new Comparator<Map<String, Object>>() {
+
+				// we want descending - not ascending
+				// so values are swapped
+				@Override
+				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+					SemossDate d1 = (SemossDate) o1.get("lastModifiedDate");
+					SemossDate d2 = (SemossDate) o2.get("lastModifiedDate");
+					
+					if(d1 == null) {
+						return 1;
+					}
+					if(d2 == null) {
+						return -1;
+					}
+
+					return d2.compareTo(d1);
+				}
+			});
+		}
 
 		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
 	}
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
+			return "The sort is a string value containing either 'name' or 'date' for how to sort";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

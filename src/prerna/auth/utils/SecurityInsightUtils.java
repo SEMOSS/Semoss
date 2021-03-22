@@ -1271,7 +1271,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchUserInsights(User user, List<String> engineFilter, String searchTerm, List<String> tags, Boolean favoritesOnly, String limit, String offset) {
+	public static List<Map<String, Object>> searchUserInsights(User user, List<String> engineFilter, String searchTerm, List<String> tags, 
+			Boolean favoritesOnly, QueryColumnOrderBySelector sortBy, String limit, String offset) {
 //		String userFilters = getUserFilters(user);
 //
 //		String query = "SELECT DISTINCT "
@@ -1442,7 +1443,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
 		// sort
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
+		if(sortBy == null) {
+			qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
+		} else {
+			qs.addOrderBy(sortBy);
+		}
 		// limit 
 		if(limit != null && !limit.trim().isEmpty()) {
 			qs.setLimit(Long.parseLong(limit));
@@ -1464,7 +1469,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchInsights(List<String> engineFilter, String searchTerm, List<String> tags, String limit, String offset) {
+	public static List<Map<String, Object>> searchInsights(List<String> engineFilter, String searchTerm, List<String> tags, 
+			QueryColumnOrderBySelector sortBy, String limit, String offset) {
 //		String query = "SELECT DISTINCT "
 //				+ "INSIGHT.ENGINEID AS \"app_id\", "
 //				+ "ENGINE.ENGINENAME AS \"app_name\", "
@@ -1487,6 +1493,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 //				;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
+		// NOTE - IF YOU CHANGE THE SELECTOR ALIAS - YOU NEED TO UPDATE THE PLACES
+		// THAT CALL THIS METHOD AS THAT IS PASSED IN THE SORT BY FIELD
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
@@ -1524,7 +1532,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
 		}
 		// sort
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		if(sortBy == null) {
+			qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
+		} else {
+			qs.addOrderBy(sortBy);
+		}
 		// limit 
 		if(limit != null && !limit.trim().isEmpty()) {
 			qs.setLimit(Long.parseLong(limit));
