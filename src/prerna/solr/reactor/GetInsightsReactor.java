@@ -29,7 +29,8 @@ public class GetInsightsReactor extends AbstractReactor {
 	
 	public GetInsightsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.TAGS.getKey() };
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.TAGS.getKey(),
+				ReactorKeysEnum.ONLY_FAVORITES.getKey()};
 	}
 
 	@Override
@@ -61,12 +62,13 @@ public class GetInsightsReactor extends AbstractReactor {
 		String limit = this.keyValue.get(this.keysToGet[2]);
 		String offset = this.keyValue.get(this.keysToGet[3]);
 		List<String> tagFilters = getTags();
-		
+		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[5]));
+
 		// get results
 		List<Map<String, Object>> results = null;
 		// method handles if filters are null or not
 		if (AbstractSecurityUtils.securityEnabled()) {
-			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, tagFilters, limit, offset);
+			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, tagFilters, favoritesOnly, limit, offset);
 		} else {
 			results = SecurityInsightUtils.searchInsights(eFilters, searchTerm, tagFilters, limit, offset);
 		}
