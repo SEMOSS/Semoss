@@ -11,6 +11,7 @@ import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -30,7 +31,7 @@ public class GetInsightsReactor extends AbstractReactor {
 	public GetInsightsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.TAGS.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey()};
+				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey()};
 	}
 
 	@Override
@@ -63,14 +64,27 @@ public class GetInsightsReactor extends AbstractReactor {
 		String offset = this.keyValue.get(this.keysToGet[3]);
 		List<String> tagFilters = getTags();
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[5]));
-
+		String sortCol = this.keyValue.get(this.keysToGet[6]);
+		if(sortCol == null) {
+			sortCol = "name";
+		}
+		// we only have 2 options for sorting
+		// based on name and last modified date
+		// these values are based on the projections in the query
+		QueryColumnOrderBySelector sortBy = null;
+		if(sortCol.equalsIgnoreCase("date")) {
+			sortBy = new QueryColumnOrderBySelector("INSIGHT__LASTMODIFIEDON", "desc");
+		} else {
+			sortBy = new QueryColumnOrderBySelector("low_name");
+		}
 		// get results
 		List<Map<String, Object>> results = null;
 		// method handles if filters are null or not
 		if (AbstractSecurityUtils.securityEnabled()) {
-			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, tagFilters, favoritesOnly, limit, offset);
+			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, 
+					tagFilters, favoritesOnly, sortBy, limit, offset);
 		} else {
-			results = SecurityInsightUtils.searchInsights(eFilters, searchTerm, tagFilters, limit, offset);
+			results = SecurityInsightUtils.searchInsights(eFilters, searchTerm, tagFilters, sortBy, limit, offset);
 		}
 		
 		// this entire block is to add the additional metadata to the insights
@@ -162,5 +176,13 @@ public class GetInsightsReactor extends AbstractReactor {
 		}
 		
 		return tags;
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
+			return "The sort is a string value containing either 'name' or 'date' for how to sort";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

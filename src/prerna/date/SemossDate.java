@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class SemossDate {
+public class SemossDate implements Comparable<SemossDate> {
 
 	private static final Logger LOGGER = LogManager.getLogger(SemossDate.class);
 
@@ -459,6 +459,17 @@ public class SemossDate {
 
 		d = "2019-23-12 02:12:21";
 		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
+	}
+
+	@Override
+	public int compareTo(SemossDate o) {
+		if(getDate() == null) {
+			return -1;
+		}
+		if(o.getDate() == null) {
+			return 1;
+		}
+		return getDate().compareTo(o.getDate());
 	}
 
 }
