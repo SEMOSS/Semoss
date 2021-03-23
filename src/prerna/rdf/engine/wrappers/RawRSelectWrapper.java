@@ -84,7 +84,10 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	
 	@Override
 	public boolean flushable() {
-		return true;
+		// WE HAVE ISSUES WITH STRING NA BECOMING NULL
+		// WHEN FLUSHING TO JSON
+		// SO KEEP AS false
+		return false;
 	}
 	
 	@Override
