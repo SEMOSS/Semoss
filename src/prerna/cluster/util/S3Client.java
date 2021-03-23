@@ -32,7 +32,7 @@ public class S3Client extends CloudClient {
 	private static final String PROVIDER = "s3";
 	private static final String SMSS_POSTFIX = "-smss";
 
-	private static String BUCKET = null;
+	protected static String BUCKET = null;
 	private static String REGION = null;
 	private static String ENDPOINT = null;
 	private static String ACCESS_KEY = null;
@@ -40,7 +40,7 @@ public class S3Client extends CloudClient {
 	private static String RCLONE = "rclone";
 	private static String RCLONE_PATH = "RCLONE_PATH";
 
-	private String dbFolder = null;
+	protected String dbFolder = null;
 
 	public static final String S3_REGION_KEY = "S3_REGION";
 	public static final String S3_BUCKET_KEY = "S3_BUCKET";
@@ -669,7 +669,8 @@ public class S3Client extends CloudClient {
 		return rcloneConfig;
 	}
 
-	private String createRcloneConfig() throws IOException, InterruptedException {
+	@Override
+	public String createRcloneConfig() throws IOException, InterruptedException {
 		String rcloneConfig = Utility.getRandomString(10);
 
 		if (useMinio) {
