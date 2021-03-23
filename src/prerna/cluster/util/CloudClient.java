@@ -42,6 +42,9 @@ public abstract class CloudClient {
 			TRANSFER_LIMIT = "4";
 			return S3Client.getInstance();
 		} 
+		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("GCP")||ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("GOOGLE")){
+			return GCPClient.getInstance();
+		} 
 		else{
 			throw new IllegalArgumentException("You have specified an incorrect storage provider");
 		}
@@ -83,6 +86,7 @@ public abstract class CloudClient {
 
 	public abstract void pullFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
 
+	public abstract String  createRcloneConfig() throws IOException, InterruptedException;
 	
 	protected static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rcloneConfig);
@@ -205,6 +209,9 @@ public abstract class CloudClient {
           }
 		throw new IllegalArgumentException("There is no insight database for app: " + engine.getEngineName());
 	}
+
+	
+
 	
 }
 
