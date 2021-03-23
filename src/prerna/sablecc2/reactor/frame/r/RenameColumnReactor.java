@@ -75,7 +75,7 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		this.getFrame().syncHeaders();
 
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
-		ModifyHeaderNounMetadata metaNoun = new ModifyHeaderNounMetadata(originalColName, validNewHeader);
+		ModifyHeaderNounMetadata metaNoun = new ModifyHeaderNounMetadata(frame.getName(), originalColName, validNewHeader);
 		retNoun.addAdditionalReturn(metaNoun);
 		
 		// also modify the frame filters
