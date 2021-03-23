@@ -42,7 +42,6 @@ public class DownloadInsightRecipeReactor extends AbstractInsightReactor {
 		// need the engine name and id that has the recipe
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
-		boolean vec = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
 		// get the engine so i can get the new insight
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
