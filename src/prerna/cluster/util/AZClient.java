@@ -1107,6 +1107,13 @@ public class AZClient extends CloudClient {
 
 	}
 
+	//implementing but overriding 
+	@Override
+	public String createRcloneConfig() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 
 
 
