@@ -55,6 +55,9 @@ public class InsightPanel {
 	private transient Map<String, TaskOptions> layerTaskOption = null;
 	private transient Map<String, SelectQueryStruct> layerQueryStruct = null;
 
+	// the default # to collect from tasks on this panel
+	private int numCollect = 2000;
+
 	public InsightPanel(String panelId, String sheetId) {
 		this.panelId = panelId;
 		this.sheetId = sheetId;
@@ -528,6 +531,14 @@ public class InsightPanel {
 		this.grf.merge(grf);
 	}
 	
+	public int getNumCollect() {
+		return numCollect;
+	}
+
+	public void setNumCollect(int numCollect) {
+		this.numCollect = numCollect;
+	}
+
 	/**
 	 * Return the panel level sorts
 	 * @return
