@@ -153,6 +153,8 @@ public class MergeFramesReactor extends AbstractReactor {
 				
 				String joinType = null;
 				List<Map<String, String>> joinCols = new ArrayList<Map<String, String>>();
+				List<String> joinComparators = new ArrayList<>();
+				boolean nonEqui = false;
 				for(Join joinItem : joins) {
 					joinType = joinItem.getJoinType();
 					// in R, the existing column is referenced as frame__column
@@ -168,6 +170,11 @@ public class MergeFramesReactor extends AbstractReactor {
 					}
 					joinColMapping.put(jLeftColumn, jRightColumn);
 					joinCols.add(joinColMapping);
+					String joinComparator = joinItem.getComparator();
+					if (!joinComparator.equals("=")) {
+						nonEqui = true;
+					}
+					joinComparators.add(joinComparator);
 				}
 				
 				// few steps to perform within this
@@ -175,7 +182,7 @@ public class MergeFramesReactor extends AbstractReactor {
 				// b) need to perform the merge
 				// c) need to update the metadata
 				
-				((PandasFrame) targetFrame).merge(targetFrame.getName(), targetFrame.getName(), sourceFrame.getName(), joinType, joinCols);
+				((PandasFrame) targetFrame).merge(targetFrame.getName(), targetFrame.getName(), sourceFrame.getName(), joinType, joinCols, joinComparators, nonEqui);
 				((PandasFrame) targetFrame).recreateMeta();
 				((PandasFrame) targetFrame).replaceWrapperDataFromFrame();
 

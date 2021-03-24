@@ -219,7 +219,7 @@ public class PandasSyntaxHelper {
 		//		return tableName + " = " + pickleVarName + ".load(open(\"" + fileLocation.replaceAll("\\\\+", "/") + "\", \"wb\"))";
 	}
 
-	/**
+	/** Merges two dataframes. if nonEqui is true, implicitly performs a join by taking the cross product. 
 	 * 
 	 * @param leftTableName
 	 * @param rightTableName
@@ -228,29 +228,62 @@ public class PandasSyntaxHelper {
 	 * @return
 	 */
 	public static String getMergeSyntax(String pandasFrameVar, String returnTable, String leftTableName,
-			String rightTableName, String joinType, List<Map<String, String>> joinCols) {
+			String rightTableName, String joinType, List<Map<String, String>> joinCols,boolean nonEqui) {
 		/*
-		 * joinCols = [ {leftTable.Title -> rightTable.Movie} , {leftTable.Genre ->
+		 * joinCols = [ {leftTable.Title -> rightTable.Movie} , {leftTable.Genre ->,
 		 * rightTable.Genre} ]
 		 */
 
 		StringBuilder builder = new StringBuilder();
-		builder.append(returnTable).append(" = ").append(pandasFrameVar).append(".merge(").append(leftTableName)
-		.append(", ").append(rightTableName).append(", left_on=[");
-		getMergeColsSyntax(builder, joinCols, true);
-		builder.append("], right_on=[");
-		getMergeColsSyntax(builder, joinCols, false);
+		
+		if (!nonEqui) {
+			builder.append(returnTable).append(" = ").append(pandasFrameVar).append(".merge(").append(leftTableName)
+			.append(", ").append(rightTableName).append(", left_on=[");
+			getMergeColsSyntax(builder, joinCols, true);
+			builder.append("], right_on=[");
+			getMergeColsSyntax(builder, joinCols, false);
 
-		if (joinType.equals("inner.join")) {
-			builder.append("], how=\"inner\")");
-		} else if (joinType.equals("left.outer.join")) {
-			builder.append("], how=\"left\")");
-		} else if (joinType.equals("right.outer.join")) {
-			builder.append("], how=\"right\")");
-		} else if (joinType.equals("outer.join")) {
-			builder.append("], how=\"outer\")");
+			if (joinType.equals("inner.join")) {
+				builder.append("], how=\"inner\")");
+			} else if (joinType.equals("left.outer.join")) {
+				builder.append("], how=\"left\")");
+			} else if (joinType.equals("right.outer.join")) {
+				builder.append("], how=\"right\")");
+			} else if (joinType.equals("outer.join")) {
+				builder.append("], how=\"outer\")");
+			}
+		} else {
+			builder.append(returnTable).append("=").append(pandasFrameVar).append(".merge(").append(leftTableName).append(".assign(key=0),")
+				   .append(rightTableName).append(".assign(key=0),on='key').drop('key',axis=1)");
 		}
-
+		return builder.toString();
+	}
+	
+	public static String getMergeFilterSyntax(String tableName, List<Map<String, String>> joinCols, List<String> joinComparators) {
+		StringBuilder builder = new StringBuilder();
+		StringBuilder dropSyntax = new StringBuilder();
+		
+		for (int i = 0; i < joinCols.size(); i++) {
+			if (builder.length() > 0) {
+				builder.append(" & ");
+			}
+			if (dropSyntax.length() > 0) {
+				dropSyntax.append(", ");
+			}
+			Map<String, String> joinMap = joinCols.get(i);
+			for (String lColumn : joinMap.keySet()) {
+				String rColumn = joinMap.get(lColumn);
+				builder.append("(").append(tableName).append("['").append(lColumn).append("']")
+					   .append(joinComparators.get(i)).append(tableName).append("['").append(rColumn).append("'])");
+				if (rColumn.equals(lColumn + "_CTD")) {
+					dropSyntax.append("'" + rColumn + "'");
+				}
+			}
+		}
+		builder = new StringBuilder(tableName).append("=").append(tableName).append(".loc[(").append(builder).append(")]");
+		if (dropSyntax.length() > 0) {
+			builder.append(".drop([").append(dropSyntax).append("],axis=1)");
+		}
 		return builder.toString();
 	}
 
@@ -444,9 +477,9 @@ public class PandasSyntaxHelper {
 			} else if (SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
 				str.append(row.get(i).toString());
 			} else if (SemossDataType.DATE == dataType) {
-				str.append("np.datetime64(\"" + row.get(i).toString() + "\", format='%Y-%m-%d')");
+				str.append("np.datetime64(\"" + row.get(i).toString() + "\")");
 			} else if (SemossDataType.TIMESTAMP == dataType) {
-				str.append("np.datetime64(\"" + row.get(i).toString() + "\", format='%Y-%m-%d %H:%M:%S')");
+				str.append("np.datetime64(\"" + row.get(i).toString() + "\")");
 			} else {
 				// just in case this is not defined yet...
 				// see the type of the value and add it in based on that
