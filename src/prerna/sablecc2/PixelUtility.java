@@ -710,6 +710,7 @@ public class PixelUtility {
 			
 			boolean isVisualizaiton = panel.getPanelView().equalsIgnoreCase("visualization");
 			if(isVisualizaiton) {
+				int numCollect = panel.getNumCollect();
 				Map<String, SelectQueryStruct> qsMap = panel.getLayerQueryStruct();
 				Map<String, TaskOptions> tOptionsMap = panel.getLayerTaskOption();
 				
@@ -718,7 +719,8 @@ public class PixelUtility {
 					TaskOptions tOptions = tOptionsMap.get(layer);
 
 					StringBuilder taskPixel = new StringBuilder(QsToPixelConverter.getPixel(qs, true));
-					taskPixel.append(" | TaskOptions(").append(gson.toJson(tOptions.getOptions())).append(") | Collect(2000);");
+					taskPixel.append(" | TaskOptions(").append(gson.toJson(tOptions.getOptions()))
+						.append(") | Collect(").append(numCollect).append(");");
 					panelTasks.add(taskPixel.toString());
 				}
 			}
