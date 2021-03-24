@@ -149,6 +149,8 @@ public class PandasImporter extends AbstractImporter {
 			String joinType = null;
 			Set<String> joinTypeSet = new HashSet<>();
 			List<Map<String, String>> joinCols = new ArrayList<>();
+			List<String> joinComparators = new ArrayList<>();
+			boolean nonEqui = false;
 			for(Join joinItem : joins) {
 				joinType = joinItem.getJoinType();
 				joinTypeSet.add(joinType);
@@ -165,6 +167,12 @@ public class PandasImporter extends AbstractImporter {
 				}
 				joinColMapping.put(jSelector, jQualifier);
 				joinCols.add(joinColMapping);
+				
+				String joinComparator = joinItem.getComparator();
+				if (!joinComparator.equals("=")) {
+					nonEqui = true;
+				}
+				joinComparators.add(joinComparator);
 			}
 			
 			if(joinTypeSet.size() > 1) {
@@ -174,7 +182,7 @@ public class PandasImporter extends AbstractImporter {
 								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			//execute python command
-			this.dataframe.merge(returnTable, leftTableName, tempTableName, joinType, joinCols);
+			this.dataframe.merge(returnTable, leftTableName, tempTableName, joinType, joinCols, joinComparators, nonEqui);
 			// update the table in the wrapper
 			this.dataframe.runScript(this.dataframe.getWrapperName() +  ".cache['data'] = " + returnTable);
 			this.dataframe.runScript("del " + tempTableName);
