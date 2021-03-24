@@ -65,12 +65,13 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		// get file extension to determine qs
 		boolean isExcel = false;
 		if (fileLocation.contains(".")) {
-			fileExtension = fileLocation.substring(fileLocation.indexOf('.'), fileLocation.length());
+			fileExtension = fileLocation.substring(fileLocation.lastIndexOf('.'), fileLocation.length());
 			if(fileExtension.equals(".xls") || fileExtension.equals(".xlsx") || fileExtension.equals(".xlsm")) {
 				isExcel = true;
 			}
 		}
-		if(isExcel) { // set excelQS
+		if(isExcel) { 
+			// set excelQS
 			// get excel inputs
 			String sheetName = getSheetName();
 			String sheetRange = getRange();
