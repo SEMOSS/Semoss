@@ -237,16 +237,39 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	/**
-	 * Merge the pandas frame with another frame
+	 * Merge the pandas frame with another frame. If a non equi join, performs a cross product and then 
+	 * filters the results. For the non equi joins, if the left and right join column names are equal, changes the right column name
+	 * so that it can be dropped later. 
+	 * 
 	 * @param returnTable
 	 * @param leftTableName
 	 * @param rightTableName
 	 * @param joinType
 	 * @param joinCols
 	 */
-	public void merge(String returnTable, String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
-		String mergeString = PandasSyntaxHelper.getMergeSyntax(PANDAS_IMPORT_VAR, returnTable, leftTableName, rightTableName, joinType, joinCols);
-		pyt.runScript(mergeString);
+	public void merge(String returnTable, String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols,
+			List<String> joinComparators, boolean nonEqui) {
+		String mergeString = PandasSyntaxHelper.getMergeSyntax(PANDAS_IMPORT_VAR, returnTable, leftTableName, rightTableName, 
+				joinType, joinCols, nonEqui);
+		
+		if (!nonEqui) {
+			pyt.runScript(mergeString);
+		} else {
+			for (int i = 0; i < joinCols.size(); i++) {
+				Map<String, String> joinMap = joinCols.get(i);
+				for (String lColumn : joinMap.keySet()) {
+					if (lColumn.equals(joinMap.get(lColumn))) {
+						String newColumn = joinMap.get(lColumn) + "_CTD";
+						pyt.runScript(PandasSyntaxHelper.alterColumnName(rightTableName, joinMap.get(lColumn), newColumn));
+						joinMap.replace(lColumn, newColumn);
+						joinCols.set(i, joinMap);
+					}
+				}
+			}
+			String filterSyntax = PandasSyntaxHelper.getMergeFilterSyntax(returnTable, joinCols,joinComparators);
+			pyt.runScript(mergeString);
+			pyt.runScript(filterSyntax);
+		}
 	}
 	
 	/**
