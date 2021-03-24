@@ -133,14 +133,9 @@ public class RImporter extends AbstractImporter {
 
 		try {
 			this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
-			// we may need to alias the headers in this new temp table
-			for (String oldColName : rightTableAlias.keySet()) {
-				this.dataframe.executeRScript(
-						RSyntaxHelper.alterColumnName(tempTableName, oldColName, rightTableAlias.get(oldColName)));
-			}
 
-			// define parameters that we will pass into mergeSyntax method to get the R
-			// command
+			// define parameters that we will pass into mergeSyntax method 
+			// to get the R command
 			String returnTable = this.dataframe.getName();
 			String leftTableName = returnTable;
 
@@ -179,6 +174,17 @@ public class RImporter extends AbstractImporter {
 				throw new SemossPixelException(
 						new NounMetadata("Mixed join conditions cannot be applied on the R frame type",
 								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
+			
+			// we may need to alias the headers in this new temp table
+			// if we are doing a merge, lets do this
+			// but if we are using SQL, we will handle this via the alias 
+			// in the sql query itself
+			if(!isComplexJoin) {
+				for (String oldColName : rightTableAlias.keySet()) {
+					this.dataframe.executeRScript(
+							RSyntaxHelper.alterColumnName(tempTableName, oldColName, rightTableAlias.get(oldColName)));
+				}
 			}
 
 			// need to account for the data types being different for the join columns
