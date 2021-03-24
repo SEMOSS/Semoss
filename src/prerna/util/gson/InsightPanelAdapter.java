@@ -67,6 +67,7 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		Map<String, SelectQueryStruct> layerQueryStructMap = null;
 		TaskOptions lastTaskOptions = null;
 		Map<String, TaskOptions> layerTaskOptionsMap = null;
+		Integer numCollect = null;
 		
 		in.beginObject();
 		while(in.hasNext()) {
@@ -93,7 +94,10 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 				view = value;
 			} else if(key.equals("viewOptions")) {
 				viewOptions = value;
-			} else if(key.equals("viewOptionsMap")) {
+			} else if(key.equals("numCollect")) {
+				numCollect = in.nextInt();
+			} 
+			else if(key.equals("viewOptionsMap")) {
 				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
 				viewOptionsMap = (Map<String, Map<String, Object>>) adapter.read(in);
 				
@@ -190,7 +194,9 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		panel.addPanelFilters(grf);
 		panel.setPanelOrderBys(orders);
 		panel.setComments(comments);
-		
+		if(numCollect != null) {
+			panel.setNumCollect(numCollect);
+		}
 		if(cbvList != null) {
 			panel.getColorByValue().addAll(cbvList);
 		}
@@ -220,6 +226,7 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		out.name("sheetId").value(value.getSheetId());
 		out.name("view").value(value.getPanelView());
 		out.name("viewOptions").value(value.getPanelActiveViewOptions());
+		out.name("numCollect").value(value.getNumCollect());
 		out.name("viewOptionsMap");
 		{
 			Map<String, Map<String, Object>> obj = value.getPanelViewOptions();
