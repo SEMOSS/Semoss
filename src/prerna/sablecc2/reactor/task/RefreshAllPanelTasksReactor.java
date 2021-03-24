@@ -41,7 +41,7 @@ public class RefreshAllPanelTasksReactor extends AbstractReactor {
 		// store the tasks to reset
 		List<NounMetadata> taskOutput = new Vector<NounMetadata>();
 		// get the limit for the new tasks
-		int limit = getTotalToCollect();
+		Integer limit = getTotalToCollect();
 				
 		List<NounMetadata> additionalMessages = new Vector<>();
 
@@ -50,6 +50,10 @@ public class RefreshAllPanelTasksReactor extends AbstractReactor {
 			InsightPanel panel = insightPanelsMap.get(panelId);
 			if(!panel.getPanelView().equalsIgnoreCase("visualization")) {
 				continue;
+			}
+			Integer panelCollect = limit;
+			if(panelCollect == null) {
+				panelCollect = panel.getNumCollect();
 			}
 			// need to account for layers
 			// so will loop through the layer maps
@@ -75,7 +79,7 @@ public class RefreshAllPanelTasksReactor extends AbstractReactor {
 						// this will ensure we are using the latest panel and frame filters on refresh
 						BasicIteratorTask task = InsightUtility.constructTaskFromQs(this.insight, qs);
 						try {
-							executeTask(task, taskOptions, limit, logger);	
+							executeTask(task, taskOptions, panelCollect, logger);	
 						} catch(Exception e) {
 							logger.info("Previous query on panel " + panelId + " does not work");
 							classLogger.error(Constants.STACKTRACE, e);
@@ -98,7 +102,7 @@ public class RefreshAllPanelTasksReactor extends AbstractReactor {
 							task = new BasicIteratorTask(allQs);
 							taskOptions = new TaskOptions(AutoTaskOptionsHelper.generateGridTaskOptions(allQs, panelId));
 							try {
-								executeTask(task, taskOptions, limit, logger);
+								executeTask(task, taskOptions, panelCollect, logger);
 								additionalMessages.add(warning);
 							} catch (Exception e1) {
 								// at this point - no luck :/
@@ -161,14 +165,13 @@ public class RefreshAllPanelTasksReactor extends AbstractReactor {
 	}
 
 	//returns how much do we need to collect
-	private int getTotalToCollect() {
+	private Integer getTotalToCollect() {
 		// try the key
 		GenRowStruct numGrs = store.getNoun(keysToGet[0]);
 		if(numGrs != null && !numGrs.isEmpty()) {
 			return ((Number) numGrs.get(0)).intValue();
 		}
 
-		// default to 500
-		return 500;
+		return null;
 	}
 }
