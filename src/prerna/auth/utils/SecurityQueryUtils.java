@@ -821,6 +821,36 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return userMap;
 	}
 	
+	/**
+	 * Get the total number of users
+	 * @return
+	 */
+	public static int getApplicationUserCount() {
+		int userCount = 0;
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		fun.setFunction(QueryFunctionHelper.COUNT);
+		qs.addSelector(fun);
+		
+		IRawSelectWrapper it = null;
+		try {
+			it = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(it.hasNext()) {
+				userCount = ((Number) it.next().getValues()[0]).intValue();
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(it != null) {
+				it.cleanUp();
+			}
+		}
+		
+		return userCount;
+	}
+	
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
