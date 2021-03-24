@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
@@ -27,17 +28,20 @@ import prerna.poi.main.helper.excel.ExcelWorkbookFilePreProcessor;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AdminUploadUsersReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(AdminUploadUsersReactor.class);
 	private static final String CLASS_NAME = AdminUploadUsersReactor.class.getName();
-	
+
 	static final String NAME = "NAME";
 	static final String EMAIL = "EMAIL";
 	static final String TYPE = "TYPE";
@@ -101,7 +105,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 			conn = database.getConnection();
 			conn.setAutoCommit(false);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		
@@ -112,7 +116,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 				it = getExcelIterator(filePath);
 				loadExcelFile(conn, database.getQueryUtil(), it);
 			} catch (Exception e) {
-				e.printStackTrace();
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
 			} finally {
 				if(it != null) {
@@ -163,10 +167,22 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 		return it;
 	}
 
-	private void loadExcelFile(Connection conn, 
-			AbstractSqlQueryUtil queryUtil, 
-			ExcelSheetFileIterator helper) throws Exception {
+	private void loadExcelFile(Connection conn, AbstractSqlQueryUtil queryUtil, ExcelSheetFileIterator helper) throws Exception {
+		// see if there is a user limit applied
+		int currentUserCount = -1;
 
+		String userLimitStr = DIHelper.getInstance().getProperty(Constants.MAX_USER_LIMIT);
+		int userLimit = -1;
+		if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
+			try {
+				userLimit = Integer.parseInt(userLimitStr);
+				currentUserCount = SecurityQueryUtils.getApplicationUserCount(); 
+			} catch(NumberFormatException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("User limit is not a valid numeric value");
+			}
+		}
+			
 		PreparedStatement ps = conn.prepareStatement(insertQuery);
 		String[] excelHeaders = helper.getHeaders();
 		List<String> excelHeadersList = Arrays.asList(excelHeaders);
@@ -194,93 +210,104 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 			throw new IllegalArgumentException("One or more headers are missing from the excel");
 		}
 		
-		int counter = 0;
-		Object[] row = null;
-		while ((helper.hasNext())) {
-			row = helper.next().getRawValues();
-			// id could be string or # based on the type
-			Object idObj = row[idxId];
-			if(idObj == null || idObj.toString().trim().isEmpty()) {
-				throw new IllegalArgumentException("Must have the id for the user defined - check row " + counter);
+		try {
+			int counter = 0;
+			Object[] row = null;
+			while ((helper.hasNext())) {
+				// if we hit the limit - throw an error
+				if(userLimit > 0 && currentUserCount+1 > userLimit) {
+					throw new SemossPixelException("User Limit exceeded the max value of " + userLimit);
+				}
+				
+				row = helper.next().getRawValues();
+				// id could be string or # based on the type
+				Object idObj = row[idxId];
+				if(idObj == null || idObj.toString().trim().isEmpty()) {
+					throw new IllegalArgumentException("Must have the id for the user defined - check row " + counter);
+				}
+				String id = null;
+				if(idObj instanceof Number) {
+					id = new BigDecimal( ((Number) idObj).doubleValue() ).toPlainString();
+				} else {
+					id = idObj + "";
+				}
+				String name = (String) row[idxName];
+				String email = (String) row[idxEmail];
+				String type = (String) row[idxType];
+				String password = (String) row[idxPassword];
+				String salt = (String) row[idxSalt];
+				String username = (String) row[idxUsername];
+				boolean admin = Boolean.parseBoolean(row[idxAdmin] + "");
+				boolean publisher = Boolean.parseBoolean(row[idxPublisher] + "");
+	
+				if(id == null || id.isEmpty()) {
+					throw new IllegalArgumentException("Must have the id for the user defined - check row " + counter);
+				}
+				// check if the ID already exists
+				if(SecurityQueryUtils.checkUserExist(id)) {
+					logger.info("User id = " + id + " alraedy exists - skipping record for upload");
+					continue;
+				}
+				
+				if(type == null || type.isEmpty()) {
+					throw new IllegalArgumentException("Must have the type of login for the user defined - check row " + counter);
+				}
+				AuthProvider provider = AuthProvider.valueOf(type.trim().toUpperCase());
+				if(provider == null) {
+					throw new IllegalArgumentException("Could not determine the correct provider type for " + type + " - check row " + counter);
+				}
+				
+				// these 2 are required
+				ps.setString(psIndex.get(TYPE), provider.toString());
+				ps.setString(psIndex.get(ID), id.trim());
+				// boolean is always true/false and defaults to false for parseBoolean logic
+				ps.setBoolean(psIndex.get(ADMIN), admin);
+				ps.setBoolean(psIndex.get(PUBLISHER), publisher);
+	
+				if(name == null) {
+					ps.setNull(psIndex.get(NAME), java.sql.Types.VARCHAR);
+				} else {
+					ps.setString(psIndex.get(NAME), name.trim());
+				}
+				
+				if(email == null) {
+					ps.setNull(psIndex.get(EMAIL), java.sql.Types.VARCHAR);
+				} else {
+					ps.setString(psIndex.get(EMAIL), email.trim().toLowerCase());
+				}
+				
+				if(username == null) {
+					ps.setNull(psIndex.get(USERNAME), java.sql.Types.VARCHAR);
+				} else {
+					ps.setString(psIndex.get(USERNAME), username.trim());
+				}
+				
+				// if password is there
+				// but no salt
+				// make the salt and store that
+				if(password != null && !password.isEmpty() && salt != null && !salt.isEmpty()) {
+					ps.setString(psIndex.get(PASSWORD), password.trim());
+					ps.setString(psIndex.get(SALT), salt.trim());
+				} else if(password != null && !password.isEmpty() && (salt == null || salt.isEmpty())) {
+					String genSalt = AbstractSecurityUtils.generateSalt();
+					String hashedPassword = (AbstractSecurityUtils.hash(password, genSalt));
+					ps.setString(psIndex.get(PASSWORD), hashedPassword.trim());
+					ps.setString(psIndex.get(SALT), genSalt.trim());
+				} else {
+					ps.setNull(psIndex.get(PASSWORD), java.sql.Types.VARCHAR);
+					ps.setNull(psIndex.get(SALT), java.sql.Types.VARCHAR);
+				}
+				
+				ps.addBatch();
+				counter++;
 			}
-			String id = null;
-			if(idObj instanceof Number) {
-				id = new BigDecimal( ((Number) idObj).doubleValue() ).toPlainString();
-			} else {
-				id = idObj + "";
+			ps.executeBatch();
+			logger.info("Done with item type updates , total rows = " + counter);
+		} finally {
+			if(ps != null) {
+				ps.close();
 			}
-			String name = (String) row[idxName];
-			String email = (String) row[idxEmail];
-			String type = (String) row[idxType];
-			String password = (String) row[idxPassword];
-			String salt = (String) row[idxSalt];
-			String username = (String) row[idxUsername];
-			boolean admin = Boolean.parseBoolean(row[idxAdmin] + "");
-			boolean publisher = Boolean.parseBoolean(row[idxPublisher] + "");
-
-			if(id == null || id.isEmpty()) {
-				throw new IllegalArgumentException("Must have the id for the user defined - check row " + counter);
-			}
-			// check if the ID already exists
-			if(SecurityQueryUtils.checkUserExist(id)) {
-				logger.info("User id = " + id + " alraedy exists - skipping record for upload");
-				continue;
-			}
-			
-			if(type == null || type.isEmpty()) {
-				throw new IllegalArgumentException("Must have the type of login for the user defined - check row " + counter);
-			}
-			AuthProvider provider = AuthProvider.valueOf(type.trim().toUpperCase());
-			if(provider == null) {
-				throw new IllegalArgumentException("Could not determine the correct provider type for " + type + " - check row " + counter);
-			}
-			
-			// these 2 are required
-			ps.setString(psIndex.get(TYPE), provider.toString());
-			ps.setString(psIndex.get(ID), id.trim());
-			// boolean is always true/false and defaults to false for parseBoolean logic
-			ps.setBoolean(psIndex.get(ADMIN), admin);
-			ps.setBoolean(psIndex.get(PUBLISHER), publisher);
-
-			if(name == null) {
-				ps.setNull(psIndex.get(NAME), java.sql.Types.VARCHAR);
-			} else {
-				ps.setString(psIndex.get(NAME), name.trim());
-			}
-			
-			if(email == null) {
-				ps.setNull(psIndex.get(EMAIL), java.sql.Types.VARCHAR);
-			} else {
-				ps.setString(psIndex.get(EMAIL), email.trim().toLowerCase());
-			}
-			
-			if(username == null) {
-				ps.setNull(psIndex.get(USERNAME), java.sql.Types.VARCHAR);
-			} else {
-				ps.setString(psIndex.get(USERNAME), username.trim());
-			}
-			
-			// if password is there
-			// but no salt
-			// make the salt and store that
-			if(password != null && !password.isEmpty() && salt != null && !salt.isEmpty()) {
-				ps.setString(psIndex.get(PASSWORD), password.trim());
-				ps.setString(psIndex.get(SALT), salt.trim());
-			} else if(password != null && !password.isEmpty() && (salt == null || salt.isEmpty())) {
-				String genSalt = AbstractSecurityUtils.generateSalt();
-				String hashedPassword = (AbstractSecurityUtils.hash(password, genSalt));
-				ps.setString(psIndex.get(PASSWORD), hashedPassword.trim());
-				ps.setString(psIndex.get(SALT), genSalt.trim());
-			} else {
-				ps.setNull(psIndex.get(PASSWORD), java.sql.Types.VARCHAR);
-				ps.setNull(psIndex.get(SALT), java.sql.Types.VARCHAR);
-			}
-			
-			ps.addBatch();
-			counter++;
 		}
-		ps.executeBatch();
-		logger.info("Done with item type updates , total rows = " + counter);
 	}
 	
 }

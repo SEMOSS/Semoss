@@ -1024,5 +1024,4 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
-
 }

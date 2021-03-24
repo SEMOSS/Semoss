@@ -17,7 +17,9 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 
@@ -48,6 +50,22 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public static Boolean addNativeUser(AccessToken newUser, String password) {
+		// also add the max user limit check
+		String userLimitStr = DIHelper.getInstance().getProperty(Constants.MAX_USER_LIMIT);
+		if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
+			try {
+				int userLimit = Integer.parseInt(userLimitStr);
+				int currentUserCount = SecurityQueryUtils.getApplicationUserCount();
+				
+				if(userLimit > 0 && currentUserCount+1 > userLimit) {
+					throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
+				}
+			} catch(NumberFormatException e) {
+				logger.error(Constants.STACKTRACE, e);
+				logger.error("User limit is not a valid numeric value");
+			}
+		}
+		
 		validInformation(newUser, password);
 		
 		// is this an admin added user???

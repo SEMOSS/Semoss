@@ -182,7 +182,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 		// update frame meta for new cols being added
 		// build qs to pull the target data
 		IEngine newColEngine = Utility.getEngine(newDb);
-		Map typesMap = new HashMap<String, SemossDataType>();
+		Map<String, SemossDataType> typesMap = new HashMap<>();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(newColEngine);
 		
