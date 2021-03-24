@@ -33,6 +33,7 @@ import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
@@ -673,7 +674,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(newUser.getEmail() != null) {
 			newUser.setEmail(newUser.getEmail().toLowerCase());
 		}
-					
+		
 		// see if the user was added by an admin
 		// this means it could be on the ID or the EMAIL
 		// but name is the admin_added_user constant
@@ -754,6 +755,23 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// so that we do not enter here from different threads 
 				// and add the same user twice
 				synchronized(SecurityUpdateUtils.class) {
+					
+					// also add the max user limit check
+					String userLimitStr = DIHelper.getInstance().getProperty(Constants.MAX_USER_LIMIT);
+					if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
+						try {
+							int userLimit = Integer.parseInt(userLimitStr);
+							int currentUserCount = SecurityQueryUtils.getApplicationUserCount();
+							
+							if(userLimit > 0 && currentUserCount+1 > userLimit) {
+								throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
+							}
+						} catch(NumberFormatException e) {
+							logger.error(Constants.STACKTRACE, e);
+							logger.error("User limit is not a valid numeric value");
+						}
+					}
+					
 					// need to prevent 2 threads attempting to add the same user
 					userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 					if(!userExists) {
@@ -861,11 +879,26 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public static boolean registerUser(String id, String name, String email, String password, String type, boolean admin,
-			boolean publisher) throws IllegalArgumentException {
-		boolean isNewUser = SecurityQueryUtils.checkUserExist(id);
-		if(isNewUser) {
+	public static boolean registerUser(String id, String name, String email, String password, String type, boolean admin, boolean publisher) throws IllegalArgumentException {
+		boolean isExistingUser = SecurityQueryUtils.checkUserExist(id);
+		if(isExistingUser) {
 			return false;
+		}
+		
+		// also add the max user limit check
+		String userLimitStr = DIHelper.getInstance().getProperty(Constants.MAX_USER_LIMIT);
+		if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
+			try {
+				int userLimit = Integer.parseInt(userLimitStr);
+				int currentUserCount = SecurityQueryUtils.getApplicationUserCount();
+				
+				if(userLimit > 0 && currentUserCount+1 > userLimit) {
+					throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
+				}
+			} catch(NumberFormatException e) {
+				logger.error(Constants.STACKTRACE, e);
+				logger.error("User limit is not a valid numeric value");
+			}
 		}
 		
 		String userName = ADMIN_ADDED_USER;
