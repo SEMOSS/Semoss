@@ -171,14 +171,6 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		return this.isDistinct;
 	}
 	
-	public void setOverrideImplicit(boolean overrideImplicit) {
-		this.overrideImplicit = overrideImplicit;
-	}
-	
-	public boolean isOverrideImplicit() {
-		return this.overrideImplicit;
-	}
-	
 	/**
 	 * Return is this column has an existing filter in the QS
 	 * @param column
