@@ -167,7 +167,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 		} else {
 			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&hideMenu=true&drop=5000&animation=false";
 		}
-		ChromeDriverUtility.captureImage(feUrl, url, imageDirStr + DIR_SEPARATOR + "image.png", sessionId);
+		insight.getChromeDriver().captureImage(feUrl, url, imageDirStr + DIR_SEPARATOR + "image.png", sessionId);
 	}
 	
 

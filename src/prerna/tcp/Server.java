@@ -83,7 +83,7 @@ public class Server
 		if(args == null || args.length == 0)
 		{
 			args = new String[4];
-			args[0] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/InsightCache/aaaaaaa_please_keep_it";
+			args[0] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/InsightCache/a1772607105157492922";
 			args[1] = "c:/users/pkapaleeswaran/workspacej3/SemossDev/RDF_MAP.prop";
 			args[2] = "8007";
 			//args[3] = "py";

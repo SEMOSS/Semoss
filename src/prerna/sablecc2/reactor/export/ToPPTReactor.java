@@ -65,7 +65,7 @@ public class ToPPTReactor extends AbstractReactor {
 			// Run headless chrome with semossTagUrl
 			String imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
 			logger.info("Generating image for PPT...");
-			ChromeDriverUtility.captureImage(baseUrl, url, imagePath, sessionId);
+			this.insight.getChromeDriver().captureImage(baseUrl, url, imagePath, sessionId);
 			tempPaths.add(imagePath);
 			logger.info("Done generating image for PPT...");
 			imageNum += 1;
