@@ -33,7 +33,7 @@ public class TCPPyTranslator extends PyTranslator {
 		ps.payloadClasses = new Class[] {String.class};
 		ps.longRunning = true;
 		ps = (PayloadStruct)nc.executeCommand(ps);
-		if(ps.ex != null)
+		if(ps != null && ps.ex != null)
 		{
 			logger.info("Exception " + ps.ex);
 		}
