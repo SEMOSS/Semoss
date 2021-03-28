@@ -119,10 +119,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	
 	protected Logger logger;
 
-	ChromeDriver driver = null;
+	Object driver = null;
 	private Map<String, Map<String, Object>> chartPanelLayout = new HashMap<>();
 	int height = 10;
 	int width = 10;
+	
+	ChromeDriverUtility util = null;
 	
 	// sheet alias
 	Map<String, String> sheetAlias = new HashMap<>();
@@ -347,9 +349,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		removeSheet(workbook);
 		
 		// close the driver
-		if(driver != null) {
-			driver.quit();
-		}
+		insight.getChromeDriver().quit(driver);
+		/*
+		if(driver != null && driver instanceof ChromeDriver) {
+			((ChromeDriver)driver).quit();
+		}*/
 
 		// write / encrypt file
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
@@ -513,15 +517,18 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			
 		} catch(Exception ex) {
 			ex.printStackTrace();
-			if(driver != null) {
-				driver.quit();
-			}
+			insight.getChromeDriver().quit(driver);
+
+//			if(driver != null && driver instanceof ChromeDriver) {
+//				((ChromeDriver)driver).quit();
+//			}
 			driver = null;
 		} finally {
-			if(driver != null) {
-				driver.quit();
-			}
-			driver = null;
+			insight.getChromeDriver().quit(driver);
+//			if(driver != null && driver instanceof ChromeDriver) {
+//				((ChromeDriver)driver).quit();
+//			}
+//			driver = null;
 		}
 	}
 
@@ -1325,12 +1332,22 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&sheet=" + sheetId + "&panel=" + panelId;
 		logger.info("Generating grid at " + htmlUrl);
 		if(driver == null) {
-			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl,  800, 600);
+			//driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl,  800, 600);
+			driver = insight.getChromeDriver().makeChromeDriver(baseUrl, htmlUrl,  800, 600);
 		}
 		logger.info("Generating grid view");
-		ChromeDriverUtility.captureDataPersistent(driver, baseUrl, htmlUrl, sessionId);
-		WebElement we = driver.findElement(By.xpath("//html/body"));// This is to support multiple tables for export
-		String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
+		
+		String exportName = AbstractExportTxtReactor.getExportFileName("ABCD", "png");
+		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
+
+		this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, htmlUrl, imageLocation, sessionId, 10_000);
+		
+		String html2 = insight.getChromeDriver().captureDataPersistent(driver, baseUrl, htmlUrl, sessionId, 10_000);
+		//logger.info(" HTML from Capture " + html2);
+		//html2 = insight.getChromeDriver().getHTML(driver, "//html/body//table");
+		//logger.info(" HTML from getHTML " + html2);
+		//WebElement we = driver.findElement(By.xpath("//html/body//table"));
+		//String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
 		
 		//WebElement elem1 = new WebDriverWait(driver, 10)
 		//        .until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//table")));
@@ -1392,14 +1409,17 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
 		if(driver == null) {
-			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
+			//driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
+			driver = this.insight.getChromeDriver().makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
 		}
 		// download this file
-		ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId);
-		
-		driver.quit();
-		driver = null;
+		//ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId);
+		this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId, 800);
 
+		
+		insight.getChromeDriver().quit(driver);
+		driver = null;
+		
 		// download this file
 		//ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800, 600, true);
 		// write this to the sheet now

@@ -49,6 +49,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.ChromeDriverUtility;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -127,7 +128,9 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 
 		Workbook wb = null;
 		FileOutputStream fileOut = null;
-		ChromeDriver driver = null;
+		Object driver = null;
+		ChromeDriverUtility util = this.insight.getChromeDriver();
+		
 		try {
 			if(template != null) {
 				wb = new XSSFWorkbook(template);
@@ -177,10 +180,10 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 					String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 
 					if(driver == null) {
-						driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
+						driver = util.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
 					}
 					// download this file
-					ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId);
+					util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId);
 
 					// download this file
 					//ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800, 600, true);
@@ -304,8 +307,8 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 					e.printStackTrace();
 				}
 			}
-			if(driver != null) {
-				driver.quit();
+			if(driver != null && driver instanceof ChromeDriver) {
+				((ChromeDriver)driver).quit();
 			}
 		}
 	}

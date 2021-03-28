@@ -116,7 +116,8 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		// open a workbook
 		XMLSlideShow hslfSlideShow = null;
 		FileOutputStream fileOut = null;
-		ChromeDriver driver = null;
+		Object driver = null;
+		ChromeDriverUtility util = null;
 		XSLFSlideLayout targetLayout = null;
 		try {
 			if(template != null) {
@@ -168,12 +169,13 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 				String prefixName = Utility.getRandomString(8);
 				String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "png");
 				String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
+				util = new ChromeDriverUtility();
 
 				if(driver == null) {
-					driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, height, width);
+					driver = util.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, height, width);
 				}
 				// download this file
-				ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId);
+				util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800);
 				//driver = ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800, 600, false);
 				// write this to the sheet now
 
@@ -250,8 +252,8 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 					e.printStackTrace();
 				}
 			}
-			if(driver != null) {
-				driver.quit();
+			if(driver != null && driver instanceof ChromeDriver) {
+				((ChromeDriver)driver).quit();
 			}
 		}
 	}

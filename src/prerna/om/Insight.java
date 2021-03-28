@@ -86,9 +86,11 @@ import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.tcp.client.Client;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.AssetUtility;
+import prerna.util.ChromeDriverUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.NettyChromeDriverClient;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
@@ -209,6 +211,9 @@ public class Insight implements Serializable {
 	
 	// cmd util proxy
 	CmdExecUtil cmdUtil = null;
+	
+	// chrome proxy
+	private transient ChromeDriverUtility chromeUtil = null;
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -679,9 +684,17 @@ public class Insight implements Serializable {
 				// do this so that the netty client is initialized
 				//getPyTranslator();
 				// now set the netty client
-				((TCPRTranslator)this.rJavaTranslator).nc = this.user.getTCPServer();
+				if(this.user != null)
+				{
+					((TCPRTranslator)this.rJavaTranslator).nc = this.user.getTCPServer();
+				}
+				else
+				{
+					((TCPRTranslator)this.rJavaTranslator).nc = PySingleton.getTCPServer();					
+				}
 				this.rJavaTranslator.setInsight(this);
 				this.rJavaTranslator.startR();
+				
 			}			
 		}
 		return this.rJavaTranslator;
@@ -1563,4 +1576,27 @@ public class Insight implements Serializable {
 
 	///////////////////////////////////////// END PYTHON SPECIFIC METHODS ///////////////////////////////////////////
 
+	public ChromeDriverUtility getChromeDriver()
+	{
+		if(this.chromeUtil == null)
+		{
+			boolean useNettyChrome = DIHelper.getInstance().getProperty("NETTY_CHROME") != null
+					&& DIHelper.getInstance().getProperty("NETTY_CHROME").equalsIgnoreCase("true");
+			if(useNettyChrome)
+			{
+				ChromeDriverUtility.useNetty = true;
+				Client tcp = null;
+				if(user != null)
+					tcp = user.getTCPServer();
+				else
+					tcp = PySingleton.getTCPServer();
+					NettyChromeDriverClient.setClient(tcp);
+					chromeUtil = new NettyChromeDriverClient();
+			}
+			else
+				chromeUtil = new ChromeDriverUtility();	
+		}
+		return chromeUtil;
+	}
+	
 }
