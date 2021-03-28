@@ -1,6 +1,9 @@
 package prerna.util;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
@@ -15,12 +18,14 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import prerna.om.ThreadStore;
 import prerna.test.TestUtilityMethods;
 import prerna.util.insight.InsightUtility;
 
-public class ChromeDriverUtility {
+public class TCPChromeDriverUtility {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	protected static final Logger logger = LogManager.getLogger(InsightUtility.class.getName());
@@ -28,161 +33,173 @@ public class ChromeDriverUtility {
 	protected static String contextPath = null;
 	protected static String sessionCookie = null;
 	
-	private static ChromeDriver driver = null;
-	public static boolean useNetty = false;
+	public static ChromeDriver driver = null;
 
 	public static void captureImage(String feUrl, String url, String imagePath, String sessionId) {
-		
-		if(useNetty)
-			NettyChromeDriverClient.captureImage(feUrl, url, imagePath, sessionId);
-		else
-		{
-			ChromeDriver thisDriver = null;
-			try {
-				thisDriver = (ChromeDriver)makeChromeDriver(feUrl, url, 1920, 1080);
-				captureImagePersistent(thisDriver, feUrl, url, imagePath, sessionId, 800);
-			} finally {
-				if(thisDriver != null) {
-					thisDriver.close();
-				}
+		ChromeDriver thisDriver = null;
+		try {
+			thisDriver = (ChromeDriver)makeChromeDriver(feUrl, url, 1920, 1080);
+			captureImagePersistent(thisDriver, feUrl, url, imagePath, sessionId, 800);
+		} finally {
+			if(thisDriver != null) {
+				thisDriver.close();
 			}
 		}
 	}
 
 	public static Object makeChromeDriver(String feUrl, String url, int height, int width) 
 	{
-		if(useNetty)
-			return NettyChromeDriverClient.makeChromeDriver(feUrl, url, height, width);
-		
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String os = System.getProperty("os.name").toUpperCase();
-		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
-
-		boolean linux = false;
-		if (os.contains("WIN")) {
-			sysProp += "chromedriver-win.exe";
-		} else if (os.contains("MAC")) {
-			sysProp += "chromedriver-mac";
-		} else {
-			linux = true;
-			sysProp += "chromedriver-linux";
+		if(TCPChromeDriverUtility.driver == null)
+		{
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String os = System.getProperty("os.name").toUpperCase();
+			String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
+	
+			boolean linux = false;
+			if (os.contains("WIN")) {
+				sysProp += "chromedriver-win.exe";
+			} else if (os.contains("MAC")) {
+				sysProp += "chromedriver-mac";
+			} else {
+				linux = true;
+				sysProp += "chromedriver-linux";
+			}
+			System.setProperty("webdriver.chrome.driver", sysProp);
+			// System.setProperty("webdriver.chrome.verboseLogging", "true");
+			System.setProperty("webdriver.chrome.whitelistedIps", "");
+	
+			ChromeOptions chromeOptions = new ChromeOptions();
+			String customGoogleBinaryLocation = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_BINARY);
+			if (customGoogleBinaryLocation != null && !customGoogleBinaryLocation.isEmpty()) {
+				chromeOptions.setBinary(customGoogleBinaryLocation);
+			}
+			chromeOptions.addArguments("--headless");
+			chromeOptions.addArguments("--disable-gpu");
+			chromeOptions.addArguments("--window-size=" + height + "," + width);
+			chromeOptions.addArguments("--remote-debugging-port=9222");
+			//logger.info("##CHROME DRIVER: allowing insecure local");
+			//logger.info("##CHROME DRIVER: ignore certs");
+	
+			//chromeOptions.addArguments("--allow-insecure-localhost");
+			chromeOptions.addArguments("--ignore-certificate-errors");
+			chromeOptions.addArguments("--ignore-ssl-errors");
+			chromeOptions.addArguments("--ignore-ssl-errors=yes");
+			chromeOptions.addArguments("--ignore-ssl-errors=true");
+	
+			if (linux) {
+				chromeOptions.addArguments("-disable-dev-shm-usage");
+				chromeOptions.addArguments("--no-sandbox");
+			}
+			if (url.contains("localhost") && url.contains("https")) {
+				chromeOptions.addArguments("--allow-insecure-localhost ");
+			}
+			TCPChromeDriverUtility.driver = new ChromeDriver(chromeOptions);
 		}
-		System.setProperty("webdriver.chrome.driver", sysProp);
-		// System.setProperty("webdriver.chrome.verboseLogging", "true");
-		System.setProperty("webdriver.chrome.whitelistedIps", "");
-
-		ChromeOptions chromeOptions = new ChromeOptions();
-		String customGoogleBinaryLocation = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_BINARY);
-		if (customGoogleBinaryLocation != null && !customGoogleBinaryLocation.isEmpty()) {
-			chromeOptions.setBinary(customGoogleBinaryLocation);
-		}
-		chromeOptions.addArguments("--headless");
-		chromeOptions.addArguments("--disable-gpu");
-		chromeOptions.addArguments("--window-size=" + height + "," + width);
-		chromeOptions.addArguments("--remote-debugging-port=9222");
-		//logger.info("##CHROME DRIVER: allowing insecure local");
-		//logger.info("##CHROME DRIVER: ignore certs");
-
-		//chromeOptions.addArguments("--allow-insecure-localhost");
-		chromeOptions.addArguments("--ignore-certificate-errors");
-		chromeOptions.addArguments("--ignore-ssl-errors");
-		chromeOptions.addArguments("--ignore-ssl-errors=yes");
-		chromeOptions.addArguments("--ignore-ssl-errors=true");
-
-		if (linux) {
-			chromeOptions.addArguments("-disable-dev-shm-usage");
-			chromeOptions.addArguments("--no-sandbox");
-		}
-		if (url.contains("localhost") && url.contains("https")) {
-			chromeOptions.addArguments("--allow-insecure-localhost ");
-		}
-		ChromeDriver newDriver = new ChromeDriver(chromeOptions);
-		return newDriver;
+		return new Object();
 	}
 
-	public static void captureImagePersistent(Object driverObj, String feUrl, String url, String imagePath, String sessionId, int waitTime) {
+	public static String captureImagePersistent(Object driverObj, String feUrl, String url, String imagePath, String sessionId, int waitTime) {
 		// need to go to the base url first
 		// so that the cookie is applied at root level
-		if(useNetty)
-			NettyChromeDriverClient.captureImagePersistent(driverObj, feUrl, url, imagePath, sessionId, waitTime);
-		else
-		{
-			ChromeDriver driver = null;
-			if(driverObj instanceof ChromeDriver)
-				driver = (ChromeDriver)driverObj;
-			driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
-	
-			if (ChromeDriverUtility.contextPath != null) {
-				logger.info("##CHROME DRIVER: starting url = "+ url);
-	
-				logger.info("##CHROME DRIVER: context path not null = "+ ChromeDriverUtility.contextPath);
-				logger.info("##CHROME DRIVER: starting feUrl = "+ feUrl);
-	
-				String startingUrl = feUrl;
-				if (startingUrl.endsWith("/")) {
-					startingUrl = startingUrl.substring(0, startingUrl.length() - 1);
-				}
-				String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
-						+ ChromeDriverUtility.contextPath;
-	
-				logger.info("##CHROME DRIVER: ending baseUrl = "+ baseUrl);
-				//logger.info("##CHROME DRIVER: don't care using feURL " + feUrl);
-	
-				driver.get(baseUrl);
-			} else {
-				driver.get(url);
-				logger.info("##CHROME DRIVER: contextPath is null");
-				logger.info("##CHROME DRIVER: url to get = "+ url);
-	
+		driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+
+		if (TCPChromeDriverUtility.contextPath != null) {
+			logger.info("##CHROME DRIVER: starting url = "+ url);
+
+			logger.info("##CHROME DRIVER: context path not null = "+ TCPChromeDriverUtility.contextPath);
+			logger.info("##CHROME DRIVER: starting feUrl = "+ feUrl);
+
+			String startingUrl = feUrl;
+			if (startingUrl.endsWith("/")) {
+				startingUrl = startingUrl.substring(0, startingUrl.length() - 1);
 			}
-	
-			if (sessionId != null && ChromeDriverUtility.sessionCookie != null) {
-				// name, value, domain, path, expiration
-				//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
-				updateCookie(driver, ChromeDriverUtility.sessionCookie, sessionId);
-				String route = ThreadStore.getRouteId();
-				if(route != null && !route.isEmpty()) {
-					String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
-					if (routeCookieName != null && !routeCookieName.isEmpty()) {
-						updateCookie(driver, routeCookieName, route);
-					}
-	
-				} else {
-					logger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
-				}
-				//Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
-				//driver.manage().addCookie(name);
-			}
-	
-			// url = url + "&status";
-			driver.navigate().to(url);
-	
-			// looking for viz loaded
-			/*
-			 * WebElement we = null; we =
-			 * driver.findElement(By.xpath("//html/body//div[@id='viz-loaded']")); //we =
-			 * new WebDriverWait(driver,
-			 * 10).until(ExpectedConditions.elementToBeClickable(By.xpath(
-			 * "//html/body//div[@id='viz-loaded']")));
-			 * 
-			 * String html2 = driver.executeScript("return arguments[0].outerHTML;", we) +
-			 * ""; //logger.info(html2);
-			 */
-	
-			// time for FE to render the page before the image is taken
-			try {
-				Thread.sleep(waitTime);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			// take image
-			File scrFile = (File) ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-			try {
-				FileUtils.copyFile(scrFile, new File(imagePath));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
+					+ TCPChromeDriverUtility.contextPath;
+
+			logger.info("##CHROME DRIVER: ending baseUrl = "+ baseUrl);
+			//logger.info("##CHROME DRIVER: don't care using feURL " + feUrl);
+
+			driver.get(baseUrl);
+		} else {
+			driver.get(url);
+			logger.info("##CHROME DRIVER: contextPath is null");
+			logger.info("##CHROME DRIVER: url to get = "+ url);
+
 		}
+
+		if (sessionId != null && TCPChromeDriverUtility.sessionCookie != null) {
+			// name, value, domain, path, expiration
+			//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
+			updateCookie(driver, TCPChromeDriverUtility.sessionCookie, sessionId);
+			String route = ThreadStore.getRouteId();
+			if(route != null && !route.isEmpty()) {
+				String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
+				if (routeCookieName != null && !routeCookieName.isEmpty()) {
+					updateCookie(driver, routeCookieName, route);
+				}
+
+			} else {
+				logger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
+			}
+			//Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+			//driver.manage().addCookie(name);
+		}
+
+		// url = url + "&status";
+		driver.navigate().to(url);
+
+		// looking for viz loaded
+		/*
+		 * WebElement we = null; we =
+		 * driver.findElement(By.xpath("//html/body//div[@id='viz-loaded']")); //we =
+		 * new WebDriverWait(driver,
+		 * 10).until(ExpectedConditions.elementToBeClickable(By.xpath(
+		 * "//html/body//div[@id='viz-loaded']")));
+		 * 
+		 * String html2 = driver.executeScript("return arguments[0].outerHTML;", we) +
+		 * ""; //logger.info(html2);
+		 */
+
+		// time for FE to render the page before the image is taken
+		try {
+			Thread.sleep(waitTime);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		// take image
+		File srcFile = (File) ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+		try {
+			//FileUtils.copyFile(srcFile, new File(imagePath));
+			//FileUtils.moveFile(srcFile, new File(imagePath));
+			File targetFile = new File(imagePath);
+			//logger.debug("source file has been written to.. " + srcFile.getAbsolutePath());
+			copyFile(srcFile, targetFile);
+			while(!targetFile.exists()) // wait for the file to be written
+			{
+				Thread.sleep(50);
+			}
+			return srcFile.getAbsolutePath();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	private static void copyFile(File srcFile, File targetFile) throws Exception
+	{
+    	
+		FileInputStream input = new FileInputStream(srcFile);
+		FileOutputStream output = new FileOutputStream(targetFile);
+
+		byte[] buf = new byte[1024];
+		int bytesRead;
+		
+		while ((bytesRead = input.read(buf)) > 0) {
+		    output.write(buf, 0, bytesRead);
+		}
+
+		input.close();
+		output.close();
 	}
 
 	protected static void updateCookie(ChromeDriver driver, String cookieName, String cookieValue) {
@@ -278,67 +295,73 @@ public class ChromeDriverUtility {
 		// need to go to the base url first
 		// so that the cookie is applied at root level
 		// driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
-		if(useNetty)
-			return NettyChromeDriverClient.captureDataPersistent(driverObj, feUrl, url, sessionId, waitTime);
-		else
-		{
-			ChromeDriver driver = null;
-			if(driverObj instanceof ChromeDriver)
-				driver = (ChromeDriver)driverObj;
-	
-			
-			if (ChromeDriverUtility.contextPath != null) {
-				logger.info("##CHROME DRIVER: starting url = "+ url);
-	
-				logger.info("##CHROME DRIVER: context path not null = "+ ChromeDriverUtility.contextPath);
-				logger.info("##CHROME DRIVER: starting feUrl = "+ feUrl);
-	
-				String startingUrl = feUrl;
-				if (startingUrl.endsWith("/")) {
-					startingUrl = startingUrl.substring(0, startingUrl.length() - 1);
-				}
-				String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
-						+ ChromeDriverUtility.contextPath;
-	
-				logger.info("##CHROME DRIVER: ending baseUrl = "+ baseUrl);
-	
-				driver.get(baseUrl);
-			} else {
-				driver.get(url);
-				logger.info("##CHROME DRIVER: contextPath is null");
-				logger.info("##CHROME DRIVER: url to get = "+ url);
-			}
-			driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
-	
-			if (sessionId != null && ChromeDriverUtility.sessionCookie != null) {
-				// name, value, domain, path, expiration
-				//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
-				updateCookie(driver, ChromeDriverUtility.sessionCookie, sessionId);
-				String route = ThreadStore.getRouteId();
-				if(route != null && !route.isEmpty()) {
-					String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
-					if (routeCookieName != null && !routeCookieName.isEmpty()) {
-						updateCookie(driver, routeCookieName, route);
-					}
-				}
-				//Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
-				//driver.manage().addCookie(name);
-			}
-	
-			driver.navigate().to(url);
-	
-			// add a sleep
-			try {
-				Thread.sleep(waitTime);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			
-			String html2 = getHTML(driver, "//html/body//table");
-			return html2;
 
+		
+		if (TCPChromeDriverUtility.contextPath != null) {
+			logger.info("##CHROME DRIVER: starting url = "+ url);
+
+			logger.info("##CHROME DRIVER: context path not null = "+ TCPChromeDriverUtility.contextPath);
+			logger.info("##CHROME DRIVER: starting feUrl = "+ feUrl);
+
+			String startingUrl = feUrl;
+			if (startingUrl.endsWith("/")) {
+				startingUrl = startingUrl.substring(0, startingUrl.length() - 1);
+			}
+			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
+					+ TCPChromeDriverUtility.contextPath;
+
+			logger.info("##CHROME DRIVER: ending baseUrl = "+ baseUrl);
+
+			TCPChromeDriverUtility.driver.get(baseUrl);
+		} else {
+			TCPChromeDriverUtility.driver.get(url);
+			logger.info("##CHROME DRIVER: contextPath is null");
+			logger.info("##CHROME DRIVER: url to get = "+ url);
 		}
+		TCPChromeDriverUtility.driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+
+		if (sessionId != null && TCPChromeDriverUtility.sessionCookie != null) {
+			// name, value, domain, path, expiration
+			//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
+			updateCookie(driver, TCPChromeDriverUtility.sessionCookie, sessionId);
+			String route = ThreadStore.getRouteId();
+			if(route != null && !route.isEmpty()) {
+				String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
+				if (routeCookieName != null && !routeCookieName.isEmpty()) {
+					updateCookie(TCPChromeDriverUtility.driver, routeCookieName, route);
+				}
+			}
+			//Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+			//driver.manage().addCookie(name);
+		}
+
+		logger.info("Chrome -- Navingating to URL  " + url);
+		TCPChromeDriverUtility.driver.navigate().to(url);
+
+		// add a sleep
+		try {
+			Thread.sleep(waitTime);
+		} catch (InterruptedException e) {
+			e.printStackTrace(); 
+		}
+		
+		// trying the wait
+		WebDriverWait wait = new WebDriverWait(TCPChromeDriverUtility.driver, 600); // giving it 10 min.. we need a better way for this but.. 
+		WebElement we1 = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//html/body//table")));
+		
+		logger.info(" The element output I got is " + we1.getText());
+		
+		//String html2 = getHTML(TCPChromeDriverUtility.driver, "//html/body//table");
+		return we1.getText();
+
 	}
+	
+	public static void setContextAndSessionCookie(String contextPath, String sessionCookie)
+	{
+		TCPChromeDriverUtility.sessionCookie = sessionCookie;
+		TCPChromeDriverUtility.contextPath = contextPath;
+	}
+
 
 //	/**
 //	 * Capture the image of from a url
@@ -433,57 +456,31 @@ public class ChromeDriverUtility {
 		if (contextPath.endsWith("/")) {
 			contextPath = contextPath.substring(0, contextPath.length() - 1);
 		}
-		ChromeDriverUtility.contextPath = contextPath;
+		TCPChromeDriverUtility.contextPath = contextPath;
 	}
 
 	public static void setSessionCookie(String sessionCookie) {
-		ChromeDriverUtility.sessionCookie = sessionCookie;
+		TCPChromeDriverUtility.sessionCookie = sessionCookie;
 	}
 	
 	public static String getHTML(Object driverObj, String path)
 	{
-		if(useNetty)
-			return NettyChromeDriverClient.getHTML(driverObj, path);
-		else
-		{
-			ChromeDriver driver = (ChromeDriver)driverObj;
-			WebElement we = driver.findElement(By.xpath(path));
-			String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
-			return html2;
-		}
-	}
-	
-	public static void setContextAndSessionCookie(String contextPath, String sessionCookie)
-	{
-		if(useNetty)
-			NettyChromeDriverClient.setContextAndSessionCookie(contextPath, sessionCookie);
-		else
-		{
-			ChromeDriverUtility.sessionCookie = sessionCookie;
-			ChromeDriverUtility.contextPath = contextPath;
-		}
-
+		WebElement we = TCPChromeDriverUtility.driver.findElement(By.xpath(path));
+		String html2 = TCPChromeDriverUtility.driver.executeScript("return arguments[0].outerHTML;", we) + "";
+		return html2;
 	}
 	
 	public static void quit(Object driverObj)
 	{
-		if(useNetty)
-			NettyChromeDriverClient.quit(driverObj);
-		else
-		{
-			if(driverObj instanceof ChromeDriver)
-			{
-				driver = (ChromeDriver)driverObj;
-			}
-			if(driver != null)
-				driver.quit();
-		}
+		if(driver != null)
+			driver.quit();
+		driver = null;
 	}
 
 
 	public static void main(String[] args) {
 		TestUtilityMethods.loadDIHelper();
-		ChromeDriver driver = (ChromeDriver)ChromeDriverUtility.makeChromeDriver("https://www.buzzfeed.com/hbraga/best-gifts-2020",
+		ChromeDriver driver = (ChromeDriver)TCPChromeDriverUtility.makeChromeDriver("https://www.buzzfeed.com/hbraga/best-gifts-2020",
 				"https://www.buzzfeed.com/hbraga/best-gifts-2020", 30, 40);
 		driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 		String eTitle = "Demo Guru99 Page";
