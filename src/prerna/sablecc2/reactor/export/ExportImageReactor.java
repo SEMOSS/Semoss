@@ -49,7 +49,7 @@ public class ExportImageReactor extends AbstractReactor {
 		this.insight.addExportFile(downloadKey, insightFile);
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 
-		ChromeDriverUtility.captureImage(baseUrl, imageUrl, fileLocation, sessionId);
+		this.insight.getChromeDriver().captureImage(baseUrl, imageUrl, fileLocation, sessionId);
 		return retNoun;
 	}
 }

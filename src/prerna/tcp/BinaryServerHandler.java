@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
+import org.openqa.selenium.chrome.ChromeDriver;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -22,7 +23,9 @@ import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
+import prerna.util.ChromeDriverUtility;
 import prerna.util.FstUtil;
+import prerna.util.TCPChromeDriverUtility;
 
 public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 	
@@ -209,7 +212,7 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 				if(ps.engine == PayloadStruct.ENGINE.PYTHON)
 				{
 					// get the py translator for the first time
-					getPyTranslator();
+					//getPyTranslator();
 					try
 					{
 						Method method = findPyMethod(ps.methodName, ps.payloadClasses);
@@ -228,6 +231,32 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 						ps.ex = ex.getMessage();
 					}
 				}
+				else if(ps.engine == PayloadStruct.ENGINE.CHROME)
+				{
+					try
+					{
+						Method method = findChromeMethod(ps.methodName, ps.payloadClasses);
+						Object output = runMethodChrome(method, ps.payload);
+						if(output != null)
+							LOGGER.info("Output is not null - CHROME");
+						if(output instanceof ChromeDriver)
+							output = new Object();
+						if(output instanceof String)
+							LOGGER.info("Output is >>>>>>>>>>>>>>>  " + output);
+						Object [] retObject = new Object[1];
+						retObject[0] = output;
+						ps.payload = retObject;
+						ps.processed = true;
+					}catch(Exception ex)
+					{
+						LOGGER.debug(ex);
+						//ex.printStackTrace();
+						//System.err.println("Method.. " + ps.methodName);
+						ps.ex = ex.getMessage();
+						TCPChromeDriverUtility.quit("stop");
+					}
+					
+				}
 			}catch(Exception ex)
 			{
 				ex.printStackTrace();
@@ -243,7 +272,7 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 						// need to see how many more bytes remain
 						// do we need to do this
 						// given it is a full block?
-						//buf.discardReadBytes();
+						//buf.discardReadBytes( );
 						//System.err.println("whoa.. this is interesting.. ");
 			    		//System.err.println("Post processing " + "Readable byte " + buf.readableBytes() + "  index " + buf.readerIndex() + "  writer " + buf.writerIndex());
 			    		LOGGER.info("Post processing " + "Readable byte " + buf.readableBytes() + "  index " + buf.readerIndex() + "  writer " + buf.writerIndex());
@@ -530,6 +559,39 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
     	return retMethod;
     }
 
+    public Method findChromeMethod(String methodName, Class [] arguments)
+    {
+    	Method retMethod = null;
+    	
+    	try {
+			if(arguments != null)
+			{
+				try
+				{
+					retMethod = TCPChromeDriverUtility.class.getDeclaredMethod(methodName, arguments);
+				}catch(Exception ex)
+				{
+					
+				}
+			}
+			else
+			{
+				try
+				{
+					retMethod = TCPChromeDriverUtility.class.getDeclaredMethod(methodName);				
+				}catch(Exception ex)
+				{
+					
+				}
+			}
+			LOGGER.info("Found the method " + retMethod);
+		} catch (SecurityException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	return retMethod;
+    }
+
     
     public Object runMethodR(AbstractRJavaTranslator rt2, Method method, Object [] arguments) throws Exception
     {
@@ -550,6 +612,16 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
     	return retObject;
     }
     
+
+    public Object runMethodChrome(Method method, Object [] arguments) throws Exception
+    {
+    	Object retObject = null;
+    	
+		retObject = method.invoke(TCPChromeDriverUtility.class, arguments);
+    	
+    	return retObject;
+    }
+
     private AbstractRJavaTranslator getTranslator(String env)
     {
     	if(!rtMap.containsKey(env))
