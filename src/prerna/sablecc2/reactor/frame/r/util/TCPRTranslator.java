@@ -418,124 +418,141 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	void executeEmptyRDirect(String rScript) {
-		// TODO Auto-generated method stub
-		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-		PayloadStruct ps = constructPayload(methodName, rScript);
-		ps.payloadClasses = new Class[] {String.class};
-		ps.hasReturn = false;
-		ps = (PayloadStruct)nc.executeCommand(ps);
-		if(ps != null  &&  ps.ex!= null)
+		if(nc != null)
 		{
-			logger.info("Exception " + ps.ex);
+			// TODO Auto-generated method stub
+			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+			PayloadStruct ps = constructPayload(methodName, rScript);
+			ps.payloadClasses = new Class[] {String.class};
+			ps.hasReturn = false;
+			ps = (PayloadStruct)nc.executeCommand(ps);
+			if(ps != null  &&  ps.ex!= null)
+			{
+				logger.info("Exception " + ps.ex);
+			}
 		}
 	}
 
 	@Override
 	Object executeRDirect(String rScript) {
 		// TODO Auto-generated method stub
-		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-		PayloadStruct ps = constructPayload(methodName, rScript);
-		ps.payloadClasses = new Class[] {String.class};
-		ps = (PayloadStruct)nc.executeCommand(ps);
-		if(ps != null  &&  ps.ex!= null)
+		if(nc != null)
 		{
-			logger.info("Exception " + ps.ex);
-		}
-		else if(ps != null)
-			return ps.payload[0];
-		
+	
+			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+			PayloadStruct ps = constructPayload(methodName, rScript);
+			ps.payloadClasses = new Class[] {String.class};
+			ps = (PayloadStruct)nc.executeCommand(ps);
+			if(ps != null  &&  ps.ex!= null)
+			{
+				logger.info("Exception " + ps.ex);
+			}
+			else if(ps != null)
+				return ps.payload[0];
+		}		
 		return null;
 	}
 
 	@Override
 	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
 		// TODO Auto-generated method stub
-		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-		PayloadStruct ps = constructPayload(methodName, script);
-		ps.payloadClasses = new Class[] {String.class};
-		ps = (PayloadStruct)nc.executeCommand(ps);
-		if(ps != null  &&  ps.ex!= null)
+		if(nc != null)
 		{
-			logger.info("Exception " + ps.ex);
-		}
-		else if(ps != null)
-			return (Map<String, Object>)ps.payload[0];
-		
+			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+			PayloadStruct ps = constructPayload(methodName, script);
+			ps.payloadClasses = new Class[] {String.class};
+			ps = (PayloadStruct)nc.executeCommand(ps);
+			if(ps != null  &&  ps.ex!= null)
+			{
+				logger.info("Exception " + ps.ex);
+			}
+			else if(ps != null)
+				return (Map<String, Object>)ps.payload[0];
+		}			
 		return null;
 	}
 
 	@Override
 	public Map<String, Object> flushFrameAsTable(String framename, String[] colNames) {
-		// TODO Auto-generated method stub
-		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-		PayloadStruct ps = constructPayload(methodName, framename, colNames);
-		ps.payloadClasses = new Class[] {String.class, String[].class};
-		ps = (PayloadStruct)nc.executeCommand(ps);
-		if(ps != null  &&  ps.ex!= null)
+		if(nc != null)
 		{
-			logger.info("Exception " + ps.ex);
-		}
-		else if(ps != null)
-			return (Map<String, Object>)ps.payload[0];
-		
+
+			// TODO Auto-generated method stub
+			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+			PayloadStruct ps = constructPayload(methodName, framename, colNames);
+			ps.payloadClasses = new Class[] {String.class, String[].class};
+			ps = (PayloadStruct)nc.executeCommand(ps);
+			if(ps != null  &&  ps.ex!= null)
+			{
+				logger.info("Exception " + ps.ex);
+			}
+			else if(ps != null)
+				return (Map<String, Object>)ps.payload[0];
+		}		
 		return null;
 	}
 
 	@Override
 	public Object[] getDataRow(String rScript, String[] headerOrdering) {
 		// TODO Auto-generated method stub
-		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-		PayloadStruct ps = constructPayload(methodName, rScript, headerOrdering);
-		ps.payloadClasses = new Class[] {String.class, String[].class};
-		ps = (PayloadStruct)nc.executeCommand(ps);
-		if(ps != null  &&  ps.ex!= null)
+		if(nc != null)
 		{
-			logger.info("Exception " + ps.ex);
-		}
-		else if(ps != null)
-			return (Object[])ps.payload[0];
-		
+			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+			PayloadStruct ps = constructPayload(methodName, rScript, headerOrdering);
+			ps.payloadClasses = new Class[] {String.class, String[].class};
+			ps = (PayloadStruct)nc.executeCommand(ps);
+			if(ps != null  &&  ps.ex!= null)
+			{
+				logger.info("Exception " + ps.ex);
+			}
+			else if(ps != null)
+				return (Object[])ps.payload[0];
+		}			
 		return null;
 	}
 
 	@Override
 	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
 		// TODO Auto-generated method stub
-		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-		PayloadStruct ps = constructPayload(methodName, rScript, headerOrdering);
-		ps.payloadClasses = new Class[] {String.class, String[].class};
-		ps = (PayloadStruct)nc.executeCommand(ps);
-		if(ps != null  &&  ps.ex!= null)
+		if(nc != null)
 		{
-			logger.info("Exception " + ps.ex);
-		}
-		else if(ps != null)
-			return (List<Object[]>)ps.payload[0];
-		
+			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+			PayloadStruct ps = constructPayload(methodName, rScript, headerOrdering);
+			ps.payloadClasses = new Class[] {String.class, String[].class};
+			ps = (PayloadStruct)nc.executeCommand(ps);
+			if(ps != null  &&  ps.ex!= null)
+			{
+				logger.info("Exception " + ps.ex);
+			}
+			else if(ps != null)
+				return (List<Object[]>)ps.payload[0];
+		}		
 		return null;
 	}
 
 	public String[] getColumnTypes(String frameName) 
 	{
-		String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
-		PayloadStruct ps = constructPayload(methodName, frameName);
-		ps.payloadClasses = new Class[] {String.class};
-		ps = (PayloadStruct)nc.executeCommand(ps);
-		
-		if(ps != null  &&  ps.ex== null)
+		if(nc != null)
 		{
-			String [] retString = (String [])ps.payload[0];
-			if(retString == null)
+			String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+			PayloadStruct ps = constructPayload(methodName, frameName);
+			ps.payloadClasses = new Class[] {String.class};
+			ps = (PayloadStruct)nc.executeCommand(ps);
+			
+			if(ps != null  &&  ps.ex== null)
 			{
-				System.out.println("Ret string is null for frame ..  " + frameName);
+				String [] retString = (String [])ps.payload[0];
+				if(retString == null)
+				{
+					System.out.println("Ret string is null for frame ..  " + frameName);
+				}
+				return retString;
 			}
-			return retString;
+			else if(ps != null)
+			{
+				logger.info(ps.ex);
+			}
 		}
-		else if(ps != null)
-		{
-			logger.info(ps.ex);
-		}
-
 		return null;
 	}
 

@@ -65,7 +65,7 @@ public class ToPdfReactor extends AbstractReactor {
 				imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
 			}
 			logger.info("Generating image for PDF...");
-			ChromeDriverUtility.captureImage(feUrl, url, imagePath, sessionId);
+			this.insight.getChromeDriver().captureImage(feUrl, url, imagePath, sessionId);
 			tempPaths.add(imagePath);
 			logger.info("Done generating image for PDF...");
 

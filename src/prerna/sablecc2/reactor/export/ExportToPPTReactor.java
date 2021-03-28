@@ -95,7 +95,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 	private static final String COLOR_ARRAY = "tools.shared.color";
 	private static final String CHART_TITLE = "tools.shared.chartTitle.text";
 
-	ChromeDriver driver = null;
+	Object driver = null;
+	ChromeDriverUtility util = null;
 	
 	public ExportToPPTReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
@@ -104,6 +105,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		util = this.insight.getChromeDriver();
 		
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
@@ -235,8 +237,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 		} catch(Exception ex) {
 			ex.printStackTrace();
 		} finally {
-			if(driver != null) {
-				driver.quit();
+			if(driver != null && driver instanceof ChromeDriver) {
+				
+				((ChromeDriver)driver).quit();
 			}
 			driver = null;
 		}
@@ -907,9 +910,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 		String exportName = AbstractExportTxtReactor.getExportFileName(Utility.getRandomString(8), "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 		if(driver == null) {
-			driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
+			driver = util.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
 		}
-		ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId);
+		util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId, 800);
 		
 		InputStream inputStream = null;
 		try {
@@ -931,8 +934,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 					e.printStackTrace();
 				}
 			}
-			if(driver != null) {
-				driver.quit();
+			if(driver != null && driver instanceof ChromeDriver) {
+				((ChromeDriver)driver).quit();
 			}
 		}
 	}
