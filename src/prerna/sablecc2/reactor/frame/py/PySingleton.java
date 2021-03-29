@@ -41,7 +41,7 @@ public class PySingleton {
 		{
 			// all of the logic should go here now ?
 			{
-				if (AbstractSecurityUtils.securityEnabled() && PyUtils.pyEnabled()) 
+				if (PyUtils.pyEnabled()) 
 				{
 		
 					boolean useNettyPy = DIHelper.getInstance().getProperty("NETTY_PYTHON") != null
@@ -69,7 +69,7 @@ public class PySingleton {
 					}
 					else
 					{
-						startTCPServer();
+						getTCPServer();
 						pyt = new TCPPyTranslator();
 						((TCPPyTranslator) pyt).nc = tcpServer; // starts it						
 					}
@@ -95,7 +95,7 @@ public class PySingleton {
 
 	}
 	
-	private static  void startTCPServer()
+	public static  Client getTCPServer()
 	{
 		if (tcpServer == null)  // start only if it not already in progress
 		{
@@ -135,6 +135,7 @@ public class PySingleton {
 				}
 			}
 		}
+		return tcpServer;
 	}
 
 	
