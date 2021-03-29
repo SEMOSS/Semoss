@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.export;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -42,6 +41,7 @@ import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.ThreadStore;
+import prerna.poi.main.helper.excel.ExcelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -49,7 +49,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.ChromeDriverUtility;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -126,8 +125,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			keys = allPanels.keySet().iterator();
 		}
 
-		Workbook wb = null;
-		FileOutputStream fileOut = null;
+		XSSFWorkbook wb = null;
 		Object driver = null;
 		ChromeDriverUtility util = this.insight.getChromeDriver();
 		
@@ -283,9 +281,13 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			String exportName = AbstractExportTxtReactor.getExportFileName(prefixName, "xlsx");
 			String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 
-			// write the file
-			fileOut = new FileOutputStream(fileLocation);
-			wb.write(fileOut);
+			// write / encrypt file
+			String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
+			if (password != null) {
+				ExcelUtility.encrypt(wb, fileLocation, password);
+			} else {
+				ExcelUtility.writeToFile(wb, fileLocation);
+			}
 
 			insightFile.setFilePath(fileLocation);
 			// store the insight file 
@@ -300,13 +302,6 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			e.printStackTrace();
 			throw new IllegalArgumentException("An error occured generating the excel file");
 		} finally {
-			if(fileOut != null) {
-				try {
-					fileOut.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
 			if(driver != null && driver instanceof ChromeDriver) {
 				((ChromeDriver)driver).quit();
 			}
