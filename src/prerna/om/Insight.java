@@ -673,8 +673,6 @@ public class Insight implements Serializable {
 	}
 	
 	public AbstractRJavaTranslator getRJavaTranslator(Logger logger) {
-		
-		
 		if(this.rJavaTranslator == null) {
 			this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this, logger);
 		
@@ -690,12 +688,12 @@ public class Insight implements Serializable {
 				}
 				else
 				{
-					((TCPRTranslator)this.rJavaTranslator).nc = PySingleton.getTCPServer();					
+					// TODO: COMMENTING OUT BECAUSE METHOD WAS NOT PUSHED?
+//					((TCPRTranslator)this.rJavaTranslator).nc = PySingleton.getTCPServer();					
 				}
 				this.rJavaTranslator.setInsight(this);
 				this.rJavaTranslator.startR();
-				
-			}			
+			}
 		}
 		return this.rJavaTranslator;
 	}
@@ -1582,19 +1580,21 @@ public class Insight implements Serializable {
 		{
 			boolean useNettyChrome = DIHelper.getInstance().getProperty("NETTY_CHROME") != null
 					&& DIHelper.getInstance().getProperty("NETTY_CHROME").equalsIgnoreCase("true");
-			if(useNettyChrome)
-			{
+			if(useNettyChrome) {
 				ChromeDriverUtility.useNetty = true;
 				Client tcp = null;
-				if(user != null)
+				if(user != null) {
 					tcp = user.getTCPServer();
-				else
-					tcp = PySingleton.getTCPServer();
+				}
+				else {
+					// TODO: COMMENTING OUT BECAUSE METHOD WAS NOT PUSHED?
+//					tcp = PySingleton.getTCPServer();
 					NettyChromeDriverClient.setClient(tcp);
 					chromeUtil = new NettyChromeDriverClient();
+				}
+			} else {
+				chromeUtil = new ChromeDriverUtility();
 			}
-			else
-				chromeUtil = new ChromeDriverUtility();	
 		}
 		return chromeUtil;
 	}
