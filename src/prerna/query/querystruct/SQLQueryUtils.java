@@ -289,32 +289,57 @@ public class SQLQueryUtils {
 	public static GenExpression makeCopy(GenExpression input)
 	{
 		GenExpression retExpression = null;
-		
+		ByteArrayOutputStream baos = null;
+		FSTObjectOutput fo = null;
+		ByteArrayInputStream bais = null;
+		FSTObjectInput fi = null;
 		try {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			baos = new ByteArrayOutputStream();
 			// FST
-			FSTObjectOutput fo = new FSTObjectOutput(baos);
+			fo = new FSTObjectOutput(baos);
 			fo.writeObject(input);
-			fo.close();
-
+			fo.flush();
+			
 			byte [] bytes = baos.toByteArray();
-			ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-			/*
-			FSTObjectInput fi = new FSTObjectInput(bais);
-			Object retObject = fi.readObject();
-			*/
-			FSTObjectInput fi = new FSTObjectInput(bais);
+			bais = new ByteArrayInputStream(bytes);
+			fi = new FSTObjectInput(bais);
 			Object retObject = fi.readObject();
 
 			retExpression = (GenExpression)retObject;
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			if(baos != null) {
+				try {
+					baos.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(fo != null) {
+				try {
+					fo.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(bais != null) {
+				try {
+					bais.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(fi != null) {
+				try {
+					fi.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
-		
 		
 		return retExpression;
 	}

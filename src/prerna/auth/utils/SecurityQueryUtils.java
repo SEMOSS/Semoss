@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -19,6 +20,10 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.querystruct.GenExpression;
+import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.SQLQueryUtils;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -28,6 +33,7 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -300,29 +306,28 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		
 		Collection<String> userIds = getUserFiltersQs(user);
 		
-		SelectQueryStruct qs = new SelectQueryStruct();
+		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		fun.setAlias("low_app_name");
-		qs.addSelector(fun);
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__FAVORITE", "app_favorite"));
+		qs1.addSelector(fun);
 		// filters
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
-			qs.addExplicitFilter(orFilter);
+			qs1.addExplicitFilter(orFilter);
 		}
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
 			
 			// fill in the sub query with the necessary column output + filters
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
@@ -331,14 +336,36 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		// favorites only
 		if(favoritesOnly) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
 		}
 		// joins
-		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		// sorts
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		qs1.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		// get the favorites for this user
+		SelectQueryStruct qs2 = new SelectQueryStruct();
+		qs2.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "ENGINEID"));
+		qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__FAVORITE", "app_favorite"));
+		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+		// joins
+		qs2.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+
+		List<String> queries = new ArrayList<>();
+		IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
+		interpreter.setQueryStruct(qs1);
+		queries.add(interpreter.composeQuery());
+		interpreter = securityDb.getQueryInterpreter();
+		interpreter.setQueryStruct(qs2);
+		queries.add(interpreter.composeQuery());
+
+		List<Join> joins = new ArrayList<>();
+		joins.add(new Join("app_id", "left.outer.join", "ENGINEID"));
+		
+		GenExpression retExpression = SQLQueryUtils.joinSQL(queries, joins);
+		String finalQuery = GenExpression.printQS(retExpression, null).toString();
+		HardSelectQueryStruct finalQs = new HardSelectQueryStruct();
+		finalQs.setQuery(finalQuery);
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, finalQs);
 	}
 	
 	/**
