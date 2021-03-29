@@ -178,8 +178,9 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			{
 				buf.append(newLine);
 				buf.append("SELECT  ");
-				if(qs.distinct)
+				if(qs.distinct) {
 					buf.append(" DISTINCT ");
+				}
 				for(int selIndex = 0;selIndex < qs.nselectors.size();selIndex++)
 				{
 					GenExpression sqs = qs.nselectors.get(selIndex);
@@ -381,10 +382,14 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			else if(qs instanceof InGenExpression)
 			{
 				InGenExpression ig = (InGenExpression)qs;
-				if(qs.leftItem != null)
+				if(qs.leftItem != null) {
 					printQS((GenExpression)qs.leftItem, buf);
-				
-				buf.append("  IN  ");
+				}
+				if(ig.isNot()) {
+					buf.append("  NOT IN  ");
+				} else {
+					buf.append("  IN  ");
+				}
 				if(ig.inList.size() > 0 && ig.rightItem == null)
 				{
 					// process the list
@@ -406,7 +411,13 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				else if(qs.rightItem != null && qs.rightItem instanceof GenExpression)
 				{
 					buf.append("(");
-					printQS((GenExpression)qs.rightItem, buf);
+					// when you have where column1 in ( subquery ) 
+					// the subquery is stored it is stored in the body
+					if( ((GenExpression)qs.rightItem).telescope) {
+						printQS( ((GenExpression)qs.rightItem).body, buf);
+					} else {
+						printQS((GenExpression)qs.rightItem, buf);
+					}
 					buf.append(")");
 				}
 				processed = true;
