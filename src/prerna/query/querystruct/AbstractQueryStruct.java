@@ -194,18 +194,6 @@ public abstract class AbstractQueryStruct {
 	}
 	
 	public GenRowFilters getImplicitFilters() {
-		// if we have frame or panel filters
-		// we will apply those into a new filter object
-		// so that everything is separated properly
-		if(!frameImplicitFilters.isEmpty() || !panelImplicitFilters.isEmpty()) {
-			// return the combined state of all the filters
-			GenRowFilters combinedFilters = new GenRowFilters();
-			combinedFilters.merge(this.implicitFilters, true);
-			combinedFilters.merge(frameImplicitFilters, true);
-			combinedFilters.merge(panelImplicitFilters, true);
-			return combinedFilters;
-		}
-		
 		return this.implicitFilters;
 	}
 	
@@ -254,7 +242,18 @@ public abstract class AbstractQueryStruct {
 			// we want to append these filters
 			// we do not want them merged into one
 			// so it is possible that the results result in no values
-			combinedFilters.merge(this.implicitFilters.copy(), true);
+			
+			// if we have frame or panel filters
+			// we will apply those into a new filter object
+			// so that everything is separated properly
+			if(!frameImplicitFilters.isEmpty() || !panelImplicitFilters.isEmpty()) {
+				// return the combined state of all the filters
+				combinedFilters.merge(this.implicitFilters, true);
+				combinedFilters.merge(frameImplicitFilters, true);
+				combinedFilters.merge(panelImplicitFilters, true);
+			} else {
+				combinedFilters.merge(this.implicitFilters.copy(), true);
+			}
 		}
 		return combinedFilters;
 	}
