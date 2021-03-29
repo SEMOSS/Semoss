@@ -55,6 +55,12 @@ public class ExcelUtility {
 		}
 	}
 
+	/**
+	 * Write the file
+	 * Also closes the workbook so no additional changes can be performed
+	 * @param workbook
+	 * @param fileLocation
+	 */
 	public static void writeToFile(SXSSFWorkbook workbook, String fileLocation) {
 		fileLocation = Utility.normalizePath(fileLocation);
 		// make sure the directory exists
@@ -69,8 +75,6 @@ public class ExcelUtility {
 		try {
 			fileOut = new FileOutputStream(fileLocation);
 			workbook.write(fileOut);
-			workbook.close();
-			workbook.dispose();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
@@ -92,6 +96,12 @@ public class ExcelUtility {
 		}
 	}
 
+	/**
+	 * Write the file
+	 * Also closes the workbook so no additional changes can be performed
+	 * @param workbook
+	 * @param fileLocation
+	 */
 	public static void writeToFile(XSSFWorkbook workbook, String fileLocation) {
 		fileLocation = Utility.normalizePath(fileLocation);
 		// make sure the directory exists
@@ -106,7 +116,6 @@ public class ExcelUtility {
 		try {
 			out = new FileOutputStream(fileLocation);
 			workbook.write(out);
-			//workbook.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -121,7 +130,7 @@ public class ExcelUtility {
 			}
 			if (workbook != null) {
 				try {
-					//workbook.close();
+					workbook.close();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
