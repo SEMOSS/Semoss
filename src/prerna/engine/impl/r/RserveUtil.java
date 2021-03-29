@@ -169,7 +169,7 @@ public class RserveUtil {
 						Integer.parseInt(pid.trim());
 					} catch (NumberFormatException e) {
 						logger.error("pid is not a valid pid");
-						logger.error("StackTrace: ", e);
+						logger.error(Constants.STACKTRACE, e);
 						throw e;
 					}
 					// Go through and kill these processes
@@ -194,7 +194,7 @@ public class RserveUtil {
 						Integer.parseInt(pid.trim());
 					} catch (NumberFormatException e) {
 						logger.error("pid is not a valid pid");
-						logger.error("StackTrace: ", e);
+						logger.error(Constants.STACKTRACE, e);
 						throw e;
 					}
 					ProcessBuilder pbKill = new ProcessBuilder("kill", "-9", pid).inheritIO();
