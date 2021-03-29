@@ -105,6 +105,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			}
 			
 			makeFrame = frameName + " = " + frameQuery;
+			// close the task
+			task.cleanUp();
 		} else {
 			String fileName = Utility.getRandomString(6);
 			String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
