@@ -141,6 +141,7 @@ public class QsToPixelConverter {
 			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
 				pixel.append("Database(").append(qs.getEngineId()).append(") | ");
 			}
+			// TODO: account for csv/excel directly to UI
 		}
 		pixel.append(selectBuilder.toString());
 		if(hasFilters) {
