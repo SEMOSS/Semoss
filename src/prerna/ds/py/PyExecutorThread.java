@@ -114,10 +114,10 @@ public final class PyExecutorThread extends Thread {
 			try {
 				jep.close();
 			} catch (JepException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
-		logger.debug("JEP Thread ENDED");
+		logger.info("JEP Thread ENDED");
 	}
 
 	public void setDriverMonitor(Object driverMonitor) {
