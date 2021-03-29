@@ -1,6 +1,5 @@
 package prerna.ds.py;
 
-import java.io.StringWriter;
 import java.util.Hashtable;
 
 import org.apache.logging.log4j.LogManager;
@@ -28,7 +27,7 @@ public final class PyExecutorThread extends Thread {
 	public String[] command = null;
 	public Hashtable<String, Object> response = new Hashtable<>();
 
-	public volatile boolean keepAlive = true;
+	private volatile boolean keepAlive = true;
 	private volatile boolean ready = false;
 	private Object driverMonitor = null;
 
@@ -36,7 +35,7 @@ public final class PyExecutorThread extends Thread {
 	public void run() {
 		// wait to see if process is true
 		// if process is true - process, put the result and go back to sleep
-		logger.debug("Running Python thread");
+		logger.debug("JEP Thread STARTED");
 		getJep();
 
 		while (this.keepAlive) {
@@ -93,9 +92,9 @@ public final class PyExecutorThread extends Thread {
 										}
 									}
 								} catch (Exception e1) {
-									logger.error("STACKTRACE:" , e);
+									logger.error(Constants.STACKTRACE, e);
 								}
-								logger.error("STACKTRACE:" , e);
+								logger.error(Constants.STACKTRACE, e);
 							}
 						}
 						command = null;
@@ -107,14 +106,18 @@ public final class PyExecutorThread extends Thread {
 				}
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
-				logger.error("STACKTRACE:" , e);
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
-		logger.debug("Thread ENDED");
-	}
-
-	private static void restartThread() {
 		
+		if(jep != null) {
+			try {
+				jep.close();
+			} catch (JepException e) {
+				e.printStackTrace();
+			}
+		}
+		logger.debug("JEP Thread ENDED");
 	}
 
 	public void setDriverMonitor(Object driverMonitor) {
@@ -132,15 +135,14 @@ public final class PyExecutorThread extends Thread {
 	public Jep getJep() {
 		try {
 			if (this.jep == null) {
-				
 				// forcing a sleep here
 				/*
-				try {
-					Thread.sleep(20000);
-				}catch(Exception ignored)
-				{
-					
-				}
+					try {
+						Thread.sleep(20000);
+					}catch(Exception ignored)
+					{
+						
+					}
 				*/
 				
 				JepConfig aJepConfig = new JepConfig();
@@ -169,15 +171,12 @@ public final class PyExecutorThread extends Thread {
 				if (sitepackages != null && !sitepackages.isEmpty()) {
 					aJepConfig.addIncludePaths(sitepackages);
 				}
-
 				initSharedInterpreter(aJepConfig);
-				StringWriter sw = new StringWriter();
 				
 				jep = new SharedInterpreter();
 
 				jep.eval("from jep import redirect_streams");
 				jep.eval("redirect_streams.setup()");
-				
 				
 				// exec(open('c:/users/pkapaleeswaran/workspacej3/SemossDev/py/init.py').read())
 				String execCommand = "exec(open('" + pyBase + "/init.py" + "').read())";
@@ -205,7 +204,6 @@ public final class PyExecutorThread extends Thread {
 				jep.eval("import random");
 				jep.eval("import datetime");
 				// jep.eval("from annoy import AnnoyIndex");
-				
 				*/
 
 				logger.debug("Adding Syspath " + pyBase);
@@ -217,7 +215,7 @@ public final class PyExecutorThread extends Thread {
 				jep.eval("import smssutil");
 			}
 		} catch (JepException e) {
-			logger.error("STACKTRACE:" , e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return jep;
 	}
