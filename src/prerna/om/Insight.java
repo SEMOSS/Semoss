@@ -688,8 +688,7 @@ public class Insight implements Serializable {
 				}
 				else
 				{
-					// TODO: COMMENTING OUT BECAUSE METHOD WAS NOT PUSHED?
-//					((TCPRTranslator)this.rJavaTranslator).nc = PySingleton.getTCPServer();					
+					((TCPRTranslator)this.rJavaTranslator).nc = PySingleton.getTCPServer();					
 				}
 				this.rJavaTranslator.setInsight(this);
 				this.rJavaTranslator.startR();
@@ -1587,8 +1586,7 @@ public class Insight implements Serializable {
 					tcp = user.getTCPServer();
 				}
 				else {
-					// TODO: COMMENTING OUT BECAUSE METHOD WAS NOT PUSHED?
-//					tcp = PySingleton.getTCPServer();
+					tcp = PySingleton.getTCPServer();
 					NettyChromeDriverClient.setClient(tcp);
 					chromeUtil = new NettyChromeDriverClient();
 				}
