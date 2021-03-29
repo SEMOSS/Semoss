@@ -23,7 +23,6 @@ import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
-import prerna.util.ChromeDriverUtility;
 import prerna.util.FstUtil;
 import prerna.util.TCPChromeDriverUtility;
 
@@ -407,7 +406,7 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
             }
 			if(this.pt != null)
 			{
-				pt.keepAlive = false;
+				this.pt.killThread();
 				processCommand("'logout now'"); // this should trigger it and kill it
 			}
 
