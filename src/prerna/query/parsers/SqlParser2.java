@@ -849,7 +849,10 @@ public class SqlParser2 {
 			// need to process this again
 			SubSelect ss = (SubSelect)joinExpr;
 			SelectBody sb = ss.getSelectBody();
-			String alias = ss.getAlias().getName();
+			String alias = null;
+			if(ss.getAlias() != null) {
+				alias = ss.getAlias().getName();
+			}
 			
 			// this can be something else other than plain select
 			if(sb instanceof PlainSelect)
@@ -863,7 +866,9 @@ public class SqlParser2 {
 				GenExpression sqs = processSelect(ge,  (PlainSelect)ss.getSelectBody());
 				ge.body = sqs;
 				sqs.parent = (GenExpression)ge;
-				qs.aliasHash.put(alias, sqs);
+				if(alias != null) {
+					qs.aliasHash.put(alias, sqs);
+				}
 				return ge;
 			}
 			else if(sb instanceof SetOperationList)
@@ -1227,6 +1232,7 @@ public class SqlParser2 {
 			// need to parameterize this
 			InExpression inExpr = (InExpression)joinExpr;
 			InGenExpression gep = new InGenExpression();
+			gep.setIsNot(inExpr.isNot());
 			// left expression is a gen expression
 			// rightItemsList is a list of expressions that need to be processed
 			gep.setOperation("in");
