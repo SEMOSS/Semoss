@@ -86,8 +86,8 @@ public class PyUtils {
 	 */
 	public void killPyThread(PyExecutorThread py) {
 		if(py != null) {
-			py.killThread();
 			LOGGER.info(">>>>>> KILLING THREAD FOR USER <<<<<");
+			py.killThread();
 			Object monitor = py.getMonitor();
 			synchronized(monitor) {
 				monitor.notify();
@@ -99,8 +99,7 @@ public class PyUtils {
 	// just gets the directory of where the main user has started
 	public String getTempTupleSpace(Object user, String dir)
 	{
-		if(user != null && !userTupleMap.containsKey(user))
-		{
+		if(user != null && !userTupleMap.containsKey(user)) {
 			try {
 				LOGGER.info(">>>STARTING PYTHON TUPESPACE FOR USER<<<");
 				// going to create this in insight cache dir
@@ -116,12 +115,11 @@ public class PyUtils {
 				LOGGER.info(">>>TUPLS SPACE SET TO  " + tempDirForUser + " <<<");
 				return tempDirForUser.toString();
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
-		}
-		else
+		} else {
 			LOGGER.info("=== TUPLE SPACE NOT CREATED ====");
+		}
 		return null;
 	}
 
@@ -142,13 +140,13 @@ public class PyUtils {
 				if(cp == null)
 					LOGGER.info("Unable to see class path ");
 				Process  p = Utility.startTCPServer(cp, tempDirForUser.toString(), port);
-				if(p != null)
+				if(p != null) {
 					userProcessMap.put(user,  p);
+				}
 				LOGGER.info(">>>Pyserve Open on " + port + " <<<");
 				return tempDirForUser.toString();
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 		}
 		else
@@ -170,37 +168,32 @@ public class PyUtils {
 			File newLogFile = new File(dir + "/log4j2.properties");
 			FileUtils.writeStringToFile(newLogFile, logConfig);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error(Constants.STACKTRACE, e);
 		}
 		
 	}
 		
-	public void killTempTupleSpace(Object user)
-	{
+	public void killTempTupleSpace(Object user) {
 		// kill the process
 		// take out the dir
 		LOGGER.info(">>>KILLING PYTHON TUPESPACE FOR USER<<<");
-		
-		if(userTupleMap.containsKey(user))
-		{
+		if(userTupleMap.containsKey(user)) {
 			String dir = (String)userTupleMap.get(user);
-		// change this to just creating a file so it is simpler
+			// change this to just creating a file so it is simpler
 			File closer = new File(dir + "/alldone.closeall");
-			try
-			{
+			try {
 				ExecuteWatchdog p = (ExecuteWatchdog)userProcessMap.get(user);
 				closer.createNewFile();
 				p.destroyProcess();
 				// delete the directory fully
 				FileUtils.deleteDirectory(new File(dir));
-			}catch(Exception ex)
-			{
-				
+			} catch(Exception e) {
+				LOGGER.error(Constants.STACKTRACE, e);
 			}
 			userTupleMap.remove(user);
 		}
-/*		if(dirProcessMap.containsKey(dir))
+		/*		
+		if(dirProcessMap.containsKey(dir))
 		{
 			Process p = (Process)dirProcessMap.get(dir);
 			p.destroyForcibly();
@@ -211,8 +204,8 @@ public class PyUtils {
 				e.printStackTrace();
 			}
 		}
-*/		LOGGER.info(">>>KILLING PYTHON TUPESPACE FOR USER - COMPLETE<<<");
-		
+		*/		
+		LOGGER.info(">>>KILLING PYTHON TUPESPACE FOR USER - COMPLETE<<<");
 	}
 	
 }
