@@ -334,7 +334,8 @@ public class ChromeDriverUtility {
 				e.printStackTrace();
 			}
 			
-			String html2 = getHTML(driver, "//html/body//table");
+			// grab body not body//table so that we can support multiple pivot sections
+			String html2 = getHTML(driver, "//html/body");
 			return html2;
 
 		}
