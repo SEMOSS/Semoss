@@ -1330,12 +1330,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
 		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&sheet=" + sheetId + "&panel=" + panelId;
-		logger.info("Generating grid at " + htmlUrl);
+		logger.info("Generating pivot at " + htmlUrl);
 		if(driver == null) {
 			//driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl,  800, 600);
 			driver = insight.getChromeDriver().makeChromeDriver(baseUrl, htmlUrl,  800, 600);
 		}
-		logger.info("Generating grid view");
+		logger.info("Generating pivot view");
 		
 		String exportName = AbstractExportTxtReactor.getExportFileName("ABCD", "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
@@ -1343,6 +1343,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		//this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, htmlUrl, imageLocation, sessionId, 10_000);
 		
 		String html2 = insight.getChromeDriver().captureDataPersistent(driver, baseUrl, htmlUrl, sessionId, 10_000);
+		
+		insight.getChromeDriver().quit(driver);
+		driver = null;
+
 		//logger.info(" HTML from Capture " + html2);
 		//html2 = insight.getChromeDriver().getHTML(driver, "//html/body//table");
 		//logger.info(" HTML from getHTML " + html2);
@@ -1364,7 +1368,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String fileName = (String)exportMap.get("FILE_NAME");
 		
 		txl.processTable(excelSheetName, html2, fileName);
-		logger.info("Done processing grid");
+		logger.info("Done processing pivot");
 	}
 	
 	
@@ -1414,7 +1418,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 		// download this file
 		//ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId);
-		this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId, 800);
+		this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId, 10_000);
 
 		
 		insight.getChromeDriver().quit(driver);
