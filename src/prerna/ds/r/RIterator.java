@@ -1,5 +1,6 @@
 package prerna.ds.r;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,8 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	// need to maintain so we return the type as expected
 	private Map<String, SemossDataType> convertedDates;
 	
+	private List<String> varsToCleanup = new ArrayList<>();
+	
 	// main query instead of the whole thing for lookup
 	private String query = null;
 
@@ -69,6 +72,8 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 				this.builder.evalR(tempVarQuery);
 				this.totalNumRows = builder.getNumRows(this.tempVarName);
 				this.numRows = this.totalNumRows;
+				
+				varsToCleanup.add(this.tempVarName);
 				
 				// need to account for limit and offset
 				if(this.qs != null && this.numRows > 0) {
@@ -125,7 +130,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 		if (rowIndex <= this.numRows) {
 			return true;
 		} else {
-			this.builder.evalR("rm(" + this.tempVarName + ")");
+			cleanUp();
 			return false;
 		}
 	}
@@ -216,6 +221,19 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	
 	public void setQuery(String query) {
 		this.query = query;
+	}
+	
+	public void addVarForCleanup(String var) {
+		this.varsToCleanup.add(var);
+	}
+	
+	public void cleanUp() {
+		StringBuilder builder = new StringBuilder();
+		for(String var : this.varsToCleanup) {
+			builder.append("rm(").append(var).append(");");
+		}
+		builder.append("gc();");
+		this.builder.evalR(builder.toString());
 	}
 	
 	public String getTempVarName() {
