@@ -29,7 +29,7 @@ public class SetPanelCollectReactor extends AbstractInsightPanelReactor {
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("panelId", insightPanel.getPanelId());
 		retMap.put("numCollect", insightPanel.getNumCollect());
-		return new NounMetadata(insightPanel.getNumCollect(), PixelDataType.MAP, PixelOperationType.PANEL_COLLECT);
+		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.PANEL_COLLECT);
 	}
 	
 	private int getPanelCollect() {
