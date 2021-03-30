@@ -65,8 +65,7 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 
 	@Override
 	public void cleanUp() {
-		// TODO Auto-generated method stub
-		
+		this.output.cleanUp();
 	}
 	
 	@Override
@@ -95,15 +94,12 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 		return this.output.getJsonOfResults();
 	}
 	
-	public RIterator getOutput() {
-		return this.output;
-	}
-	
+	@Override
 	public String getQuery() {
 		return output.getQuery();
 	}
 	
-	public String getTempVariableName() {
-		return output.getTempVarName();
+	public RIterator getOutput() {
+		return this.output;
 	}
 }
