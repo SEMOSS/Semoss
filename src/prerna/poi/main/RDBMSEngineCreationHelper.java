@@ -218,17 +218,18 @@ public class RDBMSEngineCreationHelper {
 		}
 		DatabaseMetaData meta = rdbms.getConnectionMetadata();
 		
-		String connectionUrl = null;
+//		String connectionUrl = null;
 		String catalogFilter = null;
 		try {
 			catalogFilter = con.getCatalog();
-			connectionUrl = meta.getURL();
+//			connectionUrl = meta.getURL();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 		RdbmsTypeEnum driverEnum = rdbms.getDbType();
-		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
-
+//		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, driverEnum);
+		String schemaFilter = rdbms.getSchema();
+		
 		// table that will store 
 		// table_name -> {
 		// 					colname1 -> coltype,
