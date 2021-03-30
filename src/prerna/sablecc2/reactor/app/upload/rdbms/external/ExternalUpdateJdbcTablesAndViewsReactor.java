@@ -64,17 +64,18 @@ public class ExternalUpdateJdbcTablesAndViewsReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
-		String connectionUrl = null;
+//		String connectionUrl = null;
 		String catalogFilter = null;
 		try {
 			catalogFilter = connection.getCatalog();
-			connectionUrl = meta.getURL();
+//			connectionUrl = meta.getURL();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 		
 		RdbmsTypeEnum driverEnum = nativeEngine.getDbType();
-		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, connection, connectionUrl, driverEnum);
+//		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, connection, connectionUrl, driverEnum);
+		String schemaFilter = nativeEngine.getSchema();
 		
 		ResultSet tablesRs;
 		try {
