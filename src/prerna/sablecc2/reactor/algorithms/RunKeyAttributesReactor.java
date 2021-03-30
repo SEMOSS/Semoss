@@ -40,7 +40,7 @@ public class RunKeyAttributesReactor extends AbstractRFrameReactor {
 		String col = getInputString(ReactorKeysEnum.COLUMN.getKey());
 		
 		// check if the required packages are installed
-		String[] packages = new String[] { "data.table" , "FSelector" , "lubridate" };
+		String[] packages = new String[] { "data.table" , "FSelector" , "lubridate" , "missRanger"};
 		this.rJavaTranslator.checkPackages(packages);
 
 		// check if there are filters on the frame. if so then need to run algorithm on subsetted data
@@ -99,7 +99,7 @@ public class RunKeyAttributesReactor extends AbstractRFrameReactor {
 		// build a frame to return
 		rsb.append(RSyntaxHelper.asDataFrame(targetDf, targetDt));
 		rsb.append(results + " <- select_features(" + targetDf + ",\"" + col + "\");");
-
+		
 		// run the script
 		this.rJavaTranslator.runR(rsb.toString());
 		
