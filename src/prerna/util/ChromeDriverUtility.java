@@ -28,7 +28,6 @@ public class ChromeDriverUtility {
 	protected static String contextPath = null;
 	protected static String sessionCookie = null;
 	
-	private static ChromeDriver driver = null;
 	public static boolean useNetty = false;
 
 	public static void captureImage(String feUrl, String url, String imagePath, String sessionId) {
@@ -474,10 +473,10 @@ public class ChromeDriverUtility {
 		{
 			if(driverObj instanceof ChromeDriver)
 			{
-				driver = (ChromeDriver)driverObj;
-			}
-			if(driver != null)
+				//driver = (ChromeDriver)driverObj;
+				ChromeDriver driver = (ChromeDriver)driverObj;
 				driver.quit();
+			}
 		}
 	}
 
