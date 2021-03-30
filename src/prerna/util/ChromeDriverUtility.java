@@ -27,7 +27,8 @@ public class ChromeDriverUtility {
 
 	protected static String contextPath = null;
 	protected static String sessionCookie = null;
-	
+	protected static String routeCookieValue = null;
+
 	public static boolean useNetty = false;
 
 	public static void captureImage(String feUrl, String url, String imagePath, String sessionId) {
@@ -140,12 +141,14 @@ public class ChromeDriverUtility {
 				//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
 				updateCookie(driver, ChromeDriverUtility.sessionCookie, sessionId);
 				String route = ThreadStore.getRouteId();
+				if(route == null || route.isEmpty()) {
+					route = ChromeDriverUtility.routeCookieValue;
+				}
 				if(route != null && !route.isEmpty()) {
 					String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
 					if (routeCookieName != null && !routeCookieName.isEmpty()) {
 						updateCookie(driver, routeCookieName, route);
 					}
-	
 				} else {
 					logger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
 				}
@@ -314,11 +317,16 @@ public class ChromeDriverUtility {
 				//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
 				updateCookie(driver, ChromeDriverUtility.sessionCookie, sessionId);
 				String route = ThreadStore.getRouteId();
+				if(route == null || route.isEmpty()) {
+					route = ChromeDriverUtility.routeCookieValue;
+				}
 				if(route != null && !route.isEmpty()) {
 					String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
 					if (routeCookieName != null && !routeCookieName.isEmpty()) {
 						updateCookie(driver, routeCookieName, route);
 					}
+				} else {
+					logger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
 				}
 				//Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
 				//driver.manage().addCookie(name);
@@ -438,6 +446,10 @@ public class ChromeDriverUtility {
 
 	public static void setSessionCookie(String sessionCookie) {
 		ChromeDriverUtility.sessionCookie = sessionCookie;
+	}
+	
+	public static void setRouteCookieValue(String routeCookieValue) {
+		ChromeDriverUtility.routeCookieValue = routeCookieValue;
 	}
 	
 	public static String getHTML(Object driverObj, String path)
