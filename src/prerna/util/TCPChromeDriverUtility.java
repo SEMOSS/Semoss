@@ -2,13 +2,10 @@ package prerna.util;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
@@ -132,6 +129,9 @@ public class TCPChromeDriverUtility {
 			//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
 			updateCookie(driver, TCPChromeDriverUtility.sessionCookie, sessionId);
 			String route = ThreadStore.getRouteId();
+			if(route == null || route.isEmpty()) {
+				route = ChromeDriverUtility.routeCookieValue;
+			}
 			if(route != null && !route.isEmpty()) {
 				String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
 				if (routeCookieName != null && !routeCookieName.isEmpty()) {
@@ -325,11 +325,16 @@ public class TCPChromeDriverUtility {
 			//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
 			updateCookie(driver, TCPChromeDriverUtility.sessionCookie, sessionId);
 			String route = ThreadStore.getRouteId();
+			if(route == null || route.isEmpty()) {
+				route = ChromeDriverUtility.routeCookieValue;
+			}
 			if(route != null && !route.isEmpty()) {
 				String routeCookieName = DIHelper.getInstance().getProperty(Constants.MONOLITH_ROUTE);
 				if (routeCookieName != null && !routeCookieName.isEmpty()) {
 					updateCookie(TCPChromeDriverUtility.driver, routeCookieName, route);
 				}
+			} else {
+				logger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
 			}
 			//Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
 			//driver.manage().addCookie(name);
