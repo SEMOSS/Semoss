@@ -1,6 +1,8 @@
 package prerna.sablecc2.reactor.panel;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.GenRowStruct;
@@ -23,7 +25,11 @@ public class SetPanelCollectReactor extends AbstractInsightPanelReactor {
 		int panelCollect = getPanelCollect();
 		// merge the map options
 		insightPanel.setNumCollect(panelCollect);
-		return new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.PANEL_COLLECT);
+		
+		Map<String, Object> retMap = new HashMap<>();
+		retMap.put("panelId", insightPanel.getPanelId());
+		retMap.put("numCollect", insightPanel.getNumCollect());
+		return new NounMetadata(insightPanel.getNumCollect(), PixelDataType.MAP, PixelOperationType.PANEL_COLLECT);
 	}
 	
 	private int getPanelCollect() {
