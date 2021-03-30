@@ -75,17 +75,18 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		List<String> tableAndViewFilters = getFilters();
 		boolean hasFilters = !tableAndViewFilters.isEmpty();
 
-		String connectionUrl = null;
+//		String connectionUrl = null;
 		String catalogFilter = null;
 		try {
 			catalogFilter = connection.getCatalog();
-			connectionUrl = meta.getURL();
+//			connectionUrl = meta.getURL();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 		
 		RdbmsTypeEnum driverEnum = nativeEngine.getDbType();
-		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, connection, connectionUrl, driverEnum);
+//		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, connection, connectionUrl, driverEnum);
+		String schemaFilter = nativeEngine.getSchema();
 
 		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(connection, meta, catalogFilter, schemaFilter, driverEnum, tableAndViewFilters); 
 		
