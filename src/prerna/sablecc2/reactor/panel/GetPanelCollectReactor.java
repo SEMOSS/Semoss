@@ -1,7 +1,11 @@
 package prerna.sablecc2.reactor.panel;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -15,7 +19,10 @@ public class GetPanelCollectReactor extends AbstractInsightPanelReactor {
 	public NounMetadata execute() {
 		// get the insight panel
 		InsightPanel insightPanel = getInsightPanel();
-		return new NounMetadata(insightPanel.getNumCollect(), PixelDataType.CONST_INT);
+		Map<String, Object> retMap = new HashMap<>();
+		retMap.put("panelId", insightPanel.getPanelId());
+		retMap.put("numCollect", insightPanel.getNumCollect());
+		return new NounMetadata(insightPanel.getNumCollect(), PixelDataType.MAP, PixelOperationType.PANEL_COLLECT);
 	}
 	
 }
