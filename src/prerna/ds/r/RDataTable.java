@@ -193,6 +193,8 @@ public class RDataTable extends AbstractTableDataFrame {
 		if(!queryCache.containsKey(looker) || !cache) {
 			logger.info("Executing query...");
 			RIterator output = new RIterator(this.builder, query, qs);
+			// add the random var used from the insight
+			output.addVarForCleanup(interp.getTempVarName());
 			output.setConvertedDates(convertedDates);
 			output.setQuery(looker);
 			it = new RawRSelectWrapper();

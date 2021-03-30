@@ -73,6 +73,10 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	// keep track of columns that have had their data type changed
 	private Map<String, SemossDataType> convertedDates = new HashMap<>();
 	
+	// this is the temp var name that we create
+	// this is because we have to make operations on operations
+	private String tempVarName = null;
+	
 	@Override
 	public String composeQuery() {
 		if(this.dataTableName == null) {
@@ -80,7 +84,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		StringBuilder query = new StringBuilder();
-		String tempVarName = "temp" + Utility.getRandomString(10);
+		this.tempVarName = "temp" + Utility.getRandomString(10);
 		query.append(tempVarName + " <- ");
 		
 		if(this.colDataTypes == null) {
@@ -93,7 +97,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		// we cannot connect across data tables
 		addFilters(qs.getCombinedFilters().getFilters(), this.dataTableName, this.filterCriteria, false, false);
 		// add having filters 
-		addFilters(qs.getHavingFilters().getFilters(), tempVarName, this.havingFilterCriteria, true, true);
+		addFilters(qs.getHavingFilters().getFilters(), this.tempVarName, this.havingFilterCriteria, true, true);
 		
 		// once the filters have been added, enable 
 		StringBuilder cachedFrame = new StringBuilder(this.dataTableName);
@@ -131,16 +135,16 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		String having = this.havingFilterCriteria.toString();
 		if(!having.isEmpty()) {
 			query.append("; ")
-			.append(tempVarName)
+			.append(this.tempVarName)
 			.append("<-")
-			.append(tempVarName)
+			.append(this.tempVarName)
 			.append("[ ")
 			.append(having)
 			.append(", ] ");
 		}
 		
 		// get the order by values
-		addOrderBy(tempVarName);
+		addOrderBy(this.tempVarName);
 		// append order by at the end
 		String order = this.orderBys.toString();
 		query.append(";");
@@ -160,19 +164,19 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				if (validHeaders.contains(column)) {
 					addedColToDateChange = true;
 //					String javaFormat = this.additionalTypes.get(this.dataTableName + "__" + column);
-					addDateConversionFunction(query, tempVarName, column, dataType, null);
+					addDateConversionFunction(query, this.tempVarName, column, dataType, null);
 				}
 			}
 		}
 		for(String column : aggregatedDateVals.keySet()) {
 			if (validHeaders.contains(column)) {
 				addedColToDateChange = true;
-				addDateConversionFunction(query, tempVarName, column, aggregatedDateVals.get(column), null);
+				addDateConversionFunction(query, this.tempVarName, column, aggregatedDateVals.get(column), null);
 			}
 		}
 		
 		if(addedColToDateChange) {
-			query.append(tempVarName).append(";");
+			query.append(this.tempVarName).append(";");
 		}
 
 		if(query.length() > 500) {
@@ -182,6 +186,14 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		return query.toString();
+	}
+	
+	/**
+	 * Get the temp var name generated from the data
+	 * @return
+	 */
+	public String getTempVarName() {
+		return this.tempVarName;
 	}
 	
 	private void addDateConversionFunction(StringBuilder query, String tempVarName, String column, SemossDataType type, String javaFormatAdditionalType) {
