@@ -1340,7 +1340,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String exportName = AbstractExportTxtReactor.getExportFileName("ABCD", "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
-		this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, htmlUrl, imageLocation, sessionId, 10_000);
+		//this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, htmlUrl, imageLocation, sessionId, 10_000);
 		
 		String html2 = insight.getChromeDriver().captureDataPersistent(driver, baseUrl, htmlUrl, sessionId, 10_000);
 		//logger.info(" HTML from Capture " + html2);
