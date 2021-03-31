@@ -138,6 +138,19 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public StringBuffer addLimitOffsetToQuery(StringBuffer query, long limit, long offset) {
+		if(offset > 0 && limit > 0) {
+			query = query.append(" OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY");
+		} else if(offset > 0) {
+			query = query.append(" OFFSET " + offset + " ROWS ");	
+		} else if(limit > 0) {
+			query = query.append(" OFFSET 0 ROWS FETCH NEXT " + limit + " ROWS ONLY");
+		}
+		
+		return query;
+	}
+	
+	@Override
 	public String removeDuplicatesFromTable(String tableName, String fullColumnNameList){
 		return "SELECT DISTINCT " + fullColumnNameList 
 					+ " INTO " + tableName + "_TEMP " 

@@ -4,6 +4,7 @@ import java.sql.Clob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +19,10 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.querystruct.GenExpression;
+import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.SQLQueryUtils;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -31,6 +36,7 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -1342,31 +1348,30 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		boolean hasEngineFilters = engineFilter != null && !engineFilter.isEmpty();
 		
 		Collection<String> userIds = getUserFiltersQs(user);
-		SelectQueryStruct qs = new SelectQueryStruct();
+		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
-		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT", "layout"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+		qs1.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs1.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+		qs1.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+		qs1.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
+		qs1.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT", "layout"));
+		qs1.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
+		qs1.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
+		qs1.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+		qs1.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
 		fun.setAlias("low_name");
-		qs.addSelector(fun);
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__FAVORITE", "insight_favorite"));
+		qs1.addSelector(fun);
 
 		// filters
 		// if we have an engine filter
 		// i'm assuming you want these even if visibility is false
 		if(hasEngineFilters) {
 			// will filter to the list of engines
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
 			// make sure you have access to each of these insights
 			// 1) you have access based on user insight permission table -- or
 			// 2) the insight is global -- or 
@@ -1380,7 +1385,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 				orFilter.addFilter(embedAndFilter);
 			}
-			qs.addExplicitFilter(orFilter);
+			qs1.addExplicitFilter(orFilter);
 		} else {
 			// search across all engines
 			// so guessing you only want those you have visible to you
@@ -1392,14 +1397,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 			}
-			qs.addExplicitFilter(firstOrFilter);
+			qs1.addExplicitFilter(firstOrFilter);
 
 			// subquery time
 			// remove those engines you have visibility as false
 			{
 				SelectQueryStruct subQs = new SelectQueryStruct();
 				// store first and fill in sub query after
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
 				
 				// fill in the sub query with the single return + filters
 				subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
@@ -1417,47 +1422,79 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", true, PixelDataType.BOOLEAN));
 				secondOrFilter.addFilter(embedAndFilter);
 			}
-			qs.addExplicitFilter(secondOrFilter);
+			qs1.addExplicitFilter(secondOrFilter);
 		}
 		// add the search term filter
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+			securityDb.getQueryUtil().appendSearchRegexFilter(qs1, "INSIGHT__INSIGHTNAME", searchTerm);
 		}
 		// if we have tag filters
 		boolean tagFiltering = tags != null && !tags.isEmpty();
 		if(tagFiltering) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
-		}
-		// favorites only
-		if(favoritesOnly) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
 		}
 		
 		// joins
-		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
+		qs1.addRelation("ENGINE", "INSIGHT", "inner.join");
 		if(tagFiltering) {
-			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
-			qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
+			qs1.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
+			qs1.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
 		}
-		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
-		// sort
-		if(sortBy == null) {
-			qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
+		qs1.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		qs1.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
+		
+		// get the favorites for this user
+		SelectQueryStruct qs2 = new SelectQueryStruct();
+//		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__ENGINEID", "ENGINEID"));
+		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID", "INSIGHTID"));
+		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__FAVORITE", "insight_favorite"));
+		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
+		
+		List<String> queries = new ArrayList<>();
+		IQueryInterpreter interpreter = securityDb.getQueryInterpreter();
+		interpreter.setQueryStruct(qs1);
+		queries.add(interpreter.composeQuery());
+		interpreter = securityDb.getQueryInterpreter();
+		interpreter.setQueryStruct(qs2);
+		queries.add(interpreter.composeQuery());
+
+		List<Join> joins = new ArrayList<>();
+		if(favoritesOnly) {
+//			joins.add(new Join("app_id", "inner.join", "ENGINEID"));
+			joins.add(new Join("app_insight_id", "inner.join", "INSIGHTID"));
 		} else {
-			qs.addOrderBy(sortBy);
-		}
-		// limit 
-		if(limit != null && !limit.trim().isEmpty()) {
-			qs.setLimit(Long.parseLong(limit));
-		}
-		// offset
-		if(offset != null && !offset.trim().isEmpty()) {
-			qs.setOffSet(Long.parseLong(offset));
+//			joins.add(new Join("app_id", "left.outer.join", "ENGINEID"));
+			joins.add(new Join("app_insight_id", "left.outer.join", "INSIGHTID"));
 		}
 		
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		GenExpression retExpression = SQLQueryUtils.joinSQL(queries, joins);
+		StringBuffer finalQuery = GenExpression.printQS(retExpression, null);
+		
+		// TODO: NEED BETTER WAY TO DO THIS
+		// sort
+		if(sortBy == null) {
+			finalQuery.append(" ORDER BY \"low_name\" ");
+		} else {
+			String sort = sortBy.getQueryStructName();
+			String dir = sortBy.getSortDir().toString();
+			finalQuery.append(" ORDER BY \"").append(sort).append("\" ").append(dir).append(" ");;
+		}
+		
+		Long long_limit = -1L;
+		Long long_offset = -1L;
+		if(limit != null && !limit.trim().isEmpty()) {
+			long_limit = Long.parseLong(limit);
+		}
+		if(offset != null && !offset.trim().isEmpty()) {
+			long_offset = Long.parseLong(offset);
+		}
+		finalQuery = securityDb.getQueryUtil().addLimitOffsetToQuery(finalQuery, long_limit, long_offset);
+		HardSelectQueryStruct finalQs = new HardSelectQueryStruct();
+		finalQs.setQuery(finalQuery.toString());
+		
+		return QueryExecutionUtility.flushRsToMap(securityDb, finalQs);
 	}
 	
 	/**
