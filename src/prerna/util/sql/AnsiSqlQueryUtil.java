@@ -256,6 +256,17 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 	
 	@Override
+	public StringBuffer addLimitOffsetToQuery(StringBuffer query, long limit, long offset) {
+		if(limit > 0) {
+			query = query.append(" LIMIT "+limit);
+		}
+		if(offset > 0) {
+			query = query.append(" OFFSET "+offset);
+		}
+		return query;
+	}
+	
+	@Override
 	public String removeDuplicatesFromTable(String tableName, String fullColumnNameList){
 		return "CREATE TABLE " + tableName + "_TEMP AS "
 					+ "(SELECT DISTINCT " + fullColumnNameList

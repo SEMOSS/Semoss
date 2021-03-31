@@ -50,14 +50,12 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -522,6 +520,16 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset);
 
+	/**
+	 * Add the limit and offset to a query
+	 * 
+	 * @param query
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public abstract StringBuffer addLimitOffsetToQuery(StringBuffer query, long limit, long offset);
+	
 	/**
 	 * Remove duplicates that exist from an existing table by creating a new temp
 	 * intermediary table
