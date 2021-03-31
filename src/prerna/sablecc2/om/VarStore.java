@@ -6,11 +6,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.parsers.ParamStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.IReactor;
@@ -208,6 +210,19 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		}
 		
 		return retMap;
+	}
+	
+	/**
+	 * Pull param structs that are saved in the insight
+	 * @return
+	 */
+	public List<ParamStruct> pullParamStructs() {
+		List<ParamStruct> params = new Vector<>();
+		for(String paramKey : insightParametersKeys) {
+			params.add((ParamStruct) varMap.get(paramKey).getValue());
+		}
+		
+		return params;
 	}
 	
 }
