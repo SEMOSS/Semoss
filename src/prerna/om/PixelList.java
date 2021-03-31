@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.gson.GsonUtility;
 
 public class PixelList implements Iterable<Pixel> {
@@ -24,9 +25,12 @@ public class PixelList implements Iterable<Pixel> {
 
 //	private AtomicInteger counter = new AtomicInteger(0);
 	private List<Pixel> pixelList = new Vector<>(1_000);
-	private Map<String, Integer> idToIndexHash = new ConcurrentHashMap<>(1_000);
-	private Map<String, LinkedList<Pixel>> frameDependency = new ConcurrentHashMap<>(1_000);
-	
+	private transient Map<String, Integer> idToIndexHash = new ConcurrentHashMap<>(1_000);
+	// frameName -> list of pixels
+	private transient Map<String, LinkedList<Pixel>> frameDependency = new ConcurrentHashMap<>(100);
+	// panel -> layer -> list of pixels
+	private transient Map<String, Map<String, LinkedList<Pixel>>> taskDependency = new ConcurrentHashMap<>(100);
+
 	public PixelList() {
 		
 	}
@@ -46,6 +50,8 @@ public class PixelList implements Iterable<Pixel> {
 	public void syncLastPixel() {
 		// now store the frame dependency
 		Pixel p = pixelList.get(pixelList.size()-1);
+		
+		// store frame output
 		Set<String> frameOutputs = p.getFrameOutputs();
 		for(String frameName : frameOutputs) {
 			if(frameDependency.containsKey(frameName)) {
@@ -56,6 +62,7 @@ public class PixelList implements Iterable<Pixel> {
 				frameDependency.put(frameName, dll);
 			}
 		}
+		
 		// now we also want to keep track of querying / filtering
 		Set<String> frameInputs = p.getFrameInputs();
 		for(String frameName : frameInputs) {
@@ -68,6 +75,34 @@ public class PixelList implements Iterable<Pixel> {
 					LinkedList<Pixel> dll = new LinkedList<>();
 					dll.addFirst(p);
 					frameDependency.put(frameName, dll);
+				}
+			}
+		}
+		
+		// we also want to keep track of the tasks on each panel
+		List<TaskOptions> listTaskOptions = p.getTaskOptions();
+		for(TaskOptions taskOption : listTaskOptions) {
+			Set<String> panelIds = taskOption.getPanelIds();
+			for(String panelId : panelIds) {
+				String layerId = taskOption.getPanelLayerId(panelId);
+				if(layerId == null) {
+					layerId = "0";
+				}
+				
+				Map<String, LinkedList<Pixel>> panelMap = null;
+				if(taskDependency.containsKey(panelId)) {
+					panelMap = taskDependency.get(panelId);
+				} else {
+					panelMap = new ConcurrentHashMap<>();
+					taskDependency.put(panelId, panelMap);
+				}
+				
+				if(panelMap.containsKey(layerId)) {
+					panelMap.get(layerId).addLast(p);
+				} else {
+					LinkedList<Pixel> dll = new LinkedList<>();
+					dll.addFirst(p);
+					panelMap.put(layerId, dll);
 				}
 			}
 		}
@@ -110,35 +145,10 @@ public class PixelList implements Iterable<Pixel> {
 				int intVal = this.pixelList.size();//counter.getAndIncrement();
 				String uid = intVal + "";// + "__" + UUID.randomUUID().toString();
 				Pixel pixel = new Pixel(uid, pixelRecipe.get(i));
-				this.pixelList.add(pixel);
-				idToIndexHash.put(uid, this.pixelList.size()-1);
+				this.addPixel(pixel);
 				// return the pixel object that was added
 				subset.add(pixel);
 			}
-			return subset;
-		}
-	}
-	
-	/**
-	 * Add the pixel at a specific location in the recipe
-	 * @param index
-	 * @param pixelRecipe
-	 * @return
-	 */
-	public List<Pixel> addPixel(int index, List<String> pixelRecipe) {
-		synchronized(this) {
-			List<Pixel> subset = new Vector<>();
-			for(int i = 0; i < pixelRecipe.size(); i++) {
-				int intVal = this.pixelList.size();//counter.getAndIncrement();
-				String uid = intVal + "";// + "__" + UUID.randomUUID().toString();
-				Pixel pixel = new Pixel(uid, pixelRecipe.get(i));
-				this.pixelList.add(index++, pixel);
-				// return the pixel object that was added
-				subset.add(pixel);
-			}
-			// modifying the order here
-			// need to reset the index
-			recalculateIdToIndexHash();
 			return subset;
 		}
 	}
@@ -388,6 +398,35 @@ public class PixelList implements Iterable<Pixel> {
 		}
 	}
 	
+	/**
+	 * Find the last pixel used to paint this panel/layer combination
+	 * That was not a refresh panel task
+	 * @param panelId
+	 * @param layerId
+	 * @return
+	 */
+	public Pixel findLastPixelViewNotRefresh(String panelId, String layerId) {
+		Map<String, LinkedList<Pixel>> panelMap = this.taskDependency.get(panelId);
+		if(panelMap == null) {
+			return null;
+		}
+		LinkedList<Pixel> listPixel = panelMap.get(layerId);
+		if(listPixel == null) {
+			return null;
+		}
+		
+		// loop from end to beginning to find the last pixel that isn't a refresh
+		Pixel foundPixel = null;
+		Iterator<Pixel> iterator = listPixel.descendingIterator();
+		while(iterator.hasNext()) {
+			foundPixel = iterator.next();
+			if(!foundPixel.isRefreshPanel()) {
+				break;
+			}
+		}
+		return foundPixel;
+	}
+	
 	public PixelList copy() {
 		Gson gson = GsonUtility.getDefaultGson();
 		String strCopy = gson.toJson(this);
@@ -431,6 +470,9 @@ public class PixelList implements Iterable<Pixel> {
 	 */
 	public void clear() {
 		this.pixelList.clear();
+		this.idToIndexHash.clear();
+		this.frameDependency.clear();
+		this.taskDependency.clear();
 	}
 	
 	/**

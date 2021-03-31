@@ -304,8 +304,8 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 				wrapper.cleanUp();
 			}
 		}
+		
 		return null;
-
 	}
 
 	/**
