@@ -43,7 +43,7 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 		UploadUtilities.runInsightCreateTableQueries(insightEngine);
 		
 		// main directory has insight folders inside of it
-		File mainD = new File(mainDirectory);
+		File mainD = new File(Utility.normalizePath(mainDirectory));
 		File[] mainDFiles = mainD.listFiles();
 		INSIGHT_FOLDER : for(File insightFolder : mainDFiles) {
 			// only care about insight folders

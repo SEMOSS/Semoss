@@ -357,48 +357,76 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 	 * @param args
 	 * @throws Exception 
 	 */
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
-		IEngine coreEngine = new BigDataEngine();
-		coreEngine.setEngineId("TAP_Core_Data");
-		coreEngine.openDB(engineProp);
-		coreEngine.setEngineId("TAP_Core_Data");
-		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
-
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data.smss";
-		coreEngine = new BigDataEngine();
-		coreEngine.setEngineId("TAP_Site_Data");
-		coreEngine.openDB(engineProp);
-		coreEngine.setEngineId("TAP_Site_Data");
-		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
-
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio.smss";
-		coreEngine = new BigDataEngine();
-		coreEngine.setEngineId("TAP_Portfolio");
-		coreEngine.openDB(engineProp);
-		coreEngine.setEngineId("TAP_Portfolio");
-		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", coreEngine);
-
-		MhsGenesisDeploymentSavingsProcessor processor = new MhsGenesisDeploymentSavingsProcessor();
-		MhsGenesisSiteDeploymentSavingsPlaySheet ps = new MhsGenesisSiteDeploymentSavingsPlaySheet(processor);
-		ps.processDataMakerComponent(null);
-		
-//		Iterator<IHeadersDataRow> it2 = ps.systemSiteSustainmentFrame.iterator();
-//		boolean f1 = true;
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
+//		IEngine coreEngine = new BigDataEngine();
+//		coreEngine.setEngineId("TAP_Core_Data");
+//		coreEngine.openDB(engineProp);
+//		coreEngine.setEngineId("TAP_Core_Data");
+//		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
+//
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineId("TAP_Site_Data");
+//		coreEngine.openDB(engineProp);
+//		coreEngine.setEngineId("TAP_Site_Data");
+//		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
+//
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineId("TAP_Portfolio");
+//		coreEngine.openDB(engineProp);
+//		coreEngine.setEngineId("TAP_Portfolio");
+//		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", coreEngine);
+//
+//		MhsGenesisDeploymentSavingsProcessor processor = new MhsGenesisDeploymentSavingsProcessor();
+//		MhsGenesisSiteDeploymentSavingsPlaySheet ps = new MhsGenesisSiteDeploymentSavingsPlaySheet(processor);
+//		ps.processDataMakerComponent(null);
+//		
+////		Iterator<IHeadersDataRow> it2 = ps.systemSiteSustainmentFrame.iterator();
+////		boolean f1 = true;
+////		try{
+////			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\all_data.csv", "UTF-8");
+////			while(it2.hasNext()) {
+////				IHeadersDataRow row = it2.next();
+////				if(f1) {
+////					f1 = false;
+////					for(Object val : row.getHeaders()) {
+////						writer.print(val + ",");
+////					}
+////					writer.print("\n");
+////				}
+////				Object[] values = row.getValues();
+////				for(Object val : values) {
+////					writer.print(val + ",");
+////				}
+////				writer.print("\n");
+////				System.out.println(">>> " + Arrays.toString( values ) );
+////			}
+////			writer.close();
+////		} catch (IOException e) {
+////			// do something
+////		}
+//		// iterate through the results for testing
+//		
+//		String fName = ps.siteDeploymentSavings.getName();
+//		SelectQueryStruct qs = new SelectQueryStruct();
+//		for(String head : ps.siteDeploymentSavingsHeaders) {
+//			qs.addSelector(new QueryColumnSelector(fName + "__" + head));
+//		}
+//		LOGGER.info("Testing data...");
+//		Iterator<IHeadersDataRow> it = ps.siteDeploymentSavings.query(qs);
+//		System.out.println(">>> " + Arrays.toString( ps.siteDeploymentSavingsHeaders ) );
 //		try{
-//			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\all_data.csv", "UTF-8");
-//			while(it2.hasNext()) {
-//				IHeadersDataRow row = it2.next();
-//				if(f1) {
-//					f1 = false;
-//					for(Object val : row.getHeaders()) {
-//						writer.print(val + ",");
-//					}
-//					writer.print("\n");
-//				}
-//				Object[] values = row.getValues();
+//			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\SAVINGS_SiteView_CIS-Essentris.csv", "UTF-8");
+//			for(Object val : ps.siteDeploymentSavingsHeaders) {
+//				writer.print(val + ",");
+//			}
+//			writer.print("\n");
+//			while(it.hasNext()) {
+//				Object[] values = it.next().getValues();
 //				for(Object val : values) {
 //					writer.print(val + ",");
 //				}
@@ -409,36 +437,8 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 //		} catch (IOException e) {
 //			// do something
 //		}
-		// iterate through the results for testing
-		
-		String fName = ps.siteDeploymentSavings.getName();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		for(String head : ps.siteDeploymentSavingsHeaders) {
-			qs.addSelector(new QueryColumnSelector(fName + "__" + head));
-		}
-		LOGGER.info("Testing data...");
-		Iterator<IHeadersDataRow> it = ps.siteDeploymentSavings.query(qs);
-		System.out.println(">>> " + Arrays.toString( ps.siteDeploymentSavingsHeaders ) );
-		try{
-			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\SAVINGS_SiteView_CIS-Essentris.csv", "UTF-8");
-			for(Object val : ps.siteDeploymentSavingsHeaders) {
-				writer.print(val + ",");
-			}
-			writer.print("\n");
-			while(it.hasNext()) {
-				Object[] values = it.next().getValues();
-				for(Object val : values) {
-					writer.print(val + ",");
-				}
-				writer.print("\n");
-				System.out.println(">>> " + Arrays.toString( values ) );
-			}
-			writer.close();
-		} catch (IOException e) {
-			// do something
-		}
-		LOGGER.info("Done iterating through system deployment savings data");
-	}
+//		LOGGER.info("Done iterating through system deployment savings data");
+//	}
 
 
 }

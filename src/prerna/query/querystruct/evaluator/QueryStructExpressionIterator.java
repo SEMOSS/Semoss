@@ -264,44 +264,44 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	 * Main for testing
 	 */
 	
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-		{
-			String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-			IEngine coreEngine = new RDBMSNativeEngine();
-			coreEngine.setEngineId("LocalMasterDatabase");
-			coreEngine.openDB(engineProp);
-			coreEngine.setEngineId("LocalMasterDatabase");
-			DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
-		}
-		
-	
-		String testEngine = "TinkerThis__cc2a91eb-548d-4970-91c3-7a043b783841";
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
-		TinkerEngine coreEngine = new TinkerEngine();
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty(testEngine, coreEngine);
-		
-		
-		GremlinInterpreter interp = new GremlinInterpreter(coreEngine.getGraph().traversal(), 
-				coreEngine.getTypeMap(), coreEngine.getNameMap());
-		
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("Studio"));
-		QueryFunctionSelector fun = new QueryFunctionSelector();
-		fun.setFunction(QueryFunctionHelper.MEAN);
-		fun.addInnerSelector(new QueryColumnSelector("Title__MovieBudget"));
-		qs.addSelector(fun);
-		qs.addGroupBy(new QueryColumnSelector("Studio"));
-		qs.addRelation("Title", "Studio", "inner.join");
-		
-		RawGemlinSelectWrapper subIt = new RawGemlinSelectWrapper(interp, qs);
-		subIt.execute();
-		
-		QueryStructExpressionIterator it = new QueryStructExpressionIterator(subIt, qs);
-		it.execute();
-		while(it.hasNext()) {
-			System.out.println(it.next());
-		}
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//		{
+//			String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+//			IEngine coreEngine = new RDBMSNativeEngine();
+//			coreEngine.setEngineId("LocalMasterDatabase");
+//			coreEngine.openDB(engineProp);
+//			coreEngine.setEngineId("LocalMasterDatabase");
+//			DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
+//		}
+//		
+//	
+//		String testEngine = "TinkerThis__cc2a91eb-548d-4970-91c3-7a043b783841";
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
+//		TinkerEngine coreEngine = new TinkerEngine();
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty(testEngine, coreEngine);
+//		
+//		
+//		GremlinInterpreter interp = new GremlinInterpreter(coreEngine.getGraph().traversal(), 
+//				coreEngine.getTypeMap(), coreEngine.getNameMap());
+//		
+//		SelectQueryStruct qs = new SelectQueryStruct();
+//		qs.addSelector(new QueryColumnSelector("Studio"));
+//		QueryFunctionSelector fun = new QueryFunctionSelector();
+//		fun.setFunction(QueryFunctionHelper.MEAN);
+//		fun.addInnerSelector(new QueryColumnSelector("Title__MovieBudget"));
+//		qs.addSelector(fun);
+//		qs.addGroupBy(new QueryColumnSelector("Studio"));
+//		qs.addRelation("Title", "Studio", "inner.join");
+//		
+//		RawGemlinSelectWrapper subIt = new RawGemlinSelectWrapper(interp, qs);
+//		subIt.execute();
+//		
+//		QueryStructExpressionIterator it = new QueryStructExpressionIterator(subIt, qs);
+//		it.execute();
+//		while(it.hasNext()) {
+//			System.out.println(it.next());
+//		}
+//	}
 }

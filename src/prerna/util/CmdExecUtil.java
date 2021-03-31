@@ -203,7 +203,7 @@ public class CmdExecUtil {
 		executor = new DefaultExecutor();
 		PumpStreamHandler streamHandler = new PumpStreamHandler(clos);
 		executor.setStreamHandler(streamHandler);
-		executor.setWorkingDirectory(new File(workingDir));
+		executor.setWorkingDirectory(new File(Utility.normalizePath(workingDir)));
 		ExecuteWatchdog watchdog = new ExecuteWatchdog(20000); // 20 seconds is plenty of time.. if the process doesnt return kill it
 		executor.setWatchdog(watchdog);
 		try
