@@ -78,6 +78,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.isEmpty()) {
+			// remove unnecessary pixels to start
+			PixelUtility.removeUnnecessaryPixels(this.insight);
 			PixelList insightPixelList = this.insight.getPixelList();
 			recipeToSave = insightPixelList.getPixelRecipe();
 			recipeIds = insightPixelList.getPixelIds();

@@ -32,6 +32,7 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		String pixelAlias = null;
 		String pixelDescription = null;
 		boolean meta = false;
+		boolean isRefreshPanel = false;
 		boolean error = false;
 		boolean warning = false;
 		Map<String, Map<String, Object>> startingFrameHeaders = null;
@@ -65,6 +66,8 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 				pixelDescription = in.nextString();
 			} else if(key.equals("meta")) {
 				meta = in.nextBoolean();
+			}  else if(key.equals("isRefreshPanel")) {
+				isRefreshPanel = in.nextBoolean();
 			} else if(key.equals("errorReturned")) {
 				error = in.nextBoolean();
 			} else if(key.equals("warningReturned")) {
@@ -116,6 +119,7 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		pixel.setPixelAlias(pixelAlias);
 		pixel.setPixelDescription(pixelDescription);
 		pixel.setMeta(meta);
+		pixel.setRefreshPanel(isRefreshPanel);
 		pixel.setReturnedError(error);
 		pixel.setReturnedWarning(warning);
 		pixel.setStartingFrameHeaders(startingFrameHeaders);
@@ -153,6 +157,9 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		// meta
 		out.name("meta");
 		out.value(value.isMeta());
+		// isRefreshPanel
+		out.name("isRefreshPanel");
+		out.value(value.isRefreshPanel());
 		// error
 		out.name("errorReturned");
 		out.value(value.isReturnedError());
