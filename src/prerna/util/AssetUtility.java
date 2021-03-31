@@ -190,7 +190,7 @@ public class AssetUtility {
 				+ SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version");
 
 		// if this folder does not exist create it
-		File file = new File(gitFolder);
+		File file = new File(Utility.normalizePath(gitFolder));
 		if (!file.exists()) {
 			file.mkdir();
 		}
