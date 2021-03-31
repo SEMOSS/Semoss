@@ -122,47 +122,47 @@ public class ImportQueryTranslation extends LazyTranslation {
 	 * Testing method
 	 * @param args
 	 */
-	public static void main(String[] args) {
-		TestUtilityMethods.loadDIHelper("C:\\workspace3\\Semoss_Dev\\RDF_Map.prop");
-		Gson gson = new GsonBuilder()
-				.disableHtmlEscaping()
-				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
-				.setPrettyPrinting()
-				.create();
-		
-		String[] recipe = new String[]{ 
-				"AddPanel ( 0 ) ; ",
-				"Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"UnfilterFrame(%3CSelectedColumn%3E)%3B\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"if(IsEmpty(%3CSelectedValues%3E)%2C%20UnfilterFrame(%3CSelectedColumn%3E)%2C%20SetFrameFilter(%3CSelectedColumn%3E%3D%3D%3CSelectedValues%3E))%3B\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; ",
-				"Panel ( 0 ) | RetrievePanelEvents ( ) ; ",
-				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"%7B%22type%22%3A%22echarts%22%7D\" ) ; ",
-				"Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"%7B%22core_engine%22%3A%22NEWSEMOSSAPP%22%7D\" ) ; ",
-				"Database ( database = [ \"995cf169-6b44-4a42-b75c-af12f9f45c36\" ] ) "
-						+ "| Select ( DIABETES2__AGE, DIABETES2__TEST) .as ( [ AGE, TEST ] ) "
-						+ "| Filter ( ( ( DIABETES2__AGE > [ 20 ] )  OR  ( ( DIABETES2__BP_2S != [ null ] )  AND  ( DIABETES2__BP_2D != [ null ] ) ) ) ) "
-						+ "| Import ( frame = [ CreateFrame ( frameType = [ PY ] , override = [ true ] ) .as ( [ \"Diabetes_FRAME224822\" ] ) ] ) ;", 
-				"Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ; "
-		};
-		
-		Insight in = new Insight();
-
-		int counter = 0;
-		ImportQueryTranslation translation = new ImportQueryTranslation(in);
-		// loop through recipe
-		for(String expression : recipe) {
-			try {
-				translation.setPixelObj(new Pixel("" + (counter++), expression));
-				expression = PixelPreProcessor.preProcessPixel(expression.trim(), new ArrayList<String>(), new HashMap<String, String>());
-				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
-				// parsing the pixel - this process also determines if expression is syntactically correct
-				Start tree = p.parse();
-				// apply the translation.
-				tree.apply(translation);
-			} catch (ParserException | LexerException | IOException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		System.out.println(gson.toJson(translation.getImportQsMap()));
-	}
+//	public static void main(String[] args) {
+//		TestUtilityMethods.loadDIHelper("C:\\workspace3\\Semoss_Dev\\RDF_Map.prop");
+//		Gson gson = new GsonBuilder()
+//				.disableHtmlEscaping()
+//				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
+//				.setPrettyPrinting()
+//				.create();
+//		
+//		String[] recipe = new String[]{ 
+//				"AddPanel ( 0 ) ; ",
+//				"Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"UnfilterFrame(%3CSelectedColumn%3E)%3B\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"if(IsEmpty(%3CSelectedValues%3E)%2C%20UnfilterFrame(%3CSelectedColumn%3E)%2C%20SetFrameFilter(%3CSelectedColumn%3E%3D%3D%3CSelectedValues%3E))%3B\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ; ",
+//				"Panel ( 0 ) | RetrievePanelEvents ( ) ; ",
+//				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"%7B%22type%22%3A%22echarts%22%7D\" ) ; ",
+//				"Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"%7B%22core_engine%22%3A%22NEWSEMOSSAPP%22%7D\" ) ; ",
+//				"Database ( database = [ \"995cf169-6b44-4a42-b75c-af12f9f45c36\" ] ) "
+//						+ "| Select ( DIABETES2__AGE, DIABETES2__TEST) .as ( [ AGE, TEST ] ) "
+//						+ "| Filter ( ( ( DIABETES2__AGE > [ 20 ] )  OR  ( ( DIABETES2__BP_2S != [ null ] )  AND  ( DIABETES2__BP_2D != [ null ] ) ) ) ) "
+//						+ "| Import ( frame = [ CreateFrame ( frameType = [ PY ] , override = [ true ] ) .as ( [ \"Diabetes_FRAME224822\" ] ) ] ) ;", 
+//				"Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ; "
+//		};
+//		
+//		Insight in = new Insight();
+//
+//		int counter = 0;
+//		ImportQueryTranslation translation = new ImportQueryTranslation(in);
+//		// loop through recipe
+//		for(String expression : recipe) {
+//			try {
+//				translation.setPixelObj(new Pixel("" + (counter++), expression));
+//				expression = PixelPreProcessor.preProcessPixel(expression.trim(), new ArrayList<String>(), new HashMap<String, String>());
+//				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+//				// parsing the pixel - this process also determines if expression is syntactically correct
+//				Start tree = p.parse();
+//				// apply the translation.
+//				tree.apply(translation);
+//			} catch (ParserException | LexerException | IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		
+//		System.out.println(gson.toJson(translation.getImportQsMap()));
+//	}
 
 }

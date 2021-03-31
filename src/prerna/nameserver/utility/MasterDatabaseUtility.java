@@ -2795,26 +2795,26 @@ public class MasterDatabaseUtility {
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-
-		List<String> pixelNames = new Vector<>();
-		pixelNames.add("Studio");
-		List<String> ids = getLocalConceptIdsFromPixelName(pixelNames);
-		
-		Gson gson = new GsonBuilder()
-				.disableHtmlEscaping()
-				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
-				.setPrettyPrinting()
-				.create();
-
-		List<String> values = null;
-		logger.debug(gson.toJson(getDatabaseConnections(ids, values)));
-		
-//		System.out.println(gson.toJson(getPKColumnsWithData("2da0688f-fc35-4427-aba5-7bd7b7ac9472"))); 
-//		System.out.println(gson.toJson(getPKColumnsWithData("67b6499d-03b2-463f-9169-396f4cce8955"))); 
-//		System.out.println(gson.toJson(getPKColumnsWithData("3cbd547f-9ff9-43bc-9b59-a4d170c45b26"))); 
-		
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//
+//		List<String> pixelNames = new Vector<>();
+//		pixelNames.add("Studio");
+//		List<String> ids = getLocalConceptIdsFromPixelName(pixelNames);
+//		
+//		Gson gson = new GsonBuilder()
+//				.disableHtmlEscaping()
+//				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
+//				.setPrettyPrinting()
+//				.create();
+//
+//		List<String> values = null;
+//		logger.debug(gson.toJson(getDatabaseConnections(ids, values)));
+//		
+////		System.out.println(gson.toJson(getPKColumnsWithData("2da0688f-fc35-4427-aba5-7bd7b7ac9472"))); 
+////		System.out.println(gson.toJson(getPKColumnsWithData("67b6499d-03b2-463f-9169-396f4cce8955"))); 
+////		System.out.println(gson.toJson(getPKColumnsWithData("3cbd547f-9ff9-43bc-9b59-a4d170c45b26"))); 
+//		
+//	}
 
 }

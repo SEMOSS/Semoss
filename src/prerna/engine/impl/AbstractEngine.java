@@ -302,10 +302,10 @@ public abstract class AbstractEngine implements IEngine {
 			if(public_home != null)
 			{
 				String fileName = public_home + java.nio.file.FileSystems.getDefault().getSeparator() + engineName + "__" + engineId;
-				File file = new File(fileName);
+				File file = new File(Utility.normalizePath(fileName));
 				
 					try {
-						if(file.exists() && Files.isSymbolicLink(Paths.get(fileName)))
+						if(file.exists() && Files.isSymbolicLink(Paths.get(Utility.normalizePath(fileName))))
 							FileUtils.forceDelete(file);
 					} catch (IOException e) {
 						// TODO Auto-generated catch block

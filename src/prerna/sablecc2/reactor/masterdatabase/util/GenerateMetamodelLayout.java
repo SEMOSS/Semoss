@@ -438,13 +438,13 @@ public class GenerateMetamodelLayout {
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-
-		String tapCoreSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
-		BigDataEngine engine = new BigDataEngine();
-		engine.openDB(tapCoreSmss);
-
-		generateLayout("133db94b-4371-4763-bff9-edf7e5ed021b");
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//
+//		String tapCoreSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
+//		BigDataEngine engine = new BigDataEngine();
+//		engine.openDB(tapCoreSmss);
+//
+//		generateLayout("133db94b-4371-4763-bff9-edf7e5ed021b");
+//	}
 }

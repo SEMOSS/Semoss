@@ -21,38 +21,38 @@ import prerna.util.DIHelper;
 public class MHSGenesisScheduleUpdater {
 
 		
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
-		
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data.smss";
-		coreEngine = new BigDataEngine();
-		coreEngine.setEngineId("TAP_Site_Data");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
-		
-		// update site assignments
-		updateSiteToWave(coreEngine);
-		
-		// update waves to year-quarter
-		// first, delete all wave to year-quarter nodes
-		deleteWaveToYearQuarter(coreEngine);
-		// do the wave to year-quarter
-		addWaveToYearQuarter(coreEngine);
-		
-		String q = "SELECT DISTINCT ?Wave ?StartDate ?EndDate WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?StartDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?StartDate} {?EndDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndDate} }";
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, q);
-		while(it.hasNext()) {
-			Object[] uriRow = it.next().getRawValues();
-			System.out.println("This should return " + Arrays.toString(uriRow));
-		}
-		
-		coreEngine.commit();
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+//		IEngine coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+//		
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineId("TAP_Site_Data");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
+//		
+//		// update site assignments
+//		updateSiteToWave(coreEngine);
+//		
+//		// update waves to year-quarter
+//		// first, delete all wave to year-quarter nodes
+//		deleteWaveToYearQuarter(coreEngine);
+//		// do the wave to year-quarter
+//		addWaveToYearQuarter(coreEngine);
+//		
+//		String q = "SELECT DISTINCT ?Wave ?StartDate ?EndDate WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?StartDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?StartDate} {?EndDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndDate} }";
+//		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, q);
+//		while(it.hasNext()) {
+//			Object[] uriRow = it.next().getRawValues();
+//			System.out.println("This should return " + Arrays.toString(uriRow));
+//		}
+//		
+//		coreEngine.commit();
+//	}
 
 	private static void updateSiteToWave(IEngine engine) {
 		List<String> updateSites = new Vector<String>();
