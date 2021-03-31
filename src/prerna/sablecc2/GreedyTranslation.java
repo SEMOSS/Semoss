@@ -324,6 +324,27 @@ public class GreedyTranslation extends LazyTranslation {
 								pixelObj.addTaskOptions(new TaskOptions(tOptions));
 		    				}
 		    			}
+		    		} else if(output.getNounType() == PixelDataType.TASK_LIST) {
+		    			// we have multiple tasks that we are looping through
+		    			Object oNoun = output.getValue();
+		    			if(oNoun instanceof List) {
+		    				List<NounMetadata> listVal = (List<NounMetadata>) oNoun;
+		    				for(NounMetadata noun : listVal) {
+		    					Object oVal = noun.getValue();
+				    			if(oVal instanceof ITask) {
+									ITask task = (ITask) oVal;
+									if(task.getTaskOptions() != null) {
+										pixelObj.addTaskOptions(task.getTaskOptions());
+									}
+				    			} else if(oVal instanceof Map) {
+				    				Map taskMap = (Map) oVal;
+				    				if(taskMap.get("taskOptions") != null) {
+				    					Map<String, Object> tOptions = (Map<String, Object>) taskMap.get("taskOptions");
+										pixelObj.addTaskOptions(new TaskOptions(tOptions));
+				    				}
+				    			}
+		    				}
+		    			}
 		    		} else if(output.getNounType() == PixelDataType.REMOVE_LAYER) {
 						pixelObj.addRemoveLayer((Map<String, String>) output.getValue());
 		    		} else if(output.getNounType() == PixelDataType.PANEL_CLONE_MAP) {
@@ -332,6 +353,10 @@ public class GreedyTranslation extends LazyTranslation {
 		    			simpleMap.put("original", cloneMap.get("original").getPanelId());
 		    			simpleMap.put("clone", cloneMap.get("clone").getPanelId());
 						pixelObj.addCloneMap(simpleMap);
+		    		}
+		    		
+		    		if(output.getOpType().contains(PixelOperationType.RESET_PANEL_TASKS)) {
+		    			pixelObj.setRefreshPanel(true);
 		    		}
 	    		}
 	    		

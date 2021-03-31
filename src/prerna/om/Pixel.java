@@ -44,6 +44,9 @@ public class Pixel {
 	// for the FE view
 	private Map<String, Object> positionMap = new HashMap<>();
 	
+	// are we a refresh panel
+	private boolean isRefreshPanel = false;
+	
 	// currently unused - just thinking of things to store
 	private boolean isParamSelection = false;
 
@@ -63,6 +66,14 @@ public class Pixel {
 	 */
 	public String getPixelString() {
 		return this.pixelString;
+	}
+	
+	/**
+	 * Set the pixel string
+	 * @param pixelString
+	 */
+	public void setPixelString(String pixelString) {
+		this.pixelString = pixelString;
 	}
 	
 	/**
@@ -299,6 +310,26 @@ public class Pixel {
 	}
 	
 	/**
+	 * Is this pixel a refresh panel task
+	 * Important for being able to determine if this is the last pixel on the frame
+	 * That we need to grab the original pixel that was used for painting
+	 * @return
+	 */
+	public boolean isRefreshPanel() {
+		return isRefreshPanel;
+	}
+
+	/**
+	 * Set if this pixel is a refresh panel task
+	 * Important for being able to determine if this is the last pixel on the frame
+	 * That we need to grab the original pixel that was used for painting
+	 * @return
+	 */
+	public void setRefreshPanel(boolean isRefreshPanel) {
+		this.isRefreshPanel = isRefreshPanel;
+	}
+
+	/**
 	 * Get if this pixel returned an error during execution
 	 * @return
 	 */
@@ -437,6 +468,7 @@ public class Pixel {
 	 */
 	public static void translationMerge(Pixel pixelObj, Pixel mergePixel) {
 		if(mergePixel != null) {
+			pixelObj.setRefreshPanel(mergePixel.isRefreshPanel());
 			pixelObj.setStartingFrameHeaders(mergePixel.getStartingFrameHeaders());
 			pixelObj.setReactorInputs(mergePixel.getReactorInputs());
 			pixelObj.setFrameInputs(mergePixel.getFrameInputs());
