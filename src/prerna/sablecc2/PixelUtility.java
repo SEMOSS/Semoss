@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +33,7 @@ import prerna.om.InsightSheet;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
 import prerna.query.parsers.ParamStruct;
+import prerna.query.parsers.ParamStructDetails;
 import prerna.query.parsers.ParamStructDetails.QUOTE;
 import prerna.query.parsers.ParamStructToJsonGenerator;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -188,15 +190,16 @@ public class PixelUtility {
 	public static String removeSurroundingQuotes(String literal) {
 		literal = literal.trim();
 		if(literal.startsWith("\"") || literal.startsWith("'")) {
-			literal = literal.substring(1); //remove the first quote
+			 //remove the first quote
+			literal = literal.substring(1);
 		}
 		
 		if(literal.endsWith("\"") || literal.endsWith("'")) {
 			if(literal.length() == 1) {
 				literal = "";
 			} else {
-				literal = literal.substring(0, literal.length()-1); //remove the end quote
-			}
+				 //remove the end quote
+				literal = literal.substring(0, literal.length()-1);			}
 		}
 		
 		return literal;
@@ -739,6 +742,123 @@ public class PixelUtility {
 		}
 		
 		return cacheRecipe;
+	}
+	
+	/**
+	 * Remove unnecessary pixels
+	 * @param in
+	 */
+	public static void removeUnnecessaryPixels(Insight in) {
+		PixelList insightPixelList = in.getPixelList();
+		List<ParamStruct> paramStructs = in.getVarStore().pullParamStructs();
+		Map<ParamStructDetails, Pixel> paramToPixelObj = new HashMap<>();
+		for(ParamStruct pStruct : paramStructs) {
+			List<ParamStructDetails> paramDetails = pStruct.getDetailsList();
+			for(ParamStructDetails pDetail : paramDetails) {
+				paramToPixelObj.put(pDetail, insightPixelList.getPixel(pDetail.getPixelId()));
+			}
+		}
+		
+		Map<String, InsightPanel> insightPanels = in.getInsightPanels();
+		Map<String, Boolean> panelIsVisualization = new HashMap<>();
+		for(String panelId : insightPanels.keySet()) {
+			InsightPanel panel = insightPanels.get(panelId);
+			boolean isVisualizaiton = panel.getPanelView().equalsIgnoreCase("visualization");
+			panelIsVisualization.put(panelId, isVisualizaiton);
+		}
+		
+		Map<String, Boolean> panelCloneConsidered = new HashMap<>();
+		Set<String> panelIsNotClone = new HashSet<>();
+		Set<String> panelLayer = new HashSet<>();
+		LinkedList<String> idsToRemove = new LinkedList<>();
+		// we need to store the last pixel executed for each task
+		int numSteps = insightPixelList.size();
+		for(int i = numSteps-1; i >= 0; i--) {
+			Pixel pixelObject = insightPixelList.get(i);
+			
+			boolean removeStep = true;
+			Set<String> panelIds = null;
+			List<TaskOptions> tOptions = pixelObject.getTaskOptions();
+			if(tOptions != null && !tOptions.isEmpty()) {
+				for(TaskOptions tOption : tOptions) {
+					if(tOption.isOrnament()) {
+						removeStep = false;
+						continue;
+					}
+					panelIds = tOption.getPanelIds();
+					for(String panelId : panelIds) {
+						
+						// if we are not visualization on this panel
+						// this step is not needed
+						InsightPanel panel = insightPanels.get(panelId);
+						if(panel == null) {
+							// this is a closed panel
+							continue;
+						}
+						if(!panelIsVisualization.get(panelId)) {
+							// panel is not visualization 
+							continue;
+						}
+						
+						String layerId = tOption.getPanelLayerId(panelId);
+						if(layerId == null) {
+							layerId = "0";
+						}
+						String panelLayerId = panelId + "__" + layerId;
+						if(!panelLayer.contains(panelLayerId)) {
+							if(pixelObject.isRefreshPanel()) {
+								// need to find the original
+								Pixel correctPixel = insightPixelList.findLastPixelViewNotRefresh(panelId, layerId);
+								if(correctPixel != null) {
+									// set the original pixel value into this object
+									pixelObject.setPixelString(correctPixel.getPixelString());
+									pixelObject.setRefreshPanel(false);
+								}
+							}
+							removeStep = false;
+							panelLayer.add(panelLayerId);
+							panelIsNotClone.add(panelId);
+						}
+						// if another panel depends on this query
+						if(panelCloneConsidered.containsKey(panelId)) {
+							if(!panelCloneConsidered.get(panelId)) {
+								removeStep = false;
+								panelCloneConsidered.put(panelId, true);
+							}
+						}
+					}
+				}
+				
+				if(removeStep) {
+					idsToRemove.addFirst(pixelObject.getId());
+				}
+			}
+			
+			// store panels that are clones
+			List<Map<String, String>> cloneMapList = pixelObject.getCloneMapList();
+			if(cloneMapList != null && !cloneMapList.isEmpty()) {
+				for(Map<String, String> simpleMap : cloneMapList) {
+					String thisPanel = simpleMap.get("original");
+	    			String clonePanel = simpleMap.get("clone");
+	    			
+	    			if(!panelIsNotClone.contains(clonePanel)) {
+	    				// we are a clone and this is the view
+	    				// we need to keep this panel
+	    				panelCloneConsidered.put(thisPanel, false);
+	    			}
+				}
+			}
+		}
+		
+		// remove the ids from the pixel list
+		if(!idsToRemove.isEmpty()) {
+			insightPixelList.removeIds(idsToRemove, false);
+			
+			// update the references for the parameters
+			for(ParamStructDetails pDetails : paramToPixelObj.keySet()) {
+				pDetails.setPixelId(paramToPixelObj.get(pDetails).getId());
+			}
+		}
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
