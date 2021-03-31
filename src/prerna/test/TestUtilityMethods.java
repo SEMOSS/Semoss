@@ -13,6 +13,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public final class TestUtilityMethods {
 
@@ -29,7 +30,7 @@ public final class TestUtilityMethods {
 	public static void loadDIHelper(String propFile) {
 		DIHelper.getInstance().loadCoreProp(propFile);
 		//Set log4j prop
-		String log4JPropFile = new File(propFile).getParent() + "/log4j2.properties";
+		String log4JPropFile = new File(Utility.normalizePath(propFile)).getParent() + "/log4j2.properties";
 		FileInputStream fis = null;
 		ConfigurationSource source = null;
 		try {

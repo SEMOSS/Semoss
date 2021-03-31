@@ -122,23 +122,23 @@ public class ExcelWorkbookFileHelper {
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 
-	public static void main(String[] args) {
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-		
-		String fileLocation = "C:\\Users\\SEMOSS\\Desktop\\shifted.xlsx";
-		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-		helper.parse(fileLocation);
-		System.out.println(helper.getSheets());
-		
-		
-		ExcelQueryStruct qs = new ExcelQueryStruct();
-		qs.setSheetName("Sheet1");
-		qs.setSheetRange("E7:R28");
-		
-		ExcelSheetFileIterator it = helper.getSheetIterator(qs);
-		while(it.hasNext()) {
-			System.out.println(Arrays.toString(it.next().getValues()));
-		}
-	}
-	
+//	public static void main(String[] args) {
+//		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//		
+//		String fileLocation = "C:\\Users\\SEMOSS\\Desktop\\shifted.xlsx";
+//		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+//		helper.parse(fileLocation);
+//		System.out.println(helper.getSheets());
+//		
+//		
+//		ExcelQueryStruct qs = new ExcelQueryStruct();
+//		qs.setSheetName("Sheet1");
+//		qs.setSheetRange("E7:R28");
+//		
+//		ExcelSheetFileIterator it = helper.getSheetIterator(qs);
+//		while(it.hasNext()) {
+//			System.out.println(Arrays.toString(it.next().getValues()));
+//		}
+//	}
+//	
 }

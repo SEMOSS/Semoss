@@ -232,9 +232,9 @@ public class TemplateUtility {
 		// the template folder and filename to the app asset folder
 		File file = null;
 		if(removeTemplateRelativePath.startsWith("/") || removeTemplateRelativePath.startsWith("\\")) {
-			file = new File(assetFolder + removeTemplateRelativePath);
+			file = new File(Utility.normalizePath(assetFolder + removeTemplateRelativePath));
 		} else {
-			file = new File(assetFolder + DIR_SEPARATOR + removeTemplateRelativePath);
+			file = new File(Utility.normalizePath(assetFolder + DIR_SEPARATOR + removeTemplateRelativePath));
 		}
 		file.delete();
 		
