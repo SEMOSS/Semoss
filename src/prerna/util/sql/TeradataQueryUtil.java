@@ -102,12 +102,30 @@ public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 		return connectionString;
 	}
 	
+	@Override
 	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset) {
 
 		if(limit > 0) {
 			String strquery = query.toString();
 			strquery=strquery.replaceFirst("SELECT", "SELECT TOP " + limit + " ");
 			query = new StringBuilder();
+			query.append(strquery);
+		}
+		
+		//TODO there is no offset for now
+//		if(offset > 0) {
+//			query = query.append(" OFFSET "+offset);
+//		}
+		return query;
+	}
+	
+	@Override
+	public StringBuffer addLimitOffsetToQuery(StringBuffer query, long limit, long offset) {
+
+		if(limit > 0) {
+			String strquery = query.toString();
+			strquery = strquery.replaceFirst("SELECT", "SELECT TOP " + limit + " ");
+			query = new StringBuffer();
 			query.append(strquery);
 		}
 		
