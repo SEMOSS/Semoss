@@ -73,7 +73,7 @@ public class GetInsightsReactor extends AbstractReactor {
 		// these values are based on the projections in the query
 		QueryColumnOrderBySelector sortBy = null;
 		if(sortCol.equalsIgnoreCase("date")) {
-			sortBy = new QueryColumnOrderBySelector("INSIGHT__LASTMODIFIEDON", "desc");
+			sortBy = new QueryColumnOrderBySelector("last_modified_on", "desc");
 		} else {
 			sortBy = new QueryColumnOrderBySelector("low_name");
 		}
