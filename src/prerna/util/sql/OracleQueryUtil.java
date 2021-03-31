@@ -102,6 +102,17 @@ public class OracleQueryUtil extends AnsiSqlQueryUtil {
 		return query;
 	}
 	
+	@Override
+	public StringBuffer addLimitOffsetToQuery(StringBuffer query, long limit, long offset) {
+		if(offset > 0) {
+			query = query.append(" OFFSET " + offset + " ROWS ");
+		}
+		if(limit > 0) {
+			query = query.append(" FETCH NEXT " + limit+" ROWS ONLY ");
+		}
+		return query;
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	@Override
