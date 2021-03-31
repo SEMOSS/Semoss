@@ -60,35 +60,35 @@ public class JsonConversionToQuartzJob {
 	private static StdSchedulerFactory factory;
 	public static Scheduler scheduler = null;
 
-	public static void main(String[] args) throws NotDirectoryException {
-		serverUrl = startServer(CONNECTION_URL);
-
-		setUpPropertiesFile();
-		startScheduler();
-
-		File directory = new File(MY_DIRECTORY_PATH);
-		File[] directoryFileList = directory.listFiles();
-
-		if (directoryFileList == null) {
-			throw new NotDirectoryException("The directory does not exist");
-		} else {
-			for (File child : directoryFileList) {
-				Gson gson = new Gson();
-				JsonParser jsonParser = new JsonParser();
-
-				JsonElement jsonObject = null;
-				try {
-					jsonObject = jsonParser.parse(new InputStreamReader(new FileInputStream(child), "UTF-8"));
-				} catch (JsonIOException | JsonSyntaxException | UnsupportedEncodingException
-						| FileNotFoundException se) {
-					logger.error(Constants.STACKTRACE, se);
-				}
-				OldJobs oldJobs = gson.fromJson(jsonObject, OldJobs.class);
-
-				convertJob(oldJobs);
-			}
-		}
-	}
+//	public static void main(String[] args) throws NotDirectoryException {
+//		serverUrl = startServer(CONNECTION_URL);
+//
+//		setUpPropertiesFile();
+//		startScheduler();
+//
+//		File directory = new File(MY_DIRECTORY_PATH);
+//		File[] directoryFileList = directory.listFiles();
+//
+//		if (directoryFileList == null) {
+//			throw new NotDirectoryException("The directory does not exist");
+//		} else {
+//			for (File child : directoryFileList) {
+//				Gson gson = new Gson();
+//				JsonParser jsonParser = new JsonParser();
+//
+//				JsonElement jsonObject = null;
+//				try {
+//					jsonObject = jsonParser.parse(new InputStreamReader(new FileInputStream(child), "UTF-8"));
+//				} catch (JsonIOException | JsonSyntaxException | UnsupportedEncodingException
+//						| FileNotFoundException se) {
+//					logger.error(Constants.STACKTRACE, se);
+//				}
+//				OldJobs oldJobs = gson.fromJson(jsonObject, OldJobs.class);
+//
+//				convertJob(oldJobs);
+//			}
+//		}
+//	}
 
 	public static String startServer(String connectionUrl) {
 		Server server = null;

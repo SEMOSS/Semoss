@@ -1434,7 +1434,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		//1920 x 936
 		//FileInputStream obtains input bytes from the image file
 		try {
-			InputStream inputStream = new FileInputStream(imageLocation);
+			InputStream inputStream = new FileInputStream(Utility.normalizePath(imageLocation));
 			//Get the contents of an InputStream as a byte[].
 			byte[] bytes = IOUtils.toByteArray(inputStream);
 			//Adds a picture to the workbook
@@ -1442,7 +1442,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			//close the input stream
 			inputStream.close();
 
-			FileUtils.forceDelete(new File(imageLocation));
+			FileUtils.forceDelete(new File(Utility.normalizePath(imageLocation)));
 
 			//Returns an object that handles instantiating concrete classes
 			CreationHelper helper = wb.getCreationHelper();

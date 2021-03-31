@@ -34,6 +34,7 @@ import prerna.ds.py.PyExecutorThread;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class Server 
 {
@@ -92,12 +93,12 @@ public class Server
 				
 		}
 		
-		String log4JPropFile = Paths.get(args[0], "log4j2.properties").toAbsolutePath().toString();
+		String log4JPropFile = Paths.get(Utility.normalizePath(args[0]), "log4j2.properties").toAbsolutePath().toString();
 		
 		FileInputStream fis = null;
 		ConfigurationSource source = null;
 		try {
-			fis = new FileInputStream(log4JPropFile);
+			fis = new FileInputStream(Utility.normalizePath(log4JPropFile));
 			source = new ConfigurationSource(fis);
 			//Configuration con = PropertiesConfigurationFactory.getInstance().getConfiguration(new LoggerContext(CLASS_NAME), source);
 			//LOGGER = con.getLoggerContext().getLogger(CLASS_NAME);
@@ -121,7 +122,7 @@ public class Server
 		
 		worker.prop = new Properties();
 		try {
-			worker.prop.load(new FileInputStream(args[1]));
+			worker.prop.load(new FileInputStream(Utility.normalizePath(args[1])));
 			System.out.println("Loaded the rdf map");
 			
 			// get the library for jep

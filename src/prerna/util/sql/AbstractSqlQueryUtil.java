@@ -1396,17 +1396,17 @@ public abstract class AbstractSqlQueryUtil {
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadAll("C:\\workspace2\\Semoss_Dev\\RDF_Map.prop");
-
-		RDBMSNativeEngine security = (RDBMSNativeEngine) Utility.getEngine("security");
-		AbstractSqlQueryUtil util = security.getQueryUtil();
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(security,
-				"SELECT * FROM PRAGMA_TABLE_INFO('USER') WHERE NAME='email'");
-		while (wrapper.hasNext()) {
-			logger.debug(wrapper.next());
-		}
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadAll("C:\\workspace2\\Semoss_Dev\\RDF_Map.prop");
+//
+//		RDBMSNativeEngine security = (RDBMSNativeEngine) Utility.getEngine("security");
+//		AbstractSqlQueryUtil util = security.getQueryUtil();
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(security,
+//				"SELECT * FROM PRAGMA_TABLE_INFO('USER') WHERE NAME='email'");
+//		while (wrapper.hasNext()) {
+//			logger.debug(wrapper.next());
+//		}
+//	}
 
 
 }

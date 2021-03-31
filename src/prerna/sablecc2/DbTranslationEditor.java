@@ -108,88 +108,88 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 	}
 
 
-	public static void main(String[] args) throws Exception {
-		//		String expression = "CreateFrame(py); Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget) | Import();";
-		//		DbTranslationEditor translation = new DbTranslationEditor();
-		//		translation.setEngineToFind("Movie_RDBMS");
-		//		translation.setEngineToReplace("MyMovie");
-		//
-		//		try {
-		//			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
-		//			// parsing the pkql - this process also determines if expression is syntactically correct
-		//			Start tree = p.parse();
-		//			// apply the translation.
-		//			tree.apply(translation);
-		//		} catch (ParserException | LexerException | IOException e) {
-		//			e.printStackTrace();
-		//		}
-		//		
-		//		System.out.println(translation.pixels);
-
-
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
-
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie.smss";
-		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId("Movie");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie", coreEngine);
-
-		RDBMSNativeEngine insightEngine = coreEngine.getInsightDatabase();
-		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-
-		// query the insights rdbms and get all the insights
-		// also grab the layout... annoying
-		String query = "select id, question_layout from question_id";
-		IRawSelectWrapper idWrapper = WrapperManager.getInstance().getRawWrapper(insightEngine, query);
-		while(idWrapper.hasNext()) {
-			Object[] row = idWrapper.next().getValues();
-			String insightId = row[0].toString();
-			String layout = row[1].toString();
-			Insight in = coreEngine.getInsight(insightId).get(0);
-			if(in instanceof OldInsight) {
-				// ignore
-				continue;
-			}
-
-			// get the old
-			List<String> oldRecipe = in.getPixelList().getPixelRecipe();
-			// store the new
-			List<String> newRecipe = new Vector<String>();
-			
-			for(String expression : oldRecipe) {
-				DbTranslationEditor translation = new DbTranslationEditor();
-				translation.setEngineToFind("MovieDatabase");
-				translation.setEngineToReplace("Movie");
-				
-				try {
-					expression = PixelPreProcessor.preProcessPixel(expression.trim(), new ArrayList<String>(), new HashMap<String, String>());
-					Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
-					// parsing the pkql - this process also determines if expression is syntactically correct
-					Start tree = p.parse();
-					// apply the translation.
-					tree.apply(translation);
-
-					// get the new recipe
-					newRecipe.addAll(translation.pixels);
-				} catch (ParserException | LexerException | IOException e) {
-					e.printStackTrace();
-				}
-			}
-			
-			// now i am done looping through
-			// so update the recipe for the insight
-			LOGGER.info("UPDATING INSIGHT ID = " + in.getRdbmsId());
-			admin.updateInsight(in.getRdbmsId(), in.getInsightName(), layout, newRecipe.toArray(new String[]{}));
-		}
-
-		LOGGER.info("DONE UPDATING ALL INSIGHT IDS");
-	}
+//	public static void main(String[] args) throws Exception {
+//		//		String expression = "CreateFrame(py); Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget) | Import();";
+//		//		DbTranslationEditor translation = new DbTranslationEditor();
+//		//		translation.setEngineToFind("Movie_RDBMS");
+//		//		translation.setEngineToReplace("MyMovie");
+//		//
+//		//		try {
+//		//			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+//		//			// parsing the pkql - this process also determines if expression is syntactically correct
+//		//			Start tree = p.parse();
+//		//			// apply the translation.
+//		//			tree.apply(translation);
+//		//		} catch (ParserException | LexerException | IOException e) {
+//		//			e.printStackTrace();
+//		//		}
+//		//		
+//		//		System.out.println(translation.pixels);
+//
+//
+//		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+//		IEngine coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+//
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie.smss";
+//		coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineId("Movie");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie", coreEngine);
+//
+//		RDBMSNativeEngine insightEngine = coreEngine.getInsightDatabase();
+//		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+//
+//		// query the insights rdbms and get all the insights
+//		// also grab the layout... annoying
+//		String query = "select id, question_layout from question_id";
+//		IRawSelectWrapper idWrapper = WrapperManager.getInstance().getRawWrapper(insightEngine, query);
+//		while(idWrapper.hasNext()) {
+//			Object[] row = idWrapper.next().getValues();
+//			String insightId = row[0].toString();
+//			String layout = row[1].toString();
+//			Insight in = coreEngine.getInsight(insightId).get(0);
+//			if(in instanceof OldInsight) {
+//				// ignore
+//				continue;
+//			}
+//
+//			// get the old
+//			List<String> oldRecipe = in.getPixelList().getPixelRecipe();
+//			// store the new
+//			List<String> newRecipe = new Vector<String>();
+//			
+//			for(String expression : oldRecipe) {
+//				DbTranslationEditor translation = new DbTranslationEditor();
+//				translation.setEngineToFind("MovieDatabase");
+//				translation.setEngineToReplace("Movie");
+//				
+//				try {
+//					expression = PixelPreProcessor.preProcessPixel(expression.trim(), new ArrayList<String>(), new HashMap<String, String>());
+//					Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+//					// parsing the pkql - this process also determines if expression is syntactically correct
+//					Start tree = p.parse();
+//					// apply the translation.
+//					tree.apply(translation);
+//
+//					// get the new recipe
+//					newRecipe.addAll(translation.pixels);
+//				} catch (ParserException | LexerException | IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			
+//			// now i am done looping through
+//			// so update the recipe for the insight
+//			LOGGER.info("UPDATING INSIGHT ID = " + in.getRdbmsId());
+//			admin.updateInsight(in.getRdbmsId(), in.getInsightName(), layout, newRecipe.toArray(new String[]{}));
+//		}
+//
+//		LOGGER.info("DONE UPDATING ALL INSIGHT IDS");
+//	}
 
 }
