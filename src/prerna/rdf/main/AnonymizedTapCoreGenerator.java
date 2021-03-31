@@ -35,167 +35,167 @@ public class AnonymizedTapCoreGenerator {
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-	public static void main(String[] args) throws Exception {
-		// adding all the required paths up front here
-		String rdfMapLocation = "C:\\workspace\\Semoss_Dev\\RDF_Map.prop";
-		String tapCoreSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
-		String tapSiteSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data__eed12b32-bc38-4718-ab73-c0c78480c174.smss";
-		String tapPortfolioSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio__4254569c-3e78-4d62-8a07-1f786edf71e6.smss";
-		
-		// write to both json and excel
-		// excel for business users
-		// json for developers
-		String matchingFileJson = "C:\\workspace\\Semoss_Dev\\TAP_ANONYMIZED_MATCHING.json";
-		String matchingFileExcel = "C:\\workspace\\Semoss_Dev\\TAP_ANONYMIZED_MATCHING.xlsx";
-
-		// even if run for TAP CORE is false
-		// it will still query TAP Core to get the ultimate list of systems
-		// so make sure the path for TAP Core is accurate
-		boolean runForTapCore = true;
-		boolean runForTapSite = true;
-		boolean runforTapPortfolio = true;
-		// if this is true, make sure the directory for the json and excel paths is accurate
-		boolean createMatchingFile = true;
-		
-		TestUtilityMethods.loadAll(rdfMapLocation);
-
-		List<String> systemReplacementOrder = new Vector<String>();
-		Map<String, String> systemMapping = new HashMap<String, String>();
-
-		{
-			BigDataEngine engine = new BigDataEngine();
-			engine.openDB(tapCoreSmss);
-
-			// get a list of all the systems
-			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("System"));
-			qs.addOrderBy("System");
-
-			int counter = 1;
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-			while(wrapper.hasNext()) {
-				IHeadersDataRow data = wrapper.next();
-				Object[] row = data.getValues();
-				String system = row[0].toString();
-				systemMapping.put(system, "System" + counter);
-				counter++;
-
-				// keep track of all systems
-				// will order this so we know what to replace when
-				systemReplacementOrder.add(system);
-			}
-
-			//System.out.println(systemMapping.size());
-			//System.out.println(gson.toJson(systemMapping));
-
-			// order the systems from largest to smallest
-			systemReplacementOrder.sort(new Comparator<String>() {
-				@Override
-				public int compare(String o1, String o2) {
-					if(o1.length() > o2.length()) {
-						return -1;
-					} else if(o1.length() < o2.length()) {
-						return 1;
-					}
-					return 0;
-				}
-			});
-
-			//System.out.println(gson.toJson(systemReplacementOrder));
-
-			if(runForTapCore) {
-				runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
-			}
-		}
-		
-		if(runForTapSite) {
-			BigDataEngine engine = new BigDataEngine();
-			engine.openDB(tapSiteSmss);
-			runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
-		}
-		
-		if(runforTapPortfolio) {
-			BigDataEngine engine = new BigDataEngine();
-			engine.openDB(tapPortfolioSmss);
-			runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
-		}
-
-		if(createMatchingFile) {
-			// we will make both a JSON and an Excel
-			
-			// start with json as it is easy
-			String prettyJson = GSON.toJson(systemMapping);
-			Path path = Paths.get(matchingFileJson);
-			Files.write(path, prettyJson.getBytes());
-
-			// excel, need to loop through
-			
-			SXSSFWorkbook workbook = new SXSSFWorkbook(1000);
-			SXSSFSheet sheet = workbook.createSheet("Mappings");
-			sheet.setRandomAccessWindowSize(100);
-			// freeze the first row
-			sheet.createFreezePane(0, 1);
-			
-			// create the header row
-	        Row headerRow = sheet.createRow(0);
-			// create a Font for styling header cells
-			Font headerFont = workbook.createFont();
-			headerFont.setBold(true);
-			// create a CellStyle with the font
-			CellStyle headerCellStyle = workbook.createCellStyle();
-			headerCellStyle.setFont(headerFont);
-	        headerCellStyle.setAlignment(HorizontalAlignment.CENTER);
-	        headerCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
-
-			// generate the header row
-			// and define constants used throughout like size, and types
-	        Cell origNameCellH = headerRow.createCell(0);
-	        origNameCellH.setCellValue("Original System Name");
-	        origNameCellH.setCellStyle(headerCellStyle);
-			
-	        Cell newNameCellH = headerRow.createCell(1);
-	        newNameCellH.setCellValue("Anonymized System Name");
-	        newNameCellH.setCellStyle(headerCellStyle);
-	        
-	        // row counter
-	        int rowCounter = 1;
-			for(String origSystem : systemMapping.keySet()) {
-				Row dataRow = sheet.createRow(rowCounter);
-				dataRow.createCell(0).setCellValue(origSystem);
-				dataRow.createCell(1).setCellValue(systemMapping.get(origSystem));
-				
-				// update the row
-				rowCounter++;
-			}
-			
-			// Write the output to a file
-			FileOutputStream fileOut = null;
-			try {
-				fileOut = new FileOutputStream(matchingFileExcel);
-				workbook.write(fileOut);
-				workbook.close();
-				workbook.dispose();
-			} catch (IOException e) {
-				e.printStackTrace();
-			} finally {
-				if (fileOut != null) {
-					try {
-						fileOut.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-				if (workbook != null) {
-					try {
-						workbook.close();
-						workbook.dispose();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-		}
-	}
+//	public static void main(String[] args) throws Exception {
+//		// adding all the required paths up front here
+//		String rdfMapLocation = "C:\\workspace\\Semoss_Dev\\RDF_Map.prop";
+//		String tapCoreSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
+//		String tapSiteSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data__eed12b32-bc38-4718-ab73-c0c78480c174.smss";
+//		String tapPortfolioSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio__4254569c-3e78-4d62-8a07-1f786edf71e6.smss";
+//		
+//		// write to both json and excel
+//		// excel for business users
+//		// json for developers
+//		String matchingFileJson = "C:\\workspace\\Semoss_Dev\\TAP_ANONYMIZED_MATCHING.json";
+//		String matchingFileExcel = "C:\\workspace\\Semoss_Dev\\TAP_ANONYMIZED_MATCHING.xlsx";
+//
+//		// even if run for TAP CORE is false
+//		// it will still query TAP Core to get the ultimate list of systems
+//		// so make sure the path for TAP Core is accurate
+//		boolean runForTapCore = true;
+//		boolean runForTapSite = true;
+//		boolean runforTapPortfolio = true;
+//		// if this is true, make sure the directory for the json and excel paths is accurate
+//		boolean createMatchingFile = true;
+//		
+//		TestUtilityMethods.loadAll(rdfMapLocation);
+//
+//		List<String> systemReplacementOrder = new Vector<String>();
+//		Map<String, String> systemMapping = new HashMap<String, String>();
+//
+//		{
+//			BigDataEngine engine = new BigDataEngine();
+//			engine.openDB(tapCoreSmss);
+//
+//			// get a list of all the systems
+//			SelectQueryStruct qs = new SelectQueryStruct();
+//			qs.addSelector(new QueryColumnSelector("System"));
+//			qs.addOrderBy("System");
+//
+//			int counter = 1;
+//			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+//			while(wrapper.hasNext()) {
+//				IHeadersDataRow data = wrapper.next();
+//				Object[] row = data.getValues();
+//				String system = row[0].toString();
+//				systemMapping.put(system, "System" + counter);
+//				counter++;
+//
+//				// keep track of all systems
+//				// will order this so we know what to replace when
+//				systemReplacementOrder.add(system);
+//			}
+//
+//			//System.out.println(systemMapping.size());
+//			//System.out.println(gson.toJson(systemMapping));
+//
+//			// order the systems from largest to smallest
+//			systemReplacementOrder.sort(new Comparator<String>() {
+//				@Override
+//				public int compare(String o1, String o2) {
+//					if(o1.length() > o2.length()) {
+//						return -1;
+//					} else if(o1.length() < o2.length()) {
+//						return 1;
+//					}
+//					return 0;
+//				}
+//			});
+//
+//			//System.out.println(gson.toJson(systemReplacementOrder));
+//
+//			if(runForTapCore) {
+//				runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
+//			}
+//		}
+//		
+//		if(runForTapSite) {
+//			BigDataEngine engine = new BigDataEngine();
+//			engine.openDB(tapSiteSmss);
+//			runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
+//		}
+//		
+//		if(runforTapPortfolio) {
+//			BigDataEngine engine = new BigDataEngine();
+//			engine.openDB(tapPortfolioSmss);
+//			runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
+//		}
+//
+//		if(createMatchingFile) {
+//			// we will make both a JSON and an Excel
+//			
+//			// start with json as it is easy
+//			String prettyJson = GSON.toJson(systemMapping);
+//			Path path = Paths.get(matchingFileJson);
+//			Files.write(path, prettyJson.getBytes());
+//
+//			// excel, need to loop through
+//			
+//			SXSSFWorkbook workbook = new SXSSFWorkbook(1000);
+//			SXSSFSheet sheet = workbook.createSheet("Mappings");
+//			sheet.setRandomAccessWindowSize(100);
+//			// freeze the first row
+//			sheet.createFreezePane(0, 1);
+//			
+//			// create the header row
+//	        Row headerRow = sheet.createRow(0);
+//			// create a Font for styling header cells
+//			Font headerFont = workbook.createFont();
+//			headerFont.setBold(true);
+//			// create a CellStyle with the font
+//			CellStyle headerCellStyle = workbook.createCellStyle();
+//			headerCellStyle.setFont(headerFont);
+//	        headerCellStyle.setAlignment(HorizontalAlignment.CENTER);
+//	        headerCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+//
+//			// generate the header row
+//			// and define constants used throughout like size, and types
+//	        Cell origNameCellH = headerRow.createCell(0);
+//	        origNameCellH.setCellValue("Original System Name");
+//	        origNameCellH.setCellStyle(headerCellStyle);
+//			
+//	        Cell newNameCellH = headerRow.createCell(1);
+//	        newNameCellH.setCellValue("Anonymized System Name");
+//	        newNameCellH.setCellStyle(headerCellStyle);
+//	        
+//	        // row counter
+//	        int rowCounter = 1;
+//			for(String origSystem : systemMapping.keySet()) {
+//				Row dataRow = sheet.createRow(rowCounter);
+//				dataRow.createCell(0).setCellValue(origSystem);
+//				dataRow.createCell(1).setCellValue(systemMapping.get(origSystem));
+//				
+//				// update the row
+//				rowCounter++;
+//			}
+//			
+//			// Write the output to a file
+//			FileOutputStream fileOut = null;
+//			try {
+//				fileOut = new FileOutputStream(matchingFileExcel);
+//				workbook.write(fileOut);
+//				workbook.close();
+//				workbook.dispose();
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			} finally {
+//				if (fileOut != null) {
+//					try {
+//						fileOut.close();
+//					} catch (IOException e) {
+//						e.printStackTrace();
+//					}
+//				}
+//				if (workbook != null) {
+//					try {
+//						workbook.close();
+//						workbook.dispose();
+//					} catch (IOException e) {
+//						e.printStackTrace();
+//					}
+//				}
+//			}
+//		}
+//	}
 
 	private static void runReplacementForEngine(BigDataEngine engine, List<String> systemReplacementOrder, Map<String, String> systemMapping) {
 		List<Object[]> removeTriples = new Vector<Object[]>();

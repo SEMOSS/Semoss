@@ -255,115 +255,115 @@ public class ParamStructToJsonGenerator {
 	 * Test method
 	 * @param args
 	 */
-	public static void main(String[] args) {
-		TestUtilityMethods.loadDIHelper("C:\\workspace3\\Semoss_Dev\\RDF_Map.prop");
-		
-		String[] recipe = new String[]{
-				"AddPanel ( panel = [ 0 ] , sheet = [ \"0\" ] ) ;",
-				"Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ;",
-				"Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;",
-				"Panel ( 0 ) | RetrievePanelEvents ( ) ;",
-				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
-				"Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ;", 
-				"Database ( database = [ \"995cf169-6b44-4a42-b75c-af12f9f45c36\" ] ) | Select ( DIABETES__AGE , DIABETES__BP_1D , DIABETES__BP_1S , DIABETES__BP_2D , DIABETES__BP_2S , DIABETES__CHOL , DIABETES__DIABETES_UNIQUE_ROW_ID , DIABETES__DRUG , DIABETES__END_DATE , DIABETES__FRAME , DIABETES__GENDER , DIABETES__GLYHB , DIABETES__HDL , DIABETES__HEIGHT , DIABETES__HIP , DIABETES__LOCATION , DIABETES__PATIENT , DIABETES__RATIO , DIABETES__STAB_GLU , DIABETES__START_DATE , DIABETES__TIME_PPN , DIABETES__WAIST , DIABETES__WEIGHT ) .as ( [ AGE , BP_1D , BP_1S , BP_2D , BP_2S , CHOL , DIABETES_UNIQUE_ROW_ID , DRUG , END_DATE , FRAME , GENDER , GLYHB , HDL , HEIGHT , HIP , LOCATION , PATIENT , RATIO , STAB_GLU , START_DATE , TIME_PPN , WAIST , WEIGHT ] ) | Filter ( ( ( DIABETES__AGE > [ 50 ] ) ) ) | Distinct ( false ) | Import ( frame = [ CreateFrame ( frameType = [ PY ] , override = [ true ] ) .as ( [ \"Diabetes_FRAME916484\" ] ) ] ) ;",
-				"Database ( database = [ \"995cf169-6b44-4a42-b75c-af12f9f45c36\" ] ) | Query (\"<encode>SELECT * FROM DIABETES WHERE AGE > 25</encode>\") | Distinct ( false ) | Import ( frame = [ CreateFrame ( frameType = [ PY ] , override = [ true ] ) .as ( [ \"Diabetes_FRAME555555\" ] ) ] ) ;",
-				"META | PositionInsightRecipeStep ( positionMap = [ { \"auto\" : false , \"top\" : 24 , \"left\" : 24 } ] ) ;",
-				"META | SetInsightConfig({\"panels\":{\"0\":{\"config\":{\"type\":\"golden\",\"backgroundColor\":\"\",\"opacity\":100}}},\"sheets\":{\"0\":{\"order\":0,\"golden\":{\"content\":[{\"type\":\"row\",\"content\":[{\"type\":\"stack\",\"activeItemIndex\":0,\"width\":100,\"content\":[{\"type\":\"component\",\"componentName\":\"panel\",\"componentState\":{\"panelId\":\"0\"}}]}]}]}}},\"sheet\":\"0\"});",
-		};
-		int recipeLength = recipe.length;
-		String[] ids = new String[recipeLength];
-		for(int i = 0; i < recipeLength; i++) {
-			ids[i] = i+"";
-		}
-		
-		List<ParamStruct> params = new Vector<>();
-		// param
-		{
-			ParamStruct pStruct = new ParamStruct();
-			params.add(pStruct);
-			pStruct.setDefaultValue("MALE");
-			pStruct.setParamName("Genre");
-			pStruct.setFillType(FILL_TYPE.PIXEL);
-			pStruct.setModelQuery("");
-			pStruct.setModelDisplay("typeahead");
-			pStruct.setMultiple(true);
-			pStruct.setRequired(true);
-			pStruct.setSearchable(true);
-			pStruct.setModelLabel("Fill in Genre");
-			{
-				ParamStructDetails details = new ParamStructDetails();
-				pStruct.addParamStructDetails(details);
-				details.setPixelId("6");
-				details.setPixelString(recipe[6]);
-				details.setAppId("995cf169-6b44-4a42-b75c-af12f9f45c36");
-				details.setTableName("DIABETES");
-				details.setColumnName("GENRE");
-				details.setOperator("==");
-				details.setLevel(LEVEL.COLUMN);
-				details.setQuote(QUOTE.DOUBLE);
-			}
-		}
-		// param
-		{
-			ParamStruct pStruct = new ParamStruct();
-			params.add(pStruct);
-			pStruct.setDefaultValue(null);
-			pStruct.setParamName("AGE");
-			pStruct.setFillType(FILL_TYPE.PIXEL);
-			pStruct.setModelQuery("");
-			pStruct.setModelDisplay("number");
-			pStruct.setMultiple(true);
-			pStruct.setRequired(true);
-			pStruct.setSearchable(true);
-			pStruct.setModelLabel("Fill in AGE");
-			{
-				ParamStructDetails details = new ParamStructDetails();
-				pStruct.addParamStructDetails(details);
-				details.setPixelId("6");
-				details.setPixelString(recipe[6]);
-				details.setAppId("995cf169-6b44-4a42-b75c-af12f9f45c36");
-				details.setTableName("DIABETES");
-				details.setColumnName("AGE");
-				details.setOperator(">");
-				details.setLevel(LEVEL.OPERATOR);
-				details.setQuote(QUOTE.DOUBLE);
-			}
-		}
-		// param
-		{
-			ParamStruct pStruct = new ParamStruct();
-			params.add(pStruct);
-			pStruct.setDefaultValue(null);
-			pStruct.setParamName("AGE2");
-			pStruct.setFillType(FILL_TYPE.PIXEL);
-			pStruct.setModelQuery("");
-			pStruct.setModelDisplay("checklist");
-			pStruct.setMultiple(true);
-			pStruct.setRequired(true);
-			pStruct.setSearchable(true);
-			pStruct.setModelLabel("Fill in AGE");
-			{
-				ParamStructDetails details = new ParamStructDetails();
-				pStruct.addParamStructDetails(details);
-				details.setPixelId("7");
-				details.setPixelString(recipe[7]);
-				details.setAppId("995cf169-6b44-4a42-b75c-af12f9f45c36");
-				details.setTableName("DIABETES");
-				details.setColumnName("AGE");
-				details.setOperator(">");
-				details.setCurrentValue(new Long(25));
-				details.setLevel(LEVEL.OPERATOR);
-				details.setQuote(QUOTE.DOUBLE);
-			}
-		}
-		
-		Gson gson = new GsonBuilder()
-				.disableHtmlEscaping()
-				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
-				.setPrettyPrinting()
-				.create();
-
-		System.out.println(gson.toJson(generateJsonParameters(params)));
-	}
+//	public static void main(String[] args) {
+//		TestUtilityMethods.loadDIHelper("C:\\workspace3\\Semoss_Dev\\RDF_Map.prop");
+//		
+//		String[] recipe = new String[]{
+//				"AddPanel ( panel = [ 0 ] , sheet = [ \"0\" ] ) ;",
+//				"Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] ) ;",
+//				"Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>(<Frame> | UnfilterFrame(<SelectedColumn>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if((IsEmpty(<SelectedValues>)),(<Frame> | UnfilterFrame(<SelectedColumn>)), (<Frame> | SetFrameFilter(<SelectedColumn>==<SelectedValues>)));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;",
+//				"Panel ( 0 ) | RetrievePanelEvents ( ) ;",
+//				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
+//				"Panel ( 0 ) | SetPanelView ( \"pipeline\" ) ;", 
+//				"Database ( database = [ \"995cf169-6b44-4a42-b75c-af12f9f45c36\" ] ) | Select ( DIABETES__AGE , DIABETES__BP_1D , DIABETES__BP_1S , DIABETES__BP_2D , DIABETES__BP_2S , DIABETES__CHOL , DIABETES__DIABETES_UNIQUE_ROW_ID , DIABETES__DRUG , DIABETES__END_DATE , DIABETES__FRAME , DIABETES__GENDER , DIABETES__GLYHB , DIABETES__HDL , DIABETES__HEIGHT , DIABETES__HIP , DIABETES__LOCATION , DIABETES__PATIENT , DIABETES__RATIO , DIABETES__STAB_GLU , DIABETES__START_DATE , DIABETES__TIME_PPN , DIABETES__WAIST , DIABETES__WEIGHT ) .as ( [ AGE , BP_1D , BP_1S , BP_2D , BP_2S , CHOL , DIABETES_UNIQUE_ROW_ID , DRUG , END_DATE , FRAME , GENDER , GLYHB , HDL , HEIGHT , HIP , LOCATION , PATIENT , RATIO , STAB_GLU , START_DATE , TIME_PPN , WAIST , WEIGHT ] ) | Filter ( ( ( DIABETES__AGE > [ 50 ] ) ) ) | Distinct ( false ) | Import ( frame = [ CreateFrame ( frameType = [ PY ] , override = [ true ] ) .as ( [ \"Diabetes_FRAME916484\" ] ) ] ) ;",
+//				"Database ( database = [ \"995cf169-6b44-4a42-b75c-af12f9f45c36\" ] ) | Query (\"<encode>SELECT * FROM DIABETES WHERE AGE > 25</encode>\") | Distinct ( false ) | Import ( frame = [ CreateFrame ( frameType = [ PY ] , override = [ true ] ) .as ( [ \"Diabetes_FRAME555555\" ] ) ] ) ;",
+//				"META | PositionInsightRecipeStep ( positionMap = [ { \"auto\" : false , \"top\" : 24 , \"left\" : 24 } ] ) ;",
+//				"META | SetInsightConfig({\"panels\":{\"0\":{\"config\":{\"type\":\"golden\",\"backgroundColor\":\"\",\"opacity\":100}}},\"sheets\":{\"0\":{\"order\":0,\"golden\":{\"content\":[{\"type\":\"row\",\"content\":[{\"type\":\"stack\",\"activeItemIndex\":0,\"width\":100,\"content\":[{\"type\":\"component\",\"componentName\":\"panel\",\"componentState\":{\"panelId\":\"0\"}}]}]}]}}},\"sheet\":\"0\"});",
+//		};
+//		int recipeLength = recipe.length;
+//		String[] ids = new String[recipeLength];
+//		for(int i = 0; i < recipeLength; i++) {
+//			ids[i] = i+"";
+//		}
+//		
+//		List<ParamStruct> params = new Vector<>();
+//		// param
+//		{
+//			ParamStruct pStruct = new ParamStruct();
+//			params.add(pStruct);
+//			pStruct.setDefaultValue("MALE");
+//			pStruct.setParamName("Genre");
+//			pStruct.setFillType(FILL_TYPE.PIXEL);
+//			pStruct.setModelQuery("");
+//			pStruct.setModelDisplay("typeahead");
+//			pStruct.setMultiple(true);
+//			pStruct.setRequired(true);
+//			pStruct.setSearchable(true);
+//			pStruct.setModelLabel("Fill in Genre");
+//			{
+//				ParamStructDetails details = new ParamStructDetails();
+//				pStruct.addParamStructDetails(details);
+//				details.setPixelId("6");
+//				details.setPixelString(recipe[6]);
+//				details.setAppId("995cf169-6b44-4a42-b75c-af12f9f45c36");
+//				details.setTableName("DIABETES");
+//				details.setColumnName("GENRE");
+//				details.setOperator("==");
+//				details.setLevel(LEVEL.COLUMN);
+//				details.setQuote(QUOTE.DOUBLE);
+//			}
+//		}
+//		// param
+//		{
+//			ParamStruct pStruct = new ParamStruct();
+//			params.add(pStruct);
+//			pStruct.setDefaultValue(null);
+//			pStruct.setParamName("AGE");
+//			pStruct.setFillType(FILL_TYPE.PIXEL);
+//			pStruct.setModelQuery("");
+//			pStruct.setModelDisplay("number");
+//			pStruct.setMultiple(true);
+//			pStruct.setRequired(true);
+//			pStruct.setSearchable(true);
+//			pStruct.setModelLabel("Fill in AGE");
+//			{
+//				ParamStructDetails details = new ParamStructDetails();
+//				pStruct.addParamStructDetails(details);
+//				details.setPixelId("6");
+//				details.setPixelString(recipe[6]);
+//				details.setAppId("995cf169-6b44-4a42-b75c-af12f9f45c36");
+//				details.setTableName("DIABETES");
+//				details.setColumnName("AGE");
+//				details.setOperator(">");
+//				details.setLevel(LEVEL.OPERATOR);
+//				details.setQuote(QUOTE.DOUBLE);
+//			}
+//		}
+//		// param
+//		{
+//			ParamStruct pStruct = new ParamStruct();
+//			params.add(pStruct);
+//			pStruct.setDefaultValue(null);
+//			pStruct.setParamName("AGE2");
+//			pStruct.setFillType(FILL_TYPE.PIXEL);
+//			pStruct.setModelQuery("");
+//			pStruct.setModelDisplay("checklist");
+//			pStruct.setMultiple(true);
+//			pStruct.setRequired(true);
+//			pStruct.setSearchable(true);
+//			pStruct.setModelLabel("Fill in AGE");
+//			{
+//				ParamStructDetails details = new ParamStructDetails();
+//				pStruct.addParamStructDetails(details);
+//				details.setPixelId("7");
+//				details.setPixelString(recipe[7]);
+//				details.setAppId("995cf169-6b44-4a42-b75c-af12f9f45c36");
+//				details.setTableName("DIABETES");
+//				details.setColumnName("AGE");
+//				details.setOperator(">");
+//				details.setCurrentValue(new Long(25));
+//				details.setLevel(LEVEL.OPERATOR);
+//				details.setQuote(QUOTE.DOUBLE);
+//			}
+//		}
+//		
+//		Gson gson = new GsonBuilder()
+//				.disableHtmlEscaping()
+//				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
+//				.setPrettyPrinting()
+//				.create();
+//
+//		System.out.println(gson.toJson(generateJsonParameters(params)));
+//	}
 	
 }
