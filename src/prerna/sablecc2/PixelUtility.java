@@ -745,7 +745,7 @@ public class PixelUtility {
 	}
 	
 	/**
-	 * Remove unnecessary pixels
+	 * Remove unnecessary task pixels
 	 * @param in
 	 */
 	public static void removeUnnecessaryPixels(Insight in) {

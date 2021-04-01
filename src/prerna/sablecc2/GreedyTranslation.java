@@ -353,10 +353,21 @@ public class GreedyTranslation extends LazyTranslation {
 		    			simpleMap.put("original", cloneMap.get("original").getPanelId());
 		    			simpleMap.put("clone", cloneMap.get("clone").getPanelId());
 						pixelObj.addCloneMap(simpleMap);
+		    		} else if(output.getNounType() == PixelDataType.CODE) {
+		    			pixelObj.setCodeExecution(true);
 		    		}
 		    		
-		    		if(output.getOpType().contains(PixelOperationType.RESET_PANEL_TASKS)) {
+		    		List<PixelOperationType> opTypes = output.getOpType();
+		    		if(opTypes.contains(PixelOperationType.RESET_PANEL_TASKS)) {
 		    			pixelObj.setRefreshPanel(true);
+		    		}
+		    		if(opTypes.contains(PixelOperationType.CODE_EXECUTION)) {
+		    			pixelObj.setCodeExecution(true);
+		    		}
+		    		if(opTypes.contains(PixelOperationType.FRAME) 
+		    				|| opTypes.contains(PixelOperationType.FRAME_DATA_CHANGE)
+		    				|| opTypes.contains(PixelOperationType.FRAME_HEADERS_CHANGE)) {
+		    			pixelObj.setFrameTransformation(true);
 		    		}
 	    		}
 	    		
