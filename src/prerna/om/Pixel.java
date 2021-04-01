@@ -46,6 +46,10 @@ public class Pixel {
 	
 	// are we a refresh panel
 	private boolean isRefreshPanel = false;
+	// is this a code execution? r/py/java?
+	private boolean isCodeExecution = false;
+	// is this a data transformation
+	private boolean isFrameTransformation = false;
 	
 	// currently unused - just thinking of things to store
 	private boolean isParamSelection = false;
@@ -330,6 +334,37 @@ public class Pixel {
 	}
 
 	/**
+	 * Is this pixel a code execution
+	 */
+	public boolean isCodeExecution() {
+		return isCodeExecution;
+	}
+
+	/**
+	 * Set if this pixel is a code execution
+	 * @param isCodeExecution
+	 */
+	public void setCodeExecution(boolean isCodeExecution) {
+		this.isCodeExecution = isCodeExecution;
+	}
+
+	/**
+	 * Is this pixel a frame/data transformation
+	 * @return
+	 */
+	public boolean isFrameTransformation() {
+		return isFrameTransformation;
+	}
+
+	/**
+	 * Set if this pixel is a frame/data transformation
+	 * @param isDataTransformation
+	 */
+	public void setFrameTransformation(boolean isFrameTransformation) {
+		this.isFrameTransformation = isFrameTransformation;
+	}
+
+	/**
 	 * Get if this pixel returned an error during execution
 	 * @return
 	 */
@@ -469,6 +504,8 @@ public class Pixel {
 	public static void translationMerge(Pixel pixelObj, Pixel mergePixel) {
 		if(mergePixel != null) {
 			pixelObj.setRefreshPanel(mergePixel.isRefreshPanel());
+			pixelObj.setCodeExecution(mergePixel.isCodeExecution());
+			pixelObj.setFrameTransformation(mergePixel.isFrameTransformation());
 			pixelObj.setStartingFrameHeaders(mergePixel.getStartingFrameHeaders());
 			pixelObj.setReactorInputs(mergePixel.getReactorInputs());
 			pixelObj.setFrameInputs(mergePixel.getFrameInputs());

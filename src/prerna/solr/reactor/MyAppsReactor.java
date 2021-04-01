@@ -111,6 +111,7 @@ public class MyAppsReactor extends AbstractReactor {
 			}
 		}
 		
+		// need to go through and sort the values
 		if(sortCol.equalsIgnoreCase("date")) {
 			Collections.sort(appInfo, new Comparator<Map<String, Object>>() {
 
@@ -129,6 +130,19 @@ public class MyAppsReactor extends AbstractReactor {
 					}
 
 					return d2.compareTo(d1);
+				}
+			});
+		} else {
+			Collections.sort(appInfo, new Comparator<Map<String, Object>>() {
+
+				// we want descending - not ascending
+				// so values are swapped
+				@Override
+				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+					String name1 = (String) o1.get("low_app_name");
+					String name2 = (String) o2.get("low_app_name");
+					
+					return name1.compareTo(name2);
 				}
 			});
 		}
