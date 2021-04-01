@@ -60,6 +60,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
 		boolean savingThisInsight = false;
+		boolean optimizeRecipe = true;
 		String appId = getApp();
 		User user = this.insight.getUser();
 		String author = null;
@@ -87,6 +88,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		List<String> recipeToSave = getRecipe();
 		List<String> recipeIds = null;
+		List<String> additionalSteps = null;
 		List<ParamStruct> params = null;
 		
 		String layout = getLayout();
@@ -99,12 +101,31 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.isEmpty()) {
 			savingThisInsight = true;
-			// remove unnecessary pixels to start
-			PixelUtility.removeUnnecessaryPixels(this.insight);
-			// now pull the optimized recipe
-			PixelList insightPixelList = this.insight.getPixelList();
+			PixelList insightPixelList = null;
+			if(optimizeRecipe) {
+				// optimize the recipe
+				insightPixelList = PixelUtility.getOptimizedPixelList(this.insight);
+			} else {
+				// remove unnecessary pixels to start
+				insightPixelList = this.insight.getPixelList();
+			}
+			
 			recipeToSave = insightPixelList.getPixelRecipe();
 			recipeIds = insightPixelList.getPixelIds();
+			
+			// now add the additional pixel steps on save
+			int counter = 0;
+			// make sure we pass the correct insight pixel list
+			// for the optimized pixel or the regular one
+			additionalSteps = PixelUtility.getMetaInsightRecipeSteps(this.insight, insightPixelList);
+			for(String step : additionalSteps) {
+				recipeToSave.add(step);
+				// in case we are saving a not run recipe like forms
+				if(recipeIds != null) {
+					recipeIds.add(counter++ + "_additionalStep");
+				}
+			}
+			params = InsightUtility.getInsightParams(this.insight);
 		} else {
 			// default for recipe encoded when no key is passed is true
 			if(recipeEncoded()) {
@@ -120,19 +141,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			recipeToSave = saveFilesInInsight(recipeToSave, appId, newInsightId);
 		} catch(Exception e) {
 			throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
-		}
-		{
-			// now add the additional pixel steps on save
-			List<String> additionalSteps = PixelUtility.getMetaInsightRecipeSteps(this.insight);
-			int counter = 0;
-			for(String step : additionalSteps) {
-				recipeToSave.add(step);
-				// in case we are saving a not run recipe like forms
-				if(recipeIds != null) {
-					recipeIds.add(counter++ + "_additionalStep");
-				}
-			}
-			params = InsightUtility.getInsightParams(this.insight);
 		}
 		
 		IEngine engine = Utility.getEngine(appId);

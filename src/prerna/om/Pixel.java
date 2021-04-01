@@ -1,5 +1,6 @@
 package prerna.om;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -7,10 +8,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.util.Constants;
+import prerna.util.gson.PixelAdapter;
 
 public class Pixel {
 
+	private static final Logger logger = LogManager.getLogger(Pixel.class);
+	
 	private String id = null;
 	private String pixelString = null;
 
@@ -28,8 +36,8 @@ public class Pixel {
 	// some additional metadata to maintain on the Pixel
 	private Map<String, Map<String, Object>> startingFrameHeaders = new HashMap<>();
 	private Map<String, Map<String, Object>> endingFrameHeaders = new HashMap<>();
-	// the list of reactor inputs
-	private List<Map<String, List<Map>>> reactorInputs = new Vector<>();
+//	// the list of reactor inputs
+//	private List<Map<String, List<Map>>> reactorInputs = new Vector<>();
 	// store the list of frame inputs
 	private Set<String> frameInputs = new HashSet<>();
 	// store the list of frame outputs from the reactor
@@ -50,6 +58,8 @@ public class Pixel {
 	private boolean isCodeExecution = false;
 	// is this a data transformation
 	private boolean isFrameTransformation = false;
+	// is this an assignment
+	private boolean isAssignment = false;
 	
 	// currently unused - just thinking of things to store
 	private boolean isParamSelection = false;
@@ -135,30 +145,30 @@ public class Pixel {
 	public void setEndingFrameHeaders(Map<String, Map<String, Object>> endingFrameHeaders) {
 		this.endingFrameHeaders = endingFrameHeaders;
 	}
-	
-	/**
-	 * Adding reactor input
-	 * @param reactorInput
-	 */
-	public void addReactorInput(Map<String, List<Map>> reactorInput) {
-		this.reactorInputs.add(reactorInput);
-	}
-	
-	/**
-	 * Set the reactor input
-	 * @param reactorInputs
-	 */
-	public void setReactorInputs(List<Map<String, List<Map>>> reactorInputs) {
-		this.reactorInputs = reactorInputs;
-	}
-	
-	/**
-	 * Get the reactor inputs
-	 * @return
-	 */
-	public List<Map<String, List<Map>>> getReactorInputs() {
-		return this.reactorInputs;
-	}
+//	
+//	/**
+//	 * Adding reactor input
+//	 * @param reactorInput
+//	 */
+//	public void addReactorInput(Map<String, List<Map>> reactorInput) {
+//		this.reactorInputs.add(reactorInput);
+//	}
+//	
+//	/**
+//	 * Set the reactor input
+//	 * @param reactorInputs
+//	 */
+//	public void setReactorInputs(List<Map<String, List<Map>>> reactorInputs) {
+//		this.reactorInputs = reactorInputs;
+//	}
+//	
+//	/**
+//	 * Get the reactor inputs
+//	 * @return
+//	 */
+//	public List<Map<String, List<Map>>> getReactorInputs() {
+//		return this.reactorInputs;
+//	}
 	
 	/**
 	 * Add the frame output from the pixel
@@ -363,6 +373,22 @@ public class Pixel {
 	public void setFrameTransformation(boolean isFrameTransformation) {
 		this.isFrameTransformation = isFrameTransformation;
 	}
+	
+	/**
+	 * Is this pixel is an assignment
+	 * @return
+	 */
+	public boolean isAssignment() {
+		return isAssignment;
+	}
+
+	/**
+	 * Set if this pixel is an assignment
+	 * @param isAssignment
+	 */
+	public void setAssignment(boolean isAssignment) {
+		this.isAssignment = isAssignment;
+	}
 
 	/**
 	 * Get if this pixel returned an error during execution
@@ -496,6 +522,21 @@ public class Pixel {
 	}
 	
 	/**
+	 * Create a deep copy of the pixel object
+	 * @return
+	 */
+	public Pixel copy() {
+		PixelAdapter adapter = new PixelAdapter();
+		try {
+			return adapter.fromJson(adapter.toJson(this));
+		} catch (IOException e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		return null;
+	}
+	
+	/**
 	 * Method to use to merge the translation pixel
 	 * into the pixel for the recipe
 	 * @param pixelObj
@@ -506,8 +547,9 @@ public class Pixel {
 			pixelObj.setRefreshPanel(mergePixel.isRefreshPanel());
 			pixelObj.setCodeExecution(mergePixel.isCodeExecution());
 			pixelObj.setFrameTransformation(mergePixel.isFrameTransformation());
+			pixelObj.setAssignment(mergePixel.isAssignment());
 			pixelObj.setStartingFrameHeaders(mergePixel.getStartingFrameHeaders());
-			pixelObj.setReactorInputs(mergePixel.getReactorInputs());
+//			pixelObj.setReactorInputs(mergePixel.getReactorInputs());
 			pixelObj.setFrameInputs(mergePixel.getFrameInputs());
 			pixelObj.setFrameOutputs(mergePixel.getFrameOutputs());
 			pixelObj.setTaskOptions(mergePixel.getTaskOptions());
@@ -548,5 +590,5 @@ public class Pixel {
 	public void setParamSelection(boolean isParamSelection) {
 		this.isParamSelection = isParamSelection;
 	}
-	
+
 }

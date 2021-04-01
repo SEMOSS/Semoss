@@ -35,11 +35,12 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		boolean isRefreshPanel = false;
 		boolean isCodeExecution = false;
 		boolean isFrameTransformation = false;
+		boolean isAssignment = false;
 		boolean error = false;
 		boolean warning = false;
 		Map<String, Map<String, Object>> startingFrameHeaders = null;
 		Map<String, Map<String, Object>> endingFrameHeaders = null;
-		List<Map<String, List<Map>>> reactorInputs = null;
+//		List<Map<String, List<Map>>> reactorInputs = null;
 		Set<String> frameOutputs = new HashSet<>();
 		Set<String> frameInputs = new HashSet<>();
 		List<TaskOptions> taskOptions = new Vector<>();
@@ -48,7 +49,7 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		List<String> warningMessages = new Vector<>();
 		
 		TypeAdapter mapAdapter = GSON.getAdapter(Map.class);
-		TypeAdapter listAdapter = GSON.getAdapter(List.class);
+//		TypeAdapter listAdapter = GSON.getAdapter(List.class);
 
 		in.beginObject();
 		while(in.hasNext()) {
@@ -74,6 +75,8 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 				isCodeExecution = in.nextBoolean();
 			} else if(key.equals("isFrameTransformation")) {
 				isFrameTransformation = in.nextBoolean();
+			} else if(key.equals("isAssignment")) {
+				isAssignment = in.nextBoolean();
 			} else if(key.equals("errorReturned")) {
 				error = in.nextBoolean();
 			} else if(key.equals("warningReturned")) {
@@ -82,9 +85,11 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 				startingFrameHeaders = (Map<String, Map<String, Object>>) mapAdapter.read(in);
 			} else if(key.equals("endingFrameHeaders")) {
 				endingFrameHeaders = (Map<String, Map<String, Object>>) mapAdapter.read(in);
-			} else if(key.equals("reactorInputs")) {
-				reactorInputs = (List<Map<String, List<Map>>>) listAdapter.read(in);
-			} else if(key.equals("frameInputs")) {
+			} 
+//			else if(key.equals("reactorInputs")) {
+//				reactorInputs = (List<Map<String, List<Map>>>) listAdapter.read(in);
+//			} 
+			else if(key.equals("frameInputs")) {
 				in.beginArray();
 				while(in.hasNext()) {
 					frameInputs.add(in.nextString());
@@ -128,11 +133,12 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		pixel.setRefreshPanel(isRefreshPanel);
 		pixel.setCodeExecution(isCodeExecution);
 		pixel.setFrameTransformation(isFrameTransformation);
+		pixel.setAssignment(isAssignment);
 		pixel.setReturnedError(error);
 		pixel.setReturnedWarning(warning);
 		pixel.setStartingFrameHeaders(startingFrameHeaders);
 		pixel.setEndingFrameHeaders(endingFrameHeaders);
-		pixel.setReactorInputs(reactorInputs);
+//		pixel.setReactorInputs(reactorInputs);
 		pixel.setFrameInputs(frameInputs);
 		pixel.setFrameOutputs(frameOutputs);
 		pixel.setTaskOptions(taskOptions);
@@ -171,9 +177,12 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		// isCodeExecution
 		out.name("isCodeExecution");
 		out.value(value.isCodeExecution());
-		// isRefreshPanel
+		// isFrameTransformation
 		out.name("isFrameTransformation");
 		out.value(value.isFrameTransformation());
+		// isAssignment
+		out.name("isAssignment");
+		out.value(value.isAssignment());
 		// error
 		out.name("errorReturned");
 		out.value(value.isReturnedError());
@@ -196,14 +205,14 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		} else {
 			out.nullValue();
 		}
-		// reactor inputs
-		out.name("reactorInputs");
-		if(value.getReactorInputs() != null) {
-			TypeAdapter adapter = GSON.getAdapter(value.getReactorInputs().getClass());
-			adapter.write(out, value.getReactorInputs());
-		} else {
-			out.nullValue();
-		}
+//		// reactor inputs
+//		out.name("reactorInputs");
+//		if(value.getReactorInputs() != null) {
+//			TypeAdapter adapter = GSON.getAdapter(value.getReactorInputs().getClass());
+//			adapter.write(out, value.getReactorInputs());
+//		} else {
+//			out.nullValue();
+//		}
 		// frame inputs
 		out.name("frameInputs");
 		out.beginArray();

@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.sheet;
 
-import java.io.IOException;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -47,7 +46,7 @@ public class SetSheetStateReactor extends AbstractInsightPanelReactor {
 		InsightSheet insightSheet = null;
 		try {
 			insightSheet = adapter.fromJson(serialized);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Exeption occured reading the panel state with error: " + e.getMessage());
 		}
