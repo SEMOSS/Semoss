@@ -61,14 +61,16 @@ public class QueryFilterComponentSimple extends FilterReactor {
 			}
 		}
 		
-		SimpleQueryFilter filter = null;
-		if(!lSet.isEmpty() && !rSet.isEmpty()) {
-			filter = new SimpleQueryFilter(getNounForFilter(lSet), comparator, getNounForFilter(rSet));
-		} else {
-			// TODO: throw warning that the filter for the query is invalid!
-			// reason for warning is because for param insights where FE will
-			// pass an empty set when the user selects all for a specific filter
+		if(lSet.isEmpty() && rSet.isEmpty()) {
+			return null;
 		}
+		
+		// DATE 2021-04-01 IS THIS STILL NEEDED?
+		// TODO: throw warning that the filter for the query is invalid!
+		// reason for warning is because for param insights where FE will
+		// pass an empty set when the user selects all for a specific filter
+		
+		SimpleQueryFilter filter = new SimpleQueryFilter(getNounForFilter(lSet), comparator, getNounForFilter(rSet));
 		return filter;
 	}
 	
@@ -79,7 +81,9 @@ public class QueryFilterComponentSimple extends FilterReactor {
 	 */
 	private NounMetadata getNounForFilter(List<NounMetadata> nouns) {
 		NounMetadata noun = null;
-		if(nouns.size() > 1) {
+		if(nouns.size() == 0) {
+			noun = new NounMetadata(new ArrayList<>(), PixelDataType.CONST_STRING);
+		} else if(nouns.size() > 1) {
 			List<Object> values = new Vector<Object>();
 			for(int i = 0; i < nouns.size(); i++) {
 				NounMetadata subNoun = nouns.get(i);

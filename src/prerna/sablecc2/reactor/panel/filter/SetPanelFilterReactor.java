@@ -5,6 +5,9 @@ import java.util.Set;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.BooleanValMetadata;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -27,7 +30,25 @@ public class SetPanelFilterReactor extends AbstractFilterReactor {
 		if(newFilters.isEmpty()) {
 			throw new IllegalArgumentException("No filter found to set to panel");
 		}
+		// check if we are filtering or actually removing a filter
+		if(newFilters.size() == 1) {
+			IQueryFilter singleFilter = newFilters.getFilters().get(0);
+			if(singleFilter instanceof SimpleQueryFilter) {
+				boolean unfilter = ((SimpleQueryFilter) singleFilter).isEmptyFilterValues();
+				if(unfilter) {
+					QueryColumnSelector cSelector = singleFilter.getAllQueryColumns().get(0);
+					boolean isValidFilter = panelGrf.removeColumnFilter(cSelector.getAlias());
+
+					BooleanValMetadata pFilterVal = BooleanValMetadata.getPanelVal();
+					pFilterVal.setName(panel.getPanelId());
+					pFilterVal.setFilterVal(isValidFilter);
+					NounMetadata noun = new NounMetadata(pFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.PANEL_FILTER_CHANGE);
+					return noun;
+				}
+			}
+		}
 		
+		// we got to this point, apply the filter
 		// remove the existing filters for the columns affected
 		Set<String> allColsUsed = newFilters.getAllFilteredColumns();
 		panelGrf.removeColumnFilters(allColsUsed);
