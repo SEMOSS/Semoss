@@ -33,6 +33,8 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		String pixelDescription = null;
 		boolean meta = false;
 		boolean isRefreshPanel = false;
+		boolean isCodeExecution = false;
+		boolean isFrameTransformation = false;
 		boolean error = false;
 		boolean warning = false;
 		Map<String, Map<String, Object>> startingFrameHeaders = null;
@@ -66,8 +68,12 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 				pixelDescription = in.nextString();
 			} else if(key.equals("meta")) {
 				meta = in.nextBoolean();
-			}  else if(key.equals("isRefreshPanel")) {
+			} else if(key.equals("isRefreshPanel")) {
 				isRefreshPanel = in.nextBoolean();
+			} else if(key.equals("isCodeExecution")) {
+				isCodeExecution = in.nextBoolean();
+			} else if(key.equals("isFrameTransformation")) {
+				isFrameTransformation = in.nextBoolean();
 			} else if(key.equals("errorReturned")) {
 				error = in.nextBoolean();
 			} else if(key.equals("warningReturned")) {
@@ -120,6 +126,8 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		pixel.setPixelDescription(pixelDescription);
 		pixel.setMeta(meta);
 		pixel.setRefreshPanel(isRefreshPanel);
+		pixel.setCodeExecution(isCodeExecution);
+		pixel.setFrameTransformation(isFrameTransformation);
 		pixel.setReturnedError(error);
 		pixel.setReturnedWarning(warning);
 		pixel.setStartingFrameHeaders(startingFrameHeaders);
@@ -160,6 +168,12 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		// isRefreshPanel
 		out.name("isRefreshPanel");
 		out.value(value.isRefreshPanel());
+		// isCodeExecution
+		out.name("isCodeExecution");
+		out.value(value.isCodeExecution());
+		// isRefreshPanel
+		out.name("isFrameTransformation");
+		out.value(value.isFrameTransformation());
 		// error
 		out.name("errorReturned");
 		out.value(value.isReturnedError());
