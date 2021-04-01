@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.om.ColorByValueRule;
 import prerna.om.Insight;
@@ -37,6 +38,7 @@ import prerna.query.parsers.ParamStructDetails;
 import prerna.query.parsers.ParamStructDetails.QUOTE;
 import prerna.query.parsers.ParamStructToJsonGenerator;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.transform.QsToPixelConverter;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
@@ -58,6 +60,7 @@ import prerna.sablecc2.translations.ParamStructSaveRecipeTranslation;
 import prerna.sablecc2.translations.ParameterizeSaveRecipeTranslation;
 import prerna.sablecc2.translations.ReplaceDatasourceTranslation;
 import prerna.util.Constants;
+import prerna.util.insight.InsightUtility;
 
 public class PixelUtility {
 
@@ -199,7 +202,8 @@ public class PixelUtility {
 				literal = "";
 			} else {
 				 //remove the end quote
-				literal = literal.substring(0, literal.length()-1);			}
+				literal = literal.substring(0, literal.length()-1);			
+			}
 		}
 		
 		return literal;
@@ -576,11 +580,11 @@ public class PixelUtility {
 	 * @param in
 	 * @return
 	 */
-	public static List<String> getMetaInsightRecipeSteps(Insight in) {
+	public static List<String> getMetaInsightRecipeSteps(Insight in, PixelList pixelList) {
 		List<String> additionalSteps = new Vector<>();
 		// add the pipeline positions
 		{
-			appendPositionInsightRecipeStep(in, additionalSteps);
+			appendPositionInsightRecipeStep(pixelList, additionalSteps);
 		}
 //		// add the semoss parameters
 //		{
@@ -599,8 +603,7 @@ public class PixelUtility {
 	 * @param in
 	 * @param additionalSteps
 	 */
-	public static void appendPositionInsightRecipeStep(Insight in, List<String> additionalSteps) {
-		PixelList pixelList = in.getPixelList();
+	public static void appendPositionInsightRecipeStep(PixelList pixelList, List<String> additionalSteps) {
 		int size = pixelList.size();
 		if(size > 0) {
 			StringBuilder builder = new StringBuilder("META | PositionInsightRecipe(");
@@ -713,18 +716,21 @@ public class PixelUtility {
 			
 			boolean isVisualizaiton = panel.getPanelView().equalsIgnoreCase("visualization");
 			if(isVisualizaiton) {
-				int numCollect = panel.getNumCollect();
 				Map<String, SelectQueryStruct> qsMap = panel.getLayerQueryStruct();
-				Map<String, TaskOptions> tOptionsMap = panel.getLayerTaskOption();
 				
-				for(String layer : qsMap.keySet()) {
-					SelectQueryStruct qs = qsMap.get(layer);
-					TaskOptions tOptions = tOptionsMap.get(layer);
-
-					StringBuilder taskPixel = new StringBuilder(QsToPixelConverter.getPixel(qs, true));
-					taskPixel.append(" | TaskOptions(").append(gson.toJson(tOptions.getOptions()))
-						.append(") | Collect(").append(numCollect).append(");");
-					panelTasks.add(taskPixel.toString());
+				if(qsMap != null) {
+					for(String layer : qsMap.keySet()) {
+						// grab the last pixel for each panel/layer combination
+						Pixel viewPixel = in.getPixelList().findLastPixelViewNotRefresh(panelId, layer);
+						panelTasks.add(viewPixel.getPixelString());
+					}
+				} else {
+					// TODO: THIS CURRENTLY HAPPENS FOR WHEN YOU HAVE A GRAPH
+					// AND YOU WROTE A CUSTOM PIXEL RECIPE WHERE YOU NEVER CREATED A GRID
+					// IT IS STORED IN THE VIEW PIXEL BUT NOT IN THE INSIGHT DEPENDENCY
+					// try to find the task on layer 0
+					Pixel viewPixel = in.getPixelList().findLastPixelViewNotRefresh(panelId, "0");
+					panelTasks.add(viewPixel.getPixelString());				
 				}
 			}
 		}
@@ -745,10 +751,121 @@ public class PixelUtility {
 	}
 	
 	/**
+	 * Get the optimized pixel recipe steps
+	 * @param in
+	 * @return
+	 */
+	public static PixelList getOptimizedPixelList(Insight in) {
+		PixelList pList = new PixelList();
+		
+		PixelList insightPixelList = in.getPixelList();
+		List<ParamStruct> paramStructs = in.getVarStore().pullParamStructs();
+		Map<ParamStructDetails, Pixel> paramToPixelObj = new HashMap<>();
+		for(ParamStruct pStruct : paramStructs) {
+			List<ParamStructDetails> paramDetails = pStruct.getDetailsList();
+			for(ParamStructDetails pDetail : paramDetails) {
+				paramToPixelObj.put(pDetail, insightPixelList.getPixel(pDetail.getPixelId()));
+			}
+		}
+		
+		int numSteps = insightPixelList.size();
+		int newPixelId = numSteps+1;
+		
+		// add sheets
+		Map<String, InsightSheet> sheets = in.getInsightSheets();
+		for(String sheetId : sheets.keySet()) {
+			pList.addPixel( new Pixel( (newPixelId++) + "", "AddSheet(\"" + sheetId + "\");") );
+			String sheetState = (String) InsightUtility.getSheetState(sheets.get(sheetId), "string").getValue();
+			pList.addPixel( new Pixel( (newPixelId++) + "", "SetSheetState(" + sheetState + ");") );
+		}
+
+		// add panels
+		Map<String, InsightPanel> panels = in.getInsightPanels();
+		for(String panelId : panels.keySet()) {
+			InsightPanel panel = panels.get(panelId);
+
+			pList.addPixel( new Pixel( (newPixelId++) + "", "AddPanel(panel=[\"" + panelId + "\"], sheet=[\"" + panel.getSheetId() + "\"]);") );
+			String panelState = (String) InsightUtility.getPanelState(panel, "string").getValue();
+			pList.addPixel( new Pixel( (newPixelId++) + "", "SetPanelState(" + panelState + ");") );
+		}
+		
+		// add the main of the recipe - data loading / transformations / code blocks
+		for(int i = 0; i < numSteps; i++) {
+			Pixel pixelObject = insightPixelList.get(i);
+			if(pixelObject.isFrameTransformation() || pixelObject.isCodeExecution()
+					|| pixelObject.isAssignment()) {
+				pList.addPixel(pixelObject.copy());
+			}
+		}
+		
+		// add frame filters
+		List<ITableDataFrame> refList = new ArrayList<>();
+		VarStore vStore = in.getVarStore();
+		List<String> frameNames = vStore.getFrameKeys();
+		for(String frameKey : frameNames) {
+			ITableDataFrame frame = (ITableDataFrame) vStore.get(frameKey).getValue();
+			if(!refList.contains(frame)) {
+				GenRowFilters grf = frame.getFrameFilters();
+				if(grf != null && !grf.isEmpty()) {
+					StringBuffer filter = new StringBuffer();
+					if(frameKey.equals(Insight.CUR_FRAME_KEY)) {
+						filter.append(frame.getName());
+					} else {
+						filter.append(frameKey);
+					}
+					filter.append(" | AddFrameFilter(")
+						.append(QsToPixelConverter.convertGenRowFilters(grf))
+						.append(");");
+					pList.addPixel( new Pixel( (newPixelId++) + "", filter.toString() ));
+				}
+				
+				refList.add(frame);
+			}
+		}
+		
+		// add panel tasks
+		for(String panelId : panels.keySet()) {
+			InsightPanel panel = panels.get(panelId);
+
+			boolean isVisualizaiton = panel.getPanelView().equalsIgnoreCase("visualization");
+			if(isVisualizaiton) {
+				Map<String, SelectQueryStruct> qsMap = panel.getLayerQueryStruct();
+				
+				if(qsMap != null) {
+					for(String layer : qsMap.keySet()) {
+						// grab the last pixel for each panel/layer combination
+						Pixel viewPixel = insightPixelList.findLastPixelViewNotRefresh(panelId, layer);
+						pList.addPixel( new Pixel( (newPixelId++) + "", viewPixel.getPixelString() ) );
+					}
+				} else {
+					// TODO: THIS CURRENTLY HAPPENS FOR WHEN YOU HAVE A GRAPH
+					// AND YOU WROTE A CUSTOM PIXEL RECIPE WHERE YOU NEVER CREATED A GRID
+					// IT IS STORED IN THE VIEW PIXEL BUT NOT IN THE INSIGHT DEPENDENCY
+					// try to find the task on layer 0
+					Pixel viewPixel = insightPixelList.findLastPixelViewNotRefresh(panelId, "0");
+					pList.addPixel( new Pixel( (newPixelId++) + "", viewPixel.getPixelString() ) );
+				}
+				
+				// add the color by values at the end of the recipe
+				List<ColorByValueRule> cbvs = panel.getColorByValue();
+				for(ColorByValueRule cbv : cbvs) {
+					StringBuffer cbvTask = new StringBuffer("Panel(\"").append(panelId)
+							.append("\") | RetrievePanelColorByValue(name=[\"")
+							.append(cbv.getId()).append("\"]) | Collect(2000);");
+
+					pList.addPixel( new Pixel( (newPixelId++) + "", cbvTask.toString()) );
+				}
+			}
+		}
+		
+		return pList;
+	}
+	
+	/**
 	 * Remove unnecessary task pixels
 	 * @param in
 	 */
-	public static void removeUnnecessaryPixels(Insight in) {
+	public static void removeUnnecessaryTaskPixels(Insight in) {
 		PixelList insightPixelList = in.getPixelList();
 		List<ParamStruct> paramStructs = in.getVarStore().pullParamStructs();
 		Map<ParamStructDetails, Pixel> paramToPixelObj = new HashMap<>();

@@ -1285,10 +1285,10 @@ public class LazyTranslation extends DepthFirstAdapter {
     			curReactor = (IReactor) parent;
     		} else {
     			curReactor = null;
-    			// store the noun map in the pixel
-    			if(this.pixelObj != null) {
-    				this.pixelObj.addReactorInput(prevReactor.getStoreMap());
-    			}
+//    			// store the noun map in the pixel
+//    			if(this.pixelObj != null) {
+//    				this.pixelObj.addReactorInput(prevReactor.getStoreMap());
+//    			}
     		}
     	}
     }
