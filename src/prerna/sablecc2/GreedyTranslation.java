@@ -271,8 +271,8 @@ public class GreedyTranslation extends LazyTranslation {
 	    		this.curReactor = (IReactor) parent;
 	    	} else {
 	    		this.curReactor = null;
-	    		// store the noun map in the pixel
-    			this.pixelObj.addReactorInput(prevReactor.getStoreMap());
+//	    		// store the noun map in the pixel
+//    			this.pixelObj.addReactorInput(prevReactor.getStoreMap());
 	    	}
 	    	
 	    	// we will merge up to the parent if one is present
@@ -368,6 +368,11 @@ public class GreedyTranslation extends LazyTranslation {
 		    				|| opTypes.contains(PixelOperationType.FRAME_DATA_CHANGE)
 		    				|| opTypes.contains(PixelOperationType.FRAME_HEADERS_CHANGE)) {
 		    			pixelObj.setFrameTransformation(true);
+		    		}
+		    		
+		    		// if we are an assignment, let us track that as well
+		    		if(this.prevReactor instanceof AssignmentReactor) {
+		    			pixelObj.setAssignment(true);
 		    		}
 	    		}
 	    		
