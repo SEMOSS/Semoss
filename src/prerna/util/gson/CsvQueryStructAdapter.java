@@ -122,7 +122,12 @@ public class CsvQueryStructAdapter  extends AbstractSemossTypeAdapter<CsvQuerySt
 						in.beginArray();
 						List<String> rel = new Vector<>();
 						while(in.hasNext()) {
-							rel.add(in.nextString());
+							if(in.peek() == JsonToken.NULL) {
+								in.nextNull();
+								rel.add(null);
+							} else {
+								rel.add(in.nextString());
+							}
 						}
 						relations.add(rel.toArray(new String[] {}));
 						in.endArray();

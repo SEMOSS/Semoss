@@ -92,7 +92,7 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 									additionalMessages.add(getError("Attempting to refresh panel id " + panelId 
 											+ " but the frame creating the visualization no longer exists"));
 									continue LAYER_LOOP;
-								} 
+								}
 								
 								NounMetadata warning = getWarning("Attempting to refresh panel id " + panelId 
 										+ " but the underlying data creating the visualization no longer exists "

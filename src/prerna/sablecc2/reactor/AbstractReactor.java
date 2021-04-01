@@ -234,7 +234,7 @@ public abstract class AbstractReactor implements IReactor {
 		
 		// fill in order based on whatever is left
 		int counter = 0;
-		if(!this.curRow.isEmpty()) {
+		if(this.curRow != null && !this.curRow.isEmpty()) {
 			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 				if(!inputMap.containsKey(keysToGet[keyIndex])) {
 					List<Map> singleObj = new ArrayList<>();
