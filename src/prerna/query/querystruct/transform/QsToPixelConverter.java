@@ -272,11 +272,11 @@ public class QsToPixelConverter {
 	 * Since GenRowFilter is used in many situations, the 
 	 * method calling this is responsible for adding a Filter or Having 
 	 * around the contents it returns
-	 * @param grs
+	 * @param grf
 	 * @return
 	 */
-	public static String convertGenRowFilters(GenRowFilters grs) {
-		List<IQueryFilter> origGrf = grs.getFilters();
+	public static String convertGenRowFilters(GenRowFilters grf) {
+		List<IQueryFilter> origGrf = grf.getFilters();
 		if(origGrf != null && !origGrf.isEmpty()) {
 			StringBuilder b = new StringBuilder();
 			for(int i = 0; i < origGrf.size(); i++) {

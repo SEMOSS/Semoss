@@ -163,8 +163,11 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 			// are unable to dos
 			Map<String, Object> lambdaMap = new HashMap<>();
 	    	lambdaMap.put("reactorType", obj.getClass().getName());
-	    	lambdaMap.put("value", ((IReactor) obj).getStoreMap() );
-
+	    	if(((IReactor) obj).getNounStore() != null) {
+	    		lambdaMap.put("value", ((IReactor) obj).getStoreMap() );
+	    	} else {
+	    		lambdaMap.put("value", new HashMap<>());
+	    	}
 			out.name("class").value(lambdaMap.getClass().getName());
 	    	out.name("value");
 			out.beginArray();
