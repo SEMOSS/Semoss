@@ -86,6 +86,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
 		
+		PixelList insightPixelList = null;
 		List<String> recipeToSave = getRecipe();
 		List<String> recipeIds = null;
 		List<String> additionalSteps = null;
@@ -101,7 +102,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.isEmpty()) {
 			savingThisInsight = true;
-			PixelList insightPixelList = null;
 			if(optimizeRecipe) {
 				// optimize the recipe
 				insightPixelList = PixelUtility.getOptimizedPixelList(this.insight);
