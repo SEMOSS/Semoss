@@ -476,7 +476,6 @@ public class PixelUtility {
 			// apply the translation.
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-			e.printStackTrace();
 			logger.error(Constants.STACKTRACE, e);
 		}
 
@@ -550,7 +549,7 @@ public class PixelUtility {
 				translation.setCurrentPixelId(pixelId);
 				tree.apply(translation);
 			} catch (ParserException | LexerException | IOException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 		
@@ -718,12 +717,30 @@ public class PixelUtility {
 			boolean isVisualizaiton = panel.getPanelView().equalsIgnoreCase("visualization");
 			if(isVisualizaiton) {
 				Map<String, SelectQueryStruct> qsMap = panel.getLayerQueryStruct();
-				
+				Map<String, TaskOptions> tOptionsMap = panel.getLayerTaskOption();
+
 				if(qsMap != null) {
 					for(String layer : qsMap.keySet()) {
 						// grab the last pixel for each panel/layer combination
 						Pixel viewPixel = in.getPixelList().findLastPixelViewNotRefresh(panelId, layer);
-						panelTasks.add(viewPixel.getPixelString());
+						if(viewPixel != null) {
+							panelTasks.add(viewPixel.getPixelString());
+						} else {
+							// this is likely a clone of a viz
+							// recreate the pixel that generated this chart
+							SelectQueryStruct qs = qsMap.get(layer);
+							TaskOptions tOptions = tOptionsMap.get(layer);
+
+							StringBuffer taskPixel = new StringBuffer(QsToPixelConverter.getPixel(qs, true));
+							taskPixel.append(" | TaskOptions(").append(gson.toJson(tOptions.getOptions()));
+							if(tOptions.getLayout(panelId).equals("PivotTable")) {
+								taskPixel.append(") | CollectPivot()");
+							} else {
+								taskPixel.append(") | Collect(").append(panel.getNumCollect()).append(");");
+							}
+
+							panelTasks.add(taskPixel.toString());
+						}
 					}
 				} else {
 					// TODO: THIS CURRENTLY HAPPENS FOR WHEN YOU HAVE A GRAPH
@@ -831,12 +848,30 @@ public class PixelUtility {
 			boolean isVisualizaiton = panel.getPanelView().equalsIgnoreCase("visualization");
 			if(isVisualizaiton) {
 				Map<String, SelectQueryStruct> qsMap = panel.getLayerQueryStruct();
+				Map<String, TaskOptions> tOptionsMap = panel.getLayerTaskOption();
 				
 				if(qsMap != null) {
 					for(String layer : qsMap.keySet()) {
 						// grab the last pixel for each panel/layer combination
 						Pixel viewPixel = insightPixelList.findLastPixelViewNotRefresh(panelId, layer);
-						pList.addPixel( new Pixel( (newPixelId++) + "", viewPixel.getPixelString() ) );
+						if(viewPixel != null) {
+							pList.addPixel( new Pixel( (newPixelId++) + "", viewPixel.getPixelString() ) );
+						} else {
+							// this is likely a clone of a viz
+							// recreate the pixel that generated this chart
+							SelectQueryStruct qs = qsMap.get(layer);
+							TaskOptions tOptions = tOptionsMap.get(layer);
+
+							StringBuffer taskPixel = new StringBuffer(QsToPixelConverter.getPixel(qs, true));
+							taskPixel.append(" | TaskOptions(").append(gson.toJson(tOptions.getOptions()));
+							if(tOptions.getLayout(panelId).equals("PivotTable")) {
+								taskPixel.append(") | CollectPivot()");
+							} else {
+								taskPixel.append(") | Collect(").append(panel.getNumCollect()).append(");");
+							}
+							
+							pList.addPixel( new Pixel( (newPixelId++) + "", taskPixel.toString() ) );
+						}
 					}
 				} else {
 					// TODO: THIS CURRENTLY HAPPENS FOR WHEN YOU HAVE A GRAPH
