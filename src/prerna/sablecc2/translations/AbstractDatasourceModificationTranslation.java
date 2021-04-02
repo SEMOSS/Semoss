@@ -43,6 +43,7 @@ public class AbstractDatasourceModificationTranslation extends LazyTranslation {
     			curReactor.mergeUp();
     			curReactor.updatePlan();
     		} catch(Exception e) {
+    			e.printStackTrace();
     			throw new IllegalArgumentException(e.getMessage());
     		}
     		

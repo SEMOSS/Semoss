@@ -70,16 +70,24 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 			
 			// only execute pixels that at least contain the import
 			if(process) {
-				e.apply(this);
-				// if we ended up finding something to store
-				if(this.currentSourceStatement != null) {
-					this.currentSourceStatement.put("pixelStepIndex", currentIndex);
-					// process to ensure query structs are broken into parts for FE to consume
-					postProcessParams(this.currentSourceStatement);
-					// add the source to store
-					this.datasourcePixels.add(this.currentSourceStatement);
-					// at the end, we will null it
-					this.currentSourceStatement = null;
+				// TODO:
+				// THIS IS IN A TRY CATCH BECAUSE WE ARE NOT PROPERLY LOOKING
+				// AT IF WE ARE NOT PROPERLY ISOLATING THE STEPS THAT ARE
+				// FILE READS
+				try {
+					e.apply(this);
+					// if we ended up finding something to store
+					if(this.currentSourceStatement != null) {
+						this.currentSourceStatement.put("pixelStepIndex", currentIndex);
+						// process to ensure query structs are broken into parts for FE to consume
+						postProcessParams(this.currentSourceStatement);
+						// add the source to store
+						this.datasourcePixels.add(this.currentSourceStatement);
+						// at the end, we will null it
+						this.currentSourceStatement = null;
+					}
+				} catch(Exception e1) {
+					e1.printStackTrace();
 				}
 			}
 			
