@@ -476,6 +476,7 @@ public class PixelUtility {
 			// apply the translation.
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
+			e.printStackTrace();
 			logger.error(Constants.STACKTRACE, e);
 		}
 
