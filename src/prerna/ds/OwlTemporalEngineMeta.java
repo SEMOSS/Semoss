@@ -2730,6 +2730,11 @@ public class OwlTemporalEngineMeta {
 	public void close() {
 		this.myEng.closeDB();
 	}
+	
+	@Override
+	protected void finalize() throws Throwable {
+		logger.info("ITableDataFrame Metadata is being gc'd");
+	}
 
 //	public void load(String fileName){
 //		Model model = ModelFactory.createDefaultModel();
