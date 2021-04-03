@@ -1,6 +1,7 @@
 package prerna.sablecc2.om;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -8,7 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
@@ -38,8 +38,8 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	public VarStore() {
 		varMap = new ConcurrentHashMap<>();
-		frameKeys = new CopyOnWriteArrayList<>();
-		insightParametersKeys = new CopyOnWriteArrayList<>();
+		frameKeys = new Vector<>();
+		insightParametersKeys = new Vector<>();
 		allCreatedFrames = new HashSet<>();
 	}
 	
@@ -153,7 +153,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	}
 	
 	public List<String> getFrameKeys() {
-		return frameKeys;
+		return Collections.unmodifiableList(frameKeys);
 	}
 	
 	public Set<ITableDataFrame> getAllCreatedFrames() {
@@ -177,7 +177,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	}
 	
 	public List<String> getInsightParameterKeys() {
-		return insightParametersKeys;
+		return Collections.unmodifiableList(insightParametersKeys);
 	}
 	
 	/**
