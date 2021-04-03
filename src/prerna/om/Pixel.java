@@ -60,6 +60,8 @@ public class Pixel {
 	private boolean isFrameTransformation = false;
 	// is this an assignment
 	private boolean isAssignment = false;
+	// is this a file read
+	private boolean isFileRead = false;
 	
 	// currently unused - just thinking of things to store
 	private boolean isParamSelection = false;
@@ -389,6 +391,22 @@ public class Pixel {
 	public void setAssignment(boolean isAssignment) {
 		this.isAssignment = isAssignment;
 	}
+	
+	/**
+	 * Get if this pixel is a file read
+	 * @return
+	 */
+	public boolean isFileRead() {
+		return isFileRead;
+	}
+
+	/**
+	 * Set if this pixel is a file read
+	 * @param isFileRead
+	 */
+	public void setFileRead(boolean isFileRead) {
+		this.isFileRead = isFileRead;
+	}
 
 	/**
 	 * Get if this pixel returned an error during execution
@@ -548,6 +566,7 @@ public class Pixel {
 			pixelObj.setCodeExecution(mergePixel.isCodeExecution());
 			pixelObj.setFrameTransformation(mergePixel.isFrameTransformation());
 			pixelObj.setAssignment(mergePixel.isAssignment());
+			pixelObj.setFileRead(mergePixel.isFileRead());
 			pixelObj.setStartingFrameHeaders(mergePixel.getStartingFrameHeaders());
 //			pixelObj.setReactorInputs(mergePixel.getReactorInputs());
 			pixelObj.setFrameInputs(mergePixel.getFrameInputs());
@@ -590,5 +609,4 @@ public class Pixel {
 	public void setParamSelection(boolean isParamSelection) {
 		this.isParamSelection = isParamSelection;
 	}
-
 }
