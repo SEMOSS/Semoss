@@ -29,6 +29,7 @@ import prerna.sablecc2.reactor.qs.GroupReactor;
 import prerna.sablecc2.reactor.qs.filter.FilterReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
 import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
+import prerna.sablecc2.reactor.qs.source.FileReadReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 
@@ -373,6 +374,10 @@ public class GreedyTranslation extends LazyTranslation {
 		    		// if we are an assignment, let us track that as well
 		    		if(this.prevReactor instanceof AssignmentReactor) {
 		    			pixelObj.setAssignment(true);
+		    		}
+		    		// store if we are doing a file read
+		    		if(this.prevReactor instanceof FileReadReactor) {
+		    			pixelObj.setFileRead(true);
 		    		}
 	    		}
 	    		

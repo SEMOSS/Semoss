@@ -36,6 +36,7 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		boolean isCodeExecution = false;
 		boolean isFrameTransformation = false;
 		boolean isAssignment = false;
+		boolean isFileRead = false;
 		boolean error = false;
 		boolean warning = false;
 		Map<String, Map<String, Object>> startingFrameHeaders = null;
@@ -77,6 +78,8 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 				isFrameTransformation = in.nextBoolean();
 			} else if(key.equals("isAssignment")) {
 				isAssignment = in.nextBoolean();
+			} else if(key.equals("isFileRead")) {
+				isFileRead = in.nextBoolean();
 			} else if(key.equals("errorReturned")) {
 				error = in.nextBoolean();
 			} else if(key.equals("warningReturned")) {
@@ -134,6 +137,7 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		pixel.setCodeExecution(isCodeExecution);
 		pixel.setFrameTransformation(isFrameTransformation);
 		pixel.setAssignment(isAssignment);
+		pixel.setFileRead(isFileRead);
 		pixel.setReturnedError(error);
 		pixel.setReturnedWarning(warning);
 		pixel.setStartingFrameHeaders(startingFrameHeaders);
@@ -183,6 +187,9 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		// isAssignment
 		out.name("isAssignment");
 		out.value(value.isAssignment());
+		// isFileRead
+		out.name("isFileRead");
+		out.value(value.isFileRead());
 		// error
 		out.name("errorReturned");
 		out.value(value.isReturnedError());
