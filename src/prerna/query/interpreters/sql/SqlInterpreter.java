@@ -202,12 +202,14 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		
 		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
 		
-		if(query.length() > 500) {
-			logger.debug("SQL QUERY....  " + query.substring(0,  500) + "...");
-		} else {
-			logger.debug("SQL QUERY....  " + query);
+		if(logger.isDebugEnabled()) {
+			if(query.length() > 500) {
+				logger.debug("SQL QUERY....  " + query.substring(0,  500) + "...");
+			} else {
+				logger.debug("SQL QUERY....  " + query);
+			}
 		}
-
+		
 		return query.toString();
 	}
 
@@ -1567,7 +1569,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			try {
 				if(!res.hasNext()){
 					query = "SELECT ?relationship WHERE {<" + toURI + "> ?relationship <" + fromURI + "> } ORDER BY DESC(?relationship)";
-					logger.debug("Relationship query " + query);
+					if(logger.isDebugEnabled()) {
+						logger.debug("Relationship query " + query);
+					}
 					res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
 				}
 				

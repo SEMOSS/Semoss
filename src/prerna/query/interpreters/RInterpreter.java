@@ -179,10 +179,12 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			query.append(this.tempVarName).append(";");
 		}
 
-		if(query.length() > 500) {
-			logger.debug("R QUERY....  " + query.substring(0,  500) + "...");
-		} else {
-			logger.debug("R QUERY....  " + query);
+		if(logger.isDebugEnabled()) {
+			if(query.length() > 500) {
+				logger.debug("R QUERY....  " + query.substring(0,  500) + "...");
+			} else {
+				logger.debug("R QUERY....  " + query);
+			}
 		}
 		
 		return query.toString();
