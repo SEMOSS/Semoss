@@ -137,10 +137,17 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// and save the files in the correct location
 		// get the new insight id
 		String newInsightId = UUID.randomUUID().toString();
-		try {
-			recipeToSave = saveFilesInInsight(recipeToSave, appId, newInsightId);
-		} catch(Exception e) {
-			throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
+		if(insightPixelList != null) {
+			try {
+				// if we are saving a saved insight as another insight
+				// do not delete the file from this insight
+				if(saveFilesInInsight(insightPixelList, appId, newInsightId, !this.insight.isSavedInsight())) {
+					// need to pull the new saved recipe
+					recipeToSave = insightPixelList.getPixelRecipe();
+				}
+			} catch(Exception e) {
+				throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
+			}
 		}
 		
 		IEngine engine = Utility.getEngine(appId);
