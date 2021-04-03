@@ -1597,4 +1597,9 @@ public class Insight implements Serializable {
 		return chromeUtil;
 	}
 	
+	@Override
+	protected void finalize() throws Throwable {
+		logger.info("Insight " + this.insightId + " is being gc'd");
+	}
+	
 }
