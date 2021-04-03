@@ -527,18 +527,6 @@ public class Pixel {
 		return this.id + "__" + this.pixelString;
 	}
 	
-	@Override
-	public boolean equals(Object obj) {
-		if(obj instanceof Pixel) {
-			Pixel otherP = (Pixel) obj;
-			if(otherP.id.equals(this.id)
-					&& otherP.pixelString.equals(this.pixelString)) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
 	/**
 	 * Create a deep copy of the pixel object
 	 * @return
@@ -596,6 +584,30 @@ public class Pixel {
 		}
 		
 		return aliasToType;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if(obj == this) {
+			return true;
+		}
+		if(obj instanceof Pixel) {
+			Pixel otherP = (Pixel) obj;
+			if(otherP.id.equals(this.id)
+					&& otherP.pixelString.equals(this.pixelString)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((this.id == null) ? 0 : this.id.hashCode());
+		result = prime * result + ((this.pixelString == null) ? 0 : this.pixelString.hashCode());
+		return result;
 	}
 	
 	//////////////////////////////////////////
