@@ -72,6 +72,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
 		
+		PixelList insightPixelList = null;
 		List<String> recipeToSave = getRecipe();
 		List<String> recipeIds = null;
 		List<String> additionalSteps = null;
@@ -79,7 +80,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.isEmpty()) {
-			PixelList insightPixelList = null;
 			if(optimizeRecipe) {
 				// optimize the recipe
 				insightPixelList = PixelUtility.getOptimizedPixelList(this.insight);
@@ -111,12 +111,22 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			}
 		}
 		
+		// WE DO NOT NEED TO SAVE THE FILES
+		// THEY SHOULD ALREADY BE LOADED INTO THE INSIGHT SPACE
+		// SINCE THIS IS AN EXISTING INSIGHTX
+		
 		// get an updated recipe if there are files used
 		// and save the files in the correct location
-		try {
-			recipeToSave = saveFilesInInsight(recipeToSave, appId, existingId);
-		} catch(Exception e) {
-			throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
+		if(insightPixelList != null) {
+			try {
+				// we will delete and move the files used in this insight space to the data folder
+				if(saveFilesInInsight(insightPixelList, appId, existingId, true)) {
+					// need to pull the new saved recipe
+					recipeToSave = insightPixelList.getPixelRecipe();
+				}
+			} catch(Exception e) {
+				throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
+			}
 		}
 
 		String layout = getLayout();
