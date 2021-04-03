@@ -133,12 +133,14 @@ public class HiveSqlInterpreter extends SqlInterpreter {
 
 		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
 
-		if(query.length() > 500) {
-			logger.debug("SQL QUERY....  " + query.substring(0,  500) + "...");
-		} else {
-			logger.debug("SQL QUERY....  " + query);
+		if(logger.isDebugEnabled()) {
+			if(query.length() > 500) {
+				logger.debug("HIVE QUERY....  " + query.substring(0,  500) + "...");
+			} else {
+				logger.debug("HIVE QUERY....  " + query);
+			}
 		}
-
+		
 		return query.toString();
 	}
 	@Override

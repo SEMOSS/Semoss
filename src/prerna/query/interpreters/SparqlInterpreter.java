@@ -151,12 +151,13 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		query.append(" ");
 		query.append(this.bindingsWhereClause.toString());
 		
-		if(query.length() > 500) {
-			logger.debug("SPARQL QUERY....  " + query.substring(0,  500) + "...");
-		} else {
-			logger.debug("SPARQL QUERY....  " + query);
+		if(logger.isDebugEnabled()) {
+			if(query.length() > 500) {
+				logger.debug("SPARQL QUERY....  " + query.substring(0,  500) + "...");
+			} else {
+				logger.debug("SPARQL QUERY....  " + query);
+			}
 		}
-
 		return query.toString();
 	}
 	
