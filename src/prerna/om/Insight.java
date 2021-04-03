@@ -225,18 +225,9 @@ public class Insight implements Serializable {
 	 * Create an empty insight
 	 */
 	public Insight() {
-		loadDefaultSettings();
+		loadDefaultSettings(500);
 	}
 
-	/**
-	 * Open a saved insight
-	 * @param engineId
-	 * @param rdbmsId
-	 */
-	public Insight(String engineId, String engineName, String rdbmsId) {
-		this(engineId, engineName, rdbmsId, true);
-	}
-	
 	/**
 	 * Open a saved insight and determine if it is cacheable
 	 * @param engineId
@@ -244,19 +235,19 @@ public class Insight implements Serializable {
 	 * @param rdbmsId
 	 * @param cacheable
 	 */
-	public Insight(String engineId, String engineName, String rdbmsId, boolean cacheable) {
+	public Insight(String engineId, String engineName, String rdbmsId, boolean cacheable, int capacity) {
 		this.engineId = engineId;
 		this.engineName = engineName;
 		this.rdbmsId = rdbmsId;
 		this.cacheable = cacheable;
-		loadDefaultSettings();
+		loadDefaultSettings(capacity);
 	}
 	
 	/**
 	 * Init the insight
 	 */
-	private void loadDefaultSettings() {
-		this.pixelList = new PixelList();
+	private void loadDefaultSettings(int capacity) {
+		this.pixelList = new PixelList(capacity);
 		this.taskStore = new TaskStore();
 		this.insightId = UUID.randomUUID().toString();
 		
@@ -1074,7 +1065,7 @@ public class Insight implements Serializable {
 //			int counterVal = this.pixelList.getCounter();
 			
 			// create a new pixelList
-			this.pixelList = new PixelList();
+			this.pixelList = new PixelList(currentRecipe.size());
 			
 			// add back the insight parameters
 			// so that we can set the value inside of them
