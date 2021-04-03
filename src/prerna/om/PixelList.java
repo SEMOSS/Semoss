@@ -24,15 +24,25 @@ public class PixelList implements Iterable<Pixel> {
 	private static final Logger logger = LogManager.getLogger(PixelList.class);
 
 //	private AtomicInteger counter = new AtomicInteger(0);
-	private List<Pixel> pixelList = new Vector<>(1_000);
-	private transient Map<String, Integer> idToIndexHash = new ConcurrentHashMap<>(1_000);
+	private List<Pixel> pixelList = null;
+	private transient Map<String, Integer> idToIndexHash = null;
 	// frameName -> list of pixels
-	private transient Map<String, LinkedList<Pixel>> frameDependency = new ConcurrentHashMap<>(100);
+	private transient Map<String, LinkedList<Pixel>> frameDependency = null;
 	// panel -> layer -> list of pixels
-	private transient Map<String, Map<String, LinkedList<Pixel>>> taskDependency = new ConcurrentHashMap<>(100);
+	private transient Map<String, Map<String, LinkedList<Pixel>>> taskDependency = null;
 
 	public PixelList() {
-		
+		this(500);
+	}
+	
+	public PixelList(int capacity) {
+		// keeping the initial capacity initially at 500
+		capacity = capacity > 500 ? capacity : 500;
+		this.pixelList = new Vector<>(capacity);
+		this.idToIndexHash = new ConcurrentHashMap<>(capacity);
+		int subCapacity = capacity / 10;
+		this.frameDependency = new ConcurrentHashMap<>(subCapacity);
+		this.taskDependency = new ConcurrentHashMap<>(subCapacity);
 	}
 	
 	/**
