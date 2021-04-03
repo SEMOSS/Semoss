@@ -220,15 +220,6 @@ public interface ITableDataFrame extends IDataMaker {
 	void clearQueryCache();
 	
 	/**
-	 * Prints the frame
-	 * @return
-	 * @param columns - columns to get
-	 * @param all - boolean override to get all the columns
-	 * @return column and the value to print
-	 */
-	Map<String, StringBuffer> printFilters(List <String> columns, boolean all);
-
-	/**
 	 * Return the frame type
 	 * @return
 	 */
