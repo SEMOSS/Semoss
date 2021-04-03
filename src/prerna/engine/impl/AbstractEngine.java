@@ -826,9 +826,9 @@ public abstract class AbstractEngine implements IEngine {
 						((OldInsight) in).setInsightParameters(LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRdbms, rdbmsId));
 						in.setIsOldInsight(true);
 					} else {
-						in = new Insight(this.engineId, this.engineName, rdbmsId, cacheable);
+						in = new Insight(this.engineId, this.engineName, rdbmsId, cacheable, pixel.length);
 						in.setInsightName(insightName);
-						List<String> pixelList = new Vector<String>();
+						List<String> pixelList = new Vector<String>(pixel.length);
 						for(int i = 0; i < pixel.length; i++) {
 							String pixelString = pixel[i].toString();
 							List<String> breakdown;
