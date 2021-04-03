@@ -22,7 +22,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.om.Insight;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
 import prerna.sablecc2.PixelUtility;
