@@ -57,7 +57,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	
 	private Server server = null;
 	private String serverURL = null;
-	private Map<String, String[]> tablePermissions = new Hashtable<String, String[]>();
+	private Map<String, String[]> tablePermissions = null;
 	
 	public H2Frame() {
 		super();
@@ -300,6 +300,9 @@ public class H2Frame extends AbstractRdbmsFrame {
 	}
 	
 	public String[] createUser(String tableName) {
+		if(tablePermissions == null) {
+			tablePermissions = new Hashtable<>();
+		}
 		// really simple
 		// find an open port
 		// once found
