@@ -63,8 +63,10 @@ public class GremlinNoEdgeBindInterpreter extends GremlinInterpreter {
 
 				String edgeKey = startName + TinkerFrame.EDGE_LABEL_DELIMETER + downstreamNodeType;
 				if (!travelledEdges.contains(edgeKey)) {
-					logger.debug("travelling from node = '" + startName + "' to node = '" + downstreamNodeType + "'");
-
+					if(logger.isDebugEnabled()) {
+						logger.debug("travelling from node = '" + startName + "' to node = '" + downstreamNodeType + "'");
+					}
+					
 					// get the traversal and store the necessary info
 					GraphTraversal twoStepT = __.as(startName);
 
@@ -120,8 +122,9 @@ public class GremlinNoEdgeBindInterpreter extends GremlinInterpreter {
 
 				String edgeKey = upstreamNodeType + TinkerFrame.EDGE_LABEL_DELIMETER + startName;
 				if (!travelledEdges.contains(edgeKey)) {
-					logger.debug("travelling from node = '" + upstreamNodeType + "' to node = '" + startName + "'");
-
+					if(logger.isDebugEnabled()) {
+						logger.debug("travelling from node = '" + upstreamNodeType + "' to node = '" + startName + "'");
+					}
 					// get the traversal and store the necessary info
 					GraphTraversal twoStepT = __.as(startName);
 
