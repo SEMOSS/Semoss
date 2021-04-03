@@ -184,12 +184,13 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 			query = appendOrderBy(query);
 		}
 
-		if(query.length() > 500) {	
-			logger.debug("SQL QUERY....  " + query.substring(0,  500) + "...");
-		} else {
-			logger.debug("SQL QUERY....  " + query);
+		if(logger.isDebugEnabled()) {		
+			if(query.length() > 500) {	
+				logger.debug("TERADATA QUERY....  " + query.substring(0,  500) + "...");
+			} else {
+				logger.debug("TERADATA QUERY....  " + query);
+			}
 		}
-		System.out.println("TERAQUERY: " + query);
 		return query.toString();
 	}
 
