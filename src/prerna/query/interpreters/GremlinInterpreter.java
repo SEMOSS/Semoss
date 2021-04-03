@@ -75,11 +75,13 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 			this.gt.dedup();
 		}
 		
-		String query = this.gt.toString();
-		if(query.length() > 500) {
-			logger.debug("GREMLIN QUERY....  " + query.substring(0,  500) + "...");
-		} else {
-			logger.debug("GREMLIN QUERY....  " + query);
+		if(logger.isDebugEnabled()) {
+			String query = this.gt.toString();
+			if(query.length() > 500) {
+				logger.debug("GREMLIN QUERY....  " + query.substring(0,  500) + "...");
+			} else {
+				logger.debug("GREMLIN QUERY....  " + query);
+			}
 		}
 		return this.gt;
 	}
@@ -423,8 +425,9 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 
 				String edgeKey = startName + TinkerFrame.EDGE_LABEL_DELIMETER + downstreamNodeType;
 				if (!travelledEdges.contains(edgeKey)) {
-					logger.debug("travelling from node = '" + startName + "' to node = '" + downstreamNodeType + "'");
-
+					if(logger.isDebugEnabled()) {					
+						logger.debug("travelling from node = '" + startName + "' to node = '" + downstreamNodeType + "'");
+					}
 					// get the traversal and store the necessary info
 					GraphTraversal twoStepT = __.as(startName);
 
@@ -480,8 +483,10 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 
 				String edgeKey = upstreamNodeType + TinkerFrame.EDGE_LABEL_DELIMETER + startName;
 				if (!travelledEdges.contains(edgeKey)) {
-					logger.debug("travelling from node = '" + upstreamNodeType + "' to node = '" + startName + "'");
-
+					if(logger.isDebugEnabled()) {
+						logger.debug("travelling from node = '" + upstreamNodeType + "' to node = '" + startName + "'");
+					}
+					
 					// get the traversal and store the necessary info
 					GraphTraversal twoStepT = __.as(startName);
 
