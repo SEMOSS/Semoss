@@ -233,7 +233,9 @@ public class WrapperManager {
 				// if the wrapper is created
 				// but not returned
 				if(error && returnWrapper != null) {
-					logger.debug("Error occured executing query on engine " + engine.getEngineId() + " with query = " + query);
+					if(logger.isDebugEnabled()) {
+						logger.debug("Error occured executing query on engine " + engine.getEngineId() + " with query = " + query);
+					}
 					returnWrapper.cleanUp();
 				}
 			}
