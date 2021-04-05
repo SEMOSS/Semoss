@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
@@ -38,8 +39,8 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	public VarStore() {
 		varMap = new ConcurrentHashMap<>();
-		frameKeys = new Vector<>();
-		insightParametersKeys = new Vector<>();
+		frameKeys = new CopyOnWriteArrayList<>();
+		insightParametersKeys = new CopyOnWriteArrayList<>();
 		allCreatedFrames = new HashSet<>();
 	}
 	
