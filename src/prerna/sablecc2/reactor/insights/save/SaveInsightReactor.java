@@ -137,6 +137,23 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// and save the files in the correct location
 		// get the new insight id
 		String newInsightId = UUID.randomUUID().toString();
+		
+		
+		IEngine engine = Utility.getEngine(appId);
+		if(engine == null) {
+			// we may have the alias
+			engine = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(appId));
+			if(engine == null) {
+				throw new IllegalArgumentException("Cannot find app = " + appId);
+			}
+		}
+		
+		//Pull the insights db again incase someone just saved something 
+		
+		ClusterUtil.reactorPullInsightsDB(appId);
+		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+	
+		
 		if(insightPixelList != null) {
 			try {
 				// if we are saving a saved insight as another insight
@@ -150,18 +167,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			}
 		}
 		
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
-			// we may have the alias
-			engine = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(appId));
-			if(engine == null) {
-				throw new IllegalArgumentException("Cannot find app = " + appId);
-			}
-		}
-		
-		//Pull the insights db again incase someone just saved something 
-		ClusterUtil.reactorPullInsightsDB(appId);
-		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
 		// get an updated recipe if there are files used
 		// and save the files in the correct location
 		
