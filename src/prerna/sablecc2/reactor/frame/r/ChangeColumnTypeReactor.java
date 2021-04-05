@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.r;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -94,6 +95,9 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 				String dateFormat = this.keyValue.get(this.keysToGet[3]);
 				if(dateFormat == null) {
 					dateFormat = "%Y-%m-%d";
+				} else {
+					// convert from java format to R
+					dateFormat = RSyntaxHelper.translateJavaRDateTimeFormat(dateFormat);
 				}
 				// get the column type of the existing column
 				String type = getColumnType(table, column);
