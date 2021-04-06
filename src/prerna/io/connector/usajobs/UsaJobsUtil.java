@@ -27,6 +27,7 @@ import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
 import net.snowflake.client.jdbc.internal.apache.commons.io.FileUtils;
+import prerna.util.Utility;
 
 public class UsaJobsUtil {
 
@@ -145,7 +146,7 @@ public class UsaJobsUtil {
 			//read the file
 			if(!text)
 			{
-				File file = new File(inputData);
+				File file = new File(Utility.normalizePath(inputData));
 				node = mapper.readTree(file);
 			}
 			else

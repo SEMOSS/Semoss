@@ -386,7 +386,7 @@ public class Translation extends DepthFirstAdapter {
 		try {
 			thisReactor.process();
 			value = thisReactor.getValue(input);
-			System.out.println("Value is .. " + value);
+			//System.out.println("Value is .. " + value);
 		} catch(Exception e) {
 			e.printStackTrace();
 			LOGGER.info("There was an error with deinit for " + myName);

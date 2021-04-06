@@ -50,6 +50,8 @@ import prerna.util.Utility;
 
 public class ConsolidatedSystemReportWriter {
 
+	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	ArrayList<String> lpiSystemList = new ArrayList<String>();
 	ArrayList<String> lpniSystemList = new ArrayList<String>();
 	Hashtable<String, Object> ownerHashtable = new Hashtable<String, Object>(); //systemName -> owner
@@ -77,7 +79,7 @@ public class ConsolidatedSystemReportWriter {
 		writeSheet(wb, "LPNI", lpniSystemList);
 
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = "\\export\\Reports\\";
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Reports" + DIR_SEPARATOR;
 		String writeFileName = "ConsolidatedSystemTransitionReport" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
 		String fileLoc = workingDir + folder + writeFileName;
 		

@@ -49,6 +49,9 @@ import prerna.util.Utility;
  * Used in conjunction with SystemInfoGenListener
  */
 public class DHMSMSystemSORAccessTypeReportProcessor {
+	
+	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	static final Logger logger = LogManager.getLogger(DHMSMSystemSORAccessTypeReportProcessor.class.getName());
 	private Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
 	private Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
@@ -155,7 +158,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 		processQueries();
 		
 		BasicReportWriter writer = new BasicReportWriter();
-		String folder = "\\export\\Reports\\";
+		String folder = DIR_SEPARATOR + "export"+ DIR_SEPARATOR + "Reports";
 		String writeFileName = "System_SOR_Access_Type_Report_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
 
 		String fileLoc = workingDir + folder + writeFileName;

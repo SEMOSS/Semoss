@@ -97,7 +97,9 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			e.printStackTrace();
 			throw new IllegalArgumentException("There was an error in executing the retrieving and loading the insight query statistics", e);
 		} finally {
+			if(wrapper!=null) {
 			wrapper.cleanUp();
+			}
 		}
 		
 		return new NounMetadata(newFrame, PixelDataType.FRAME, 

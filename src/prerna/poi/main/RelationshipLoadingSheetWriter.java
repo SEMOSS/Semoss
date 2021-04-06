@@ -61,6 +61,8 @@ public class RelationshipLoadingSheetWriter {
 	private static final String NONE_SELECTED = "None";
 	private Boolean showSuccessMessage = true;
 	private String writeFileName;
+	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	
 	public void writeRelationshipLoadingSheets(IEngine engine, ArrayList<String[]> relationships) {
 		
@@ -70,7 +72,7 @@ public class RelationshipLoadingSheetWriter {
 		
 		//create the blank excel files
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = "\\export\\Relationships\\";
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Relationships"+DIR_SEPARATOR;
 		if(writeFileName == null)
 			writeFileName = "Relationships_LoadingSheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
 		String fileLoc = workingDir + folder + writeFileName;
