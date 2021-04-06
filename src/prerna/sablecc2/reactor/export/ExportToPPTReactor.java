@@ -154,7 +154,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			for (InsightPanel panel : panelList) {
 				// for each panel get the task and task options
 				SelectQueryStruct qs = panel.getLastQs();
-				TaskOptions taskOptions = panel.getTaskOptions();
+				TaskOptions taskOptions = panel.getLastTaskOptions();
 				if(qs == null || taskOptions == null) {
 					continue;
 				}

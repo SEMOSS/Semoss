@@ -1,9 +1,13 @@
 package prerna.sablecc2.reactor.task;
 
 import java.util.Map;
+import java.util.Set;
 
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.util.insight.InsightUtility;
 
 public class FormatReactor extends TaskBuilderReactor {
 	
@@ -22,6 +26,22 @@ public class FormatReactor extends TaskBuilderReactor {
 		if(options != null && !options.isEmpty()) {
 			Map<String, Object> optionValues = (Map<String, Object>) options.get(0);
 			task.setFormatOptions(optionValues);
+		}
+		
+		if(this.task.getTaskOptions() != null) {
+			Set<String> panelIds = this.task.getTaskOptions().getPanelIds();
+			for(String panelId : panelIds) {
+				// we will store this as the last run for this panel
+				// and start to merge in the panel filters that were applied
+				if(task instanceof BasicIteratorTask) {
+					SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
+					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions(), task.getFormatter());
+					qs.addPanel(this.insight.getInsightPanel(panelId));
+				}
+				
+				// and set panel for visualization
+				InsightUtility.setPanelForVisualization(this.insight, panelId);
+			}
 		}
 	}
 	

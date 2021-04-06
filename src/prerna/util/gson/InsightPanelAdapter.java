@@ -22,6 +22,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.export.IFormatter;
 
 public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel> {
 	
@@ -67,6 +68,9 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		Map<String, SelectQueryStruct> layerQueryStructMap = null;
 		TaskOptions lastTaskOptions = null;
 		Map<String, TaskOptions> layerTaskOptionsMap = null;
+		IFormatter lastFormatter = null;
+		Map<String, IFormatter> layerFormatterMap = null;
+
 		Integer numCollect = null;
 		
 		in.beginObject();
@@ -174,6 +178,20 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 					layerTaskOptionsMap.put(layerName, taskOptions);
 				}
 				in.endObject();
+			} else if(key.equals("lastFormatter")) {
+				IFormatterAdapter adapter = new IFormatterAdapter();
+				lastFormatter = adapter.read(in);
+				
+			} else if(key.equals("lastFormatterMap")) {
+				layerFormatterMap = new HashMap<>();
+				in.beginObject();
+				while(in.hasNext()) {
+					String layerName = in.nextName();
+					IFormatterAdapter adapter = new IFormatterAdapter();
+					IFormatter taskOptions = adapter.read(in);
+					layerFormatterMap.put(layerName, taskOptions);
+				}
+				in.endObject();
 			}
 		}
 		in.endObject();
@@ -211,6 +229,12 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		}
 		if(layerTaskOptionsMap != null) {
 			panel.setLayerTaskOptions(layerTaskOptionsMap);
+		}
+		if(lastFormatter != null) {
+			panel.setLastFormatter(lastFormatter);
+		}
+		if(layerFormatterMap != null) {
+			panel.setLayerFormatter(layerFormatterMap);
 		}
 
 		// return the panel
@@ -309,7 +333,7 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 				out.endObject();
 			}
 			
-			TaskOptions lastTaskOptions = value.getTaskOptions();
+			TaskOptions lastTaskOptions = value.getLastTaskOptions();
 			if(lastTaskOptions != null) {
 				out.name("lastTaskOptions");
 				TypeAdapter adapter = GSON.getAdapter(lastTaskOptions.getClass());
@@ -325,6 +349,26 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 					TaskOptions layerTaskOptions = layerTaskOptionsMap.get(layer);
 					TypeAdapter adapter = GSON.getAdapter(layerTaskOptions.getClass());
 					adapter.write(out, layerTaskOptions);
+				}
+				out.endObject();
+			}
+			
+			IFormatter lastFormatter = value.lastFormatter();
+			if(lastFormatter != null) {
+				out.name("lastFormatter");
+				TypeAdapter adapter = GSON.getAdapter(lastFormatter.getClass());
+				adapter.write(out, lastFormatter);
+			}
+			
+			Map<String, IFormatter> formatOptionsMap = value.getLayerFormatter();
+			if(layerTaskOptionsMap != null && !layerTaskOptionsMap.isEmpty()) {
+				out.name("lastFormatterMap");
+				out.beginObject();
+				for(String layer : formatOptionsMap.keySet()) {
+					out.name(layer);
+					IFormatter layerFormatter = formatOptionsMap.get(layer);
+					TypeAdapter adapter = GSON.getAdapter(lastFormatter.getClass());
+					adapter.write(out, layerFormatter);
 				}
 				out.endObject();
 			}

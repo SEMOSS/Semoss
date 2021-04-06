@@ -22,6 +22,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.export.CollectPivotReactor;
+import prerna.sablecc2.reactor.export.IFormatter;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
@@ -63,7 +64,8 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 				// that we are storing
 				Map<String, SelectQueryStruct> lQs = panel.getLayerQueryStruct();
 				Map<String, TaskOptions> lTaskOption = panel.getLayerTaskOption();
-
+				Map<String, IFormatter> lFormatter = panel.getLayerFormatter();
+				
 				if(lQs != null && lTaskOption != null) {
 					Set<String> layers = lQs.keySet();
 					LAYER_LOOP : for(String layerId : layers) {
@@ -76,11 +78,13 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 						qs.addPanel(panel);
 						qs.resetPanelState();
 						TaskOptions taskOptions = lTaskOption.get(layerId);
+						IFormatter formatter = lFormatter.get(layerId);
 						
 						if(qs != null && taskOptions != null) {
 							logger.info("Found task for panel = " + Utility.cleanLogString(panelId));
 							// this will ensure we are using the latest panel and frame filters on refresh
 							BasicIteratorTask task = InsightUtility.constructTaskFromQs(this.insight, qs);
+							task.setFormat(formatter);
 							try {
 								executeTask(task, taskOptions, panelCollect, logger);	
 							} catch(Exception e) {
@@ -158,12 +162,6 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 		task.setLogger(logger);
 		task.toOptimize(true);
 		task.setTaskOptions(taskOptions);
-		// we store the formatter in the task
-		// so we can ensure we are properly painting
-		// the visualization (graph visuals)
-		if(taskOptions.getFormatter() != null) {
-			task.setFormat(taskOptions.getFormatter());
-		}
 		task.setNumCollect(limit);
 		task.optimizeQuery(limit);
 	}
