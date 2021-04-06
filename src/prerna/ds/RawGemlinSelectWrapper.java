@@ -227,39 +227,39 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 	 * Main for testing
 	 */
 	
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-		{
-			String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-			IEngine coreEngine = new RDBMSNativeEngine();
-			coreEngine.setEngineId("LocalMasterDatabase");
-			coreEngine.openDB(engineProp);
-			coreEngine.setEngineId("LocalMasterDatabase");
-			DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
-		}
-		
-	
-		String testEngine = "TinkerThis__cc2a91eb-548d-4970-91c3-7a043b783841";
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
-		TinkerEngine coreEngine = new TinkerEngine();
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty(testEngine, coreEngine);
-		
-		
-		GremlinInterpreter interp = new GremlinInterpreter(coreEngine.getGraph().traversal(), 
-				coreEngine.getTypeMap(), coreEngine.getNameMap());
-		
-		
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("Title"));
-		qs.addSelector(new QueryColumnSelector("Title__MovieBudget"));
-		qs.addSelector(new QueryColumnSelector("Studio"));
-		qs.addRelation("Title", "Studio", "inner.join");
-		
-		RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs);
-		it.execute();
-		System.out.println(it.getNumRecords());
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//		{
+//			String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+//			IEngine coreEngine = new RDBMSNativeEngine();
+//			coreEngine.setEngineId("LocalMasterDatabase");
+//			coreEngine.openDB(engineProp);
+//			coreEngine.setEngineId("LocalMasterDatabase");
+//			DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
+//		}
+//		
+//	
+//		String testEngine = "TinkerThis__cc2a91eb-548d-4970-91c3-7a043b783841";
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
+//		TinkerEngine coreEngine = new TinkerEngine();
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty(testEngine, coreEngine);
+//		
+//		
+//		GremlinInterpreter interp = new GremlinInterpreter(coreEngine.getGraph().traversal(), 
+//				coreEngine.getTypeMap(), coreEngine.getNameMap());
+//		
+//		
+//		SelectQueryStruct qs = new SelectQueryStruct();
+//		qs.addSelector(new QueryColumnSelector("Title"));
+//		qs.addSelector(new QueryColumnSelector("Title__MovieBudget"));
+//		qs.addSelector(new QueryColumnSelector("Studio"));
+//		qs.addRelation("Title", "Studio", "inner.join");
+//		
+//		RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs);
+//		it.execute();
+//		System.out.println(it.getNumRecords());
+//	}
 
 	@Override
 	public void setQuery(String query) {

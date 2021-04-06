@@ -845,47 +845,47 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
 
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-		
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IEngine coreEngine = new H2EmbeddedServerEngine();
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
-		
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\security.smss";
-		coreEngine = new H2EmbeddedServerEngine();
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("security", coreEngine);
-		AbstractSecurityUtils.loadSecurityDatabase();
-
-		String filePath = "C:/Users/SEMOSS/Desktop/shifted.xlsx";
-
-		Insight in = new Insight();
-		PixelPlanner planner = new PixelPlanner();
-		planner.setVarStore(in.getVarStore());
-		in.getVarStore().put("$JOB_ID", new NounMetadata("test", PixelDataType.CONST_STRING));
-		in.getVarStore().put("$INSIGHT_ID", new NounMetadata("test", PixelDataType.CONST_STRING));
-
-		RdbmsUploadExcelDataReactor reactor = new RdbmsUploadExcelDataReactor();
-		reactor.setInsight(in);
-		reactor.setPixelPlanner(planner);
-		NounStore nStore = reactor.getNounStore();
-		// app name struct
-		{
-			GenRowStruct struct = new GenRowStruct();
-			struct.add(new NounMetadata("a" + Utility.getRandomString(6), PixelDataType.CONST_STRING));
-			nStore.addNoun(ReactorKeysEnum.APP.getKey(), struct);
-		}
-		// file path
-		{
-			GenRowStruct struct = new GenRowStruct();
-			struct.add(new NounMetadata(filePath, PixelDataType.CONST_STRING));
-			nStore.addNoun(ReactorKeysEnum.FILE_PATH.getKey(), struct);
-		}
-
-		reactor.In();
-		reactor.execute();
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//		
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+//		IEngine coreEngine = new H2EmbeddedServerEngine();
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
+//		
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\security.smss";
+//		coreEngine = new H2EmbeddedServerEngine();
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("security", coreEngine);
+//		AbstractSecurityUtils.loadSecurityDatabase();
+//
+//		String filePath = "C:/Users/SEMOSS/Desktop/shifted.xlsx";
+//
+//		Insight in = new Insight();
+//		PixelPlanner planner = new PixelPlanner();
+//		planner.setVarStore(in.getVarStore());
+//		in.getVarStore().put("$JOB_ID", new NounMetadata("test", PixelDataType.CONST_STRING));
+//		in.getVarStore().put("$INSIGHT_ID", new NounMetadata("test", PixelDataType.CONST_STRING));
+//
+//		RdbmsUploadExcelDataReactor reactor = new RdbmsUploadExcelDataReactor();
+//		reactor.setInsight(in);
+//		reactor.setPixelPlanner(planner);
+//		NounStore nStore = reactor.getNounStore();
+//		// app name struct
+//		{
+//			GenRowStruct struct = new GenRowStruct();
+//			struct.add(new NounMetadata("a" + Utility.getRandomString(6), PixelDataType.CONST_STRING));
+//			nStore.addNoun(ReactorKeysEnum.APP.getKey(), struct);
+//		}
+//		// file path
+//		{
+//			GenRowStruct struct = new GenRowStruct();
+//			struct.add(new NounMetadata(filePath, PixelDataType.CONST_STRING));
+//			nStore.addNoun(ReactorKeysEnum.FILE_PATH.getKey(), struct);
+//		}
+//
+//		reactor.In();
+//		reactor.execute();
+//	}
 
 }
