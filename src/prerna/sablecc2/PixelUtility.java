@@ -54,6 +54,7 @@ import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.pipeline.PipelineTranslation;
+import prerna.sablecc2.reactor.export.IFormatter;
 import prerna.sablecc2.reactor.insights.SetInsightConfigReactor;
 import prerna.sablecc2.translations.DatasourceTranslation;
 import prerna.sablecc2.translations.ParamStructSaveRecipeTranslation;
@@ -718,6 +719,7 @@ public class PixelUtility {
 			if(isVisualizaiton) {
 				Map<String, SelectQueryStruct> qsMap = panel.getLayerQueryStruct();
 				Map<String, TaskOptions> tOptionsMap = panel.getLayerTaskOption();
+				Map<String, IFormatter> formatMap = panel.getLayerFormatter();
 
 				if(qsMap != null) {
 					for(String layer : qsMap.keySet()) {
@@ -730,11 +732,19 @@ public class PixelUtility {
 							// recreate the pixel that generated this chart
 							SelectQueryStruct qs = qsMap.get(layer);
 							TaskOptions tOptions = tOptionsMap.get(layer);
+							IFormatter format = formatMap.get(layer);
 
-							StringBuffer taskPixel = new StringBuffer(QsToPixelConverter.getPixel(qs, true));
+							StringBuffer taskPixel = new StringBuffer(QsToPixelConverter.getPixel(qs, true))
+									.append(" | Format(type=['").append(format.getFormatType()).append("']");
+							if(format.getOptionsMap() != null && !format.getOptionsMap().isEmpty()) {
+								taskPixel.append(", options=[").append(gson.toJson(format.getOptionsMap()))
+									.append("])");
+							} else {
+								taskPixel.append(")");
+							}
 							taskPixel.append(" | TaskOptions(").append(gson.toJson(tOptions.getOptions()));
 							if(tOptions.getLayout(panelId).equals("PivotTable")) {
-								taskPixel.append(") | CollectPivot()");
+								taskPixel.append(") | CollectPivot();");
 							} else {
 								taskPixel.append(") | Collect(").append(panel.getNumCollect()).append(");");
 							}
@@ -849,6 +859,7 @@ public class PixelUtility {
 			if(isVisualizaiton) {
 				Map<String, SelectQueryStruct> qsMap = panel.getLayerQueryStruct();
 				Map<String, TaskOptions> tOptionsMap = panel.getLayerTaskOption();
+				Map<String, IFormatter> formatMap = panel.getLayerFormatter();
 				
 				if(qsMap != null) {
 					for(String layer : qsMap.keySet()) {
@@ -861,11 +872,19 @@ public class PixelUtility {
 							// recreate the pixel that generated this chart
 							SelectQueryStruct qs = qsMap.get(layer);
 							TaskOptions tOptions = tOptionsMap.get(layer);
-
-							StringBuffer taskPixel = new StringBuffer(QsToPixelConverter.getPixel(qs, true));
+							IFormatter format = formatMap.get(layer);
+							
+							StringBuffer taskPixel = new StringBuffer(QsToPixelConverter.getPixel(qs, true))
+									.append(" | Format(type=['").append(format.getFormatType()).append("']");
+							if(format.getOptionsMap() != null && !format.getOptionsMap().isEmpty()) {
+								taskPixel.append(", options=[").append(gson.toJson(format.getOptionsMap()))
+									.append("])");
+							} else {
+								taskPixel.append(")");
+							}
 							taskPixel.append(" | TaskOptions(").append(gson.toJson(tOptions.getOptions()));
 							if(tOptions.getLayout(panelId).equals("PivotTable")) {
-								taskPixel.append(") | CollectPivot()");
+								taskPixel.append(") | CollectPivot();");
 							} else {
 								taskPixel.append(") | Collect(").append(panel.getNumCollect()).append(");");
 							}
