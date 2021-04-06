@@ -111,7 +111,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		Iterator <InsightPanel> allPanelsIterator = allPanels.values().iterator();
 		while(allPanelsIterator.hasNext()) {
 			InsightPanel thisPanel = allPanelsIterator.next();
-			TaskOptions options = thisPanel.getTaskOptions();
+			TaskOptions options = thisPanel.getLastTaskOptions();
 			String chartLayout = options.getLayout(thisPanel.getPanelId());
 			System.err.println("Layout is set to " + chartLayout);
 
@@ -230,7 +230,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 					// make the frame
 					// call the genXLPivot
 					InsightPanel pivotPanel = pivotPanelsBySheet.get(thisKey);
-					TaskOptions taskOptions= pivotPanel.getTaskOptions();
+					TaskOptions taskOptions= pivotPanel.getLastTaskOptions();
 					ITask task = InsightUtility.constructTaskFromQs(this.insight, pivotPanel.getLastQs());
 					task.setLogger(this.getLogger(this.getClass().getName()));
 					task.setTaskOptions(taskOptions);

@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.sablecc2.om.NounStore;
-import prerna.sablecc2.reactor.export.IFormatter;
 
 public class TaskOptions {
 
@@ -18,7 +17,6 @@ public class TaskOptions {
 	
 	private Map<String, Object> options;
 	private boolean ornament = false;
-	private transient IFormatter formatter;
 	// kinda hacky at the moment
 	private NounStore collectStore = null;
 	
@@ -87,14 +85,6 @@ public class TaskOptions {
 		return this.options.isEmpty();
 	}
 
-	public void setFormatter(IFormatter formatter) {
-		this.formatter = formatter;
-	}
-
-	public IFormatter getFormatter() {
-		return this.formatter;
-	}
-	
 	/**
 	 * Swap the current panel ids
 	 * Boolean to pass if to remove all the other panels and keep only the new panelId

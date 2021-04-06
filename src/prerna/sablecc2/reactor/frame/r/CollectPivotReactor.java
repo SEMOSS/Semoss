@@ -189,14 +189,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
 				while(panelIds.hasNext()) {
 					String panelId = panelIds.next();
-					// this is a bit silly
-					// but will set the formatter into the task options
-					// so if we pull the task options we have that information
-					// this is for {{@link RefreshPanelTaskReactor}}
-					task.getTaskOptions().setFormatter(task.getFormatter());
 					// store the noun store as well for refreshing
 					task.getTaskOptions().setCollectStore(this.store);
-					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions());
+					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions(), task.getFormatter());
 				}
 			}
 	

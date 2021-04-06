@@ -9,6 +9,8 @@ import prerna.engine.api.IHeadersDataRow;
 
 public class TableFormatter extends AbstractFormatter {
 
+	public static final String FORMAT_TYPE = "TABLE";
+	
 	private List<Object[]> data;
 	private String[] headers;
 	private String[] rawHeaders;
@@ -42,7 +44,7 @@ public class TableFormatter extends AbstractFormatter {
 
 	@Override
 	public String getFormatType() {
-		return "TABLE";
+		return TableFormatter.FORMAT_TYPE;
 	}
 	
 	public String[] getHeaders() {
