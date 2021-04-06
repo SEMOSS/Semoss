@@ -187,32 +187,32 @@ public class HTMLTable {
 		return sb.toString();
 	}
 
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadAll("C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\RDF_Map.prop");
-		String engineProp = "C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\db\\movTst__92cf8a9f-c66d-4af1-ad9b-ef7a8f014dbe.smss";
-		RDBMSNativeEngine engine = new RDBMSNativeEngine();
-		engine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("92cf8a9f-c66d-4af1-ad9b-ef7a8f014dbe", engine);
-		HardSelectQueryStruct qs = new HardSelectQueryStruct();
-		qs.setQuery("Select * From MOVIES LIMIT 10");
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, qs);
-
-		ITask task = new BasicIteratorTask(qs, it);
-
-		// VHA style
-		HTMLTable emailTable = new HTMLTable("test:");
-		emailTable.setTableStyle("border='1' cellpadding='8' cellspacing='0' style='border-collapse:collapse; border: 1px solid #cccccc;'");
-		emailTable.setThStyle("style='padding: 8px; font-size: 14px; color: #ffffff; background-color:#003E73;border: 1px solid #cccccc;'");
-		emailTable.setTdStyle("valign='middle' align='left' style='padding: 8px; border: 1px solid #cccccc;'");
-		emailTable.setTableNameStyle("style='margin: 0; margin-bottom: 4px; color: #003E73;'");
-		System.out.println(emailTable.generateHtml(task));
-		
-//		VHAEmailTable table = VHAEmailTable.addValuesFromIterator("test", it);
-//		System.out.println(table.getTableAsHtml());
-
-		// emailTable.setTableHeaders(Arrays.asList("Header1", "Header2",
-		// "Header3"));
-		// emailTable.addTableData(Arrays.asList("Val1", "Val2", "Val3"));
-		// System.out.println(emailTable.getTableAsHtml());
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadAll("C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\RDF_Map.prop");
+//		String engineProp = "C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\db\\movTst__92cf8a9f-c66d-4af1-ad9b-ef7a8f014dbe.smss";
+//		RDBMSNativeEngine engine = new RDBMSNativeEngine();
+//		engine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("92cf8a9f-c66d-4af1-ad9b-ef7a8f014dbe", engine);
+//		HardSelectQueryStruct qs = new HardSelectQueryStruct();
+//		qs.setQuery("Select * From MOVIES LIMIT 10");
+//		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, qs);
+//
+//		ITask task = new BasicIteratorTask(qs, it);
+//
+//		// VHA style
+//		HTMLTable emailTable = new HTMLTable("test:");
+//		emailTable.setTableStyle("border='1' cellpadding='8' cellspacing='0' style='border-collapse:collapse; border: 1px solid #cccccc;'");
+//		emailTable.setThStyle("style='padding: 8px; font-size: 14px; color: #ffffff; background-color:#003E73;border: 1px solid #cccccc;'");
+//		emailTable.setTdStyle("valign='middle' align='left' style='padding: 8px; border: 1px solid #cccccc;'");
+//		emailTable.setTableNameStyle("style='margin: 0; margin-bottom: 4px; color: #003E73;'");
+//		System.out.println(emailTable.generateHtml(task));
+//		
+////		VHAEmailTable table = VHAEmailTable.addValuesFromIterator("test", it);
+////		System.out.println(table.getTableAsHtml());
+//
+//		// emailTable.setTableHeaders(Arrays.asList("Header1", "Header2",
+//		// "Header3"));
+//		// emailTable.addTableData(Arrays.asList("Val1", "Val2", "Val3"));
+//		// System.out.println(emailTable.getTableAsHtml());
+//	}
 }

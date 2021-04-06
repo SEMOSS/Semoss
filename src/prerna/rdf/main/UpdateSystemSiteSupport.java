@@ -25,69 +25,69 @@ import prerna.util.Utility;
 
 public class UpdateSystemSiteSupport {
 
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-
-		Map<String, String> origToReplacement = processFile("C:\\Users\\mahkhalil\\Desktop\\SystemSiteSupportGLItem.csv");
-		
-		List<Object[]> deleteTriples = new Vector<Object[]>();
-		List<Object[]> addTriples = new Vector<Object[]>();
-		
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio.smss";
-		IEngine pEng = new BigDataEngine();
-		pEng.openDB(engineProp);
-		pEng.setEngineId("TAP_Portfolio");
-		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", pEng);
-
-		String query = "select distinct ?systemsitesupportglitem ?system ?dcsite ?fy ?gltag ?cost "
-				+ "where { "
-				+ "{?systemsitesupportglitem a <http://semoss.org/ontologies/Concept/SystemSiteSupportGLItem>} "
-				+ "{?system a <http://semoss.org/ontologies/Concept/System>} "
-				+ "{?dcsite a <http://semoss.org/ontologies/Concept/DCSite>} "
-				+ "{?system <http://semoss.org/ontologies/Relation/Has> ?systemsitesupportglitem} "
-				+ "{?dcsite <http://semoss.org/ontologies/Relation/Has> ?systemsitesupportglitem} "
-				+ "{?systemsitesupportglitem <http://semoss.org/ontologies/Relation/OccursIn> ?fy} "
-				+ "{?systemsitesupportglitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} "
-				+ "{?systemsitesupportglitem <http://semoss.org/ontologies/Relation/Contains/Cost> ?cost} "
-				+ "}";
-		
-		int count = 0;
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(pEng, query);
-		while(it.hasNext()) {
-			IHeadersDataRow row = it.next();
-			Object[] values = row.getValues();
-			String dcsite = values[2].toString();
-			if(origToReplacement.containsKey(dcsite)) {
-				performReplacement(pEng, addTriples, deleteTriples, values, origToReplacement.get(dcsite));
-				count++;
-			}
-		}
-		System.out.println("Found total number = " + count);
-
-		for(Object[] del : deleteTriples) {
-			pEng.doAction(ACTION_TYPE.REMOVE_STATEMENT, del);
-		}
-		
-		for(Object[] add : addTriples) {
-			pEng.doAction(ACTION_TYPE.ADD_STATEMENT, add);
-		}
-		
-		System.out.println("Done");
-		
-		count = 0;
-		it = WrapperManager.getInstance().getRawWrapper(pEng, query);
-		while(it.hasNext()) {
-			IHeadersDataRow row = it.next();
-			Object[] values = row.getValues();
-			String dcsite = values[2].toString();
-			if(origToReplacement.containsKey(dcsite)) {
-				count++;
-			}
-		}
-		System.out.println("Found total number should now be 0.  It is = " + count);
-		
-		pEng.commit();
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//
+//		Map<String, String> origToReplacement = processFile("C:\\Users\\mahkhalil\\Desktop\\SystemSiteSupportGLItem.csv");
+//		
+//		List<Object[]> deleteTriples = new Vector<Object[]>();
+//		List<Object[]> addTriples = new Vector<Object[]>();
+//		
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio.smss";
+//		IEngine pEng = new BigDataEngine();
+//		pEng.openDB(engineProp);
+//		pEng.setEngineId("TAP_Portfolio");
+//		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", pEng);
+//
+//		String query = "select distinct ?systemsitesupportglitem ?system ?dcsite ?fy ?gltag ?cost "
+//				+ "where { "
+//				+ "{?systemsitesupportglitem a <http://semoss.org/ontologies/Concept/SystemSiteSupportGLItem>} "
+//				+ "{?system a <http://semoss.org/ontologies/Concept/System>} "
+//				+ "{?dcsite a <http://semoss.org/ontologies/Concept/DCSite>} "
+//				+ "{?system <http://semoss.org/ontologies/Relation/Has> ?systemsitesupportglitem} "
+//				+ "{?dcsite <http://semoss.org/ontologies/Relation/Has> ?systemsitesupportglitem} "
+//				+ "{?systemsitesupportglitem <http://semoss.org/ontologies/Relation/OccursIn> ?fy} "
+//				+ "{?systemsitesupportglitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} "
+//				+ "{?systemsitesupportglitem <http://semoss.org/ontologies/Relation/Contains/Cost> ?cost} "
+//				+ "}";
+//		
+//		int count = 0;
+//		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(pEng, query);
+//		while(it.hasNext()) {
+//			IHeadersDataRow row = it.next();
+//			Object[] values = row.getValues();
+//			String dcsite = values[2].toString();
+//			if(origToReplacement.containsKey(dcsite)) {
+//				performReplacement(pEng, addTriples, deleteTriples, values, origToReplacement.get(dcsite));
+//				count++;
+//			}
+//		}
+//		System.out.println("Found total number = " + count);
+//
+//		for(Object[] del : deleteTriples) {
+//			pEng.doAction(ACTION_TYPE.REMOVE_STATEMENT, del);
+//		}
+//		
+//		for(Object[] add : addTriples) {
+//			pEng.doAction(ACTION_TYPE.ADD_STATEMENT, add);
+//		}
+//		
+//		System.out.println("Done");
+//		
+//		count = 0;
+//		it = WrapperManager.getInstance().getRawWrapper(pEng, query);
+//		while(it.hasNext()) {
+//			IHeadersDataRow row = it.next();
+//			Object[] values = row.getValues();
+//			String dcsite = values[2].toString();
+//			if(origToReplacement.containsKey(dcsite)) {
+//				count++;
+//			}
+//		}
+//		System.out.println("Found total number should now be 0.  It is = " + count);
+//		
+//		pEng.commit();
+//	}
 	
 	private static void performReplacement(IEngine eng, List<Object[]> addTriples, List<Object[]> deleteTriples, Object[] values, String newSiteName) {
 		String sysSiteGl = values[0].toString();

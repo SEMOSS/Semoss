@@ -61,7 +61,8 @@ public class NodeLoadingSheetWriter {
 
 	private Boolean showSuccessMessage = true;
 	private String writeFileName;
-	
+	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	/**
 	 * Functions as the main method for the class
 	 * Reorganizes the information from ExportNodeLoadSheetsListener into a format that is similar to a load sheet and saves it in a workbook
@@ -79,7 +80,7 @@ public class NodeLoadingSheetWriter {
 		
 		//Create the blank excel file
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = "\\export\\Nodes\\";
+		String folder = DIR_SEPARATOR + "export" + DIR_SEPARATOR + "Nodes"+ DIR_SEPARATOR;
 		if(writeFileName == null)
 			writeFileName = "Nodes_LoadingSheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
 		String fileLoc = workingDir + folder + writeFileName;
