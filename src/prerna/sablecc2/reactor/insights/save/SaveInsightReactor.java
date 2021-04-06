@@ -138,7 +138,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// get the new insight id
 		String newInsightId = UUID.randomUUID().toString();
 		
-		
+		// pull the insights db again incase someone just saved something 
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
 			// we may have the alias
@@ -147,12 +147,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				throw new IllegalArgumentException("Cannot find app = " + appId);
 			}
 		}
-		
-		//Pull the insights db again incase someone just saved something 
-		
 		ClusterUtil.reactorPullInsightsDB(appId);
 		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
-	
 		
 		if(insightPixelList != null) {
 			try {

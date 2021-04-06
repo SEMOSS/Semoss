@@ -22,7 +22,8 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 	
 	public ChangeColumnTypeReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), "format" };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), 
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), "format" };
 	}
 
 	@Override
@@ -99,22 +100,8 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 					// convert from java format to R
 					dateFormat = RSyntaxHelper.translateJavaRDateTimeFormat(dateFormat);
 				}
-				// get the column type of the existing column
-				String type = getColumnType(table, column);
-				String tempTable = Utility.getRandomString(6);
-				StringBuilder rsb = new StringBuilder();
-				if (type.equalsIgnoreCase("date")) {
-					String formatString = ", format = '" + dateFormat + "'";
-					rsb.append(tempTable + " <- format(" + table + "$" + column + formatString + ");");
-					rsb.append(table + "$" + column + " <- " + "as.Date(" + tempTable + formatString + ");");
-				} else {
-					rsb.append(tempTable + " <- as.character(as.Date(" + table + "$" + column + ", format='" + dateFormat + "'));");
-					rsb.append(table + "$" + column + " <- " + tempTable + ";");
-				}
-				// perform variable cleanup
-				rsb.append("rm(" + tempTable + ");");
-				rsb.append("gc();");
-				this.rJavaTranslator.runR(rsb.toString());
+				script = RSyntaxHelper.alterColumnTypeToDate(table, dateFormat, column);
+				this.rJavaTranslator.runR(script);
 			}
 			// update the metadata
 			metadata.modifyDataTypeToProperty(table + "__" + column, table, newType);
