@@ -55,12 +55,12 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 	public static final Logger LOGGER = LogManager.getLogger(FormsDataProcessor.class.getName());
 
 	//List of files
-	public static final String TASKER_FILE = "\\Tasker Responses Collection Worksheet.xlsx";
-	public static final String BLU_FILE = "\\System BLU.xlsx";
-	public static final String SITE_FILE = "\\TAP_Site_Data-Loader.xlsm";
-	public static final String ICD_FILE = "\\ICD Consolidated to Service Mapping_Validated.xlsm";
-	public static final String SITE_ICD_FILE = "\\ICD SiteSpecific.xlsm";
-	public static final String SYS_DATA_FILE = "\\System Data.xlsx";
+	public static final String TASKER_FILE = DIR_SEPARATOR + "Tasker Responses Collection Worksheet.xlsx";
+	public static final String BLU_FILE = DIR_SEPARATOR + "System BLU.xlsx";
+	public static final String SITE_FILE = DIR_SEPARATOR + "TAP_Site_Data-Loader.xlsm";
+	public static final String ICD_FILE = DIR_SEPARATOR + "ICD Consolidated to Service Mapping_Validated.xlsm";
+	public static final String SITE_ICD_FILE = DIR_SEPARATOR + "ICD SiteSpecific.xlsm";
+	public static final String SYS_DATA_FILE = DIR_SEPARATOR + "System Data.xlsx";
 	
 	public static final String SYSTEM_INFORMATION_SHEET_NAME = "System_Information";
 	public static final String PERSONNEL_SHEET_NAME = "System_to_Personnel";

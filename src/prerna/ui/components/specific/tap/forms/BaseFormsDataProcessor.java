@@ -51,6 +51,9 @@ import prerna.util.Utility;
 public class BaseFormsDataProcessor {
 	public static final Logger LOGGER = LogManager.getLogger(BaseFormsDataProcessor.class.getName());
 
+	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
+
 	//query for grabbing the reviewed systems
 	public static final String REVIEWED_SYSTEMS_QUERY = "SELECT DISTINCT ?System WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?FormSection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FormSection> ;} {?System <http://semoss.org/ontologies/Relation/Has> ?FormSection} {?FormSection <http://semoss.org/ontologies/Relation/Contains/Status> ?Status} FILTER(?Status IN (\"Reviewed\")) }";
 	//query for grabbing the reviewed systems that ARE service systems

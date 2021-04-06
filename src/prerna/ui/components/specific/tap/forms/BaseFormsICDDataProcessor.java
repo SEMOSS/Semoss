@@ -64,7 +64,8 @@ public class BaseFormsICDDataProcessor extends BaseFormsDataProcessor {
 	public static int ICD_FORMAT_STARTING_COL_NUM = 46;
 	public static int ICD_FORMAT_ENDING_COL_NUM = 63;	
 
-	public static final String INTERFACES_FILE = "\\ICD Consolidated to Service Mapping_Validated.xlsm";
+
+	public static final String INTERFACES_FILE = DIR_SEPARATOR+"ICD Consolidated to Service Mapping_Validated.xlsm";
 	public static final String SYSTEM_INTERFACES_SHEET_NAME = "ICD";
 		
 	public HashMap<String, Integer> ICD_DATA_OBJECT_HEADER_CACHE = null;
