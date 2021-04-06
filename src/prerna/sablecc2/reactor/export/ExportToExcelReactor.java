@@ -258,7 +258,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			String sheetId = panel.getSheetId();
 			// for each panel get the task and task options
 			SelectQueryStruct qs = panel.getLastQs();
-			TaskOptions taskOptions = panel.getTaskOptions();
+			TaskOptions taskOptions = panel.getLastTaskOptions();
 			if (qs == null || taskOptions == null) {
 				continue;
 			}
@@ -283,7 +283,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			InsightPanel panel = panelMap.get(panelId);
 			// for each panel get the task and task options
 			SelectQueryStruct qs = panel.getLastQs();
-			TaskOptions taskOptions = panel.getTaskOptions();
+			TaskOptions taskOptions = panel.getLastTaskOptions();
 			if (qs == null || taskOptions == null) {
 				continue;
 			}

@@ -39,6 +39,7 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.export.IFormatter;
 import prerna.sablecc2.reactor.qs.SubQueryExpression;
 
 public class GsonUtility {
@@ -96,7 +97,8 @@ public class GsonUtility {
 				// iterators
 				.registerTypeAdapter(BasicIteratorTask.class, new BasicIteratorTaskAdapter())
 				.registerTypeAdapter(TaskOptions.class, new TaskOptionsAdapter())
-				
+				.registerTypeAdapter(IFormatter.class, new IFormatterAdapter())
+
 				// OLD LEGACY STUFF
 				.registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
 				.registerTypeAdapter(SEMOSSEdge.class, new SEMOSSEdgeAdapter())
