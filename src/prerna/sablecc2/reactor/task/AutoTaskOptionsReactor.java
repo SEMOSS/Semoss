@@ -44,7 +44,7 @@ public class AutoTaskOptionsReactor extends TaskBuilderReactor {
 				// determine if we are ignoring panel filters
 				boolean ignorePanelFilters = ignorePanelFilters();
 				if(!ignorePanelFilters) {
-					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions());
+					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions(), task.getFormatter());
 					qs.addPanel(this.insight.getInsightPanel(panelId));
 				}
 			}

@@ -30,19 +30,18 @@ public class TaskOptionsReactor extends TaskBuilderReactor {
 		} else {
 			this.task.setTaskOptions(new TaskOptions((Map<String, Object>) mapOptions.get(0)));
 			
-			// determine if we are ignoring panel filters
-			boolean ignorePanelFilters = ignorePanelFilters();
 			// if we use task options on a panel
 			// we automatically set the panel view to be visualization
 			Set<String> panelIds = this.task.getTaskOptions().getPanelIds();
 			for(String panelId : panelIds) {
-				
 				// we will store this as the last run for this panel
 				// and start to merge in the panel filters that were applied
-				if(!ignorePanelFilters && task instanceof BasicIteratorTask) {
+				if(task instanceof BasicIteratorTask) {
 					SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
-					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions());
-					qs.addPanel(this.insight.getInsightPanel(panelId));
+					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions(), task.getFormatter());
+					if(!ignorePanelFilters()) {
+						qs.addPanel(this.insight.getInsightPanel(panelId));
+					}
 				}
 				
 				// and set panel for visualization
