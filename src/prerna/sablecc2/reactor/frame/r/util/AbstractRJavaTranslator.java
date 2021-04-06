@@ -500,13 +500,13 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
 		}
 		
-		File rTempF = new File(rTemp);
+		File rTempF = new File(Utility.normalizePath(rTemp));
 		if(!rTempF.exists()) {
 			rTempF.mkdirs();
 		}
 		
 		String scriptPath = rTemp + Utility.getRandomString(12) + ".R";
-		File scriptFile = new File(scriptPath);	
+		File scriptFile = new File(Utility.normalizePath(scriptPath));	
 		
 		// attempt to put it into environment
 		script = encapsulateForEnv(insightRootAssignment + appRootAssignment 

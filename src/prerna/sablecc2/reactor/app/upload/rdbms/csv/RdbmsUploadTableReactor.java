@@ -515,41 +515,41 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
 
-	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId("LocalMasterDatabase");
-		coreEngine.openDB(engineProp);
-		coreEngine.setEngineId("LocalMasterDatabase");
-		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
-
-		String filePath = "C:/Users/SEMOSS/Desktop/Movie Data.csv";
-
-		Insight in = new Insight();
-		PixelPlanner planner = new PixelPlanner();
-		planner.setVarStore(in.getVarStore());
-		in.getVarStore().put("$JOB_ID", new NounMetadata("test", PixelDataType.CONST_STRING));
-		in.getVarStore().put("$INSIGHT_ID", new NounMetadata("test", PixelDataType.CONST_STRING));
-
-		RdbmsUploadTableReactor reactor = new RdbmsUploadTableReactor();
-		reactor.setInsight(in);
-		reactor.setPixelPlanner(planner);
-		NounStore nStore = reactor.getNounStore();
-		// app name struct
-		{
-			GenRowStruct struct = new GenRowStruct();
-			struct.add(new NounMetadata("ztest" + Utility.getRandomString(6), PixelDataType.CONST_STRING));
-			nStore.addNoun(ReactorKeysEnum.APP.getKey(), struct);
-		}
-		// file path
-		{
-			GenRowStruct struct = new GenRowStruct();
-			struct.add(new NounMetadata(filePath, PixelDataType.CONST_STRING));
-			nStore.addNoun(ReactorKeysEnum.FILE_PATH.getKey(), struct);
-		}
-
-		reactor.In();
-		reactor.execute();
-	}
+//	public static void main(String[] args) throws Exception {
+//		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+//		IEngine coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineId("LocalMasterDatabase");
+//		coreEngine.openDB(engineProp);
+//		coreEngine.setEngineId("LocalMasterDatabase");
+//		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
+//
+//		String filePath = "C:/Users/SEMOSS/Desktop/Movie Data.csv";
+//
+//		Insight in = new Insight();
+//		PixelPlanner planner = new PixelPlanner();
+//		planner.setVarStore(in.getVarStore());
+//		in.getVarStore().put("$JOB_ID", new NounMetadata("test", PixelDataType.CONST_STRING));
+//		in.getVarStore().put("$INSIGHT_ID", new NounMetadata("test", PixelDataType.CONST_STRING));
+//
+//		RdbmsUploadTableReactor reactor = new RdbmsUploadTableReactor();
+//		reactor.setInsight(in);
+//		reactor.setPixelPlanner(planner);
+//		NounStore nStore = reactor.getNounStore();
+//		// app name struct
+//		{
+//			GenRowStruct struct = new GenRowStruct();
+//			struct.add(new NounMetadata("ztest" + Utility.getRandomString(6), PixelDataType.CONST_STRING));
+//			nStore.addNoun(ReactorKeysEnum.APP.getKey(), struct);
+//		}
+//		// file path
+//		{
+//			GenRowStruct struct = new GenRowStruct();
+//			struct.add(new NounMetadata(filePath, PixelDataType.CONST_STRING));
+//			nStore.addNoun(ReactorKeysEnum.FILE_PATH.getKey(), struct);
+//		}
+//
+//		reactor.In();
+//		reactor.execute();
+//	}
 }
