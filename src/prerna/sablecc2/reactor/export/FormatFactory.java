@@ -6,7 +6,7 @@ public class FormatFactory {
 		
 		switch(formatType.toUpperCase()) {
 		
-		case "TABLE": {
+		case TableFormatter.FORMAT_TYPE: {
 			return new TableFormatter();
 		}
 		

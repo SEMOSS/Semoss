@@ -77,6 +77,7 @@ import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
+import prerna.sablecc2.reactor.export.IFormatter;
 import prerna.sablecc2.reactor.frame.py.PySingleton;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
@@ -1305,13 +1306,13 @@ public class Insight implements Serializable {
 		return this.lastPanelId;
 	}
 	
-	public void setFinalViewOptions(String panelId, SelectQueryStruct lastQs, TaskOptions taskOptions) {
+	public void setFinalViewOptions(String panelId, SelectQueryStruct qs, TaskOptions taskOptions, IFormatter formatter) {
 		if(insightPanels.containsKey(panelId)) {
 			InsightPanel panel = this.insightPanels.get(panelId);
 			if(panel == null) {
 				throw new NullPointerException("Panel " + panelId + " does not exist");
 			}
-			panel.setFinalViewOptions(lastQs, taskOptions);
+			panel.setFinalViewOptions(qs, taskOptions, formatter);
 		}
 		this.lastPanelId = panelId;
 	}
@@ -1347,7 +1348,7 @@ public class Insight implements Serializable {
 			if(panel == null) {
 				throw new NullPointerException("Panel " + panelId + " does not exist");
 			}
-			return panel.getTaskOptions();
+			return panel.getLastTaskOptions();
 		}
 		return null;
 	}

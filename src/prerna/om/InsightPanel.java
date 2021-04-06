@@ -11,6 +11,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.export.IFormatter;
 import prerna.util.gson.GsonUtility;
 
 public class InsightPanel {
@@ -50,10 +51,13 @@ public class InsightPanel {
 	// last qs
 	private transient SelectQueryStruct lastQs = null;
 	// last task options
-	private transient TaskOptions taskOptions = null;
+	private transient TaskOptions lastTaskOptions = null;
+	// last formatter
+	private transient IFormatter lastFormatter = null;
 	// mapping from layer to task
 	private transient Map<String, TaskOptions> layerTaskOption = null;
 	private transient Map<String, SelectQueryStruct> layerQueryStruct = null;
+	private transient Map<String, IFormatter> layerFormatter = null;
 
 	// the default # to collect from tasks on this panel
 	private int numCollect = 2000;
@@ -551,31 +555,57 @@ public class InsightPanel {
 		this.orderBys = orderBys;
 	}
 	
-	public TaskOptions getTaskOptions() {
-		return taskOptions;
+	public TaskOptions getLastTaskOptions() {
+		return lastTaskOptions;
 	}
 	
 	public void setLastTaskOptions(TaskOptions lastTaskOptions) {
-		this.taskOptions = lastTaskOptions;
+		this.lastTaskOptions = lastTaskOptions;
+	}
+	
+	public SelectQueryStruct getLastQs() {
+		return lastQs;
 	}
 
-	public void setFinalViewOptions(SelectQueryStruct lastQs, TaskOptions taskOptions) {
+	public void setLastQs(SelectQueryStruct lastQs) {
+		if(this.lastQs != null && this.lastTaskOptions != null) {
+			setFinalViewOptions(lastQs, this.lastTaskOptions, this.lastFormatter);
+		} else {
+			this.lastQs = lastQs;
+		}
+	}
+	
+	public IFormatter lastFormatter() {
+		return this.lastFormatter;
+	}
+	
+	public void setLastFormatter(IFormatter lastFormatter) {
+		this.lastFormatter = lastFormatter;
+	}
+
+	public void setFinalViewOptions(SelectQueryStruct lastQs, TaskOptions lastTaskOptions, IFormatter lastFormatter) {
 		this.lastQs = lastQs;
-		this.taskOptions = taskOptions;
+		this.lastTaskOptions = lastTaskOptions;
+		this.lastFormatter = lastFormatter;
 		// grab the panel map
-		if(this.taskOptions != null) {
-			String layer = this.taskOptions.getPanelLayerId(this.panelId);
+		if(this.lastTaskOptions != null) {
+			String layer = this.lastTaskOptions.getPanelLayerId(this.panelId);
 			if(layer == null) {
 				layer = "0";
+			}
+			if(this.layerQueryStruct == null) {
+				this.layerQueryStruct = new HashMap<>();
 			}
 			if(this.layerTaskOption == null) {
 				this.layerTaskOption = new HashMap<>();
 			}
-			this.layerTaskOption.put(layer, taskOptions);
-			if(this.layerQueryStruct == null) {
-				this.layerQueryStruct = new HashMap<>();
+			if(this.layerFormatter == null) {
+				this.layerFormatter = new HashMap<>();
 			}
+			
+			this.layerTaskOption.put(layer, lastTaskOptions);
 			this.layerQueryStruct.put(layer, lastQs);
+			this.layerFormatter.put(layer, lastFormatter);
 		}
 	}
 	
@@ -583,6 +613,7 @@ public class InsightPanel {
 		if(this.layerTaskOption != null) {
 			this.layerTaskOption.remove(layerId);
 			this.layerQueryStruct.remove(layerId);
+			this.layerFormatter.remove(layerId);
 		}
 	}
 	
@@ -601,19 +632,15 @@ public class InsightPanel {
 	public void setLayerQueryStruct(Map<String, SelectQueryStruct> layerQueryStruct) {
 		this.layerQueryStruct = layerQueryStruct;
 	}
-
-	public SelectQueryStruct getLastQs() {
-		return lastQs;
-	}
-
-	public void setLastQs(SelectQueryStruct lastQs) {
-		if(this.lastQs != null && this.taskOptions != null) {
-			setFinalViewOptions(lastQs, this.taskOptions);
-		} else {
-			this.lastQs = lastQs;
-		}
-	}
 	
+	public Map<String, IFormatter> getLayerFormatter() {
+		return layerFormatter;
+	}
+
+	public void setLayerFormatter(Map<String, IFormatter> layerFormatter) {
+		this.layerFormatter = layerFormatter;
+	}
+
 	/**
 	 * Take all the properties of another insight panel
 	 * and set them for this panel
@@ -639,12 +666,12 @@ public class InsightPanel {
 		}
 
 		// copy the options and the qs too
-		if(existingPanel.taskOptions != null) {
-			TaskOptions copyTaskOptions = gson.fromJson(gson.toJson(existingPanel.taskOptions), TaskOptions.class);
+		if(existingPanel.lastTaskOptions != null) {
+			TaskOptions copyTaskOptions = gson.fromJson(gson.toJson(existingPanel.lastTaskOptions), TaskOptions.class);
 			// replace the panel in the task options
 			copyTaskOptions.swapPanelIds(this.panelId, existingPanel.getPanelId());
-			copyTaskOptions.setCollectStore(existingPanel.taskOptions.getCollectStore());
-			this.taskOptions = copyTaskOptions;
+			copyTaskOptions.setCollectStore(existingPanel.lastTaskOptions.getCollectStore());
+			this.lastTaskOptions = copyTaskOptions;
 			this.lastQs = existingPanel.lastQs;
 		}
 
@@ -674,5 +701,10 @@ public class InsightPanel {
 				}
 			}
 		}
+		
+		// store the formatter information
+		this.lastFormatter = existingPanel.lastFormatter;
+		this.layerFormatter = new HashMap<>(existingPanel.layerFormatter);
 	}
+
 }
