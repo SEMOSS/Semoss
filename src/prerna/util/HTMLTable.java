@@ -5,13 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.query.querystruct.HardSelectQueryStruct;
-import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
-import prerna.test.TestUtilityMethods;
 
 /**
  * Generates HTML for a task or data rows
@@ -202,17 +196,9 @@ public class HTMLTable {
 //		// VHA style
 //		HTMLTable emailTable = new HTMLTable("test:");
 //		emailTable.setTableStyle("border='1' cellpadding='8' cellspacing='0' style='border-collapse:collapse; border: 1px solid #cccccc;'");
-//		emailTable.setThStyle("style='padding: 8px; font-size: 14px; color: #ffffff; background-color:#003E73;border: 1px solid #cccccc;'");
+//		emailTable.setThStyle("style='padding: 8px; font-size: 14px; color: #ffffff; background-color:#003E73; border: 1px solid #cccccc;'");
 //		emailTable.setTdStyle("valign='middle' align='left' style='padding: 8px; border: 1px solid #cccccc;'");
 //		emailTable.setTableNameStyle("style='margin: 0; margin-bottom: 4px; color: #003E73;'");
 //		System.out.println(emailTable.generateHtml(task));
-//		
-////		VHAEmailTable table = VHAEmailTable.addValuesFromIterator("test", it);
-////		System.out.println(table.getTableAsHtml());
-//
-//		// emailTable.setTableHeaders(Arrays.asList("Header1", "Header2",
-//		// "Header3"));
-//		// emailTable.addTableData(Arrays.asList("Val1", "Val2", "Val3"));
-//		// System.out.println(emailTable.getTableAsHtml());
 //	}
 }
