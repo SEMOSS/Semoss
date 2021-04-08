@@ -703,8 +703,12 @@ public class InsightPanel {
 		}
 		
 		// store the formatter information
-		this.lastFormatter = existingPanel.lastFormatter;
-		this.layerFormatter = new HashMap<>(existingPanel.layerFormatter);
+		if(existingPanel.lastFormatter != null) {
+			this.lastFormatter = existingPanel.lastFormatter;
+		}
+		if(existingPanel.layerFormatter != null) {
+			this.layerFormatter = new HashMap<>(existingPanel.layerFormatter);
+		}
 	}
 
 }
