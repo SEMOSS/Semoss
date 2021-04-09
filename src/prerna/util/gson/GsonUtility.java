@@ -39,7 +39,13 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.reactor.export.ClustergramFormatter;
+import prerna.sablecc2.reactor.export.GraphFormatter;
+import prerna.sablecc2.reactor.export.HierarchyFormatter;
 import prerna.sablecc2.reactor.export.IFormatter;
+import prerna.sablecc2.reactor.export.JsonFormatter;
+import prerna.sablecc2.reactor.export.KeyValueFormatter;
+import prerna.sablecc2.reactor.export.TableFormatter;
 import prerna.sablecc2.reactor.qs.SubQueryExpression;
 
 public class GsonUtility {
@@ -97,7 +103,14 @@ public class GsonUtility {
 				// iterators
 				.registerTypeAdapter(BasicIteratorTask.class, new BasicIteratorTaskAdapter())
 				.registerTypeAdapter(TaskOptions.class, new TaskOptionsAdapter())
+				// formatters
 				.registerTypeAdapter(IFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(TableFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(GraphFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(JsonFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(KeyValueFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(ClustergramFormatter.class, new IFormatterAdapter())
+				.registerTypeAdapter(HierarchyFormatter.class, new IFormatterAdapter())
 
 				// OLD LEGACY STUFF
 				.registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
