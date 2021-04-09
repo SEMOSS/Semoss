@@ -44,6 +44,7 @@ public class FormattingUtility {
 	public static final String TRILLION = "trillion";
 	public static final String ACCOUNTING = "accounting";
 	public static final String DELIMITER = "delimiter";
+	public static final String PERCENTAGE = "percentage";
 	public static final String BETWEEN_DIGITS = "\\B(?=(\\d{3})+(?!\\d))";
 
 	/**
@@ -149,6 +150,25 @@ public class FormattingUtility {
 							}
 						}
 					}
+					
+					else if (formatType.equalsIgnoreCase(PERCENTAGE)) {
+						// if no custom append symbol is added, use %
+						if (append == null || "".equals(append)) {
+							append = "%";
+						}
+						//multiply with 100 to get the % of it
+						numericValue = numericValue * 100;
+						//rounding the value
+						if (round != null) {
+							double shift = Math.pow(10, round);
+							formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round,
+									BigDecimal.ROUND_HALF_EVEN);
+						} else {
+							formatted = numericValue;
+						}
+						dontRound = true;// don't round since already rounded
+					}
+					
 				}
 				
 				// create a BigDecimal object
