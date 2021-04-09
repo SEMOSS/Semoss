@@ -370,6 +370,9 @@ public class POIExportUtility {
     	case "scientific":
     		format = "0.00E+00";
     		break;
+    	case "percentage":
+    		format = "#%";
+    		break;
     	case "MMMMM d, yyyy":
     		format = "MMMM d, yyyy";
     		break;
