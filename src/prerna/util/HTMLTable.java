@@ -13,7 +13,7 @@ import prerna.sablecc2.om.task.ITask;
  */
 public class HTMLTable {
 	
-	private String tableName = null;
+	protected String tableName = null;
 	private List<String> tableHeaders = null;
 	private List<List<String>> tableData = new ArrayList<>();
 	private String tableStyle = SMSS_TABLE_STYLE;
