@@ -361,7 +361,7 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 			}
 			
 			Map<String, IFormatter> formatOptionsMap = value.getLayerFormatter();
-			if(layerTaskOptionsMap != null && !layerTaskOptionsMap.isEmpty()) {
+			if(formatOptionsMap != null && !formatOptionsMap.isEmpty()) {
 				out.name("lastFormatterMap");
 				out.beginObject();
 				for(String layer : formatOptionsMap.keySet()) {
