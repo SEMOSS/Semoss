@@ -11,7 +11,9 @@ public enum AuthProvider {
 	SURVEYMONKEY,
 	AMAZON,
 	NATIVE,
-
+	FORGEROCK,
+	GENERIC,
+	
 	// this one is kinda special ...
 	CAC, 
 	WINDOWS_USER,
@@ -27,6 +29,16 @@ public enum AuthProvider {
 
 	public String toString() {
 		return name().charAt(0) + name().substring(1).toLowerCase();
+	}
+	
+	public static AuthProvider getProviderFromString(String authProv) {
+		AuthProvider provider = null;
+		try {
+			provider = AuthProvider.valueOf(authProv.toUpperCase());
+		} catch(Exception e){
+			provider = AuthProvider.GENERIC;
+		}
+		return provider;
 	}
 
 }
