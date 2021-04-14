@@ -1023,7 +1023,7 @@
 		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty-all</artifactId>
-			<version>4.1.51.Final</version>
+			<version>4.1.50.Final</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
@@ -1909,5 +1909,10 @@
             <artifactId>zookeeper</artifactId>
             <version>3.6.2</version>
         </dependency>
+        <dependency>
+		  <groupId>org.elasticsearch.plugin</groupId>
+		  <artifactId>x-pack-sql-jdbc</artifactId>
+		  <version>7.11.2</version>
+		</dependency>
 	</dependencies>
 </project>
