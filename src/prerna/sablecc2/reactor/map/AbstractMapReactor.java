@@ -14,15 +14,26 @@ public abstract class AbstractMapReactor extends AbstractReactor {
 		PixelDataType nounType = noun.getNounType();
 		if(nounType == PixelDataType.TASK) {
 			ITask task = (ITask) noun.getValue();
-			List<Object> flushedOutCol = new ArrayList<Object>();
 			// iterate through the task to get the table data
 			List<Object[]> data = task.flushOutIteratorAsGrid();
 			int size = data.size();
-			// assumes we are only flushing out the first column
-			for(int i = 0; i < size; i++) {
-				flushedOutCol.add(data.get(i)[0]);
+			List flushedOutCol = null;
+			if(size > 0) {
+				// see if we flush one or multiple columns
+				// to see if we flush out a column
+				// or just return as is
+				boolean multi = data.get(0).length > 1;
+				if(multi) {
+					flushedOutCol = data;
+				} else {
+					flushedOutCol = new ArrayList<Object>(size);
+					for(int i = 0; i < size; i++) {
+						flushedOutCol.add(data.get(i)[0]);
+					}
+				}
+			} else {
+				flushedOutCol = new ArrayList<Object>(size);
 			}
-			
 			return flushedOutCol;
 		} else {
 			return noun.getValue();
