@@ -114,7 +114,7 @@ public class AccessToken implements Serializable {
 	}
 
 	public void setId(String id) {
-		this.id = id;
+		this.id = id.trim();
 	}
 
 	public String getUsername() {
