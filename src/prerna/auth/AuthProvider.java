@@ -12,6 +12,7 @@ public enum AuthProvider {
 	AMAZON,
 	NATIVE,
 	FORGEROCK,
+	SAML,
 	GENERIC,
 	
 	// this one is kinda special ...
