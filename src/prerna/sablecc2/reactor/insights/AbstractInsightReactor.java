@@ -15,6 +15,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
+import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -34,6 +35,7 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 public abstract class AbstractInsightReactor extends AbstractReactor {
 
@@ -179,7 +181,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	/**
 	 * 
-	 * @return base64 image string
+	 * @return location of an image file
 	 */
 	protected String getImage() {
 		GenRowStruct genericBaseURLGrs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
@@ -280,6 +282,52 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	}
 	
 	/**
+	 * Set the new file as the image for the insight
+	 * Semoss/images/engineName_insightID.png
+	 * @param base64Image
+	 * @param insightId
+	 * @param engineName
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 */
+	protected void storeImageFromFile(final String fileName, final String insightId, final String appId, final String appName) {
+		// set up path to save image to file
+		final String DIR_SEP = java.nio.file.FileSystems.getDefault().getSeparator();
+		final String basePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+				+ DIR_SEP + "db" + DIR_SEP + SmssUtilities.getUniqueName(appName, appId) + DIR_SEP + "version" 
+				+ DIR_SEP + insightId;
+		final String newImageFile = basePath + DIR_SEP + fileName;
+		final File newImage = new File(newImageFile);
+		
+		// TODO: potentially throw error
+		if(!newImage.exists()) {
+			return;
+		}
+		
+		final String saveImageFileAs = basePath + DIR_SEP + "image." + FilenameUtils.getExtension(fileName);
+		final File saveImageFile = new File(saveImageFileAs);
+		
+		File[] oldImages = InsightUtility.findImageFile(basePath);
+		for (File oldI : oldImages) {
+			// don't delete the image we are about to save as the insight image
+			if(!oldI.equals(newImage)) {
+				oldI.delete();
+			}
+		}
+		
+		// now rename the file
+		// if it isn't already the right format
+		if(!saveImageFileAs.equals(newImageFile)) {
+			try {
+				Files.copy(newImage, saveImageFile);
+				newImage.delete();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	/**
 	 * Save base64 encoded image to file
 	 * Semoss/images/engineName_insightID.png
 	 * @param base64Image
@@ -292,7 +340,8 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		// set up path to save image to file
 		final String DIR_SEP = java.nio.file.FileSystems.getDefault().getSeparator();
 		final String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEP + "db" + DIR_SEP + SmssUtilities.getUniqueName(appName, appId) + DIR_SEP + "version" + DIR_SEP + insightId + DIR_SEP + "image.png";
+				+ DIR_SEP + "db" + DIR_SEP + SmssUtilities.getUniqueName(appName, appId) + DIR_SEP + "version" 
+				+ DIR_SEP + insightId + DIR_SEP + "image.png";
 		
 		// decode image and write to file
 		byte[] data = Base64.decodeBase64(base64Image);
