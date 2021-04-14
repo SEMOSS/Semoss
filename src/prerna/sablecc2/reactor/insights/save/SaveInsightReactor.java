@@ -226,11 +226,11 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		logger.info(stepCounter + ") Done...");
 		stepCounter++;
 	 	
-		// get base 64 image string and write to file
-		String base64Image = getImage();
-		if(base64Image != null && !base64Image.trim().isEmpty()) {
+		// get file we are saving as an image
+		String imageFile = getImage();
+		if(imageFile != null && !imageFile.trim().isEmpty()) {
 			logger.info(stepCounter + ") Storing insight image...");
-			storeImageFromPng(base64Image, newRdbmsId, engine.getEngineId(), engine.getEngineName());
+			storeImageFromFile(imageFile, newRdbmsId, engine.getEngineId(), engine.getEngineName());
 			logger.info(stepCounter + ") Done...");
 			stepCounter++;
 		}
