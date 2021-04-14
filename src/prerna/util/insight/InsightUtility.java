@@ -1,6 +1,7 @@
 package prerna.util.insight;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -748,5 +750,42 @@ public class InsightUtility {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Find an image in the directory
+	 * 
+	 * @param baseDir
+	 * @return
+	 */
+	public static File[] findImageFile(String baseDir) {
+		List<String> extensions = new Vector<>();
+		extensions.add("image.png");
+		extensions.add("image.jpeg");
+		extensions.add("image.jpg");
+		extensions.add("image.gif");
+		extensions.add("image.svg");
+		FileFilter imageExtensionFilter = new WildcardFileFilter(extensions);
+		File baseFolder = new File(baseDir);
+
+		return baseFolder.listFiles(imageExtensionFilter);
+	}
+
+	/**
+	 * Find an image in the directory
+	 * 
+	 * @param baseDir
+	 * @return
+	 */
+	public static File[] findImageFile(File baseFolder) {
+		List<String> extensions = new Vector<>();
+		extensions.add("image.png");
+		extensions.add("image.jpeg");
+		extensions.add("image.jpg");
+		extensions.add("image.gif");
+		extensions.add("image.svg");
+		FileFilter imageExtensionFilter = new WildcardFileFilter(extensions);
+
+		return baseFolder.listFiles(imageExtensionFilter);
 	}
 }

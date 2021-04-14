@@ -172,9 +172,12 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden, description, tags);
 		logger.info("3) Done");
 		
-		String base64Image = getImage();
-		if(base64Image != null && !base64Image.trim().isEmpty()) {
-			storeImageFromPng(base64Image, existingId, engine.getEngineId(), engine.getEngineName());
+		// get file we are saving as an image
+		String imageFile = getImage();
+		if(imageFile != null && !imageFile.trim().isEmpty()) {
+			logger.info("4) Storing insight image...");
+			storeImageFromFile(imageFile, existingId, engine.getEngineId(), engine.getEngineName());
+			logger.info("4) Done...");
 		}
 		
 		// update the workspace cache for the saved insight
