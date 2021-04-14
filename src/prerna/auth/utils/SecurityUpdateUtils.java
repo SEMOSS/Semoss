@@ -670,6 +670,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param userName	String representing the name of the user to add
 	 */
 	public static boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException {
+		if(newUser.getId() == null || newUser.getId().isEmpty()) {
+			throw new IllegalArgumentException("User id for the token is null or empty. Must provide a valid id.");
+		}
 		// lower case the emails coming in
 		if(newUser.getEmail() != null) {
 			newUser.setEmail(newUser.getEmail().toLowerCase());
