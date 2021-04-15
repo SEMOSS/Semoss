@@ -29,6 +29,7 @@ public class TaskOptionsAdapter extends AbstractSemossTypeAdapter<TaskOptions> {
 			String name = in.nextName();
 			if(in.peek() == JsonToken.NULL) {
 				in.nextNull();
+				continue;
 			}
 			
 			if(name.equals("options")) {
