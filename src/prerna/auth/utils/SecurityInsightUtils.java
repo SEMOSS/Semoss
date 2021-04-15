@@ -52,20 +52,22 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightName
 	 * @return
 	 */
-	public static boolean insightNameExists(String engineId, String insightName) {
+	public static String insightNameExists(String engineId, String insightName) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
 		fun.setAlias("low_name");
-		qs.addSelector(fun);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTNAME", "==", insightName.toLowerCase()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(fun, "==", insightName.toLowerCase(), PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineId));
 		
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			return wrapper.hasNext();
+			if(wrapper.hasNext()) {
+				return wrapper.next().getValues()[0].toString();
+			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -74,7 +76,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		return false;
+		return null;
 	}
 	
 	/**
@@ -85,12 +87,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean insightNameExistsMinusId(String engineId, String insightName, String currInsightId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
 		fun.setAlias("low_name");
-		qs.addSelector(fun);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTNAME", "==", insightName.toLowerCase()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(fun, "==", insightName.toLowerCase(), PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "!=", currInsightId));
 
