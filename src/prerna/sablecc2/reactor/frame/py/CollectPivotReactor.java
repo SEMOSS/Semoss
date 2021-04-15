@@ -132,12 +132,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
 		List<String> optional = null;
 		
-		/*** check to see if the pivot is within limits **/
-		NounMetadata pivotCheck = checkPivotLimits(makeFrame, frameName, rowGroups, colGroups);
-		if(pivotCheck != null) {
-			return pivotCheck;
-		}
-		
 		List<String> subtotals = rowGroups;
 		if(keyValue.containsKey(keysToGet[3])) {
 			subtotals = this.store.getNoun(keysToGet[3]).getAllStrValues();
@@ -200,30 +194,24 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				valuesList.add(valueMap);
 			}
 		}
-
-		// making the new call here
-		// columns are not really required
-		// going to ignore for now
 		
-		String deleteFrame= "del(" + frameName + ")";
+		// make the frame
+		// we have to do this do that we can determine the proper limits
+		pyt.runEmptyPy(makeFrame);
+
+		/*** check to see if the pivot is within limits **/
+		NounMetadata pivotCheck = checkPivotLimits(frameName, rowGroups, colGroups, sections, newValues, functions);
+		if(pivotCheck != null) {
+			return pivotCheck;
+		}
 		
 		String commands = null;
 		
-//		if(sections == null)
-//		{
-//			sections = new Vector<String>();
-//			sections.add("Nominated");
-//		}
-
-		
-		if(sections == null)
-		{
+		if(sections == null) {
 			sections = new Vector<String>();
 			sections.add(ALL_SECTIONS);
 			commands = genSections(sections.get(0), sections, "", frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true, json, margins);
-		}
-		else
-		{
+		} else {
 			String sectionColumnName = sections.get(0);
 			
 			// get the values of the section and pass it in
@@ -233,32 +221,28 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			//makeFrame = ""; // null the make frame it has been made now
 			Object objList = nameToList.get(sectionColumnName);
 			List <String> allSections = new Vector<String>();
-			if(objList instanceof List)
-			{
-				for(int itemIndex = 0;itemIndex < ((List)objList).size();itemIndex++)
+			if(objList instanceof List) {
+				for(int itemIndex = 0;itemIndex < ((List)objList).size();itemIndex++) {
 					allSections.add(((List) objList).get(itemIndex) + "");
+				}
 			}
-			else if(objList instanceof String)
-			{
+			else if(objList instanceof String) {
 				allSections = new ArrayList<String>();
 				allSections.add((String)objList); 
 			}
 			String quote = getQuote(sectionColumnName);
 			
-			if(allSections != null && allSections.size() > 0)
+			if(allSections != null && allSections.size() > 0) {
 				commands = genSections(sections.get(0), allSections, quote, frameName, rowGroups, colGroups, subtotals, newValues, functions, true, true, json, margins);
+			}
 		}
 		
-		// frame is already made
-		commands = makeFrame + "\n" + commands + "\n" +deleteFrame;
-		
-
 		pivotMap.put(keysToGet[2], valuesList);
-
 		String htmlOutput = pyt.runPyAndReturnOutput(commands); 
-		
-		if(outputFile != null) // if a file was made delete it
-		{
+		pyt.runEmptyPy("del(" + frameName + ")");
+
+		// if a file was made delete it
+		if(outputFile != null) {
 			File outputF = new File(outputFile);
 			outputF.delete();
 		}
@@ -298,13 +282,12 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 	
-	private NounMetadata checkPivotLimits(String makeFrame, String frameName, List <String> rowGroups, List <String> colGroups) {
+	private NounMetadata checkPivotLimits(String frameName, List <String> rowGroups, List <String> colGroups,  List <String> sections,List <String> values, List <String> functions) {
 		getPivotLimits();
-		// make the frame
-		this.insight.getPyTranslator().runEmptyPy(makeFrame);
-
+        
+		String section=sections!=null && sections.size()>0? sections.get(0):null;
 		// need a way to evaluate if the rowgroups etc. are within the limits
-		long rowCount = getCount(frameName, rowGroups);
+		long rowCount = getRowGrpCount(frameName, rowGroups, colGroups, section, values, functions);
 		if(rowCount > row_max) {
 			return getError("Max number of rows allowed : "+ row_max +". This pivot has " + rowCount +". Please filter and try again");
 		}
@@ -329,7 +312,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			}
 		}
 	}
-	
 	
 	public void setTask(ITask task) {
 		this.task = task;
@@ -426,7 +408,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// close the main json array
 		//allSections.append("print(']')").append("\n");
 		
-		
 		return allSections.toString();
 	}
 	
@@ -453,56 +434,52 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		// take care of the column order
 		StringBuilder column_order = new StringBuilder("[");
-		for(int valIndex = 0;valIndex < values.size();valIndex++)
-		{
-			if(valIndex > 0)
+		for(int valIndex = 0;valIndex < values.size();valIndex++) {
+			if(valIndex > 0) {
 				column_order.append(", ");
+			}
 			column_order.append("'").append(values.get(valIndex)).append("'");
 		}
 		column_order.append("]");
 
-		
 		// geenerate rows
-		for(int idxIndex = 0;idxIndex < rowsAndColumns.size();idxIndex++)
-		{
-			if(idxIndex != 0)
-			{
+		for(int idxIndex = 0;idxIndex < rowsAndColumns.size();idxIndex++) {
+			if(idxIndex != 0) {
 				idxString.append(", ");
 			}
 				
 			idxString.append("'").append(rowsAndColumns.get(idxIndex)).append("'");			
-		}		
-		if(idxString.length() > 0)
+		}
+		
+		if(idxString.length() > 0) {
 			idxString = new StringBuilder("index = [").append(idxString).append("], ");
-
+		}
+		
 		// do it for cross tab also
-		for(int idxIndex = 0;idxIndex < rows.size();idxIndex++)
-		{
-			if(idxIndex != 0)
+		for(int idxIndex = 0;idxIndex < rows.size();idxIndex++) {
+			if(idxIndex != 0) {
 				crosstabRows.append(", ");
-				
+			}
 			crosstabRows.append(frameName).append(".").append(rows.get(idxIndex));
 		}		
-		if(idxString.length() > 0)
+		if(idxString.length() > 0) {
 			crosstabRows = new StringBuilder("[").append(crosstabRows).append("], ");
-
+		}
+		
 		// generate the column string
 		StringBuilder colString = new StringBuilder(""); // we dont need colstring anymore for pivot. We append it to rows
 		StringBuilder crosstabCols = new StringBuilder("");
-		if(columns != null)
-		{
-			for(int colIndex = 0;colIndex < columns.size();colIndex++)
-			{
-				if(colIndex != 0)
-				{
+		if(columns != null) {
+			for(int colIndex = 0;colIndex < columns.size();colIndex++) {
+				if(colIndex != 0) {
 					colString.append(", ");
 					crosstabCols.append(", ");
 				}
 				colString.append("'").append(columns.get(colIndex)).append("'");			
 				crosstabCols.append(frameName).append(".").append(columns.get(colIndex));
-			}		
-			if(colString.length() > 0)
-			{
+			}
+			
+			if(colString.length() > 0) {
 				colString = new StringBuilder("columns = [").append(colString).append("], ");
 				crosstabCols = new StringBuilder("[").append(crosstabCols).append("], ");
 			}
@@ -513,16 +490,14 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		StringBuilder funString = new StringBuilder("");
 		StringBuilder crosstabVal = new StringBuilder("");
 		StringBuilder crosstabAgg = new StringBuilder("");
-		for(int funIndex = 0;funIndex < functions.size();funIndex++)
-		{
+		for(int funIndex = 0;funIndex < functions.size();funIndex++) {
 			// following functions are available
 			// np.sum, np.mean, min, max, count, numpy.size, pd.Series.nunique
 			String fun = functions.get(funIndex);
 			String value = values.get(funIndex);
 			
 			fun = QueryFunctionHelper.convertFunctionToPandasSyntax(fun);
-			if(funIndex != 0)
-			{
+			if(funIndex != 0) {
 				funString.append(", ");
 				crosstabVal.append(", ");
 				crosstabAgg.append(", ");
@@ -532,26 +507,25 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			
 			crosstabVal.append(frameName).append(".").append(value);
 			crosstabAgg.append("'").append(fun).append("'");
-			
-			
 		}		
-		if(funString.length() > 0)
-		{
+		
+		if(funString.length() > 0) {
 			funString = new StringBuilder("aggfunc = {").append(funString).append("}, ");
 			crosstabVal = new StringBuilder("values = ").append(crosstabVal).append(", ");
 			crosstabAgg = new StringBuilder("aggfunc = ").append(crosstabAgg).append(", "); // need to put margins finally
 		}
 		// generate the values string
 		StringBuilder pdValuesString = new StringBuilder("");
-		for(int valIndex = 0;valIndex < values.size();valIndex++)
-		{
-			if(valIndex != 0)
+		for(int valIndex = 0;valIndex < values.size();valIndex++) {
+			if(valIndex != 0) {
 				pdValuesString.append(", ");
+			}
 			pdValuesString.append("'").append(values.get(valIndex)).append("'");
 		}
-		if(pdValuesString.length() > 0)
+		if(pdValuesString.length() > 0) {
 			pdValuesString = new StringBuilder("values = [").append(pdValuesString).append("], ");
-
+		}
+		
 		// handle drop na
 		// handle fillvalues
 		
@@ -604,8 +578,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 //		else 
 		retString.append(pivotString).append("\n");
 		String outputFormat = ".to_html()";
-		if(json)
+		if(json) {
 			outputFormat = ".to_json(orient='split')";
+		}
 		
 		// need to convert the index as well
 		// I am just going to convert everything to a string
@@ -757,8 +732,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				// need to drop the all total from 
 				String dropAllTotal = "";
 				
-				//if(rows.size() > 1) // else there is no total
-				//	dropAllTotal = finalPivotName + " = " + finalPivotName +".drop('" + marginName + "  Total  '" +", level=0)";
+				// if(rows.size() > 1) // else there is no total
+				// dropAllTotal = finalPivotName + " = " + finalPivotName +".drop('" + marginName + "  Total  '" +", level=0)";
 				
 				System.err.println(finalPivot);
 				System.err.println(deleter);
@@ -775,8 +750,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		return retString.toString();
 	}
 	
-	private long getCount(String frameName, List <String> items)
-	{
+	private long getCount(String frameName, List <String> items) {
 		long retCount = 1;
 		for(int itemIndex = 0;itemIndex < items.size();itemIndex++)
 		{
@@ -786,6 +760,101 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		}
 		return retCount;
 	}
+	
+	//row group5sda
+	private long getRowGrpCount(String frameName, List<String> rowItems, List<String> colItems, String section, 
+			List<String> values, List<String> functions) {
+
+		List<String> sectionList = new Vector<String>();
+		if (section != null) {
+			// mv[['Genre']].drop_duplicates().to_dict('list')
+			String sectionNames = frameName + "[['" + section + "']].drop_duplicates().to_dict('list')";
+			HashMap nameToList = (HashMap) this.insight.getPyTranslator().runScript(sectionNames);
+			Object objList = nameToList.get(section);
+			if (objList instanceof List) {
+				for (int itemIndex = 0; itemIndex < ((List) objList).size(); itemIndex++) {
+					sectionList.add(((List) objList).get(itemIndex) + "");
+				}
+			}
+		}
+		
+		// row group script
+		StringBuilder rowGroupString = new StringBuilder();
+		for (int itemIndex = 0; itemIndex < rowItems.size(); itemIndex++) {
+			if (itemIndex > 0) {
+				rowGroupString.append(", ");
+			}
+			rowGroupString.append("'").append(rowItems.get(itemIndex)).append("'");
+		}
+		
+		// colgroup script
+		StringBuilder colGroupString = new StringBuilder();
+		for (int colItemIndex = 0; colItemIndex < colItems.size(); colItemIndex++) {
+			if (colItemIndex > 0) {
+				colGroupString.append(", ");
+			}
+			colGroupString.append("'").append(colItems.get(colItemIndex)).append("'");
+		}
+		
+		if (colGroupString.length() > 0) {
+			colGroupString = new StringBuilder(", columns = [").append(colGroupString).append("]");
+		}
+		
+        // aggregate function script to get the row count
+		StringBuilder funString = new StringBuilder("");
+		for (int funIndex = 0; funIndex < functions.size(); funIndex++) {
+			// following functions are available
+			// np.sum, np.mean, min, max, count, numpy.size, pd.Series.nunique
+			String fun = functions.get(funIndex);
+			String value = values.get(funIndex);
+
+			fun = QueryFunctionHelper.convertFunctionToPandasSyntax(fun);
+			if (funIndex != 0) {
+				funString.append(", ");
+			}
+			funString.append("'").append(value).append("' : ");
+			funString.append("'").append(fun).append("'");
+		}
+		if (funString.length() > 0) {
+			funString = new StringBuilder(", aggfunc = {").append(funString).append("}");
+		}
+
+		long retCount = 0;
+		// to calculate the each section count  if multiple section are there addition of all section count as rowcount
+		if (section != null) {
+			String quote = getQuote(section);
+
+			for (int sectionItemIndex = 0; sectionItemIndex < sectionList.size(); sectionItemIndex++) {
+				StringBuilder sectionScript = new StringBuilder();
+				sectionScript.append(frameName).append("[").append(frameName).append("['").append(section)
+						.append("'] == ").append(quote).append(sectionList.get(sectionItemIndex)).append(quote)
+						.append("]");
+
+				// to get the row count for the pivot
+				retCount = retCount + getPivotRowCount(sectionScript.toString(), rowGroupString, colGroupString, funString);
+			}
+		} else {
+			// to get the row count for the pivot
+			retCount = retCount + getPivotRowCount(frameName, rowGroupString, colGroupString, funString);
+		}
+
+		System.out.println("Pivot Row Count:::::" + retCount);
+		return retCount;
+	}
+
+	/**
+	 * @param frame
+	 * @param rowGrpData
+	 * @param colGrpData
+	 * @param funString
+	 * @return it returns pivot row count
+	 */
+	private long getPivotRowCount(String frame, StringBuilder rowGrpData, StringBuilder colGrpData, StringBuilder funString){
+		StringBuilder pivotRowCountScript= new StringBuilder("(pd.pivot_table(");
+		pivotRowCountScript.append(frame).append(colGrpData).append(",index=[").append(rowGrpData).append("]").append(funString).append(")).shape[0]");
+		return (long) this.insight.getPyTranslator().runScript(pivotRowCountScript.toString());
+	}
+		
 	
 	
 }
