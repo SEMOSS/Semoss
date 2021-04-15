@@ -68,8 +68,12 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		}
 		
 		String insightName = getInsightName();
-		if(insightName == null || insightName.isEmpty()) {
+		if(insightName == null || (insightName = insightName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Need to define the insight name");
+		}
+		
+		if(SecurityInsightUtils.insightNameExistsMinusId(appId, insightName, existingId)) {
+			throw new IllegalArgumentException("Insight name already exists");
 		}
 		
 		PixelList insightPixelList = null;
