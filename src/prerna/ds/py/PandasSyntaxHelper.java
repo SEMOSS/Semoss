@@ -131,7 +131,7 @@ public class PandasSyntaxHelper {
 				 .append(numeric).append(" for i in range(" + numberOfColumns(fileLocation) + ")}");
 		
 		
-		script.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
+		script.append(tableName).append(" =").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
 			  .append("',sep='" + sep + "',encoding='" + encoding + "',").append(converter + ")").append(replace)
 			  .append(".apply(lambda x: x.astype(str) if (any(x.map(type) == str)) else x)").append(replace);
 		
