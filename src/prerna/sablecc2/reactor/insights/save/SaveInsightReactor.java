@@ -86,7 +86,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
 		
-		if(SecurityInsightUtils.insightNameExists(appId, insightName)) {
+		if(SecurityInsightUtils.insightNameExists(appId, insightName) != null) {
 			throw new IllegalArgumentException("Insight name already exists");
 		}
 		
