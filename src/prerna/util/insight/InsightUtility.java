@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -20,6 +19,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonWriter;
 
+import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.date.SemossDate;
 import prerna.ds.nativeframe.NativeFrame;
@@ -759,15 +759,25 @@ public class InsightUtility {
 	 * @return
 	 */
 	public static File[] findImageFile(String baseDir) {
-		List<String> extensions = new Vector<>();
-		extensions.add("image.png");
-		extensions.add("image.jpeg");
-		extensions.add("image.jpg");
-		extensions.add("image.gif");
-		extensions.add("image.svg");
-		FileFilter imageExtensionFilter = new WildcardFileFilter(extensions);
+		FileFilter imageExtensionFilter = new FileFilter() {
+			@Override
+			public boolean accept(File pathname) {
+				String filePath = pathname.getAbsolutePath();
+				if(FilenameUtils.getBaseName(filePath).equals("image")) {
+					String ext = FilenameUtils.getExtension(filePath);
+					if(ext.equalsIgnoreCase("png") 
+						|| ext.equalsIgnoreCase("jpeg")
+						|| ext.equalsIgnoreCase("jpg")
+						|| ext.equalsIgnoreCase("gif")
+						|| ext.equalsIgnoreCase("svg") ) {
+						return true;
+					}
+				}
+				
+				return false;
+			}
+		};
 		File baseFolder = new File(baseDir);
-
 		return baseFolder.listFiles(imageExtensionFilter);
 	}
 
@@ -778,14 +788,24 @@ public class InsightUtility {
 	 * @return
 	 */
 	public static File[] findImageFile(File baseFolder) {
-		List<String> extensions = new Vector<>();
-		extensions.add("image.png");
-		extensions.add("image.jpeg");
-		extensions.add("image.jpg");
-		extensions.add("image.gif");
-		extensions.add("image.svg");
-		FileFilter imageExtensionFilter = new WildcardFileFilter(extensions);
-
+		FileFilter imageExtensionFilter = new FileFilter() {
+			@Override
+			public boolean accept(File pathname) {
+				String filePath = pathname.getAbsolutePath();
+				if(FilenameUtils.getBaseName(filePath).equals("image")) {
+					String ext = FilenameUtils.getExtension(filePath);
+					if(ext.equalsIgnoreCase("png") 
+						|| ext.equalsIgnoreCase("jpeg")
+						|| ext.equalsIgnoreCase("jpg")
+						|| ext.equalsIgnoreCase("gif")
+						|| ext.equalsIgnoreCase("svg") ) {
+						return true;
+					}
+				}
+				
+				return false;
+			}
+		};
 		return baseFolder.listFiles(imageExtensionFilter);
 	}
 }
