@@ -23,6 +23,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class DeleteAppReactor extends AbstractReactor {
@@ -59,7 +60,8 @@ public class DeleteAppReactor extends AbstractReactor {
 
 			IEngine engine = Utility.getEngine(appId);
 			deleteEngine(engine);
-			
+			EngineSyncUtility.clearEngineCache(appId);
+
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
 				Thread deleteAppThread = new Thread(new DeleteAppRunner(appId));
