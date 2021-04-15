@@ -47,6 +47,69 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	private static final Logger logger = LogManager.getLogger(SecurityInsightUtils.class);
 	
 	/**
+	 * See if the insight name exists within the engine
+	 * @param engineId
+	 * @param insightName
+	 * @return
+	 */
+	public static boolean insightNameExists(String engineId, String insightName) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+		fun.setAlias("low_name");
+		qs.addSelector(fun);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTNAME", "==", insightName.toLowerCase()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineId));
+		
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * See if the insight name exists within the engine
+	 * @param engineId
+	 * @param insightName
+	 * @return
+	 */
+	public static boolean insightNameExistsMinusId(String engineId, String insightName, String currInsightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+		fun.setAlias("low_name");
+		qs.addSelector(fun);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTNAME", "==", insightName.toLowerCase()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "!=", currInsightId));
+
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * Get what permission the user has for a given insight
 	 * @param userId
 	 * @param engineId
