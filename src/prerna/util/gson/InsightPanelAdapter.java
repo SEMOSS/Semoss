@@ -76,8 +76,7 @@ public class InsightPanelAdapter extends AbstractSemossTypeAdapter<InsightPanel>
 		in.beginObject();
 		while(in.hasNext()) {
 			String key = in.nextName();
-			JsonToken peak = in.peek();
-			if(peak == JsonToken.NULL) {
+			if(in.peek() == JsonToken.NULL) {
 				in.nextNull();
 				continue;
 			}

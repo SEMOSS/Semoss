@@ -30,6 +30,7 @@ public class IFormatterAdapter extends AbstractSemossTypeAdapter<IFormatter> {
 			String name = in.nextName();
 			if(in.peek() == JsonToken.NULL) {
 				in.nextNull();
+				continue;
 			}
 			
 			if(name.equals("type")) {
