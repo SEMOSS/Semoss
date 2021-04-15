@@ -28,11 +28,9 @@ public abstract class AbstractMapReactor extends AbstractReactor {
 					return flushOutData(data);
 				}
 			}
-			return noun.getValue();
 		}
-		else {
-			return noun.getValue();
-		}
+
+		return noun.getValue();
 	}
 	
 	/**
