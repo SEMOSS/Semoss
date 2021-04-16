@@ -274,6 +274,11 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 					buf.append(" as ").append(qs.leftAlias);
 				processed = true;
 			}
+			else if(qs.operation.equalsIgnoreCase("allcol"))
+			{
+				buf.append("*");
+				processed = true;
+			}
 			else if(qs.composite)
 			{
 				//System.err.println(" hmm.. from is composite.. but simple ?  " + qs.aQuery);
