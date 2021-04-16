@@ -801,8 +801,9 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
+		// if no layout defined, also return the default
 		if(layout == null) {
-			return null;
+			return new File(imageDir + "color-logo.png");
 		}
 		
 		if(layout.equalsIgnoreCase("area")) {
