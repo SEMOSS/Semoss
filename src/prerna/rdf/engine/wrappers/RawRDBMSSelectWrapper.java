@@ -330,6 +330,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				logger.error(Constants.STACKTRACE, e);
 				query = this.query;
 			}
+			if(query.endsWith(";")) {
+				query = query.substring(0, query.length()-1);
+			}
 			query = "select count(*) from (" + query + ") t";
 			Connection connection = null;
 			Statement statement = null;
