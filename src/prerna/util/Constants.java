@@ -668,6 +668,7 @@ public class Constants {
 	public static final String MAX_USER_LIMIT = "MAX_USER_LIMIT";
 	
 	// saml specific
+	public static final String SAML = "saml";
 	public static final String SAML_FEDERATION_LOG_PATH = "SAML_FEDERATION_LOG_PATH";
 	public static final String SAML_PROP_LOC = "SAML_PROP_LOC";
 }

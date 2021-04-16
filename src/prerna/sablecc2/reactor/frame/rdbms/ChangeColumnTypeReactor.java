@@ -27,6 +27,7 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		// get frame
 		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		
@@ -66,21 +67,22 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 					" = PARSEDATETIME (" + column + ", " + "'" + dateFormat + "');";
 			try {
 				frame.getBuilder().runQuery(convertString);
-				frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, newType);
 			} catch (Exception e) {
 				e.printStackTrace();
+				throw new IllegalArgumentException(e.getMessage());
 			}
 		} else {
 			// if we are not working with a date
 			String update = "ALTER TABLE " + table + " ALTER COLUMN " + column + " " + newType + " ; ";
 			try {
 				frame.getBuilder().runQuery(update);
-				frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, newType);
 			} catch (Exception e) {
 				e.printStackTrace();
+				throw new IllegalArgumentException(e.getMessage());
 			}
 		}
-		
+
+		frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, newType);
 		if(additionalDataType != null && !additionalDataType.isEmpty()) {
 			frame.getMetaData().modifyAdditionalDataTypeToProperty(table + "__" + column, table, newType);
 		}
