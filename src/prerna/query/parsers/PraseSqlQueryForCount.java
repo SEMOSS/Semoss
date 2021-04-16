@@ -12,7 +12,7 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 
 public class PraseSqlQueryForCount {
-	private static final String ORDER_BY_REGEX = "(?i)order\\s*by";
+	
 	private static final String REPLACE_STRING = "";
 	private static final String CASE_INSENSITIVE_REGEX = "(?i)";
 
@@ -30,27 +30,11 @@ public class PraseSqlQueryForCount {
 		{
 			List<OrderByElement> orders = sb.getOrderByElements();
 			if(orders != null && !orders.isEmpty()) {
-				orderByPattern = Pattern.compile(ORDER_BY_REGEX);
-
-				// get a matcher object
+				String orderExpression = PlainSelect.orderByToString(orders);
+				
+				orderByPattern = Pattern.compile(CASE_INSENSITIVE_REGEX + orderExpression);
 				orderByMatcher = orderByPattern.matcher(newQuery);
 				newQuery = orderByMatcher.replaceAll(REPLACE_STRING);
-
-				int counter = 0;
-				int size = orders.size();
-				for(OrderByElement order : orders) {
-					String orderExpression = toRegex(order.toString());					
-
-					if(size > 1 && (counter + 1) < size) {
-						orderExpression += "\\s*,*";
-					}
-
-					orderByPattern = Pattern.compile(CASE_INSENSITIVE_REGEX + orderExpression);
-					orderByMatcher = orderByPattern.matcher(newQuery);
-					newQuery = orderByMatcher.replaceAll(REPLACE_STRING);
-
-					counter++;
-				}
 			}
 		}
 		
