@@ -1,5 +1,8 @@
 package prerna.auth;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public enum AuthProvider {
 
 	GOOGLE, 
@@ -13,7 +16,6 @@ public enum AuthProvider {
 	NATIVE,
 	FORGEROCK,
 	SAML,
-	GENERIC,
 	
 	// this one is kinda special ...
 	CAC, 
@@ -26,6 +28,9 @@ public enum AuthProvider {
 	PRODUCT_HUNT, 
 	IN, 
 	BB,
+
+	// catch all for everything
+	GENERIC,
 	;
 
 	public String toString() {
@@ -40,6 +45,20 @@ public enum AuthProvider {
 			provider = AuthProvider.GENERIC;
 		}
 		return provider;
+	}
+	
+	/**
+	 * Get the keys are they should be in the social.properties files
+	 * All keys should be the same as the enum name but lower case
+	 * @return
+	 */
+	public static Set<String> getSocialPropKeys() {
+		Set<String> vals = new HashSet<>();
+		for(AuthProvider auth : AuthProvider.values()) {
+			vals.add(auth.name().toLowerCase());
+		}
+		
+		return vals;
 	}
 
 }
