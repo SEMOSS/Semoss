@@ -87,7 +87,7 @@ public class Cryptographer {
 	// Private helper methods
 
     private static String encrypt(String unprotectedString, SecretKeySpec key) throws GeneralSecurityException, UnsupportedEncodingException {
-        Cipher pbeCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        Cipher pbeCipher = Cipher.getInstance("AES/CCM/PKCS5Padding");
         pbeCipher.init(Cipher.ENCRYPT_MODE, key);
         AlgorithmParameters parameters = pbeCipher.getParameters();
         IvParameterSpec ivParameterSpec = parameters.getParameterSpec(IvParameterSpec.class);
@@ -99,7 +99,7 @@ public class Cryptographer {
     private static String decrypt(String encryptedString, SecretKeySpec key) throws GeneralSecurityException, IOException {
         String iv = encryptedString.split(":")[0];
         String property = encryptedString.split(":")[1];
-        Cipher pbeCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        Cipher pbeCipher = Cipher.getInstance("AES/CCM/PKCS5Padding");
         pbeCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(base64Decode(iv)));
         return new String(pbeCipher.doFinal(base64Decode(property)), "UTF-8");
     }
