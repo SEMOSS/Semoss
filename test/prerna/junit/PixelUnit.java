@@ -237,8 +237,8 @@ public class PixelUnit {
 
 		Properties corePropsR = DIHelper.getInstance().getCoreProp();
 		corePropsR.setProperty(Constants.USE_R, "true");
-		corePropsR.setProperty(Constants.R_CONNECTION_JRI, "false");
-		corePropsR.setProperty("IS_USER_RSERVE", "true");
+		corePropsR.setProperty(Constants.R_CONNECTION_JRI, "true");
+		corePropsR.setProperty("IS_USER_RSERVE", "false");
 		corePropsR.setProperty("R_USER_CONNECTION_TYPE", "dedicated");
 		DIHelper.getInstance().setCoreProp(corePropsR);
 
@@ -381,7 +381,7 @@ public class PixelUnit {
 
 		// Read in the import pixel and set the keys
 		String importPixel = FileUtils
-				.readFileToString(Paths.get(TEST_DATA_DIRECTORY, alias + IMPORT_EXTENSION).toFile());
+				.readFileToString(Paths.get(TEST_DATA_DIRECTORY, Utility.normalizePath(alias) + IMPORT_EXTENSION).toFile());
 
 		// Run the pixel to import the data
 		PixelRunner returnData = runPixelUtil(importPixel);
@@ -445,7 +445,7 @@ public class PixelUnit {
 				// Full database export
 				IDataSet fullDataSet = connection.createDataSet();
 				try (OutputStream stream = new FileOutputStream(
-						getXMLFileForAlias(alias).toAbsolutePath().toString())) {
+						getXMLFileForAlias(Utility.normalizePath(alias)).toAbsolutePath().toString())) {
 					FlatXmlDataSet.write(fullDataSet, stream);
 				}
 			} finally {
@@ -470,7 +470,7 @@ public class PixelUnit {
 	}
 
 	private static Path getXMLFileForAlias(String alias) {
-		return Paths.get(TEST_RESOURCES_DIRECTORY, alias + ".xml");
+		return Paths.get(TEST_RESOURCES_DIRECTORY, Utility.normalizePath(alias) + ".xml");
 	}
 
 	private static PixelRunner runPixelUtil(String pixel) throws IOException {
@@ -657,7 +657,7 @@ public class PixelUnit {
 
 						// Clean insert
 						IDataSet dataSet = new FlatXmlDataSetBuilder()
-								.build(new File(getXMLFileForAlias(alias).toAbsolutePath().toString()));
+								.build(new File(getXMLFileForAlias(Utility.normalizePath(alias)).toAbsolutePath().toString()));
 						IDatabaseTester databaseTester = new JdbcDatabaseTester(driver, connectionUrl, "sa", "");
 						databaseTester.setSetUpOperation(DatabaseOperation.CLEAN_INSERT);
 						databaseTester.setDataSet(dataSet);
@@ -1072,7 +1072,7 @@ public class PixelUnit {
 			Matcher textMatcher = textPattern.matcher(string);
 			if (textMatcher.matches()) {
 				String file = textMatcher.group(1);
-				string = FileUtils.readFileToString(Paths.get(TEST_TEXT_DIRECTORY, file).toFile(), TEXT_ENCODING);
+				string = FileUtils.readFileToString(Paths.get(TEST_TEXT_DIRECTORY, Utility.normalizePath(file)).toFile(), TEXT_ENCODING);
 			}
 
 			string = string.replaceAll(TEST_DIR_REGEX,
