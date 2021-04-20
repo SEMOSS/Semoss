@@ -62,6 +62,8 @@ public class Pixel {
 	private boolean isAssignment = false;
 	// is this a file read
 	private boolean isFileRead = false;
+	// save in recipe
+	private boolean saveInRecipe = false;
 	
 	// currently unused - just thinking of things to store
 	private boolean isParamSelection = false;
@@ -407,6 +409,22 @@ public class Pixel {
 	public void setFileRead(boolean isFileRead) {
 		this.isFileRead = isFileRead;
 	}
+	
+	/**
+	 * Force save this pixel step in the recipe
+	 * @return
+	 */
+	public boolean isSaveInRecipe() {
+		return saveInRecipe;
+	}
+
+	/**
+	 * Force save this pixel step in the recipe
+	 * @return
+	 */
+	public void setSaveInRecipe(boolean saveInRecipe) {
+		this.saveInRecipe = saveInRecipe;
+	}
 
 	/**
 	 * Get if this pixel returned an error during execution
@@ -555,6 +573,7 @@ public class Pixel {
 			pixelObj.setFrameTransformation(mergePixel.isFrameTransformation());
 			pixelObj.setAssignment(mergePixel.isAssignment());
 			pixelObj.setFileRead(mergePixel.isFileRead());
+			pixelObj.setSaveInRecipe(mergePixel.isSaveInRecipe());
 			pixelObj.setStartingFrameHeaders(mergePixel.getStartingFrameHeaders());
 //			pixelObj.setReactorInputs(mergePixel.getReactorInputs());
 			pixelObj.setFrameInputs(mergePixel.getFrameInputs());
