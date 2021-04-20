@@ -370,6 +370,9 @@ public class GreedyTranslation extends LazyTranslation {
 		    				|| opTypes.contains(PixelOperationType.FRAME_HEADERS_CHANGE)) {
 		    			pixelObj.setFrameTransformation(true);
 		    		}
+		    		if(opTypes.remove(PixelOperationType.FORCE_SAVE)) {
+		    			pixelObj.setSaveInRecipe(true);
+		    		}
 		    		
 		    		// if we are an assignment, let us track that as well
 		    		if(this.prevReactor instanceof AssignmentReactor) {

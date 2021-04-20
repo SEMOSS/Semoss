@@ -821,7 +821,7 @@ public class PixelUtility {
 		for(int i = 0; i < numSteps; i++) {
 			Pixel pixelObject = insightPixelList.get(i);
 			if(pixelObject.isFrameTransformation() || pixelObject.isCodeExecution()
-					|| pixelObject.isAssignment()) {
+					|| pixelObject.isAssignment() || pixelObject.isSaveInRecipe()) {
 				pList.addPixel(pixelObject.copy());
 			}
 		}
