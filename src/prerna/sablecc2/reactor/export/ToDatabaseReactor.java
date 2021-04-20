@@ -89,7 +89,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			throw e;
 		}
 		ClusterUtil.reactorPushApp(getEngineId());
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION, PixelOperationType.FORCE_SAVE);
 	}
 
 	@Override
