@@ -34,6 +34,7 @@ public class CheckInsightNameExistsReactor extends AbstractReactor {
 		Map<String, Object> retMap = new HashMap<>();
 		if(existingInsightId != null) {
 			retMap.put("exists", true);
+			retMap.put("appId", appId);
 			retMap.put("insightId", existingInsightId);
 			boolean canEdit = SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, existingInsightId);
 			retMap.put("userCanEdit", canEdit);
