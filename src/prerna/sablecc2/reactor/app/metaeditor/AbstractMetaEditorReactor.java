@@ -384,8 +384,10 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			// do a union
 			// remove the random var
 			String randomVar = "storeDataFrame_" + Utility.getRandomString(6);
-			rJavaTranslator.runR(randomVar + "<-" + newValuesBuilder.toString() + storeFrame.getName() + "<-funion("
-					+ frameName + "," + randomVar + ");rm(" + randomVar + ");");
+			String rename = "names(" + randomVar + ")<-" + RSyntaxHelper.createStringRColVec(
+					new String[] { "sourceTable", "sourceCol", "targetTable", "targetCol", "action" });
+			rJavaTranslator.runR(randomVar + "<-" + newValuesBuilder.toString() + ";" + rename + ";" 
+					+ storeFrame.getName() + "<-funion(" + frameName + "," + randomVar + ");rm(" + randomVar + ");");
 		}
 	}
 
