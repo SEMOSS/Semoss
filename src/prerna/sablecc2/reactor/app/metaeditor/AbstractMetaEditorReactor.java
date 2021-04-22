@@ -406,7 +406,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			String filter = RSyntaxHelper.createStringRColVec(storeTypesToRemove);
 
 			String subsetVar = "subset_" + Utility.getRandomString(6);
-			String indexVar = "indices_" + Utility.getRandomString(6);
+//			String indexVar = "indices_" + Utility.getRandomString(6);
 
 			IRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
 			rJavaTranslator.startR();
@@ -420,7 +420,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 					+ resultsFrame + "<-" + resultsFrame + "[ !( " + resultsFrame + "$sourceTable != " + subsetVar
 					+ "$sourceTable " + "& " + resultsFrame + "$sourceCol != " + subsetVar + "$sourceCol " + "& "
 					+ resultsFrame + "$targetTable != " + subsetVar + "$targetTable " + "& " + resultsFrame
-					+ "$targetCol != " + subsetVar + "$targetCol " + ") ];" + "gc(" + subsetVar + "," + indexVar + ");";
+					+ "$targetCol != " + subsetVar + "$targetCol " + ") ];" + "gc(" + subsetVar + ");";//," + indexVar + ");";
 			rJavaTranslator.runR(script);
 
 			logger.info("Finsihed removing previously mastered data from the results");
