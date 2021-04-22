@@ -208,8 +208,12 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 					new String[]{"STRING", "STRING", "STRING", "STRING", "STRING"}, storeFrameName);
 		} else {
 			// merge each frame into the store frame
-			rJavaTranslator.runR(defineVars + storeFrameName + "<-funion(" + dataFrameName + "," + positiveVarName + ");"
-					+ storeFrameName + "<-funion(" + dataFrameName + "," + negativeVarName + ");rm(" + positiveVarName + "," + negativeVarName + ");");
+			// must have cols in same order
+			String storeFrameNameString = storeFrameName + "[, c('sourceTable','sourceCol','targetTable','targetCol','action')]";
+			String positiveVarNameString = positiveVarName + "[, c('sourceTable','sourceCol','targetTable','targetCol','action')]";
+			String negVarNameString = negativeVarName + "[, c('sourceTable','sourceCol','targetTable','targetCol','action')]";
+			rJavaTranslator.runR(defineVars + storeFrameName + "<-funion(" + storeFrameNameString + "," + positiveVarNameString + ");"
+					+ storeFrameName + "<-funion(" + storeFrameNameString + "," + negVarNameString + ");rm(" + positiveVarName + "," + negativeVarName + ");");
 		}
 	}
 	
