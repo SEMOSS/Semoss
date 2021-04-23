@@ -105,8 +105,6 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			}
 			
 			makeFrame = frameName + " = " + frameQuery;
-			// close the task
-			task.cleanUp();
 		} else {
 			String fileName = Utility.getRandomString(6);
 			String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
@@ -278,6 +276,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions(), task.getFormatter());
 			}
 		}
+		
+		// close the original task
+		this.task.cleanUp();
 		
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
