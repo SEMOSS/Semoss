@@ -249,8 +249,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		// need to do all the sets
 		cdt.setFormat("TABLE");
 		cdt.setTaskOptions(task.getTaskOptions());
-		cdt.setHeaderInfo(task.getHeaderInfo());
-		cdt.setSortInfo(task.getSortInfo());
+		cdt.setHeaderInfo(new ArrayList<>(task.getHeaderInfo()));
+		cdt.setSortInfo(new ArrayList<>(task.getSortInfo()));
 		cdt.setId(task.getId());
 		Map<String, Object> formatMap = new Hashtable<String, Object>();
 		formatMap.put("type", "TABLE");
