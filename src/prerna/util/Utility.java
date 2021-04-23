@@ -109,6 +109,7 @@ import org.openrdf.query.Binding;
 import org.owasp.encoder.Encode;
 import org.owasp.esapi.ESAPI;
 
+import com.google.common.base.Strings;
 import com.google.gson.GsonBuilder;
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
@@ -3597,6 +3598,19 @@ public class Utility {
 			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
 			// pb.command(commands);
 
+			
+
+			if(!(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty("ULIMIT_R_MEM_LIMIT")))){
+				String ulimit = DIHelper.getInstance().getProperty("ULIMIT_R_MEM_LIMIT");
+			StringBuilder sb = new StringBuilder();
+			for (String str : commands) {
+				sb.append(str).append(" ");
+			}
+			sb.substring(0, sb.length() - 1);
+			commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+			}
+
+			
 			String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
