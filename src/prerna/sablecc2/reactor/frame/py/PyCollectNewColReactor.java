@@ -56,37 +56,36 @@ public class PyCollectNewColReactor extends TaskBuilderReactor {
 			pqs.ignoreFilters = true;
 		}
 
-		List<NounMetadata> outputs = new Vector<NounMetadata>();
 		// there should be only one selector
 		List <IQuerySelector> allSelectors = sqs.getSelectors();
-		if(allSelectors.size() > 0) {
-			IQuerySelector onlySelector = allSelectors.get(0);
-			PandasInterpreter interp = new PandasInterpreter();
-			interp.setDataTableName(frame.getName(), frame.getName() + "w.cache['data']");
-			interp.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
-			// I should also possibly set up pytranslator so I can run command for creating filter
-			interp.setPyTranslator(pyt);
-			String mainQuery = interp.processSelector(onlySelector, frame.getName(), false, false);
+		if(allSelectors.size() == 0) {
+			throw new IllegalArgumentException("No new columns to add");
+		}
+		
+		IQuerySelector onlySelector = allSelectors.get(0);
+		PandasInterpreter interp = new PandasInterpreter();
+		interp.setDataTableName(frame.getName(), frame.getName() + "w.cache['data']");
+		interp.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
+		// I should also possibly set up pytranslator so I can run command for creating filter
+		interp.setPyTranslator(pyt);
+		String mainQuery = interp.processSelector(onlySelector, frame.getName(), false, false);
 
-			//String mainQuery = processSelector(onlySelector, frame.getName()).toString();
-			
-			String alias = onlySelector.getAlias();
-			mainQuery = frame.getName() + "['" + alias + "'] = " + mainQuery;
-			pyt.runEmptyPy(mainQuery);
+		//String mainQuery = processSelector(onlySelector, frame.getName()).toString();
+		
+		String alias = onlySelector.getAlias();
+		mainQuery = frame.getName() + "['" + alias + "'] = " + mainQuery;
+		pyt.runEmptyPy(mainQuery);
 
-			// recreate the metadata
-			frame.recreateMeta();
-			
-			outputs.add(new NounMetadata("Added Col " + alias, PixelDataType.CONST_STRING));
-			outputs.add(new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
-			if(warning != null) {
-				outputs.add(getWarning(warning));
-			}
-		} else {
-			outputs.add(new NounMetadata("No New Columns to add", PixelDataType.CONST_STRING));
+		// recreate the metadata
+		frame.recreateMeta();
+		
+		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
+		noun.addAdditionalReturn(getSuccess("Added Col " + alias));
+		if(warning != null) {
+			noun.addAdditionalReturn(getWarning(warning));
 		}
 
-		return new NounMetadata(outputs, PixelDataType.VECTOR, PixelOperationType.VECTOR);
+		return noun;
 	}
 
 	@Override

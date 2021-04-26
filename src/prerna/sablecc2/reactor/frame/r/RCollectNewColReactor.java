@@ -78,30 +78,26 @@ public class RCollectNewColReactor extends TaskBuilderReactor {
 		// need to get the query struct
 		// there should be only one selector
 		List <IQuerySelector> allSelectors = sqs.getSelectors();
-
-		List<NounMetadata> outputs = new Vector<NounMetadata>();
+		if(allSelectors.size() == 0) {
+			throw new IllegalArgumentException("No new columns to add");
+		}
 		
-		if(allSelectors.size() > 0) {
-			IQuerySelector onlySelector = allSelectors.get(0);
-			
-			String alias = onlySelector.getAlias();
-			mainQuery = frame.getName() + "$" + alias + "  <- " + mainQuery;
-			rJavaTranslator.executeEmptyR(mainQuery);
-			
-			// recreate the frame metadata
-			frame.recreateMeta();
+		IQuerySelector onlySelector = allSelectors.get(0);
+		
+		String alias = onlySelector.getAlias();
+		mainQuery = frame.getName() + "$" + alias + "  <- " + mainQuery;
+		rJavaTranslator.executeEmptyR(mainQuery);
+		
+		// recreate the frame metadata
+		frame.recreateMeta();
 
-			// return the outputs
-			outputs.add(new NounMetadata("Added Col " + alias, PixelDataType.CONST_STRING));
-			outputs.add(new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
-			if(warning != null) {
-				outputs.add(getWarning(warning));
-			}
-		} else {
-			outputs.add(new NounMetadata("No New Columns to add", PixelDataType.CONST_STRING));
+		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
+		noun.addAdditionalReturn(getSuccess("Added Col " + alias));
+		if(warning != null) {
+			noun.addAdditionalReturn(getWarning(warning));
 		}
 
-		return new NounMetadata(outputs, PixelDataType.VECTOR, PixelOperationType.VECTOR);
+		return noun;
 	}
 
 	@Override
