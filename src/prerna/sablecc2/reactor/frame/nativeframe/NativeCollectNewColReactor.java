@@ -48,32 +48,31 @@ public class NativeCollectNewColReactor extends TaskBuilderReactor {
 			pqs.ignoreFilters = true;
 		}
 
-		List<NounMetadata> outputs = new Vector<NounMetadata>();
 		// there should be only one selector
 		List <IQuerySelector> allSelectors = sqs.getSelectors();
-		if(allSelectors.size() > 0) {
-			NativeImporter importer;
-			try {
-				// set the engine id for the sqs to be that of the native frame
-				pqs.setEngineId(frame.getEngineId());
-				// now we can import without the importer needed to be modified
-				importer = new NativeImporter(frame, pqs, ((BasicIteratorTask) task).getIterator());
-				importer.insertData();
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new IllegalArgumentException(e.getMessage());
-			}
-			
-			outputs.add(new NounMetadata("Added Col " + allSelectors.get(0).getAlias(), PixelDataType.CONST_STRING));
-			outputs.add(new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
-			if(warning != null) {
-				outputs.add(getWarning(warning));
-			}
-		} else {
-			outputs.add(new NounMetadata("No New Columns to add", PixelDataType.CONST_STRING));
+		if(allSelectors.size() == 0) {
+			throw new IllegalArgumentException("No new columns to add");
+		}
+		
+		NativeImporter importer;
+		try {
+			// set the engine id for the sqs to be that of the native frame
+			pqs.setEngineId(frame.getEngineId());
+			// now we can import without the importer needed to be modified
+			importer = new NativeImporter(frame, pqs, ((BasicIteratorTask) task).getIterator());
+			importer.insertData();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		
+		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
+		noun.addAdditionalReturn(getSuccess("Added Col " + allSelectors.get(0).getAlias()));
+		if(warning != null) {
+			noun.addAdditionalReturn(getWarning(warning));
 		}
 
-		return new NounMetadata(outputs, PixelDataType.VECTOR, PixelOperationType.VECTOR);
+		return noun;
 	}
 
 	@Override
