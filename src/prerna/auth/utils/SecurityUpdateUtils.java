@@ -161,7 +161,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							"ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON",
 							"LASTMODIFIEDON","LAYOUT", "CACHEABLE", "RECIPE"});
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger.error(Constants.STACKTRACE, e);
 		}
 		// keep a batch size so we dont get heapspace
 		final int batchSize = 5000;
