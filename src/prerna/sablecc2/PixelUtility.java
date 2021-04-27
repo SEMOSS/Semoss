@@ -814,7 +814,7 @@ public class PixelUtility {
 
 			pList.addPixel( new Pixel( (newPixelId++) + "", "AddPanel(panel=[\"" + panelId + "\"], sheet=[\"" + panel.getSheetId() + "\"]);") );
 			String panelState = (String) InsightUtility.getPanelState(panel, "string").getValue();
-			pList.addPixel( new Pixel( (newPixelId++) + "", "SetPanelState(" + panelState + ");") );
+			pList.addPixel( new Pixel( (newPixelId++) + "", "SetPanelState(\"<encode>" + panelState + "</encode>\");") );
 		}
 		
 		// add the main of the recipe - data loading / transformations / code blocks

@@ -11,6 +11,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.NumberAdapter;
 import prerna.util.gson.SemossDateAdapter;
@@ -49,7 +50,9 @@ public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Exeption occured reading the panel state with error: " + e.getMessage());
 		}
-		
+		if(insightPanel.getPanelViewOptions() != null) {
+			System.out.println(insightPanel.getPanelViewOptions());
+		}
 		this.insight.getInsightPanels().put(insightPanel.getPanelId(), insightPanel);
 		NounMetadata noun = new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.CACHED_PANEL);
 		return noun;
@@ -68,7 +71,7 @@ public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 		if(grs != null && !grs.isEmpty()) {
 			List<String> strInput = grs.getAllStrValues();
 			if(strInput != null && !strInput.isEmpty()) {
-				return strInput.get(0);
+				return Utility.decodeURIComponent(strInput.get(0));
 			}
 			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
 			if(mapInput != null && !mapInput.isEmpty()) {
@@ -79,7 +82,7 @@ public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 		if(!this.curRow.isEmpty()) {
 			List<String> strInput = this.curRow.getAllStrValues();
 			if(strInput != null && !strInput.isEmpty()) {
-				return strInput.get(0);
+				return Utility.decodeURIComponent(strInput.get(0));
 			}
 			List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
 			if(mapInput != null && !mapInput.isEmpty()) {
