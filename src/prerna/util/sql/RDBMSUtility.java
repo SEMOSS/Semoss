@@ -75,13 +75,28 @@ public class RDBMSUtility {
 		if(queryUtil.allowClobJavaObject()) {
 			Clob engineClob = engine.createClob();
 
+			boolean canTransfer = false;
 			// is our input also a clob?
 			if(value instanceof Clob) {
 				// yes clob - transfer clob from one to the other
-				RDBMSUtility.transferClob((Clob) value, engineClob);
-			} else {
-				// no clob - flush to string
-				engineClob.setString(1, gson.toJson(value));
+				try {
+					RDBMSUtility.transferClob((Clob) value, engineClob);
+				} catch(Exception e) {
+					//ignore 
+					canTransfer = false;
+				}
+			}
+			// if we cant transfer
+			// we have to flush and push
+			if(!canTransfer) {
+				if(value instanceof Clob) {
+					// flush the clob to a string
+					String stringInput = RDBMSUtility.flushClobToString((Clob) value);
+					engineClob.setString(1, stringInput);
+				} else {
+					// no clob - flush to string
+					engineClob.setString(1, gson.toJson(value));
+				}
 			}
 			// set the clob in the prepared statement
 			ps.setClob(parameterIndex, engineClob);
