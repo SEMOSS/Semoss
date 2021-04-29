@@ -1,6 +1,7 @@
 package prerna.sablecc2.om.task;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -181,6 +182,22 @@ public class TaskUtility {
 			typesArr[i] = SemossDataType.convertStringToDataType((String) hMap.get("type"));
 		}
 		return typesArr;
+	}
+	
+	/**
+	 * Get the column to data type map from a task
+	 * @param task
+	 * @return
+	 */
+	public static Map<String, SemossDataType> getTypesMapFromTask(ITask task) {
+		List<Map<String, Object>> headersInfo = task.getHeaderInfo();
+		Map<String, SemossDataType> typesMap = new HashMap<>();
+		for (Map<String, Object> hMap : headersInfo) {
+			String name = (String) hMap.get("alias");
+			SemossDataType type = SemossDataType.convertStringToDataType(hMap.get("type").toString());
+			typesMap.put(name, type);
+		}
+		return typesMap;
 	}
 	
 }

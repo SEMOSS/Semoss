@@ -150,6 +150,85 @@ public class PandasSyntaxHelper {
 		csv.parse(filePath);
 		return csv.getHeaders().length;
 	}
+	
+	/**
+	 * Reads a CSV using pandas. less greedy / dynamic version. 
+	 * @param pandasImportVar
+	 * @param numpyImportVar
+	 * @param fileLocation
+	 * @param tableName
+	 * @param sep
+	 * @param encoding
+	 * @param dataTypeMaps
+	 * @return
+	 */
+	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep,
+			String encoding, Map<String, ?> dataTypeMaps) {
+		StringBuilder script = new StringBuilder();
+		if (encoding == null || encoding.isEmpty()) {
+			encoding = "utf-8";
+		}
+		if (dataTypeMaps == null || dataTypeMaps.isEmpty()) {
+			script.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
+			  .append("',sep='" + sep + "',encoding='" + encoding + "')");
+		} else {
+			script.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
+			  .append("',sep='" + sep + "',encoding='" + encoding + "',dtype="+ buildDataTypeMap(numpyImportVar, dataTypeMaps) +")");
+		}
+		return script.toString();
+	}
+	
+	/**
+	 * creates a mapping of columns to data types for conversion. 
+	 * @param numpyImportVar
+	 * @param dataTypeMaps
+	 * @return
+	 */
+	public static String buildDataTypeMap(String numpyImportVar, Map<String, ?> dataTypeMaps) {
+		StringBuilder sb = new StringBuilder();
+		for (String column : dataTypeMaps.keySet()) {
+			Object dataType = dataTypeMaps.get(column);
+			if (dataType == null) {
+				continue;
+			}
+			if (sb.length() > 0) {
+				sb.append(",");
+			}
+			sb.append("'").append(column).append("':").append(convertSemossDataType(numpyImportVar, dataType));
+		}
+		sb = new StringBuilder("{").append(sb).append("}");
+		return sb.toString();
+	}
+	/**
+	 * Maps Semoss data types to Pandas / Numpy data types. 
+	 * @param numpyImportVar
+	 * @param type
+	 * @return
+	 */
+	public static String convertSemossDataType(String numpyImportVar, Object inputType) {
+		// account for string or enum type
+		SemossDataType type = null;
+		if(inputType instanceof SemossDataType) {
+			type = (SemossDataType) inputType;
+		} else {
+			type = SemossDataType.convertStringToDataType(inputType + "");
+		}
+		
+		if (type == SemossDataType.INT) {
+			return numpyImportVar + ".float64";
+		} else if (type == SemossDataType.DOUBLE) {
+			return numpyImportVar + ".float64";
+		} else if (type == SemossDataType.DATE) {
+			return "object";
+			//return numpyImportVar + ".datetime64";
+		} else if (type == SemossDataType.TIMESTAMP) {
+			//return numpyImportVar + ".datetime64";
+			return "object";
+		} else if (type == SemossDataType.STRING) {
+			return "object";
+		}
+		return null;
+	}
 
 	/**
 	 * 

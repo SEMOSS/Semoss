@@ -24,6 +24,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.om.task.TaskUtility;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -108,6 +109,8 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			
 			makePivotFrame = pivotFrameName + " = " + frameQuery;
 		} else {
+			Map<String, SemossDataType> typesMap = TaskUtility.getTypesMapFromTask(this.task);
+
 			String fileName = Utility.getRandomString(6);
 			String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
 			File tempDir = new File(dir);
@@ -115,7 +118,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				tempDir.mkdir();
 			}
 			outputFile = dir + "/" + fileName + ".csv";
-			Utility.writeResultToFile(outputFile, this.task, ",");
+			Utility.writeResultToFile(outputFile, this.task, typesMap, ",");
 			
 			String importPandasS = new StringBuilder(PandasFrame.PANDAS_IMPORT_STRING).toString();
 			String importNumpyS = new StringBuilder(PandasFrame.NUMPY_IMPORT_STRING).toString();
@@ -123,7 +126,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 
 			// generate the script
 			makePivotFrame = PandasSyntaxHelper.getCsvFileRead(PandasFrame.PANDAS_IMPORT_VAR, PandasFrame.NUMPY_IMPORT_VAR, 
-					outputFile, pivotFrameName, ",", pyt.getCurEncoding());
+					outputFile, pivotFrameName, ",", pyt.getCurEncoding(), typesMap);
 		}
 		
 		// so this is going to come in as vectors
