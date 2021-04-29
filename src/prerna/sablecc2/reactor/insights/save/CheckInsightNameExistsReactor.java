@@ -22,12 +22,15 @@ public class CheckInsightNameExistsReactor extends AbstractReactor {
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		String insightName = this.keyValue.get(this.keysToGet[1]);
 		
+		// will just return false
 		if(appId == null || appId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide an app id");
 		}
 		
 		if(insightName == null || (insightName = insightName.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide an insight name");
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put("exists", false);
+			return new NounMetadata(retMap, PixelDataType.MAP);
 		}
 		
 		String existingInsightId = SecurityInsightUtils.insightNameExists(appId, insightName);
