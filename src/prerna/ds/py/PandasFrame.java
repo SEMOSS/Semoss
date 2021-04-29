@@ -165,7 +165,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
 			// generate the script
 			String fileLocation = newFile.getAbsolutePath();
-			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, fileLocation, tableName, ",", pyt.getCurEncoding());
+			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, 
+					fileLocation, tableName, ",", pyt.getCurEncoding(), dataTypeMap);
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
 			// execute the script
 			//pyt.runScript(importS, loadS);
@@ -196,10 +197,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 */
 	private void addRowsViaCsvIterator(CsvFileIterator it, String tableName) {
 		// generate the script
+		CsvQueryStruct qs = it.getQs();
 		String importPandasS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
 		String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
 		String fileLocation = it.getFileLocation();
-		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, fileLocation, tableName, ",", pyt.getCurEncoding());
+		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, 
+				fileLocation, tableName, qs.getDelimiter() + "", pyt.getCurEncoding(), qs.getColumnTypes());
 
 		// need to compose a string for names
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());

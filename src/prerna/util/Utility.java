@@ -141,6 +141,7 @@ import prerna.om.IStringExportProcessor;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.om.task.TaskUtility;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -2775,17 +2776,10 @@ public class Utility {
 	 * @return
 	 */
 	public static File writeResultToFile(String fileLocation, ITask task, String seperator) {
-		List<Map<String, Object>> headersInfo = task.getHeaderInfo();
-		Map<String, SemossDataType> typesMap = new HashMap<>();
-		for (Map<String, Object> headerMap : headersInfo) {
-			String name = (String) headerMap.get("alias");
-			SemossDataType type = SemossDataType.convertStringToDataType(headerMap.get("type").toString());
-			headerMap.put(name, type);
-		}
-
+		Map<String, SemossDataType> typesMap = TaskUtility.getTypesMapFromTask(task);
 		return Utility.writeResultToFile(fileLocation, task, typesMap, seperator);
 	}
-
+	
 	public static String adjustTypeR(String frameName, String[] columns, Map<String, SemossDataType> typeMap) {
 		StringBuilder adjustTypes = new StringBuilder();
 		for (int headIndex = 0; headIndex < columns.length; headIndex++) {
