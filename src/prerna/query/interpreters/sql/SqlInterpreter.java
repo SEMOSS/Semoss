@@ -532,11 +532,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	 * Adds the join to the relationHash which gets added to the query in composeQuery
 	 * @param fromCol					The starting column, this can be just a table
 	 * 									or table__column
-	 * @param thisComparator			The comparator for the type of join
+	 * @param thisJoinType			The comparator for the type of join
 	 * @param toCol						The ending column, this can be just a table
 	 * 									or table__column
 	 */
-	protected void addJoin(String fromCol, String thisComparator, String toCol, String comparator) {
+	protected void addJoin(String fromCol, String thisJoinType, String toCol, String comparator) {
 		// get the parts of the join
 		List<String[]> relConPropList = getRelationshipConceptProperties(fromCol, toCol);
 		for(String[] relConProp : relConPropList) {
@@ -545,7 +545,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			String targetTable = relConProp[2];
 			String targetColumn = relConProp[3];
 			
-			String compName = thisComparator.replace(".", " ");
+			String compName = thisJoinType.replace(".", " ");
 			SqlJoinStruct jStruct = new SqlJoinStruct();
 			jStruct.setJoinType(compName);
 			// add source

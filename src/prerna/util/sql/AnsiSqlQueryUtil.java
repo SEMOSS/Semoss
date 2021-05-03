@@ -312,6 +312,9 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			rightTableJoinCols.add(rightTableJoinCol.toUpperCase());
 			
 			String joinComparator = j.getComparator();
+			if("==".equals(joinComparator)) {
+				joinComparator = "=";
+			}
 			String joinType = j.getJoinType();
 			String joinSql = null;
 			if(joinType.equalsIgnoreCase("inner.join")) {
@@ -510,6 +513,9 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			rightTableJoinCols.add(rightTableJoinCol.toUpperCase());
 
 			String joinComparator = j.getComparator();
+			if("==".equals(joinComparator)) {
+				joinComparator = "=";
+			}
 			String joinType = j.getJoinType();
 			String joinSql = null;
 			if (joinType.equalsIgnoreCase("inner.join")) {
