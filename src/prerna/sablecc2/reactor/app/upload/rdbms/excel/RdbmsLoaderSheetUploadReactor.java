@@ -454,8 +454,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			createString = createString + " , " + fieldName + " " + fieldType;
 
 			// also add this to the OWLER
-			if (!fieldName.equalsIgnoreCase(thisConcept) && !fieldName.endsWith("_FK"))
+			//if (!fieldName.equalsIgnoreCase(thisConcept) && !fieldName.endsWith("_FK")) {
 				owler.addProp(thisConcept, fieldName, fieldType);
+			//}
 		}
 
 		props.put(thisConcept, conceptType);
