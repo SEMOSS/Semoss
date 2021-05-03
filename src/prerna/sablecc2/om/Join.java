@@ -56,9 +56,6 @@ public class Join {
 	}
 
 	public String getComparator() {
-		if(comparator != null && comparator.equals("==")) {
-			return "=";
-		}
 		return comparator;
 	}
 

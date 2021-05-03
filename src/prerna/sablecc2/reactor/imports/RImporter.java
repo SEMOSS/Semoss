@@ -15,6 +15,7 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -150,7 +151,7 @@ public class RImporter extends AbstractImporter {
 				joinTypeSet.add(joinType);
 				joinComparator = joinItem.getComparator();
 				// set complex join Flag to true if join in ON comparators other than '=='
-				if (joinComparator != null && !joinComparator.equals("") && !joinComparator.equals("=")) {
+				if (!IQueryFilter.comparatorIsEquals(joinComparator)) {
 					isComplexJoin = true;
 				}
 				// in R, the existing column is referenced as frame__column
