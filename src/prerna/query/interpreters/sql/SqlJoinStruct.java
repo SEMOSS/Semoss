@@ -166,7 +166,13 @@ public class SqlJoinStruct {
 	}
 
 	public void setComparator(String comparator) {
-		this.comparator = comparator;
+		if(comparator != null) {
+			if("==".equals(comparator)) {
+				this.comparator = "=";
+			} else {
+				this.comparator = comparator;
+			}
+		}
 	}
 	
 }

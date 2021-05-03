@@ -15,6 +15,7 @@ import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -169,7 +170,7 @@ public class PandasImporter extends AbstractImporter {
 				joinCols.add(joinColMapping);
 				
 				String joinComparator = joinItem.getComparator();
-				if (!joinComparator.equals("=")) {
+				if (!IQueryFilter.comparatorIsEquals(joinComparator)) {
 					nonEqui = true;
 				}
 				joinComparators.add(joinComparator);

@@ -30,6 +30,7 @@ import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.SQLQueryUtils;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -226,8 +227,10 @@ public class MergeReactor extends AbstractReactor {
 					String leftColumnJoin = j.getLColumn();
 					String rColumnJoin = j.getRColumn();
 					String type = j.getJoinType();
+					String comparator = j.getComparator();
 					
-					if(type.equals("inner.join") || type.equals("left.outer.join")) {
+					if(IQueryFilter.comparatorIsEquals(comparator) && 
+							type.equals("inner.join") || type.equals("left.outer.join")) {
 						// we need to make sure we apply the filter correctly!
 						// remember, RHS is the alias we provide the selector
 						// but might not match the physical
@@ -261,7 +264,7 @@ public class MergeReactor extends AbstractReactor {
 						
 						SelectQueryStruct filterQs = new SelectQueryStruct();
 						QueryColumnSelector column = new QueryColumnSelector(leftColumnJoin);
-						filterQs.addSelector(column);
+						filterQs.addSelector(column);						
 						try {
 							Iterator<IHeadersDataRow> it = frame.query(filterQs);
 							List<Object> values = new ArrayList<Object>();

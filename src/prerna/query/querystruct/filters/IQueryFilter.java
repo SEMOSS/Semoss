@@ -304,6 +304,12 @@ public interface IQueryFilter {
 		}
 		return false;
 	}
+	
+	public static boolean comparatorIsEquals(String comparator) {
+		// we assume empty as equals
+		return comparator == null || comparator.equals("") 
+				|| comparator.equals("==") || comparator.equals("=");
+	}
 
 	////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////
