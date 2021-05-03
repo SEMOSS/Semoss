@@ -1130,6 +1130,22 @@ public class RSyntaxHelper {
 		return rsb.toString();
 	}
 	
+	/**
+	 * Replace na values with the string "NA"
+	 * @param tableName
+	 * @param colName
+	 * @return
+	 */
+	public static String replaceNAString(String tableName, List<String> colName) {
+		// dt[,c("FRAME","AGE")] <- replace(dt[,c("FRAME","AGE")], is.na(dt[,c("FRAME","AGE")]), "NA");
+		String colVector = createStringRColVec(colName);
+		String subsetTable = tableName + "[," + colVector + "]";
+		StringBuilder rsb = new StringBuilder(subsetTable)
+				.append(" <- replace(").append(subsetTable).append(",is.na(")
+				.append(subsetTable).append("), \"NA\")");
+		return rsb.toString();
+	}
+	
 	public static void main(String[] args) {
 //		// testing inner
 //		System.out.println("testing inner...");
