@@ -388,6 +388,7 @@ public class RFrameBuilder {
 		// execute type modifications
 		if(!charColumns.isEmpty()) {
 			evalR( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) );
+			evalR( RSyntaxHelper.replaceNAString(tableName, charColumns) );
 		}
 		if(!intColumns.isEmpty()) {
 			evalR( RSyntaxHelper.alterColumnTypeToInteger(tableName, intColumns) );
