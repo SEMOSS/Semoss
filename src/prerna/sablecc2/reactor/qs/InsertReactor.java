@@ -50,6 +50,8 @@ public class InsertReactor extends AbstractReactor {
 	/*
 	 * Pixel can contain a <UUID> value which 
 	 * will be replaced with UUID.randomUUID() 
+	 * Pixel can also contain <USER_ID> value which
+	 * will be replaced with the main user id
 	 * upon inserting into the database
 	 */
 	
@@ -169,6 +171,8 @@ public class InsertReactor extends AbstractReactor {
 				else if(values[i] instanceof String) {
 					if(values[i].equals("<UUID>")) {
 						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+					} else if(values[i].equals("<USER_ID>")) {
+						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "'");
 					} else {
 						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
 					}
@@ -268,6 +272,8 @@ public class InsertReactor extends AbstractReactor {
 					else if(values[i] instanceof String) {
 						if(values[i].equals("<UUID>")) {
 							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+						} else if(values[i].equals("<USER_ID>")) {
+							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "'");
 						} else {
 							valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
 						}
