@@ -78,7 +78,8 @@ public class PandasSyntaxHelper {
 	 * @param sep
 	 * @return
 	 */
-	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep) {
+	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, 
+			String tableName, String sep) {
 		if (sep == null || sep.isEmpty()) {
 			sep = ",";
 		}
@@ -96,13 +97,13 @@ public class PandasSyntaxHelper {
 	 * @param encoding
 	 * @return
 	 */
-	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep,
-			String encoding) {
+	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, 
+			String tableName, String sep, String encoding) {
 		if (encoding == null || encoding.isEmpty()) {
 			encoding = "utf-8";
 		}
 		
-		StringBuilder readCsv = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, encoding);
+		StringBuffer readCsv = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, encoding);
 		return readCsv.toString();
 	}
 	
@@ -118,12 +119,12 @@ public class PandasSyntaxHelper {
 	 * @param encoding
 	 * @return
 	 */
-	public static StringBuilder buildReadCsv(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep, 
-			String encoding) {
-		StringBuilder script = new StringBuilder();
-		StringBuilder replace = new StringBuilder(".replace(");
-		StringBuilder converter = new StringBuilder("converters={i: lambda x: x.strip() if (isinstance(");
-		StringBuilder numeric = new StringBuilder("");
+	public static StringBuffer buildReadCsv(String pandasImportVar, String numpyImportVar, String fileLocation, 
+			String tableName, String sep, String encoding) {
+		StringBuffer script = new StringBuffer();
+		StringBuffer replace = new StringBuffer(".replace(");
+		StringBuffer converter = new StringBuffer("converters={i: lambda x: x.strip() if (isinstance(");
+		StringBuffer numeric = new StringBuffer("");
 		
 		numeric.append(pandasImportVar).append(".to_numeric(x,errors='ignore')");
 		replace.append(NAN_VALUES).append(",").append(numpyImportVar).append(".nan)");
@@ -136,7 +137,6 @@ public class PandasSyntaxHelper {
 			  .append(".apply(lambda x: x.astype(str) if (any(x.map(type) == str)) else x)").append(replace);
 		
 		return script;
-		
 	}
 
 	/**
@@ -164,7 +164,7 @@ public class PandasSyntaxHelper {
 	 */
 	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep,
 			String encoding, Map<String, ?> dataTypeMaps) {
-		StringBuilder script = new StringBuilder();
+		StringBuffer script = new StringBuffer();
 		if (encoding == null || encoding.isEmpty()) {
 			encoding = "utf-8";
 		}
@@ -172,33 +172,62 @@ public class PandasSyntaxHelper {
 			script.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
 			  .append("',sep='" + sep + "',encoding='" + encoding + "')");
 		} else {
-			script.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
-			  .append("',sep='" + sep + "',encoding='" + encoding + "',dtype="+ buildDataTypeMap(numpyImportVar, dataTypeMaps) +")");
+			script = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, encoding, dataTypeMaps);
 		}
 		return script.toString();
 	}
 	
 	/**
-	 * creates a mapping of columns to data types for conversion. 
+	 * Builds the pandas CSV read method. Less greedy approach that accounts for date parsing. 
+	 * @param pandasImportVar
 	 * @param numpyImportVar
+	 * @param fileLocation
+	 * @param tableName
+	 * @param sep
+	 * @param encoding
 	 * @param dataTypeMaps
 	 * @return
 	 */
-	public static String buildDataTypeMap(String numpyImportVar, Map<String, ?> dataTypeMaps) {
-		StringBuilder sb = new StringBuilder();
+	public static StringBuffer buildReadCsv(String pandasImportVar, String numpyImportVar, String fileLocation, 
+			String tableName, String sep, String encoding, Map<String, ?> dataTypeMaps) {
+		StringBuffer sb = new StringBuffer();
+		StringBuffer dataMap = new StringBuffer();
+		StringBuffer dateList = new StringBuffer();
+
 		for (String column : dataTypeMaps.keySet()) {
-			Object dataType = dataTypeMaps.get(column);
+			Object inputType = dataTypeMaps.get(column);
+			SemossDataType dataType = null;
+			if(inputType instanceof SemossDataType) {
+				dataType = (SemossDataType) inputType;
+			} else {
+				dataType = SemossDataType.convertStringToDataType(inputType + "");
+			}
+			
 			if (dataType == null) {
 				continue;
 			}
-			if (sb.length() > 0) {
-				sb.append(",");
+			if (dataType == SemossDataType.DATE || dataType == SemossDataType.TIMESTAMP) {
+				if (dateList.length() > 0) {
+					dateList.append(",");
+				}
+				dateList.append("'").append(column).append("'");
+			} else {
+				if (dataMap.length() > 0) {
+					dataMap.append(",");
+				}
+				dataMap.append("'").append(column).append("':").append(convertSemossDataType(numpyImportVar, dataType));
 			}
-			sb.append("'").append(column).append("':").append(convertSemossDataType(numpyImportVar, dataType));
 		}
-		sb = new StringBuilder("{").append(sb).append("}");
-		return sb.toString();
+		dataMap = new StringBuffer("{").append(dataMap).append("}");
+		dateList = new StringBuffer("[").append(dateList).append("]");
+		
+		sb.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
+		  .append("',sep='" + sep + "',encoding='" + encoding + "',dtype="+ dataMap.toString()).append(",parse_dates=").append(dateList)
+		  .append(", infer_datetime_format=True)");
+		
+		return sb;
 	}
+	
 	/**
 	 * Maps Semoss data types to Pandas / Numpy data types. 
 	 * @param numpyImportVar
@@ -279,7 +308,7 @@ public class PandasSyntaxHelper {
 		int endCol = rangeIndicies[2];
 		int endRow = rangeIndicies[3];
 		fileLocation = fileLocation.replace("\\", "/");
-		StringBuilder sb = new StringBuilder();
+		StringBuffer sb = new StringBuffer();
 		sb.append(tableName + " = " + pandasImportVar + ".read_excel('" + fileLocation + "',");
 		// add column range
 		sb.append("sheet_name='" + sheetName + "', usecols=range(" + (startCol - 1) + ", " + endCol + "), ");
@@ -313,7 +342,7 @@ public class PandasSyntaxHelper {
 		 * rightTable.Genre} ]
 		 */
 
-		StringBuilder builder = new StringBuilder();
+		StringBuffer builder = new StringBuffer();
 		
 		if (!nonEqui) {
 			builder.append(returnTable).append(" = ").append(pandasFrameVar).append(".merge(").append(leftTableName)
@@ -339,8 +368,8 @@ public class PandasSyntaxHelper {
 	}
 	
 	public static String getMergeFilterSyntax(String tableName, List<Map<String, String>> joinCols, List<String> joinComparators) {
-		StringBuilder builder = new StringBuilder();
-		StringBuilder dropSyntax = new StringBuilder();
+		StringBuffer builder = new StringBuffer();
+		StringBuffer dropSyntax = new StringBuffer();
 		
 		for (int i = 0; i < joinCols.size(); i++) {
 			if (builder.length() > 0) {
@@ -359,7 +388,7 @@ public class PandasSyntaxHelper {
 				}
 			}
 		}
-		builder = new StringBuilder(tableName).append("=").append(tableName).append(".loc[(").append(builder).append(")]");
+		builder = new StringBuffer(tableName).append("=").append(tableName).append(".loc[(").append(builder).append(")]");
 		if (dropSyntax.length() > 0) {
 			builder.append(".drop([").append(dropSyntax).append("],axis=1)");
 		}
@@ -373,7 +402,7 @@ public class PandasSyntaxHelper {
 	 * @param builder
 	 * @param colNames
 	 */
-	public static void getMergeColsSyntax(StringBuilder builder, List<Map<String, String>> colNames, boolean grabKeys) {
+	public static void getMergeColsSyntax(StringBuffer builder, List<Map<String, String>> colNames, boolean grabKeys) {
 		// iterate through the map
 		boolean firstLoop = true;
 		int numJoins = colNames.size();
@@ -464,7 +493,7 @@ public class PandasSyntaxHelper {
 
 		// TODO: account for column types
 
-		StringBuilder command = new StringBuilder(tableName).append(".reindex(columns=[");
+		StringBuffer command = new StringBuffer(tableName).append(".reindex(columns=[");
 		// add current headers
 		for (int i = 0; i < curHeaders.length; i++) {
 			command.append("\"").append(curHeaders[i]).append("\",");
@@ -545,7 +574,7 @@ public class PandasSyntaxHelper {
 	 * @return String containing the equivalent r column vector
 	 */
 	public static String createPandasColVec(List<Object> row, SemossDataType dataType) {
-		StringBuilder str = new StringBuilder("([");
+		StringBuffer str = new StringBuffer("([");
 		int i = 0;
 		int size = row.size();
 		for (; i < size; i++) {
@@ -611,7 +640,7 @@ public class PandasSyntaxHelper {
 		HeadersException headerChecker = HeadersException.getInstance();
 		String[] pyColNames = headerChecker.getCleanHeaders(colNames);
 		// update frame header names in R
-		StringBuilder colRen = new StringBuilder("{");
+		StringBuffer colRen = new StringBuffer("{");
 		for (int i = 0; i < colNames.length; i++) {
 			colRen.append("'").append(colNames[i]).append("':'").append(pyColNames[i]).append("'");
 			if (i < colNames.length - 1) {
@@ -631,7 +660,7 @@ public class PandasSyntaxHelper {
 	 * @return
 	 */
 	public static String setColumnNames(String tableName, String[] headers) {
-		StringBuilder sb = new StringBuilder();
+		StringBuffer sb = new StringBuffer();
 		for (int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
 			if (sb.length() == 0) {
 				sb.append("[");
@@ -653,7 +682,7 @@ public class PandasSyntaxHelper {
 	 * @return
 	 */
 	public static String filterByColumn(String tableName, String newTableName, List<String> columns) {
-		StringBuilder sb = new StringBuilder();
+		StringBuffer sb = new StringBuffer();
 		if (columns.isEmpty() || columns == null) {
 			return newTableName + "=" + tableName;
 		}
@@ -711,7 +740,7 @@ public class PandasSyntaxHelper {
 	 * @return
 	 */
 	public static String filterByRow(String tableName, String newTableName, List<String> rowIndex) {
-		StringBuilder sb = new StringBuilder();
+		StringBuffer sb = new StringBuffer();
 
 		if (rowIndex.isEmpty() || rowIndex == null) {
 			String script = newTableName + " = " + tableName;
@@ -803,7 +832,7 @@ public class PandasSyntaxHelper {
 		if (negation == null) {
 			negation = "";
 		}
-		StringBuilder sb = new StringBuilder();
+		StringBuffer sb = new StringBuffer();
 
 		if (values.isEmpty() || values == null) {
 			String script = newTableName + " = " + tableName;
