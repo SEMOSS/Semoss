@@ -202,10 +202,10 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		StringWriter sw = new StringWriter();
 		try {
 			// read the file and populate it
-			byte [] bytes = FileUtils.readFileToByteArray(new File(retFile));
+			byte [] bytes = FileUtils.readFileToByteArray(new File(Utility.normalizePath(retFile)));
 			String encodedString = Base64.getEncoder().encodeToString(bytes);
 			String mimeType = "image/png";
-			mimeType = Files.probeContentType(new File(retFile).toPath());
+			mimeType = Files.probeContentType(new File(Utility.normalizePath(retFile)).toPath());
 			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
 		} catch (IOException e) {
 			e.printStackTrace();

@@ -233,7 +233,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		// get the insight folder
 		String IF = insight.getInsightFolder();
 		retFile = retFile.split(" ")[1].replace("\"","").replace("$IF", IF);
-
+		retFile = Utility.normalizePath(retFile);
 		StringWriter sw = new StringWriter();
 		try
 		{
