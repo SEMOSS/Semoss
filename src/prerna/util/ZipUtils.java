@@ -209,8 +209,8 @@ public final class ZipUtils {
 		}
 
 		// convert .temp file to .smss
-		File tempFile = new File(tempAbsolutePath);
-		File smssFile = new File(tempAbsolutePath.replace(".temp", ".smss"));
+		File tempFile = new File(Utility.normalizePath(tempAbsolutePath));
+		File smssFile = new File(Utility.normalizePath(tempAbsolutePath.replace(".temp", ".smss")));
 		try {
 			FileUtils.copyFile(tempFile, smssFile);
 			smssFile.setReadable(true);
