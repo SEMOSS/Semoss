@@ -573,7 +573,7 @@ public class DistanceDownstreamInserter {
 			public int downstream=-1;
 			public double weight=0;
 			public double networkWeight=0;
-			public int rand = (int)Math.round(Math.random()*100);
+			//public int rand = (int)Math.round(Math.random()*100);
 			public ArrayList<Node> children= new ArrayList<Node>();
 			public ArrayList<Node> parents= new ArrayList<Node>();
 			/**

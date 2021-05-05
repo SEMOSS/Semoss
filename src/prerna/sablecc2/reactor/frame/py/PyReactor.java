@@ -169,7 +169,7 @@ public class PyReactor extends AbstractPyFrameReactor {
 
 		// get the insight folder
 		String IF = insight.getInsightFolder();
-		seabornFile = seabornFile.replace("$IF", IF);
+		seabornFile = Utility.normalizePath(seabornFile.replace("$IF", IF));
 		
 		StringWriter sw = new StringWriter();
 		String bin = null;
