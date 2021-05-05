@@ -397,18 +397,9 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			this.logger.info("Checking differences in metamodel to add");
 			// loop through new tables and column names and add them in to existing metamodel
 			newRDBMSStructure.forEach((newTableName, columnsFromNew) -> {
+				this.logger.info("Adding table to OWL: " + newTableName);
 				if (!existingMetamodel.containsKey(newTableName)) {
 					owler.addConcept(newTableName, null, null);
-					try {
-						owler.export();
-					} catch (IOException e) {
-						NounMetadata noun = new NounMetadata(
-								"An error occured attempting to remove the desired concept",
-								PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-						SemossPixelException err = new SemossPixelException(noun);
-						err.setContinueThreadOfExecution(false);
-						throw err;
-					}
 				}
 
 				this.logger.info("Adding columns to OWL");
