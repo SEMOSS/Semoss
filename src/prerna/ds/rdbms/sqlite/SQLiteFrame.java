@@ -16,6 +16,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.H2SqlInterpreter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -144,7 +145,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		this.frameName = cf.getFrameName();
 
 		// load the frame
-		String filePath = cf.getFrameCacheLocation();
+		String filePath = Utility.normalizePath(cf.getFrameCacheLocation());
 
 		// drop the aggregate if it exists since the opening of the script will
 		// fail otherwise
