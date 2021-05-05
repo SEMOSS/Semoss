@@ -340,7 +340,7 @@ public class AZClient extends CloudClient {
 					deleteRcloneConfig(appRcloneConfig);
 				}
 				//open the owl
-				if(owlFile.exists()) {
+				if(owlFile!=null && owlFile.exists()) {
 					engine.setOWL(owlFile.getAbsolutePath());
 				} else {
 					throw new IllegalArgumentException("Pull failed. OWL for engine " + appId + " was not found");
@@ -393,7 +393,7 @@ public class AZClient extends CloudClient {
 					deleteRcloneConfig(appRcloneConfig);
 				}
 				//open the owl
-				if(owlFile.exists()) {
+				if(owlFile!=null && owlFile.exists()) {
 					engine.setOWL(owlFile.getAbsolutePath());
 				} else {
 					throw new IllegalArgumentException("Push failed. OWL for engine " + appId + " was not found");
