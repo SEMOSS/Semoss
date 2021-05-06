@@ -547,8 +547,9 @@ public class Constants {
 	public static final String LOCAL_DEPLOYMENT = "LOCAL_DEPLOYMENT";
 	
 	// if python is installed
-	public static final String PYTHON = "PYTHON";
 	public static final String USE_PYTHON = "USE_PYTHON";
+	public static final String PY_WORKER_CP = "PY_WORKER_CP";
+	public static final String TCP_WORKER_CP = "TCP_WORKER_CP";
 	//if spark is enabled
 	public static final String SPARK = "SPARK";
 	public static final String USE_SPARK = "USE_SPARK";
@@ -671,4 +672,11 @@ public class Constants {
 	public static final String SAML = "saml";
 	public static final String SAML_FEDERATION_LOG_PATH = "SAML_FEDERATION_LOG_PATH";
 	public static final String SAML_PROP_LOC = "SAML_PROP_LOC";
+	
+	// starting process for r/py
+	public static final String JAVA_HOME = "JAVA_HOME";
+	public static final String LD_LIBRARY_PATH = "LD_LIBRARY_PATH";
+	public static final String TCP_WORKER = "TCP_WORKER";
+	public static final String ULIMIT_R_MEM_LIMIT = "ULIMIT_R_MEM_LIMIT";
+	
 }

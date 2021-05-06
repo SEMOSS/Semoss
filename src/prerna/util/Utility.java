@@ -3511,14 +3511,16 @@ public class Utility {
 		}
 		String specificPath = getCP(cp, insightFolder);
 		try {
-			String java = System.getenv("JAVA_HOME");
+			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {
-				java = DIHelper.getInstance().getProperty("JAVA_HOME");
+				java = DIHelper.getInstance().getProperty(Constants.JAVA_HOME);
 			}
-			if(!java.endsWith("bin")) //seems like for graal
+			if(!java.endsWith("bin")) {
+				//seems like for graal
 				java = java + "/bin/java";
-			else
+			} else {
 				java = java + "/java";
+			}
 			// account for spaces in the path to java
 			if (java.contains(" ")) {
 				java = "\"" + java + "\"";
@@ -3526,9 +3528,9 @@ public class Utility {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String jep = DIHelper.getInstance().getProperty("LD_LIBRARY_PATH");
+			String jep = DIHelper.getInstance().getProperty(Constants.LD_LIBRARY_PATH);
 			if (jep == null) {
-				jep = System.getenv("LD_LIBRARY_PATH");
+				jep = System.getenv(Constants.LD_LIBRARY_PATH);
 			}
 			// account for spaces in the path to jep
 			if (jep.contains(" ")) {
@@ -3536,13 +3538,14 @@ public class Utility {
 			}
 			jep = jep.replace("\\", "/");
 
-			String pyWorker = DIHelper.getInstance().getProperty("TCP_WORKER");
-			if(pyWorker == null)
+			String pyWorker = DIHelper.getInstance().getProperty(Constants.TCP_WORKER);
+			if(pyWorker == null) {
 				pyWorker = "prerna.tcp.Server";
+			}
 			String[] commands = null;
-			if (port == null)
+			if (port == null) {
 				commands = new String[7];
-			else {
+			} else {
 				commands = new String[8];
 				commands[7] = port;
 			}
@@ -3592,19 +3595,16 @@ public class Utility {
 			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
 			// pb.command(commands);
 
-			
-
-			if(!(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty("ULIMIT_R_MEM_LIMIT")))){
-				String ulimit = DIHelper.getInstance().getProperty("ULIMIT_R_MEM_LIMIT");
-			StringBuilder sb = new StringBuilder();
-			for (String str : commands) {
-				sb.append(str).append(" ");
-			}
-			sb.substring(0, sb.length() - 1);
-			commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+			if(!(Strings.isNullOrEmpty(DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+				String ulimit = DIHelper.getInstance().getProperty(Constants.ULIMIT_R_MEM_LIMIT);
+				StringBuilder sb = new StringBuilder();
+				for (String str : commands) {
+					sb.append(str).append(" ");
+				}
+				sb.substring(0, sb.length() - 1);
+				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 			}
 
-			
 			String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
