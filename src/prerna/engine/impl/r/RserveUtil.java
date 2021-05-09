@@ -23,6 +23,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import com.google.common.base.Strings;
 
+import prerna.sablecc2.reactor.mgmt.MgmtUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -101,11 +102,12 @@ public class RserveUtil {
 	//////////////////////////////////////////////////////////////////////
 	// Start and stop
 	//////////////////////////////////////////////////////////////////////
-	public static void startR(int port) throws Exception {
+	public static Process startR(int port) throws Exception {
 		
 		// Need to allow this process to execute the below commands
 		SecurityManager priorManager = System.getSecurityManager();
 		System.setSecurityManager(null);
+		Process process = null;
 		
 		// Start
 		try {
@@ -130,13 +132,16 @@ public class RserveUtil {
 			}
 			pb.redirectOutput(output);
 			pb.redirectError(error);
-			Process process = pb.start();
+			process = pb.start();
 			process.waitFor(7L, TimeUnit.SECONDS);
+			System.out.println(" >> " + MgmtUtil.getProcessID(process));
+			MgmtUtil.printChild(MgmtUtil.getProcessID(process));
 		} finally {
 			
 			// Restore the prior security manager
 			System.setSecurityManager(priorManager);
 		}
+		return process;
 	}
 	
 	public static void stopR(int port) throws Exception {
@@ -276,4 +281,5 @@ public class RserveUtil {
 			System.setSecurityManager(priorManager);
 		}
 	}
+	
 }
