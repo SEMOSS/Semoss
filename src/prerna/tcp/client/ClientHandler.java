@@ -65,6 +65,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter //MessageToMessa
         // Close the connection when an exception is raised.
         cause.printStackTrace();
         ctx.close();
+        
+        // need to also inform all the users back
+        nc.crash();
     }
 	
 	@Override

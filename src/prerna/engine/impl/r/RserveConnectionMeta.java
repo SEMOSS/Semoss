@@ -8,6 +8,7 @@ public class RserveConnectionMeta {
 	private final int port;
 	private RConnection rcon;
 	private volatile boolean isActive = false;
+	private volatile Process process = null;
 	
 	public RserveConnectionMeta(String host, int port) {
 		this.host = host;
@@ -52,5 +53,14 @@ public class RserveConnectionMeta {
 		}
 		return false;
 	}
+
+	public Process getProcess() {
+		return process;
+	}
+
+	public void setProcess(Process process) {
+		this.process = process;
+	}
 		
+	
 }

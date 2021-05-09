@@ -12,6 +12,7 @@ public interface IRUserConnection {
 
 	public static final String TYPE = RserveUtil.R_USER_CONNECTION_TYPE;
 	
+	
 	public static IRUserConnection getRUserConnection(String rDataFile) {
 		if (TYPE.equals(POOLED)) {
 			return new RUserConnectionPooled(rDataFile);
@@ -68,5 +69,7 @@ public interface IRUserConnection {
 	public boolean isRecoveryEnabled();
 	
 	void setRecoveryEnabled(boolean enableRecovery);
+	
+	public Process getProcess();
 	
 }

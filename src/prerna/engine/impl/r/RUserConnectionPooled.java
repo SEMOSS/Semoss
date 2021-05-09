@@ -15,6 +15,7 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 	public RUserConnectionPooled(String rDataFile) {
 		super(rDataFile);
 		this.rconMeta = RserveConnectionPool.getInstance().getConnection();
+		this.process = rconMeta.getProcess();
 	}
 
 	public RUserConnectionPooled() {

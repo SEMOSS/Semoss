@@ -30,7 +30,8 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 	private void init() {
 		try {
 			setPort();
-			RserveUtil.startR(port);
+			process = RserveUtil.startR(port);
+			
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Failed to initialize R.", e);
 		}
@@ -44,6 +45,7 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 	@Override
 	protected void recoverConnection() throws Exception {
 		// Try to stop R
+		// also try to see if the connection is there and we can connect
 		try {
 			stopR();
 		} catch (Exception e) {
@@ -52,7 +54,7 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 		}
 		
 		// Try to start R and establish a new connection to it
-		RserveUtil.startR(port);
+		process = RserveUtil.startR(port);
 		initializeConnection();
 		loadDefaultPackages();
 
@@ -85,6 +87,11 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 			port++;
 			if (port > PORT_MAX) throw new IllegalArgumentException("No more ports are available."); 
 		}
+	}
+	
+	public int getPort()
+	{
+		return port;
 	}
 	
 }
