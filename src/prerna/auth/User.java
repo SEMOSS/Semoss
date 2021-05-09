@@ -27,9 +27,11 @@ import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.CopyObject;
 import prerna.tcp.client.Client;
+import prerna.util.ChromeDriverUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.NettyChromeDriverClient;
 import prerna.util.SemossClassloader;
 import prerna.util.Utility;
 
@@ -72,13 +74,20 @@ public class User implements Serializable {
 	Map <String, String> engineIdMap = new HashMap<>();
 	Map <String, StringBuffer> appMap = new HashMap<>();
 	Map <String, IStorageEngine> externalMounts = new HashMap<String, IStorageEngine>();
-
+	
 	private boolean anonymous;
 	private String anonymousId;
 	
 	public transient CopyObject cp = null;
 
 	private transient CmdExecUtil cmdUtil = null;
+	
+	private transient Process rProcess = null;
+	private transient Process pyProcess = null;
+	
+	private int rPort = -1;
+	private int pyPort = -1;
+	
 
 	/**
 	 * Set the access token for a given provider
@@ -634,6 +643,8 @@ public class User implements Serializable {
 
 	public PyTranslator getPyTranslator(boolean create)
 	{
+		boolean useNettyPy = DIHelper.getInstance().getProperty("NETTY_PYTHON") != null
+				&& DIHelper.getInstance().getProperty("NETTY_PYTHON").equalsIgnoreCase("true");
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is set to false for this instance");
 		}
@@ -644,8 +655,6 @@ public class User implements Serializable {
 			{
 				if (AbstractSecurityUtils.securityEnabled() && PyUtils.pyEnabled()) 
 				{		
-					boolean useNettyPy = DIHelper.getInstance().getProperty("NETTY_PYTHON") != null
-							&& DIHelper.getInstance().getProperty("NETTY_PYTHON").equalsIgnoreCase("true");
 					if (!useNettyPy) 
 					{
 						PyExecutorThread jepThread = null;
@@ -679,6 +688,14 @@ public class User implements Serializable {
 				}
 			}
 		}
+		else if(!tcpServer.isConnected() && useNettyPy)
+		{
+			// need to check if this is netty py
+			//System.err.println("TCP Server has crashed !!");
+			//this.pyt = null;
+			//this.tcpServer = null;
+			PyUtils.getInstance().killTempTupleSpace(this);;
+		}
 		return this.pyt;
 	}
 	
@@ -710,11 +727,13 @@ public class User implements Serializable {
 	{
 		if (tcpServer == null)  // start only if it not already in progress
 		{
+			logger.info("Starting the TCP Server !! ");
 			port = DIHelper.getInstance().getProperty("FORCE_PORT"); // this means someone has
 																			// started it for debug
 			if (port == null) // port has not been forced
 			{
 					port = Utility.findOpenPort();
+					
 				if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
 					pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
 				} else {
@@ -745,7 +764,44 @@ public class User implements Serializable {
 					}								
 				}
 			}
+			
+			setPyPort(Integer.parseInt(port));
 		}
 	}
+
+	public Process getrProcess() {
+		return rProcess;
+	}
+
+	public void setrProcess(Process rProcess) {
+		this.rProcess = rProcess;
+	}
+
+	public Process getPyProcess() {
+		return pyProcess;
+	}
+
+	public void setPyProcess(Process pyProcess) {
+		this.pyProcess = pyProcess;
+	}
+
+	public int getrPort() {
+		return rPort;
+	}
+
+	public void setrPort(int rPport) {
+		this.rPort = rPport;
+	}
+
+	public int getPyPort() {
+		return pyPort;
+	}
+
+	public void setPyPort(int pyPport) {
+		this.pyPort = pyPport;
+	}
+	
+	
+	
 	
 }
