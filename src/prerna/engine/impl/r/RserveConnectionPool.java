@@ -38,8 +38,9 @@ public class RserveConnectionPool implements IRserveConnectionPool {
 		if (pool.size() < RserveUtil.RSERVE_CONNECTION_POOL_SIZE) {
 			int port = RserveUtil.getOpenPort();
 			try {
-				RserveUtil.startR(port);
+				Process p = RserveUtil.startR(port);
 				RserveConnectionMeta connection = new RserveConnectionMeta(HOST, port);
+				connection.setProcess(p);
 				pool.put(connection, 1);
 				return connection;
 			} catch (Exception e) {
@@ -83,7 +84,8 @@ public class RserveConnectionPool implements IRserveConnectionPool {
 	public void recoverConnection(RserveConnectionMeta connection) throws Exception {
 		try { 
 			RserveUtil.stopR(connection.getPort());
-			RserveUtil.startR(connection.getPort());
+			Process p = RserveUtil.startR(connection.getPort());
+			connection.setProcess(p);
 		} finally {
 			connection.setRcon(null);
 		}

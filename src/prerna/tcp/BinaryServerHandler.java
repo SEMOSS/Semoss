@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.chrome.ChromeDriver;
 
@@ -196,13 +197,13 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 						LOGGER.info(ex + ps.methodName);
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ex.getTargetException() + "";						
+						ps.ex = ExceptionUtils.getStackTrace(ex);						
 					}catch(Exception ex )
 					{
 						LOGGER.info(ex + ps.methodName);
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ex + "";						
+						ps.ex = ExceptionUtils.getStackTrace(ex);						
 					}finally
 					{
 						return ps;
@@ -227,7 +228,7 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 						LOGGER.debug(ex);
 						ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ex.getMessage();
+						ps.ex = ExceptionUtils.getStackTrace(ex);						
 					}
 				}
 				else if(ps.engine == PayloadStruct.ENGINE.CHROME)
@@ -251,8 +252,8 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
 						LOGGER.debug(ex);
 						//ex.printStackTrace();
 						//System.err.println("Method.. " + ps.methodName);
-						ps.ex = ex.getMessage();
-						TCPChromeDriverUtility.quit("stop");
+						ps.ex = ExceptionUtils.getStackTrace(ex);						
+						//TCPChromeDriverUtility.quit("stop");
 					}
 					
 				}

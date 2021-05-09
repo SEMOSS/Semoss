@@ -24,6 +24,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.DIHelper;
 import prerna.util.FstUtil;
@@ -42,12 +43,16 @@ public class Client implements Runnable{
     Map requestMap = new HashMap();
     Map responseMap = new HashMap();
     boolean ready = false;
+    boolean connected = false;
 	private static final String CLASS_NAME = Client.class.getName();
 	private static final Logger logger = LogManager.getLogger(CLASS_NAME);
 	AtomicInteger count = new AtomicInteger(0);
 	long averageMillis = 200;
 	boolean warmup;
 	String status = "not_started";
+	
+	
+	boolean killall = false; // use this if the server is dead or it has crashed
 	
     
     public void connect(String HOST, int PORT, boolean SSL)
@@ -68,7 +73,6 @@ public class Client implements Runnable{
     public void run()	
     {
         // Configure SSL.git
-    	boolean connected = false;
     	int attempt = 1;
     	int SLEEP_TIME = 800;
     	if(DIHelper.getInstance().getProperty("SLEEP_TIME") != null)
@@ -114,6 +118,7 @@ public class Client implements Runnable{
 		            //logger.info("First command.. Prime" + executeCommand("2+2"));
 		            connected = true;
 		            ready = true;
+		            killall = false;
 		            synchronized(this)
 		            {
 		            	this.notifyAll();
@@ -159,6 +164,10 @@ public class Client implements Runnable{
 
     public Object executeCommand(PayloadStruct ps)
     {
+    	if(killall)
+        	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+    	
+    	
     	int attempt = 0;
     	String id = "ps"+ count.getAndIncrement();
     	ps.epoc = id;
@@ -192,14 +201,14 @@ public class Client implements Runnable{
     		// time to wait = average time * 10
     		
 			int pollNum = 1; // 1 second
-			while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning))
+			while(!responseMap.containsKey(ps.epoc) && (pollNum <  10 || ps.longRunning) && !killall)
 			{
 				//logger.info("Checking to see if there was a response");
 				try
 				{
 					if(pollNum < 10)
 						ps.wait(averageMillis);
-					else //if(ps.longRunning)
+					else //if(ps.longRunning) // this is to make sure the kill all is being checked
 						ps.wait(); // wait eternally - we dont know how long some of the load operations would take besides, I am not sure if the null gets us anything
 					pollNum++;
 				}catch (InterruptedException e) 
@@ -221,6 +230,7 @@ public class Client implements Runnable{
 				logger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
 				
 			}
+
 			// after 10 seconds give up
 			//printUnprocessed();
 			return responseMap.remove(ps.epoc);
@@ -284,6 +294,47 @@ public class Client implements Runnable{
     	responseMap.put(command, output);
     }
     
+    
+    private void printUnprocessed()
+    {
+    	Iterator keys = requestMap.keySet().iterator();
+    	logger.info("Unprocessed so far.. ");
+    	while(keys.hasNext())
+    	{
+    		String thisKey = (String)keys.next();
+    		System.err.print("<" + thisKey + ">" + "<" + ((PayloadStruct)requestMap.get(thisKey)).methodName);
+    	}    	
+    }
+    
+    public boolean isConnected()
+    {
+    	return this.connected;
+    }
+    
+    public void crash()
+    {
+    	// this happens when the client has completely crashed
+    	// make the connected to be false
+    	// take everything that is waiting on it
+    	// go through request map and start pushing
+    	Iterator keyIterator = requestMap.keySet().iterator();
+    	while(keyIterator.hasNext())
+    	{
+    		PayloadStruct ps = (PayloadStruct)requestMap.remove(keyIterator.next());
+    		ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+    		
+    		synchronized(ps)
+    		{
+    			ps.notifyAll();
+    		}
+    	}
+    	this.connected = false;
+    	killall = true;
+    	status = "crashed";
+    	
+    	throw new SemossPixelException("Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+    }
+    
     public void warmup()
     {
     	long totalMillis = 0;
@@ -323,20 +374,5 @@ public class Client implements Runnable{
     	
     	System.err.println("Average rountrip takes .. " + averageMillis);
     }
-    
-    private void printUnprocessed()
-    {
-    	Iterator keys = requestMap.keySet().iterator();
-    	logger.info("Unprocessed so far.. ");
-    	while(keys.hasNext())
-    	{
-    		String thisKey = (String)keys.next();
-    		System.err.print("<" + thisKey + ">" + "<" + ((PayloadStruct)requestMap.get(thisKey)).methodName);
-    	}    	
-    	
-    	
-    }
-    
-    
     
 }
