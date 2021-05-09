@@ -13,6 +13,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -140,8 +141,14 @@ public class PyUtils {
 				if(cp == null)
 					LOGGER.info("Unable to see class path ");
 				Process  p = Utility.startTCPServer(cp, tempDirForUser.toString(), port);
+				
+				
 				if(p != null) {
 					userProcessMap.put(user,  p);
+					
+					// set the py process into the user
+					if(user instanceof User)
+						((User)user).setPyProcess(p);
 				}
 				LOGGER.info(">>>Pyserve Open on " + port + " <<<");
 				return tempDirForUser.toString();
@@ -207,5 +214,6 @@ public class PyUtils {
 		*/		
 		LOGGER.info(">>>KILLING PYTHON TUPESPACE FOR USER - COMPLETE<<<");
 	}
+	
 	
 }
