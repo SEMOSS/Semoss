@@ -27,11 +27,9 @@ import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.CopyObject;
 import prerna.tcp.client.Client;
-import prerna.util.ChromeDriverUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.NettyChromeDriverClient;
 import prerna.util.SemossClassloader;
 import prerna.util.Utility;
 
@@ -568,8 +566,7 @@ public class User implements Serializable {
 	}
 	
 	
-	private void addVarString(String varName, StringBuffer oldValue)
-	{
+	private void addVarString(String varName, StringBuffer oldValue) {
 		StringBuffer retRString = appMap.get("R_VAR_STRING");
 		StringBuffer retPyString = appMap.get("PY_VAR_STRING");
 		
@@ -589,17 +586,15 @@ public class User implements Serializable {
 		appMap.put("PY_VAR_STRING", retPyString);			
 	}
 	
-	private String getVarString(boolean r)
-	{
-		if(r)
+	private String getVarString(boolean r) {
+		if(r) {
 			return appMap.get("R_VAR_STRING").toString();
-		else
+		} else {
 			return appMap.get("PY_VAR_STRING").toString();
-			
+		}
 	}
 	
-	public Map<String, StringBuffer> getAppMap()
-	{
+	public Map<String, StringBuffer> getAppMap() {
 		return this.appMap;
 	}
 	
@@ -648,20 +643,16 @@ public class User implements Serializable {
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is set to false for this instance");
 		}
-		if(this.pyt == null && create)
-		{
+		if(this.pyt == null && create) {
 			// all of the logic should go here now ?
-			synchronized(this)
-			{
-				if (AbstractSecurityUtils.securityEnabled() && PyUtils.pyEnabled()) 
-				{		
-					if (!useNettyPy) 
-					{
+			synchronized(this) {
+				if (AbstractSecurityUtils.securityEnabled() && PyUtils.pyEnabled()) {		
+					if (!useNettyPy) {
 						PyExecutorThread jepThread = null;
 						if (jepThread == null) {
 							jepThread = PyUtils.getInstance().getJep();
-							pyt = new PyTranslator();
-							pyt.setPy(jepThread);
+							this.pyt = new PyTranslator();
+							this.pyt.setPy(jepThread);
 							int logSleeper = 1;
 							while(!jepThread.isReady())
 							{
@@ -680,34 +671,29 @@ public class User implements Serializable {
 					}
 					// check to see if the py translator needs to be set ?
 					// check to see if the py translator needs to be set ?
-					else 
-					{
-						pyt = new TCPPyTranslator();
+					else {
+						this.pyt = new TCPPyTranslator();
 						((TCPPyTranslator) pyt).nc = getTCPServer(); // starts it
 					}
 				}
 			}
 		}
-		else if(!tcpServer.isConnected() && useNettyPy)
+		else if(useNettyPy && (tcpServer != null && !tcpServer.isConnected()) )
 		{
 			// need to check if this is netty py
 			//System.err.println("TCP Server has crashed !!");
 			//this.pyt = null;
 			//this.tcpServer = null;
-			PyUtils.getInstance().killTempTupleSpace(this);;
+			PyUtils.getInstance().killTempTupleSpace(this);
 		}
 		return this.pyt;
 	}
 	
-	
-	
-	public boolean checkAppAccess(String appName, String appId)
-	{
+	public boolean checkAppAccess(String appName, String appId) {
 		return (engineIdMap.containsKey(appName) && engineIdMap.get(appName).equalsIgnoreCase(appId));	
 	}
 	
-	public void setContext(String context)
-	{
+	public void setContext(String context) {
 		// sets the context space for the user
 		// also set rhe cmd context right here
 		String mountDir = appMap.get(context) + "";
@@ -718,13 +704,11 @@ public class User implements Serializable {
 		this.cmdUtil = new CmdExecUtil(context, mountDir);
 	}
 	
-	public CmdExecUtil getCmdUtil()
-	{
+	public CmdExecUtil getCmdUtil() {
 		return this.cmdUtil;
 	}
 	
-	private void startTCPServer()
-	{
+	private void startTCPServer() {
 		if (tcpServer == null)  // start only if it not already in progress
 		{
 			logger.info("Starting the TCP Server !! ");
@@ -800,8 +784,5 @@ public class User implements Serializable {
 	public void setPyPort(int pyPport) {
 		this.pyPort = pyPport;
 	}
-	
-	
-	
 	
 }
