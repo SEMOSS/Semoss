@@ -49,6 +49,8 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	
 	private String env;
 	
+	protected Process process;
+	
 	////////////////////////////////////////
 	// Constructors, overloaded for defaults
 	////////////////////////////////////////
@@ -86,7 +88,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					Future<REXP> future = executor.submit(new Callable<REXP>() {
 						@Override
 						public REXP call() throws Exception {
-							REXP rexp = rcon.eval(rScript);
+							REXP rexp = rcon.eval(rScript);  // fails here .. if you wrapped this.. all is well I feel.. 
 							if (recoveryEnabled) {
 								saveImage(); // Save image after execution
 							}
@@ -399,6 +401,11 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	
 	public boolean isStopped() {
 		return this.stoppedR;
+	}
+	
+	public Process getProcess()
+	{
+		return process;
 	}
 	
 }
