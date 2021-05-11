@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -29,7 +30,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /*
  * Utility class to process additional tools applied on the data while exporting.
- */
+ */	
 public class FormattingUtility {
 
 	private static final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -45,6 +46,7 @@ public class FormattingUtility {
 	public static final String ACCOUNTING = "accounting";
 	public static final String DELIMITER = "delimiter";
 	public static final String PERCENTAGE = "percentage";
+	public static final String DATE = "date";
 	public static final String BETWEEN_DIGITS = "\\B(?=(\\d{3})+(?!\\d))";
 
 	/**
@@ -219,29 +221,40 @@ public class FormattingUtility {
 		// Adding Empty Check as it was breaking the Date export.
 		if(metamodelAdditionalDataType != null && !metamodelAdditionalDataType.isEmpty()) {
 			// first check if this is a map
-    		Map<String, String> customDataFormat = null;
+    		Map<String, Object> customDataFormat = null;
+    		String prepend = null, append = null, delimiter = null, date = null;
+        	Integer round = null;
+			
     		try {
-    			customDataFormat = gson.fromJson(metamodelAdditionalDataType, Map.class);
-    			if(customDataFormat != null && !customDataFormat.isEmpty()) {
-    				metamodelAdditionalDataType = customDataFormat.get("type").toLowerCase();
+    			customDataFormat = mapFormatOpts(metamodelAdditionalDataType, dataType);
+    			if(customDataFormat != null && !customDataFormat.isEmpty() && customDataFormat.containsKey(ROUND) && !customDataFormat.get(ROUND).equals("")) {
+    				round = (Integer) customDataFormat.get(ROUND);
+    			}
+    			if(customDataFormat == null || customDataFormat.isEmpty()) {
+    				customDataFormat = gson.fromJson(metamodelAdditionalDataType, Map.class);
+        			if(customDataFormat != null && !customDataFormat.isEmpty()) {
+        				metamodelAdditionalDataType = ((String) customDataFormat.get("type")).toLowerCase();
+        				if(customDataFormat.containsKey(ROUND) && !customDataFormat.get(ROUND).equals("")) {
+        					round  = (int)Math.round((Double) customDataFormat.get(ROUND));
+        				}
+        			}
     			}
     		} catch(JsonSyntaxException e) {
     			// ignore
+    			
     		} catch(Exception e) {
     			e.printStackTrace();
     		}
 
-        	String prepend = null;
-        	String append = null;
-        	Integer round = null;
-			String delimiter = null;
-
-    		if(customDataFormat != null) {
-    			prepend = customDataFormat.get(PREPEND);
-    			append = customDataFormat.get(APPEND);
-        		round = customDataFormat.containsKey(ROUND) ? Integer.parseInt(customDataFormat.get(ROUND))
-    					: null;
-    			delimiter = customDataFormat.get(DELIMITER);
+    		if(customDataFormat != null && !customDataFormat.isEmpty()) {
+    			prepend = (String) customDataFormat.get(PREPEND);
+    			append = (String) customDataFormat.get(APPEND);
+    			delimiter = (String) customDataFormat.get(DELIMITER);
+    			
+    			// Needed for custom timestamp and dates
+    			if(customDataFormat.containsKey(DATE) && !customDataFormat.get(DATE).equals("")) {
+    				date = (String) customDataFormat.get(DATE);
+    			}
     		}
     		
     		SemossDataType semossDataType = SemossDataType.convertStringToDataType(dataType + "");
@@ -280,6 +293,7 @@ public class FormattingUtility {
 							}
 						}
 						formatted = formatted.toString() + type;
+						dontRound = true;
 					}
 
 					else if (formatType.equalsIgnoreCase(ACCOUNTING)) {
@@ -318,6 +332,22 @@ public class FormattingUtility {
 								formatted = "(" + formatted + ")";
 							}
 						}
+					} else if (formatType.equalsIgnoreCase(PERCENTAGE)) {
+						// if no custom append symbol is added, use %
+						if (append == null || "".equals(append)) {
+							append = "%";
+						}
+						//multiply with 100 to get the % of it
+						numericValue = numericValue * 100;
+						//rounding the value
+						if (round != null) {
+							double shift = Math.pow(10, round);
+							formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round,
+									BigDecimal.ROUND_HALF_EVEN);
+						} else {
+							formatted = numericValue;
+						}
+						dontRound = true;// don't round since already rounded
 					}
 				}
 				
@@ -337,11 +367,22 @@ public class FormattingUtility {
 				}
 			} 
 			else if (semossDataType == SemossDataType.DATE) {
+				// Check if a custom format is there
+				if(date != null) {
+					formatted = getDate(formatted.toString(), "yyyy-MM-dd", date);
+				} else {
+					formatted = getDate(formatted.toString(), "yyyy-MM-dd", metamodelAdditionalDataType);
+				}
 				// the input is a date format itself
-				formatted = getDate(formatted.toString(), "yyyy-MM-dd", metamodelAdditionalDataType);
+				
 			} else if (semossDataType == SemossDataType.TIMESTAMP){
+				// Check if a custom format is there
+				if(date != null) {
+					formatted = getDate(formatted.toString(), "yyyy-MM-dd hh:mm:ss", date);
+				} else {
+					formatted = getDate(formatted.toString(), "yyyy-MM-dd hh:mm:ss", metamodelAdditionalDataType);
+				}
 				// the input is a date format itself
-				formatted = getDate(formatted.toString(), "yyyy-MM-dd hh:mm:ss", metamodelAdditionalDataType);
 			}
 
     		// apply prepend/append
@@ -599,7 +640,127 @@ public class FormattingUtility {
 				.anyMatch(valuesColorObj -> ((cell instanceof SemossDate && valuesColorObj instanceof SemossDate)
 						? (((SemossDate) valuesColorObj).getDate().getTime() == ((SemossDate) cell).getDate().getTime())
 						: valuesColorObj.equals(cell)));
-
+	}
+	
+	/**
+	 * @param metamodelAdditionalDataType
+	 * @param dataType
+	 * @return - Map - the Mapping has been kept same as of the UI 
+	 */
+	public static Map<String, Object> mapFormatOpts (String metamodelAdditionalDataType, String dataType) {
+		Map<String, Object> format = new HashMap<String, Object>();
+		
+		String formatString = metamodelAdditionalDataType, delimiter = "", prepend = "", append = "", type = "";
+		Integer round = null;
+		
+		if (dataType.equals("INT") || dataType.equals("DOUBLE") || dataType.equals("NUMBER")) {
+	
+			switch (formatString) {
+                // 1000
+                case "int_default": 
+                	// same as default
+                    round = 0;
+                    break;
+                // 1,000
+                case "int_comma":
+                    round = 0;
+                    delimiter = ",";
+                    break;
+                case "int_currency":
+                    round = 0;
+                    prepend = "$";
+                    break;
+                case "int_currency_comma":
+                    round = 0;
+                    delimiter = ",";
+                    prepend = "$";
+                    break;
+                case "int_percent":
+                    round = 0;
+                    append = "%";
+                    break;
+                case "thousand" :
+                    type = "Thousand";
+                    delimiter = ",";
+                    break;
+                case "million":
+                    type = "Million";
+                    delimiter = ",";
+                    break;
+                case "billion":
+                    type = "Billion";
+                    delimiter = ",";
+                    break;
+                case "trillion":
+                    type = "Trillion";
+                    delimiter = ",";
+                    break;
+                case "accounting":
+                    // same as $1,000 but negatives are in parentheses
+                    type = "Accounting";
+                    delimiter = ",";
+                    prepend = "$";
+                    round = 2;
+                    break;
+                case "scientific":
+                    type = "Scientific";
+                    delimiter = "Default";
+                    break;
+                case "double_round1":
+                    round = 1;
+                    break;
+                case "double_round2":
+                    // same as default
+                    round = 2;
+                    break;
+                case "double_round3":
+                    round = 3;
+                    break;
+                case "double_comma_round1":
+                    round = 2;
+                    delimiter = ",";
+                    break;
+                case "double_comma_round2":
+                    round = 2;
+                    delimiter = ",";
+                    break;
+                case "double_currency_comma_round2":
+                    // same as accounting
+                    round = 2;
+                    delimiter = ",";
+                    prepend = "$";
+                    break;
+                case "double_percent_round1":
+                    round = 1;
+                    append = "%";
+                    break;
+                case "double_percent_round2":
+                    round = 2;
+                    append = "%";
+                    break;
+                default:
+                    // do nothing;
+            }
+			
+		}
+			if (!append.equals("")) {
+				format.put(APPEND, append);
+			}
+			
+			if (round != null) {
+				format.put(ROUND, round);	
+			}
+			if (!delimiter.equals("")) {
+				format.put(DELIMITER, delimiter);
+			}
+			if (!prepend.equals("")) {
+				format.put(PREPEND, prepend);
+			}
+			if (!type.equals("")) {
+				format.put("TYPE", type);
+			}
+			
+        return format;
 	}
 
 	/*
