@@ -244,7 +244,7 @@
 		<repository>
 			<id>3rdPartyJARs</id>
 			<name>Maven repository</name>
-			<url>http://maven.semoss.org:8081/repository/3rdPartyJARs</url>
+			<url>https://maven.semoss.org/repository/3rdPartyJARs</url>
 			<releases>
 				<enabled>true</enabled>
 			</releases>
