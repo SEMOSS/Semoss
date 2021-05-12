@@ -39,7 +39,7 @@ public class User implements Serializable {
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	// store the users insights
-	private transient Map<String, List<String>> openInsights = new HashMap<>();
+	private transient Map<String, List<String>> openInsights = null;
 	
 	// need to have an access token store
 	private transient IRUserConnection rcon; 
@@ -53,14 +53,14 @@ public class User implements Serializable {
 	public String tupleSpace = null;
 		
 	// keeping this for a later time when personal experimental stuff
-	private transient ClassLoader customLoader = new SemossClassloader(this.getClass().getClassLoader());
+	private transient ClassLoader customLoader = null;
 	
 	private Map<AuthProvider, String> workspaceEngineMap = new HashMap<>();
 	private Map<AuthProvider, String> assetEngineMap = new HashMap<>();
 	private AuthProvider primaryLogin;
 	
-	private transient Object assetSyncObject = new Object();
-	private transient Object workspaceSyncObject = new Object();
+	private transient Object assetSyncObject = null;
+	private transient Object workspaceSyncObject = null;
 
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
 	List<AuthProvider> loggedInProfiles = new Vector<>();
@@ -86,6 +86,14 @@ public class User implements Serializable {
 	private int rPort = -1;
 	private int pyPort = -1;
 	
+	public User() {
+		// transient objects should be defined in the constructor
+		// since if this is serialized we dont want these values to be null
+		this.customLoader = new SemossClassloader(this.getClass().getClassLoader());
+		this.openInsights = new HashMap<>();
+		this.assetSyncObject = new Object();
+		this.workspaceSyncObject = new Object();
+	}
 
 	/**
 	 * Set the access token for a given provider
