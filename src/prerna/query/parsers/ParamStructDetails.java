@@ -33,6 +33,11 @@ public class ParamStructDetails {
 	
 	private String defQuery = null;
 	
+	// this is only used for saving
+	// since when we optimize the recipe
+	// the pixel ids get adjusted
+	private transient String optimizedPixelId = null;
+	
 	public BASE_QS_TYPE getBaseQsType() {
 		return baseQsType;
 	}
@@ -160,6 +165,14 @@ public class ParamStructDetails {
 		return tableName + "_" + columnName + getuOperator() ;
 	}
 	
+	public String getOptimizedPixelId() {
+		return optimizedPixelId;
+	}
+
+	public void setOptimizedPixelId(String optimizedPixelId) {
+		this.optimizedPixelId = optimizedPixelId;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -266,6 +279,14 @@ public class ParamStructDetails {
 		this.defQuery = defQuery;
 	}
 	
+	public void swapOptimizedIds() {
+		if(this.optimizedPixelId != null) {
+			String temp = this.optimizedPixelId;
+			this.optimizedPixelId = this.pixelId;
+			this.pixelId = temp;
+		}
+	}
+	
 	/**
 	 * Get the pixel string to replace a parameter input
 	 * @return
@@ -341,5 +362,4 @@ public class ParamStructDetails {
 		
 		throw new IllegalArgumentException("Unknown quote type value = " + quote);
 	}
-	
 }
