@@ -184,6 +184,12 @@ public class ParamStruct {
 		return this.detailsList;
 	}
 	
+	public void swapOptimizedIds() {
+		for(ParamStructDetails detail : this.detailsList) {
+			detail.swapOptimizedIds();
+		}
+	}
+	
 	/**
 	 * Generate a param struct from map inputs
 	 * @param mapInputs

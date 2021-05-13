@@ -639,7 +639,13 @@ public class PixelUtility {
 		for(String paramKey : params) {
 			NounMetadata paramNoun = varStore.get(paramKey);
 			ParamStruct param = (ParamStruct) paramNoun.getValue();
+			// also adjust for the new optimized id if it is set
+			param.swapOptimizedIds();
 			additionalSteps.add("META | AddInsightParameter(" + gson.toJson(param) + ");");
+			// swap back for this instance of the insight
+			// since we make a new pixel list object all together 
+			// during the save process
+			param.swapOptimizedIds();
 		}
 	}
 	
@@ -788,11 +794,11 @@ public class PixelUtility {
 		
 		PixelList insightPixelList = in.getPixelList();
 		List<ParamStruct> paramStructs = in.getVarStore().pullParamStructs();
-		Map<ParamStructDetails, Pixel> paramToPixelObj = new HashMap<>();
+		List<ParamStructDetails> paramStructDetails = new ArrayList<>();
 		for(ParamStruct pStruct : paramStructs) {
 			List<ParamStructDetails> paramDetails = pStruct.getDetailsList();
 			for(ParamStructDetails pDetail : paramDetails) {
-				paramToPixelObj.put(pDetail, insightPixelList.getPixel(pDetail.getPixelId()));
+				paramStructDetails.add(pDetail);
 			}
 		}
 		
@@ -822,7 +828,18 @@ public class PixelUtility {
 			Pixel pixelObject = insightPixelList.get(i);
 			if(pixelObject.isFrameTransformation() || pixelObject.isCodeExecution()
 					|| pixelObject.isAssignment() || pixelObject.isSaveInRecipe()) {
-				pList.addPixel(pixelObject.copy());
+				Pixel copy = pixelObject.copy();
+				pList.addPixel(copy);
+				
+				// adjust parameters
+				for(ParamStructDetails pDetail : paramStructDetails) {
+					if(pDetail.getPixelId().equals(pixelObject.getId())) {
+						// set to the new copy the optimized id recipe
+						// which is the new index
+						// recall its 0 based
+						pDetail.setOptimizedPixelId( (pList.size()-1) + "");
+					}
+				}
 			}
 		}
 		
