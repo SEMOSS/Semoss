@@ -26,11 +26,13 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.CopyObject;
+import prerna.sablecc2.reactor.mgmt.MgmtUtil;
 import prerna.tcp.client.Client;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SemossClassloader;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class User implements Serializable {
@@ -93,8 +95,10 @@ public class User implements Serializable {
 		this.openInsights = new HashMap<>();
 		this.assetSyncObject = new Object();
 		this.workspaceSyncObject = new Object();
+		// set it in the mgmt utils
+		addUserMemory();
+		
 	}
-
 	/**
 	 * Set the access token for a given provider
 	 * @param value
@@ -792,5 +796,50 @@ public class User implements Serializable {
 	public void setPyPort(int pyPport) {
 		this.pyPort = pyPport;
 	}
+	
+	private void addUserMemory()
+	{
+		long memoryInGigs = 0;
+
+		// check if the user has memory
+		String checkMemSettings = DIHelper.getInstance().getProperty(Settings.CHECK_MEM);
+		
+		boolean checkMem = checkMemSettings != null && checkMemSettings.equalsIgnoreCase("true"); 
+		if(checkMem)
+		{
+			long freeMem = MgmtUtil.getFreeMemory();
+			String memProfileSettings = DIHelper.getInstance().getProperty(Settings.MEM_PROFILE_SETTINGS);
+			
+			if(memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM))
+			{
+				String memLimitSettings = DIHelper.getInstance().getProperty(Settings.USER_MEM_LIMIT);
+				memoryInGigs = Integer.parseInt(memLimitSettings);
+			}
+			MgmtUtil.addMemory4User(memoryInGigs);
+		}
+	}
+
+	public void removeUserMemory()
+	{
+		long memoryInGigs = 0;
+
+		// check if the user has memory
+		String checkMemSettings = DIHelper.getInstance().getProperty(Settings.CHECK_MEM);
+		
+		boolean checkMem = checkMemSettings != null && checkMemSettings.equalsIgnoreCase("true"); 
+		if(checkMem)
+		{
+			long freeMem = MgmtUtil.getFreeMemory();
+			String memProfileSettings = DIHelper.getInstance().getProperty(Settings.MEM_PROFILE_SETTINGS);
+			
+			if(memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM))
+			{
+				String memLimitSettings = DIHelper.getInstance().getProperty(Settings.USER_MEM_LIMIT);
+				memoryInGigs = Integer.parseInt(memLimitSettings);
+			}
+			MgmtUtil.removeMemory4User(memoryInGigs);
+		}
+	}
+
 	
 }
