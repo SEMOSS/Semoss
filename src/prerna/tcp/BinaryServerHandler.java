@@ -20,6 +20,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.EventLoopGroup;
+import jep.JepException;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
@@ -387,8 +388,14 @@ public class BinaryServerHandler extends ChannelInboundHandlerAdapter {
     	// connection has been closed by the host
     	// may be tomcat
     	//System.err.println("Exception ..  " + cause);
-    	if(cause instanceof SocketException || cause instanceof IOException)
+    	if(cause instanceof SocketException 
+    			|| cause instanceof IOException 
+    			|| cause instanceof OutOfMemoryError 
+    			|| ((cause instanceof JepException) && ((JepException)cause).getCause() instanceof OutOfMemoryError )
+    			|| ((cause instanceof JepException) && ((JepException)cause).getCause() instanceof VirtualMachineError )    		   
+    			)
     		cleanUp(ctx);
+    	
     }
     
     public void cleanUp(ChannelHandlerContext ctx)
