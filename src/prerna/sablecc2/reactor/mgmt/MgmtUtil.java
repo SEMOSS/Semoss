@@ -23,6 +23,7 @@ import oshi.software.os.OperatingSystem;
 import prerna.engine.impl.r.RserveUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class MgmtUtil {
@@ -31,6 +32,8 @@ public class MgmtUtil {
     static SystemInfo si = new SystemInfo();
     static OperatingSystem os = si.getOperatingSystem();
     static GlobalMemory gm = si.getHardware().getMemory();
+    static long freeMemory = -1;
+    static long userCount = 0;
 
 	protected static final Logger logger = LogManager.getLogger(RserveUtil.class);
 
@@ -140,16 +143,28 @@ public class MgmtUtil {
 	
 	public static long getFreeMemory()
 	{
-		long available = gm.getAvailable();
-		
-		// convert to gigs
-		available = available / (1024*1024*1024);
-		
-		// give a 2GB limit
-		available = available -2;
-		
-        return available;
+		if(freeMemory == -1)
+		{
+			freeMemory = gm.getAvailable();
+			
+			// convert to gigs
+			freeMemory = freeMemory / (1024*1024*1024);
+			
+			// give a 2GB limit
+			if(DIHelper.getInstance().getProperty(Settings.RESERVED_JAVA_MEMORY) != null)
+			{
+				long javaReservedMemory = Long.parseLong(DIHelper.getInstance().getProperty(Settings.RESERVED_JAVA_MEMORY));
+				freeMemory = freeMemory - javaReservedMemory;
+			}			
+		}
+		return freeMemory;
 	}
+	
+	public static long getAFreeMemory()
+	{
+		return gm.getAvailable();
+	}
+
 
 	public static long getTotalMemory()
 	{
@@ -219,6 +234,26 @@ public class MgmtUtil {
 		return -1;
 	}
 	
+	public static void removeMemory4User(long memoryInGigs)
+	{
+		// remove the user
+		// add the memory back
+		userCount--;
+		freeMemory = freeMemory + memoryInGigs;
+	}
+
+	public static void addMemory4User(long memoryInGigs)
+	{
+		// add number of users
+		// remove the memory
+		userCount++;
+		freeMemory = freeMemory - memoryInGigs;
+	}
+	
+	public static long getUserCount()
+	{
+		return userCount;
+	}
 
 	
 	public static void main(String[] args) {
