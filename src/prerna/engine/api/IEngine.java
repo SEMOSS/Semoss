@@ -177,6 +177,13 @@ public interface IEngine extends IExplorable {
 
 	// gets the UDF - user defined functions in this data catalog
 	public String [] getUDF();
+	
+	// publish the engine assets to a specific location
+	// once published the assets in this app are available as a public_home from the browser
+	// this is useful to access javascript etc. 
+	// to enable this - you need to put the property public_home_enable on the smss file
+	
+	public boolean publish(String location, String targetDir);
 
 }
 

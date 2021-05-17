@@ -92,6 +92,7 @@ import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SemossClassloader;
+import prerna.util.Settings;
 import prerna.util.Utility;
 
 /**
@@ -174,6 +175,9 @@ public abstract class AbstractEngine implements IEngine {
 	 * Custom class loader
 	 */
 	private SemossClassloader engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
+	
+	// publish cache
+	private boolean publish = false;
 
 	/**
 	 * Opens a database as defined by its properties file. What is included in
@@ -261,8 +265,6 @@ public abstract class AbstractEngine implements IEngine {
 			e.printStackTrace();
 		} 
 		
-		if(this.engineName != null && this.engineId != null)
-			mapDir(this.engineName + "__" + this.engineId);
 	}
 	
 	/**
@@ -1291,6 +1293,8 @@ public abstract class AbstractEngine implements IEngine {
 			//compileJava(insightDirector.getParentFile().getAbsolutePath());
 			// delete the classes directory first
 			
+			// need to pass the engine name also
+			// so that the directory can be verified
 			dbSpecificHash = Utility.loadReactors(dbFolder + "/version", key);
 			dbSpecificHash.put("loaded", "TRUE".getClass());
 		}
@@ -1553,17 +1557,16 @@ public abstract class AbstractEngine implements IEngine {
 		
 	
 	// create a symbolic link to the version directory
-	public void mapDir(String appId)
+	public boolean publish(String public_home, String appId)
 	{
 		// find what is the final URL
 		// this is the base url plus manipulations
 		// find what the tomcat deploy directory is
 		// no easy way to find other than may be find the classpath ? - will instrument this through RDF Map
+		boolean enableForApp = false;
+		enableForApp = (prop != null && prop.containsKey(Settings.PUBLIC_HOME_ENABLE) && (prop.get(Settings.PUBLIC_HOME_ENABLE)+ "").equalsIgnoreCase("true"));
 		try {
-			String public_home = DIHelper.getInstance().getProperty(Constants.PUBLIC_HOME);
-			boolean enableForApp = false;
-			enableForApp = (prop != null && prop.containsKey("PUBLIC_HOME_ENABLE") && (prop.get("PUBLIC_HOME_ENABLE")+ "").equalsIgnoreCase("true"));
-			if(public_home != null && enableForApp)
+			if(public_home != null && enableForApp && !publish)
 			{
 				String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + java.nio.file.FileSystems.getDefault().getSeparator() + "db" + java.nio.file.FileSystems.getDefault().getSeparator();
 				
@@ -1577,12 +1580,14 @@ public abstract class AbstractEngine implements IEngine {
 					Files.createSymbolicLink(targetPath, sourcePath);
 				}
 				file.deleteOnExit();
-				System.err.println(".");
-			}			
+				publish = true;
+			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		return enableForApp && publish;
 	}
 	
 	public String [] getUDF()
