@@ -197,7 +197,17 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		SSLConnectionSocketFactory connFactory = null;
 		try {
 			connFactory = new SSLConnectionSocketFactory(
-					SSLContextBuilder.create().loadTrustMaterial(trustStrategy).build(), verifier);
+					SSLContextBuilder.create().loadTrustMaterial(trustStrategy).build() 
+					, new String[] {"TLSv1", "TLSv1.1", "TLSv1.2", "TLSV1.3"}
+					, null
+					, verifier) 
+//			{
+//				@Override
+//				protected void prepareSocket(SSLSocket socket) {
+//		            socket.setEnabledProtocols(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3" });
+//				}
+//			}
+			;
 		} catch (KeyManagementException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} catch (NoSuchAlgorithmException e) {
