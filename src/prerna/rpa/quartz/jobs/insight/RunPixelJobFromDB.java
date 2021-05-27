@@ -1,9 +1,11 @@
 package prerna.rpa.quartz.jobs.insight;
 
+import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -194,10 +196,20 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		};
 		
 		HostnameVerifier verifier = new NoopHostnameVerifier();
+		
 		SSLConnectionSocketFactory connFactory = null;
 		try {
+			SSLContextBuilder sslContextBuilder = SSLContextBuilder.create().loadTrustMaterial(trustStrategy);
+
+			// add the scheduler cert if required
+			String keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
+			String keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			if(keyStore != null && !keyStore.isEmpty() && keyStorePass != null && !keyStorePass.isEmpty()) {
+				sslContextBuilder.loadKeyMaterial(new File(keyStore), keyStorePass.toCharArray(), keyStorePass.toCharArray());
+			}
+			
 			connFactory = new SSLConnectionSocketFactory(
-					SSLContextBuilder.create().loadTrustMaterial(trustStrategy).build() 
+					sslContextBuilder.build()
 					, new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"}
 					, null
 					, verifier) 
@@ -213,6 +225,12 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		} catch (NoSuchAlgorithmException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} catch (KeyStoreException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (UnrecoverableKeyException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (CertificateException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		
