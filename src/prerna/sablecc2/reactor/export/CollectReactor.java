@@ -64,27 +64,28 @@ public class CollectReactor extends TaskBuilderReactor {
 			retOpType = PixelOperationType.PANEL_ORNAMENT_DATA;
 		}
 		
-		if(this.task.getTaskOptions() == null) {
-			// I am setting the panel id on the task options and getting it from here
-			TaskOptions taskOptions = this.insight.getLastTaskOptions();
-			if(taskOptions != null) {
-				Set<String> pIds = taskOptions.getPanelIds();
-				String panelId = pIds.iterator().next();
-				String layout = taskOptions.getLayout(panelId);
-				
-				if(this.task instanceof BasicIteratorTask) {
-					SelectQueryStruct qs = ((BasicIteratorTask) this.task).getQueryStruct();
-					if(!qs.getSelectors().isEmpty()) {
-						TaskOptions newTOptions = AutoTaskOptionsHelper.getAutoOptions(qs, panelId, layout);
-						this.task.setTaskOptions(newTOptions);
-					}
-				}
-				
-				if(this.task.getTaskOptions() == null) {
-					this.task.setTaskOptions(this.insight.getLastTaskOptions());
-				}
-			}
-		}
+		// this is causing more confusion and breaks facet
+//		if(this.task.getTaskOptions() == null) {
+//			// I am setting the panel id on the task options and getting it from here
+//			TaskOptions taskOptions = this.insight.getLastTaskOptions();
+//			if(taskOptions != null) {
+//				Set<String> pIds = taskOptions.getPanelIds();
+//				String panelId = pIds.iterator().next();
+//				String layout = taskOptions.getLayout(panelId);
+//				
+//				if(this.task instanceof BasicIteratorTask) {
+//					SelectQueryStruct qs = ((BasicIteratorTask) this.task).getQueryStruct();
+//					if(!qs.getSelectors().isEmpty()) {
+//						TaskOptions newTOptions = AutoTaskOptionsHelper.getAutoOptions(qs, panelId, layout);
+//						this.task.setTaskOptions(newTOptions);
+//					}
+//				}
+//				
+//				if(this.task.getTaskOptions() == null) {
+//					this.task.setTaskOptions(this.insight.getLastTaskOptions());
+//				}
+//			}
+//		}
 		
 		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, retOpType);
 	}
