@@ -40,7 +40,12 @@ public class ChromeDriverUtility {
 			ChromeDriver thisDriver = null;
 			try {
 				thisDriver = (ChromeDriver)makeChromeDriver(feUrl, url, 1920, 1080);
-				captureImagePersistent(thisDriver, feUrl, url, imagePath, sessionId, 800);
+				int timeout =800; 
+				String timeoutString = DIHelper.getInstance().getProperty(Constants.IMAGE_CAPTURE_TIMEOUT);
+				if(timeoutString != null && !timeoutString.isEmpty()) {
+					timeout = Integer.parseInt(timeoutString);
+				} 
+				captureImagePersistent(thisDriver, feUrl, url, imagePath, sessionId, timeout);
 			} finally {
 				if(thisDriver != null) {
 					thisDriver.close();
