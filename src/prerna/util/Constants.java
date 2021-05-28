@@ -573,7 +573,8 @@ public class Constants {
 	
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_BINARY = "GOOGLE_CHROME_BINARY";
-	
+	public static final String IMAGE_CAPTURE_TIMEOUT = "IMAGE_CAPTURE_TIMEOUT";
+
 	//cookie name of a load load balancing routing
 	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
 
