@@ -185,10 +185,12 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					}
 				} else if(type == Types.VARBINARY) {
 					byte[] bytes = rs.getBytes(colNum);
-					try {
-						val = new String(bytes, "UTF-8");
-					} catch (UnsupportedEncodingException e) {
-						logger.error(Constants.STACKTRACE, e);
+					if(bytes != null) {
+						try {
+							val = new String(bytes, "UTF-8");
+						} catch (UnsupportedEncodingException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
 					}
 				}
 				else if(type == Types.BOOLEAN || type == Types.BIT) {
