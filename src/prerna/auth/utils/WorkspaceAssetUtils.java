@@ -14,7 +14,6 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -22,6 +21,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -105,7 +105,9 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 
 		// Create the app folder
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appLocation = baseFolder + FS + "db" + FS + SmssUtilities.getUniqueName(appName, appId);
+		
+		//String appLocation = baseFolder + FS + "db" + FS + SmssUtilities.getUniqueName(appName, appId);
+		String appLocation = AssetUtility.getAppBaseFolder(appName, appId);
 		File appFolder = new File(appLocation);
 		appFolder.mkdirs();
 		
@@ -135,13 +137,17 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, appNames);
 		
 		// adding all the git here
-		String versionFolder = appFolder.getAbsolutePath() + FS + "version";
+		//String versionFolder = appFolder.getAbsolutePath() + FS + "version";
+		String versionFolder = AssetUtility.getAppAssetVersionFolder(appNames, appId);
+		
+		/*
 		File file = new File(versionFolder);
 		if (!file.exists()) {
 			file.mkdir();
 		}
 		// I will assume the directory is there now
 		GitRepoUtils.init(versionFolder);
+		*/
 		
 		// Rename .temp to .smss
 		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -388,7 +394,8 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 			if (assetEngine != null) {
 				String assetAppName = assetEngine.getEngineName();
 				if (assetAppName != null) {
-					return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FS + "db" + FS + assetAppName + "__" + assetAppId + FS + "version";
+					return AssetUtility.getAppAssetVersionFolder(assetAppName, assetAppId);
+					//return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FS + "db" + FS + assetAppName + "__" + assetAppId + FS + "version";
 				}
 			}
 		}

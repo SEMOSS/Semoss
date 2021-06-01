@@ -32,6 +32,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -64,8 +65,9 @@ public class InsightCacheUtility {
 	
 	public static String getInsightCacheFolderPath(String engineId, String engineName, String rdbmsId) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
-				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId + DIR_SEPARATOR + CACHE_FOLDER;
+		//String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
+		//		+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId + DIR_SEPARATOR + CACHE_FOLDER;
+		String folderDir = AssetUtility.getAppAssetVersionFolder(engineName, engineId) + DIR_SEPARATOR +  rdbmsId + DIR_SEPARATOR + CACHE_FOLDER;
 		return folderDir;
 	}
 	

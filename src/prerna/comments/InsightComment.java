@@ -19,6 +19,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.engine.impl.SmssUtilities;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -92,9 +93,11 @@ public class InsightComment {
 		Map<String, String> map = moveDataToMap();
 
 		String json = gson.toJson(map);
-		String baseDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) + DIR_SEPARATOR + "version" + DIR_SEPARATOR + this.rdbmsId;
-		
+//		String baseDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+//				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) + DIR_SEPARATOR + "version" + DIR_SEPARATOR + this.rdbmsId;
+
+		String baseDir = AssetUtility.getAppAssetVersionFolder(this.engineName, this.engineId)+ DIR_SEPARATOR + this.rdbmsId;
+
 		File path = new File(baseDir);
 		// create insight directory if it doesn't exist
 		path.mkdirs();

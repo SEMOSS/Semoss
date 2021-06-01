@@ -111,8 +111,7 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 	 * @param recipeToSave
 	 */
 	protected void updateRecipeFile(Logger logger, String appId, String appName, String rdbmsID, String insightName) {
-		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" 
+		String recipeLocation = AssetUtility.getAppAssetVersionFolder(appName, appId)
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
 		File mosfet = new File(recipeLocation);
 		if(mosfet.exists()) {
