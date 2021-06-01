@@ -99,10 +99,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			}
 			
 			// delete insight folder
-			String insightFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-					+ DIR_SEPARATOR + "db"
-					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
-					+ DIR_SEPARATOR + "version" 
+			String insightFolderPath = AssetUtility.getAppAssetVersionFolder(appName, appId)
 					+ DIR_SEPARATOR + insightId;
 			File insightFolder = new File(insightFolderPath);
 			Stream<Path> walk = null;

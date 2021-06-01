@@ -45,6 +45,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
@@ -198,7 +199,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 				// adding all the git here
 				// make a version folder if one doesn't exist
-				String versionFolder = appFolder.getAbsolutePath() + "/version";
+				String versionFolder = 	AssetUtility.getAppAssetVersionFolder(appName, appId);;
 				File file = new File(versionFolder);
 				if (!file.exists()) {
 					file.mkdir();

@@ -15,6 +15,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 import prerna.util.git.GitRepoUtils;
 
@@ -51,7 +52,7 @@ public class ListAppRemotes extends AbstractReactor {
 		}
 		
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String dbName = baseFolder + "/db/" + SmssUtilities.getUniqueName(appName, appId) + "/version";	
+		String dbName = AssetUtility.getAppAssetVersionFolder(appName, appId);;	
 
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Getting remotes configures on " + dbName);
