@@ -449,10 +449,12 @@ public class Insight implements Serializable {
 			} else {
 				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
 				// need to grab from engine
-				this.insightFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-						+ DIR_SEPARATOR + "db" 
-						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-						+ DIR_SEPARATOR + "version"
+//				this.insightFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+//						+ DIR_SEPARATOR + "db" 
+//						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+//						+ DIR_SEPARATOR + "version"
+//						+ DIR_SEPARATOR + this.rdbmsId;
+				this.insightFolder = AssetUtility.getAppAssetVersionFolder(this.engineName, this.engineId)
 						+ DIR_SEPARATOR + this.rdbmsId;
 			}
 		}
@@ -472,11 +474,7 @@ public class Insight implements Serializable {
 			} else {
 				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
 				// need to grab from engine
-				this.appFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-						+ DIR_SEPARATOR + "db" 
-						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-						+ DIR_SEPARATOR + "version"
-						+ DIR_SEPARATOR + "assets";
+				this.appFolder = AssetUtility.getAppAssetFolder(this.engineName, this.engineId);
 				// if this folder does not exist create it and git init it
 				File file = new File(appFolder);
 				if(!file.exists())
@@ -1465,8 +1463,7 @@ public class Insight implements Serializable {
 		else
 		{
 			String id = Utility.getEngineData(context);
-			String mountDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
-			+ DIR_SEPARATOR + context + "__" + id + DIR_SEPARATOR +  "version";
+			String mountDir = AssetUtility.getAppAssetVersionFolder(context, id);
 	
 			this.cmdUtil = new CmdExecUtil(context, mountDir);
 			return true;

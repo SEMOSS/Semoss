@@ -18,6 +18,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.ChromeDriverUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -145,17 +146,15 @@ public class ImageCaptureReactor extends AbstractReactor {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String imageDirStr = "";
 		if(params == null) {
-			imageDirStr = baseFolder + 
-				DIR_SEPARATOR + "db" + 
-				DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
-				DIR_SEPARATOR + "version" +
-				DIR_SEPARATOR + id;
+//			imageDirStr = baseFolder + 
+//				DIR_SEPARATOR + "db" + 
+//				DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
+//				DIR_SEPARATOR + "version" +
+//				DIR_SEPARATOR + id;
+			imageDirStr = AssetUtility.getAppAssetVersionFolder(engineName, engineId) + DIR_SEPARATOR + id;
 		} else {
 			// params is already encodeed
-			imageDirStr = baseFolder + 
-					DIR_SEPARATOR + "db" + 
-					DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
-					DIR_SEPARATOR + "version" +
+			imageDirStr = AssetUtility.getAppAssetVersionFolder(engineName, engineId) +
 					DIR_SEPARATOR + id + 
 					DIR_SEPARATOR + "params" + 
 					DIR_SEPARATOR + params;

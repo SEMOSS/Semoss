@@ -1,6 +1,11 @@
 package prerna.util;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+
+import org.apache.commons.io.FileUtils;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -69,7 +74,8 @@ public class AssetUtility {
 				}
 				IEngine engine = Utility.getEngine(appId);
 				String appName = engine.getEngineName();
-				assetFolder = getAppAssetFolder(appName, appId);
+				//assetFolder = getAppAssetFolder(appName, appId);
+				assetFolder = getAppBaseFolder(appName, appId);
 			}
 		} else if(in.isSavedInsight() && editRequired){
 			// we are about to send back the insight folder 
@@ -138,7 +144,7 @@ public class AssetUtility {
 				}
 				IEngine engine = Utility.getEngine(appId);
 				String appName = engine.getEngineName();
-				assetFolder = getAppAssetVersionFolder(appName, appId);
+				assetFolder = getAppBaseFolder(appName, appId);
 			}
 		} else if(in.isSavedInsight() && editRequired){
 			// we are about to send back the insight folder 
@@ -165,13 +171,8 @@ public class AssetUtility {
 	}
 	
 	public static String getAppAssetFolder(String appName, String appId) {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
-			baseFolder += DIR_SEPARATOR;
-		}
-		String appFolder = Utility.normalizePath(baseFolder + "db" + DIR_SEPARATOR 
-				+ SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" 
-				+ DIR_SEPARATOR + "assets");
+		String appVersionBaseFolder = getAppAssetVersionFolder(appName, appId);
+		String appFolder = appVersionBaseFolder + DIR_SEPARATOR + "assets";
 
 		// if this folder does not exist create it
 		File file = new File(appFolder);
@@ -182,16 +183,16 @@ public class AssetUtility {
 	}
 	
 	public static String getAppAssetVersionFolder(String appName, String appId) {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
-			baseFolder += DIR_SEPARATOR;
-		}
-		String gitFolder = Utility.normalizePath(baseFolder + "db" + DIR_SEPARATOR 
-				+ SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version");
+		
+		String appBaseFolder = getAppBaseFolder(appName, appId);
+		
+		String gitFolder = appBaseFolder + DIR_SEPARATOR + "version";
 
 		// if this folder does not exist create it
 		File file = new File(Utility.normalizePath(gitFolder));
-		if (!file.exists()) {
+		
+		
+		if (!file.exists()) {			
 			file.mkdir();
 		}
 		
@@ -207,7 +208,9 @@ public class AssetUtility {
 			relativePath = in.getRdbmsId();
 		} else {
 			// user space or asset app
-			relativePath = "assets";
+			// asset app - no relative space ?
+			relativePath = "";
+			//relativePath = "assets";
 		}	
 		return relativePath;
 	}
@@ -215,6 +218,56 @@ public class AssetUtility {
 	public static boolean isGit(String assetFolder) {
 		File file = new File(assetFolder + DIR_SEPARATOR + ".git");
 		return file.exists();
+	}
+	
+	public static String getAppBaseFolder(String appName, String appId)
+	{
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
+			baseFolder += DIR_SEPARATOR;
+		}
+		
+		String baseAppFolder = Utility.normalizePath(baseFolder + "db" + DIR_SEPARATOR 
+				+ SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "app_root" );
+
+		File baseAppFolderFile = new File(baseAppFolder);
+		
+		if(!baseAppFolderFile.exists())
+		{
+			baseAppFolderFile.mkdir();
+			// if you are creating this.. there is a possibility we need to fix this engine
+			rehomeDB(appName, appId, baseAppFolder);
+		}		
+		// try to see if there is a version folder and if so move it into app_root
+		
+		return baseAppFolder;
+		
+	}
+	
+	private static void rehomeDB(String appName, String appId, String newRoot)
+	{
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
+			baseFolder += DIR_SEPARATOR;
+		}
+		
+		String oldBaseAppFolder = Utility.normalizePath(baseFolder + "db" + DIR_SEPARATOR 
+				+ SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" );
+
+		File oldBaseAppFolderFile = new File(oldBaseAppFolder);
+
+		if(oldBaseAppFolderFile.exists())
+		{
+		
+			try {
+					System.err.println(">>>>> Rehoming Catalog : " + appName + " <<<<<<");
+				
+					Files.move(oldBaseAppFolderFile.toPath(), new File(newRoot + DIR_SEPARATOR + "version").toPath(), StandardCopyOption.REPLACE_EXISTING);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}		
 	}
 	
 }
