@@ -88,6 +88,7 @@ import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.security.SnowApi;
 import prerna.ui.components.RDFEngineHelper;
+import prerna.util.AssetUtility;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1257,7 +1258,7 @@ public abstract class AbstractEngine implements IEngine {
 		//ReactorFactory.compileCache.remove(engineId);
 		if(!ReactorFactory.compileCache.containsKey(engineId))
 		{
-			String classesFolder = dbFolder + "/version/classes";
+			String classesFolder = AssetUtility.getAppAssetVersionFolder(engineName, engineId) + "/classes";
 			File classesDir = new File(classesFolder);
 			if(classesDir.exists() && classesDir.isDirectory())
 			{
@@ -1269,7 +1270,7 @@ public abstract class AbstractEngine implements IEngine {
 					e.printStackTrace();
 				}
 			}
-			int status = Utility.compileJava(dbFolder +"/version", getCP());
+			int status = Utility.compileJava(AssetUtility.getAppAssetVersionFolder(engineName, engineId), getCP());
 			if(status == 0)
 			{
 				ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
@@ -1295,7 +1296,7 @@ public abstract class AbstractEngine implements IEngine {
 			
 			// need to pass the engine name also
 			// so that the directory can be verified
-			dbSpecificHash = Utility.loadReactors(dbFolder + "/version", key);
+			dbSpecificHash = Utility.loadReactors(AssetUtility.getAppAssetVersionFolder(engineName, engineId), key);
 			dbSpecificHash.put("loaded", "TRUE".getClass());
 		}
 		try
@@ -1331,7 +1332,7 @@ public abstract class AbstractEngine implements IEngine {
 
 		dbFolder = propFile.replaceAll(".smss", "");
 		
-		cl.setFolder(dbFolder + "/version/assets/classes");
+		cl.setFolder(AssetUtility.getAppAssetFolder(engineName, engineId) + "/classes");
 		
 		IReactor retReac = null;
 		//String key = db + "." + insightId ;
@@ -1346,7 +1347,7 @@ public abstract class AbstractEngine implements IEngine {
 			cl.uncommitEngine(engineId);
 			// if it 
 			
-			String classesFolder = dbFolder + "/version/assets/classes";
+			String classesFolder = AssetUtility.getAppAssetFolder(engineName, engineId) + "/classes";
 			
 			File classesDir = new File(classesFolder);
 			if(classesDir.exists() && classesDir.isDirectory())
@@ -1359,7 +1360,7 @@ public abstract class AbstractEngine implements IEngine {
 					e.printStackTrace();
 				}
 			}
-			int status = Utility.compileJava(dbFolder +"/version/assets", getCP());
+			int status = Utility.compileJava(AssetUtility.getAppAssetFolder(engineName, engineId), getCP());
 			//if(status == 0) // error or not I going to mark it. If we want to recompile. tell the system to recompile
 			{
 				ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
@@ -1380,7 +1381,7 @@ public abstract class AbstractEngine implements IEngine {
 		{
 			//compileJava(insightDirector.getParentFile().getAbsolutePath());
 			// delete the classes directory first
-			dbSpecificHash = Utility.loadReactors(dbFolder + "/version/assets", key, cl);
+			dbSpecificHash = Utility.loadReactors(AssetUtility.getAppAssetFolder(engineName, engineId), key, cl);
 			cl.commitEngine(engineId);
 		}
 		try
@@ -1570,7 +1571,7 @@ public abstract class AbstractEngine implements IEngine {
 			{
 				String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + java.nio.file.FileSystems.getDefault().getSeparator() + "db" + java.nio.file.FileSystems.getDefault().getSeparator();
 				
-				Path sourcePath = Paths.get(appHome + appId + java.nio.file.FileSystems.getDefault().getSeparator() + "version");
+				Path sourcePath = Paths.get(AssetUtility.getAppAssetVersionFolder(engineName, appId));
 				Path targetPath = Paths.get(public_home + java.nio.file.FileSystems.getDefault().getSeparator() + appId);
 	
 				File file = new File(public_home + java.nio.file.FileSystems.getDefault().getSeparator() + appId);

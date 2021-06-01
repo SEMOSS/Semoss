@@ -27,6 +27,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.MosfetFile;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
@@ -51,7 +52,7 @@ public class GitConsumer {
 			e.printStackTrace();
 		}
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String dbFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(yourName4App, temporaryAppId);
+		String dbFolder = AssetUtility.getAppBaseFolder(yourName4App, temporaryAppId);
 		File db = new File(dbFolder);
 		if(!db.exists()) {
 			// make the folder
@@ -69,7 +70,7 @@ public class GitConsumer {
 		GitRepoUtils.makeLocalAppGitVersionFolder(dbFolder);
 		logger.info("Done creating local git folder");
 
-		String versionFolder = dbFolder + "/version";
+		String versionFolder = AssetUtility.getAppAssetVersionFolder(yourName4App, temporaryAppId);
 		// write a random file so we can add/commit
 		logger.info("Init local git...");
 		GitUtils.semossInit(versionFolder);
@@ -160,7 +161,7 @@ public class GitConsumer {
 	public static void moveDataFilesToApp(String baseFolder, String appId, String yourName4App, Logger logger) {
 		// need to account for version here
 		String appFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(yourName4App, appId);
-		String versionFolder = appFolder + "/version";
+		String versionFolder = AssetUtility.getAppAssetVersionFolder(yourName4App, appId);
 		File dir = new File(Utility.normalizePath(versionFolder));
 
 		// seems like git pull doesn't complete until this point
