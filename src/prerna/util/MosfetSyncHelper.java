@@ -248,10 +248,7 @@ public class MosfetSyncHelper {
 		mosfet.setRecipe(recipe);
 		mosfet.setHidden(hidden);
 
-		String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
-				+ DIR_SEPARATOR + "version" 
+		String mosfetPath = AssetUtility.getAppAssetVersionFolder(appName, appId) 
 				+ DIR_SEPARATOR + rdbmsId;
 
 		mosfet.write(mosfetPath, false);
@@ -309,10 +306,7 @@ public class MosfetSyncHelper {
 			mosfet.setTags(tags.toArray(new String[tags.size()]));
 		}
 
-		String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
-				+ DIR_SEPARATOR + "version" 
+		String mosfetPath = AssetUtility.getAppAssetVersionFolder(appName, appId)
 				+ DIR_SEPARATOR + rdbmsId;
 
 		mosfet.write(mosfetPath, forceDelete);

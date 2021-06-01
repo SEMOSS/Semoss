@@ -30,6 +30,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -295,13 +296,14 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		
 		// adding all the git here
 		// make a version folder if one doesn't exist
-		String versionFolder = appFolder.getAbsolutePath() + "/version";
+		String versionFolder = 	AssetUtility.getAppAssetVersionFolder(newAppName, newAppId);
+		/*
 		File file = new File(versionFolder);
 		if(!file.exists())
 			file.mkdir();
 		// I will assume the directory is there now
 		GitRepoUtils.init(versionFolder);
-
+		*/
 	}
 
 	/**

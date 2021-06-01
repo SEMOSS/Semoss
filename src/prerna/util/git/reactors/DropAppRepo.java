@@ -9,6 +9,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 import prerna.util.git.GitRepoUtils;
 
@@ -29,7 +30,7 @@ public class DropAppRepo extends AbstractReactor {
 		String repository = this.keyValue.get(this.keysToGet[1]);
 		
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(appName, appId) + "/version";
+		String appFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 		GitRepoUtils.removeRemote(appFolder, repository);
 		return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}

@@ -11,6 +11,7 @@ import org.codehaus.plexus.util.FileUtils;
 import org.kohsuke.github.GitHub;
 
 import prerna.engine.impl.SmssUtilities;
+import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 
 public class GitCreator {
@@ -41,7 +42,7 @@ public class GitCreator {
 
 		// need to get the database folder
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String dbFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(appName, appId);
+		String dbFolder = AssetUtility.getAppBaseFolder(appName, appId);;
 
 		// the remote location
 		// is of the form account_name/repo_name
@@ -61,7 +62,7 @@ public class GitCreator {
 			GitRepoUtils.makeLocalAppGitVersionFolder(dbFolder);
 		}
 
-		String versionFolder = dbFolder + "/version";
+		String versionFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);;
 		File versionDir = new File(versionFolder);
 		if(!versionDir.exists()) {
 			versionDir.mkdirs();

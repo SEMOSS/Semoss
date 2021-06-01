@@ -28,6 +28,7 @@ import org.kohsuke.github.HttpException;
 
 import prerna.engine.impl.SmssUtilities;
 import prerna.security.InstallCertNow;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
@@ -323,7 +324,7 @@ public class GitUtils {
 	public static List<Map<String, String>> getStatus(String appId, String appName)
 	{
 		List<Map<String, String>> output = new Vector<>();
-		String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(appName, appId) + "/version";
+		String location = AssetUtility.getAppAssetVersionFolder(appName, appId);; //DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(appName, appId) + "/version";
 		Git thisGit = null;
 		Status status = null;
 		try {
@@ -364,7 +365,7 @@ public class GitUtils {
 	public static List<Map<String, String>> getFiles(String appId, String appName, String fileType, Iterator<String> iterator) {
 		List<Map<String, String>> retFiles = new Vector<>();
 		while(iterator.hasNext()) {
-			String daFile = Utility.normalizePath(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(appName, appId) + "/version/" + iterator.next());
+			String daFile = AssetUtility.getAppAssetVersionFolder(appName, appId) + "/" + iterator.next();
 			if(!daFile.endsWith(".mosfet")) {
 				continue;
 			}

@@ -288,6 +288,11 @@ public class CmdExecUtil {
 		
 	}
 	
+	public String getWorkingDir()
+	{
+		return this.workingDir;
+	}
+	
 	public static void main(String[] args) throws Exception{
 		// TODO Auto-generated method stub
 		CmdExecUtil test = new CmdExecUtil("mango", "c:/users/pkapaleeswaran/workspacej3/gittest");
