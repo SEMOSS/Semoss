@@ -25,6 +25,8 @@ public class GetAssetReactor extends AbstractReactor {
 
 		// check if user is logged in
 		String space = this.keyValue.get(this.keysToGet[2]);
+		
+		// we need to change this to asset base folder
 		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, false);
 
 		// relative path is used for git if the insight is saved
@@ -38,7 +40,8 @@ public class GetAssetReactor extends AbstractReactor {
 			}
 		} else {
 			// user space + app holds assets in assets folder
-			assetDir = "assets";
+			// this should not be assets anymore
+			assetDir = "";
 		}
 
 		// specify a file
@@ -51,8 +54,8 @@ public class GetAssetReactor extends AbstractReactor {
 
 		// I need a better way than output
 		// probably write the file and volley the file ?
+		// ideally this should be through the sym link
 		String output = GitRepoUtils.getFile(version, assetDir + "/" + asset, assetFolder);
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
-
 }

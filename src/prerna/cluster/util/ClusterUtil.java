@@ -29,6 +29,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.insight.TextToGraphic;
@@ -318,11 +319,14 @@ public class ClusterUtil {
 	public static void  reactorPushVersionFolder(IEngine engine, String relativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
-			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-					+ DIR_SEPARATOR + "db"
-					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
+//			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+//					+ DIR_SEPARATOR + "db"
+//					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
+			
+			String appHome = AssetUtility.getAppBaseFolder(engine.getEngineName(), engine.getEngineId());
 			Path appHomePath = Paths.get(appHome);
-			String abolsutePath = appHome + DIR_SEPARATOR + "version";
+			//String abolsutePath = appHome + DIR_SEPARATOR + "version";
+			String abolsutePath = AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), engine.getEngineId());
 			Path relative = appHomePath.relativize( Paths.get(abolsutePath));
 			ClusterUtil.reactorPushFolder(engine.getEngineId(),abolsutePath, relative.toString());
 

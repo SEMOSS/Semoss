@@ -28,6 +28,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.CopyObject;
 import prerna.sablecc2.reactor.mgmt.MgmtUtil;
 import prerna.tcp.client.Client;
+import prerna.util.AssetUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -524,7 +525,8 @@ public class User implements Serializable {
 			engineId = "";
 		if(engineId == null) // there is a possibility that this is a mount path at this point
 			return false;
-		String varValue = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + appName + "/version/assets" + subFolder;
+		// giving it the main folder intstead of the version
+		String varValue = AssetUtility.getAppBaseFolder(semossAppName, engineId) + subFolder;
 
 
 		varValue = varValue.replace("\\", "/");
@@ -618,9 +620,7 @@ public class User implements Serializable {
 		AuthProvider provider = getPrimaryLogin();
 		String appId = getAssetEngineId(provider);
 		String appName = "Asset";
-		String userAssetFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version";
-				//+ DIR_SEPARATOR + "assets";
+		String userAssetFolder = AssetUtility.getAppAssetFolder(appName, appId);
 
 		// if this folder does not exist create it
 		File file = new File(userAssetFolder);
