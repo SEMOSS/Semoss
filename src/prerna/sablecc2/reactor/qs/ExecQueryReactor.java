@@ -153,7 +153,7 @@ public class ExecQueryReactor extends AbstractReactor {
 			}
 		}
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, PixelOperationType.FORCE_SAVE);
 	}
 
 	private NounMetadata getQueryStruct() {
