@@ -237,7 +237,7 @@ public class InsertReactor extends AbstractReactor {
 			}
 		}
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, PixelOperationType.FORCE_SAVE);
 	}
 	
 	/**
