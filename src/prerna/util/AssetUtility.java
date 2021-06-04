@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
-import org.apache.commons.io.FileUtils;
-
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -48,7 +46,7 @@ public class AssetUtility {
 					AuthProvider provider = user.getPrimaryLogin();
 					String appId = user.getAssetEngineId(provider);
 					String appName = "Asset";
-					assetFolder = getAppAssetFolder(appName, appId);
+					assetFolder = getAppBaseFolder(appName, appId);
 				}
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
@@ -118,7 +116,7 @@ public class AssetUtility {
 					AuthProvider provider = user.getPrimaryLogin();
 					String appId = user.getAssetEngineId(provider);
 					String appName = "Asset";
-					assetFolder = getAppAssetVersionFolder(appName, appId);
+					assetFolder = getAppBaseFolder(appName, appId);
 				}
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
@@ -183,15 +181,10 @@ public class AssetUtility {
 	}
 	
 	public static String getAppAssetVersionFolder(String appName, String appId) {
-		
 		String appBaseFolder = getAppBaseFolder(appName, appId);
-		
 		String gitFolder = appBaseFolder + DIR_SEPARATOR + "version";
-
 		// if this folder does not exist create it
 		File file = new File(Utility.normalizePath(gitFolder));
-		
-		
 		if (!file.exists()) {			
 			file.mkdir();
 		}
@@ -220,8 +213,7 @@ public class AssetUtility {
 		return file.exists();
 	}
 	
-	public static String getAppBaseFolder(String appName, String appId)
-	{
+	public static String getAppBaseFolder(String appName, String appId) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
 			baseFolder += DIR_SEPARATOR;
@@ -231,21 +223,16 @@ public class AssetUtility {
 				+ SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "app_root" );
 
 		File baseAppFolderFile = new File(baseAppFolder);
-		
-		if(!baseAppFolderFile.exists())
-		{
+		if(!baseAppFolderFile.exists()) {
 			baseAppFolderFile.mkdir();
 			// if you are creating this.. there is a possibility we need to fix this engine
 			rehomeDB(appName, appId, baseAppFolder);
 		}		
 		// try to see if there is a version folder and if so move it into app_root
-		
 		return baseAppFolder;
-		
 	}
 	
-	private static void rehomeDB(String appName, String appId, String newRoot)
-	{
+	private static void rehomeDB(String appName, String appId, String newRoot) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
 			baseFolder += DIR_SEPARATOR;
@@ -256,12 +243,9 @@ public class AssetUtility {
 
 		File oldBaseAppFolderFile = new File(oldBaseAppFolder);
 
-		if(oldBaseAppFolderFile.exists())
-		{
-		
+		if(oldBaseAppFolderFile.exists()) {
 			try {
 					System.err.println(">>>>> Rehoming Catalog : " + appName + " <<<<<<");
-				
 					Files.move(oldBaseAppFolderFile.toPath(), new File(newRoot + DIR_SEPARATOR + "version").toPath(), StandardCopyOption.REPLACE_EXISTING);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
