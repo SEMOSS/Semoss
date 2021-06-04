@@ -31,6 +31,10 @@ public class MakeDirectoryReactor extends AbstractReactor {
 		// specify the folder from the base
 		String folderName = keyValue.get(keysToGet[0]);
 		String space = this.keyValue.get(this.keysToGet[1]);
+		
+		if(!folderName.contains("/"))
+			return NounMetadata.getErrorNounMessage("You cannot create directory / files at this level");
+
 		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
 		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
