@@ -1,7 +1,14 @@
 package prerna.util.git.reactors;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -35,8 +42,50 @@ public class BrowseAssetReactor extends AbstractReactor {
 			locFolder = assetFolder + "/" + keyValue.get(keysToGet[0]);
 			locFolder = locFolder.replaceAll("\\\\", "/");
 		}
+		
+		File dirFile = new File(assetFolder + "/" + locFolder);
+		if(!dirFile.exists()) // if this file doesnt exist.. it has not been cloned yet. so clone and then go into it
+			cloneRepo(locFolder, assetFolder);
+
 
 		List <Map<String, Object>> output = GitAssetUtils.getAssetMetadata(locFolder, assetFolder, replacer, false);
+		
+		
+		// add the files from repository and show it as if those files are there
+		if(locFolder.length() == 0)
+		{
+			// try to add all the repository
+			try {
+				File repoFile = new File(assetFolder + "/version/repoList.txt");
+				Properties prop = new Properties();
+				FileInputStream fis = new FileInputStream(repoFile);
+				prop.load(fis);
+				Enumeration <Object> dirs = prop.keys();
+				
+				while(dirs.hasMoreElements())
+				{
+					String item = dirs.nextElement() + "";
+					// path, name, last modified, type
+					Map<String, Object> meta = new HashMap<String, Object>();
+					
+					meta.put("path", item + "/");
+					meta.put("name", item);
+					meta.put("type", "directory");
+					meta.put("lastModified", GitAssetUtils.getDate(System.currentTimeMillis()));
+					
+					output.add(meta);
+				}
+				fis.close();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}			
+		}
+		
+		
 		// let us not show the users the .cache folder
 		if(space == null || space.isEmpty()) {
 			FILE_LOOP : for(int i = 0; i < output.size(); i++) {
@@ -52,5 +101,26 @@ public class BrowseAssetReactor extends AbstractReactor {
 
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
+	
+	private void cloneRepo(String repoName, String workingDir)
+	{
+		try {
+			File repoFile = new File(workingDir + "/version/repoList.txt");
+			
+			Properties prop = new Properties();
+			prop.load(new FileInputStream(repoFile));
+			
+			String url = prop.getProperty(repoName);
+			
+			insight.getCmdUtil().executeCommand("git clone " + url);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 
 }

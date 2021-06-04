@@ -490,6 +490,46 @@ public class GitRepoUtils {
 		return returnList;
 	}
 
+	/**
+	 * Get the list of remote configurations associated with an app directory
+	 * Get the url
+	 * Get the namespace/appName
+	 * Get the type -> dual or subscript
+	 * @param localRepositoryName
+	 * @return
+	 */
+	public static String getConfigRemoteURL(String localRepositoryName, String remoteName) {
+		List<Map<String, String>> returnList = new Vector<Map<String, String>>();
+		Git thisGit = null;
+		Repository thisRepo = null;
+		try {
+			File file = new File(localRepositoryName);
+			thisGit = Git.open(file);
+			thisRepo = thisGit.getRepository();
+			String[] remNames = thisRepo.getRemoteNames().toArray(new String[]{});
+			for(int remIndex = 0; remIndex < remNames.length; remIndex++) {
+				String remName = remNames[remIndex] +"";
+				if(remName.equalsIgnoreCase(remoteName))
+				{
+					String url = thisRepo.getConfig().getString("remote", remName, "url");
+					String upstream = thisRepo.getConfig().getString(remName, "upstream",  "url");
+					return url;
+				}
+			}
+		} catch (IOException e) {
+			logger.error(STACKTRACE, e);
+		} finally {
+			if(thisRepo != null) {
+				thisRepo.close();
+			}
+			if(thisGit != null) {
+				thisGit.close();
+			}
+		}
+
+		return null;
+	}
+
 	public static List<String> listRemotesForUser(String username, String password) {
 		int attempt = 1;
 		return listRemotesForUser(username, password, attempt);
