@@ -19,6 +19,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -817,7 +818,22 @@ public class TableToXLSXReactor	extends AbstractReactor {
 
 			// see if it is $
 			if(value.contains("$")) {
-				input.setDataFormat((short)0x5);
+				//input.setDataFormat((short)0x5); 
+				
+				// Adding Custom formatting to handle the decimal places.
+				String fmt = "$#,##0";
+				String tempValue = value;
+				tempValue = tempValue.replaceAll(",", "");
+				int decimalPlaces = tempValue.lastIndexOf('.') > 0 ? tempValue.length() - tempValue.lastIndexOf('.') - 1: 0;
+				if (decimalPlaces > 0) {
+					fmt = fmt + ".";
+					while(decimalPlaces-- > 0) {
+						fmt = fmt + "0";
+					}					
+				}
+				DataFormat format = wb.createDataFormat();
+				input.setDataFormat(format.getFormat(fmt));
+
 				Double val = Utility.getDouble(value.replaceAll("[$,\\s]", ""));
 				if(val != null) {
 					cell.setCellValue(val);
