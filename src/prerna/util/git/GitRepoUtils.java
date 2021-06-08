@@ -875,6 +875,13 @@ public class GitRepoUtils {
 			{
 				// there is a good possibility the user has not saved this !?
 				File file = new File(gitFolder + "/" + fileName);
+				
+				if(!file.exists())
+				{
+					// this could be an old insight try with the /version/assets
+					file = new File(gitFolder + "/version/assets/" + fileName);
+				}
+				
 				if(file.exists())
 				{
 					FileReader fis = new FileReader(file);
