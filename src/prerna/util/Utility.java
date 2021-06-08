@@ -3050,8 +3050,13 @@ public class Utility {
 
 	public static String encodeURIComponent(String s) {
 		try {
-			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
-					.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
+			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20")
+					.replace("!", "\\%21")
+					.replace("'", "\\%27")
+					.replace("(", "\\%28")
+					.replace(")", "\\%29")
+					.replace("~", "\\%7E")
+					;
 		} catch (UnsupportedEncodingException uee) {
 			logger.error(Constants.STACKTRACE, uee);
 		}
@@ -3060,8 +3065,13 @@ public class Utility {
 
 	public static String decodeURIComponent(String s) {
 		try {
-			String newS = s.replaceAll("\\%20", "+").replace("!", "%21").replace("'", "%27")
-					.replaceAll("\\(", "%28").replaceAll("\\)", "%29").replace("~", "%7E");
+			String newS = s.replaceAll("\\%20", "+")
+					.replaceAll("\\%21", "!")
+					.replaceAll("\\%27", "'")
+					.replaceAll("\\%28", "(")
+					.replaceAll("\\%29", ")")
+					.replaceAll("\\%7E", "~")
+					;
 			s = URLDecoder.decode(newS, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			logger.error(Constants.STACKTRACE, e);
