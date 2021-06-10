@@ -154,6 +154,16 @@ public class QueryFunctionHelper {
 			inputFunction = "str.lower";
 		} else if(inputFunction.equalsIgnoreCase(SUBSTRING)) {
 			inputFunction = "str.slice";
+		} else if(inputFunction.equalsIgnoreCase(DAY_NAME)) {
+			inputFunction = "dt.weekday_name";
+		} else if(inputFunction.equalsIgnoreCase(MONTH_NAME)) {
+			inputFunction = "dt.month_name()";
+		} else if(inputFunction.equalsIgnoreCase(YEAR)) {
+			inputFunction = "dt.year";
+		} else if(inputFunction.equalsIgnoreCase(QUARTER)) {
+			inputFunction = "dt.quarter";
+		} else if(inputFunction.equalsIgnoreCase(WEEK)) {
+			inputFunction = "dt.week";
 		}
 		
 		return inputFunction;
