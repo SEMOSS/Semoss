@@ -413,7 +413,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 						if(space == null || space.isEmpty() || isUserSpace) {
 							File origF = new File(fileLoc);
 							String newFileLoc = BASE + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
-													SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + 
+													SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "app_root" + DIR_SEPARATOR + 
 													"version" + DIR_SEPARATOR +
 													newInsightId + DIR_SEPARATOR + 
 													"data";
