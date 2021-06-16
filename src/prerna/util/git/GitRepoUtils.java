@@ -116,10 +116,10 @@ public class GitRepoUtils {
 	 */
 	public static void makeRemoteRepository(GitHub gh, String username, String repoName, int attempt) {
 		if(attempt < 3) {
-			GHCreateRepositoryBuilder ghr = gh.createRepository(repoName)
-					.description(GitUtils.getDateMessage("Repository created on ") + " By user " + username)
-					.autoInit(false);
 			try {
+				GHCreateRepositoryBuilder ghr = gh.createRepository(repoName)
+						.description(GitUtils.getDateMessage("Repository created on ") + " By user " + username)
+						.autoInit(false);
 				ghr.create();
 			} catch(SSLHandshakeException ex) {
 				logger.error(STACKTRACE, ex);
