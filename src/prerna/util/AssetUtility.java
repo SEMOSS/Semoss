@@ -156,7 +156,8 @@ public class AssetUtility {
 		}
 		assetFolder = assetFolder.replace('\\', '/');
 		
-		if(in.isSavedInsight() && !isGit(assetFolder)) {
+		// need to make adjustment here so that if it is not version then ignore initing here
+		if(in.isSavedInsight() && !isGit(assetFolder) && !assetFolder.trim().endsWith("app_root")) {
 			GitRepoUtils.init(assetFolder);
 		}
 		return assetFolder;

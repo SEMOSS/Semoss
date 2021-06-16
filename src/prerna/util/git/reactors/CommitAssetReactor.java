@@ -52,10 +52,24 @@ public class CommitAssetReactor extends AbstractReactor {
 		
 		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
+		
+		
+		// check the file to see if it is version/
+		// if not add it here
+		// make the asset folder to be the first piece of the file path
+		// need to get the first piece of filepath
+		// add it to the asset
+		// and pass that as asset folder
+		String [] fileTokens = filePath.split("/");
+		String baseDir = fileTokens[0];
+		assetFolder = assetFolder + "/" + baseDir;
+		filePath = filePath.replace(baseDir, "");
+
 		// add file to git
 		List<String> files = new Vector<>();
 		files.add(relativePath + DIR_SEPARATOR + filePath);		
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
+
 		
 		// commit it
 		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
