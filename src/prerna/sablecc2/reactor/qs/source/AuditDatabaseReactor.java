@@ -24,6 +24,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.ConnectionUtils;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -91,7 +92,10 @@ public class AuditDatabaseReactor extends AbstractReactor {
 
 		String[] headers = new String[] { "Modification_Date", "Id", "Modification_Type", "Altered_Table", "Key_Column", "Key_Column_Value","Altered_Column", "Old_Value", "New_Value", "User_Email" };
 		String[] types = new String[] { "TIMESTAMP", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING","STRING", "STRING", "STRING" };
-		H2Frame frame = new H2Frame(headers, types);
+		H2Frame frame = new H2Frame("auditFrame");
+		ImportUtility.parseHeadersAndTypeIntoMeta(frame, headers, types, frame.getName());
+		frame.getBuilder().alterTableNewColumns(frame.getName(), headers, types);
+		frame.syncHeaders();		
 		// create prepared statement to insert data into frame
 		PreparedStatement insertPS = frame.createInsertPreparedStatement(headers);
 		// create prepared statement to update frame user ids to user emails
