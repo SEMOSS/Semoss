@@ -9,6 +9,8 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -97,6 +99,30 @@ public class CommandReactor extends GitBaseReactor {
 		// pre-process mkdir to say you cannot create folders at main level
 		if(git.equalsIgnoreCase("mkdir") && util.getWorkingDir().endsWith("app_root"))
 			return NounMetadata.getErrorNounMessage("You cannot make directory in app root folder");
+
+		
+		// pre process commit
+		// add user name and email
+		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("commit"))
+		{
+			// add the user name
+			// git config user.name
+			// git confir user.email
+			// and user email
+			String [] userEmail = this.insight.getUser().getUserCredential(AuthProvider.GITHUB);
+			
+			if(userEmail [0] == null)
+				userEmail[0] = userEmail[1].substring(0, userEmail[1].indexOf("@")); // get it from the email
+			
+			this.insight.getCmdUtil().executeCommand("git config user.name " + userEmail[0]);
+			this.insight.getCmdUtil().executeCommand("git config user.email " + userEmail[1]);
+			
+		}
+		
+		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("config"))
+		{
+			// command should not be allowed.. 
+		}
 
 		String output = util.executeCommand(command);
 		
@@ -303,6 +329,7 @@ public class CommandReactor extends GitBaseReactor {
 				
 						
 				repos = repos + "\n" + "You can cd into any of these dirs and when you do the git clone will be invoked at this level automatically ";		
+				repos = repos + "\n\n" + "Version is SEMOSS's default git repository.";
 				fis.close();
 				newOutput = newOutput +"\n" + repos;
 			} catch (FileNotFoundException e) {
