@@ -3,6 +3,7 @@ package prerna.auth;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -22,7 +23,6 @@ import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IStorageEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.CopyObject;
@@ -840,6 +840,39 @@ public class User implements Serializable {
 			MgmtUtil.removeMemory4User(memoryInGigs);
 		}
 	}
+	
+	public String [] getUserCredential(AuthProvider prov)
+	{
+		// just need some specific one the user is using
+		if(prov != null && accessTokens.containsKey(prov))
+			return (getUserEmail(accessTokens.get(prov)));
+		else
+		{
+			Enumeration <AuthProvider> accessKeys = accessTokens.keys();
+			if(accessKeys.hasMoreElements())
+			{
+				AuthProvider provider = accessKeys.nextElement();
+				AccessToken tok = accessTokens.get(provider);
+				return getUserEmail(tok);
+			}
+			else
+			{
+				return new String[] {"anonymous", "anonymous@not_logged_in.com"};
+			}
+		}
+	}
+	
+	private String[] getUserEmail(AccessToken token)
+	{
+		String [] userEmail = new String[2];
+		userEmail[0] = token.getUsername();
+		userEmail[1] = token.getEmail();
+	
+		return userEmail;
+	}
+		
+		
+		
 
 	
 }
