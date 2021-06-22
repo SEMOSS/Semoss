@@ -40,6 +40,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class ToExcelReactor extends TaskBuilderReactor {
 
@@ -201,7 +202,7 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			for(; i < size; i ++) {
 				Cell cell = excelRow.createCell(i);
 				Object value = dataRow[i];
-				if(value == null) {
+				if(Utility.isNullValue(value)) {
 					cell.setCellValue("null");
 				} else {
 					if(typesArr[i] == SemossDataType.STRING) {
@@ -242,7 +243,7 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			for(; i < size; i ++) {
 				Cell cell = excelRow.createCell(i);
 				Object value = dataRow[i];
-				if(value == null) {
+				if(Utility.isNullValue(value)) {
 					cell.setCellValue("null");
 				} else {
 					if(typesArr[i] == SemossDataType.STRING) {

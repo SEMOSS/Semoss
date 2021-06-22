@@ -70,6 +70,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -3951,6 +3952,16 @@ public class Utility {
 			}
 		}
 		return engineIdMap.get(queryEngine);
+
+	}
+	
+	/**
+	 * Checks each object value is null(for all types) or NaN (for double type)
+	 * @param obj 
+	 * @return boolean 
+	 */
+	public static boolean isNullValue(Object obj){
+		return (Objects.isNull(obj) || (obj instanceof Double && Double.isNaN((Double)obj)));
 
 	}
 
