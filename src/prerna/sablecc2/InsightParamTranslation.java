@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,9 +60,14 @@ public class InsightParamTranslation extends DepthFirstAdapter {
         if(reactorId.equals("AddPanel")) {
 			// store order of panel creation
 			POpInput input = node.getOpInput();
-        	String panel = input.toString().trim();
-        	panelsCreated.add(panel);
-
+			if(input == null) {
+				// person is doing AddPanel() by itself
+	        	panelsCreated.add("randomPanel_" + UUID.randomUUID().toString());
+			} else {
+	        	String panel = input.toString().trim();
+	        	panelsCreated.add(panel);
+			}
+			
         }  else if (reactorId.equals("Clone")) {
 			POpInput closePanelInput = node.getOpInput();
 			String panel = closePanelInput.toString().trim();
