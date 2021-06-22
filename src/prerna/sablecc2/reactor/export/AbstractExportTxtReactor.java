@@ -123,7 +123,7 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 					builder = new StringBuilder();
 					i = 0;
 					for (; i < size; i++) {
-						if(dataRow[i] == null) {
+						if(Utility.isNullValue(dataRow[i])) {
 							builder.append("null").append(this.delimiter);
 						} else {
 							if (typesArr[i] == SemossDataType.STRING) {
@@ -149,7 +149,7 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 					builder = new StringBuilder();
 					i = 0;
 					for (; i < size; i++) {
-						if(dataRow[i] == null) {
+						if(Utility.isNullValue(dataRow[i])) {
 							builder.append("null").append(this.delimiter);
 						} else {
 							if (typesArr[i] == SemossDataType.STRING) {
