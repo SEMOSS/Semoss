@@ -229,8 +229,7 @@ public class MergeReactor extends AbstractReactor {
 					String type = j.getJoinType();
 					String comparator = j.getComparator();
 					
-					if(IQueryFilter.comparatorIsEquals(comparator) && 
-							type.equals("inner.join") || type.equals("left.outer.join")) {
+					if(IQueryFilter.comparatorIsEquals(comparator) && (type.equals("inner.join") || type.equals("left.outer.join"))) {
 						// we need to make sure we apply the filter correctly!
 						// remember, RHS is the alias we provide the selector
 						// but might not match the physical
