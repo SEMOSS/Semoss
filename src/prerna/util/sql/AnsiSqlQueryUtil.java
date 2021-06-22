@@ -14,6 +14,7 @@ import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.FunctionQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -312,7 +313,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			rightTableJoinCols.add(rightTableJoinCol.toUpperCase());
 			
 			String joinComparator = j.getComparator();
-			if("==".equals(joinComparator)) {
+			if(IQueryFilter.comparatorIsEquals(joinComparator)) {
 				joinComparator = "=";
 			}
 			String joinType = j.getJoinType();
@@ -363,7 +364,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 					// need to cast the left hand side
 					joinString.append(" ")
 						.append("CAST(").append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-						.append(" AS DOUBLE) = ")
+						.append(" AS DOUBLE)  ").append(joinComparator).append(" ")
 						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
 				} else if( (leftColType == SemossDataType.INT || leftColType == SemossDataType.DOUBLE)  && rightColType == SemossDataType.STRING) {
 					// one is a number
@@ -513,7 +514,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			rightTableJoinCols.add(rightTableJoinCol.toUpperCase());
 
 			String joinComparator = j.getComparator();
-			if("==".equals(joinComparator)) {
+			if(IQueryFilter.comparatorIsEquals(joinComparator)) {
 				joinComparator = "=";
 			}
 			String joinType = j.getJoinType();
@@ -560,7 +561,8 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 					// right is double
 					// need to cast the left hand side
 					joinString.append(" ").append("CAST(").append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-							.append(" AS DOUBLE) = ").append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
+							.append(" AS DOUBLE) ").append(joinComparator).append(" ")
+							.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
 				} else if ((leftColType == SemossDataType.INT || leftColType == SemossDataType.DOUBLE)
 						&& rightColType == SemossDataType.STRING) {
 					// one is a number

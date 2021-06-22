@@ -27,6 +27,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 /*
  * Utility class to process additional tools applied on the data while exporting.
@@ -61,9 +62,11 @@ public class FormattingUtility {
 	 */
 	public static Object formatDataValues(Object value, String dataType, String metamodelAdditionalDataType, Map<String, String> panelFormatting) {
 		Object formatted = value;
-		if (Objects.isNull(formatted)) {
+		
+		if (Utility.isNullValue(formatted)) {
 			return "null";
 		}
+		
 		
 		boolean dontRound = false;
 
@@ -762,6 +765,8 @@ public class FormattingUtility {
 			
         return format;
 	}
+		
+	
 
 	/*
 	 * Main method for testing
@@ -773,6 +778,7 @@ public class FormattingUtility {
 	 * System.out.println("text::" + text);
 	 * 
 	 * }
-	 */
+	 */	
+	
 
 }

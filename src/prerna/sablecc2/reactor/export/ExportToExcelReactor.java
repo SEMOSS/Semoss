@@ -633,7 +633,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				curSheetCol = i;
 				Cell cell = excelRow.createCell(curSheetCol);
 				Object value = dataRow[i];
-				if (value == null || value.toString().length() == 0) {
+				if (Utility.isNullValue(value) || value.toString().length() == 0) {
 					cell.setCellValue("");
 				} else {
 					if (typesArr[i] == SemossDataType.STRING) {
@@ -675,7 +675,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				curSheetCol = i;
 				Cell cell = excelRow.createCell(curSheetCol);
 				Object value = dataRow[i];
-				if (value == null || value.toString().length() == 0) {
+				if (Utility.isNullValue(value) || value.toString().length() == 0) {
 					cell.setCellValue("");
 				} else {
 					if (typesArr[i] == SemossDataType.STRING) {
