@@ -721,7 +721,8 @@ public class PixelUtility {
 			cacheRecipe.add("CachedPanel(\"" + panelId + "\");");
 			InsightPanel panel = panels.get(panelId);
 			
-			boolean isVisualizaiton = panel.getPanelView().equalsIgnoreCase("visualization");
+			boolean isVisualizaiton = panel.getPanelView() != null 
+					&& panel.getPanelView().equalsIgnoreCase("visualization");
 			if(isVisualizaiton) {
 				Map<String, SelectQueryStruct> qsMap = panel.getLayerQueryStruct();
 				Map<String, TaskOptions> tOptionsMap = panel.getLayerTaskOption();
@@ -764,7 +765,9 @@ public class PixelUtility {
 					// IT IS STORED IN THE VIEW PIXEL BUT NOT IN THE INSIGHT DEPENDENCY
 					// try to find the task on layer 0
 					Pixel viewPixel = in.getPixelList().findLastPixelViewNotRefresh(panelId, "0");
-					panelTasks.add(viewPixel.getPixelString());				
+					if(viewPixel != null) {
+						panelTasks.add(viewPixel.getPixelString());
+					}
 				}
 			}
 		}
@@ -915,7 +918,9 @@ public class PixelUtility {
 					// IT IS STORED IN THE VIEW PIXEL BUT NOT IN THE INSIGHT DEPENDENCY
 					// try to find the task on layer 0
 					Pixel viewPixel = insightPixelList.findLastPixelViewNotRefresh(panelId, "0");
-					pList.addPixel( new Pixel( (newPixelId++) + "", viewPixel.getPixelString() ) );
+					if(viewPixel != null) {
+						pList.addPixel( new Pixel( (newPixelId++) + "", viewPixel.getPixelString() ) );
+					}
 				}
 				
 				// add the color by values at the end of the recipe
