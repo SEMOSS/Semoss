@@ -737,7 +737,6 @@ public class SqlParser2 {
 				GenExpression sqs = processExpression(qs,  joinExpr2.getLeftExpression(), eqExpr);
 				GenExpression sqs2 = processExpression(qs,  joinExpr2.getRightExpression(), eqExpr);
 				
-				
 				Object constantValue = null;
 				String constantType = null;
 				GenExpression exprToTrack = null;
@@ -773,6 +772,36 @@ public class SqlParser2 {
 						exprToTrack = sqs;
 						
 					}
+					// If the operation is function, get the data from the expression
+					else if ((((GenExpression) sqs).getOperation().equalsIgnoreCase("function"))) {
+						// Casting to FunctionExpression to get the expression data
+						FunctionExpression fnsqs = (FunctionExpression) sqs;
+						if (fnsqs.expressions.size() > 0) {
+							// Going with the normal flow
+							if (fnsqs.expressions.get(0).getOperation().equalsIgnoreCase("column")) {
+								full_from = fnsqs.expressions.get(0).getLeftExpr();
+								column = true;
+								columnName = full_from;
+								tableName = fnsqs.expressions.get(0).tableName;
+								aliasName = columnName;
+								if (fnsqs.expressions.get(0).userTableAlias != null)
+									aliasName = fnsqs.expressions.get(0).userTableAlias;
+							} else if ((((GenExpression) fnsqs.expressions.get(0)).getOperation()
+									.equalsIgnoreCase("string"))
+									|| (((GenExpression) fnsqs.expressions.get(0)).getOperation()
+											.equalsIgnoreCase("double"))
+									|| (((GenExpression) fnsqs.expressions.get(0)).getOperation()
+											.equalsIgnoreCase("date"))
+									|| (((GenExpression) fnsqs.expressions.get(0)).getOperation()
+											.equalsIgnoreCase("time"))
+									|| (((GenExpression) fnsqs.expressions.get(0)).getOperation()
+											.equalsIgnoreCase("long"))) {
+
+								constantValue = ((GenExpression) fnsqs.expressions.get(0)).leftItem;
+								constantType = ((GenExpression) sqs2).getOperation();
+							}
+						}
+					}
 	
 					if(((GenExpression)sqs2).getOperation().equalsIgnoreCase("column"))
 					{
@@ -794,15 +823,45 @@ public class SqlParser2 {
 						// we got our target
 						constantValue = ((GenExpression)sqs2).leftItem;
 						constantType = ((GenExpression)sqs2).getOperation();
-						
+			
 						if(columnName != null && parameterize)
 						{
 							((GenExpression)sqs2).setLeftExpresion("<" + tableName + "_" + columnName + modifier + eqExpr.getOperation().trim() + ">");
 						}
 						exprToTrack = sqs2;
 	
+					} 
+					// If the operation is function, get the data from the expression
+					else if ((((GenExpression) sqs2).getOperation().equalsIgnoreCase("function"))) {
+						// Casting to FunctionExpression to get the expression data
+						FunctionExpression fnsqs2 = (FunctionExpression) sqs2;
+						if (fnsqs2.expressions.size() > 0) {
+							// Going with the normal flow
+							if (((GenExpression) fnsqs2.expressions.get(0)).getOperation().equalsIgnoreCase("column")) {
+								full_from = ((GenExpression) fnsqs2.expressions.get(0)).getLeftExpr();
+								column = true;
+								columnName = full_from;
+								tableName = ((GenExpression) fnsqs2.expressions.get(0)).tableName;
+								aliasName = columnName;
+								if (fnsqs2.expressions.get(0).userTableAlias != null)
+									aliasName = ((GenExpression) fnsqs2.expressions.get(0)).userTableAlias;
+							} else if ((((GenExpression) fnsqs2.expressions.get(0)).getOperation()
+									.equalsIgnoreCase("string"))
+									|| (((GenExpression) fnsqs2.expressions.get(0)).getOperation()
+											.equalsIgnoreCase("double"))
+									|| (((GenExpression) fnsqs2.expressions.get(0)).getOperation()
+											.equalsIgnoreCase("date"))
+									|| (((GenExpression) fnsqs2.expressions.get(0)).getOperation()
+											.equalsIgnoreCase("time"))
+									|| (((GenExpression) fnsqs2.expressions.get(0)).getOperation()
+											.equalsIgnoreCase("long"))) {
+
+								constantValue = ((GenExpression) fnsqs2.expressions.get(0)).leftItem;
+								constantType = ((GenExpression) sqs2).getOperation();
+							}
+						}
 					}
-					
+
 					if(binary && column && constantValue != null)
 					{
 						String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
@@ -1130,6 +1189,7 @@ public class SqlParser2 {
 			gep.setOperation("string");
 			gep.setExpression("string");
 			gep.setLeftExpresion("'" + value + "'");
+			gep.setLeftExpr("'" + value + "'");
 			gep.parent = (GenExpression)qs;
 			return gep;
 		}
@@ -1262,6 +1322,18 @@ public class SqlParser2 {
 					columnName = colExpression.getLeftExpr();
 					tableName = colExpression.tableName;
 				}
+				
+				// If Operation is function, get the column name and table name from the expression 
+				if(colExpression.getOperation().equalsIgnoreCase("function"))
+				{
+					// who knows you could be a sadist after all
+					// Casting to FunctionExpression to get the expression data
+					FunctionExpression fncolExpression = (FunctionExpression) colExpression;
+					column = true;
+					columnName = fncolExpression.expressions.get(0).getLeftExpr();
+					tableName = fncolExpression.expressions.get(0).tableName;
+				}
+				
 			}
 			// sometimes the in can also be a list
 			else
