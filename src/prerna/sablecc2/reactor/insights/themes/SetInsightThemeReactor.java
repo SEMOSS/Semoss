@@ -22,7 +22,7 @@ public class SetInsightThemeReactor extends AbstractInsightReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String versionFilePath = AssetUtility.getAssetVersionBasePath(this.insight, null, true);
+		String versionFilePath = AssetUtility.getAssetBasePath(this.insight, null, true);
 		String insightThemeFilePath = versionFilePath + DIR_SEPARATOR + IMAGE_THEME_FILE;
 		File insightThemeFile = new File(insightThemeFilePath);
 		if(insightThemeFile.exists() && insightThemeFile.isFile()) {
