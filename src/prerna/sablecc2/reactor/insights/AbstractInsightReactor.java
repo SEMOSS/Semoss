@@ -40,6 +40,7 @@ import prerna.util.insight.InsightUtility;
 public abstract class AbstractInsightReactor extends AbstractReactor {
 
 	// used for saving a base insight
+	protected static final String IMAGE_THEME_FILE = "insight_theme.json";
 	protected static final String IMAGE_NAME = "image.png";
 	protected static final String HIDDEN_KEY = "hidden";
 	protected static final String CACHEABLE = "cache";
