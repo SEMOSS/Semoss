@@ -28,6 +28,13 @@ public class SetInsightThemeReactor extends AbstractInsightReactor {
 		if(insightThemeFile.exists() && insightThemeFile.isFile()) {
 			// delete the current one
 			insightThemeFile.delete();
+		} else {
+			// if the file exists and we delete it, we know the folder is there
+			// we dont know for unsaved insights if it exists
+			File parentF = insightThemeFile.getParentFile();
+			if(!parentF.exists() || !parentF.isDirectory()) {
+				parentF.mkdirs();
+			}
 		}
 		
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
