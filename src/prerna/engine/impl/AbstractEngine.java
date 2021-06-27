@@ -1575,8 +1575,20 @@ public abstract class AbstractEngine implements IEngine {
 				Path targetPath = Paths.get(public_home + java.nio.file.FileSystems.getDefault().getSeparator() + appId);
 	
 				File file = new File(public_home + java.nio.file.FileSystems.getDefault().getSeparator() + appId);
-							
-				if(!file.exists() &&  !Files.isSymbolicLink(targetPath))
+
+				boolean copy = DIHelper.getInstance().getProperty(Settings.COPY_APP) != null && DIHelper.getInstance().getProperty(Settings.COPY_APP).equalsIgnoreCase("true");
+				
+				// this is purely for testing purposes - this is because when eclipse publishes it wipes the directory and removes the actual db
+				if(copy) 
+				{
+					if(!file.exists())
+						file.mkdir();
+					
+					FileUtils.copyDirectory(sourcePath.toFile(), file);
+					
+				}
+				// this is where we create symbolic link
+				else if(!file.exists() &&  !Files.isSymbolicLink(targetPath))
 				{
 					Files.createSymbolicLink(targetPath, sourcePath);
 				}
