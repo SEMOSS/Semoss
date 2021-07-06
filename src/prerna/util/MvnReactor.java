@@ -61,7 +61,12 @@ public class MvnReactor extends AbstractReactor
 
 		String workingDir = this.insight.getCmdUtil().getWorkingDir();
 		
+		// classes dir
+		String classesDir = workingDir.substring(0, workingDir.indexOf("app_root") + "app_root".length()) + File.separator + "target";
+		
 		InvocationRequest request = new DefaultInvocationRequest();
+        request.setMavenOpts("-DclassesDir=" + classesDir);
+
 		InvocationOutputHandler outputHandler = new InvocationOutputHandler(){
 			
 		File file = new File(workingDir + File.separator + "temp.mvn.output");
