@@ -109,6 +109,8 @@ import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 import org.owasp.encoder.Encode;
 import org.owasp.esapi.ESAPI;
+import org.xeustechnologies.jcl.JarClassLoader;
+import org.xeustechnologies.jcl.JclObjectFactory;
 
 import com.google.common.base.Strings;
 import com.google.gson.GsonBuilder;
@@ -143,6 +145,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
+import prerna.sablecc2.reactor.IReactor;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -3375,7 +3378,8 @@ public class Utility {
 						.overrideClasspath((new File(classesFolder).toURI().toURL()))
 						// .enableAllInfo()
 						// .enableClassInfo()
-						.whitelistPackages(packages).scan();
+						.whitelistPackages(packages)
+						.scan();
 				// ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
 				// ScanResult sr = new
 				// ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
@@ -3394,6 +3398,80 @@ public class Utility {
 					String name = classes.get(classIndex).getSimpleName();
 
 					thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+				}
+			}
+		} catch (Exception ex) {
+			logger.error(Constants.STACKTRACE, ex);
+		}
+
+		return thisMap;
+	}
+
+	// loads classes through this specific class loader for the insight
+	public static Map loadReactorsMvn(String folder, String key, JarClassLoader cl, String outputFolder) {
+		HashMap thisMap = new HashMap<String, Class>();
+		try {
+			// I should create the class pool everytime
+			// this way it doesn't keep others and try to get from other places
+			// does this end up loading all the other classes too ?
+			ClassPool pool = ClassPool.getDefault();
+			// takes a class and modifies the name of the package and then plugs it into the
+			// heap
+
+			// the main folder to add here is
+			// basefolder/db/insightfolder/classes - right now I have it as classes. we can
+			// change it to something else if we want
+			String classesFolder = folder + "/" + outputFolder;
+
+			classesFolder = classesFolder.replaceAll("\\\\", "/");
+			cl.add(classesFolder);
+
+			File file = new File(classesFolder);
+			if (file.exists()) {
+				// loads a class and tried to change the package of the class on the fly
+				// CtClass clazz = pool.get("prerna.test.CPTest");
+
+				logger.error("Loading reactors from >> " + classesFolder);
+
+				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
+				List<String> dirList = dirs.get("DIR_LIST");
+
+				// get the directories before scanning
+				String[] packages = new String[dirList.size()];
+				for (int dirIndex = 0; dirIndex < dirList.size(); dirIndex++) {
+					packages[dirIndex] = dirList.get(dirIndex);
+				}
+
+				ScanResult sr = new ClassGraph()
+						// .whitelistPackages("prerna")
+						.overrideClasspath((new File(classesFolder).toURI().toURL()))
+						// .enableAllInfo()
+						// .enableClassInfo()
+						.whitelistPackages(packages)
+						.scan();
+				// ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
+				// ScanResult sr = new
+				// ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
+
+				// ClassInfoList classes =
+				// sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
+
+				Map<String, Class> reactors = new HashMap<>();
+				// add the path to the insight classes so only this guy can load it
+				pool.insertClassPath(classesFolder);
+
+				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
+					
+					// this will load the reactor with everything
+					JclObjectFactory factory = JclObjectFactory.getInstance();
+
+					  //Create object of loaded class
+					Object loadedObject = factory.create(cl, classes.get(classIndex).getName());
+
+					String name = classes.get(classIndex).getSimpleName();
+
+					thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), loadedObject.getClass());
 				}
 			}
 		} catch (Exception ex) {
@@ -3615,6 +3693,125 @@ public class Utility {
 				sb.substring(0, sb.length() - 1);
 				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
 			}
+
+			String[] starterFile = writeStarterFile(commands, finalDir);
+			ProcessBuilder pb = new ProcessBuilder(starterFile);
+			pb.redirectError();
+			logger.info("came out of the waiting for process");
+			Process p = pb.start();
+
+			try {
+				// p.waitFor();
+				p.waitFor(500, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+				logger.error(Constants.STACKTRACE, ie);
+			}
+			logger.info("came out of the waiting for process");
+			thisProcess = p;
+
+			// System.out.println("Process started with .. " + p.exitValue());
+			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
+			// + " " + argList);
+			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
+			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
+			// thisProcess = pb.start();
+		} catch (IOException ioe) {
+			logger.error(Constants.STACKTRACE, ioe);
+		}
+
+		return thisProcess;
+	}
+
+	public static Process startRMIServer(String cp, String insightFolder, String port) {
+		// this basically starts a java process
+		// the string is an identifier for this process
+		Process thisProcess = null;
+		if (cp == null) {
+			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
+		}
+		String specificPath = getCP(cp, insightFolder);
+		try {
+			String java = System.getenv("JAVA_HOME");
+			if (java == null) {
+				java = DIHelper.getInstance().getProperty("JAVA_HOME");
+			}
+			if(!java.endsWith("bin")) //seems like for graal
+				java = java + "/bin/java";
+			else
+				java = java + "/java";
+			// account for spaces in the path to java
+			if (java.contains(" ")) {
+				java = "\"" + java + "\"";
+			}
+			// change the \\
+			java = java.replace("\\", "/");
+
+			String jep = DIHelper.getInstance().getProperty("LD_LIBRARY_PATH");
+			if (jep == null) {
+				jep = System.getenv("LD_LIBRARY_PATH");
+			}
+			// account for spaces in the path to jep
+			if (jep.contains(" ")) {
+				jep = "\"" + jep + "\"";
+			}
+			jep = jep.replace("\\", "/");
+
+			String pyWorker = DIHelper.getInstance().getProperty("RMI_WORKER");
+			if(pyWorker == null)
+				pyWorker = "prerna.rmi.Server";
+			String[] commands = null;
+			if (port == null)
+				commands = new String[7];
+			else {
+				commands = new String[8];
+				commands[7] = port;
+			}
+			String finalDir = insightFolder.replace("\\", "/");
+			commands[0] = java;
+			// just append all the environment variables
+			// on the windows machine as well
+			if(SystemUtils.IS_OS_WINDOWS) {
+				// since we will wrap quotes around the entire thing as PATH likely has spaces
+				// remove from jep
+				if(jep.startsWith("\"") && jep.endsWith("\"")) {
+					jep = jep.substring(1, jep.length()-1);
+				}
+				commands[1] = "-Djava.library.path=\"%PATH%;" + jep + "\"";
+			} else {
+				commands[1] = "-Djava.library.path=" + jep;
+			}
+			commands[2] = "-cp";
+			commands[3] = specificPath;
+			commands[4] = pyWorker;
+			commands[5] = finalDir;
+			commands[6] = DIHelper.getInstance().rdfMapFileLocation;
+			// java = "c:/zulu/zulu-8/bin/java";
+			// StringBuilder argList = new StringBuilder(args[0]);
+			// for(int argIndex = 0;argIndex < args.length;argList.append("
+			// ").append(args[argIndex]), argIndex++);
+			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
+			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
+					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
+					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
+					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
+					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
+			*/
+			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
+			// commands[6] = ">";
+			// commands[7] = finalDir + "/.log";
+
+			logger.debug("Trying to create file in .. " + finalDir);
+			File file = new File(finalDir + "/init");
+			file.createNewFile();
+			logger.debug("Python start commands ... ");
+			logger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
+
+			// run it as a process
+			// ProcessBuilder pb = new ProcessBuilder(commands);
+			// ProcessBuilder pb = new
+			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
+			// pb.command(commands);
 
 			String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
