@@ -15,7 +15,11 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		ReactorFactory.recompile(insight.getRdbmsId());
+		String engineId = insight.getRdbmsId();
+		if(keyValue.containsKey("engine"))
+			engineId = keyValue.get("engine");
+		
+		ReactorFactory.recompile(engineId);
 		//if(keyValue.containsKey("engine"))
 		{
 			for(int engineIndex = 0;engineIndex < insight.getQueriedEngines().size();engineIndex++)
