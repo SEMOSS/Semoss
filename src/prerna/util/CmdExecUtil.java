@@ -255,6 +255,7 @@ public class CmdExecUtil {
 		for(int tokenIndex = 0;tokenIndex < cdTokens.length;tokenIndex++)
 		{
 			String curToken = cdTokens[tokenIndex];
+			
 			//System.out.println("Processing CD " + curToken);
 			if(curToken.equalsIgnoreCase(".."))
 			{
@@ -265,7 +266,10 @@ public class CmdExecUtil {
 				{
 					String lastToken = workdirTokens[workdirTokens.length -1];
 					int lastIndex = workingDir.lastIndexOf("/" + lastToken);
-					workingDir = workingDir.substring(0, lastIndex);
+					
+					String newDir = workingDir.substring(0, lastIndex);
+					if(new File(newDir).exists())
+						workingDir = newDir;
 					//System.out.println("Working Dir " + workingDir);
 				}
 				else
@@ -276,10 +280,16 @@ public class CmdExecUtil {
 			}
 			else 
 			{
+				String newDir = null;
 				if(!workingDir.endsWith("/"))
-					workingDir = workingDir + "/" + curToken;
+					newDir = workingDir + "/" + curToken;
 				else
-					workingDir = workingDir + curToken;					
+					newDir = workingDir + curToken;					
+				
+				// check to see if this is valid
+				if(new File(newDir).exists())
+					workingDir = newDir;
+
 			}
 		}
 		
@@ -287,6 +297,7 @@ public class CmdExecUtil {
 		return workingDir;
 		
 	}
+	
 	
 	public String getWorkingDir()
 	{

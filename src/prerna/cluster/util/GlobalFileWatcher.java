@@ -33,7 +33,8 @@ public class GlobalFileWatcher implements CuratorCacheListener {
 		String parent = file.getParent();
 		System.err.println("Parent Folder " + parent);
 		
-		if(lastModified.contentEquals(payload))
+		// possibly the information is not there
+		if(lastModified != null && lastModified.contentEquals(payload))
 		{
 			System.out.println("All in sync");
 		}
