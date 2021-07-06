@@ -9,6 +9,8 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
+import org.apache.commons.io.FileUtils;
+
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.sablecc2.om.PixelDataType;
@@ -52,6 +54,8 @@ public class CommandReactor extends GitBaseReactor {
 		//util = null;
 		String git = "";
 		String gitCommand = null;
+		String preCloneMessage = null;
+		String postCloneMessage = null;
 		
 		StringTokenizer commands = new StringTokenizer(command);
 		if(commands.countTokens() >= 2)
@@ -78,8 +82,11 @@ public class CommandReactor extends GitBaseReactor {
 		if(git != null && git.equalsIgnoreCase("git") && gitCommand != null && gitCommand.equalsIgnoreCase("clone"))
 		{
 			isCloneAllowed = preProcessClone(command, util.getWorkingDir());
+			
+			// allow it but basically say we will blow your git folder away 
 			if(isCloneAllowed != null && !isCloneAllowed)
-				return NounMetadata.getErrorNounMessage("Clone is not allowed at this level ");				
+				preCloneMessage = "You are cloning into a folder that is already part of git. Tracking at this level will be disabled";
+				//return NounMetadata.getErrorNounMessage("Clone is not allowed at this level ");				
 		}		
 				
 		// pre-processing for cd
@@ -134,7 +141,8 @@ public class CommandReactor extends GitBaseReactor {
 		if(git != null && git.equalsIgnoreCase("git") && gitCommand != null && gitCommand.equalsIgnoreCase("clone"))
 		{
 			// try to see if this is a clone if so add it to the clone properties
-			postProcessClone(command, util.getWorkingDir());
+			postProcessClone(command, util.getWorkingDir(), isCloneAllowed);
+			postCloneMessage = "If this is a java project, please make sure to adjust the target directory (XML Element build/directory) to ${classesDir}";
 		}	
 
 		if((command.startsWith("dir") || command.startsWith("ls")))
@@ -145,6 +153,11 @@ public class CommandReactor extends GitBaseReactor {
 			//	dir = gitCommand;
 			output = postProcessDir(command, dir, output);
 		}	
+		if(preCloneMessage != null)
+			output = preCloneMessage + "\n" + output;
+		
+		if(postCloneMessage != null)
+			output = output + "\n" + postCloneMessage;
 		
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.HELP);
 	}
@@ -187,14 +200,13 @@ public class CommandReactor extends GitBaseReactor {
 		return null;
 	}
 	
-	private void postProcessClone(String command, String workingDir)
+	private void postProcessClone(String command, String workingDir, boolean cloneAllowed)
 	{
 		StringTokenizer commands = new StringTokenizer(command);
 		if(commands.countTokens() >= 2)
 		{
 			String gitCommand = commands.nextToken().trim();
 			String push = commands.nextToken().trim();
-			
 			
 			if(gitCommand.equalsIgnoreCase("git") && push.equalsIgnoreCase("clone"))
 			{
@@ -206,7 +218,7 @@ public class CommandReactor extends GitBaseReactor {
 				
 				// see if this directory exists in base folder
 				String appBaseFolder =  workingDir;
-				if(appBaseFolder.endsWith("app_root") && new File(appBaseFolder + "/version").exists() && new File(appBaseFolder + "/" + dirName).exists())
+				if(cloneAllowed && appBaseFolder.endsWith("app_root") && new File(appBaseFolder + "/version").exists() && new File(appBaseFolder + "/" + dirName).exists())
 				{
 					// we are in the right location process now
 					// add this to the properties
@@ -245,7 +257,20 @@ public class CommandReactor extends GitBaseReactor {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					
+				}
+				
+				else if(!cloneAllowed)
+				{
+					File gitFolder = new File(workingDir + File.separator + dirName + File.separator + ".git");
+					if(gitFolder.exists())
+					{
+						try {
+							FileUtils.deleteDirectory(gitFolder);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
 				}
 			}
 		}
