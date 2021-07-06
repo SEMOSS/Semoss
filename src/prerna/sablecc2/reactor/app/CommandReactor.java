@@ -122,6 +122,8 @@ public class CommandReactor extends GitBaseReactor {
 		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("config"))
 		{
 			// command should not be allowed.. 
+			if(command.contains("global"))
+				return NounMetadata.getErrorNounMessage("Global config cannot be set in this environment");
 		}
 
 		String output = util.executeCommand(command);
@@ -287,17 +289,19 @@ public class CommandReactor extends GitBaseReactor {
 		try {
 			File repoFile = new File(workingDir + "/version/repoList.txt");
 			
-			Properties prop = new Properties();
-			FileInputStream fis = new FileInputStream(repoFile);
-			prop.load(fis);
-			
-			
-			String url = prop.getProperty(repoName);
-			
-			insight.getCmdUtil().executeCommand("git clone " + url);
-			
-			fis.close();
-			
+			if(repoFile.exists())
+			{
+				Properties prop = new Properties();
+				FileInputStream fis = new FileInputStream(repoFile);
+				prop.load(fis);
+				
+				
+				String url = prop.getProperty(repoName);
+				
+				insight.getCmdUtil().executeCommand("git clone " + url);
+				
+				fis.close();
+			}			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

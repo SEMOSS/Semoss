@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -45,6 +46,7 @@ import java.nio.file.Paths;
 import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -59,8 +61,15 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.maven.shared.invoker.DefaultInvocationRequest;
+import org.apache.maven.shared.invoker.DefaultInvoker;
+import org.apache.maven.shared.invoker.InvocationRequest;
+import org.apache.maven.shared.invoker.InvocationResult;
+import org.apache.maven.shared.invoker.Invoker;
+import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
+import org.xeustechnologies.jcl.JarClassLoader;
 
 import com.google.gson.Gson;
 
@@ -176,6 +185,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * Custom class loader
 	 */
 	private SemossClassloader engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
+	private JarClassLoader mvnClassLoader = null;
 	
 	// publish cache
 	private boolean publish = false;
@@ -1256,6 +1266,8 @@ public abstract class AbstractEngine implements IEngine {
 		
 		int randomNum = 0;
 		//ReactorFactory.compileCache.remove(engineId);
+		// compile the classes
+		// TODO: do this evaluation automatically see if java folder is older than classes folder 
 		if(!ReactorFactory.compileCache.containsKey(engineId))
 		{
 			String classesFolder = AssetUtility.getAppAssetVersionFolder(engineName, engineId) + "/classes";
@@ -1318,86 +1330,97 @@ public abstract class AbstractEngine implements IEngine {
 
 	public IReactor getReactor(String className, SemossClassloader customLoader) 
 	{	
-		// try to get to see if this class already exists
-		// no need to recreate if it does
-		SemossClassloader cl = engineClassLoader;
-		if(customLoader != null)
-			cl = customLoader;
-				
-		// get the prop file and find the parent
-		File dbDirectory = new File(propFile);
-		//System.err.println("..");
-
-		String dbFolder = engineName + "_" + dbDirectory.getParent()+ "/" + engineId;
-
-		dbFolder = propFile.replaceAll(".smss", "");
+		String appFolder = AssetUtility.getAppBaseFolder(engineName, engineId);
 		
-		cl.setFolder(AssetUtility.getAppAssetFolder(engineName, engineId) + "/classes");
+		String pomFile = appFolder + File.separator + "version" + File.separator + "assets" + File.separator + "java" + File.separator + "pom.xml";
 		
-		IReactor retReac = null;
-		//String key = db + "." + insightId ;
-		String key = engineId ;
-		
-		int randomNum = 0;
-		//ReactorFactory.compileCache.remove(engineId);
-		if(!ReactorFactory.compileCache.containsKey(engineId))
+		if(new File(pomFile).exists()) // this is maven
+			return getReactorMvn(className, null);
+		else // keep the old processing
 		{
-			engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
-			cl = engineClassLoader;
-			cl.uncommitEngine(engineId);
-			// if it 
+			// try to get to see if this class already exists
+			// no need to recreate if it does
+			SemossClassloader cl = engineClassLoader;
+			if(customLoader != null)
+				cl = customLoader;
+					
+			// get the prop file and find the parent
+			File dbDirectory = new File(propFile);
+			//System.err.println("..");
+	
+			String dbFolder = engineName + "_" + dbDirectory.getParent()+ "/" + engineId;
+	
+			dbFolder = propFile.replaceAll(".smss", "");
 			
-			String classesFolder = AssetUtility.getAppAssetFolder(engineName, engineId) + "/classes";
+			cl.setFolder(AssetUtility.getAppAssetFolder(engineName, engineId) + "/classes");
 			
-			File classesDir = new File(classesFolder);
-			if(classesDir.exists() && classesDir.isDirectory())
+			IReactor retReac = null;
+			//String key = db + "." + insightId ;
+			String key = engineId ;
+			
+			int randomNum = 0;
+
+			// 
+			if(!ReactorFactory.compileCache.containsKey(engineId))
 			{
-				try {
-					//FileUtils.cleanDirectory(classesDir);
-					//classesDir.mkdir();
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				engineClassLoader = new SemossClassloader(this.getClass().getClassLoader());
+				cl = engineClassLoader;
+				cl.uncommitEngine(engineId);
+				// if it 
+				
+				String classesFolder = AssetUtility.getAppAssetFolder(engineName, engineId) + "/classes";
+				
+				File classesDir = new File(classesFolder);
+				if(classesDir.exists() && classesDir.isDirectory())
+				{
+					try {
+						//FileUtils.cleanDirectory(classesDir);
+						//classesDir.mkdir();
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
+				int status = Utility.compileJava(AssetUtility.getAppAssetFolder(engineName, engineId), getCP());
+				//if(status == 0) // error or not I going to mark it. If we want to recompile. tell the system to recompile
+				{
+					ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
+					
+					if(ReactorFactory.randomNumberAdder.containsKey(engineId))
+						randomNum = ReactorFactory.randomNumberAdder.get(engineId);				
+					randomNum++;
+					ReactorFactory.randomNumberAdder.put(engineId, randomNum);
+					
+					// add it to the key so we can reload
+					key = engineId + randomNum;	
+				}
+				// avoid loading everytime since it is an error
 			}
-			int status = Utility.compileJava(AssetUtility.getAppAssetFolder(engineName, engineId), getCP());
-			//if(status == 0) // error or not I going to mark it. If we want to recompile. tell the system to recompile
+	
+			
+			if(!cl.isCommitted(engineId))
 			{
-				ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
-				
-				if(ReactorFactory.randomNumberAdder.containsKey(engineId))
-					randomNum = ReactorFactory.randomNumberAdder.get(engineId);				
-				randomNum++;
-				ReactorFactory.randomNumberAdder.put(engineId, randomNum);
-				
-				// add it to the key so we can reload
-				key = engineId + randomNum;	
+				//compileJava(insightDirector.getParentFile().getAbsolutePath());
+				// delete the classes directory first
+				dbSpecificHash = Utility.loadReactors(AssetUtility.getAppAssetFolder(engineName, engineId), key, cl);
+				cl.commitEngine(engineId);
 			}
-			// avoid loading everytime since it is an error
-		}
-
-		
-		if(!cl.isCommitted(engineId))
-		{
-			//compileJava(insightDirector.getParentFile().getAbsolutePath());
-			// delete the classes directory first
-			dbSpecificHash = Utility.loadReactors(AssetUtility.getAppAssetFolder(engineName, engineId), key, cl);
-			cl.commitEngine(engineId);
-		}
-		try
-		{
-			if(dbSpecificHash.containsKey(className.toUpperCase())) {
-				Class thisReactorClass = dbSpecificHash.get(className.toUpperCase());
-				retReac = (IReactor) thisReactorClass.newInstance();
-				return retReac;
+			try
+			{
+				if(dbSpecificHash.containsKey(className.toUpperCase())) {
+					Class thisReactorClass = dbSpecificHash.get(className.toUpperCase());
+					retReac = (IReactor) thisReactorClass.newInstance();
+					return retReac;
+				}
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
 			}
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			return retReac;
 		}
-		return retReac;
 	}
+	
 
 	private String getCP()
 	{
@@ -1609,6 +1632,201 @@ public abstract class AbstractEngine implements IEngine {
 			return prop.get("UDF").toString().split(";");
 		return null;
 	}
+	
+	// new reactor method that uses maven
+	// the end user will execute maven. No automation is required there
+	// need to compare target directory date with current
+	// if so create a new classloader and load it
+	private IReactor getReactorMvn(String className, JarClassLoader customLoader) 
+	{	
+		IReactor retReac = null;
+		
+		// if there is no java.. dont even bother with this
+		// no need to spend time on any of this
+		if(! (new File(AssetUtility.getAppAssetVersionFolder(engineName, engineId) + File.separator + "assets" + File.separator + "java").exists()))
+			return retReac;
+			
+		// try to get to see if this class already exists
+		// no need to recreate if it does
+		JarClassLoader cl = mvnClassLoader;
+		if(customLoader != null)
+			cl = customLoader;
+		
+		// get the prop file and find the parent
+		File dbDirectory = new File(propFile);
+		//System.err.println("..");
+		String dbFolder = propFile.replaceAll(".smss", "");
+				
+		//String key = db + "." + insightId ;
+		String key = engineId ;
+		
+		int randomNum = 0;
+		
+		//ReactorFactory.compileCache.remove(engineId);
+		// this is the routine to compile the java classes
+		// this is always user triggered
+		// not sure we need to compile again
+		// eval reload tried to see if the mvn dependency was created after the compile
+		// if not it will reload
+		// make the classloader
+		if(mvnClassLoader == null || evalMvnReload())
+		{
+			mvnClassLoader = null;
+			makeMvnClassloader();
+			cl = mvnClassLoader;
+			dbSpecificHash = Utility.loadReactorsMvn(AssetUtility.getAppBaseFolder(engineName, engineId), key, cl, "target" + File.separator + "classes");
+			ReactorFactory.compileCache.put(engineId, true);
+		}
+
+		// now that you have the reactor
+		// create the reactor
+		try
+		{
+			if(dbSpecificHash != null && dbSpecificHash.containsKey(className.toUpperCase())) 
+			{
+				Class thisReactorClass = dbSpecificHash.get(className.toUpperCase());
+				retReac = (IReactor) thisReactorClass.newInstance();
+				return retReac;
+			}
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
+		return retReac;
+	}
+	
+	private void makeMvnClassloader()
+	{
+		if(mvnClassLoader == null) // || if the classes folder is newer than the dependency file name
+		{
+			// now load the classloader
+			// add the jars
+			// locate all the reactors
+			// and keep access to it
+			
+
+			mvnClassLoader = new JarClassLoader();
+			// get all the new jars first
+			// to add to the classloader
+			String appRoot = AssetUtility.getAppBaseFolder(this.engineName, this.engineId);
+			String versionFolder = AssetUtility.getAppAssetVersionFolder(this.engineName,this.engineId);
+			
+			String mvnHome = System.getProperty(Settings.MVN_HOME);
+			if(mvnHome == null)
+				mvnHome = DIHelper.getInstance().getProperty(Settings.MVN_HOME);
+			if(mvnHome == null)
+				throw new IllegalStateException("Maven home should be defined in RDF_MAP / environment");
+			
+			// classes are in 
+			// appRoot / classes
+			// get the libraries
+			// run maven dependency:list to get all the dependencies and process
+			List <String> classpaths = composeClasspath(appRoot, versionFolder, mvnHome);
+			
+			for(int classPathIndex = 0;classPathIndex < classpaths.size();classPathIndex++) // add all the libraries
+				mvnClassLoader.add(classpaths.get(classPathIndex));
+			
+			// lastly add the classes folder
+			mvnClassLoader.add(appRoot + File.pathSeparator + "classes/");
+		}
+
+	}
+	
+	private List <String> composeClasspath(String appRoot, String versionFolder, String mvnHome)
+	{
+		// java files are in /version/assets/java
+		String pomFile  =  versionFolder + File.separator + "assets" + File.separator + "java" + File.separator + "pom.xml" ; // it is sitting in the asset root/version/assets/java
+		InvocationRequest request = new DefaultInvocationRequest();
+		//request.
+		request.setPomFile( new File(pomFile) );
+        String outputFile = appRoot + File.separator + "mvn_dep.output"; // need to change this java
+        
+        request.setMavenOpts("-DoutputType=graphml -DoutputFile=" + outputFile + " -DincludeScope=runtime ");
+		request.setGoals( Collections.singletonList("dependency:list" ) );
+
+		Invoker invoker = new DefaultInvoker();
+
+		invoker.setMavenHome(new File(mvnHome));
+		try {
+			InvocationResult result = invoker.execute( request );
+			 
+			if ( result.getExitCode() != 0 )
+			{
+			    throw new IllegalStateException( "Build failed." );
+			}
+			
+			// otherwise we have the list
+			String repoHome = System.getProperty(Settings.REPO_HOME);
+			if(repoHome == null)
+				repoHome = DIHelper.getInstance().getProperty(Settings.REPO_HOME);
+			if(repoHome == null)
+			    throw new IllegalStateException( "Repository Location is not known" );
+
+			// now process the dependency list
+			// and then delete it
+			
+			List <String> finalCP = new Vector<String>();
+			File classesFile = new File(outputFile);
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(classesFile)));
+			String data = null;
+			while((data = br.readLine()) != null)
+			{
+				if(data.endsWith("compile"))
+				{
+					String [] pathTokens = data.split(":");
+					
+					String baseDir = pathTokens[0];
+					String packageName = pathTokens[1];
+					String version = pathTokens[3];
+					
+					baseDir = repoHome + "/" + baseDir.replace(".", "/").trim();
+					finalCP.add(baseDir + File.separator + packageName + File.separator + version + File.separator + packageName + "-" + version + ".jar");
+				}
+			}
+
+			return finalCP;
+			
+		} catch (MavenInvocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+
+        return null;
+	}
+	
+	private boolean evalMvnReload()
+	{
+		boolean reload = false;
+		
+		String appRoot = AssetUtility.getAppBaseFolder(engineName, engineId);
+		
+		// need to see if the mvn_dependency file is older than target
+		// if so reload
+		File classesDir = new File(appRoot + File.separator + "target");
+		File mvnDepFile = new File(appRoot + File.separator + "mvn_dep.output");
+		
+		if(!mvnDepFile.exists())
+			return true;
+			
+		
+		if(!classesDir.exists())
+			return false;
+			
+		long classModifiedLong = classesDir.lastModified();
+		long mvnDepModifiedLong = mvnDepFile.lastModified();
+		
+		return classModifiedLong > mvnDepModifiedLong;
+		
+	}
+
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
