@@ -97,6 +97,7 @@ public enum ReactorKeysEnum {
 	MESSAGE("message", 										"Message to display for logging"),									
 	METAMODEL("metamodel", 									"The metamodel map for a database."),
 	MERGE_CELLS("merge", 									"When the export is generated should the rowspans, colspans be merged"),
+	MVN_GOALS("mvn_goals", 									"The maven goals to execute"),							
 	NAME("name",											"Unique identifier"), 								
 	NEW_COLUMN("newCol", 									"Name of the new column being created"),
 	NEW_HEADER_NAMES("newHeaders", 							"New header names for a file"),
