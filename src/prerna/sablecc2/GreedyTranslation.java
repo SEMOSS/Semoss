@@ -370,8 +370,14 @@ public class GreedyTranslation extends LazyTranslation {
 		    				|| opTypes.contains(PixelOperationType.FRAME_HEADERS_CHANGE)) {
 		    			pixelObj.setFrameTransformation(true);
 		    		}
-		    		if(opTypes.remove(PixelOperationType.FORCE_SAVE)) {
-		    			pixelObj.setSaveInRecipe(true);
+		    		if(opTypes.remove(PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION)) {
+		    			pixelObj.setSaveDataTransformation(true);
+		    		}
+		    		if(opTypes.remove(PixelOperationType.FORCE_SAVE_DATA_EXPORT)) {
+		    			pixelObj.setSaveDataExport(true);
+		    		}
+		    		if(opTypes.remove(PixelOperationType.FORCE_SAVE_VISUALIZATION)) {
+		    			pixelObj.setSaveVisualization(true);
 		    		}
 		    		
 		    		// if we are an assignment, let us track that as well
