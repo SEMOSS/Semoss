@@ -210,7 +210,12 @@ public class RunClassificationReactor extends AbstractFrameReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		// now return this object
-		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
+		NounMetadata noun = new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, 
+				PixelOperationType.VIZ_OUTPUT, PixelOperationType.FORCE_SAVE_VISUALIZATION);
+		noun.addAdditionalReturn(
+				new NounMetadata("Classification ran successfully!", 
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		return noun;
 	}
 	
 	private int getNumRows(ITableDataFrame frame, QueryColumnSelector predictorCol) {

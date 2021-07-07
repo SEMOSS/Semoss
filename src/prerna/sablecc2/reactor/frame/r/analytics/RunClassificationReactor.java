@@ -168,11 +168,12 @@ public class RunClassificationReactor extends AbstractRFrameReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		// now return this object
-		NounMetadata noun = new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
+		NounMetadata noun = new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, 
+				PixelOperationType.VIZ_OUTPUT, PixelOperationType.FORCE_SAVE_VISUALIZATION);
 		noun.addAdditionalReturn(
 				new NounMetadata("Classification ran successfully!", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
-		return noun;		
+		return noun;	
 	}
 	
 	private Map<String, Map> processTreeString(String[] ctreeArray) {
