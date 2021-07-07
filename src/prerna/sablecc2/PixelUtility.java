@@ -830,7 +830,7 @@ public class PixelUtility {
 		for(int i = 0; i < numSteps; i++) {
 			Pixel pixelObject = insightPixelList.get(i);
 			if(pixelObject.isFrameTransformation() || pixelObject.isCodeExecution()
-					|| pixelObject.isAssignment() || pixelObject.isSaveInRecipe()) {
+					|| pixelObject.isAssignment() || pixelObject.isSaveDataTransformation()) {
 				Pixel copy = pixelObject.copy();
 				pList.addPixel(copy);
 				
@@ -932,6 +932,14 @@ public class PixelUtility {
 
 					pList.addPixel( new Pixel( (newPixelId++) + "", cbvTask.toString()) );
 				}
+			}
+		}
+		
+		// add visualization steps and data exports at the end
+		for(int i = 0; i < numSteps; i++) {
+			Pixel pixelObject = insightPixelList.get(i);
+			if(pixelObject.isSaveDataExport() || pixelObject.isSaveVisualization()) {
+				pList.addPixel( new Pixel( (newPixelId++) + "", pixelObject.getPixelString() ) );
 			}
 		}
 		

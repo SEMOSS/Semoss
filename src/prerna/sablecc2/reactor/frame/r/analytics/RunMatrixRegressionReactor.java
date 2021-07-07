@@ -158,7 +158,8 @@ public class RunMatrixRegressionReactor extends AbstractRFrameReactor {
 		List<NounMetadata> tasks = new Vector<NounMetadata>();
 		tasks.add(noun1);
 		tasks.add(noun2);
-		return new NounMetadata(tasks, PixelDataType.VECTOR, PixelOperationType.VECTOR, PixelOperationType.FORCE_SAVE);
+		return new NounMetadata(tasks, PixelDataType.VECTOR, PixelOperationType.VECTOR, 
+				PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 	}
 
 	////////////////////////////////////////////////////////////

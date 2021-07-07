@@ -63,8 +63,10 @@ public class Pixel {
 	// is this a file read
 	private boolean isFileRead = false;
 	// save in recipe
-	private boolean saveInRecipe = false;
-	
+	private boolean saveDataTransformation = false;
+	private boolean saveDataExport = false;
+	private boolean saveVisualization = false;
+
 	// currently unused - just thinking of things to store
 	private boolean isParamSelection = false;
 
@@ -411,19 +413,51 @@ public class Pixel {
 	}
 	
 	/**
-	 * Force save this pixel step in the recipe
+	 * Is data transformation to save in recipe
 	 * @return
 	 */
-	public boolean isSaveInRecipe() {
-		return saveInRecipe;
+	public boolean isSaveDataTransformation() {
+		return saveDataTransformation;
 	}
 
 	/**
-	 * Force save this pixel step in the recipe
+	 * Set data transformation to save in recipe
+	 * @param saveDataTransformation
+	 */
+	public void setSaveDataTransformation(boolean saveDataTransformation) {
+		this.saveDataTransformation = saveDataTransformation;
+	}
+
+	/**
+	 * Is data export to save in recipe
 	 * @return
 	 */
-	public void setSaveInRecipe(boolean saveInRecipe) {
-		this.saveInRecipe = saveInRecipe;
+	public boolean isSaveDataExport() {
+		return saveDataExport;
+	}
+
+	/**
+	 * Set data export to save in recipe
+	 * @param saveDataExport
+	 */
+	public void setSaveDataExport(boolean saveDataExport) {
+		this.saveDataExport = saveDataExport;
+	}
+
+	/**
+	 * Is data visualization to save in recipe
+	 * @return
+	 */
+	public boolean isSaveVisualization() {
+		return saveVisualization;
+	}
+
+	/**
+	 * Set data visualization to save in recipe
+	 * @param saveVisualization
+	 */
+	public void setSaveVisualization(boolean saveVisualization) {
+		this.saveVisualization = saveVisualization;
 	}
 
 	/**
@@ -573,7 +607,9 @@ public class Pixel {
 			pixelObj.setFrameTransformation(mergePixel.isFrameTransformation());
 			pixelObj.setAssignment(mergePixel.isAssignment());
 			pixelObj.setFileRead(mergePixel.isFileRead());
-			pixelObj.setSaveInRecipe(mergePixel.isSaveInRecipe());
+			pixelObj.setSaveDataTransformation(mergePixel.isSaveDataTransformation());
+			pixelObj.setSaveDataExport(mergePixel.isSaveDataExport());
+			pixelObj.setSaveVisualization(mergePixel.isSaveVisualization());
 			pixelObj.setStartingFrameHeaders(mergePixel.getStartingFrameHeaders());
 //			pixelObj.setReactorInputs(mergePixel.getReactorInputs());
 			pixelObj.setFrameInputs(mergePixel.getFrameInputs());

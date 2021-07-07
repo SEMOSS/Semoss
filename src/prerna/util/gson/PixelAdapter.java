@@ -37,7 +37,9 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		boolean isFrameTransformation = false;
 		boolean isAssignment = false;
 		boolean isFileRead = false;
-		boolean isSaveInRecipe = false;
+		boolean isSaveDataTransformation = false;
+		boolean isSaveDataExport = false;
+		boolean isSaveVisualization = false;
 		boolean error = false;
 		boolean warning = false;
 		Map<String, Map<String, Object>> startingFrameHeaders = null;
@@ -81,8 +83,12 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 				isAssignment = in.nextBoolean();
 			} else if(key.equals("isFileRead")) {
 				isFileRead = in.nextBoolean();
-			} else if(key.equals("isSaveInRecipe")) {
-				isSaveInRecipe = in.nextBoolean();
+			} else if(key.equals("isSaveDataTransformation")) {
+				isSaveDataTransformation = in.nextBoolean();
+			} else if(key.equals("isSaveDataExport")) {
+				isSaveDataExport = in.nextBoolean();
+			} else if(key.equals("isSaveVisualization")) {
+				isSaveVisualization = in.nextBoolean();
 			} else if(key.equals("errorReturned")) {
 				error = in.nextBoolean();
 			} else if(key.equals("warningReturned")) {
@@ -141,9 +147,15 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		pixel.setFrameTransformation(isFrameTransformation);
 		pixel.setAssignment(isAssignment);
 		pixel.setFileRead(isFileRead);
-		pixel.setSaveInRecipe(isSaveInRecipe);
+		// force recipe save
+		pixel.setSaveDataTransformation(isSaveDataTransformation);
+		pixel.setSaveDataExport(isSaveDataExport);
+		pixel.setSaveVisualization(isSaveVisualization);
+		// error messages
 		pixel.setReturnedError(error);
 		pixel.setReturnedWarning(warning);
+		pixel.setErrorMessages(errorMessages);
+		pixel.setWarningMessages(warningMessages);
 		pixel.setStartingFrameHeaders(startingFrameHeaders);
 		pixel.setEndingFrameHeaders(endingFrameHeaders);
 //		pixel.setReactorInputs(reactorInputs);
@@ -151,8 +163,6 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		pixel.setFrameOutputs(frameOutputs);
 		pixel.setTaskOptions(taskOptions);
 		pixel.setPositionMap(positionMap);
-		pixel.setErrorMessages(errorMessages);
-		pixel.setWarningMessages(warningMessages);
 		return pixel;
 	}
 	
@@ -195,8 +205,12 @@ public class PixelAdapter extends AbstractSemossTypeAdapter<Pixel> {
 		out.name("isFileRead");
 		out.value(value.isFileRead());
 		// isForceSave
-		out.name("isSaveInRecipe");
-		out.value(value.isSaveInRecipe());
+		out.name("isSaveDataTransformation");
+		out.value(value.isSaveDataTransformation());
+		out.name("isSaveDataExport");
+		out.value(value.isSaveDataExport());
+		out.name("isSaveVisualization");
+		out.value(value.isSaveVisualization());
 		// error
 		out.name("errorReturned");
 		out.value(value.isReturnedError());
