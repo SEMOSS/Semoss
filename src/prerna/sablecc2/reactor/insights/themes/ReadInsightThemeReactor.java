@@ -22,7 +22,7 @@ public class ReadInsightThemeReactor extends AbstractInsightReactor {
 		String versionFilePath = AssetUtility.getAssetBasePath(this.insight, null, false);
 		String insightThemeFilePath = versionFilePath + DIR_SEPARATOR + IMAGE_THEME_FILE;
 		File insightThemeFile = new File(insightThemeFilePath);
-		if(!insightThemeFile.exists() && insightThemeFile.isFile()) {
+		if(!insightThemeFile.exists() && !insightThemeFile.isFile()) {
 			return new NounMetadata(new HashMap<>(), PixelDataType.MAP, PixelOperationType.INSIGHT_THEME);
 		}
 		
