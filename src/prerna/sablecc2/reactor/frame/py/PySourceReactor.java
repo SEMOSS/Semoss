@@ -12,6 +12,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.py.AbstractPyFrameReactor;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class PySourceReactor extends AbstractPyFrameReactor {
@@ -23,6 +24,14 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
+		
+		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_terminal)) {
+					throw new IllegalArgumentException("Terminal and user code execution has been disbled.");
+			 };
+		}
+		
 		String relativePath = this.keyValue.get(this.keysToGet[0]);
 		String path = getBaseFolder() + "/Py/" + relativePath;
 		String space = this.keyValue.get(this.keysToGet[1]);

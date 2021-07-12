@@ -3240,6 +3240,14 @@ public class Utility {
 
 	public static Map loadReactors(String folder, String key) {
 		HashMap thisMap = new HashMap<String, Class>();
+		
+		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_terminal)) {
+				 logger.debug("App specific reactors are disabled");
+				 return thisMap;
+			 };
+		}
 		try {
 			// I should create the class pool everytime
 			// this way it doesn't keep others and try to get from other places
@@ -3342,6 +3350,13 @@ public class Utility {
 	// loads classes through this specific class loader for the insight
 	public static Map loadReactors(String folder, String key, SemossClassloader cl, String outputFolder) {
 		HashMap thisMap = new HashMap<String, Class>();
+		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_terminal)) {
+				 logger.debug("App specific reactors are disabled");
+				 return thisMap;
+			 };
+		}
 		try {
 			// I should create the class pool everytime
 			// this way it doesn't keep others and try to get from other places
@@ -3410,6 +3425,13 @@ public class Utility {
 	// loads classes through this specific class loader for the insight
 	public static Map loadReactorsMvn(String folder, String key, JarClassLoader cl, String outputFolder) {
 		HashMap thisMap = new HashMap<String, Class>();
+		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_terminal)) {
+				 logger.debug("App specific reactors are disabled");
+				 return thisMap;
+			 };
+		}
 		try {
 			// I should create the class pool everytime
 			// this way it doesn't keep others and try to get from other places
