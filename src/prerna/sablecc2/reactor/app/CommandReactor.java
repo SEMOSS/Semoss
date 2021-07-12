@@ -18,6 +18,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.CmdExecUtil;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitPushUtils;
 import prerna.util.git.GitRepoUtils;
@@ -41,6 +43,13 @@ public class CommandReactor extends GitBaseReactor {
 	@Override
 	public NounMetadata execute() {
 		
+		
+		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_terminal)) {
+					throw new IllegalArgumentException("Terminal and user code execution has been disbled.");
+			 };
+		}
 		organizeKeys();
 		
 		String command = keyValue.get(keysToGet[0]);
