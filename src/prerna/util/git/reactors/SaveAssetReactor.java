@@ -41,8 +41,14 @@ public class SaveAssetReactor extends AbstractReactor {
 		String filePath = assetFolder + "/" + fileName;
 		String content = keyValue.get(keysToGet[1]);
 
-		if(!fileName.contains("/"))
+		// you cannot save at root level if you are in user/project space
+		if(space != null 
+				&& !space.isEmpty() 
+				&& !space.equals(AssetUtility.INSIGHT_SPACE_KEY) 
+				&& !fileName.contains("/")) {
 			return NounMetadata.getErrorNounMessage("You cannot create directory / files at this level");
+		}
+		
 		// write content to file
 		content = Utility.decodeURIComponent(content);
 		File file = new File(filePath);
