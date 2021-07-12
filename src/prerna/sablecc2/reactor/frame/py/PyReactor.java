@@ -30,6 +30,8 @@ import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PyReactor extends AbstractPyFrameReactor {
@@ -39,6 +41,14 @@ public class PyReactor extends AbstractPyFrameReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		
+		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
+			 if(Boolean.parseBoolean(disable_terminal)) {
+					throw new IllegalArgumentException("Terminal and user code execution has been disbled.");
+			 };
+		}
+		
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is not enabled to use the following command");
 		}
