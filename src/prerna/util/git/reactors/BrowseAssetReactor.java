@@ -106,21 +106,19 @@ public class BrowseAssetReactor extends AbstractReactor {
 	{
 		try {
 			File repoFile = new File(workingDir + "/version/repoList.txt");
-			
-			Properties prop = new Properties();
-			prop.load(new FileInputStream(repoFile));
-			
-			String url = prop.getProperty(repoName);
-			
-			insight.getCmdUtil().executeCommand("git clone " + url);
+			if(repoFile.exists() && repoFile.isFile()) {
+				Properties prop = new Properties();
+				prop.load(new FileInputStream(repoFile));
+
+				String url = prop.getProperty(repoName);
+
+				insight.getCmdUtil().executeCommand("git clone " + url);
+			}
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-
 
 }
