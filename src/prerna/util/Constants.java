@@ -561,6 +561,9 @@ public class Constants {
 	public static final String USE_R = "USE_R";
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
 	
+	// disable terminal and user code inputs
+	public static final String DISABLE_TERMINAL = "DISABLE_TERMINAL";
+
 	// pivot values 
 	public static final String PIVOT_ROW_MAX = "PIVOT_ROW_MAX";
 	public static final String PIVOT_COL_MAX = "PIVOT_COL_MAX";
