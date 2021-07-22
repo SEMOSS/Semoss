@@ -1913,7 +1913,7 @@
         <dependency>
 		  <groupId>org.elasticsearch.plugin</groupId>
 		  <artifactId>x-pack-sql-jdbc</artifactId>
-		  <version>7.11.2</version>
+		  <version>7.9.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.xeustechnologies</groupId>
