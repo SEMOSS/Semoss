@@ -3,16 +3,16 @@ package prerna.util.sql;
 import java.util.Map;
 import java.util.Properties;
 
-public class ElasticSearchQueryUtil extends AnsiSqlQueryUtil {
+public class ElasticSearchNativeQueryUtil extends AnsiSqlQueryUtil {
 	
-	ElasticSearchQueryUtil() {
+	ElasticSearchNativeQueryUtil() {
 		super();
-		setDbType(RdbmsTypeEnum.ELASTIC_SEARCH);
+		setDbType(RdbmsTypeEnum.ELASTIC_SEARCH_NATIVE);
 	}
 	
-	ElasticSearchQueryUtil(String connectionUrl, String username, String password) {
+	ElasticSearchNativeQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
-		setDbType(RdbmsTypeEnum.ELASTIC_SEARCH);
+		setDbType(RdbmsTypeEnum.ELASTIC_SEARCH_NATIVE);
 	}
 	
 	@Override
