@@ -167,6 +167,10 @@ install.packages("VGAM", dependencies=TRUE)
 
 # Outlier
 install.packages("HDoutliers", dependencies=TRUE)
+install.packages("mcclust", dependencies=TRUE)
+install.packages("flashClust", dependencies=TRUE)
+install.packages("leaps", dependencies=TRUE)
+install.packages("FactoMineR", dependencies=TRUE)
 #install.packages("data.table", dependencies=TRUE)
 
 # Random Forest
