@@ -70,6 +70,17 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			}
 		}
 		
+		// LEGACY
+		// LEGACY
+		// LEGACY
+		// LEGACY
+		if(projectId == null) {
+			genericEngineGrs = this.store.getNoun("app");
+			if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
+				projectId = (String) genericEngineGrs.get(0);
+			}
+		}
+		
 		if(projectId == null) {
 			// well, you are out of luck
 			throw new IllegalArgumentException("Need to define the project where the insight currently exists");
