@@ -1,7 +1,6 @@
 package prerna.nameserver.utility;
 
 import java.io.IOException;
-import java.lang.reflect.Modifier;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -22,9 +21,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
@@ -40,7 +36,6 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
@@ -53,26 +48,26 @@ public class MasterDatabaseUtility {
 	// -----------------------------------------   RDBMS CALLS ---------------------------------------
 
 	public static void initLocalMaster() throws SQLException, IOException {
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		LocalMasterOwlCreator owlCreator = new LocalMasterOwlCreator(engine);
+		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		LocalMasterOwlCreator owlCreator = new LocalMasterOwlCreator(database);
 		if(owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
 		}
 		// Update OWL
-		OwlSeparatePixelFromConceptual.fixOwl(engine.getProp());
+		OwlSeparatePixelFromConceptual.fixOwl(database.getProp());
 		
-		Connection conn = engine.makeConnection();
+		Connection conn = database.makeConnection();
 
 		String [] colNames = null;
 		String [] types = null;
 
-		String schema = engine.getSchema();
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
+		String schema = database.getSchema();
+		AbstractSqlQueryUtil queryUtil = database.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		
 		// since i have major changes
-		requireRemakeAndAlter(engine, conn, queryUtil, schema, allowIfExistsTable);
+		requireRemakeAndAlter(database, conn, queryUtil, schema, allowIfExistsTable);
 			
 		// engine table
 		colNames = new String[]{"ID", "ENGINENAME", "MODIFIEDDATE", "TYPE"};
@@ -81,7 +76,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(engine, "ENGINE", schema)) {
+			if(!queryUtil.tableExists(database, "ENGINE", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("ENGINE", colNames, types));
 			}
@@ -91,7 +86,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINE_ID_INDEX", "ENGINE", "ID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(engine, "ENGINE_ID_INDEX", "ENGINE", schema)) {
+			if(!queryUtil.indexExists(database, "ENGINE_ID_INDEX", "ENGINE", schema)) {
 				executeSql(conn, queryUtil.createIndex("ENGINE_ID_INDEX", "ENGINE", "ID"));
 			}
 		}
@@ -103,7 +98,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINECONCEPT", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(engine, "ENGINECONCEPT", schema)) {
+			if(!queryUtil.tableExists(database, "ENGINECONCEPT", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("ENGINECONCEPT", colNames, types));
 			}
@@ -117,13 +112,13 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(engine, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", schema)) {
+			if(!queryUtil.indexExists(database, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", schema)) {
 				List<String> iCols = new Vector<>();
 				iCols.add("ENGINE");
 				iCols.add("LOCALCONCEPTID");
 				executeSql(conn, queryUtil.createIndex("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", iCols));
 			}
-			if(!queryUtil.indexExists(engine, "ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", schema)) {
+			if(!queryUtil.indexExists(database, "ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", schema)) {
 				executeSql(conn, queryUtil.createIndex("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"));
 			}
 		}
@@ -135,7 +130,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("CONCEPT", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(engine, "CONCEPT", schema)) {
+			if(!queryUtil.tableExists(database, "CONCEPT", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("CONCEPT", colNames, types));
 			}
@@ -145,7 +140,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(engine, "CONCEPT_ID_INDEX", "CONCEPT", schema)) {
+			if(!queryUtil.indexExists(database, "CONCEPT_ID_INDEX", "CONCEPT", schema)) {
 				executeSql(conn, queryUtil.createIndex("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"));
 			}
 		}
@@ -157,7 +152,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("RELATION", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(engine, "RELATION", schema)) {
+			if(!queryUtil.tableExists(database, "RELATION", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("RELATION", colNames, types));
 			}
@@ -170,7 +165,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINERELATION", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(engine, "ENGINERELATION", schema)) {
+			if(!queryUtil.tableExists(database, "ENGINERELATION", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("ENGINERELATION", colNames, types));
 			}
@@ -183,21 +178,21 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("KVSTORE", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(engine, "KVSTORE", schema)) {
+			if(!queryUtil.tableExists(database, "KVSTORE", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("KVSTORE", colNames, types));
 			}
 		}
 
 		// concept metadata
-		updateMetadataTable(engine, conn, queryUtil, Constants.CONCEPT_METADATA_TABLE, schema);
+		updateMetadataTable(database, conn, queryUtil, Constants.CONCEPT_METADATA_TABLE, schema);
 		colNames = new String[] {Constants.PHYSICAL_NAME_ID, Constants.KEY, Constants.VALUE };
 		types = new String[] { "varchar(255)", "varchar(800)", "varchar(20000)" };
 		if(allowIfExistsTable) {
 			executeSql(conn, queryUtil.createTableIfNotExists(Constants.CONCEPT_METADATA_TABLE, colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(engine, Constants.CONCEPT_METADATA_TABLE, schema)) {
+			if(!queryUtil.tableExists(database, Constants.CONCEPT_METADATA_TABLE, schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable(Constants.CONCEPT_METADATA_TABLE, colNames, types));
 			}
@@ -208,10 +203,10 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", "CONCEPTMETADATA", "PHYSICALNAMEID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", schema)) {
+			if(!queryUtil.indexExists(database, "CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", schema)) {
 				executeSql(conn, queryUtil.createIndex("CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", "KEY"));
 			}
-			if(!queryUtil.indexExists(engine, "CONCEPTMETADATA_PHYSICAL_NAME_ID_INDEX", "CONCEPTMETADATA", schema)) {
+			if(!queryUtil.indexExists(database, "CONCEPTMETADATA_PHYSICAL_NAME_ID_INDEX", "CONCEPTMETADATA", schema)) {
 				executeSql(conn, queryUtil.createIndex("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", "CONCEPTMETADATA", "PHYSICALNAMEID"));
 			}
 		}
@@ -223,7 +218,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(engine, "XRAYCONFIGS", schema)) {
+			if(!queryUtil.tableExists(database, "XRAYCONFIGS", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("XRAYCONFIGS", colNames, types));
 			}
@@ -236,7 +231,7 @@ public class MasterDatabaseUtility {
 			executeSql(conn, queryUtil.createTableIfNotExists("BITLY", colNames, types));
 		} else {
 			// see if table exists
-			if(!queryUtil.tableExists(engine, "BITLY", schema)) {
+			if(!queryUtil.tableExists(database, "BITLY", schema)) {
 				// make the table
 				executeSql(conn, queryUtil.createTable("BITLY", colNames, types));
 			}
@@ -249,7 +244,7 @@ public class MasterDatabaseUtility {
 	}
 
 	@Deprecated
-	private static void requireRemakeAndAlter(RDBMSNativeEngine engine, 
+	private static void requireRemakeAndAlter(RDBMSNativeEngine database, 
 			Connection conn, 
 			AbstractSqlQueryUtil queryUtil, 
 			String schema, 
@@ -258,7 +253,7 @@ public class MasterDatabaseUtility {
 		String q = "select parentsemossname from engineconcept limit 1";
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, q);
+			wrapper = WrapperManager.getInstance().getRawWrapper(database, q);
 			if(!wrapper.hasNext()) {
 				require = true;
 			}
@@ -281,25 +276,25 @@ public class MasterDatabaseUtility {
 				executeSql(conn, queryUtil.dropTableIfExists("RELATION"));
 				executeSql(conn, queryUtil.dropTableIfExists("KVSTORE"));
 			} else {
-				if(!queryUtil.tableExists(engine, "ENGINE", schema)) {
+				if(!queryUtil.tableExists(database, "ENGINE", schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINE"));
 				}
-				if(!queryUtil.tableExists(engine, "ENGINECONCEPT", schema)) {
+				if(!queryUtil.tableExists(database, "ENGINECONCEPT", schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINECONCEPT"));
 				}
-				if(!queryUtil.tableExists(engine, "CONCEPT", schema)) {
+				if(!queryUtil.tableExists(database, "CONCEPT", schema)) {
 					executeSql(conn, queryUtil.dropTable("CONCEPT"));
 				}
-				if(!queryUtil.tableExists(engine, "CONCEPTMETADATA", schema)) {
+				if(!queryUtil.tableExists(database, "CONCEPTMETADATA", schema)) {
 					executeSql(conn, queryUtil.dropTable("CONCEPTMETADATA"));
 				}
-				if(!queryUtil.tableExists(engine, "ENGINERELATION", schema)) {
+				if(!queryUtil.tableExists(database, "ENGINERELATION", schema)) {
 					executeSql(conn, queryUtil.dropTable("ENGINERELATION"));
 				}
-				if(!queryUtil.tableExists(engine, "RELATION", schema)) {
+				if(!queryUtil.tableExists(database, "RELATION", schema)) {
 					executeSql(conn, queryUtil.dropTable("RELATION"));
 				}
-				if(!queryUtil.tableExists(engine, "KVSTORE", schema)) {
+				if(!queryUtil.tableExists(database, "KVSTORE", schema)) {
 					executeSql(conn, queryUtil.dropTable("KVSTORE"));
 				}
 			}
@@ -407,10 +402,10 @@ public class MasterDatabaseUtility {
 	
 	/**
 	 * Get a list of arrays containing [table, column, type] for a given database
-	 * @param engineId
+	 * @param databaseId
 	 * @return
 	 */
-	public static List<Object[]> getAllTablesAndColumns(String engineId) {
+	public static List<Object[]> getAllTablesAndColumns(String databaseId) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -418,7 +413,7 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
 		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
 		qs.addOrderBy("ENGINECONCEPT__PK");
@@ -457,7 +452,7 @@ public class MasterDatabaseUtility {
 	 * @param engineId
 	 * @return
 	 */
-	public static List<Object[]> getAllTablesAndColumns(Collection<String> engineIds) {
+	public static List<Object[]> getAllTablesAndColumns(Collection<String> databaseIds) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -466,7 +461,7 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineIds));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseIds));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
 		qs.addOrderBy("ENGINECONCEPT__ENGINE");
 		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
@@ -500,7 +495,7 @@ public class MasterDatabaseUtility {
 		return ret;
 	}
 
-	public static List<String[]> getRelationships(Collection<String> engineIds) {
+	public static List<String[]> getRelationships(Collection<String> databaseIds) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -508,8 +503,8 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCEPROPERTY"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETPROPERTY"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
-		if(engineIds != null && !engineIds.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineIds));
+		if(databaseIds != null && !databaseIds.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", databaseIds));
 		}
 
 		return QueryExecutionUtility.flushRsToListOfStrArray(engine, qs);
@@ -517,11 +512,11 @@ public class MasterDatabaseUtility {
 
 	/**
 	 * Get a list of connections for a given logical name
-	 * @param engineFilter 
-	 * @param engineId
+	 * @param localConceptIds 
+	 * @param databaseFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getDatabaseConnections(List<String> localConceptIds, List<String> engineFilter) {
+	public static List<Map<String, Object>> getDatabaseConnections(List<String> localConceptIds, List<String> databaseFilter) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		List<Map<String, Object>> returnData = new Vector<>();
@@ -550,8 +545,8 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__LOCALCONCEPTID", "==", localConceptIds));
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilter));
 		}
 		
 		IRawSelectWrapper wrapper = null;
@@ -615,8 +610,8 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilter));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
@@ -676,8 +671,8 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilter));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", idsForProperties));
 		qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
@@ -747,8 +742,8 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineFilter));
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", databaseFilter));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__SOURCECONCEPTID", "==", idsForRelationships));
 		qs.addRelation("ENGINE__ID", "ENGINERELATION__ENGINE", "inner.join");
@@ -773,8 +768,8 @@ public class MasterDatabaseUtility {
 					continue;
 				}
 				
-				String engineName = (String) data[0];
-				String engineId = (String) data[1];
+				String databaseName = (String) data[0];
+				String databaseId = (String) data[1];
 				String downstreamParent = (String) data[4];
 				String downstreamName = (String) data[5];
 				boolean downstreamPK = (boolean) data[6];
@@ -786,8 +781,8 @@ public class MasterDatabaseUtility {
 
 				// if we passed the above test, add the valid connection
 				Map<String, Object> mapRow = new HashMap<>();
-				mapRow.put("app_id", engineId);
-				mapRow.put("app_name", engineName);
+				mapRow.put("app_id", databaseId);
+				mapRow.put("app_name", databaseName);
 				if(downstreamParent == null) {
 					mapRow.put("table", downstreamName);
 				} else {
@@ -879,8 +874,8 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineFilter));
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", databaseFilter));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__TARGETCONCEPTID", "==", idsForRelationships));
 		qs.addRelation("ENGINE__ID", "ENGINERELATION__ENGINE", "inner.join");
@@ -903,8 +898,8 @@ public class MasterDatabaseUtility {
 					continue;
 				}
 				
-				String engineName = (String) data[0];
-				String engineId = (String) data[1];
+				String databaseName = (String) data[0];
+				String databaseId = (String) data[1];
 				String upstreamParent = (String) data[4];
 				String upstreamName = (String) data[5];
 				boolean upstreamPK = (boolean) data[6];
@@ -916,8 +911,8 @@ public class MasterDatabaseUtility {
 
 				// if we passed the above test, add the valid connection
 				Map<String, Object> mapRow = new HashMap<>();
-				mapRow.put("app_id", engineId);
-				mapRow.put("app_name", engineName);
+				mapRow.put("app_id", databaseId);
+				mapRow.put("app_name", databaseName);
 				if(upstreamParent == null) {
 					mapRow.put("table", upstreamName);
 				} else {
@@ -1002,11 +997,11 @@ public class MasterDatabaseUtility {
 
 	/**
 	 * Get the metamodel
-	 * @param engineId
+	 * @param databaseId
 	 * @param includeDataTypes
 	 * @return
 	 */
-	public static Map<String, Object> getMetamodelRDBMS(String engineId, boolean includeDataTypes) {
+	public static Map<String, Object> getMetamodelRDBMS(String databaseId, boolean includeDataTypes) {
 		// TODO: should setup to return the physical name ids
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
@@ -1028,7 +1023,7 @@ public class MasterDatabaseUtility {
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ADDITIONAL_TYPE"));
 		}
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -1099,7 +1094,7 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCEPROPERTY"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETPROPERTY"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", databaseId));
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			while(wrapper.hasNext()) {
@@ -1161,7 +1156,7 @@ public class MasterDatabaseUtility {
 	 * @param engineId
 	 * @return
 	 */
-	public static Map<String, List<String>>  getConceptProperties(List<String> logicalNames, String engineFilter) {
+	public static Map<String, List<String>>  getConceptProperties(List<String> logicalNames, String databaseFilter) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1170,8 +1165,8 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilter));
 		}
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
@@ -1238,7 +1233,7 @@ public class MasterDatabaseUtility {
 	 * @param engineId		optional filter for the properties
 	 * @return
 	 */
-	public static Map<String, Object[]> getConceptProperties(List<String> logicalNames, List<String> engineFilter) {
+	public static Map<String, Object[]> getConceptProperties(List<String> logicalNames, List<String> databaseFilter) {
 		// query to get all the physical name ids that tie to the parent
 		// and then pull all of their properties
 
@@ -1255,8 +1250,8 @@ public class MasterDatabaseUtility {
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-			if(engineFilter != null && !engineFilter.isEmpty()) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+			if(databaseFilter != null && !databaseFilter.isEmpty()) {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilter));
 			}
 			{
 				SelectQueryStruct subQs = new SelectQueryStruct();
@@ -1289,29 +1284,29 @@ public class MasterDatabaseUtility {
 					// keeps the id to the concept name
 					Object[] row = data.getValues();
 	
-					String engineId = (String) row[0];
+					String databaseId = (String) row[0];
 					String parentName = (String) row[1];
 					String parentPhysicalId = (String) row[2];
 					String columnName = (String) row[3];
 					String columnPhysicalId = (String) row[4];
 					
-					Map<String, MetamodelVertex> engineMap = null;
-					if(queryData.containsKey(engineId)) {
-						engineMap  = queryData.get(engineId);
+					Map<String, MetamodelVertex> databaseMap = null;
+					if(queryData.containsKey(databaseId)) {
+						databaseMap  = queryData.get(databaseId);
 					} else {
-						engineMap = new TreeMap<>();
+						databaseMap = new TreeMap<>();
 						// add to query data map
-						queryData.put(engineId, engineMap);
+						queryData.put(databaseId, databaseMap);
 					}
 	
 					// get or create the vertex
 					MetamodelVertex vert = null;
-					if(engineMap.containsKey(parentName)) {
-						vert = engineMap.get(parentName);
+					if(databaseMap.containsKey(parentName)) {
+						vert = databaseMap.get(parentName);
 					} else {
 						vert = new MetamodelVertex(parentName);
 						// add to the engine map
-						engineMap.put(parentName, vert);
+						databaseMap.put(parentName, vert);
 					}
 	
 					// add the property conceptual name
@@ -1334,8 +1329,8 @@ public class MasterDatabaseUtility {
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-			if(engineFilter != null && !engineFilter.isEmpty()) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+			if(databaseFilter != null && !databaseFilter.isEmpty()) {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilter));
 			}
 			{
 				SelectQueryStruct subQs = new SelectQueryStruct();
@@ -1367,29 +1362,29 @@ public class MasterDatabaseUtility {
 					// keeps the id to the concept name
 					Object[] row = data.getValues();
 	
-					String engineId = (String) row[0];
+					String databaseId = (String) row[0];
 					String parentName = (String) row[1];
 					String parentPhysicalId = (String) row[2];
 					String columnName = (String) row[3];
 					String columnPhysicalId = (String) row[4];
 					
-					Map<String, MetamodelVertex> engineMap = null;
-					if(queryData.containsKey(engineId)) {
-						engineMap  = queryData.get(engineId);
+					Map<String, MetamodelVertex> databaseMap = null;
+					if(queryData.containsKey(databaseId)) {
+						databaseMap  = queryData.get(databaseId);
 					} else {
-						engineMap = new TreeMap<>();
+						databaseMap = new TreeMap<>();
 						// add to query data map
-						queryData.put(engineId, engineMap);
+						queryData.put(databaseId, databaseMap);
 					}
 	
 					// get or create the vertex
 					MetamodelVertex vert = null;
-					if(engineMap.containsKey(parentName)) {
-						vert = engineMap.get(parentName);
+					if(databaseMap.containsKey(parentName)) {
+						vert = databaseMap.get(parentName);
 					} else {
 						vert = new MetamodelVertex(parentName);
 						// add to the engine map
-						engineMap.put(parentName, vert);
+						databaseMap.put(parentName, vert);
 					}
 	
 					// add the property conceptual name
@@ -1404,8 +1399,8 @@ public class MasterDatabaseUtility {
 			}
 		}
 		
-		for(String engineName : queryData.keySet()) {
-			returnHash.put(engineName, queryData.get(engineName).values().toArray());
+		for(String databaseName : queryData.keySet()) {
+			returnHash.put(databaseName, queryData.get(databaseName).values().toArray());
 		}
 
 		return returnHash;
@@ -1422,7 +1417,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	@Deprecated
-	public static Map getConnectedConceptsRDBMS(List<String> conceptLogicalNames, List<String> engineFilters) {
+	public static Map getConnectedConceptsRDBMS(List<String> conceptLogicalNames, List<String> databaseFilters) {
 		// I technically need to do 3 queries
 		// first one is get the localconceptid / physicalids for all of these
 		// second is the upstream
@@ -1451,8 +1446,8 @@ public class MasterDatabaseUtility {
 			qs.addSelector(new QueryColumnOrderBySelector("CONCEPT__CONCEPTUALNAME"));
 			qs.addSelector(new QueryColumnOrderBySelector("ENGINECONCEPT__PHYSICALNAMEID"));
 			qs.addSelector(new QueryColumnOrderBySelector("ENGINECONCEPT__PHYSICALNAME"));
-			if(engineFilters != null && !engineFilters.isEmpty()) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilters));
+			if(databaseFilters != null && !databaseFilters.isEmpty()) {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilters));
 			}
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__LOGICALNAME", "==", conceptLogicalNames));
 			qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
@@ -1518,8 +1513,8 @@ public class MasterDatabaseUtility {
 			downQs.addSelector(new QueryColumnSelector("ENGINERELATION__ENGINE"));
 			downQs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETCONCEPTID"));
 			downQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAME"));
-			if(engineFilters != null && !engineFilters.isEmpty()) {
-				downQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilters));
+			if(databaseFilters != null && !databaseFilters.isEmpty()) {
+				downQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilters));
 			}
 			{
 				SelectQueryStruct subQs = new SelectQueryStruct();
@@ -1543,7 +1538,7 @@ public class MasterDatabaseUtility {
 				while(wrapper.hasNext()) {
 					Object[] row = wrapper.next().getValues();
 	
-					String engineId = row[0].toString();
+					String databaseId = row[0].toString();
 					String coreConceptId = row[1].toString();
 					String relationName = row[3].toString();
 					String streamConceptName = row[4].toString();
@@ -1552,8 +1547,8 @@ public class MasterDatabaseUtility {
 					// this is the main concept
 					String coreConceptName = idToName.get(coreConceptId);
 	
-					Map <String, Map> engineSpecific = retMap.get(engineId);
-					Map <String, Object> conceptSpecific = engineSpecific.get(coreConceptName);
+					Map <String, Map> databaseSpecific = retMap.get(databaseId);
+					Map <String, Object> conceptSpecific = databaseSpecific.get(coreConceptName);
 	
 					Set<String> downstreams = new TreeSet<>();
 					Set<String> physicalNames = new TreeSet<>();
@@ -1569,8 +1564,8 @@ public class MasterDatabaseUtility {
 					physicalNames.add(streamPhysicalName);
 					conceptSpecific.put("upstream", downstreams);
 					conceptSpecific.put("physical", physicalNames);
-					engineSpecific.put(coreConceptName, conceptSpecific);
-					retMap.put(engineId, engineSpecific);
+					databaseSpecific.put(coreConceptName, conceptSpecific);
+					retMap.put(databaseId, databaseSpecific);
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
@@ -1601,8 +1596,8 @@ public class MasterDatabaseUtility {
 			upQs.addSelector(new QueryColumnSelector("ENGINERELATION__ENGINE"));
 			upQs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCECONCEPTID"));
 			upQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAME"));
-			if(engineFilters != null && !engineFilters.isEmpty()) {
-				upQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilters));
+			if(databaseFilters != null && !databaseFilters.isEmpty()) {
+				upQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilters));
 			}
 			{
 				SelectQueryStruct subQs = new SelectQueryStruct();
@@ -1626,7 +1621,7 @@ public class MasterDatabaseUtility {
 				while(wrapper.hasNext()) {
 					Object[] row = wrapper.next().getValues();
 	
-					String engineId = row[0].toString();
+					String databaseId = row[0].toString();
 					String coreConceptId = row[1].toString();
 					String relationName = row[3].toString();
 					String streamConceptName = row[4].toString();
@@ -1634,8 +1629,8 @@ public class MasterDatabaseUtility {
 					
 					String coreConceptName = idToName.get(coreConceptId);
 	
-					Map <String, Map> engineSpecific = retMap.get(engineId);
-					Map <String, Object> conceptSpecific = engineSpecific.get(coreConceptName);
+					Map <String, Map> databaseSpecific = retMap.get(databaseId);
+					Map <String, Object> conceptSpecific = databaseSpecific.get(coreConceptName);
 	
 					Set<String> upstreams = new TreeSet<>();
 					Set<String> physicalNames = new TreeSet<>();
@@ -1652,8 +1647,8 @@ public class MasterDatabaseUtility {
 					physicalNames.add(streamPhysicalName);
 					conceptSpecific.put("downstream", upstreams);
 					conceptSpecific.put("physical", physicalNames);
-					engineSpecific.put(coreConceptName, conceptSpecific);
-					retMap.put(engineId, engineSpecific);
+					databaseSpecific.put(coreConceptName, conceptSpecific);
+					retMap.put(databaseId, databaseSpecific);
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
@@ -1672,7 +1667,7 @@ public class MasterDatabaseUtility {
 	 * Get the list of unique engine ids
 	 * @return
 	 */
-	public static List<String> getAllEngineIds() {
+	public static List<String> getAllDatabaseIds() {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1684,7 +1679,7 @@ public class MasterDatabaseUtility {
 	 * Get an engine alias for an id
 	 * @return
 	 */
-	public static String getEngineAliasForId(String id) {
+	public static String getDatabaseAliasForId(String id) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1692,29 +1687,59 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ID", "==", id));
 		return QueryExecutionUtility.flushToString(engine, qs);
 	}
+	
+	/**
+	 * Get engine id to engine name map
+	 * @return
+	 */
+	public static Map<String, String> getDatabaseIdToAliasMap() {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ID"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		
+		Map<String, String> retMap = new HashMap<>();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				retMap.put(row[0] + "", row[1] + "");
+			}
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return retMap;
+	}
 
 	/**
 	 * Get the list of concepts for a given engine
-	 * @param engineId
+	 * @param databaseId
 	 * @return
 	 */
-	public static Set<String> getConceptsWithinEngineRDBMS(String engineId) {
+	public static Set<String> getConceptsWithinDatabaseRDBMS(String databaseId) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__SEMOSSNAME"));
 		return QueryExecutionUtility.flushToSetString(engine, qs, true);
 	}
 	
 	/**
 	 * Get the list of concepts for a given engine
-	 * @param engineId
+	 * @param databaseId
 	 * @return
 	 */
-	public static Collection<String> getSelectorsWithinEngineRDBMS(String engineId) {
+	public static Collection<String> getSelectorsWithinDatabaseRDBMS(String databaseId) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1722,7 +1747,7 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK", "desc"));
 		
 		Set<String> selectors = new TreeSet<>();
@@ -1750,17 +1775,17 @@ public class MasterDatabaseUtility {
 
 	/**
 	 * Get the data type
-	 * @param engineId
+	 * @param databaseId
 	 * @param pixelName
 	 * @param parentPixelName
 	 * @return
 	 */
-	public static String getBasicDataType(String engineId, String pixelName, String parentPixelName) {
+	public static String getBasicDataType(String databaseId, String pixelName, String parentPixelName) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", pixelName));
 		if(parentPixelName != null && !parentPixelName.isEmpty()) {
 			// additional filters
@@ -1772,17 +1797,17 @@ public class MasterDatabaseUtility {
 
 	/**
 	 * Get the additional data type
-	 * @param engineId
+	 * @param databaseId
 	 * @param conceptualName
 	 * @param parentConceptualName
 	 * @return
 	 */
-	public static String getAdditionalDataType(String engineId, String conceptualName, String parentConceptualName) {
+	public static String getAdditionalDataType(String databaseId, String conceptualName, String parentConceptualName) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ADDITIONAL_TYPE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", conceptualName));
 		if(parentConceptualName != null && !parentConceptualName.isEmpty()) {
 			// additional filters
@@ -1794,11 +1819,11 @@ public class MasterDatabaseUtility {
 	
 	/**
 	 * 
-	 * @param engineId
+	 * @param databaseId
 	 * @return
 	 */
 
-	public static Map<String, List<String>> getEngineLogicalNames(String engineId) {
+	public static Map<String, List<String>> getDatabaseLogicalNames(String databaseId) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		
 		Map<String, List<String>> engineLogicalNames = new HashMap<>();
@@ -1808,7 +1833,7 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
 		qs.addSelector(new QueryColumnSelector("CONCEPTMETADATA__VALUE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__KEY", "==", "logical"));
 		qs.addRelation("CONCEPTMETADATA__PHYSICALNAMEID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 
@@ -1849,7 +1874,7 @@ public class MasterDatabaseUtility {
 		return engineLogicalNames;
 	}
 
-	public static Map<String, String> getEngineDescriptions(String engineId) {
+	public static Map<String, String> getDatabaseDescriptions(String databaseId) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		
 		Map<String, String> engineDescriptions = new HashMap<>();
@@ -1859,7 +1884,7 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
 		qs.addSelector(new QueryColumnSelector("CONCEPTMETADATA__VALUE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__KEY", "==", "description"));
 		qs.addRelation("CONCEPTMETADATA__PHYSICALNAMEID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 
@@ -1893,18 +1918,18 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get the properties for a given concept
 	 * @param conceptName
-	 * @param engineId		the engine to get the properties for
+	 * @param databaseId		the database to get the properties for
 	 * @return
 	 */
-	public static List<String> getSpecificConceptProperties(String parentName, String engineId) {
-		if(engineId == null || engineId.isEmpty()) {
+	public static List<String> getSpecificConceptProperties(String parentName, String databaseId) {
+		if(databaseId == null || databaseId.isEmpty()) {
 			throw new IllegalArgumentException("Must define a valid engine id");
 		}
 				
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", parentName));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__SEMOSSNAME"));
 		
@@ -1917,11 +1942,11 @@ public class MasterDatabaseUtility {
 	 * If RDF/Graph this will have the concept and all its properties
 	 * Return will be in TABLE__COLUMN format
 	 * @param parentName	String with the name of the concept
-	 * @param engineId		String with the engine to get the selectors for
+	 * @param databaseId		String with the engine to get the selectors for
 	 * @return
 	 */
-	public static List<String> getConceptPixelSelectors(String parentName, String engineId) {
-		if(engineId == null || engineId.isEmpty()) {
+	public static List<String> getConceptPixelSelectors(String parentName, String databaseId) {
+		if(databaseId == null || databaseId.isEmpty()) {
 			throw new IllegalArgumentException("Must define a valid engine id");
 		}
 				
@@ -1930,7 +1955,7 @@ public class MasterDatabaseUtility {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		// grab either
 		// 1) all rows where the parent is what is passed in
 		// or 
@@ -1972,11 +1997,11 @@ public class MasterDatabaseUtility {
 
 	/**
 	 * Get the physical concept id for a concept given the engine id + conceptual name
-	 * @param engineId
+	 * @param databaseId
 	 * @param conceptualName
 	 * @return
 	 */
-	public static String getPhysicalConceptId(String engineId, String conceptualName) {
+	public static String getPhysicalConceptId(String databaseId, String conceptualName) {
 		// SELECT engineconcept.physicalnameid FROM engineconcept INNER JOIN concept ON concept.localconceptid=engineconcept.localconceptid WHERE engineconcept.engine='' AND concept.conceptualname='Title'
 		//		String query = "SELECT engineconcept.physicalnameid "
 		//				+ "FROM engineconcept "
@@ -1988,7 +2013,7 @@ public class MasterDatabaseUtility {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualName));
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 
@@ -1997,16 +2022,16 @@ public class MasterDatabaseUtility {
 	
 	/**
 	 * Get the physical concept id for a concept given the engine id + pixel name
-	 * @param engineId
+	 * @param databaseId
 	 * @param conceptualName
 	 * @return
 	 */
-	public static String getPhysicalConceptIdFromPixelName(String engineId, String pixelName) {
+	public static String getPhysicalConceptIdFromPixelName(String databaseId, String pixelName) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		if(pixelName.contains("__")) {
 			String[] split = pixelName.split("__");
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", split[0]));
@@ -2021,12 +2046,12 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get concept metadata value for a key
 	 * 
-	 * @param engineId
+	 * @param databaseId
 	 * @param concept
 	 * @param key
 	 * @return
 	 */
-	public static String getMetadataValue(String engineId, String concept, String key) {
+	public static String getMetadataValue(String databaseId, String concept, String key) {
 		//		String query = "select " + Constants.VALUE + " from " + Constants.CONCEPT_METADATA_TABLE
 		//				+ " where localconceptid in (select localconceptid from concept "
 		//				+ "where localconceptid in (select localconceptid from engineconcept "
@@ -2052,7 +2077,7 @@ public class MasterDatabaseUtility {
 
 			// fill in the second sub query with the necessary column output + filters
 			subQs2.addSelector(new QueryColumnSelector("ENGINECONCEPT__LOCALCONCEPTID"));
-			subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+			subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		}
 
 		return QueryExecutionUtility.flushToString(engine, qs);
@@ -2063,7 +2088,7 @@ public class MasterDatabaseUtility {
 	 * Get all engine alias to id combinations
 	 * @return
 	 */
-	public static List<String> getEngineIdsForAlias(String alias) {
+	public static List<String> getDatabaseIdsForAlias(String alias) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -2078,7 +2103,7 @@ public class MasterDatabaseUtility {
 	 * Get an engine type for an id
 	 * @return
 	 */
-	public static String getEngineTypeForId(String id) {
+	public static String getDatabaseTypeForId(String id) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -2088,22 +2113,22 @@ public class MasterDatabaseUtility {
 	}
 	
 	/**
-	 * Try to reconcile and get the engine id
-	 * @param engineId
+	 * Try to reconcile and get the database id
+	 * @param databaseId
 	 * @return
 	 */
 
-	public static String testEngineIdIfAlias(String engineId) {
-		List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(engineId);
-		if(appIds.size() == 1) {
-			// actually received an app name
-			engineId = appIds.get(0);
-		} else if(appIds.size() > 1) {
-			throw new IllegalArgumentException("There are 2 databases with the name " + engineId + ". Please pass in the correct id to know which source you want to load from");
+	public static String testDatabaseIdIfAlias(String databaseId) {
+		List<String> databaseIds = MasterDatabaseUtility.getDatabaseIdsForAlias(databaseId);
+		if(databaseIds.size() == 1) {
+			// actually received a database name
+			databaseId = databaseIds.get(0);
+		} else if(databaseIds.size() > 1) {
+			throw new IllegalArgumentException("There are 2 databases with the name " + databaseId + ". Please pass in the correct id to know which source you want to load from");
 		}
 
 		// i guess the input was the actual id
-		return engineId;
+		return databaseId;
 	}
 
 
@@ -2126,10 +2151,10 @@ public class MasterDatabaseUtility {
 
 	/**
 	 * Get a list of the conceptual names 
-	 * @param engineFilters optional filter based on engines
+	 * @param databaseFilters optional filter based on engines
 	 * @return
 	 */
-	public static Collection<String> getAllConceptualNames(Collection<String> engineFilters) {
+	public static Collection<String> getAllConceptualNames(Collection<String> databaseFilters) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -2139,8 +2164,8 @@ public class MasterDatabaseUtility {
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.setAlias("LNAME");
 		qs.addSelector(fun);
-		if(engineFilters != null && !engineFilters.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilters));
+		if(databaseFilters != null && !databaseFilters.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilters));
 			qs.addRelation("ENGINECONCEPT", "CONCEPT", "inner.join");
 		}
 		qs.addOrderBy(new QueryColumnOrderBySelector("LNAME"));
@@ -2151,15 +2176,15 @@ public class MasterDatabaseUtility {
 	
 	/**
 	 * Get a list of the conceptual names that are primary keys for a db
-	 * @param engineId
+	 * @param databaseId
 	 * @return
 	 */
-	public static Collection<String> getPKColumnsWithData(String engineId) {
+	public static Collection<String> getPKColumnsWithData(String databaseId) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
 
@@ -2185,10 +2210,10 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get connections to other datasources based on similar conceptual names
 	 * @param conceptualNames
-	 * @param engineFilters
+	 * @param dbFilters
 	 * @return
 	 */
-	public static List<String[]> getConceptualConnections(List<String> conceptualNames, Collection<String> engineFilters) {
+	public static List<String[]> getConceptualConnections(List<String> conceptualNames, Collection<String> dbFilters) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		List<String[]> results = new Vector<>();
@@ -2198,8 +2223,8 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
-		if(engineFilters != null && !engineFilters.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilters));
+		if(dbFilters != null && !dbFilters.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", dbFilters));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualNames));
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
@@ -2235,10 +2260,10 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get the CLP model
 	 * @param conceptualNames
-	 * @param engineFilters
+	 * @param databaseFilters
 	 * @return
 	 */
-	public static List<String[]> getConceptualToLogicalToPhysicalModel(List<String> conceptualNames, Collection<String> engineFilters) {
+	public static List<String[]> getConceptualToLogicalToPhysicalModel(List<String> conceptualNames, Collection<String> databaseFilters) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		List<String[]> results = new Vector<>();
@@ -2250,8 +2275,8 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		if(engineFilters != null && !engineFilters.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilters));
+		if(databaseFilters != null && !databaseFilters.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilters));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualNames));
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");

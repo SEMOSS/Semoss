@@ -17,7 +17,7 @@ import prerna.util.Utility;
 public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 
 	public RemoveOwlPropertyReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
 				ReactorKeysEnum.COLUMN.getKey() };
 	}
 	
@@ -25,24 +25,24 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 		
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if (concept == null || concept.isEmpty()) {
-			throw new IllegalArgumentException("Must define the concept being added to the app metadata");
+			throw new IllegalArgumentException("Must define the concept being added to the database metadata");
 		}
 		String column = this.keyValue.get(this.keysToGet[2]);
 		if( column == null || column.isEmpty()) {
-			throw new IllegalArgumentException("Must define the property being added to the app metadata");
+			throw new IllegalArgumentException("Must define the property being added to the database metadata");
 		}
 		// if RDBMS, we need to know the prime key of the column
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
-		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
-		String physicalPropUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + column);
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
+		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
+		String physicalPropUri = database.getPhysicalUriFromPixelSelector(concept + "__" + column);
 		if(physicalPropUri == null) {
 			throw new IllegalArgumentException("Cannot find property in existing metadata to remove");
 		}
@@ -104,8 +104,8 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove the desired property", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed property", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

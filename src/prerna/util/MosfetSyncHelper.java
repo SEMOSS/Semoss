@@ -9,11 +9,11 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.om.MosfetFile;
+import prerna.project.api.IProject;
 
 public class MosfetSyncHelper {
 
@@ -81,17 +81,17 @@ public class MosfetSyncHelper {
 	}
 
 	private static void processAddedFile(MosfetFile mosfet, Logger logger) {
-		String appId = mosfet.getEngineId();
+		String projectId = mosfet.getProjectId();
 		String id = mosfet.getRdbmsId();
 
 		// need to add the insight in the rdbms engine
-		IEngine engine = Utility.getEngine(appId);
+		IProject project = Utility.getProject(projectId);
 		// we want to make sure the file isn't added because we made the insight
 		// and is in fact a new one made by another collaborator
-		Vector<Insight> ins = engine.getInsight(id);
+		Vector<Insight> ins = project.getInsight(id);
 		if(ins == null || ins.isEmpty() || (ins.size() == 1 && ins.get(0) == null) ) {
 			logger.info("Start processing new mosfet file");
-			addInsightToEngineRdbms(engine, mosfet);
+			addInsightToEngineRdbms(project, mosfet);
 			logger.info("Done processing mosfet file");
 		}
 	}
@@ -134,8 +134,8 @@ public class MosfetSyncHelper {
 		}
 	}
 
-	public static void addInsightToEngineRdbms(IEngine engine, MosfetFile mosfet) {
-		String appId = mosfet.getEngineId();
+	public static void addInsightToEngineRdbms(IProject project, MosfetFile mosfet) {
+		String projectId = mosfet.getProjectId();
 		String id = mosfet.getRdbmsId();
 		String insightName = mosfet.getInsightName();
 		String layout = mosfet.getLayout();
@@ -143,16 +143,16 @@ public class MosfetSyncHelper {
 		boolean hidden = mosfet.isHidden();
 		boolean cacheable = Utility.getApplicationCacheInsight();
 
-		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		// just put the recipe into an array
 		admin.addInsight(id, insightName, layout, recipe, hidden, cacheable);
-		SecurityInsightUtils.addInsight(appId, id, insightName, false, cacheable, layout, recipe);
+		SecurityInsightUtils.addInsight(projectId, id, insightName, false, cacheable, layout, recipe);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
 		if(description != null) {
 			admin.updateInsightDescription(id, description);
-			SecurityInsightUtils.updateInsightDescription(appId, id, description);
+			SecurityInsightUtils.updateInsightDescription(projectId, id, description);
 		}
 		String[] tags = mosfet.getTags();
 		if(tags != null && tags.length > 0) {
@@ -162,25 +162,25 @@ public class MosfetSyncHelper {
 	}
 
 	public static void updateInsightInEngineRdbms(MosfetFile mosfet) {
-		String appId = mosfet.getEngineId();
+		String projectId = mosfet.getProjectId();
 		String id = mosfet.getRdbmsId();
 		String insightName = mosfet.getInsightName();
 		String layout = mosfet.getLayout();
 		List<String> recipe = mosfet.getRecipe();
 		boolean hidden = mosfet.isHidden();
 
-		IEngine engine = Utility.getEngine(appId);
+		IProject project = Utility.getProject(projectId);
 
-		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		// just put the recipe into an array
 		admin.updateInsight(id, insightName, layout, recipe, hidden);
-		SecurityInsightUtils.updateInsight(appId, id, insightName, false, layout, recipe);
+		SecurityInsightUtils.updateInsight(projectId, id, insightName, false, layout, recipe);
 
 		// also sync the metadata
 		String description = mosfet.getDescription();
 		if(description != null) {
 			admin.updateInsightDescription(id, description);
-			SecurityInsightUtils.updateInsightDescription(appId, id, description);
+			SecurityInsightUtils.updateInsightDescription(projectId, id, description);
 		}
 		String[] tags = mosfet.getTags();
 		if(tags != null && tags.length > 0) {
@@ -190,14 +190,14 @@ public class MosfetSyncHelper {
 	}
 
 	public static void deleteInsightFromEngineRdbms(MosfetFile mosfet) {
-		String appId = mosfet.getEngineId();
+		String projectId = mosfet.getProjectId();
 		String id = mosfet.getRdbmsId();
 
-		IEngine engine = Utility.getEngine(appId);
-		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+		IProject project = Utility.getProject(projectId);
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		admin.dropInsight(id);
 
-		SecurityInsightUtils.deleteInsight(appId, id);
+		SecurityInsightUtils.deleteInsight(projectId, id);
 	}
 
 	private static void outputError(Logger logger, String errorMessage) {
@@ -228,8 +228,8 @@ public class MosfetSyncHelper {
 
 	/**
 	 * Only generate the mosfet file
-	 * @param appId
-	 * @param appName
+	 * @param projectId
+	 * @param projectName
 	 * @param rdbmsId
 	 * @param insightName
 	 * @param layout
@@ -238,17 +238,20 @@ public class MosfetSyncHelper {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static File makeMosfitFile(String appId, String appName, String rdbmsId, String insightName, 
+	public static File makeMosfitFile(String projectId, String projectName, String rdbmsId, String insightName, 
 			String layout, List<String> recipe, boolean hidden) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
-		mosfet.setEngineId(appId);
+		mosfet.setProjectId(projectId);
 		mosfet.setRdbmsId(rdbmsId);
 		mosfet.setInsightName(insightName);
 		mosfet.setLayout(layout);
 		mosfet.setRecipe(recipe);
 		mosfet.setHidden(hidden);
 
-		String mosfetPath = AssetUtility.getAppAssetVersionFolder(appName, appId) 
+		String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + "project"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
+				+ DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsId;
 
 		mosfet.write(mosfetPath, false);
@@ -258,8 +261,8 @@ public class MosfetSyncHelper {
 
 	/**
 	 * Only generate the mosfet file
-	 * @param appId
-	 * @param appName
+	 * @param projectId
+	 * @param projectName
 	 * @param rdbmsId
 	 * @param insightName
 	 * @param layout
@@ -270,15 +273,15 @@ public class MosfetSyncHelper {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static File makeMosfitFile(String appId, String appName, String rdbmsId, String insightName, 
+	public static File makeMosfitFile(String projectId, String projectName, String rdbmsId, String insightName, 
 			String layout, List<String> recipe, boolean hidden, String description, List<String> tags) throws IOException {
-		return makeMosfitFile(appId, appName, rdbmsId, insightName, layout, recipe, hidden, description, tags, false);
+		return makeMosfitFile(projectId, projectName, rdbmsId, insightName, layout, recipe, hidden, description, tags, false);
 	}
 	
 	/**
 	 * Only generate the mosfet file
-	 * @param appId
-	 * @param appName
+	 * @param projectId
+	 * @param projectName
 	 * @param rdbmsId
 	 * @param insightName
 	 * @param layout
@@ -290,10 +293,10 @@ public class MosfetSyncHelper {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static File makeMosfitFile(String appId, String appName, String rdbmsId, String insightName, 
+	public static File makeMosfitFile(String projectId, String projectName, String rdbmsId, String insightName, 
 			String layout, List<String> recipe, boolean hidden, String description, List<String> tags, boolean forceDelete) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
-		mosfet.setEngineId(appId);
+		mosfet.setProjectId(projectId);
 		mosfet.setRdbmsId(rdbmsId);
 		mosfet.setInsightName(insightName);
 		mosfet.setLayout(layout);
@@ -306,7 +309,10 @@ public class MosfetSyncHelper {
 			mosfet.setTags(tags.toArray(new String[tags.size()]));
 		}
 
-		String mosfetPath = AssetUtility.getAppAssetVersionFolder(appName, appId)
+		String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + "project"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
+				+ DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsId;
 
 		mosfet.write(mosfetPath, forceDelete);
@@ -316,8 +322,8 @@ public class MosfetSyncHelper {
 	/**
 	 * Only update the mosfet file
 	 * @param mosfetFile
-	 * @param appId
-	 * @param appName
+	 * @param projectId
+	 * @param projectName
 	 * @param rdbmsId
 	 * @param insightName
 	 * @param layout
@@ -327,10 +333,10 @@ public class MosfetSyncHelper {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static File updateMosfitFile(File mosfetFile, String appId, String appName, String rdbmsId, String insightName, 
+	public static File updateMosfitFile(File mosfetFile, String projectId, String projectName, String rdbmsId, String insightName, 
 			String layout, String imageFileName, List<String> recipe, boolean hidden) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
-		mosfet.setEngineId(appId);
+		mosfet.setProjectId(projectId);
 		mosfet.setRdbmsId(rdbmsId);
 		mosfet.setInsightName(insightName);
 		mosfet.setLayout(layout);
@@ -344,8 +350,8 @@ public class MosfetSyncHelper {
 	/**
 	 * Only update the mosfet file
 	 * @param mosfetFile
-	 * @param appId
-	 * @param appName
+	 * @param projectId
+	 * @param projectName
 	 * @param rdbmsId
 	 * @param insightName
 	 * @param layout
@@ -357,10 +363,10 @@ public class MosfetSyncHelper {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static File updateMosfitFile(File mosfetFile, String appId, String appName, String rdbmsId, String insightName,
+	public static File updateMosfitFile(File mosfetFile, String projectId, String projectName, String rdbmsId, String insightName,
 			String layout, String imageFileName, List<String> recipe, boolean hidden, String description, List<String> tags) throws IOException {
 		MosfetFile mosfet = new MosfetFile();
-		mosfet.setEngineId(appId);
+		mosfet.setProjectId(projectId);
 		mosfet.setRdbmsId(rdbmsId);
 		mosfet.setInsightName(insightName);
 		mosfet.setLayout(layout);

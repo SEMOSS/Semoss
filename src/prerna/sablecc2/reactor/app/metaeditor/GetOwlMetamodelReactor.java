@@ -18,17 +18,17 @@ import prerna.util.Utility;
 public class GetOwlMetamodelReactor extends AbstractMetaEditorReactor {
 
 	public GetOwlMetamodelReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = testAppId(appId, false);
-		IEngine app = Utility.getEngine(appId);
-		Map<String, Object[]> metamodelObject = app.getMetamodel();
+		databaseId = testDatabaseId(databaseId, false);
+		IEngine database = Utility.getEngine(databaseId);
+		Map<String, Object[]> metamodelObject = database.getMetamodel();
 		Object[] nodes = metamodelObject.get("nodes");
 		Object[] relationships = metamodelObject.get("edges");
 		Map<String, Collection<String>> concepts = new HashMap<String, Collection<String>>();

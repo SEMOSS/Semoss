@@ -12,7 +12,7 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtNewMethod;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.sablecc.ReactorSecurityManager;
+import prerna.sablecc2.ReactorSecurityManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;

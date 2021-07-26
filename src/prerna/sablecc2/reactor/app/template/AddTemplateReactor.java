@@ -11,7 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -26,7 +26,7 @@ public class AddTemplateReactor extends AbstractReactor {
 	private static final String CLASS_NAME = AddTemplateReactor.class.getName();
 
 	public AddTemplateReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.TEMPLATE_NAME.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.TEMPLATE_NAME.getKey(),
 				ReactorKeysEnum.TEMPLATE_FILE.getKey() };
 	}
 
@@ -34,12 +34,12 @@ public class AddTemplateReactor extends AbstractReactor {
 		organizeKeys();
 		Logger logger = getLogger(CLASS_NAME);
 		
-		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String templateFile = this.keyValue.get(ReactorKeysEnum.TEMPLATE_FILE.getKey());
 		String templateName = this.keyValue.get(ReactorKeysEnum.TEMPLATE_NAME.getKey());
 		
-		IEngine engine = Utility.getEngine(appId);
-		String versionFolder = AssetUtility.getAppAssetFolder(engine.getEngineName(), appId);
+		IProject project = Utility.getProject(projectId);
+		String versionFolder = AssetUtility.getProjectAssetFolder(project.getProjectName(), projectId);
 		String fileToMove = versionFolder;
 		if(templateFile.startsWith("/") || templateFile.startsWith("\\")) {
 			fileToMove += templateFile;
@@ -64,7 +64,7 @@ public class AddTemplateReactor extends AbstractReactor {
 		
 		logger.info("Starting to synchronize templates with template directory");
 		// pull from cloud
-		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 		// move back the file
 		try {
 			FileUtils.moveFile(newF, f);
@@ -73,9 +73,9 @@ public class AddTemplateReactor extends AbstractReactor {
 			throw new IllegalArgumentException("An error occurred moving the template into the template folder", e);
 		}
 		// write/update to properties file
-		Map<String, String> templateDataMap = TemplateUtility.addTemplate(appId, templateFile, templateName);
+		Map<String, String> templateDataMap = TemplateUtility.addTemplate(projectId, templateFile, templateName);
 		// push to cloud
-		ClusterUtil.reactorPushFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 		logger.info("Finished synchronizing templates with template directory");
 
 		// returning back the updated template information which will contain all the 

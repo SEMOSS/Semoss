@@ -78,8 +78,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	@Override
 	public void write(JsonWriter out, Insight value) throws IOException {
 		String rdbmsId = value.getRdbmsId();
-		String engineId = value.getEngineId();
-		String engineName = value.getEngineName();
+		String engineId = value.getProjectId();
+		String engineName = value.getProjectName();
 		
 		if(engineId == null || rdbmsId == null || engineName == null) {
 			throw new IOException("Cannot jsonify an insight that is not saved");
@@ -229,10 +229,10 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		in.nextName();
 		// engine id, engine name, rdbms id
 		String engineId = in.nextString();
-		insight.setEngineId(engineId);
+		insight.setProjectId(engineId);
 		in.nextName();
 		String engineName = in.nextString();
-		insight.setEngineName(Utility.getEngine(engineId).getEngineName());
+		insight.setProjectName(Utility.getEngine(engineId).getEngineName());
 		in.nextName();
 		String rdbmsId = in.nextString();
 		insight.setRdbmsId(rdbmsId);

@@ -29,7 +29,7 @@ public class GetInsightsReactor extends AbstractReactor {
 	}
 	
 	public GetInsightsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.TAGS.getKey(),
 				ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.SORT.getKey()};
 	}
@@ -37,24 +37,24 @@ public class GetInsightsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		GenRowStruct engineFilterGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct projectFilterGrs = this.store.getNoun(this.keysToGet[0]);
 		List<NounMetadata> warningNouns = new Vector<>();
 		// get list of engineIds if user has access
 		List<String> eFilters = null;
-		if (engineFilterGrs != null && !engineFilterGrs.isEmpty()) {
+		if (projectFilterGrs != null && !projectFilterGrs.isEmpty()) {
 			eFilters = new Vector<String>();
-			for (int i = 0; i < engineFilterGrs.size(); i++) {
-				String engineFilter = engineFilterGrs.get(i).toString();
+			for (int i = 0; i < projectFilterGrs.size(); i++) {
+				String engineFilter = projectFilterGrs.get(i).toString();
 				if (AbstractSecurityUtils.securityEnabled()) {
-					engineFilter = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineFilter);
-					if (SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineFilter)) {
+					engineFilter = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineFilter);
+					if (SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), engineFilter)) {
 						eFilters.add(engineFilter);
 					} else {
 						// store warnings
 						warningNouns.add(NounMetadata.getWarningNounMessage(engineFilter + " does not exist or user does not have access to database."));
 					}
 				} else {
-					engineFilter = MasterDatabaseUtility.testEngineIdIfAlias(engineFilter);
+					engineFilter = MasterDatabaseUtility.testDatabaseIdIfAlias(engineFilter);
 					eFilters.add(engineFilter);
 				}
 			}

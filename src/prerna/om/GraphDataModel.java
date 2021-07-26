@@ -68,8 +68,6 @@ import prerna.engine.impl.rdf.SesameJenaConstructStatement;
 import prerna.engine.impl.rdf.SesameJenaSelectCheater;
 import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.GraphOWLHelper;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.RDFEngineHelper;
@@ -1335,27 +1333,27 @@ public class GraphDataModel implements IDataMaker {
 	@Override
 	public Map<String, String> getScriptReactors() {
 		Map<String, String> reactorNames = new HashMap<String, String>();
-		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
+//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+//		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
 //		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.TinkerColAddReactor");
-		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-		reactorNames.put(PKQLEnum.API, "prerna.sablecc.QueryApiReactor");
-		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
-		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.GDMImportDataReactor");
-		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
-		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
-		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
-		
-		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
+//		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
+//		reactorNames.put(PKQLEnum.API, "prerna.sablecc.QueryApiReactor");
+//		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
+//		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+//		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
+//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
+//		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.GDMImportDataReactor");
+//		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
+//		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
+//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+//		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
+//		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+//		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
+//		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
+//		
+//		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
 //		switch(reactorType) {
 //			case IMPORT_DATA : return new GDMImportDataReactor();
 //			case COL_ADD : return new ColAddReactor();

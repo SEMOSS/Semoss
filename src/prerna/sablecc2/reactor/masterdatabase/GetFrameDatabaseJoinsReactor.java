@@ -32,13 +32,13 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			String specificAppFilter = getApp();
 			if(specificAppFilter != null) {
-				if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), specificAppFilter)) {
+				if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), specificAppFilter)) {
 					throw new IllegalArgumentException("Database " + specificAppFilter + " does not exist or user does not have access to database");
 				}
 				appFilters = new Vector<String>();
 				appFilters.add(specificAppFilter);
 			} else {
-				appFilters = SecurityQueryUtils.getVisibleUserEngineIds(this.insight.getUser());
+				appFilters = SecurityQueryUtils.getVisibleUserDatabaseIds(this.insight.getUser());
 			}
 		}
 		

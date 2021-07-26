@@ -43,8 +43,6 @@ import javax.swing.JList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.ibm.icu.util.StringTokenizer;
-
 import edu.uci.ics.jung.algorithms.layout.BalloonLayout;
 import edu.uci.ics.jung.algorithms.layout.CircleLayout;
 import edu.uci.ics.jung.algorithms.layout.FRLayout;
@@ -59,21 +57,20 @@ import prerna.engine.api.IEngine;
  * DIHelper is used throughout SEMOSS to obtain property names from core propfiles and engine core propfiles.
  */
 public class DIHelper {
-	
+
 	// helps with all of the dependency injection
 	public static DIHelper helper = null;
-	
+
 	String rdfMapFileLocation = null;
-	
+
 	IEngine rdfEngine = null;
 	Properties rdfMap = null;
-	
+
 	// core properties file
 	Properties coreProp = null;
-	// engine core prop file
-	Properties engineCoreProp = null;
-	// extended properties
-	Properties extendProp = null;
+	Properties dbProp = null;
+	Properties projectProp = null;
+	
 	// Hashtable of local properties
 	// will have the following keys
 	// Perspective -<Hashtable of questions and identifier> - Possibly change this over to vector
@@ -82,12 +79,12 @@ public class DIHelper {
 
 	// localprop for engine
 	Hashtable engineLocalProp = new Hashtable();
-	
+
 	// cached questions for an engine
 	Hashtable <String, Hashtable> engineQHash = new Hashtable<String, Hashtable>();
 	// Logger
 	static final Logger logger = LogManager.getLogger(DIHelper.class.getName());
-	
+
 	/**
 	 * Constructor for DIHelper.
 	 */
@@ -95,17 +92,20 @@ public class DIHelper {
 	{
 		// do nothing
 	}
-	
+
 	/**
 	 * Set up shapes, colors, and layouts. 
 	 * Put properties for each in a hashtable of local properties.
-	
+
 	 * @return DIHelper 		Properties. */
 	public static DIHelper getInstance()
 	{
 		if(helper == null)
 		{
 			helper = new DIHelper();
+			helper.dbProp = new Properties();
+			helper.projectProp = new Properties();
+			
 			// need to set up the shapes here
 			//Shape square = new Rectangle2D.Double(-5,-5,10, 10);
 
@@ -116,13 +116,13 @@ public class DIHelper {
 
 			Rectangle2D.Double square = new Rectangle2D.Double(-6,-6,12, 12);
 			//RoundRectangle2D.Double round = new RoundRectangle2D.Double(-6,-6,12, 12, 6, 6);
-			
+
 			Shape triangle = helper.createUpTriangle(6);
 			Shape star = helper.createStar();
 			Shape rhom = helper.createRhombus(7);
 			Shape hex = helper.createHex(7);
 			Shape pent = helper.createPent(7);
-			
+
 
 			helper.localProp.put(Constants.SQUARE, square);
 			helper.localProp.put(Constants.CIRCLE, circle);
@@ -140,7 +140,7 @@ public class DIHelper {
 			Shape rhomL = helper.createRhombusL();
 			Shape pentL = helper.createPentL();
 			Shape hexL = helper.createHexL();
-			
+
 			helper.localProp.put(Constants.SQUARE + Constants.LEGEND, squareL);
 			helper.localProp.put(Constants.CIRCLE + Constants.LEGEND, circleL);
 			helper.localProp.put(Constants.TRIANGLE + Constants.LEGEND, triangleL);
@@ -177,7 +177,7 @@ public class DIHelper {
 			helper.localProp.put(Constants.DARK_GRAY, darkGray);
 			helper.localProp.put(Constants.LIGHT_GRAY, lightGray);
 			helper.localProp.put(Constants.CYAN, cyan);
-			
+
 			// put all the layouts as well
 			helper.localProp.put(Constants.FR, FRLayout.class);
 			helper.localProp.put(Constants.KK, KKLayout.class);
@@ -191,12 +191,12 @@ public class DIHelper {
 		}
 		return helper; 
 	}
-	
+
 
 
 	/**
 	 * Obtains a specific RDF engine.
-	
+
 	 * @return IEngine 		RDF engine. */
 	public IEngine getRdfEngine() {
 		return rdfEngine;
@@ -209,22 +209,14 @@ public class DIHelper {
 	public void setRdfEngine(IEngine rdfEngine) {
 		this.rdfEngine = rdfEngine;
 	}
-	
-	
+
+
 	/**
 	 * Gets core properties.
-	
+
 	 * @return Properties		List of core properties. */
 	public Properties getCoreProp() {
 		return coreProp;
-	}
-	
-	/**
-	 * Gets engine properties.
-	
-	 * @return Properties 		List of engine properties. */
-	public Properties getEngineProp(){
-		return engineCoreProp;
 	}
 
 	/**
@@ -236,29 +228,20 @@ public class DIHelper {
 	}
 
 	/**
-	 * Gets the RDF Map.
-	
-	 * @return List of properties in RDF map */
-	public Properties getRdfMap() {
-		return engineCoreProp;
-	}
-
-	
-	/**
 	 * Retrieves properties from hashtable.
 	 * @param String		Key used to retrieve properties
-	
+
 	 * @return				Property name */
 	public String getProperty(String name)
 	{
 		String retName = coreProp.getProperty(name);
-		
+
 		//if(retName == null && engineCoreProp != null && engineCoreProp.containsKey(name))
-			//retName = "" + engineCoreProp.get(name);
-		
-		  		JList list = (JList) DIHelper.getInstance().getLocalProp(
+		//retName = "" + engineCoreProp.get(name);
+
+		JList list = (JList) DIHelper.getInstance().getLocalProp(
 				Constants.REPO_LIST);
-		
+
 		if(retName == null && list != null)
 		{
 			// get the selected repository
@@ -272,7 +255,7 @@ public class DIHelper {
 			}			
 		}
 
-		 
+
 		//logger.debug("Engine Local Prop" + engineLocalProp);
 		return retName;
 	}
@@ -282,409 +265,293 @@ public class DIHelper {
 	 * @param name String		Hash key.
 	 * @param value String		Value mapped to specific key.
 	 */
-	public void putProperty(String name, String value)
-	{
+	public void putProperty(String name, String value) {
 		coreProp.put(name, value);
 	}
 
-	  /**
-	   * Creates a star shape.
-	  
-	   * @return 	Star */
-	  public Shape createStar() 
-	  {
-		  double x = .5;
-		  double points[][] = { 
-		        { 0*x, -15*x }, { 4.5*x, -5*x }, { 14.5*x,-5*x}, { 7.5*x,3*x }, 
-		        { 10.5*x, 13*x}, { 0*x, 7*x }, { -10.5*x, 13*x}, { -7.5*x, 3*x }, 
-		        {-14.5*x,-5*x}, { -4.5*x,-5*x}, { 0, -15*x} 
-		    };
-	      final GeneralPath star = new GeneralPath();
-	        star.moveTo(points[0][0], points[0][1]);
+	/**
+	 * Creates a star shape.
 
-	        for (int k = 1; k < points.length; k++)
-	            star.lineTo(points[k][0], points[k][1]);
+	 * @return 	Star */
+	public Shape createStar() {
+		double x = .5;
+		double points[][] = { 
+				{ 0*x, -15*x }, { 4.5*x, -5*x }, { 14.5*x,-5*x}, { 7.5*x,3*x }, 
+				{ 10.5*x, 13*x}, { 0*x, 7*x }, { -10.5*x, 13*x}, { -7.5*x, 3*x }, 
+				{-14.5*x,-5*x}, { -4.5*x,-5*x}, { 0, -15*x} 
+		};
+		final GeneralPath star = new GeneralPath();
+		star.moveTo(points[0][0], points[0][1]);
 
-	      star.closePath();
-	      return star;
-	  }
+		for (int k = 1; k < points.length; k++)
+			star.lineTo(points[k][0], points[k][1]);
 
-	  /**
-	   * Creates a star shape for the legend.
-	  
-	   * @return 	Star */
-	  public Shape createStarL() 
-	  {
-		  //double points[][] = {{7.5,0} ,{9,5} ,{14.5, 5}, {11, 9}, {12.5, 14}, {7.2, 10.5}, {2.2, 14}, {3.5, 9}, {0,5}, {5, 5}, {7.5, 0}};
-		  double points[][] = {{10,0} ,{13,6.66} ,{20, 6.66}, {14.66, 12}, {16.66, 18.66}, {10, 14}, {3.33, 18.66}, {5.33, 12}, {0,6.66}, {7, 6.66}, {10, 0}};
-		  
-	      final GeneralPath star = new GeneralPath();
-	        star.moveTo(points[0][0], points[0][1]);
+		star.closePath();
+		return star;
+	}
 
-	        for (int k = 1; k < points.length; k++)
-	            star.lineTo(points[k][0], points[k][1]);
+	/**
+	 * Creates a star shape for the legend.
 
-	      star.closePath();
-	      return star;
-	  }
-	  
-	  /**
-	   * Creates a hexagon shape.
-	   * @param 		Specifies start position (X-coordinate) for drawing the hexagon.
-	  
-	   * @return 		Hexagon */
-	  public Shape createHex(final double s) 
-	  {
-			GeneralPath hexagon = new GeneralPath();
-			hexagon.moveTo(s, 0);
-			for (int i = 0; i < 6; i++) 
-			    hexagon.lineTo((float)Math.cos(i*Math.PI/3)*s, 
-					   (float)Math.sin(i*Math.PI/3)*s);
-			hexagon.closePath();
-	      return hexagon;
-	  }
+	 * @return 	Star */
+	public Shape createStarL() {
+		//double points[][] = {{7.5,0} ,{9,5} ,{14.5, 5}, {11, 9}, {12.5, 14}, {7.2, 10.5}, {2.2, 14}, {3.5, 9}, {0,5}, {5, 5}, {7.5, 0}};
+		double points[][] = {{10,0} ,{13,6.66} ,{20, 6.66}, {14.66, 12}, {16.66, 18.66}, {10, 14}, {3.33, 18.66}, {5.33, 12}, {0,6.66}, {7, 6.66}, {10, 0}};
 
-	  /**
-	   * Creates a hexagon shape for the legend
-	  
-	   * @return 		Hexagon */
-	  public Shape createHexL() 
-	  {
-		  double points[][] = {{20,10} ,{15, 0} ,{5, 0}, {0, 10}, {5, 20}, {15,20}};
-		  
-	      final GeneralPath pent = new GeneralPath();
-	        pent.moveTo(points[0][0], points[0][1]);
+		final GeneralPath star = new GeneralPath();
+		star.moveTo(points[0][0], points[0][1]);
 
-	        for (int k = 1; k < points.length; k++)
-	            pent.lineTo(points[k][0], points[k][1]);
+		for (int k = 1; k < points.length; k++)
+			star.lineTo(points[k][0], points[k][1]);
 
-	      pent.closePath();
-	      return pent;
-	  }
-	  
-	  /**
-	   * Creates a pentagon shape.
-	   * @param 		Specifies start position (X-coordinate) for drawing the pentagon
-	  
-	   * @return 		Pentagon */
-	  public Shape createPent(final double s) 
-	  {
-			GeneralPath hexagon = new GeneralPath();
-			hexagon.moveTo((float)Math.cos(Math.PI/10)*s, (float)Math.sin(Math.PI/10)*(-s));
-			for (int i = 0; i < 5; i++) 
-			    hexagon.lineTo((float)Math.cos(i*2*Math.PI/5 + Math.PI/10)*s, 
-					   (float)Math.sin(i*2*Math.PI/5 + Math.PI/10)*(-s));
-			hexagon.closePath();
-	      return hexagon;
-	  }
-	  
-	  /**
-	   * Creates a pentagon shape for the legend.
-	  
-	   * @return 		Pentagon */
-	  public Shape createPentL() 
-	  {
-		  double points[][] = {{10,0} ,{19.510565163, 6.90983005625} ,{15.8778525229, 18.0901699437}, {4.12214747708, 18.0901699437}, {0.48943483704, 6.90983005625}};
-		  
-	      final GeneralPath pent = new GeneralPath();
-	        pent.moveTo(points[0][0], points[0][1]);
+		star.closePath();
+		return star;
+	}
 
-	        for (int k = 1; k < points.length; k++)
-	            pent.lineTo(points[k][0], points[k][1]);
+	/**
+	 * Creates a hexagon shape.
+	 * @param 		Specifies start position (X-coordinate) for drawing the hexagon.
 
-	      pent.closePath();
-	      return pent;
-	  }
-	  
-	  /**
-	   * Creates a rhombus shape.
-	   * @param 		Specifies start position (X-coordinate) for drawing the rhombus
-	  
-	   * @return		Rhombus */
-	  public Shape createRhombus(final double s) 
-	  {
-		  double points[][] = { 
-			        { 0, -s }, { -s, 0}, { 0,s}, { s,0 }, 
-			    };
-		      final GeneralPath r = new GeneralPath();
-		        r.moveTo(points[0][0], points[0][1]);
+	 * @return 		Hexagon */
+	public Shape createHex(final double s) {
+		GeneralPath hexagon = new GeneralPath();
+		hexagon.moveTo(s, 0);
+		for (int i = 0; i < 6; i++) 
+			hexagon.lineTo((float)Math.cos(i*Math.PI/3)*s, 
+					(float)Math.sin(i*Math.PI/3)*s);
+		hexagon.closePath();
+		return hexagon;
+	}
 
-		        for (int k = 1; k < points.length; k++)
-		            r.lineTo(points[k][0], points[k][1]);
+	/**
+	 * Creates a hexagon shape for the legend
 
-		      r.closePath();
-		      return r;
-	  }
+	 * @return 		Hexagon */
+	public Shape createHexL() {
+		double points[][] = {{20,10} ,{15, 0} ,{5, 0}, {0, 10}, {5, 20}, {15,20}};
 
-	  /**
-	   * Creates a rhombus shape for the legend.
-	  
-	   * @return 	Rhombus */
-	  public Shape createRhombusL() 
-	  {
-		  double points2[][] = { 
-			        { 10, 0 }, { 0, 10}, { 10,20}, { 20,10 }, 
-			    };
-	      final GeneralPath r = new GeneralPath(); // rhombus
-	        r.moveTo(points2[0][0], points2[0][1]);
+		final GeneralPath pent = new GeneralPath();
+		pent.moveTo(points[0][0], points[0][1]);
 
-	        for (int k = 1; k < points2.length; k++)
-	            r.lineTo(points2[k][0], points2[k][1]);
+		for (int k = 1; k < points.length; k++)
+			pent.lineTo(points[k][0], points[k][1]);
 
-	      r.closePath();
-	      return r;
-	  }
+		pent.closePath();
+		return pent;
+	}
 
-	  /**
-	   * Creates a triangle.
-	   * @param 		Specifies start position (X-coordinate) for drawing the triangle.
-	  
-	   * @return 		Triangle */
-	  public Shape createUpTriangle(final double s) 
-	  {
-	      final GeneralPath p0 = new GeneralPath();
-	      p0.moveTo(0, -s);
-	      p0.lineTo(s, s);
-	      p0.lineTo(-s, s);
-	      p0.closePath();
-	      return p0;
-	  }
+	/**
+	 * Creates a pentagon shape.
+	 * @param 		Specifies start position (X-coordinate) for drawing the pentagon
 
-	  /**
-	   * Creates a triangle for the legend.
-	  
-	   * @return 	Triangle */
-	  public Shape createUpTriangleL() 
-	  {
-	      GeneralPath p0 = new GeneralPath(); // triangle
-	      
-	      p0.moveTo(10, 0);
-	      p0.lineTo(20, 20);
-	      p0.lineTo(0, 20);
-	      p0.closePath();
-	      return p0;
-	  }
+	 * @return 		Pentagon */
+	public Shape createPent(final double s) {
+		GeneralPath hexagon = new GeneralPath();
+		hexagon.moveTo((float)Math.cos(Math.PI/10)*s, (float)Math.sin(Math.PI/10)*(-s));
+		for (int i = 0; i < 5; i++) 
+			hexagon.lineTo((float)Math.cos(i*2*Math.PI/5 + Math.PI/10)*s, 
+					(float)Math.sin(i*2*Math.PI/5 + Math.PI/10)*(-s));
+		hexagon.closePath();
+		return hexagon;
+	}
 
-	  /**
-	   * Loads engine specific properties.
-	   * @param String				Name of the engine
-	   * @param String				Prop file
-	   * @param String				Prop file containing ontologies
-	   */
-	  public void loadEngineProp(String engineName, String qPropFile, String ontologyPropFile)
-	  {
-		  FileInputStream qPropfileIn = null;
-		  FileInputStream ontologyPropfileIn = null;
+	/**
+	 * Creates a pentagon shape for the legend.
+
+	 * @return 		Pentagon */
+	public Shape createPentL() {
+		double points[][] = {{10,0} ,{19.510565163, 6.90983005625} ,{15.8778525229, 18.0901699437}, {4.12214747708, 18.0901699437}, {0.48943483704, 6.90983005625}};
+
+		final GeneralPath pent = new GeneralPath();
+		pent.moveTo(points[0][0], points[0][1]);
+
+		for (int k = 1; k < points.length; k++)
+			pent.lineTo(points[k][0], points[k][1]);
+
+		pent.closePath();
+		return pent;
+	}
+
+	/**
+	 * Creates a rhombus shape.
+	 * @param 		Specifies start position (X-coordinate) for drawing the rhombus
+
+	 * @return		Rhombus */
+	public Shape createRhombus(final double s) {
+		double points[][] = { 
+				{ 0, -s }, { -s, 0}, { 0,s}, { s,0 }, 
+		};
+		final GeneralPath r = new GeneralPath();
+		r.moveTo(points[0][0], points[0][1]);
+
+		for (int k = 1; k < points.length; k++)
+			r.lineTo(points[k][0], points[k][1]);
+
+		r.closePath();
+		return r;
+	}
+
+	/**
+	 * Creates a rhombus shape for the legend.
+
+	 * @return 	Rhombus */
+	public Shape createRhombusL() {
+		double points2[][] = { 
+				{ 10, 0 }, { 0, 10}, { 10,20}, { 20,10 }, 
+		};
+		final GeneralPath r = new GeneralPath(); // rhombus
+		r.moveTo(points2[0][0], points2[0][1]);
+
+		for (int k = 1; k < points2.length; k++)
+			r.lineTo(points2[k][0], points2[k][1]);
+
+		r.closePath();
+		return r;
+	}
+
+	/**
+	 * Creates a triangle.
+	 * @param 		Specifies start position (X-coordinate) for drawing the triangle.
+
+	 * @return 		Triangle */
+	public Shape createUpTriangle(final double s) {
+		final GeneralPath p0 = new GeneralPath();
+		p0.moveTo(0, -s);
+		p0.lineTo(s, s);
+		p0.lineTo(-s, s);
+		p0.closePath();
+		return p0;
+	}
+
+	/**
+	 * Creates a triangle for the legend.
+
+	 * @return 	Triangle */
+	public Shape createUpTriangleL() {
+		GeneralPath p0 = new GeneralPath(); // triangle
+
+		p0.moveTo(10, 0);
+		p0.lineTo(20, 20);
+		p0.lineTo(0, 20);
+		p0.closePath();
+		return p0;
+	}
+
+	/**
+	 * Retrieves local properties from the hashtable. 
+	 * @param 	Key to the hashtable
+
+	 * @return 	Property mapped to a specific key */
+	public Object getLocalProp(String key) {
+		if(localProp.containsKey(key)) {
+			return localProp.get(key);
+		} else {
+			return engineLocalProp.get(key);
+		}
+	}
+
+	/**
+	 * Puts local properties into a hashtable.
+	 * @param 	Property, serves as the hashtable key.
+	 * @param 	Identifier for a given property.
+	 */
+	public void setLocalProperty(String property, Object value) {
+		localProp.put(property, value);
+	}
+
+	public void removeLocalProperty(String property) {
+		localProp.remove(property);
+	}
+
+	/**
+	 * Get the ID for a specific question.
+	 * @param String		Question.
+
+	 * @return String		ID. */
+	public String getIDForQuestion(String question) {
+		return (String)engineLocalProp.get(question);
+	}
+
+	/**
+	 * Creates a new list and loads properties given a certain file name.
+	 * @param String		File name.
+	 */
+	public void loadCoreProp(String fileName) {
+		this.rdfMapFileLocation = fileName;
+		FileInputStream fileIn = null;
+		try {
+			coreProp = new Properties();
+			fileIn = new FileInputStream(Utility.normalizePath(fileName));
+			coreProp.load(fileIn);
+			coreProp.put(Constants.DIHELPER_PROP_FILE_LOCATION, fileName);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
 			try {
-				if(!engineQHash.containsKey(engineName))
-				{
-					engineCoreProp = new Properties();
-					qPropfileIn = new FileInputStream(qPropFile);
-					engineCoreProp.load(qPropfileIn);
-					Hashtable engineLocalProp = new Hashtable();
-					loadPerspectives(engineCoreProp, engineLocalProp);
-					engineQHash.put(engineName, engineLocalProp);
-					ontologyPropfileIn = new FileInputStream(ontologyPropFile); 
-					engineCoreProp.load(ontologyPropfileIn);
-					engineQHash.put(engineName + "_CORE_PROP", engineCoreProp);
-				}
-				engineCoreProp = (Properties)engineQHash.get(engineName + "_CORE_PROP");
-				engineLocalProp = engineQHash.get(engineName);
-			} catch (FileNotFoundException e) {
+				if(fileIn!=null)
+					fileIn.close();
+			} catch(IOException e) {
 				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}finally{
-				try{
-					if(qPropfileIn!=null)
-						qPropfileIn.close();
-
-				}catch(IOException e) {
-					e.printStackTrace();
-				}
-				try{
-					if(ontologyPropfileIn!=null)
-						ontologyPropfileIn.close();
-				}catch(IOException e) {
-					e.printStackTrace();
-				}
 			}
+		}
 
-	  }
-	  
-	  /**
-	   * Load the perspectives for a specific engine.
-	   * @param 	List of properties
-	   * @param  	Hashtable of local engine properties
-	   */
-	  public void loadPerspectives(Properties prop, Hashtable engineLocalProp)
-	  {
-		  // this should load the properties from the specified as opposed to 
-		  // loading from core prop
-		  // lastly the localprop needs to set up so that it can be swapped
-		  String perspectives = (String)prop.get(Constants.PERSPECTIVE);
-		  StringTokenizer tokens = new StringTokenizer(perspectives, ";");
-		  Hashtable perspectiveHash = new Hashtable();
-		  while(tokens.hasMoreTokens())
-		  {
-			  String perspective = tokens.nextToken();
-			  perspectiveHash.put(perspective, perspective); // the value will be replaced later with another hash
-			  engineLocalProp.put(Constants.PERSPECTIVE, perspectiveHash);
-			  loadQuestions(prop, perspective, engineLocalProp);			  	
-		  }
-	  }
-	  
-	  /**
-	   * Retrieves local properties from the hashtable. 
-	   * @param 	Key to the hashtable
-	  
-	   * @return 	Property mapped to a specific key */
-	  public Object getLocalProp(String key)
-	  {
-		  if(localProp.containsKey(key))
-			  return localProp.get(key);
-		  else
-			  return engineLocalProp.get(key);
-	  }
+		PlaySheetRDFMapBasedEnum.getInstance().setData(((String)coreProp.get(Constants.PLAYSHEETS_DEFINED) + "").split(";"), coreProp);
+	}
 
-	  /**
-	   * Loads questions for a particular perspective.
-	   * @param 	List of properties
-	   * @param 	String with the name of the perspective
-	   * @param 	Hashtables containing local properties of a specific engine
-	   */
-	  public void loadQuestions(Properties prop, String perspective, Hashtable engineLocalProp)
-	  {
-			String key = perspective;
-			String qsList = prop.getProperty(key); // get the ; delimited questions
-			
-			Hashtable qsHash = new Hashtable();
-			Hashtable layoutHash = new Hashtable();
-			if(qsList != null)
-			{
-				int count = 1;
-				StringTokenizer qsTokens = new StringTokenizer(qsList,";");
-				while(qsTokens.hasMoreElements())
-				{
-					String qsKey = qsTokens.nextToken();
-					String qsDescr = prop.getProperty(qsKey);
-					qsDescr = count+". " + qsDescr;
-					String layoutName = prop.getProperty(qsKey + "_" + Constants.LAYOUT);
-					logger.info(Utility.cleanLogString("Putting information " + qsDescr + "<>" + qsKey));
-					qsHash.put(qsDescr, qsKey); // I do this because I will use this to look up other things later
-					layoutHash.put(qsKey + "_" + Constants.LAYOUT, layoutName);
-					engineLocalProp.put(qsDescr, qsKey);
-					count++;
-				}
-				logger.info("Loaded Perspective " + key);
-				engineLocalProp.put(key, qsHash); // replaces the previous hash with the new one now
-				engineLocalProp.put(key + "_" + Constants.LAYOUT, layoutHash);
-			}
-	  }
-	  
-	  /**
-	   * Gets the list of questions for a particular perspective.
-	   * @param 	String containing the perspective name
-	  
-	   * @return 	Hashtable containing questions for a given perspective */
-	  public Hashtable getQuestions(String perspective)
-	  {
-		  logger.info("Getting questions for perspective " + perspective);
-		  logger.info("Answer " + engineLocalProp.get(perspective));
-		  return (Hashtable)engineLocalProp.get(perspective);
-		  
-	  }
-	  
-	  /**
-	   * Puts local properties into a hashtable.
-	   * @param 	Property, serves as the hashtable key.
-	   * @param 	Identifier for a given property.
-	   */
-	  public void setLocalProperty(String property, Object value)
-	  {
-		  localProp.put(property, value);
-	  }
-	  
-	  public void removeLocalProperty(String property) {
-		  localProp.remove(property);
-	  }
-	  
-	  /**
-	   * Get the ID for a specific question.
-	   * @param String		Question.
-	  
-	   * @return String		ID. */
-	  public String getIDForQuestion(String question)
-	  {
-		  return (String)engineLocalProp.get(question);
-	  }
-	  
-	  /**
-	   * Creates a new list and loads properties given a certain file name.
-	   * @param String		File name.
-	   */
-	  public void loadCoreProp(String fileName) 
-	  {
-		  this.rdfMapFileLocation = fileName;
-		  FileInputStream fileIn = null;
-			try {
-				coreProp = new Properties();
-				fileIn = new FileInputStream(Utility.normalizePath(fileName));
-				coreProp.load(fileIn);
-				coreProp.put(Constants.DIHELPER_PROP_FILE_LOCATION, fileName);
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			} finally {
-				try {
-					if(fileIn!=null)
-						fileIn.close();
-				} catch(IOException e) {
-					e.printStackTrace();
-				}
-			}
-			
-			PlaySheetRDFMapBasedEnum.getInstance().setData(((String)coreProp.get(Constants.PLAYSHEETS_DEFINED) + "").split(";"), coreProp);
-	  }
-	  
-	  public void reload()
-	  {
-		  DIHelper.getInstance().loadCoreProp(rdfMapFileLocation);
-	  }
-	  
-	  
-	  /**
-	   * Gets the local prop of the engine
-	   */
-	  public Hashtable getEngineLocalProp(String engineName)
-	  {
-		  return engineQHash.get(engineName);
-	  }
+	public void reload() {
+		DIHelper.getInstance().loadCoreProp(rdfMapFileLocation);
+	}
 
-	  /**
-	   * Gets the core prop of the engine
-	   */
-	  public Properties getEngineCoreProp(String engineName)
-	  {
-		  return (Properties) engineQHash.get(engineName + "_CORE_PROP");
-	  }
-	  
-	  public String getRDFMapFile()
-	  {
-		  return this.rdfMapFileLocation;
-	  }
+	/**
+	 * Gets the local prop of the engine
+	 */
+	public Hashtable getEngineLocalProp(String engineName)
+	{
+		return engineQHash.get(engineName);
+	}
 
-	  /*
-	  public Hashtable<String, DBCMVertex> getVertexStore()
-	  {
-		  return this.vertHash;
-	  }
-	  
-	  public Hashtable<String, DBCMEdge> getEdgeStore()
-	  {
-		  return this.edgeHash;
-	  }
-	  */
-	  
+	/**
+	 * Gets the core prop of the engine
+	 */
+	public Properties getEngineCoreProp(String engineName) {
+		return (Properties) engineQHash.get(engineName + "_CORE_PROP");
+	}
+
+	public String getRDFMapFile() {
+		return this.rdfMapFileLocation;
+	}
+	
+	public Properties getDbProp() {
+		return this.dbProp;
+	}
+	
+	public void setDbProperty(Object key, Object value) {
+		this.dbProp.put(key, value);
+	}
+	
+	public Object getDbProperty(Object key) {
+		return this.dbProp.get(key);
+	}
+	
+	public Object removeDbProperty(Object key) {
+		return this.dbProp.remove(key);
+	}
+	
+	public Properties getProjectProp() {
+		return this.projectProp;
+	}
+	
+	public void setProjectProperty(Object key, Object value) {
+		this.projectProp.put(key, value);
+	}
+	
+	public Object getProjectProperty(Object key) {
+		return this.projectProp.get(key);
+	}
+	
+	public Object removeProjectProperty(Object key) {
+		return this.projectProp.remove(key);
+	}
 }

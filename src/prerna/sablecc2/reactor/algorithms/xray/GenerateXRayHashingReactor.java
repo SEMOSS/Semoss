@@ -36,13 +36,13 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 	public static final String STATUS_KEY = "status";
 	
 	private String folderPath;
-	private List<String> appIds;
+	private List<String> databaseIds;
 	private boolean override;
 	private Map<String, List<String>> configMap;
 	
 	public GenerateXRayHashingReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey()};
+				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey()};
 	}
 	
 	@Override
@@ -78,11 +78,11 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		}
 		
 		// now we want to go through and save all the file details 
-		this.appIds = getApps();
-		for(String appId : appIds) {
+		this.databaseIds = getDatabases();
+		for(String dbId : databaseIds) {
 			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), appId)) {
-					throw new IllegalArgumentException("User does not have permission to view this engine or engine does not exist");
+				if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), dbId)) {
+					throw new IllegalArgumentException("User does not have permission to view this database or database does not exist");
 				}
 			}
 		}
@@ -106,14 +106,14 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		returnMap.put(FILES_KEY, fileNames);
 		returnMap.put(STATUS_KEY, status);
 		
-		// go through and write the app
-		for(String appId : appIds) {
-			IEngine engine = Utility.getEngine(appId);
-			Collection<String> pixelSelectors = MasterDatabaseUtility.getSelectorsWithinEngineRDBMS(appId);
+		// go through and write the database
+		for(String databaseId : databaseIds) {
+			IEngine engine = Utility.getEngine(databaseId);
+			Collection<String> pixelSelectors = MasterDatabaseUtility.getSelectorsWithinDatabaseRDBMS(databaseId);
 			
 			List<String> selectorFilters = null;
-			if(this.configMap != null && this.configMap.containsKey(appId)) {
-				selectorFilters = this.configMap.get(appId);
+			if(this.configMap != null && this.configMap.containsKey(databaseId)) {
+				selectorFilters = this.configMap.get(databaseId);
 			}
 			
 			for(String selector : pixelSelectors) {
@@ -126,7 +126,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 				
 				// see if the file already exists
 				// so if we are not overriding, we can skip this selector
-				String outputFileName = appId + ";";
+				String outputFileName = databaseId + ";";
 				if(selector.contains("__")) {
 					String[] split = selector.split("__");
 					outputFileName += split[0] + ";" + split[1];
@@ -194,7 +194,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 	 * Grab values from store
 	 */
 	
-	private List<String> getApps() {
+	private List<String> getDatabases() {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
 		return grs.getAllStrValues();
 	}
@@ -218,8 +218,8 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		return this.folderPath;
 	}
 	
-	List<String> getAppIds() {
-		return this.appIds;
+	List<String> getDatabaseIds() {
+		return this.databaseIds;
 	}
 	
 	boolean isOverride() {

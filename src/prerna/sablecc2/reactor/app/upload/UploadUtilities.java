@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -29,6 +28,7 @@ import com.google.gson.GsonBuilder;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
@@ -97,84 +97,84 @@ public class UploadUtilities {
 	
 	/**
 	 * Used to update DIHelper
-	 * Should only be used when making new app
-	 * @param newAppName
-	 * @param engine
+	 * Should only be used when making new database
+	 * @param newDatabaseName
+	 * @param database
 	 * @param smssFile
 	 */
-	public static void updateDIHelper(String newAppId, String newAppName, IEngine engine, File smssFile) {
-		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, smssFile.getAbsolutePath());
-		DIHelper.getInstance().setLocalProperty(newAppId, engine);
-		String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-		engineNames = engineNames + ";" + newAppId;
-		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
+	public static void updateDIHelper(String newDatabaseId, String newDatabaseName, IEngine database, File smssFile) {
+		DIHelper.getInstance().setDbProperty(newDatabaseId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		DIHelper.getInstance().setDbProperty(newDatabaseId, database);
+		String engineIds = (String) DIHelper.getInstance().getDbProperty(Constants.ENGINES);
+		engineIds = engineIds + ";" + newDatabaseId;
+		DIHelper.getInstance().setDbProperty(Constants.ENGINES, engineIds);
 	}
 	
 	/**
 	 * Update local master
-	 * @param appId
+	 * @param databaseId
 	 * @throws Exception 
 	 */
-	public static void updateMetadata(String appId) throws Exception {
-		Utility.synchronizeEngineMetadata(appId);
-		SecurityUpdateUtils.addApp(appId, !AbstractSecurityUtils.securityEnabled());
+	public static void updateMetadata(String databaseId) throws Exception {
+		Utility.synchronizeEngineMetadata(databaseId);
+		SecurityUpdateUtils.addDatabase(databaseId, !AbstractSecurityUtils.securityEnabled());
 	}
 
 	
 	/**
-	 * Validate the app name
+	 * Validate the database name
 	 * Does validation that:
 	 * 1) The input is not null/empty
-	 * 2) That the app folder doesn't exist in the file directory
-	 * @param appName
+	 * 2) That the database folder doesn't exist in the file directory
+	 * @param databaseName
 	 * @throws IOException
 	 */
-	public static void validateApp(User user, String appName, String appId) throws IOException {
-		if(appName == null || appName.isEmpty()) {
-			throw new IllegalArgumentException("Need to provide a name for the app");
+	public static void validateDatabase(User user, String databaseName, String databaseId) throws IOException {
+		if(databaseName == null || databaseName.isEmpty()) {
+			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
-		// need to make sure the app is unique
-		boolean containsApp = false;
+		// need to make sure the database is unique
+		boolean containsDatabase = false;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			containsApp = AbstractSecurityUtils.userContainsEngineName(user, appName);
+			containsDatabase = AbstractSecurityUtils.userContainsDatabaseName(user, databaseName);
 		} else {
-			containsApp = AbstractSecurityUtils.containsEngineName(appName);
+			containsDatabase = AbstractSecurityUtils.containsDatabaseName(databaseName);
 		}
-		if(containsApp) {
-			throw new IOException("App name already exists.  Please provide a unique app name");
+		if(containsDatabase) {
+			throw new IOException("Database name already exists.  Please provide a unique database name");
 		}
 		
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		// need to make sure app folder doesn't already exist
-		String appLocation = baseFolder + ENGINE_DIRECTORY +  SmssUtilities.getUniqueName(appName, appId);
-		File appFolder = new File(appLocation);
-		if(appFolder.exists()) {
-			throw new IOException("Database folder already contains an app directory with the same name. "
-					+ "Please delete the existing app folder or provide a unique app name");
+		String databaseLocation = baseFolder + ENGINE_DIRECTORY +  SmssUtilities.getUniqueName(databaseName, databaseId);
+		File databaseFolder = new File(databaseLocation);
+		if(databaseFolder.exists()) {
+			throw new IOException("Database folder already contains a database directory with the same name. "
+					+ "Please delete the existing database folder or provide a unique database name");
 		}
 	}
 
 	/**
-	 * Generate the app folder and return teh folder
-	 * @param appName
+	 * Generate the database folder and return the folder
+	 * @param databaseName
 	 * @return
 	 */
-	public static File generateAppFolder(String appId, String appName) {
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId);
-		File appFolder = new File(appLocation);
-		appFolder.mkdirs();
-		return appFolder;
+	public static File generateDatabaseFolder(String databaseId, String databaseName) {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String databaseLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId);
+		File databaseFolder = new File(databaseLocation);
+		databaseFolder.mkdirs();
+		return databaseFolder;
 	}
 	
 	/**
-	 * Generate an empty OWL file based on the app name
-	 * @param appName
+	 * Generate an empty OWL file based on the database name
+	 * @param databaseName
 	 * @return
 	 */
-	public static File generateOwlFile(String appId, String appName) {
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String owlLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + appName + "_OWL.OWL";
+	public static File generateOwlFile(String databaseId, String databaseName) {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String owlLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId) + DIR_SEPARATOR + databaseName + "_OWL.OWL";
 		File owlFile = new File(owlLocation);
 		
 		FileWriter writer = null;
@@ -324,24 +324,24 @@ public class UploadUtilities {
 	/**
 	 * Create a temporary smss file for a rdbms engine
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param owlFile
 	 * @param rdbmsType
 	 * @param file
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryRdbmsSmss(String appId, String appName, File owlFile, RdbmsTypeEnum rdbmsType, String file) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+	public static File createTemporaryRdbmsSmss(String databaseId, String databaseName, File owlFile, RdbmsTypeEnum rdbmsType, String file) throws IOException {
+		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File appTempSmss = new File(appTempSmssLoc);
-		if(appTempSmss.exists()) {
-			appTempSmss.delete();
+		File dbTempSmss = new File(dbTempSmssLoc);
+		if(dbTempSmss.exists()) {
+			dbTempSmss.delete();
 		}
 		
 		final String newLine = "\n";
@@ -350,16 +350,16 @@ public class UploadUtilities {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 		try {
-			writer = new FileWriter(appTempSmss);
+			writer = new FileWriter(dbTempSmss);
 			bufferedWriter = new BufferedWriter(writer);
 			
-			String engineClassName = "";
+			String dbClassName = "";
 			if(rdbmsType == RdbmsTypeEnum.IMPALA) {
-				engineClassName = ImpalaEngine.class.getName();
+				dbClassName = ImpalaEngine.class.getName();
 			} else {
-				engineClassName = RDBMSNativeEngine.class.getName();
+				dbClassName = RDBMSNativeEngine.class.getName();
 			}
-			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
+			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 
 			// write the rdbms type
 			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
@@ -374,7 +374,7 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/') + "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IOException("Could not generate temporary smss file for app");
+			throw new IOException("Could not generate temporary smss file for database");
 		} finally {
 			try {
 				if(bufferedWriter != null) {
@@ -388,19 +388,19 @@ public class UploadUtilities {
 			}
 		}
 		
-		return appTempSmss;
+		return dbTempSmss;
 	}
 	
 	/**
-	 * Generate the SMSS for the empty app
+	 * Generate the SMSS for the empty database
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param databaseId
+	 * @param databaseName
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryAppSmss(String appId, String appName, boolean isAssetApp) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+	public static File createTemporaryDatabaseSmss(String databaseId, String databaseName, boolean isAssetApp) throws IOException {
+		String appTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -422,22 +422,15 @@ public class UploadUtilities {
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
 			bufferedWriter.write("#Base Properties" +  newLine);
-			bufferedWriter.write(Constants.ENGINE + tab + appId + newLine);
-			bufferedWriter.write(Constants.ENGINE_ALIAS + tab + appName + newLine);
+			bufferedWriter.write(Constants.ENGINE + tab + databaseId + newLine);
+			bufferedWriter.write(Constants.ENGINE_ALIAS + tab + databaseName + newLine);
 			bufferedWriter.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
 			if(isAssetApp) {
 				bufferedWriter.write(Constants.IS_ASSET_APP + tab + true + newLine);
 			}
-			String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
-			if(rdbmsTypeStr == null) {
-				// default will be h2
-				rdbmsTypeStr = "H2_DB";
-			}
-			bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
-			bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
 		} catch (IOException ex) {
 			ex.printStackTrace();
-			throw new IOException("Could not generate app smss file");
+			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
 				if(bufferedWriter != null) {
@@ -455,25 +448,25 @@ public class UploadUtilities {
 	}
 	
 	/**
-	 * Create a temporary smss file for a tinker engine
+	 * Create a temporary smss file for a tinker database
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param owlFile
 	 * @param tinkerDriverType
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryTinkerSmss(String appId, String appName, File owlFile, TINKER_DRIVER tinkerDriverType) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+	public static File generateTemporaryTinkerSmss(String databaseId, String databaseName, File owlFile, TINKER_DRIVER tinkerDriverType) throws IOException {
+		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File appTempSmss = new File(appTempSmssLoc);
-		if (appTempSmss.exists()) {
-			appTempSmss.delete();
+		File dbTempSmss = new File(dbTempSmssLoc);
+		if (dbTempSmss.exists()) {
+			dbTempSmss.delete();
 		}
 
 		final String newLine = "\n";
@@ -483,15 +476,15 @@ public class UploadUtilities {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 		try {
-			File newFile = new File(appTempSmssLoc);
+			File newFile = new File(dbTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, TinkerEngine.class.getName(), newLine, tab);
+			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, TinkerEngine.class.getName(), newLine, tab);
 
 			// tinker-specific properties
 			// neo4j does not have an extension
 			// basefolder/db/engine/engine
-			String tinkerFilePath = " @BaseFolder@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR + appName;
+			String tinkerFilePath = " @BaseFolder@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR + databaseName;
 			if(tinkerFilePath.contains("\\")) {
 				tinkerFilePath = tinkerFilePath.replace("\\", "/");
 			}
@@ -507,7 +500,7 @@ public class UploadUtilities {
 
 		} catch (IOException ex) {
 			ex.printStackTrace();
-			throw new IOException("Could not generate app smss file");
+			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
 				if (bufferedWriter != null) {
@@ -521,28 +514,28 @@ public class UploadUtilities {
 			}
 		}
 
-		return appTempSmss;
+		return dbTempSmss;
 	}
 	
 	/**
-	 * Create a temporary smss file for a rdf engine
+	 * Create a temporary smss file for a rdf database
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param owlFile
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryRdfSmss(String appId, String appName, File owlFile) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+	public static File createTemporaryRdfSmss(String databaseId, String databaseName, File owlFile) throws IOException {
+		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File appTempSmss = new File(appTempSmssLoc);
-		if (appTempSmss.exists()) {
-			appTempSmss.delete();
+		File dbTempSmss = new File(dbTempSmssLoc);
+		if (dbTempSmss.exists()) {
+			dbTempSmss.delete();
 		}
 
 		final String newLine = "\n";
@@ -555,14 +548,14 @@ public class UploadUtilities {
 		BufferedReader bufferedReader = null;
 
 		try {
-			writer = new FileWriter(appTempSmss);
+			writer = new FileWriter(dbTempSmss);
 			bufferedWriter = new BufferedWriter(writer);
 
-			String engineClassName = BigDataEngine.class.getName();
-			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
+			String dbClassName = BigDataEngine.class.getName();
+			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 			// get additional RDF default properties
 			String defaultDBPropName = "db" + DIR_SEPARATOR + "Default" + DIR_SEPARATOR + "Default.properties";
-			String jnlName = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + appName + ".jnl";
+			String jnlName = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + databaseName + ".jnl";
 			jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
 			String rdfDefaultProps = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + defaultDBPropName;
 			
@@ -578,7 +571,7 @@ public class UploadUtilities {
 
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IOException("Could not generate temporary smss file for app");
+			throw new IOException("Could not generate temporary smss file for database");
 		} finally {
 			try {
 				if (bufferedWriter != null) {
@@ -598,15 +591,15 @@ public class UploadUtilities {
 			}
 		}
 		
-		return appTempSmss;
+		return dbTempSmss;
 	}
 
 	
 	/**
-	 * Generate a janus smss
+	 * Generate a janus database smss
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param owlFile
 	 * @param janusConfPath
 	 * @param typeMap
@@ -614,16 +607,16 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryJanusGraphSmss(String appId, String appName, File owlFile, String janusConfPath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+	public static File generateTemporaryJanusGraphSmss(String databaseId, String databaseName, File owlFile, String janusConfPath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel) throws IOException {
+		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File appTempSmss = new File(appTempSmssLoc);
-		if (appTempSmss.exists()) {
-			appTempSmss.delete();
+		File dbTempSmss = new File(dbTempSmssLoc);
+		if (dbTempSmss.exists()) {
+			dbTempSmss.delete();
 		}
 
 		final String newLine = "\n";
@@ -633,10 +626,10 @@ public class UploadUtilities {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 		try {
-			File newFile = new File(appTempSmssLoc);
+			File newFile = new File(dbTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, JanusEngine.class.getName(), newLine, tab);
+			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, JanusEngine.class.getName(), newLine, tab);
 
 			// janus conf file location
 			// we will want to parameterize this
@@ -666,7 +659,7 @@ public class UploadUtilities {
 
 		} catch (IOException ex) {
 			ex.printStackTrace();
-			throw new IOException("Could not generate app smss file");
+			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
 				if (bufferedWriter != null) {
@@ -680,14 +673,14 @@ public class UploadUtilities {
 			}
 		}
 
-		return appTempSmss;
+		return dbTempSmss;
 	}
 
 	/**
 	 * Generate a tinker smss
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param owlFile
 	 * @param tinkerFilePath
 	 * @param typeMap
@@ -696,16 +689,16 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryExternalTinkerSmss(String appId, String appName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType, boolean useLabel) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+	public static File generateTemporaryExternalTinkerSmss(String databaseId, String databaseName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType, boolean useLabel) throws IOException {
+		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File appTempSmss = new File(appTempSmssLoc);
-		if(appTempSmss.exists()) {
-			appTempSmss.delete();
+		File dbTempSmss = new File(dbTempSmssLoc);
+		if(dbTempSmss.exists()) {
+			dbTempSmss.delete();
 		}
 		
 		final String newLine = "\n";
@@ -715,10 +708,10 @@ public class UploadUtilities {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 		try {
-			File newFile = new File(appTempSmssLoc);
+			File newFile = new File(dbTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, TinkerEngine.class.getName(), newLine, tab);
+			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, TinkerEngine.class.getName(), newLine, tab);
 			
 			// tinker file location
 			// we will want to parameterize this
@@ -748,7 +741,7 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 		} catch (IOException ex) {
 			ex.printStackTrace();
-			throw new IOException("Could not generate app smss file");
+			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
 				if (bufferedWriter != null) {
@@ -762,12 +755,12 @@ public class UploadUtilities {
 			}
 		}
 
-		return appTempSmss;
+		return dbTempSmss;
 	}
 	/**
 	 * Generate a temporary datastax smss
- 	 * @param appId
-	 * @param appName
+ 	 * @param databaseId
+	 * @param databaseName
 	 * @param owlFile
 	 * @param host
 	 * @param port
@@ -780,16 +773,16 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryDatastaxSmss(String appId, String appName, File owlFile, String host, String port, String username, String password, String graphName, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+	public static File generateTemporaryDatastaxSmss(String databaseId, String databaseName, File owlFile, String host, String port, String username, String password, String graphName, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel) throws IOException {
+		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File appTempSmss = new File(appTempSmssLoc);
-		if(appTempSmss.exists()) {
-			appTempSmss.delete();
+		File dbTempSmss = new File(dbTempSmssLoc);
+		if(dbTempSmss.exists()) {
+			dbTempSmss.delete();
 		}
 		
 		final String newLine = "\n";
@@ -799,10 +792,10 @@ public class UploadUtilities {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 		try {
-			File newFile = new File(appTempSmssLoc);
+			File newFile = new File(dbTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, DataStaxGraphEngine.class.getName(), newLine, tab);
+			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, DataStaxGraphEngine.class.getName(), newLine, tab);
 			
 			// host + port
 			if(host.contains("\\")) {
@@ -832,7 +825,7 @@ public class UploadUtilities {
 			
 		} catch (IOException ex) {
 			ex.printStackTrace();
-			throw new IOException("Could not generate app smss file");
+			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
 				if(bufferedWriter != null) {
@@ -846,14 +839,14 @@ public class UploadUtilities {
 			}
 		}
 		
-		return appTempSmss;
+		return dbTempSmss;
 	}
 	
 	/**
 	 * Generate a neo4j smss
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param owlFile
 	 * @param connectionStringKey
 	 * @param username
@@ -861,14 +854,14 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryExternalNeo4jSmss(String appId, String appName, File owlFile,
+	public static File generateTemporaryExternalNeo4jSmss(String databaseId, String databaseName, File owlFile,
 			String connectionStringKey, String username, String password, Map<String, String> typeMap,
 			Map<String, String> nameMap, boolean useLabel) throws IOException {
-		String appTempNeo4jLoc = getAppTempSmssLoc(appId, appName);
+		String dbTempNeo4jLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 
-		File appTempSmss = new File(appTempNeo4jLoc);
-		if (appTempSmss.exists()) {
-			appTempSmss.delete();
+		File dbTempSmss = new File(dbTempNeo4jLoc);
+		if (dbTempSmss.exists()) {
+			dbTempSmss.delete();
 		}
 
 		final String newLine = "\n";
@@ -878,10 +871,10 @@ public class UploadUtilities {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 		try {
-			File newFile = new File(appTempNeo4jLoc);
+			File newFile = new File(dbTempNeo4jLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
+			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
 			// neo4j external properties
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionStringKey + newLine);
 			bufferedWriter.write(Constants.USERNAME + tab + username + newLine);
@@ -899,7 +892,7 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.NAME_MAP + "\t" + json + "\n");
 		} catch (IOException ex) {
 			ex.printStackTrace();
-			throw new IOException("Could not generate app smss file");
+			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
 				if (bufferedWriter != null) {
@@ -912,30 +905,30 @@ public class UploadUtilities {
 				e.printStackTrace();
 			}
 		}
-		return appTempSmss;
+		return dbTempSmss;
 	}
 	
 	/**
 	 * Generate a neo4j smss
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param owlFile
 	 * @param filePath
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryEmbeddedNeo4jSmss(String appId, String appName, File owlFile, String filePath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel)
+	public static File generateTemporaryEmbeddedNeo4jSmss(String databaseId, String databaseName, File owlFile, String filePath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel)
 			throws IOException {
-		String appTempNeo4jLoc = getAppTempSmssLoc(appId, appName);
+		String dbTempNeo4jLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File appTempSmss = new File(appTempNeo4jLoc);
-		if (appTempSmss.exists()) {
-			appTempSmss.delete();
+		File dbTempSmss = new File(dbTempNeo4jLoc);
+		if (dbTempSmss.exists()) {
+			dbTempSmss.delete();
 		}
 
 		final String newLine = "\n";
@@ -945,10 +938,10 @@ public class UploadUtilities {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 		try {
-			File newFile = new File(appTempNeo4jLoc);
+			File newFile = new File(dbTempNeo4jLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
+			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
 			bufferedWriter.write(Constants.NEO4J_FILE + tab + filePath + newLine);
 			Gson gson = new GsonBuilder().create();
 			if (useLabel) {
@@ -963,7 +956,7 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 		} catch (IOException ex) {
 			ex.printStackTrace();
-			throw new IOException("Could not generate app smss file");
+			throw new IOException("Could not generate database smss file");
 		} finally {
 			try {
 				if (bufferedWriter != null) {
@@ -977,15 +970,15 @@ public class UploadUtilities {
 			}
 		}
 
-		return appTempSmss;
+		return dbTempSmss;
 	}
 	
 	/**
-	 * Create a temporary smss file for an external rdbms engine
-	 * @param appId
-	 * @param appName
+	 * Create a temporary smss file for an external rdbms database
+	 * @param databaseId
+	 * @param databaseName
 	 * @param owlFile
-	 * @param engineClassName
+	 * @param dbClassName
 	 * @param dbType
 	 * @param connectionUrl
 	 * @param username
@@ -995,11 +988,11 @@ public class UploadUtilities {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	public static File createTemporaryExternalRdbmsSmss(String appId, String appName, File owlFile,
-			String engineClassName, RdbmsTypeEnum dbType, String connectionUrl, 
+	public static File createTemporaryExternalRdbmsSmss(String databaseId, String databaseName, File owlFile,
+			String dbClassName, RdbmsTypeEnum dbType, String connectionUrl, 
 			Map<String, Object> connectionDetails, Map<String, Object> jdbcPropertiesMap) throws IOException, SQLException {
 		
-		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 
 		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(dbType);
 		
@@ -1007,9 +1000,9 @@ public class UploadUtilities {
 		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File appTempSmss = new File(appTempSmssLoc);
-		if (appTempSmss.exists()) {
-			appTempSmss.delete();
+		File dbTempSmss = new File(dbTempSmssLoc);
+		if (dbTempSmss.exists()) {
+			dbTempSmss.delete();
 		}
 
 		final String newLine = "\n";
@@ -1018,9 +1011,9 @@ public class UploadUtilities {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 		try {
-			writer = new FileWriter(appTempSmss);
+			writer = new FileWriter(dbTempSmss);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
+			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 			// seperate for connection details
 			bufferedWriter.write(newLine);
 			bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
@@ -1078,7 +1071,7 @@ public class UploadUtilities {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IOException("Could not generate temporary smss file for app");
+			throw new IOException("Could not generate temporary smss file for database");
 		} finally {
 			try {
 				if (bufferedWriter != null) {
@@ -1091,13 +1084,13 @@ public class UploadUtilities {
 				e.printStackTrace();
 			}
 		}
-		return appTempSmss;
+		return dbTempSmss;
 	}
 	
 	/**
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param databaseId
+	 * @param databaseName
 	 * @param owlFile
 	 * @param fileName
 	 * @param newHeaders
@@ -1106,16 +1099,16 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryRSmss(String appId, String appName, File owlFile, String fileName, Map<String, String> newHeaders, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+	public static File createTemporaryRSmss(String databaseId, String databaseName, File owlFile, String fileName, Map<String, String> newHeaders, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) throws IOException {
+		String dbTempSmssLoc = getDatabaseTempSmssLoc(databaseId, databaseName);
 		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File appTempSmss = new File(appTempSmssLoc);
-		if(appTempSmss.exists()) {
-			appTempSmss.delete();
+		File dbTempSmss = new File(dbTempSmssLoc);
+		if(dbTempSmss.exists()) {
+			dbTempSmss.delete();
 		}
 		
 		final String newLine = "\n";
@@ -1124,11 +1117,11 @@ public class UploadUtilities {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 		try {
-			writer = new FileWriter(appTempSmss);
+			writer = new FileWriter(dbTempSmss);
 			bufferedWriter = new BufferedWriter(writer);
 			
 			String engineClassName = RNativeEngine.class.getName();
-			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
+			writeDefaultSettings(bufferedWriter, databaseId, databaseName, owlFile, engineClassName, newLine, tab);
 			String dataFile = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + fileName;
 			bufferedWriter.write(AbstractEngine.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
 			// stringify maps
@@ -1144,7 +1137,7 @@ public class UploadUtilities {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IOException("Could not generate temporary smss file for app");
+			throw new IOException("Could not generate temporary smss file for database");
 		} finally {
 			try {
 				if(bufferedWriter != null) {
@@ -1158,73 +1151,52 @@ public class UploadUtilities {
 			}
 		}
 		
-		return appTempSmss;
+		return dbTempSmss;
 	}
 	
 	/**
-	 * Get the app temporary smss location
+	 * Get the database temporary smss location
 	 * 
-	 * @param appId
-	 * @param appName
+	 * @param databaseId
+	 * @param databaseName
 	 * @return
 	 */
-	private static String getAppTempSmssLoc(String appId, String appName) {
+	private static String getDatabaseTempSmssLoc(String databaseId, String databaseName) {
 		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String appTempSmssLoc = baseDirectory + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + ".temp";
-		return appTempSmssLoc;
+		String dbTempSmssLoc = baseDirectory + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId) + ".temp";
+		return dbTempSmssLoc;
 	}
 	
 	/**
-	 * Writes the shared properties across majority of engines. This includes:
-	 * 1) Engine Name
-	 * 2) Engine Type
-	 * 3) Insights database locaiton
-	 * 4) OWL file locaiton
+	 * Writes the shared properties across majority of databases. This includes:
+	 * 1) database Name
+	 * 2) database Type
+	 * 3) OWL file location
 	 * 
 	 * @param bufferedWriter
-	 * @param appName
+	 * @param databaseName
 	 * @param owlFile
-	 * @param engineClassName
+	 * @param dbClassName
 	 * @param newLine
 	 * @param tab
 	 * @throws IOException
 	 */
-	private static void writeDefaultSettings(BufferedWriter bufferedWriter, String appId, String appName, File owlFile, String engineClassName, final String newLine, final String tab) throws IOException {
+	private static void writeDefaultSettings(BufferedWriter bufferedWriter, String databaseId, String databaseName, File owlFile, String dbClassName, final String newLine, final String tab) throws IOException {
 		bufferedWriter.write("#Base Properties" +  newLine);
-		bufferedWriter.write(Constants.ENGINE + tab + appId + newLine);
-		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + appName + newLine);
-		bufferedWriter.write(Constants.ENGINE_TYPE + tab + engineClassName + newLine);
+		bufferedWriter.write(Constants.ENGINE + tab + databaseId + newLine);
+		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + databaseName + newLine);
+		bufferedWriter.write(Constants.ENGINE_TYPE + tab + dbClassName + newLine);
 		// write insights rdbms
 		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 		if(rdbmsTypeStr == null) {
 			// default will be h2
 			rdbmsTypeStr = "H2_DB";
 		}
-		bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
-		bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
 		// write owl
-		String paramOwlLoc = getRelativeOwlPath(owlFile).replaceFirst(SmssUtilities.getUniqueName(appName, appId), SmssUtilities.ENGINE_REPLACEMENT);
+		String paramOwlLoc = getRelativeOwlPath(owlFile).replaceFirst(SmssUtilities.getUniqueName(databaseName, databaseId), SmssUtilities.ENGINE_REPLACEMENT);
 		bufferedWriter.write(Constants.OWL + tab + paramOwlLoc + newLine);
 	}
 	
-	/**
-	 * Get the smss base url 
-	 * NOTE : THIS IS NOT THE FULL URL, BUT MEANT TO BE USED ONLY FOR THE SMSS
-	 * THE OTHER PORTIONS OF THE FULL URL ARE HARDCODED IN ABSTRACT ENGINE
-	 * @param appName
-	 * @return
-	 */
-	private static String getParamedSmssInsightDatabaseLocation(String rdbmsTypeStr) {
-		String connectionUrl = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + "insights_database";
-		// regardless of OS, connection url is always /
-		connectionUrl = connectionUrl.replace('\\', '/');
-		
-		// append it on so it looks nicer
-		if(rdbmsTypeStr.equalsIgnoreCase("SQLITE")) {
-			connectionUrl += ".sqlite";
-		}
-		return connectionUrl;
-	}
 	
 	
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -1236,146 +1208,11 @@ public class UploadUtilities {
 	 * Below methods pertain to the insights database
 	 */
 	
-	/**
-	 * Get the default connection url for the insights database
-	 * NOTE : ONLY ALLOWING FOR H2 OR SQLITE STORAGE OPTIONS AT THE MOMENT
-	 * NOTE : THIS IS THE ACTUAL FULL CONNECITON URL
-	 * TODO: expand how we store this information to be able to keep in another database option / shared database
-	 * @param appName
-	 * @return
-	 */
-	private static String getNewInsightDatabaseConnectionUrl(RdbmsTypeEnum rdbmsType, String appId, String appName) {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		
-		String connectionUrl = null;
-		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
-			// append .sqlite so it looks nicer - realize it is not required
-			connectionUrl = "jdbc:sqlite:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database.sqlite";
-		} else {
-			connectionUrl = "jdbc:h2:nio:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
-		}
-		// regardless of OS, connection url is always /
-		connectionUrl = connectionUrl.replace('\\', '/');
-		return connectionUrl;
-	}
-	
-	/**
-	 * Generate an empty insight database
-	 * @param appName
-	 * @return
-	 */
-	public static RDBMSNativeEngine generateInsightsDatabase(String appId, String appName) {
-		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
-		if(rdbmsTypeStr == null) {
-			// default will be h2
-			rdbmsTypeStr = "H2_DB";
-		}
-		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
-		
-		Properties prop = new Properties();
 
-		/*
-		 * This must be either H2 or SQLite
-		 */
-		
-		String connectionUrl = getNewInsightDatabaseConnectionUrl(rdbmsType, appId, appName);
-		prop.put(Constants.CONNECTION_URL, connectionUrl);
-		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
-			// sqlite has no username/password
-			prop.put(Constants.USERNAME, "");
-			prop.put(Constants.PASSWORD, "");
-		} else {
-			prop.put(Constants.USERNAME, "sa");
-			prop.put(Constants.PASSWORD, "");
-		}
-		prop.put(Constants.DRIVER, rdbmsType.getDriver());
-		prop.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
-		prop.put("TEMP", "TRUE");
-		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
-		insightEngine.setProp(prop);
-		// opening will work since we directly injected the prop map
-		// this way i do not need to write it to disk and then recreate it later
-		insightEngine.openDB(null);
-		insightEngine.setBasic(true);
-		
-		runInsightCreateTableQueries(insightEngine);
-		return insightEngine;
-	}
 	
-	/**
-	 * Run the create table queries for the insights database
-	 * @param insightEngine
-	 */
-	public static void runInsightCreateTableQueries(RDBMSNativeEngine insightEngine) {
-		// CREATE TABLE QUESTION_ID (ID VARCHAR(50), QUESTION_NAME VARCHAR(255), QUESTION_PERSPECTIVE VARCHAR(225), QUESTION_LAYOUT VARCHAR(225), QUESTION_ORDER INT, QUESTION_DATA_MAKER VARCHAR(225), QUESTION_MAKEUP CLOB, QUESTION_PROPERTIES CLOB, QUESTION_OWL CLOB, QUESTION_IS_DB_QUERY BOOLEAN, DATA_TABLE_ALIGN VARCHAR(500), QUESTION_PKQL ARRAY)
-		AbstractSqlQueryUtil queryUtil = insightEngine.getQueryUtil();
-		String[] columns = null;
-		String[] types = null;
-		
-		try {
-			if(!queryUtil.tableExists(insightEngine.getConnection(), "QUESTION_ID", insightEngine.getSchema())) {
-				columns = new String[]{"ID", "QUESTION_NAME", "QUESTION_PERSPECTIVE", "QUESTION_LAYOUT", "QUESTION_ORDER", 
-						"QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", "HIDDEN_INSIGHT", "CACHEABLE", "QUESTION_PKQL"};
-				types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "CLOB",
-						"VARCHAR(500)", "BOOLEAN", "BOOLEAN", "ARRAY"};
-				// this is annoying
-				// need to adjust if the engine allows array data types
-				if(!queryUtil.allowArrayDatatype()) {
-					types[types.length-1] = "CLOB";
-				}
-				
-				insightEngine.insertData(queryUtil.createTable("QUESTION_ID", columns, types));
-			}
-			
-			// adding new insight metadata
-			if(!queryUtil.tableExists(insightEngine.getConnection(), "INSIGHTMETA", insightEngine.getSchema())) {
-				columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"};
-				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT"};
-				insightEngine.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
-			}
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		/*
-		 * NOTE : THESE TABLES ARE LEGACY!!!!
-		 */
-		
-		{
-			/*
-			 * Whenever we are finally done / have removed all our playsheet insights
-			 * We can officially delete this portion
-			 */
-			
-			// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
-			
-			try {
-				if(!queryUtil.tableExists(insightEngine.getConnection(), "PARAMETER_ID", insightEngine.getSchema())) {
-					columns = new String[]{"PARAMETER_ID", "PARAMETER_LABEL", "PARAMETER_TYPE", "PARAMETER_DEPENDENCY", "PARAMETER_QUERY", 
-							"PARAMETER_OPTIONS", "PARAMETER_IS_DB_QUERY", "PARAMETER_MULTI_SELECT", "PARAMETER_COMPONENT_FILTER_ID", "PARAMETER_VIEW_TYPE", "QUESTION_ID_FK"};
-					types = new String[]{"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(2000)", "VARCHAR(2000)", "BOOLEAN",
-							"BOOLEAN", "VARCHAR(255)", "VARCHAR(255)", "INT"};
-					insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-			
-			try {
-				if(!queryUtil.tableExists(insightEngine.getConnection(), "UI", insightEngine.getSchema())) {
-					columns = new String[]{"QUESTION_ID_FK", "UI_DATA"};
-					types = new String[]{"INT", "CLOB"};
-					insightEngine.insertData(queryUtil.createTable("UI", columns, types));
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		
-		insightEngine.commit();
-	}
+	
+	
+	
 
 	/**
 	 * Add explore an instance to the insights database
@@ -1401,7 +1238,7 @@ public class UploadUtilities {
 				//write recipe to file
 				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, false);
 				// add the git here
-				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1432,7 +1269,7 @@ public class UploadUtilities {
 			// write recipe to file
 			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave, false);
 			// add the git here
-			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
@@ -1463,7 +1300,7 @@ public class UploadUtilities {
 		try {
 			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pixelRecipeToSave, false);
 			// add the insight to git
-			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1503,7 +1340,7 @@ public class UploadUtilities {
 				//write recipe to file
 				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, false);
 				// add the insight to git
-				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1521,7 +1358,7 @@ public class UploadUtilities {
 	}
 	
 	/**
-	 * Add the insight to check the modifications made to a column over time from audit db
+	 * Add the insight to check the modifications made to a column over time from audit database
 	 * 
 	 * @param appId
 	 * @param insightEngine
@@ -1543,7 +1380,7 @@ public class UploadUtilities {
 				// write recipe to file
 				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, false);
 				// add the insight to git
-				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1586,7 +1423,7 @@ public class UploadUtilities {
 		try {
 			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave, false);
 			// add the insight to git
-			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1623,7 +1460,7 @@ public class UploadUtilities {
 		try {
 			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave, false);
 			// add the insight to git
-			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1656,7 +1493,7 @@ public class UploadUtilities {
 		try {
 			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave, false);
 			// add the insight to git
-			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -1678,7 +1515,7 @@ public class UploadUtilities {
 	}
 	
 	/**
-	 * Map of concept to propMap with db type
+	 * Map of concept to propMap with database type
 	 * 
 	 * @param owl
 	 * @return
@@ -1929,21 +1766,21 @@ public class UploadUtilities {
 	/////////////////////////////////////////////
 	
 	/**
-	 * Save metamodel structure to json in app folder
-	 * @param appId
-	 * @param appName
+	 * Save metamodel structure to json in database folder
+	 * @param databaseId
+	 * @param databaseName
 	 * @param csvFileName
 	 * @param metamodel
 	 * @return
 	 */
-	public static boolean createPropFile(String appId, String appName, String csvFilePath, Map<String, Object> metamodel) {
+	public static boolean createPropFile(String databaseId, String databaseName, String csvFilePath, Map<String, Object> metamodel) {
 		String csvFileName = new File(csvFilePath).getName().replace(".csv", "");
 		Date currDate = Calendar.getInstance().getTime();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyMMddHHmmssZ");
 		String dateName = sdf.format(currDate);
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId);
-		String metaModelFilePath = appLocation + DIR_SEPARATOR + appName + "_" + csvFileName + "_" + dateName + "_PROP.json";
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String appLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(databaseName, databaseId);
+		String metaModelFilePath = appLocation + DIR_SEPARATOR + databaseName + "_" + csvFileName + "_" + dateName + "_PROP.json";
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(metamodel);
 		// create file
@@ -1959,12 +1796,23 @@ public class UploadUtilities {
 	}
 	
 	/**
-	 * Return map for uploading a new app
-	 * @param appId
+	 * Return map for uploading a new database
+	 * @param databaseId
 	 * @return
 	 */
-	public static Map<String, Object> getAppReturnData(User user, String appId) {
-		List<Map<String, Object>> baseInfo = SecurityQueryUtils.getUserDatabaseList(user, appId);
+	public static Map<String, Object> getDatabaseReturnData(User user, String databaseId) {
+		List<Map<String, Object>> baseInfo = SecurityQueryUtils.getUserDatabaseList(user, databaseId);
+		Map<String, Object> retMap = baseInfo.get(0);
+		return retMap;
+	}
+	
+	/**
+	 * Return map for uploading a new project
+	 * @param projectId
+	 * @return
+	 */
+	public static Map<String, Object> getProjectReturnData(User user, String projectId) {
+		List<Map<String, Object>> baseInfo = SecurityProjectUtils.getUserProjectList(user, projectId);
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}

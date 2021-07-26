@@ -5,8 +5,8 @@ import java.util.List;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -16,12 +16,12 @@ import prerna.util.Utility;
 public class SetInsightDescriptionReactor extends AbstractInsightReactor {
 
 	public SetInsightDescriptionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.DESCRIPTION.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.DESCRIPTION.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		String appId = getApp();
+		String projectId = getProject();
 		// need to know what we are updating
 		String existingId = getRdbmsId();
 		
@@ -31,18 +31,18 @@ public class SetInsightDescriptionReactor extends AbstractInsightReactor {
 				throwAnonymousUserError();
 			}
 			
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, existingId)) {
+			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}
 		}
 		
 		String description = getDescription();
-		IEngine engine = Utility.getEngine(appId);
-		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+		IProject project = Utility.getProject(projectId);
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		admin.updateInsightDescription(existingId, description);
-		SecurityInsightUtils.updateInsightDescription(appId, existingId, description);
+		SecurityInsightUtils.updateInsightDescription(projectId, existingId, description);
 		
-		ClusterUtil.reactorPushInsightDB(appId);
+		ClusterUtil.reactorPushInsightDB(projectId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new description for insight"));

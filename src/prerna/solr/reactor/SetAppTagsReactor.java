@@ -17,25 +17,25 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 public class SetAppTagsReactor extends AbstractReactor {
 	
 	public SetAppTagsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.TAGS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.TAGS.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = UploadInputUtility.getAppNameOrId(this.store);
+		String appId = UploadInputUtility.getDatabaseNameOrId(this.store);
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+			appId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), appId);
+			if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 		} else {
-			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
+			appId = MasterDatabaseUtility.testDatabaseIdIfAlias(appId);
 		}
 		
 		List<String> tags = getTags();
-		SecurityAppUtils.updateAppTags(appId, tags);
+		SecurityAppUtils.updateDatabaseTags(appId, tags);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new tags for app"));
 		return noun;

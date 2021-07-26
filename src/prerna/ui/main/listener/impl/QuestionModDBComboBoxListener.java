@@ -38,12 +38,14 @@ import javax.swing.JComponent;
 import javax.swing.JRadioButton;
 
 import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.helpers.EntityFillerForSubClass;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
+import prerna.util.Utility;
 
 public class QuestionModDBComboBoxListener implements IChakraListener {
 
@@ -78,7 +80,8 @@ public class QuestionModDBComboBoxListener implements IChakraListener {
 		aThread.start();
 
 		//get the perspectives and store it
-		Vector<String> perspectives = engine.getPerspectives();
+		IProject project = Utility.getProject(engine.getEngineId());
+		Vector<String> perspectives = project.getPerspectives();
 		Collections.sort(perspectives);
 		
 		JComboBox<String> box = (JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.QUESTION_PERSPECTIVE_SELECTOR);

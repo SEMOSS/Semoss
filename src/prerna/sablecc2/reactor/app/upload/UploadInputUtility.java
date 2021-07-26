@@ -25,7 +25,8 @@ import prerna.util.Utility;
 
 public class UploadInputUtility {
 
-	public static final String APP = ReactorKeysEnum.APP.getKey();
+	public static final String DATABASE = ReactorKeysEnum.DATABASE.getKey();
+	public static final String PROJECT = ReactorKeysEnum.PROJECT.getKey();
 	public static final String FILE_PATH = ReactorKeysEnum.FILE_PATH.getKey();
 	public static final String SPACE = ReactorKeysEnum.SPACE.getKey();
 	public static final String TABLE_NAME = ReactorKeysEnum.TABLE.getKey();
@@ -42,6 +43,8 @@ public class UploadInputUtility {
 	public static final String CUSTOM_BASE_URI = "customBaseURI";
 	public static final String CREATE_INDEX = ReactorKeysEnum.CREATE_INDEX.getKey();
 	public static final String ROW_COUNT = ReactorKeysEnum.ROW_COUNT.getKey();
+	// do we want to generate a project with this database
+	public static final String CREATE_PROJECT = "createProject";
 	// these will have different formats if it is a
 	// text-based file vs. if it is an excel file
 	public static final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
@@ -60,16 +63,30 @@ public class UploadInputUtility {
 	// only applies for "csv" uploading - doesn't need to be ","
 	public static final String DELIMITER = ReactorKeysEnum.DELIMITER.getKey();
 
-	public static String getAppNameOrId(NounStore store) {
-		GenRowStruct grs = store.getNoun(APP);
+	public static String getDatabaseNameOrId(NounStore store) {
+		GenRowStruct grs = store.getNoun(DATABASE);
 		if (grs == null || grs.isEmpty()) {
-			throw new IllegalArgumentException("Must define the new app id or name using key " + APP);
+			throw new IllegalArgumentException("Must define the new database id or name using key " + DATABASE);
 		}
 		
 		NounMetadata noun = grs.getNoun(0);
 		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
 			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
 			return uploadMap.get("app_id").toString();
+		}
+		return noun.getValue().toString();
+	}
+	
+	public static String getProjectNameOrId(NounStore store) {
+		GenRowStruct grs = store.getNoun(PROJECT);
+		if (grs == null || grs.isEmpty()) {
+			throw new IllegalArgumentException("Must define the new project id or name using key " + PROJECT);
+		}
+		
+		NounMetadata noun = grs.getNoun(0);
+		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
+			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
+			return uploadMap.get("project_id").toString();
 		}
 		return noun.getValue().toString();
 	}

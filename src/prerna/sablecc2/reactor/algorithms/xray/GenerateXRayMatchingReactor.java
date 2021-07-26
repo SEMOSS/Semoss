@@ -28,7 +28,7 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 	
 	public GenerateXRayMatchingReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey(),
+				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey(),
 				SIMILARITY_KEY, CANDIDATE_KEY, MATCH_SAME_DB_KEY};
 	}
 	
@@ -58,7 +58,7 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		init();
 		Logger logger = this.getLogger(CLASS_NAME);
 		this.keyValue = hashReactor.keyValue;
-		List<String> appIds = hashReactor.getAppIds();
+		List<String> databaseIds = hashReactor.getDatabaseIds();
 		// get the exact files that were generated
 		String folderPath = hashReactor.getFolderPath();
 		List<String> filePaths = new Vector<String>(fileNames.size());
@@ -79,7 +79,7 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 			matchSameDB = Boolean.parseBoolean(this.keyValue.get(MATCH_SAME_DB_KEY));
 		}
 		boolean addSameDbWarn = false;
-		if(appIds.size() == 1) {
+		if(databaseIds.size() == 1) {
 			if(!matchSameDB) {
 				addSameDbWarn = true;
 			}
@@ -134,27 +134,27 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		
 		this.rJavaTranslator.executeEmptyR(rFrameName + "<- as.data.table(" + rFrameName + ");");
 		
-		// see if we can replace app ids with app name
+		// see if we can replace database ids with database name
 		boolean replaceIds = true;
-		List<String> appNames = new Vector<String>(appIds.size());
-		for(int i = 0; i < appIds.size(); i++) {
-			String appName = MasterDatabaseUtility.getEngineAliasForId(appIds.get(i));
-			if(appNames.contains(appName)) {
+		List<String> databaseNames = new Vector<String>(databaseIds.size());
+		for(int i = 0; i < databaseIds.size(); i++) {
+			String databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseIds.get(i));
+			if(databaseNames.contains(databaseName)) {
 				replaceIds = false;
 				break;
 			}
-			appNames.add(appName);
+			databaseNames.add(databaseName);
 		}
 		if(replaceIds) {
 			StringBuilder replaceSyntax = new StringBuilder();
 			String sourceDbId = rFrameName + "$Source_Database_Id";
 			String targetDbId = rFrameName + "$Target_Database_Id";
-			for(int i = 0; i < appIds.size(); i++) {
-				String appId = appIds.get(i);
-				String appName = appNames.get(i);
+			for(int i = 0; i < databaseIds.size(); i++) {
+				String databaseId = databaseIds.get(i);
+				String databaseName = databaseNames.get(i);
 				
-				replaceSyntax.append(sourceDbId + "[" + sourceDbId + " == \"" + appId + "\"] <- \"" + appName + "\";");
-				replaceSyntax.append(targetDbId + "[" + targetDbId + " == \"" + appId + "\"] <- \"" + appName + "\";");
+				replaceSyntax.append(sourceDbId + "[" + sourceDbId + " == \"" + databaseId + "\"] <- \"" + databaseName + "\";");
+				replaceSyntax.append(targetDbId + "[" + targetDbId + " == \"" + databaseId + "\"] <- \"" + databaseName + "\";");
 			}
 			this.rJavaTranslator.executeEmptyR(replaceSyntax.toString());
 		}
@@ -163,7 +163,7 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(matchingFrame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully ran LSH for matching column values"));
 		if(addSameDbWarn) {
-			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Since only one app was selected, altered input value to perform same database matching"));
+			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Since only one database was selected, altered input value to perform same database matching"));
 		}
 		// store the frame in the insight for use
 		this.insight.getVarStore().put(rFrameName, noun);

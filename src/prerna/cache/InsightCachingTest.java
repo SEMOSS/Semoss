@@ -1,7 +1,5 @@
 package prerna.cache;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -9,17 +7,12 @@ import java.util.Set;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
-import prerna.om.InsightStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.test.TestUtilityMethods;
-import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;
 
 public class InsightCachingTest {

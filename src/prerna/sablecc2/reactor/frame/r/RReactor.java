@@ -19,7 +19,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
-import prerna.sablecc.ReactorSecurityManager;
+import prerna.sablecc2.ReactorSecurityManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;

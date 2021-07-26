@@ -622,24 +622,24 @@ public abstract class AbstractReactor implements IReactor {
 	 * @param edit			Boolean true means the user needs edit access
 	 * @return
 	 */
-	protected String testAppId(String appId, boolean edit) {
+	protected String testDatabaseId(String appId, boolean edit) {
 		String testId = appId;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
+			testId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), testId);
 			if(edit) {
 				// need edit permission
-				if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), testId)) {
+				if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), testId)) {
 					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
 				}
 			} else {
 				// just need read access
-				if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), testId)) {
+				if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), testId)) {
 					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
 				}
 			}
 		} else {
-			testId = MasterDatabaseUtility.testEngineIdIfAlias(testId);
-			if(!MasterDatabaseUtility.getAllEngineIds().contains(testId)) {
+			testId = MasterDatabaseUtility.testDatabaseIdIfAlias(testId);
+			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(testId)) {
 				throw new IllegalArgumentException("App " + appId + " does not exist");
 			}
 		}
@@ -744,7 +744,7 @@ public abstract class AbstractReactor implements IReactor {
 	/**
 	 * Throw error since anonymous user
 	 */
-	public void throwAnonymousUserError() {
+	public static void throwAnonymousUserError() {
 		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("Must be logged in to perform this operation", PixelOperationType.ANONYMOUS_USER_ERROR));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
@@ -753,8 +753,8 @@ public abstract class AbstractReactor implements IReactor {
 	/**
 	 * Throw error since user doesn't have access to publish
 	 */
-	public void throwUserNotPublisherError() {
-		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User does not have access to publish apps"));
+	public static void throwUserNotPublisherError() {
+		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User does not have access to publish databases or projects"));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
@@ -763,7 +763,7 @@ public abstract class AbstractReactor implements IReactor {
 	 * Throw login required error
 	 * @param details
 	 */
-	public void throwLoginError(Map details) {
+	public static void throwLoginError(Map details) {
 		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
@@ -832,18 +832,15 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	// gets the success message
-	public NounMetadata getSuccess(String message)
-	{
+	public static NounMetadata getSuccess(String message) {
 		return NounMetadata.getSuccessNounMessage(message);
 	}
 
-	public NounMetadata getError(String message)
-	{
+	public static NounMetadata getError(String message) {
 		return NounMetadata.getErrorNounMessage(message);
 	}
 
-	public NounMetadata getWarning(String message)
-	{
+	public static NounMetadata getWarning(String message) {
 		return NounMetadata.getWarningNounMessage(message);
 	}
 	

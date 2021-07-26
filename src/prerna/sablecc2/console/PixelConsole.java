@@ -10,15 +10,10 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.test.TestUtilityMethods;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;
 
 public class PixelConsole {

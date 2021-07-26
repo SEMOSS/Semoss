@@ -25,7 +25,7 @@ public class SyncAppFilesO extends GitBaseReactor {
 
 	public SyncAppFilesO() {
 		this.keysToGet = new String[]{
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
+				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
 				ReactorKeysEnum.SYNC_PULL.getKey(), ReactorKeysEnum.SYNC_DATABASE.getKey(),
 				"files"};
 	}
@@ -34,22 +34,22 @@ public class SyncAppFilesO extends GitBaseReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appId = this.keyValue.get(this.keysToGet[0]);
-		if(appId == null || appId.isEmpty()) {
-			throw new IllegalArgumentException("Need to specify the app name");
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		if(databaseId == null || databaseId.isEmpty()) {
+			throw new IllegalArgumentException("Need to specify the database id");
 		}
-		String appName = null;
+		String databaseName = null;
 		
 		// you can only push
 		// if you are the owner
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
-				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 			}
-			appName = SecurityQueryUtils.getEngineAliasForId(appId);
+			databaseName = SecurityQueryUtils.getDatabaseAliasForId(databaseId);
 		} else {
-			appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		}
 		
 		String repository = this.keyValue.get(this.keysToGet[1]);
@@ -75,20 +75,20 @@ public class SyncAppFilesO extends GitBaseReactor {
 		if(database) {
 			try {
 				logger.info("Synchronizing Database Now... ");
-				// remove the app
-				Utility.getEngine(appId).closeDB();
-				DIHelper.getInstance().removeLocalProperty(appId);
-				GitSynchronizer.syncDatabases(appId, appName, repository, token, logger);
+				// remove the database
+				Utility.getEngine(databaseId).closeDB();
+				DIHelper.getInstance().removeLocalProperty(databaseId);
+				GitSynchronizer.syncDatabases(databaseId, databaseName, repository, token, logger);
 				logger.info("Synchronize Database Complete");
 			} finally {
 				// open it back up
-				Utility.getEngine(appId);
+				Utility.getEngine(databaseId);
 			}
 		}
 
 		// if it is null or true dont worry
 		logger.info("Synchronizing now... ");
-		Map<String, List<String>> filesChanged = GitSynchronizer.synchronizeSpecific(appId, appName, repository, token, filesToSync, dual);
+		Map<String, List<String>> filesChanged = GitSynchronizer.synchronizeSpecific(databaseId, databaseName, repository, token, filesToSync, dual);
 		logger.info("Synchronize Complete");
 
 		StringBuffer output = new StringBuffer("SUCCESS \r\n ");

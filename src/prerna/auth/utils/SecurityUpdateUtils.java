@@ -23,7 +23,7 @@ import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.EngineInsightsHelper;
+import prerna.engine.impl.ProjectHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -53,15 +53,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Add an entire engine into the security db
-	 * @param appId
+	 * Add an entire database into the security db
+	 * @param databaseId
 	 */
-	public static void addApp(String appId) {
-		if(ignoreEngine(appId)) {
+	public static void addDatabase(String databaseId) {
+		if(ignoreDatabase(databaseId)) {
 			// dont add local master or security db to security db
 			return;
 		}
-		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
+		String smssFile = DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 		
 		boolean global = true;
@@ -69,25 +69,70 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			global = false;
 		}
 		
-		addApp(appId, global);
+		addDatabase(databaseId, global);
 	}
 	
 	/**
-	 * Add an entire engine into the security db
-	 * @param appId
+	 * Add an entire database into the security db
+	 * @param databaseId
 	 */
-	public static void addApp(String appId, boolean global) {
-		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
-		if(ignoreEngine(appId)) {
+	public static void addDatabase(String databaseId, boolean global) {
+		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
+		if(ignoreDatabase(databaseId)) {
 			// dont add local master or security db to security db
 			return;
 		}
-		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
+		String smssFile = DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 
-		String appName = prop.getProperty(Constants.ENGINE_ALIAS);
-		if(appName == null) {
-			appName = appId;
+		String databaseName = prop.getProperty(Constants.ENGINE_ALIAS);
+		if(databaseName == null) {
+			databaseName = databaseId;
+		}
+		
+		String[] typeAndCost = getDatabaseTypeAndCost(prop);
+		boolean engineExists = containsDatabaseId(databaseId);
+		if(engineExists) {
+			logger.info("Security database already contains database with alias = " + Utility.cleanLogString(databaseName));
+			return;
+		} else if(!engineExists) {
+			addDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
+		} else if(engineExists) {
+			// update database properties anyway ... in case global was shifted for example
+			updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
+		}
+		
+		logger.info("Finished adding database = " + Utility.cleanLogString(databaseId));
+	}
+	
+	/**
+	 * Add an entire project into the security db - Expectation is not to call this method but addProject(projectId, boolean global = true)
+	 * @param projectId
+	 */
+	public static void addProject(String projectId) {
+		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
+		Properties prop = Utility.loadProperties(smssFile);
+		
+		boolean global = true;
+		if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
+			global = false;
+		}
+		
+		addProject(projectId, global);
+	}
+	
+	/**
+	 * Add an entire project into the security db
+	 * @param appId
+	 */
+	public static void addProject(String projectId, boolean global) {
+		projectId = RdbmsQueryBuilder.escapeForSQLStatement(projectId);
+		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
+		Properties prop = Utility.loadProperties(smssFile);
+
+		String projectName = prop.getProperty(Constants.PROJECT_ALIAS);
+		if(projectName == null) {
+			projectName = projectId;
 		}
 		
 		boolean reloadInsights = false;
@@ -96,36 +141,36 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			reloadInsights = Boolean.parseBoolean(booleanStr);
 		}
 		
-		String[] typeAndCost = getAppTypeAndCost(prop);
-		boolean engineExists = containsEngineId(appId);
-		if(engineExists && !reloadInsights) {
-			logger.info("Security database already contains app with alias = " + Utility.cleanLogString(appName));
+		// TODO: we do not need type and cost for project
+		String[] typeAndCost = new String[] {"",""};
+		boolean projectExists = containsProjectId(projectId);
+ 		if(projectExists && !reloadInsights) {
+			logger.info("Security database already contains project with alias = " + Utility.cleanLogString(projectId));
 			return;
-		} else if(!engineExists) {
-			addEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
-		} else if(engineExists) {
+		} else if(!projectExists) {
+			addProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global);
+		} else if(projectExists) {
 			// delete values if currently present
-			deleteInsightsForRecreation(appId);
-			// update engine properties anyway ... in case global was shifted for example
-			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
+			deleteInsightsFromProjectForRecreation(projectId);
+			// update project properties anyway ... in case global was shifted for example
+			updateProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global);
 		}
 		
-		logger.info("Security database going to add app with alias = " + Utility.cleanLogString(appName));
+		logger.info("Security database going to add project with alias = " + Utility.cleanLogString(projectName));
 		
 		// load just the insights database
 		// first see if engine is already loaded
-		boolean engineLoaded = false;
+		boolean projectLoaded = false;
 		RDBMSNativeEngine rne = null;
-		if(Utility.engineLoaded(appId)) {
-			engineLoaded = true;
-			rne = Utility.getEngine(appId).getInsightDatabase();
+		if(Utility.projectLoaded(projectId)) {
+			rne = Utility.getProject(projectId).getInsightDatabase();
 		} else {
-			rne = EngineInsightsHelper.loadInsightsEngine(prop, logger);
+			rne  = ProjectHelper.loadInsightsEngine(prop, logger);
 		}
 		
-		// i need to delete any current insights for the app
+		// i need to delete any current insights for the project
 		// before i start to insert new insights
-		String deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
+		String deleteQuery = "DELETE FROM INSIGHT WHERE PROJECTID='" + projectId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
@@ -142,7 +187,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			// will keep the same permissions
 			// and perform a delta
 			logger.info("Reloading app. Retrieving existing insights with permissions");
-			String insightsWPer = "SELECT INSIGHTID FROM USERINSIGHTPERMISSION WHERE ENGINEID='" + appId + "'";
+			String insightsWPer = "SELECT INSIGHTID FROM USERINSIGHTPERMISSION WHERE PROJECTID='" + projectId + "'";
 			insightPermissionIds = QueryExecutionUtility.flushToSetString(securityDb, insightsWPer, false);
 			if(insightPermissionIds.isEmpty()) {
 				existingInsightPermissions = true;
@@ -158,7 +203,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							// table name
 							"INSIGHT", 
 							// column names
-							"ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON",
+							"PROJECTID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON",
 							"LASTMODIFIEDON","LAYOUT", "CACHEABLE", "RECIPE"});
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -189,7 +234,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				Object[] row = wrapper.next().getValues();
 				try {
 					int parameterIndex = 1;
-					ps.setString(parameterIndex++, appId);
+					ps.setString(parameterIndex++, projectId);
 					String insightId = row[0].toString();
 					ps.setString(parameterIndex++, insightId);
 					ps.setString(parameterIndex++, row[1].toString());
@@ -253,7 +298,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// same for insight meta
 		// i need to delete any current insights for the app
 		// before i start to insert new insights
-		deleteQuery = "DELETE FROM INSIGHTMETA WHERE ENGINEID='" + appId + "'";
+		deleteQuery = "DELETE FROM INSIGHTMETA WHERE PROJECTID='" + projectId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
@@ -262,7 +307,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		try {
 			ps = securityDb.bulkInsertPreparedStatement(
-					new String[]{"INSIGHTMETA","ENGINEID","INSIGHTID","METAKEY","METAVALUE","METAORDER"});
+					new String[]{"INSIGHTMETA","PROJECTID","INSIGHTID","METAKEY","METAVALUE","METAORDER"});
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
@@ -280,7 +325,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				Object[] raw = data.getRawValues();
 				try {
 					int parameterIndex = 1;
-					ps.setString(parameterIndex++, appId);
+					ps.setString(parameterIndex++, projectId);
 					ps.setString(parameterIndex++, row[0].toString());
 					ps.setString(parameterIndex++, row[1].toString());
 
@@ -335,7 +380,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// close the connection to the insights
 		// if the engine is not already loaded 
 		// since the openDb method will load it
-		if(!engineLoaded && rne != null) {
+		if(!projectLoaded && rne != null) {
 			rne.closeDB();
 		}
 		
@@ -347,7 +392,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			if(existingInsightPermissions && !insightPermissionIds.isEmpty()) {
 				logger.info("Removing insights with permissions that no longer exist");
 				String deleteInsightPermissionQuery = "DELETE FROM USERINSIGHTPERMISSION "
-					+ "WHERE ENGINEID='" + appId + "'"
+					+ "WHERE PROJECTID='" + projectId + "'"
 					+ " AND INSIGHTID " + createFilter(insightPermissionIds);
 				try {
 					securityDb.removeData(deleteInsightPermissionQuery);
@@ -358,15 +403,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		logger.info("Finished adding engine = " + Utility.cleanLogString(appId));
+		logger.info("Finished adding engine = " + Utility.cleanLogString(projectId));
 	}
 	
 	/**
-	 * Utility method to get the engine type and cost for storage
+	 * Utility method to get the database type and cost for storage
 	 * @param prop
 	 * @return
 	 */
-	public static String[] getAppTypeAndCost(Properties prop) {
+	public static String[] getDatabaseTypeAndCost(Properties prop) {
 		String appType = null;
 		String appCost = null;
 		// the whole app cost stuff is completely made up...
@@ -420,12 +465,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Delete just the insights for an engine
+	 * Delete just the insights for a project
 	 * @param appId
 	 */
-	public static void deleteInsightsForRecreation(String appId) {
-		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
-		String deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
+	public static void deleteInsightsFromProjectForRecreation(String projectId) {
+		projectId = RdbmsQueryBuilder.escapeForSQLStatement(projectId);
+		String deleteQuery = "DELETE FROM INSIGHT WHERE PROJECTID='" + projectId + "'";
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
@@ -435,21 +480,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Delete all values
-	 * @param appId
+	 * @param databaseId
 	 */
-	public static void deleteApp(String appId) {
-		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
-		if(ignoreEngine(appId)) {
-			// dont add local master or security db to security db
-			return;
-		}
+	public static void deleteDatabase(String databaseId) {
 		List<String> deletes = new Vector<>();
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
-		deletes.add("DELETE FROM INSIGHT WHERE ENGINEID=?");
+//		deletes.add("DELETE FROM INSIGHT WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
 		deletes.add("DELETE FROM WORKSPACEENGINE WHERE ENGINEID=?");
-		deletes.add("DELETE FROM ASSETENGINE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ASSETENGINE WHERE ENGINEID=?");
 		// TODO: add the other tables...
 
@@ -457,7 +496,49 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			PreparedStatement ps = null;
 			try {
 				ps = securityDb.getPreparedStatement(deleteQuery);
-				ps.setString(1, appId);
+				ps.setString(1, databaseId);
+				ps.execute();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		securityDb.commit();
+	}
+	
+	/**
+	 * Delete all values
+	 * @param projectId
+	 */
+	public static void deleteProject(String projectId) {
+		List<String> deletes = new Vector<>();
+		deletes.add("DELETE FROM PROJECT WHERE PROJECTID=?");
+		deletes.add("DELETE FROM INSIGHT WHERE PROJECTID=?");
+		deletes.add("DELETE FROM PROJECTPERMISSION WHERE PROJECTID=?");
+		deletes.add("DELETE FROM PROJECTMETA WHERE PROJECTID=?");
+		deletes.add("DELETE FROM WORKSPACEENGINE WHERE PROJECTID=?");
+		deletes.add("DELETE FROM ASSETENGINE WHERE PROJECTID=?");
+		// TODO: add the other tables...
+
+		for(String deleteQuery : deletes) {
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(deleteQuery);
+				ps.setString(1, projectId);
 				ps.execute();
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
@@ -486,18 +567,18 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	///////////////////////////////////////////////////////////////////////////////////
 
 	/*
-	 * Adding engine
+	 * Adding database
 	 */
 	
 	/**
-	 * Add an engine into the security database
+	 * Add a database into the security database
 	 * Default to set as not global
 	 */
-	public static void addEngine(String engineId, String engineName, String engineType, String engineCost) {
-		addEngine(engineId, engineName, engineType, engineCost, !securityEnabled);
+	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost) {
+		addDatabase(databaseId, databaseName, dbType, dbCost, !securityEnabled);
 	}
 	
-	public static void addEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
+	public static void addDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global) {
 		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL) "
 				+ "VALUES (?,?,?,?,?)";
 
@@ -505,10 +586,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			ps.setString(parameterIndex++, engineName);
-			ps.setString(parameterIndex++, engineId);
-			ps.setString(parameterIndex++, engineType);
-			ps.setString(parameterIndex++, engineCost);
+			ps.setString(parameterIndex++, databaseName);
+			ps.setString(parameterIndex++, databaseId);
+			ps.setString(parameterIndex++, dbType);
+			ps.setString(parameterIndex++, dbCost);
 			ps.setBoolean(parameterIndex++, global);
 			ps.execute();
 			securityDb.commit();
@@ -532,18 +613,18 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public static void updateEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
+	public static void updateDatabase(String databaseId, String databaseName, String dbType, String dbCost, boolean global) {
 		String query = "UPDATE ENGINE SET ENGINENAME=?, TYPE=?, COST=?, GLOBAL=? WHERE ENGINEID=?";
 
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			ps.setString(parameterIndex++, engineName);
-			ps.setString(parameterIndex++, engineType);
-			ps.setString(parameterIndex++, engineCost);
+			ps.setString(parameterIndex++, databaseName);
+			ps.setString(parameterIndex++, dbType);
+			ps.setString(parameterIndex++, dbCost);
 			ps.setBoolean(parameterIndex++, global);
-			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, databaseId);
 			ps.execute();
 			securityDb.commit();
 		} catch (SQLException e) {
@@ -566,7 +647,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	public static void addEngineOwner(String engineId, String userId) {
+	public static void addDatabaseOwner(String databaseId, String userId) {
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES (?,?,?,?)";
 
 		PreparedStatement ps = null;
@@ -575,7 +656,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, userId);
 			ps.setInt(parameterIndex++, AccessPermission.OWNER.getId());
-			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, databaseId);
 			ps.setBoolean(parameterIndex++, true);
 			ps.execute();
 			securityDb.commit();
@@ -600,10 +681,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Set an engine and all its insights to be global
-	 * @param engineId
+	 * Set a database to be global
+	 * @param databaseId
 	 */
-	public static void setEngineCompletelyGlobal(String engineId) {
+	public static void setDatabaseCompletelyGlobal(String databaseId) {
 		{
 			String update1 = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
 			PreparedStatement ps = null;
@@ -611,7 +692,189 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps = securityDb.getPreparedStatement(update1);
 				int parameterIndex = 1;
 				ps.setBoolean(parameterIndex++, true);
-				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, databaseId);
+				ps.execute();
+				securityDb.commit();
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} finally {
+				if(ps != null) {
+					try {
+						ps.close();
+						if(securityDb.isConnectionPooling()) {
+							try {
+								ps.getConnection().close();
+							} catch (SQLException e) {
+								logger.error(Constants.STACKTRACE, e);
+							}
+						}
+					} catch (SQLException e) {
+						logger.error(Constants.STACKTRACE, e);
+					}
+				}
+			}
+		}
+		
+//		{
+//			String update1 = "UPDATE INSIGHT SET GLOBAL=? WHERE ENGINEID=?";
+//			PreparedStatement ps = null;
+//			try {
+//				ps = securityDb.getPreparedStatement(update1);
+//				int parameterIndex = 1;
+//				ps.setBoolean(parameterIndex++, true);
+//				ps.setString(parameterIndex++, databaseId);
+//				ps.execute();
+//				securityDb.commit();
+//			} catch (SQLException e) {
+//				logger.error(Constants.STACKTRACE, e);
+//			} finally {
+//				if(ps != null) {
+//					try {
+//						ps.close();
+//						if(securityDb.isConnectionPooling()) {
+//							try {
+//								ps.getConnection().close();
+//							} catch (SQLException e) {
+//								logger.error(Constants.STACKTRACE, e);
+//							}
+//						}
+//					} catch (SQLException e) {
+//						logger.error(Constants.STACKTRACE, e);
+//					}
+//				}
+//			}
+//		}
+	}
+	
+	
+	
+	/*
+	 * Adding project
+	 */
+	
+	/**
+	 * Add a project into the security database
+	 * Default to set as not global
+	 */
+	public static void addProject(String projectId, String projectName, String projectType, String projectCost) {
+		addProject(projectId, projectName, projectType, projectCost, !securityEnabled);
+	}
+	
+	public static void addProject(String projectID, String projectName, String projectType, String projectCost, boolean global) {
+		String query = "INSERT INTO PROJECT (PROJECTNAME, PROJECTID, TYPE, COST, GLOBAL) "
+				+ "VALUES (?,?,?,?,?)";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, projectName);
+			ps.setString(parameterIndex++, projectID);
+			ps.setString(parameterIndex++, projectType);
+			ps.setString(parameterIndex++, projectCost);
+			ps.setBoolean(parameterIndex++, global);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	public static void updateProject(String projectID, String projectName, String projectType, String projectCost, boolean global) {
+		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=? WHERE PROJECTID=?";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, projectName);
+			ps.setString(parameterIndex++, projectType);
+			ps.setString(parameterIndex++, projectCost);
+			ps.setBoolean(parameterIndex++, global);
+			ps.setString(parameterIndex++, projectID);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	public static void addProjectOwner(String projectId, String userId) {
+		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, VISIBILITY) VALUES (?,?,?,?)";
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, userId);
+			ps.setInt(parameterIndex++, AccessPermission.OWNER.getId());
+			ps.setString(parameterIndex++, projectId);
+			ps.setBoolean(parameterIndex++, true);
+			ps.execute();
+			securityDb.commit();
+		} catch (SQLException e) {
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+					if(securityDb.isConnectionPooling()) {
+						try {
+							ps.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+						}
+					}
+				} catch (SQLException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Set a project and all its insights to be global
+	 * @param projectId
+	 */
+	public static void setProjectCompletelyGlobal(String projectId) {
+		{
+			String update1 = "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?";
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(update1);
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, projectId);
 				ps.execute();
 				securityDb.commit();
 			} catch (SQLException e) {
@@ -635,13 +898,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		
 		{
-			String update1 = "UPDATE INSIGHT SET GLOBAL=? WHERE ENGINEID=?";
+			String update1 = "UPDATE INSIGHT SET GLOBAL=? WHERE PROJECTID=?";
 			PreparedStatement ps = null;
 			try {
 				ps = securityDb.getPreparedStatement(update1);
 				int parameterIndex = 1;
 				ps.setBoolean(parameterIndex++, true);
-				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, projectId);
 				ps.execute();
 				securityDb.commit();
 			} catch (SQLException e) {
@@ -664,6 +927,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
+	
+	
 	
 	/**
 	 * Adds a new user to the database. Does not create any relations, simply the node.
@@ -973,19 +1238,19 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	/**
 	 * Change the user visibility (show/hide) for a database. Without removing its permissions.
 	 * @param user
-	 * @param engineId
+	 * @param databaseId
 	 * @param visibility
 	 * @throws SQLException 
 	 * @throws IllegalAccessException 
 	 */
-	public static void setDbVisibility(User user, String engineId, boolean visibility) throws SQLException, IllegalAccessException {
-		if(!SecurityAppUtils.userCanViewEngine(user, engineId)) {
+	public static void setDbVisibility(User user, String databaseId, boolean visibility) throws SQLException, IllegalAccessException {
+		if(!SecurityAppUtils.userCanViewDatabase(user, databaseId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this app.");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
 
 		IRawSelectWrapper wrapper = null;
@@ -994,7 +1259,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			if(wrapper.hasNext()){
 				UpdateQueryStruct uqs = new UpdateQueryStruct();
 				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
 
 				List<IQuerySelector> selectors = new Vector<>();
@@ -1021,7 +1286,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, engineId);
+						ps.setString(parameterIndex++, databaseId);
 						ps.setBoolean(parameterIndex++, visibility);
 						// default favorite as false
 						ps.setBoolean(parameterIndex++, false);
@@ -1053,19 +1318,19 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	/**
 	 * Change the user favorite (is favorite / not favorite) for a database. Without removing its permissions.
 	 * @param user
-	 * @param engineId
+	 * @param databaseId
 	 * @param visibility
 	 * @throws SQLException 
 	 * @throws IllegalAccessException 
 	 */
-	public static void setDbFavorite(User user, String engineId, boolean isFavorite) throws SQLException, IllegalAccessException {
-		if(!SecurityAppUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this app.");
+	public static void setDbFavorite(User user, String databaseId, boolean isFavorite) throws SQLException, IllegalAccessException {
+		if (!SecurityAppUtils.userCanViewDatabase(user, databaseId)) {
+			throw new IllegalAccessException("The user doesn't have the permission to modify his visibility of this database.");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
 
 		IRawSelectWrapper wrapper = null;
@@ -1074,7 +1339,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			if(wrapper.hasNext()){
 				UpdateQueryStruct uqs = new UpdateQueryStruct();
 				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
 
 				List<IQuerySelector> selectors = new Vector<>();
@@ -1101,7 +1366,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, engineId);
+						ps.setString(parameterIndex++, databaseId);
 						// default visibility as true
 						ps.setBoolean(parameterIndex++, true);
 						ps.setBoolean(parameterIndex++, isFavorite);
@@ -1134,14 +1399,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	/**
 	 * Set if the database is public to all users on this instance
 	 * @param user
-	 * @param engineId
+	 * @param databaseId
 	 * @param isPublic
 	 * @return
 	 * @throws SQLException 
 	 */
-	public static boolean makeRequest(User user, String engineId, int requestedPermission) throws SQLException {
+	public static boolean makeRequest(User user, String databaseId, int requestedPermission) throws SQLException {
 		// make sure this person isn't requesting multiple times
-		if(!SecurityQueryUtils.getGlobalEngineIds().contains(engineId)) {
+		if(!SecurityQueryUtils.getGlobalDatabaseIds().contains(databaseId)) {
 			throw new IllegalArgumentException("Cannot request access to an app that is not public");
 		}
 		
@@ -1149,13 +1414,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String[] colNames = new String[]{"ID", "SUBMITTEDBY", "ENGINE", "PERMISSION"};
 		String[] types = new String[]{"VARCHAR(100)", "VARCHAR(255)", "VARCHAR(255)", "INT"};
 		
-		List<Map<String, Object>> existingRequests = SecurityQueryUtils.getUserAccessRequestsByProvider(user, engineId);
+		List<Map<String, Object>> existingRequests = SecurityQueryUtils.getUserAccessRequestsByProvider(user, databaseId);
 		if(existingRequests.isEmpty()) {
 			// brand new requests
 			String requestId = UUID.randomUUID().toString();
 			List<AuthProvider> logins = user.getLogins();
 			for(AuthProvider provider : logins) {
-				Object[] data = new Object[]{requestId, user.getAccessToken(provider).getId(), engineId, requestedPermission};
+				Object[] data = new Object[]{requestId, user.getAccessToken(provider).getId(), databaseId, requestedPermission};
 				builder.append(RdbmsQueryBuilder.makeInsert("ACCESSREQUEST", colNames, types, data)).append(";");
 			}
 			
@@ -1185,7 +1450,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				if(uniqueRequestIds.size() == 1) {
 					String requestId = uniqueRequestIds.iterator().next();
 					for(String userId : userIds) {
-						Object[] data = new Object[]{requestId, userId, engineId, requestedPermission};				
+						Object[] data = new Object[]{requestId, userId, databaseId, requestedPermission};				
 						builder.append(RdbmsQueryBuilder.makeInsert("ACCESSREQUEST", colNames, types, data)).append(";");
 					}
 					securityDb.insertData(builder.toString());
@@ -1194,7 +1459,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					String newRequestId = UUID.randomUUID().toString();
 					// first insert the new records
 					for(String userId : userIds) {
-						Object[] data = new Object[]{newRequestId, userId, engineId, requestedPermission};				
+						Object[] data = new Object[]{newRequestId, userId, databaseId, requestedPermission};				
 						builder.append(RdbmsQueryBuilder.makeInsert("ACCESSREQUEST", colNames, types, data)).append(";");
 					}
 					securityDb.insertData(builder.toString());

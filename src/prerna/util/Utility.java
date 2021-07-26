@@ -70,8 +70,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -139,13 +139,11 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
-import prerna.om.AppAvailabilityStore;
 import prerna.om.IStringExportProcessor;
+import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
-import prerna.sablecc2.reactor.IReactor;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -160,6 +158,7 @@ import prerna.util.git.GitAssetUtils;
  */
 public class Utility {
 
+	private static Boolean isjavac = null;
 	public static int id = 0;
 	private static final Logger logger = LogManager.getLogger(prerna.util.Utility.class);
 
@@ -2297,56 +2296,52 @@ public class Utility {
 		}
 		return fileName + ext;
 	}
-
+	
 	/**
-	 * Loads an engine - sets the core properties, loads base data engine and
-	 * ontology file.
+	 * Loads an engine - sets the core properties, loads base data engine and ontology file.
 	 * 
 	 * @param Filename.
 	 * @param List      of properties.
-	 * 
 	 * @return Loaded engine.
 	 */
-	public static IEngine loadEngine(String fileName, Properties prop) {
+	public static IEngine loadEngine(String smssFilePath, Properties prop) {
 		IEngine engine = null;
 		try {
-			String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
+			String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
 			String engineId = prop.getProperty(Constants.ENGINE);
 			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
 
-			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
-					|| engines.endsWith(";" + engineId)) {
+			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";") || engines.endsWith(";" + engineId)) {
 				logger.debug("DB " + engineId + " is already loaded...");
 				// engines are by default loaded so that we can keep track on the front end of
 				// engine/all call
 				// so even though it is added here there is a good possibility it is not loaded
 				// so check to see this
-				if (DIHelper.getInstance().getLocalProp(engineId) instanceof IEngine) {
-					return (IEngine) DIHelper.getInstance().getLocalProp(engineId);
+				if (DIHelper.getInstance().getDbProperty(engineId) instanceof IEngine) {
+					return (IEngine) DIHelper.getInstance().getDbProperty(engineId);
 				}
 			}
 
 			// we store the smss location in DIHelper
-			DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.STORE, fileName);
+			DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.STORE, smssFilePath);
 			// we also store the OWL location
 			if (prop.containsKey(Constants.OWL)) {
-				DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.OWL,
-						prop.getProperty(Constants.OWL));
+				DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 			}
 
 			// create and open the class
 			engine = (IEngine) Class.forName(engineClass).newInstance();
 			engine.setEngineId(engineId);
-			engine.openDB(fileName);
+			engine.openDB(smssFilePath);
 
 			// set the engine in DIHelper
-			DIHelper.getInstance().setLocalProperty(engineId, engine);
+			DIHelper.getInstance().setDbProperty(engineId, engine);
 
 			// Append the engine name to engines if not already present
 			if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
 					|| engines.endsWith(";" + engineId))) {
 				engines = engines + ";" + engineId;
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+				DIHelper.getInstance().setDbProperty(Constants.ENGINES, engines);
 			}
 
 			boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
@@ -2355,7 +2350,7 @@ public class Utility {
 			if (!isLocal && !isSecurity && !isThemes) {
 				// sync up the engine metadata now
 				synchronizeEngineMetadata(engineId);
-				SecurityUpdateUtils.addApp(engineId);
+				SecurityUpdateUtils.addDatabase(engineId);
 			}
 		} catch (InstantiationException ie) {
 			logger.error(Constants.STACKTRACE, ie);
@@ -2367,6 +2362,59 @@ public class Utility {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		return engine;
+	}
+	
+	public static IProject loadProject(String smssFilePath, Properties prop) {
+		IProject project = null;
+		try {
+			String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
+			String projectId = prop.getProperty(Constants.PROJECT);
+			String projectClass = prop.getProperty(Constants.PROJECT_TYPE);
+
+			if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";") || projects.endsWith(";" + projectId)) {
+				logger.debug("Project " + projectId + " is already loaded...");
+				// engines are by default loaded so that we can keep track on the front end of
+				// engine/all call
+				// so even though it is added here there is a good possibility it is not loaded
+				// so check to see this
+				if (DIHelper.getInstance().getProjectProperty(projectId) instanceof IProject) {
+					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+				}
+			}
+
+			// we store the smss location in DIHelper
+			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFilePath);
+
+			// create and open the class
+			project = (IProject) Class.forName(projectClass).newInstance();
+			project.setProjectId(projectId);
+			project.openProject(smssFilePath);
+
+			// set the engine in DIHelper
+			DIHelper.getInstance().setProjectProperty(projectId, project);
+
+			// Append the engine name to engines if not already present
+			if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+					|| projects.endsWith(";" + projectId))) {
+				projects = projects + ";" + projectId;
+				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
+			}
+			
+			// add the project if not an asset
+			if(!project.isAsset()) {
+				SecurityUpdateUtils.addProject(projectId);
+			}
+		} catch (InstantiationException ie) {
+			logger.error(Constants.STACKTRACE, ie);
+		} catch (IllegalAccessException iae) {
+			logger.error(Constants.STACKTRACE, iae);
+		} catch (ClassNotFoundException cnfe) {
+			logger.error(Constants.STACKTRACE, cnfe);
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+		}
+		
+		return project;
 	}
 
 	public static void synchronizeEngineMetadata(String engineId) {
@@ -2388,7 +2436,7 @@ public class Utility {
 		 */
 
 		// grab the local master engine
-		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+		IEngine localMaster = (IEngine) DIHelper.getInstance().getDbProperty(Constants.LOCAL_MASTER_DB_NAME);
 		if (localMaster == null) {
 			logger.info(">>>>>>>> Unable to find local master database in DIHelper.");
 			return;
@@ -2396,7 +2444,7 @@ public class Utility {
 
 		// generate the appropriate query to execute on the local master engine to get
 		// the time stamp
-		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
+		String smssFile = DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE) + "";
 
 		// this has all the details
 		// the engine file is primarily the SMSS that is going to be utilized for the
@@ -2495,16 +2543,149 @@ public class Utility {
 	public static boolean engineLoaded(String engineId) {
 		return DIHelper.getInstance().getLocalProp(engineId) != null;
 	}
+	
+	public static boolean projectLoaded(String projectId) {
+		return DIHelper.getInstance().getLocalProp(projectId) != null;
+	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static IProject getProject(String projectId) {
+		return getProject(projectId, true);
+	}
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IProject getProject(String projectId, boolean pullIfNeeded) {
+		IProject project = null;
+		
+		if(DIHelper.getInstance().getProjectProperty(projectId) != null) {
+			project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+		} else {
+			// Acquire the lock on the engine,
+			// don't want several calls to try and load the engine at the same
+			// time
+			logger.info("Applying lock for project " + projectId);
+			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+			lock.lock();
+			logger.info("Project "+ projectId + " is locked");
 
+			try {
+				// Need to do a double check here,
+				// so if a different thread was waiting for the engine to load,
+				// it doesn't go through this process again
+				if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
+					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+				}
+				
+				// If in a clustered environment, then pull the app first
+				// TODO >>>timb: need to pull sec and lmd each time. They also need
+				// correct jdbcs...
+				if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
+					try {
+						CloudClient.getClient().pullProject(projectId);
+					} catch (IOException | InterruptedException e) {
+						logger.error(Constants.STACKTRACE, e);
+						return null;
+					}
+				}
+
+				// Now that the app has been pulled, grab the smss file
+				String smssFile = (String) DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE);
+
+				// Start up the engine using the details in the smss
+				if (smssFile != null) {
+					// actual load engine process
+					project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
+				} else {
+					logger.debug("There is no SMSS File for the project " + projectId + "...");
+				}
+			} finally {
+				// Make sure to unlock now
+				lock.unlock();
+				logger.info("Project "+ projectId + " is unlocked");
+			}
+		}
+		
+		return project;
+	}
+	
+	public static IProject getUserAssetWorkspaceProject(String projectId, boolean isAsset) {
+		IProject project = null;
+		
+		if(DIHelper.getInstance().getProjectProperty(projectId) != null) {
+			project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+		} else {
+			// Acquire the lock on the engine,
+			// don't want several calls to try and load the engine at the same
+			// time
+			logger.info("Applying lock for project " + projectId);
+			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+			lock.lock();
+			logger.info("Project "+ projectId + " is locked");
+
+			try {
+				// Need to do a double check here,
+				// so if a different thread was waiting for the engine to load,
+				// it doesn't go through this process again
+				if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
+					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+				}
+				
+				// If in a clustered environment, then pull the project first
+				// TODO >>>timb: need to pull sec and lmd each time. They also need
+				// correct jdbcs...
+				if (ClusterUtil.IS_CLUSTER) {
+					try {
+						CloudClient.getClient().pullUserAssetOrWorkspace(projectId, isAsset, false);
+					} catch (IOException | InterruptedException e) {
+						logger.error(Constants.STACKTRACE, e);
+						return null;
+					}
+				}
+
+				// Now that the app has been pulled, grab the smss file
+				String folderName = null;
+				if(isAsset) {
+					folderName = "Asset";
+				} else {
+					folderName = "Workplace";
+				}
+				String smssFile = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + 
+						Constants.USER_FOLDER + "/" + SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
+
+				// Start up the engine using the details in the smss
+				if (smssFile != null && new File(smssFile).exists()) {
+					// actual load engine process
+					project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
+				} else {
+					logger.debug("There is no SMSS File for the project " + projectId + "...");
+				}
+			} finally {
+				// Make sure to unlock now
+				lock.unlock();
+				logger.info("Project "+ projectId + " is unlocked");
+			}
+		}
+		
+		return project;
+	}
+	
 	/**
 	 * 
 	 * @param engineId - engine to get
 	 * @return
-	 * 
 	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
 	public static IEngine getEngine(String engineId) {
-		return getEngine(engineId, true, false);
+		return getEngine(engineId, true);
 	}
 
 	/**
@@ -2514,26 +2695,18 @@ public class Utility {
 	 * 
 	 *         Use this method to get the engine when the engine hasn't been loaded
 	 */
-	public static IEngine getEngine(String engineId, boolean pullIfNeeded, boolean bypass) {
-		if (!bypass) {
-			AppAvailabilityStore availableAppStore = AppAvailabilityStore.getInstance();
-			if (availableAppStore != null) {
-				if (availableAppStore.isAppDisabledByOwner(engineId)) {
-					throw new SemossPixelException("The app you are trying to access is currently disabled.  Please reach out to the owner for more details");
-				}
-			}
-		}
+	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
 		IEngine engine = null;
 
 		// If the engine has already been loaded, then return it
 		// Don't acquire the lock here, because that would slow things down
-		if (DIHelper.getInstance().getLocalProp(engineId) != null) {
-			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineId);
+		if (DIHelper.getInstance().getDbProperty(engineId) != null) {
+			engine = (IEngine) DIHelper.getInstance().getDbProperty(engineId);
 		} else {
 			// Acquire the lock on the engine,
 			// don't want several calls to try and load the engine at the same
 			// time
-			logger.info("Applying lock for " + engineId + " to push app");
+			logger.info("Applying lock for database " + engineId + " to pull app");
 			ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 			lock.lock();
 			logger.info("App "+ engineId + " is locked");
@@ -2542,8 +2715,8 @@ public class Utility {
 				// Need to do a double check here,
 				// so if a different thread was waiting for the engine to load,
 				// it doesn't go through this process again
-				if (DIHelper.getInstance().getLocalProp(engineId) != null) {
-					return (IEngine) DIHelper.getInstance().getLocalProp(engineId);
+				if (DIHelper.getInstance().getDbProperty(engineId) != null) {
+					return (IEngine) DIHelper.getInstance().getDbProperty(engineId);
 				}
 				
 				// If in a clustered environment, then pull the app first
@@ -2559,8 +2732,7 @@ public class Utility {
 				}
 
 				// Now that the app has been pulled, grab the smss file
-				String smssFile = (String) DIHelper.getInstance().getCoreProp()
-						.getProperty(engineId + "_" + Constants.STORE);
+				String smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
 
 				// Start up the engine using the details in the smss
 				if (smssFile != null) {
@@ -2586,12 +2758,14 @@ public class Utility {
 							// docker layer in addition to the app containers
 							String host = "unknown";
 
-							if (envMap.containsKey(ZKClient.HOST))
+							if (envMap.containsKey(ZKClient.HOST)) {
 								host = envMap.get(ZKClient.HOST);
-
-							if (envMap.containsKey(ZKClient.HOST.toUpperCase()))
+							}
+							
+							if (envMap.containsKey(ZKClient.HOST.toUpperCase())) {
 								host = envMap.get(ZKClient.HOST.toUpperCase());
-
+							}
+							
 							// we are in business
 							ZKClient client = ZKClient.getInstance();
 							client.publishDB(engineId + "@" + host);
@@ -2606,79 +2780,6 @@ public class Utility {
 		}
 
 		return engine;
-	}
-
-	public static HashMap<String, Object> getPKQLInputVar(String param, String reactor) {
-		HashMap<String, Object> inputMap = new HashMap<>();
-		Object restrictions = new Object();
-
-		switch (param) {
-		case "COL_DEF":
-			inputMap.put("dataType", "column");
-			inputMap.put("restrictions", restrictions);
-			inputMap.put("source", "");
-			switch (reactor) {// COL_DEF specifies different var for some reactors - for COL_ADD its new
-								// column name, for COL_SPLIT, its existinmg column name
-			case "COL_ADD":
-				inputMap.put("label", "New Column Name");
-				inputMap.put("varName", "c:newCol");
-				inputMap.put("type", "freetext");
-				inputMap.put("values", "");
-				break;
-
-			case "COL_SPLIT":
-				inputMap.put("label", "Column to be split");
-				inputMap.put("varName", "c:col1");
-				inputMap.put("type", "dropdown");
-				inputMap.put("values", "");
-				break;
-
-			case "UNFILTER_DATA":
-				inputMap.put("label", "Column to be unfiltered");
-				inputMap.put("varName", "c:col1");
-				inputMap.put("type", "dropdown");
-				inputMap.put("values", "");
-				break;
-
-			}
-			break;
-
-		case "EXPR_TERM":
-			inputMap.put("label", "New Column Value");
-			inputMap.put("varName", "expression");
-			inputMap.put("dataType", "expression");
-			inputMap.put("type", "freetext");
-			inputMap.put("restrictions", restrictions);
-			inputMap.put("source", "");
-			break;
-
-		case "WORD_OR_NUM":
-			inputMap.put("dataType", "text");
-			inputMap.put("restrictions", restrictions);
-			inputMap.put("source", "");
-			switch (reactor) {
-			case "COL_SPLIT":
-				inputMap.put("label", "Delimiter");
-				inputMap.put("varName", "delimiter");
-				inputMap.put("type", "freetext");
-				break;
-			}
-			break;
-
-		case "FILTERS":
-			inputMap.put("label", "Column with unfiltered data");
-			inputMap.put("varName", "c:col1=[instances]");
-			inputMap.put("dataType", "column");
-			inputMap.put("type", "filterDropdown");
-			inputMap.put("restrictions", restrictions);
-			inputMap.put("source", "");
-			inputMap.put("values", "");
-			break;
-
-		default:
-			break;
-		}
-		return inputMap;
 	}
 
 	public static String findOpenPort() {
@@ -3904,6 +4005,22 @@ public class Utility {
 		}
 
 		return commandsStarter;
+	}
+	
+	/**
+	 * Make sure jdk tools.jar is in the classpath
+	 * @return
+	 */
+	public static boolean isValidJava() {
+		if(isjavac == null) {
+			try {
+				Class.forName("com.sun.tools.javac.Main");
+				isjavac = true;
+			} catch(ClassNotFoundException ex) {
+				isjavac = false;
+			}
+		}
+		return isjavac;
 	}
 
 	// compiler methods

@@ -80,10 +80,15 @@ public enum PixelOperationType {
 	OPEN_TAB,
 	
 	// META DATA INFORMATION
-	APP_INFO,
-	APP_USERS,
+	DATABASE_INFO,
+	DATABASE_USERS,
 	APP_INSIGHTS,
 	USER_INFO,
+	
+	// PROJECT
+	PROJECT_LIST,
+	PROJECT_INFO,
+	DELETE_PROJECT,
 	
 	// forms calls that change the db
 	ALTER_DATABASE,
@@ -178,7 +183,7 @@ public enum PixelOperationType {
 	S3,
 	
 	// Cluster
-	OPEN_APP,
+	OPEN_DATABASE,
 	USER_UPLOAD,
 	UPDATE_APP,
 	CLEANUP_APPS,

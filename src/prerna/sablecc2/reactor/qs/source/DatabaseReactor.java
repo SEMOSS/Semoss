@@ -31,13 +31,13 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
+			if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
 			}
 		} else {
-			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
-			if(!MasterDatabaseUtility.getAllEngineIds().contains(engineId)) {
+			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
+			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(engineId)) {
 				throw new IllegalArgumentException("Database " + engineId + " does not exist");
 			}
 		}
@@ -47,7 +47,7 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 		this.insight.addQueriedEngine(engineId);
 		
 		//checking if it is a big data engine
-		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
+		String smssFile = (String) DIHelper.getInstance().getDbProperty(engineId + "_" + Constants.STORE);
 		Object bigDataProp = Utility.loadProperties(smssFile).get(Constants.BIG_DATA_ENGINE);
 		if(bigDataProp!= null){
 			 if(Boolean.parseBoolean(bigDataProp.toString())){

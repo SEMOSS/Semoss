@@ -10,21 +10,17 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
-import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.MosfetFile;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -35,49 +31,50 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = SetInsightNameReactor.class.getName();
 
 	public SetInsightNameReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.ID.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
 
-		String appId = getApp();
+		String projectId = getProject();
 		// need to know what we are updating
 		String existingId = getRdbmsId();
 		
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, existingId)) {
-				throw new IllegalArgumentException("App does not exist or user does not have permission to edit this insight");
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
+				throw new IllegalArgumentException("Project does not exist or user does not have permission to edit this insight");
 			}
-		} else {
-			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
-			if(!MasterDatabaseUtility.getAllEngineIds().contains(appId)) {
-				throw new IllegalArgumentException("App " + appId + " does not exist");
-			}
-		}
+		} 
+//		else {
+//			projectId = MasterDatabaseUtility.testEngineIdIfAlias(projectId);
+//			if(!MasterDatabaseUtility.getAllEngineIds().contains(projectId)) {
+//				throw new IllegalArgumentException("App " + projectId + " does not exist");
+//			}
+//		}
 		
 		String insightName = getInsightName();
 		if(insightName == null || (insightName = insightName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
 		
-		if(SecurityInsightUtils.insightNameExistsMinusId(appId, insightName, existingId)) {
+		if(SecurityInsightUtils.insightNameExistsMinusId(projectId, insightName, existingId)) {
 			throw new IllegalArgumentException("Insight name already exists");
 		}
 		
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
-			// we may have the alias
-			engine = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(appId));
-			if(engine == null) {
-				throw new IllegalArgumentException("Cannot find app = " + appId);
-			}
-		}
+		IProject project = Utility.getProject(projectId);
+//		if(project == null) {
+//			// we may have the alias
+//			project = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(projectId));
+//			if(project == null) {
+//				throw new IllegalArgumentException("Cannot find app = " + projectId);
+//			}
+//		}
 		// add the recipe to the insights database
-		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 
 		// update insight db
 		logger.info("1) Updating insight in rdbms");
@@ -85,20 +82,20 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		logger.info("1) Done");
 		
 		logger.info("2) Updating insight in index");
-		SecurityInsightUtils.updateInsightName(appId, existingId, insightName);
+		SecurityInsightUtils.updateInsightName(projectId, existingId, insightName);
 		logger.info("2) Done");
 		
 		logger.info("3) Update mosfet file for collaboration");
-		updateRecipeFile(logger, engine.getEngineId(), engine.getEngineName(), existingId, insightName);
+		updateRecipeFile(logger, project.getProjectId(), project.getProjectName(), existingId, insightName);
 		logger.info("3) Done");
 
-		ClusterUtil.reactorPushInsightDB(appId);
+		ClusterUtil.reactorPushInsightDB(projectId);
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("app_insight_id", existingId);
-		returnMap.put("app_name", engine.getEngineName());
-		returnMap.put("app_id", engine.getEngineId());
+		returnMap.put("app_name", project.getProjectName());
+		returnMap.put("app_id", project.getProjectId());
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
@@ -110,15 +107,15 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	protected void updateRecipeFile(Logger logger, String appId, String appName, String rdbmsID, String insightName) {
-		String recipeLocation = AssetUtility.getAppAssetVersionFolder(appName, appId)
+	protected void updateRecipeFile(Logger logger, String projectId, String projectName, String rdbmsID, String insightName) {
+		String recipeLocation = AssetUtility.getProjectAssetVersionFolder(projectName, projectId)
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
 		File mosfet = new File(recipeLocation);
 		if(mosfet.exists()) {
 			try {
 				MosfetSyncHelper.updateMosfitFileInsightName(new File(recipeLocation), insightName);
 				// add to git
-				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
 				files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
 				GitRepoUtils.addSpecificFiles(gitFolder, files);

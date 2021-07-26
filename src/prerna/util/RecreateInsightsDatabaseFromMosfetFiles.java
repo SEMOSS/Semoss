@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Properties;
 
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.MosfetFile;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
@@ -40,7 +41,7 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 		// this way i do not need to write it to disk and then recreate it later
 		insightEngine.openDB(null);
 		insightEngine.setBasic(true);
-		UploadUtilities.runInsightCreateTableQueries(insightEngine);
+		SmssUtilities.runInsightCreateTableQueries(insightEngine);
 		
 		// main directory has insight folders inside of it
 		File mainD = new File(Utility.normalizePath(mainDirectory));
@@ -67,7 +68,7 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 					// we have a mosfet file to load
 					MosfetFile mosfet = MosfetFile.generateFromFile(insightFile);
 					
-					String appId = mosfet.getEngineId();
+					String appId = mosfet.getProjectId();
 					String id = mosfet.getRdbmsId();
 					String insightName = mosfet.getInsightName();
 					String layout = mosfet.getLayout();

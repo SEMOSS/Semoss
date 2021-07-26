@@ -17,6 +17,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.util.Utility;
 

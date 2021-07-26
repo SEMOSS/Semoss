@@ -2,10 +2,8 @@ package prerna.sablecc2.reactor.export;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -14,7 +12,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.task.AutoTaskOptionsHelper;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.usertracking.UserTrackerFactory;
 

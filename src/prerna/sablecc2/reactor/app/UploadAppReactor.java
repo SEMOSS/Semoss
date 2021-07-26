@@ -33,6 +33,13 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
+/**
+ * Deprecating this file as the functionality has been divided into two new classes,
+ * UploadDatabaseReactor and UploadProjectReactor
+ *
+ */
+
+@Deprecated
 public class UploadAppReactor extends AbstractInsightReactor {
 	
 	private static final String CLASS_NAME = UploadAppReactor.class.getName();
@@ -187,11 +194,11 @@ public class UploadAppReactor extends AbstractInsightReactor {
 		}
 
 		try {
-			DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
+			DIHelper.getInstance().setDbProperty(appId + "_" + Constants.STORE, finalSmss.getAbsolutePath());
 			logger.info(step + ") Grabbing app structure");
 			Utility.synchronizeEngineMetadata(appId);
 			logger.info(step + ") Done");
-			SecurityUpdateUtils.addApp(appId, !AbstractSecurityUtils.securityEnabled());
+			SecurityUpdateUtils.addDatabase(appId, !AbstractSecurityUtils.securityEnabled());
 		} catch(Exception e) {
 			error = true;
 			logger.error(Constants.STACKTRACE, e);
@@ -206,7 +213,7 @@ public class UploadAppReactor extends AbstractInsightReactor {
 				DeleteFromMasterDB lmDeleter = new DeleteFromMasterDB();
 				lmDeleter.deleteEngineRDBMS(appId);
 				// delete from security
-				SecurityUpdateUtils.deleteApp(appId);
+				SecurityUpdateUtils.deleteDatabase(appId);
 			}
 		}
 		
@@ -214,13 +221,13 @@ public class UploadAppReactor extends AbstractInsightReactor {
 		if (user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
-				SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+				SecurityUpdateUtils.addDatabaseOwner(appId, user.getAccessToken(ap).getId());
 			}
 		}
 
-		ClusterUtil.reactorPushApp(appId);
+		ClusterUtil.reactorPushDatabase(appId);
 
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), appId);
+		Map<String, Object> retMap = UploadUtilities.getDatabaseReturnData(this.insight.getUser(), appId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);	
 	}
 	

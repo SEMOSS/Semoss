@@ -716,9 +716,9 @@ private final String masterQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?S
 	}
 
 	public void runSupportQueries(String portfolioDBName, String siteDBName, String coreDBName) {
-		this.tapPortfolio = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(portfolioDBName));
-		this.tapSite = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(siteDBName));
-		this.tapCore = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(coreDBName));
+		this.tapPortfolio = (IEngine) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(portfolioDBName));
+		this.tapSite = (IEngine) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(siteDBName));
+		this.tapCore = (IEngine) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias(coreDBName));
 		if(tapPortfolio == null) {
 			throw new NullPointerException("Need to add TAP_Portfolio db.");
 		}
