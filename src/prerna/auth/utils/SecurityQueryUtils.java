@@ -396,7 +396,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		joins.add(new Join("app_id", "left.outer.join", "ENGINEID"));
 		
 		GenExpression retExpression = SQLQueryUtils.joinSQL(queries, joins);
-		String finalQuery = GenExpression.printQS(retExpression, null).toString();
+		String finalQuery = GenExpression.printQS(retExpression, 
+				new StringBuffer(queries.get(0).length() + queries.get(1).length() + 300)).toString();
 		HardSelectQueryStruct finalQs = new HardSelectQueryStruct();
 		finalQs.setQuery(finalQuery);
 		

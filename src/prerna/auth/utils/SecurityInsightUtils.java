@@ -1537,7 +1537,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		
 		GenExpression retExpression = SQLQueryUtils.joinSQL(queries, joins);
-		StringBuffer finalQuery = GenExpression.printQS(retExpression, null);
+		StringBuffer finalQuery = GenExpression.printQS(retExpression, 
+				new StringBuffer(queries.get(0).length() + queries.get(1).length() + 300));
 		
 		// TODO: NEED BETTER WAY TO DO THIS
 		// sort
