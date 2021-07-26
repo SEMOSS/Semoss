@@ -70,13 +70,13 @@ public class LegacyToProjectRestructurerHelper {
 	public void executeRestructure() {
 		System.out.println("STARTING APP/PROJECT RESTRUCTURE");
 		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		init();
 		//this.engine = engine;
 		String dbDir = baseFolder + ENGINE_DIRECTORY;
 		String projectDir = baseFolder + PROJECT_DIRECTORY;
 		String userDir = baseFolder + PROJECT_DIRECTORY;
 		createProjectStructure(dbDir, projectDir, userDir);
 		System.out.println("DONE APP/PROJECT RESTRUCTURE");
-		init();
 	}
 
 	public void createProjectStructure(String dbDir, String projDir, String userDir) {
