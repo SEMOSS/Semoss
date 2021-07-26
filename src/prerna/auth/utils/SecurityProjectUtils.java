@@ -927,9 +927,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		List<Join> joins = new ArrayList<>();
 		joins.add(new Join("project_id", "left.outer.join", "PROJECTID"));
-		
+
 		GenExpression retExpression = SQLQueryUtils.joinSQL(queries, joins);
-		String finalQuery = GenExpression.printQS(retExpression, null).toString();
+		String finalQuery = GenExpression.printQS(retExpression, 
+				new StringBuffer(queries.get(0).length() + queries.get(1).length() + 300)).toString();
 		HardSelectQueryStruct finalQs = new HardSelectQueryStruct();
 		finalQs.setQuery(finalQuery);
 		
