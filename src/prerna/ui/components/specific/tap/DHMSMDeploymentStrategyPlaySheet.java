@@ -144,7 +144,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 			this.portfolioEngineName = querySplit[1];
 			this.siteEngineName = querySplit[2];
 		}
-		String coreEngineId = MasterDatabaseUtility.testEngineIdIfAlias(coreEngineName);
+		String coreEngineId = MasterDatabaseUtility.testDatabaseIdIfAlias(coreEngineName);
 		coreEngine = (IEngine) Utility.getEngine(coreEngineId);
 
 	}

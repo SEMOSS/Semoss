@@ -21,7 +21,7 @@ public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReacto
 
 	// RunDatabaseDescriptionGenerator(app=["appID"], size=["small"] words=["100"]);
 	public RunDatabaseDescriptionGeneratorReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), SIZE, WORDS };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), SIZE, WORDS };
 	}
 
 	@Override
@@ -34,10 +34,10 @@ public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReacto
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String size = this.keyValue.get(this.keysToGet[1]);
 		String token = this.keyValue.get(this.keysToGet[2]);
-		String appId = this.keyValue.get(this.keysToGet[0]);
-		IEngine engine = Utility.getEngine(appId);
-		if (engine == null) {
-			throw new IllegalArgumentException("Must define the app to pull data from");
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		IEngine database = Utility.getEngine(databaseId);
+		if (database == null) {
+			throw new IllegalArgumentException("Must define the database to pull data from");
 		}
 
 		// logger message
@@ -51,7 +51,7 @@ public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReacto
 		this.rJavaTranslator.checkPackages(packages);
 
 		// get current database input
-		String curr_db = getCurrentDbTable(engine, rsb);
+		String curr_db = getCurrentDbTable(database, rsb);
 
 		// run function
 		String tempResult = "result_" + Utility.getRandomString(8);
@@ -80,11 +80,11 @@ public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReacto
 	 * @param engineFilters
 	 * @return
 	 */
-	private String getCurrentDbTable(IEngine engine, StringBuilder rStr) {
+	private String getCurrentDbTable(IEngine database, StringBuilder rStr) {
 		String rDbTable = "dbTable_" + Utility.getRandomString(10);
 
 		// first get the total number of cols
-		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engine.getEngineId());
+		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(database.getEngineId());
 		int totalColCount = allTableCols.size();
 
 		// start building script

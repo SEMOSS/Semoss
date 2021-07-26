@@ -47,13 +47,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
+import prerna.project.api.IProject;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.StringNumericComparator;
+import prerna.util.Utility;
 
 /**
  * Controls selection of the perspective from the left hand pane.
@@ -99,9 +100,10 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 			Vector<String> questionNames = null;
 
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedVal);
+			IProject project = Utility.getProject(engine.getEngineId());
 			try
 			{
-				questionIds = engine.getInsights(perspective);
+				questionIds = project.getInsights(perspective);
 				
 				if(questionIds != null){
 					int newQuestionOrder = 0;
@@ -110,7 +112,7 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 					
 					Vector<String> orderList = new Vector<String>();
 					
-					Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight(questionIds.toArray(new String[questionIds.size()]));
+					Vector<Insight> vectorInsight = project.getInsight(questionIds.toArray(new String[questionIds.size()]));
 					for(int itemIndex = 0;itemIndex < vectorInsight.size();itemIndex++){
 						Insight in = vectorInsight.get(itemIndex);
 						// modify values to include the number ordering for optimal user experience <- cause we care about that

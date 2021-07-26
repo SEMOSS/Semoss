@@ -89,7 +89,7 @@ public class GitRepoUtils {
 	 * Generate a version folder within an app and init a local Git repo
 	 * @param appFolder
 	 */
-	public static void makeLocalAppGitVersionFolder(String appFolder) {
+	public static void makeLocalDatabaseGitVersionFolder(String appFolder) {
 		File appDir = new File(appFolder + "/version");
 		if(!appDir.exists()) {
 			appDir.mkdirs();

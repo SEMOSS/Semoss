@@ -2,6 +2,7 @@ package prerna.ui.components.playsheets.datamakers;
 
 import java.util.Map;
 
+@Deprecated
 public interface ISEMOSSTransformation {
 
 	/**

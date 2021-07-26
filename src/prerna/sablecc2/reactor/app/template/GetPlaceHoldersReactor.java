@@ -17,15 +17,15 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class GetPlaceHoldersReactor extends AbstractReactor {
 
 	public GetPlaceHoldersReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.TEMPLATE_NAME.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.TEMPLATE_NAME.getKey() };
 	}
 
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String templateName = this.keyValue.get(ReactorKeysEnum.TEMPLATE_NAME.getKey());
-		Map<String, List<String>> placeHoldersMap = TemplateUtility.getPlaceHolderInfo(appId, templateName);
+		Map<String, List<String>> placeHoldersMap = TemplateUtility.getPlaceHolderInfo(projectId, templateName);
 
 		// returns the complete place holder data with key as placeholder label name 
 		// and values containing place holder default value, cell position

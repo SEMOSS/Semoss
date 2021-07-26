@@ -36,7 +36,7 @@ public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 	 */
 	
 	public PredictOwlDescriptionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey()};
 	}
 	
 	@Override
@@ -53,15 +53,15 @@ public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 //		String[] packages = { "WikidataR", "XML", "RCurl", "stringr"};
 //		rJavaTranslator.checkPackages(packages);
 		
-		String appId = getAppId();
+		String databaseId = getDatabaseId();
 		// we may have an alias
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 		
 		String physicalUri = null;
 		String concept = getConcept();
 		String prop = getProperty();
 		
-		IEngine engine = Utility.getEngine(appId);
+		IEngine database = Utility.getEngine(databaseId);
 		SemossDataType dataType = null;
 		String qsName = null;
 		if(prop == null || prop.isEmpty()) {
@@ -72,17 +72,17 @@ public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 			qsName = concept + "__" + prop;
 		}
 		
-		physicalUri = engine.getPhysicalUriFromPixelSelector(qsName);
-		dataType = SemossDataType.convertStringToDataType(engine.getDataTypes(physicalUri));
+		physicalUri = database.getPhysicalUriFromPixelSelector(qsName);
+		dataType = SemossDataType.convertStringToDataType(database.getDataTypes(physicalUri));
 		
-		Set<String> logicalNames = engine.getLogicalNames(physicalUri);
+		Set<String> logicalNames = database.getLogicalNames(physicalUri);
 		values.addAll(logicalNames);
 		
 		if(dataType == SemossDataType.STRING) {
 			logger.info("Grabbing most popular instances to use for searching...");
 			IRawSelectWrapper wrapper = null;
 			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(engine, getMostOccuringSingleColumnNonEmptyQs(qsName, 10));
+				wrapper = WrapperManager.getInstance().getRawWrapper(database, getMostOccuringSingleColumnNonEmptyQs(qsName, 10));
 				while(wrapper.hasNext()) {
 					Object value = wrapper.next().getValues()[0];
 					if(value == null || value.toString().isEmpty()) {
@@ -199,12 +199,12 @@ public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 	///////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////
 
-	private String getAppId() {
+	private String getDatabaseId() {
 		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {
-			String appId = (String) grs.get(0);
-			if (appId != null && !appId.isEmpty()) {
-				return appId;
+			String databaseId = (String) grs.get(0);
+			if (databaseId != null && !databaseId.isEmpty()) {
+				return databaseId;
 			}
 		}
 		throw new IllegalArgumentException("Need to define " + keysToGet[0]);

@@ -22,7 +22,7 @@ public class SyncAppFiles extends AbstractReactor {
 
 	public SyncAppFiles() {
 		this.keysToGet = new String[]{
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
+				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
 				ReactorKeysEnum.SYNC_PULL.getKey(), ReactorKeysEnum.SYNC_DATABASE.getKey(),
 				"files"};
@@ -32,7 +32,7 @@ public class SyncAppFiles extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appName = this.keyValue.get(this.keysToGet[0]);
+		String databaseName = this.keyValue.get(this.keysToGet[0]);
 		String repository = this.keyValue.get(this.keysToGet[1]);
 		String username = this.keyValue.get(this.keysToGet[2]);
 		String password = this.keyValue.get(this.keysToGet[3]);
@@ -57,20 +57,20 @@ public class SyncAppFiles extends AbstractReactor {
 		if(database) {
 			try {
 				logger.info("Synchronizing Database Now... ");
-				// remove the app
-				Utility.getEngine(appName).closeDB();
-				DIHelper.getInstance().removeLocalProperty(appName);
-				GitSynchronizer.syncDatabases(appName, repository, username, password, logger);
+				// remove the database
+				Utility.getEngine(databaseName).closeDB();
+				DIHelper.getInstance().removeLocalProperty(databaseName);
+				GitSynchronizer.syncDatabases(databaseName, repository, username, password, logger);
 				logger.info("Synchronize Database Complete");
 			} finally {
 				// open it back up
-				Utility.getEngine(appName);
+				Utility.getEngine(databaseName);
 			}
 		}
 
 		// if it is null or true dont worry
 		logger.info("Synchronizing now... ");
-		Map<String, List<String>> filesChanged = GitSynchronizer.synchronizeSpecific(appName, repository, username, password, filesToSync, dual);
+		Map<String, List<String>> filesChanged = GitSynchronizer.synchronizeSpecific(databaseName, repository, username, password, filesToSync, dual);
 		logger.info("Synchronize Complete");
 
 		StringBuffer output = new StringBuffer("SUCCESS \r\n ");
@@ -99,7 +99,7 @@ public class SyncAppFiles extends AbstractReactor {
 			output.append("0");
 		}
 
-		// will update solr and in the engine rdbms insights database
+		// will update rdbms insights database
 		Map<String, List<String>> mosfetFiles = getMosfetFiles(filesChanged, filesToSync);
 		if(!mosfetFiles.isEmpty()) {
 			logger.info("Indexing your insight changes");

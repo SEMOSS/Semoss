@@ -26,6 +26,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.MosfetFile;
+import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
@@ -42,17 +43,16 @@ public class GitConsumer {
 
 	}
 
-	public static String makeAppFromRemote(String yourName4App, String fullRemoteAppName, Logger logger) {
-		String temporaryAppId = UUID.randomUUID().toString();
+	public static String makeDatabaseFromRemote(String yourName4Database, String fullRemoteDatabaseName, Logger logger) {
+		String temporaryDatabaseId = UUID.randomUUID().toString();
 		// need to get the database folder
 		try {
 			prerna.security.InstallCertNow.please("github.com", null, null);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String dbFolder = AssetUtility.getAppBaseFolder(yourName4App, temporaryAppId);
+		String dbFolder = AssetUtility.getProjectBaseFolder(yourName4Database, temporaryDatabaseId);
 		File db = new File(dbFolder);
 		if(!db.exists()) {
 			// make the folder
@@ -61,16 +61,16 @@ public class GitConsumer {
 			//					+ " Please delete it or choose a different name for the app");
 		}
 
-		String[] appNameSplit = fullRemoteAppName.split("/");
+		String[] appNameSplit = fullRemoteDatabaseName.split("/");
 		String appUserName = appNameSplit[0];
 		String repoName = appNameSplit[1];
 
 		// initialize the version folder
 		logger.info("Start creating local git folder");
-		GitRepoUtils.makeLocalAppGitVersionFolder(dbFolder);
+		GitRepoUtils.makeLocalDatabaseGitVersionFolder(dbFolder);
 		logger.info("Done creating local git folder");
 
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(yourName4App, temporaryAppId);
+		String versionFolder = AssetUtility.getProjectAssetVersionFolder(yourName4Database, temporaryDatabaseId);
 		// write a random file so we can add/commit
 		logger.info("Init local git...");
 		GitUtils.semossInit(versionFolder);
@@ -89,7 +89,7 @@ public class GitConsumer {
 		boolean existing = false;
 		REMOTE_LOOP : for(Map<String, String> remoteMap : remotes) {
 			String existingRemoteAppName = remoteMap.get("name");
-			// need to compare combination of name space + app name
+			// need to compare combination of name space + database name
 			if(existingRemoteAppName.equals(repoName)) {
 				existing = true;
 				break REMOTE_LOOP ;
@@ -132,15 +132,15 @@ public class GitConsumer {
 			
 			// need to rename the folder
 			File currAppFolder = versionDir.getParentFile();
-			currAppFolder.renameTo(new File(Utility.normalizePath(currAppFolder.getParent() + "/" + SmssUtilities.getUniqueName(yourName4App, actualAppId))));
+			currAppFolder.renameTo(new File(Utility.normalizePath(currAppFolder.getParent() + "/" + SmssUtilities.getUniqueName(yourName4Database, actualAppId))));
 		}
 		
 		if(actualAppId == null) {
 			throw new IllegalArgumentException("There is no app id defined within the smss of the new app you are downloading");
 		}
 		
-		if (SecurityQueryUtils.getEngineIds().contains(actualAppId)) {
-			throw new IllegalArgumentException("The app you are attempting to copy already exists as " + SecurityQueryUtils.getEngineAliasForId(actualAppId));
+		if (SecurityQueryUtils.getDatabaseIds().contains(actualAppId)) {
+			throw new IllegalArgumentException("The app you are attempting to copy already exists as " + SecurityQueryUtils.getDatabaseAliasForId(actualAppId));
 		}
 		
 		// before you do this.. wait for the monitor to finish
@@ -154,14 +154,14 @@ public class GitConsumer {
 				
 			}
 		}*/
-		moveDataFilesToApp(baseFolder, actualAppId, yourName4App, logger);
+		moveDataFilesToDatabase(baseFolder, actualAppId, yourName4Database, logger);
 		return actualAppId;
 	}
 
-	public static void moveDataFilesToApp(String baseFolder, String appId, String yourName4App, Logger logger) {
+	public static void moveDataFilesToDatabase(String baseFolder, String appId, String yourName4App, Logger logger) {
 		// need to account for version here
 		String appFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(yourName4App, appId);
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(yourName4App, appId);
+		String versionFolder = AssetUtility.getProjectAssetVersionFolder(yourName4App, appId);
 		File dir = new File(Utility.normalizePath(versionFolder));
 
 		// seems like git pull doesn't complete until this point
@@ -227,13 +227,11 @@ public class GitConsumer {
 				}
 				
 				// load the app
-				IEngine app = loadApp(fileToMove.getAbsolutePath(), logger);
+				IProject project = loadProject(fileToMove.getAbsolutePath(), logger);
 				// load the mosfet
-				loadMosfetFiles(app, versionFolder, logger);
+				loadMosfetFiles(project, versionFolder, logger);
 				// move the smss
 				FileUtils.copyFileToDirectory(fileToMove, targetFile);
-				// set the engine to the new smss
-				app.setPropFile(targetDir + "/" + SmssUtilities.getUniqueName(yourName4App, appId) + ".smss");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -334,20 +332,20 @@ public class GitConsumer {
 	 * Load the app
 	 * @param smssLocation
 	 */
-	private static IEngine loadApp(String smssLocation, Logger logger) {
+	private static IProject loadProject(String smssLocation, Logger logger) {
 		FileInputStream fileIn = null;
 		try{
 			Properties prop = new Properties();
 			fileIn = new FileInputStream(smssLocation);
 			prop.load(fileIn);
-			logger.info("Start synchronizing app metadata...");
-			IEngine engine = Utility.loadEngine(smssLocation, prop);
-			logger.info("Done synchronizing app metadata");
-			SecurityUpdateUtils.setEngineCompletelyGlobal(prop.getProperty(Constants.ENGINE));
+			logger.info("Start synchronizing project metadata...");
+			IProject engine = Utility.loadProject(smssLocation, prop);
+			logger.info("Done synchronizing project metadata");
+			SecurityUpdateUtils.setProjectCompletelyGlobal(prop.getProperty(Constants.PROJECT));
 			return engine;
 		} catch(IOException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("Error with loading app metadata");
+			throw new IllegalArgumentException("Error with loading project metadata");
 		} finally {
 			if(fileIn!=null) {
 				try{
@@ -363,8 +361,8 @@ public class GitConsumer {
 	 * Load any mosfet files since they might not have been added to the insights rdbms that was pushed
 	 * @param versionFolder
 	 */
-	private static void loadMosfetFiles(IEngine app, String versionFolder, Logger logger) {
-		IEngine insightsDb = app.getInsightDatabase();
+	private static void loadMosfetFiles(IProject project, String versionFolder, Logger logger) {
+		IEngine insightsDb = project.getInsightDatabase();
 
 		List<String> addFilesPath = new Vector<>();
 		List<String> modFilesPath = new Vector<>();

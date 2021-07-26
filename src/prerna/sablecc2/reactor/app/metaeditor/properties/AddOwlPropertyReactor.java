@@ -20,7 +20,7 @@ import prerna.util.Utility;
 public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 
 	public AddOwlPropertyReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), 
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), 
 				ReactorKeysEnum.CONCEPT.getKey(),
 				ReactorKeysEnum.COLUMN.getKey(), 
 				ReactorKeysEnum.DATA_TYPE.getKey(), 
@@ -36,10 +36,10 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		String column = this.keyValue.get(this.keysToGet[2]);
@@ -55,23 +55,23 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 //			conceptual = conceptual.replaceAll("_{2,}", "_");
 //		}
 
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
 		// make sure the concept exists
-		String conceptPhysicalUri = engine.getPhysicalUriFromPixelSelector(concept);
+		String conceptPhysicalUri = database.getPhysicalUriFromPixelSelector(concept);
 		if (conceptPhysicalUri == null) {
 			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before adding properties");
 		}
 		
 		// make sure this property doesn't already exist for this concept
-		if (MetadataUtility.propertyExistsForConcept(engine, conceptPhysicalUri, column)) {
+		if (MetadataUtility.propertyExistsForConcept(database, conceptPhysicalUri, column)) {
 			throw new IllegalArgumentException("A property already exists for this concept with this name. "
 					+ "Add a new unique property or edit the existing property");
 		}
 
 		// set the owler
-		Owler owler = getOWLER(appId);
-		setOwlerValues(engine, owler);
+		Owler owler = getOWLER(databaseId);
+		setOwlerValues(database, owler);
 		// add the property
 		String tableName = Utility.getInstanceName(conceptPhysicalUri);
 //		String colName = null;
@@ -97,8 +97,8 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add the desired property", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully added new property", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

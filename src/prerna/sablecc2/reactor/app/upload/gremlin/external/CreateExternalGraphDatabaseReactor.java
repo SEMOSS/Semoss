@@ -25,7 +25,7 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 	private TINKER_DRIVER tinkerDriver;
 	
 	public CreateExternalGraphDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
 				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
 				ReactorKeysEnum.GRAPH_METAMODEL.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
 	}
@@ -51,13 +51,13 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 		if(this.tinkerDriver != TINKER_DRIVER.NEO4J) {
 			// move the file over to the correct location
 			// and then update the host value
-			String newLocation = this.appFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(this.file.getAbsolutePath());
+			String newLocation = this.databaseFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(this.file.getAbsolutePath());
 			File updatedFileLoc =  new File(newLocation);
 			try {
 				FileUtils.copyFile(this.file, updatedFileLoc);
 				this.file = updatedFileLoc;
 			} catch (IOException e) {
-				throw new IOException("Unable to relocate uploaded file to correct app folder");
+				throw new IOException("Unable to relocate uploaded file to correct database folder");
 			}
 		}
 	}
@@ -65,15 +65,15 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 	@Override
 	protected File generateTempSmss(File owlFile) throws IOException {
 		// the file path will become parameterized inside
-		return UploadUtilities.generateTemporaryExternalTinkerSmss(this.newAppId, this.newAppName, owlFile,
+		return UploadUtilities.generateTemporaryExternalTinkerSmss(this.newDatabaseId, this.newDatabaseName, owlFile,
 				this.filePath, this.typeMap, this.nameMap, this.tinkerDriver, useLabel());
 	}
 
 	@Override
 	protected IEngine generateEngine() {
 		TinkerEngine tinkerEng = new TinkerEngine();
-		tinkerEng.setEngineId(this.newAppId);
-		tinkerEng.setEngineName(this.newAppName);
+		tinkerEng.setEngineId(this.newDatabaseId);
+		tinkerEng.setEngineName(this.newDatabaseName);
 		tinkerEng.openDB(this.smssFile.getAbsolutePath());
 		return tinkerEng;
 	}

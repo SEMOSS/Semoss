@@ -45,9 +45,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
+import prerna.project.api.IProject;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamPanel;
@@ -55,6 +55,7 @@ import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
+import prerna.util.Utility;
 
 /**
  *  listens for the change in questions, then refreshes the sparql area with the actual question in SPARQL
@@ -95,7 +96,8 @@ public class QuestionListener implements IChakraListener {
 			String selectedEngine = selectedValuesList.get(selectedValuesList.size()-1).toString();
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedEngine);
 
-			OldInsight in = (OldInsight) ((AbstractEngine)engine).getInsight(questionID).get(0);
+			IProject project = Utility.getProject(engine.getEngineId());
+			OldInsight in = (OldInsight) project.getInsight(questionID).get(0);
 			// now get the SPARQL query for this id
 //			String sparql = in.getDataMakerComponents()[0].getQuery();
 			String sparql = in.getDataMakerComponents().get(0).getQuery();
@@ -117,7 +119,7 @@ public class QuestionListener implements IChakraListener {
 
 			logger.info("Sparql is " + sparql);
 
-			List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(engine.getInsightDatabase(), questionID);
+			List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(project.getInsightDatabase(), questionID);
 			
 			ParamPanel panel = new ParamPanel();
 			panel.setParams(paramInfoVector);

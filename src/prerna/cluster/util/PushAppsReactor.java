@@ -47,7 +47,7 @@ public class PushAppsReactor extends AbstractReactor{
 		
 		
 		//Get all Engines
-		List<String> appIds = SecurityQueryUtils.getEngineIds();
+		List<String> appIds = SecurityQueryUtils.getDatabaseIds();
 
 		try {
 			CloudClient cc = CloudClient.getClient();

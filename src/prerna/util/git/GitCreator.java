@@ -10,9 +10,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.codehaus.plexus.util.FileUtils;
 import org.kohsuke.github.GitHub;
 
-import prerna.engine.impl.SmssUtilities;
 import prerna.util.AssetUtility;
-import prerna.util.DIHelper;
 
 public class GitCreator {
 
@@ -24,14 +22,14 @@ public class GitCreator {
 	}
 
 	/**
-	 * Push an app to Git
-	 * @param appId
-	 * @param appName
-	 * @param remoteAppName
+	 * Push an  to Git
+	 * @param databaseId
+	 * @param databaseName
+	 * @param remoteDatabaseName
 	 * @param username
 	 * @param password
 	 */
-	public static void makeRemoteFromApp(String appId, String appName, String remoteAppName, String username, String password, boolean syncDatabase, String token) {
+	public static void makeRemoteFromDatabase(String databaseId, String databaseName, String remoteDatabaseName, String username, String password, boolean syncDatabase, String token) {
 		// first, need to login
 		GitHub git = null;
 		if (!token.isEmpty()) {
@@ -41,28 +39,27 @@ public class GitCreator {
 		}
 
 		// need to get the database folder
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String dbFolder = AssetUtility.getAppBaseFolder(appName, appId);;
+		String dbFolder = AssetUtility.getProjectBaseFolder(databaseName, databaseId);;
 
 		// the remote location
 		// is of the form account_name/repo_name
 		// so we want to split this out
 		String repoName = "";
-		if(remoteAppName.contains("/")) {
-			String[] remoteLocationSplit = remoteAppName.split("/");
+		if(remoteDatabaseName.contains("/")) {
+			String[] remoteLocationSplit = remoteDatabaseName.split("/");
 			String accountName = remoteLocationSplit[0];
 			repoName = remoteLocationSplit[1];
 		} else {
-			repoName = remoteAppName;
+			repoName = remoteDatabaseName;
 		}
 		
 		// now, we need to check and see if this folder is also a git
 		boolean isGit = GitUtils.isGit(dbFolder);
 		if(!isGit) {
-			GitRepoUtils.makeLocalAppGitVersionFolder(dbFolder);
+			GitRepoUtils.makeLocalDatabaseGitVersionFolder(dbFolder);
 		}
 
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);;
+		String versionFolder = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId);;
 		File versionDir = new File(versionFolder);
 		if(!versionDir.exists()) {
 			versionDir.mkdirs();
@@ -140,11 +137,11 @@ public class GitCreator {
 	
 	/**
 	 * 
-	 * @param appFolder
+	 * @param databaseFolder
 	 * @param gitFolder
 	 */
-	private static void pushDataFolder(String appFolder, String gitFolder) {
-		String dataFile = appFolder + "/data";
+	private static void pushDataFolder(String databaseFolder, String gitFolder) {
+		String dataFile = databaseFolder + "/data";
 		File dataDir = new File(dataFile);
 		if(dataDir.exists()) {
 			String gitDataFolder = gitFolder + "/data";
@@ -185,8 +182,8 @@ public class GitCreator {
 		return filesToMove;
 	}
 	
-	private static File getSmssFile(File appDir) {
-		String smssLocation = appDir.getParent() + "/" + appDir.getName() + ".smss";
+	private static File getSmssFile(File databaseDir) {
+		String smssLocation = databaseDir.getParent() + "/" + databaseDir.getName() + ".smss";
 		File smssFile = new File(smssLocation);
 		return smssFile;
 	}

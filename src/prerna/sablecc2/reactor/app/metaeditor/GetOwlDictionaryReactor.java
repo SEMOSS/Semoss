@@ -25,20 +25,20 @@ import prerna.util.Utility;
 public class GetOwlDictionaryReactor extends AbstractMetaEditorReactor {
 
 	public GetOwlDictionaryReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have an alias
-		appId = testAppId(appId, false);
+		databaseId = testDatabaseId(databaseId, false);
 		
 		// we have some ordering requirements
 		// so can't just flush these results straight to the FE
 		
-		IEngine engine = Utility.getEngine(appId).getBaseDataEngine();
+		IEngine database = Utility.getEngine(databaseId).getBaseDataEngine();
 		String query = "SELECT DISTINCT "
 				+ "?URI "
 				+ "(COALESCE(?DESCRIPTION, '') AS ?desc) "
@@ -67,7 +67,7 @@ public class GetOwlDictionaryReactor extends AbstractMetaEditorReactor {
 				
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+			wrapper = WrapperManager.getInstance().getRawWrapper(database, query);
 			while(wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				Object[] raw = row.getRawValues();

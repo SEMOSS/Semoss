@@ -18,10 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.engine.impl.SmssUtilities;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 public class InsightComment {
 	
@@ -34,8 +31,8 @@ public class InsightComment {
 	public static final String COMMENT_EXTENSION = ".c";
 
 	// keys
-	private static final String ENGINE_ID_KEY = "engineId";
-	private static final String ENGINE_KEY = "engine";
+	private static final String PROJECT_ID_KEY = "projectId";
+	private static final String PROJECT_KEY = "project";
 	private static final String INSGIHT_ID_KEY = "insightId";
 
 	private static final String ID_KEY = "id";
@@ -56,8 +53,8 @@ public class InsightComment {
 	private String comment;
 	private String action;
 	// required to know where it belongs
-	private String engineId;
-	private String engineName;
+	private String projectId;
+	private String projectName;
 	private String rdbmsId;
 	
 	private String recipe;
@@ -75,9 +72,9 @@ public class InsightComment {
 	/**
 	 * Constructor will generate the random comment id
 	 */
-	public InsightComment(String engineId, String engineName, String rdbmsId) {
-		this.engineId = engineId;
-		this.engineName = engineName;
+	public InsightComment(String projectId, String projectName, String rdbmsId) {
+		this.projectId = projectId;
+		this.projectName = projectName;
 		this.rdbmsId = rdbmsId;
 		
 		this.createdTimeStamp = getCurrentDate();
@@ -86,7 +83,7 @@ public class InsightComment {
 	
 	/**
 	 * Write the insight comment
-	 * @param engineId
+	 * @param projectId
 	 * @param rdbmsId
 	 */
 	public void writeToFile() {
@@ -96,7 +93,7 @@ public class InsightComment {
 //		String baseDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 //				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) + DIR_SEPARATOR + "version" + DIR_SEPARATOR + this.rdbmsId;
 
-		String baseDir = AssetUtility.getAppAssetVersionFolder(this.engineName, this.engineId)+ DIR_SEPARATOR + this.rdbmsId;
+		String baseDir = AssetUtility.getProjectAssetVersionFolder(this.projectName, this.projectId) + DIR_SEPARATOR + this.rdbmsId;
 
 		File path = new File(baseDir);
 		// create insight directory if it doesn't exist
@@ -126,9 +123,9 @@ public class InsightComment {
 	 */
 	private Map<String, String> moveDataToMap() {
 		Map<String, String> map = new TreeMap<>();
-		map.put(ENGINE_ID_KEY, this.engineId);
-		if(this.engineName != null) {
-			map.put(ENGINE_KEY, this.engineName);
+		map.put(PROJECT_ID_KEY, this.projectId);
+		if(this.projectName != null) {
+			map.put(PROJECT_KEY, this.projectName);
 		}
 		map.put(INSGIHT_ID_KEY, this.rdbmsId);
 
@@ -177,8 +174,8 @@ public class InsightComment {
 			throw new IllegalArgumentException("Comment info file is not in valid JSON format");
 		}
 
-		String engineId = mapData.get(ENGINE_ID_KEY);
-		String engineName = mapData.get(ENGINE_KEY);
+		String engineId = mapData.get(PROJECT_ID_KEY);
+		String engineName = mapData.get(PROJECT_KEY);
 		String insightId = mapData.get(INSGIHT_ID_KEY);
 
 		InsightComment comment = new InsightComment(engineId, engineName, insightId);

@@ -27,25 +27,16 @@
  *******************************************************************************/
 package prerna.rdf.main; // TODO: move to prerna.poi.main
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.poi.main.AbstractEngineCreator;
-import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.ImportOptions;
-import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	

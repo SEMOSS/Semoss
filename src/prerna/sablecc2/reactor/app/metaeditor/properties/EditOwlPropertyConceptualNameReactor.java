@@ -17,26 +17,26 @@ import prerna.util.Utility;
 public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReactor {
 
 	public EditOwlPropertyConceptualNameReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), CONCEPTUAL_NAME};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), CONCEPTUAL_NAME};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if (concept == null || concept.isEmpty()) {
-			throw new IllegalArgumentException("Must define the concept being modified in the app metadata");
+			throw new IllegalArgumentException("Must define the concept being modified in the database metadata");
 		}
 		
 		String property = this.keyValue.get(this.keysToGet[2]);
 		if (property == null || property.isEmpty()) {
-			throw new IllegalArgumentException("Must define the property being modified in the app metadata");
+			throw new IllegalArgumentException("Must define the property being modified in the database metadata");
 		}
 		
 		String newPixelName = this.keyValue.get(this.keysToGet[3]);
@@ -52,23 +52,23 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		
 		String newPixelURI = "http://semoss.org/ontologies/Relation/Contains/" + newPixelName + "/" + concept;
 
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
-		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
+		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 		
 		String pixelURI = "http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept;
-		String parentPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept);
+		String parentPhysicalURI = database.getPhysicalUriFromPixelSelector(concept);
 		if (parentPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the concept");
 		}
 		
-		String propertyPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept + "__" + property);
+		String propertyPhysicalURI = database.getPhysicalUriFromPixelSelector(concept + "__" + property);
 		if (propertyPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the property. Please define the property first before modifying the conceptual name");
 		}
 		
 		// make sure this isn't already a name for an existing property
-		List<String> otherConceptualProperties = engine.getPropertyPixelSelectors(concept);
+		List<String> otherConceptualProperties = database.getPropertyPixelSelectors(concept);
 		if (otherConceptualProperties.contains(newPixelURI)) {
 			throw new IllegalArgumentException("This property conceptual name already exists");
 		}
@@ -86,8 +86,8 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to commit modifications", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully edited concept name from " + property + " to " + newPixelName, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

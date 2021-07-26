@@ -5,10 +5,10 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -23,16 +23,20 @@ import prerna.util.insight.InsightUtility;
 public class RunPlaysheetReactor extends AbstractReactor {
 	
 	public RunPlaysheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PARAM_KEY.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PARAM_KEY.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String app = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
+		if(projectId == null) {
+			projectId = this.store.getNoun("app").get(0) + "";
+		}
 		String insightId = this.keyValue.get(this.keysToGet[1]);
-		IEngine engine = Utility.getEngine(app);
-		Insight insightObj = engine.getInsight(insightId).get(0);
+		IProject project = Utility.getProject(projectId);
+		Insight insightObj = project.getInsight(insightId).get(0);
 		InsightUtility.transferDefaultVars(this.insight, insightObj);
 
 		// Get the Insight, grab its ID
@@ -73,7 +77,7 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		obj.put("pkqlOutput", insightMap);
 
 		// update the solr universal view count
-		GlobalInsightCountUpdater.getInstance().addToQueue(engine.getEngineId(), insightId);
+		GlobalInsightCountUpdater.getInstance().addToQueue(projectId, insightId);
 
 		return new NounMetadata(obj, PixelDataType.MAP, PixelOperationType.OLD_INSIGHT);
 	}

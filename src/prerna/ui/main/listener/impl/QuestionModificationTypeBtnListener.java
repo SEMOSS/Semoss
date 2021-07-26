@@ -48,14 +48,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
+import prerna.project.api.IProject;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class QuestionModificationTypeBtnListener extends AbstractListener {
 	Logger logger = LogManager.getLogger(getClass());
@@ -205,7 +206,8 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		String[] questionSplit = question.split("\\. ", 2);
 		question = questionSplit[1];
 		
-		OldInsight in = (OldInsight) ((AbstractEngine)engine).getInsight(id).get(0);
+		IProject project = Utility.getProject(engine.getEngineId());
+		OldInsight in = (OldInsight) project.getInsight(id).get(0);
 
 		// now get the SPARQL query for this id
 //		String sparql = in.getDataMakerComponents()[0].getQuery();
@@ -217,7 +219,7 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		Vector<String> parameterQueryVector = new Vector<String>();
 		Vector<String> dependVector = new Vector<String>();
 		Vector<String> optionVector = new Vector<String>();
-		List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(engine.getInsightDatabase(), id);
+		List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(project.getInsightDatabase(), id);
 
 		order = in.getOrder();
 		

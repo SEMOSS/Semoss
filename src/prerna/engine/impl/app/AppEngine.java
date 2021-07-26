@@ -5,6 +5,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -19,17 +20,13 @@ public class AppEngine extends AbstractEngine {
 	 * Do not need to do anything except load the insights database
 	 */
 	public void openDB(String propFile) {
-		this.baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		this.propFile = propFile;
 		this.prop = Utility.loadProperties(propFile);
 		
 		// get id & name
 		this.engineId = this.prop.getProperty(Constants.ENGINE);
 		this.engineName = this.prop.getProperty(Constants.ENGINE_ALIAS);
-		
-		// only need to load the insights database
-		// there is no data in this app - so no OWL
-		this.loadInsightsRdbms();
 	}
 	
 	@Override

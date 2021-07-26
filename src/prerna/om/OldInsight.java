@@ -38,6 +38,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.api.IPlaySheet;
@@ -67,9 +68,13 @@ public class OldInsight extends Insight {
 	public static final transient String PRE_TRANS = "PreTrans";
 	public static final transient String ACTION = "Action";
 
-	private static final String STACKTRACE = "StackTrace: ";
-
-	private transient IEngine mainEngine;										// the main engine where the insight is stored
+	@Deprecated
+	private String engineId;
+	@Deprecated
+	private String engineName;
+	
+	private transient IEngine mainEngine;
+	private transient IProject mainProject;										// the main engine where the insight is stored
 	private transient IEngine makeupEngine;										// the in-memory engine created to store the data maker components and transformations for the insight
 	private transient IPlaySheet playSheet;										// the playsheet for the insight
 	private transient Map<String, String> dataTableAlign;						// the data table align for the insight corresponding to the playsheet
@@ -92,12 +97,37 @@ public class OldInsight extends Insight {
 	
 	/**
 	 * Constructor for the insight
+	 * REQUIRES PROJECT AND APP TO HAVE SAME ID
 	 * @param mainEngine					The main engine which holds the insight
 	 * @param dataMakerName					The name of the data maker
 	 * @param layout						The layout to view the insight
 	 */
 	public OldInsight(IEngine mainEngine, String dataMakerName, String layout){
 		this.mainEngine = mainEngine;
+		// NEED THE ID TO BE THE SAME IN THIS SITUATION!!!
+		// the main engine has the same id as the main project
+		this.mainProject = Utility.getProject(mainEngine.getEngineId());
+		this.dataMakerName = dataMakerName;
+		this.layout = layout;
+	}
+	
+	/**
+	 * Constructor for the insight
+	 * REQUIRES PROJECT AND APP TO HAVE SAME ID
+	 * @param mainProject					The main project which holds the insight
+	 * @param dataMakerName					The name of the data maker
+	 * @param layout						The layout to view the insight
+	 */
+	public OldInsight(IProject mainProject, String dataMakerName, String layout){
+		this.mainProject = mainProject;
+		// NEED THE ID TO BE THE SAME IN THIS SITUATION!!!
+		// the main engine has the same id as the main project
+		this.mainEngine = Utility.getEngine(mainProject.getProjectId());
+		this.dataMakerName = dataMakerName;
+		this.layout = layout;
+	}
+	
+	public OldInsight(String dataMakerName, String layout) {
 		this.dataMakerName = dataMakerName;
 		this.layout = layout;
 	}
@@ -215,13 +245,13 @@ public class OldInsight extends Insight {
 			rc = myRepository.getConnection();
 			rc.add(nTriples, "semoss.org", RDFFormat.NTRIPLES);
 		} catch(RuntimeException ignored) {
-			logger.error(STACKTRACE, ignored);
+			logger.error(Constants.STACKTRACE, ignored);
 		} catch (RDFParseException rpe) {
-			logger.error(STACKTRACE, rpe);
+			logger.error(Constants.STACKTRACE, rpe);
 		} catch (RepositoryException re) {
-			logger.error(STACKTRACE, re);
+			logger.error(Constants.STACKTRACE, re);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		
 		// set the rc in the in-memory engine
@@ -264,7 +294,7 @@ public class OldInsight extends Insight {
 			String newComponent = COMP + component;
 			if(!newComponent.equals(curComponent)){
 				String engine = st.getVar("Engine")+"";
-				engine = MasterDatabaseUtility.testEngineIdIfAlias(engine);
+				engine = MasterDatabaseUtility.testDatabaseIdIfAlias(engine);
 				String query = st.getVar("Query")+"";
 				String metamodelString = st.getVar("Metamodel")+"";
 				logger.debug(engine + " ::::::: " + component +" ::::::::: " + query + " :::::::::: " + metamodelString);
@@ -851,7 +881,7 @@ public class OldInsight extends Insight {
 			String rdbmsId = getRdbmsId();
 			if(rdbmsId != null && !rdbmsId.isEmpty()) {
 				String query = "SELECT UI_DATA FROM UI WHERE QUESTION_ID_FK='" + rdbmsId + "'";
-				IEngine insightDb = this.mainEngine.getInsightDatabase();
+				IEngine insightDb = this.mainProject.getInsightDatabase();
 				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightDb, query);
 				String[] names = wrapper.getVariables();
 				while(wrapper.hasNext()) {
@@ -862,13 +892,13 @@ public class OldInsight extends Insight {
 					try {
 						insightDefinition = obj.getAsciiStream();
 					} catch (SQLException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 					
 					 try {
 						uiOptions = IOUtils.toString(insightDefinition);
 					} catch (IOException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					} 
 				}
 			}
@@ -881,7 +911,6 @@ public class OldInsight extends Insight {
 		this.uiOptions = uiOptions;
 	}
 
-	@Override
 	public String getEngineId() {
 		if(this.mainEngine != null) {
 			return this.mainEngine.getEngineId();
@@ -890,8 +919,7 @@ public class OldInsight extends Insight {
 		}
 	}
 
-	@Override
-	public String getEngineName() {
+	public String getProjectName() {
 		if(this.mainEngine != null) {
 			return this.mainEngine.getEngineName();
 		} else {

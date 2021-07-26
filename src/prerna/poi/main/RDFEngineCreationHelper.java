@@ -10,6 +10,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.MosfetFile;
+import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.AssetUtility;
 import prerna.util.MosfetSyncHelper;
@@ -28,9 +29,9 @@ public class RDFEngineCreationHelper {
 	 * @param rdfEngine
 	 * @param pixelNames
 	 */
-	public static void insertSelectConceptsAsInsights(IEngine rdfEngine, Set<String> pixelNames) {
+	public static void insertSelectConceptsAsInsights(IProject project, IEngine rdfEngine, Set<String> pixelNames) {
 		String appId = rdfEngine.getEngineId();
-		InsightAdministrator admin = new InsightAdministrator(rdfEngine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		
 		//determine the # where the new questions should start
 		String insightName = ""; 
@@ -59,10 +60,10 @@ public class RDFEngineCreationHelper {
 
 				// write recipe to file
 				try {
-					MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), 
+					MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
 							insightId, insightName, layout, recipeArray, false, description, tags);
 					// add the insight to git
-					String gitFolder = AssetUtility.getAppAssetVersionFolder(rdfEngine.getEngineName(), appId);
+					String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), project.getProjectId());
 					List<String> files = new Vector<>();
 					files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 					GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -72,10 +73,9 @@ public class RDFEngineCreationHelper {
 				}
 				
 				// insight security
-				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, 
-						Utility.getApplicationCacheInsight(), layout, recipeArray);
-				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
-				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
+				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout, recipeArray);
+				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
+				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
@@ -89,9 +89,9 @@ public class RDFEngineCreationHelper {
 	 * @param rdfEngine
 	 * @param pixelNames
 	 */
-	public static void insertNewSelectConceptsAsInsights(IEngine rdfEngine, Set<String> pixelNames) {
+	public static void insertNewSelectConceptsAsInsights(IProject project, IEngine rdfEngine, Set<String> pixelNames) {
 		String appId = rdfEngine.getEngineId();
-		RDBMSNativeEngine insightsDatabase = rdfEngine.getInsightDatabase();
+		RDBMSNativeEngine insightsDatabase = project.getInsightDatabase();
 		InsightAdministrator admin = new InsightAdministrator(insightsDatabase);
 		
 		//determine the # where the new questions should start
@@ -142,10 +142,10 @@ public class RDFEngineCreationHelper {
 
 				//write recipe to file
 				try {
-					MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), 
+					MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
 							insightId, insightName, layout, recipeArray, false, description, tags);
 					// add the insight to git
-					String gitFolder = AssetUtility.getAppAssetVersionFolder(rdfEngine.getEngineName(), appId);
+					String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), project.getProjectId());
 					List<String> files = new Vector<>();
 					files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 					GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -155,10 +155,9 @@ public class RDFEngineCreationHelper {
 				}
 					
 				// insight security
-				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, 
-						Utility.getApplicationCacheInsight(), layout, recipeArray); 
-				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
-				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
+				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout, recipeArray); 
+				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
+				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
@@ -170,9 +169,9 @@ public class RDFEngineCreationHelper {
 	 * Insert new insights specific for NLP
 	 * @param rdfEngine
 	 */
-	public static void insertNLPDefaultQuestions(IEngine rdfEngine) {
+	public static void insertNLPDefaultQuestions(IProject project, IEngine rdfEngine) {
 		String engineName = rdfEngine.getEngineId();
-		InsightAdministrator admin = new InsightAdministrator(rdfEngine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 
 		//determine the # where the new questions should start
 		String insightName = ""; 

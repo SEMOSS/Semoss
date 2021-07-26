@@ -30,9 +30,6 @@ package prerna.engine.api;
 import java.util.Properties;
 import java.util.Vector;
 
-import prerna.sablecc2.reactor.IReactor;
-import prerna.util.SemossClassloader;
-
 /**
  * This interface standardizes the functionality of all engines.  All engines must implement this interface 
  * so that they can be used without first recognizing what specific engine class it is.  A lot of different classes call on 
@@ -172,19 +169,11 @@ public interface IEngine extends IExplorable {
 	 */
 	public Properties getProp();
 	
-	// get engine specific reactor
-	public IReactor getReactor(String reactorName, SemossClassloader loader);
-
-	// gets the UDF - user defined functions in this data catalog
+	/**
+	 * Gets the UDF - user defined functions in this data catalog
+	 * @return
+	 */
 	public String [] getUDF();
-	
-	// publish the engine assets to a specific location
-	// once published the assets in this app are available as a public_home from the browser
-	// this is useful to access javascript etc. 
-	// to enable this - you need to put the property public_home_enable on the smss file
-	
-	public boolean publish(String location, String targetDir);
-
 }
 
 

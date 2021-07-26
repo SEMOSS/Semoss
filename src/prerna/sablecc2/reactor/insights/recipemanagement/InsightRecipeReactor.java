@@ -4,9 +4,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -19,7 +19,7 @@ public class InsightRecipeReactor extends AbstractInsightReactor {
 	private static final String VECTOR_KEY = "vec";
 	
 	public InsightRecipeReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), VECTOR_KEY};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), VECTOR_KEY};
 	}
 
 	@Override
@@ -27,15 +27,15 @@ public class InsightRecipeReactor extends AbstractInsightReactor {
 		organizeKeys();
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
 		boolean vec = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
 		// get the engine so i can get the new insight
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
-			throw new IllegalArgumentException("Cannot find app = " + appId);
+		IProject project = Utility.getProject(projectId);
+		if(project == null) {
+			throw new IllegalArgumentException("Cannot find project = " + projectId);
 		}
-		List<Insight> in = engine.getInsight(rdbmsId);
+		List<Insight> in = project.getInsight(rdbmsId);
 		Insight newInsight = in.get(0);
 		
 		// OLD INSIGHT
@@ -44,7 +44,7 @@ public class InsightRecipeReactor extends AbstractInsightReactor {
 			// return to the FE the recipe
 			insightMap.put("name", newInsight.getInsightName());
 			// keys below match those in solr
-			insightMap.put("core_engine", newInsight.getEngineId());
+			insightMap.put("core_engine", newInsight.getProjectId());
 			insightMap.put("core_engine_id", newInsight.getRdbmsId());
 			return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OLD_INSIGHT);
 		}

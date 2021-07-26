@@ -849,7 +849,7 @@ public class PixelUtility {
 		// add frame filters
 		List<ITableDataFrame> refList = new ArrayList<>();
 		VarStore vStore = in.getVarStore();
-		List<String> frameNames = vStore.getFrameKeys();
+		List<String> frameNames = vStore.getFrameKeysCopy();
 		for(String frameKey : frameNames) {
 			ITableDataFrame frame = (ITableDataFrame) vStore.get(frameKey).getValue();
 			if(!refList.contains(frame)) {

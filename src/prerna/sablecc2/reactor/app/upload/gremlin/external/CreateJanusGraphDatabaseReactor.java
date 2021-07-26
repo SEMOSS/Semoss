@@ -23,7 +23,7 @@ public class CreateJanusGraphDatabaseReactor extends AbstractCreateExternalGraph
 	private String filePath;
 
 	public CreateJanusGraphDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
 				ReactorKeysEnum.GRAPH_METAMODEL.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
 	}
@@ -41,13 +41,13 @@ public class CreateJanusGraphDatabaseReactor extends AbstractCreateExternalGraph
 
 		// move the file over to the correct location
 		// and then update the host value
-		String newLocation = this.appFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(this.file.getAbsolutePath());
+		String newLocation = this.databaseFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(this.file.getAbsolutePath());
 		File updatedFileLoc = new File(newLocation);
 		try {
 			FileUtils.copyFile(this.file, updatedFileLoc);
 			this.file = updatedFileLoc;
 		} catch (IOException e) {
-			throw new IOException("Unable to relocate uploaded file to correct app folder");
+			throw new IOException("Unable to relocate uploaded file to correct database folder");
 		}
 
 	}
@@ -55,15 +55,15 @@ public class CreateJanusGraphDatabaseReactor extends AbstractCreateExternalGraph
 	@Override
 	protected File generateTempSmss(File owlFile) throws IOException {
 		// the file path will become parameterized inside
-		return UploadUtilities.generateTemporaryJanusGraphSmss(this.newAppId, this.newAppName, owlFile, this.filePath,
+		return UploadUtilities.generateTemporaryJanusGraphSmss(this.newDatabaseId, this.newDatabaseName, owlFile, this.filePath,
 				this.typeMap, this.nameMap, useLabel());
 	}
 
 	@Override
 	protected IEngine generateEngine() {
 		JanusEngine janusEngine = new JanusEngine();
-		janusEngine.setEngineId(this.newAppId);
-		janusEngine.setEngineName(this.newAppName);
+		janusEngine.setEngineId(this.newDatabaseId);
+		janusEngine.setEngineName(this.newDatabaseName);
 		janusEngine.openDB(this.smssFile.getAbsolutePath());
 		return janusEngine;
 	}

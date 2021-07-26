@@ -12,40 +12,41 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
+import prerna.util.Utility;
 
 public class RetrieveInsightPipelineReactor extends AbstractInsightReactor {
 
 	public RetrieveInsightPipelineReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
 	}	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = getApp();
-		String appName = null;
+		String projectId = getProject();
+		String projectName = null;
 		String rdbmsId = getRdbmsId();
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), appId, rdbmsId)) {
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
 				throw new IllegalArgumentException("User does not have access to this insight");
 			}
 		} else {
-			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
+			projectId = MasterDatabaseUtility.testDatabaseIdIfAlias(projectId);
 		}
 		
 		// get the app name
-		appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+		projectName = Utility.getProject(projectId).getProjectName();
 
 		// get the pipeline file
-		File f = getPipelineFileLocation(appId, appName, rdbmsId);
+		File f = getPipelineFileLocation(projectId, projectName, rdbmsId);
 		
 		// no file exists
 		if(!f.exists()) {

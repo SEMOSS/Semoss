@@ -39,7 +39,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 	protected static final String CLASS_NAME = NLPInstanceCacheReactor.class.getName();
 
 	public NLPInstanceCacheReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.TABLE.getKey() , ReactorKeysEnum.COLUMNS.getKey(), UPDATE_EXISTING_VALUES };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.TABLE.getKey() , ReactorKeysEnum.COLUMNS.getKey(), UPDATE_EXISTING_VALUES };
 	}
 
 	@Override
@@ -47,9 +47,9 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		// initialize inputs
 		init();
 		organizeKeys();
-		String appId = UploadInputUtility.getAppNameOrId(this.store);
+		String databaseId = UploadInputUtility.getDatabaseNameOrId(this.store);
 		String table = this.keyValue.get(this.keysToGet[1]);
-		List<String> columnsToUpdate = getSpecificColumns(appId, table);
+		List<String> columnsToUpdate = getSpecificColumns(databaseId, table);
 		boolean updateExistingValues = updateExistingValues();
 		boolean allValues = false;
 		String gc = "";
@@ -89,8 +89,8 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 					// get the unique columns and tables into arrays
 					String uniqueColsTables = rdsFrameTrim + " <- unique(" + rdsFrame + "[c(\"Table\", \"Column\", \"AppID\")])"; 
 					this.rJavaTranslator.runR(uniqueColsTables);
-					String existingColsScript = rdsFrameTrim + "[" + rdsFrameTrim + "$AppID == \"" + appId + "\",]$Column;";
-					String existingTablesScript = rdsFrameTrim + "[" + rdsFrameTrim + "$AppID == \"" + appId + "\",]$Table;";
+					String existingColsScript = rdsFrameTrim + "[" + rdsFrameTrim + "$AppID == \"" + databaseId + "\",]$Column;";
+					String existingTablesScript = rdsFrameTrim + "[" + rdsFrameTrim + "$AppID == \"" + databaseId + "\",]$Table;";
 					String[] existingCols = this.rJavaTranslator.getStringArray(existingColsScript);
 					String[] existingTables = this.rJavaTranslator.getStringArray(existingTablesScript);
 					
@@ -105,7 +105,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 				} else {
 					// in this case, we know the table of the columns and columnsToUpdate is not null
 					// so just remove those columns that match by app id, table, and column
-					String existingColsScript = "unique(" + rdsFrame + "[" + rdsFrame + "$AppID == \"" + appId + "\" & " + rdsFrame + "$Table == \"" + table + "\" ,]$Column);";
+					String existingColsScript = "unique(" + rdsFrame + "[" + rdsFrame + "$AppID == \"" + databaseId + "\" & " + rdsFrame + "$Table == \"" + table + "\" ,]$Column);";
 					String[] existingCols = this.rJavaTranslator.getStringArray(existingColsScript);
 					columnsToUpdate.removeAll(Arrays.asList(existingCols));
 				}
@@ -113,7 +113,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 				String removeScript = "";
 				if(allValues) {
 					// in this case, we can just delete all values for this db
-					removeScript = rdsFrame + " <- " + rdsFrame + "[( " + "!( " + rdsFrame + "$AppID==\"" + appId + "\")),];";
+					removeScript = rdsFrame + " <- " + rdsFrame + "[( " + "!( " + rdsFrame + "$AppID==\"" + databaseId + "\")),];";
 				} else {
 					// in this case, we need to delete based on cols and tables provided
 					// Assumption: The User used the UI and, therefore, only one table is possible
@@ -122,7 +122,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 					for (String col : columnsToUpdate ) {
 						removeScript += amp;
 						amp = " & ";
-						removeScript += "!("+rdsFrame+"$AppID==\""+appId+"\" & " + rdsFrame +"$Column==\"" + col + "\" & " + rdsFrame +"$Table==\"" + table + "\")";
+						removeScript += "!("+rdsFrame+"$AppID==\""+databaseId+"\" & " + rdsFrame +"$Column==\"" + col + "\" & " + rdsFrame +"$Table==\"" + table + "\")";
 					}
 					removeScript += " ),];";
 				}
@@ -151,13 +151,13 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		List<String> valueVector = new ArrayList<String>();
 
 		// a concept (or table) in RDBMS/R has no meaning - the data is in the properties (columns)
-		IEngine engine = Utility.getEngine(appId);
-		boolean ignoreData = MetadataUtility.ignoreConceptData(engine.getEngineType());
+		IEngine database = Utility.getEngine(databaseId);
+		boolean ignoreData = MetadataUtility.ignoreConceptData(database.getEngineType());
 		
 		// loop through each column with in the app
 		if(allValues) {
 			int counter = 0;
-			List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(appId);
+			List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(databaseId);
 			for(Object[] tableCol : allTableCols) {
 				// only care about string values
 				if(tableCol[2] == null || !tableCol[2].equals(SemossDataType.STRING.toString())) {
@@ -195,7 +195,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 					counter = 0;
 				}
 				
-				processSingleColumn(engine, colQs, appId, appIdVector, tableVector, colVector, valueVector);
+				processSingleColumn(database, colQs, databaseId, appIdVector, tableVector, colVector, valueVector);
 			}
 			
 			// process anything left over
@@ -207,14 +207,14 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 				// we have a RDF/Graph database where we need to index the concept itself
 				
 				String colQs = table;
-				processSingleColumn(engine, colQs, appId, appIdVector, tableVector, colVector, valueVector);
+				processSingleColumn(database, colQs, databaseId, appIdVector, tableVector, colVector, valueVector);
 			}
 			
 			// loop through the passed in columns
 			for (String col : columnsToUpdate) {
 				// now add all the other columns
 				String colQs = table + "__" + col;
-				processSingleColumn(engine, colQs, appId, appIdVector, tableVector, colVector, valueVector);
+				processSingleColumn(database, colQs, databaseId, appIdVector, tableVector, colVector, valueVector);
 			}
 			
 			// add table at the end since we only do 1 table when specifying columns
@@ -246,10 +246,10 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		return noun;
 	}
 	
-	private void processSingleColumn(IEngine engine,
+	private void processSingleColumn(IEngine database,
 			String colQs, 
-			String appId,
-			List<String> appIdVector, 
+			String databaseId,
+			List<String> databaseIdVector, 
 			List<String> tableVector,
 			List<String> colVector, 
 			List<String> valueVector) {
@@ -268,7 +268,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		// get the data for the db
 		IRawSelectWrapper iterator = null;
 		try {
-			iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			iterator = WrapperManager.getInstance().getRawWrapper(database, qs);
 		} catch (Exception e) {
 			return;
 		}
@@ -280,7 +280,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 
 		// for each value, create a row in our data table (i.e. add to the vector)
 		while (iterator.hasNext()) {
-			appIdVector.add(appId);
+			databaseIdVector.add(databaseId);
 			if(colQs.contains("__")) {
 				String[] split = colQs.split("__");
 				tableVector.add(split[0]);
@@ -313,12 +313,12 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 	 * Process the table
 	 * @param rdsFrame
 	 * @param tempFrame
-	 * @param appIdVector
+	 * @param databaseIdVector
 	 * @param tableVector
 	 * @param colVector
 	 * @param valueVector
 	 */
-	private void addTable(String rdsFrame, String tempFrame, List<String> appIdVector, List<String> tableVector,
+	private void addTable(String rdsFrame, String tempFrame, List<String> databaseIdVector, List<String> tableVector,
 			List<String> colVector, List<String> valueVector) {
 		// run this one separately to avoid the string getting too long
 		String valueVectorName = "valueVector_" + Utility.getRandomString(5);
@@ -330,7 +330,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(vectorScript);
 
 		// rbind to current frame
-		String addTableScript = tempFrame + " <- data.frame(AppID = " + RSyntaxHelper.createStringRColVec(appIdVector)
+		String addTableScript = tempFrame + " <- data.frame(AppID = " + RSyntaxHelper.createStringRColVec(databaseIdVector)
 				+ " , Table = " + RSyntaxHelper.createStringRColVec(tableVector) + " , Column = "
 				+ RSyntaxHelper.createStringRColVec(colVector) + " , Value = " + valueVectorName
 				+ ", stringsAsFactors = FALSE);" + rdsFrame + " <- rbind(" + rdsFrame + "," + tempFrame + ");";
@@ -342,11 +342,11 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 	
 	/**
 	 * Get specific string columns in the table - make sure they are strings
-	 * @param appId
+	 * @param databaseId
 	 * @param table
 	 * @return
 	 */
-	private List<String> getSpecificColumns(String appId, String table) {
+	private List<String> getSpecificColumns(String databaseId, String table) {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(this.keysToGet[2]);
 		if (columnGrs != null) {
@@ -356,9 +356,9 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 				for (Object obj : values) {
 					String objType = "";
 					if(table.equals(obj.toString())) {
-						objType = MasterDatabaseUtility.getBasicDataType(appId, obj.toString(), null);
+						objType = MasterDatabaseUtility.getBasicDataType(databaseId, obj.toString(), null);
 					} else {
-						objType = MasterDatabaseUtility.getBasicDataType(appId, obj.toString(), table);
+						objType = MasterDatabaseUtility.getBasicDataType(databaseId, obj.toString(), table);
 					}
 					
 					if(objType.equals(SemossDataType.STRING.toString())) {

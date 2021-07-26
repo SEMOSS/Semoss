@@ -30,15 +30,15 @@ public class AddMetaDescriptionReactor extends AbstractMetaDBReactor {
 		String engineId = getEngineId();
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
+			if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 		} else {
-			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
 		}
 		
-		if(!SecurityQueryUtils.getEngineIds().contains(engineId)) {
+		if(!SecurityQueryUtils.getDatabaseIds().contains(engineId)) {
 			throw new IllegalArgumentException("App id does not exist");
 		}
 		
@@ -46,7 +46,7 @@ public class AddMetaDescriptionReactor extends AbstractMetaDBReactor {
 		String description = getDescription();
 		AddToMasterDB master = new AddToMasterDB();
 		boolean success = master.addMetadata(engineId, concept, Constants.DESCRIPTION, description);
-		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.APP_INFO);
+		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.DATABASE_INFO);
 	}
 	
 }

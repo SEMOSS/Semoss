@@ -11,24 +11,19 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
-import org.apache.poi.ss.usermodel.Sheet;
 
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
-import prerna.engine.impl.rdbms.H2EmbeddedServerEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.om.Insight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.excel.ExcelBlock;
-import prerna.poi.main.helper.excel.ExcelDataValidationHelper;
 import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
@@ -37,18 +32,14 @@ import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
 import prerna.poi.main.helper.excel.ExcelWorkbookFilePreProcessor;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -58,7 +49,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 
 	/*
 	 * There are quite a few things that we need
-	 * 1) app -> name of the app to create
+	 * 1) database -> name of the database to create
 	 * 1) filePath -> string contianing the path of the file
 	 * 2) dataTypes -> map of the sheet to another map of the header to the type, this will contain the original headers we send to FE
 	 * 3) newHeaders -> map of the sheet to another map containing old header to new headers for the csv file
@@ -66,14 +57,14 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * 						additional inputs would be {header : currency, header : date_format, ... }
 	 * 5) clean -> boolean if we should clean up the strings before insertion, default is true
 	 * TODO: 6) deduplicate -> boolean if we should remove duplicate rows in the relational database
-	 * 7) existing -> boolean if we should add to an existing app, defualt is false
+	 * 7) existing -> boolean if we should add to an existing database, defualt is false
 	 */
 
 	private ExcelWorkbookFileHelper helper;
 	
 	public RdbmsUploadExcelDataReactor() {
 		this.keysToGet = new String[] { 
-				UploadInputUtility.APP, 
+				UploadInputUtility.DATABASE, 
 				UploadInputUtility.FILE_PATH, 
 				UploadInputUtility.ADD_TO_EXISTING,
 				UploadInputUtility.DATA_TYPE_MAP,
@@ -86,17 +77,16 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	}
 
 	@Override
-	public void generateNewApp(User user, final String newAppName, final String filePath) throws Exception {
+	public void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception {
 		/*
 		 * Things we need to do
 		 * 1) make directory
 		 * 2) make owl
 		 * 3) make temporary smss
-		 * 4) make engine class
+		 * 4) make database class
 		 * 5) load actual data
 		 * 6) load owl metadata
-		 * 7) load default insights
-		 * 8) add to localmaster and solr
+		 * 7) add to localmaster and solr
 		 */
 		if(!ExcelParsing.isExcelFile(filePath)) {
 			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -120,24 +110,24 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		// start by validation
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.databaseId, newDatabaseName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.appId, newAppName, owlFile, RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile, RdbmsTypeEnum.H2_DB, null);
+		DIHelper.getInstance().setDbProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create database store...");
-		this.engine = new RDBMSNativeEngine();
-		this.engine.setEngineId(this.appId);
-		this.engine.setEngineName(newAppName);
+		this.database = new RDBMSNativeEngine();
+		this.database.setEngineId(this.databaseId);
+		this.database.setEngineName(newDatabaseName);
 		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
-		this.engine.setProp(props);
-		this.engine.openDB(null);
+		this.database.setProp(props);
+		this.database.openDB(null);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -149,136 +139,127 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 
 		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
 		// here is where we actually insert the data
-		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, 
+		processExcelSheets(this.database, owler, this.helper, dataTypesMap, 
 				additionalDataTypeMap, newHeaders, 
 				metaDescriptions, metaLogicalNames, 
 				tableNames, uniqueColumnNames, 
 				clean, replace);
 		this.helper.clear();
 		owler.export();
-		this.engine.setOWL(owlFile.getPath());
+		this.database.setOWL(owlFile.getPath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		// everything below here is for defualt insights
-		// and for automatic forms
-		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(this.appId, newAppName, insightDatabase);
-		UploadUtilities.addInsightUsageStats(this.appId, newAppName, insightDatabase);
-		UploadUtilities.addGridDeltaInsight(this.appId, newAppName, insightDatabase);
-		UploadUtilities.addAuditModificationView(this.appId, newAppName, insightDatabase);
-		UploadUtilities.addAuditTimelineView(this.appId, newAppName, insightDatabase);
+		
+		// TODO
+		// TODO special insights for excel
 //		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
 		// create form insights
 		// user hasn't defined the data types
 		// that means i am going to assume that i should
 		// load everything
-		if (dataTypesMap == null || dataTypesMap.isEmpty()) {
-			// need to calculate all the ranges
-			ExcelWorkbookFilePreProcessor wProcessor = new ExcelWorkbookFilePreProcessor();
-			wProcessor.parse(this.helper.getFilePath());
-			wProcessor.determineTableRanges();
-			Map<String, ExcelSheetPreProcessor> sProcessor = wProcessor.getSheetProcessors();
-			for (String sheetName : sProcessor.keySet()) {
-				ExcelSheetPreProcessor sheetProcessor = sProcessor.get(sheetName);
-				List<ExcelBlock> blocks = sheetProcessor.getAllBlocks();
-				for (ExcelBlock eBlock : blocks) {
-					List<ExcelRange> ranges = eBlock.getRanges();
-					for (ExcelRange eRange : ranges) {
-						String range = eRange.getRangeSyntax();
-						boolean singleRange = (blocks.size() == 1 && ranges.size() == 1);
-						ExcelQueryStruct qs = new ExcelQueryStruct();
-						qs.setSheetName(sheetName);
-						qs.setSheetRange(range);
-						if (newHeaders.containsKey(sheetName)) {
-							Map<String, Map<String, String>> aNewHeadersMap = newHeaders.get(sheetName);
-							if (aNewHeadersMap.containsKey(range)) {
-								qs.setNewHeaderNames(aNewHeadersMap.get(range));
-							}
-						}
-						// sheetIterator will calculate all the types if
-						// necessary
-						ExcelSheetFileIterator sheetIterator = this.helper.getSheetIterator(qs);
-						Sheet sheet = sheetIterator.getSheet();
-						int[] headerIndicies = sheetIterator.getHeaderIndicies();
-						Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
-						int startRow = eRange.getStartRow();
-						SemossDataType[] types = sheetIterator.getTypes();
-						String[] headers = sheetIterator.getHeaders();
-						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
-						sheetName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
-						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
-							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap,  Arrays.copyOf(headers, headers.length));
-							UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);
-						} else {
-							// get header descriptions
-							dataValidationMap = ExcelDataValidationHelper.getHeaderComments(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
-							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
-							UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);							
-						}
-					}
-				}
-			}
-		} else {
-			// only load the things that are defined
-			for (String sheetName : dataTypesMap.keySet()) {
-				Map<String, Map<String, String>> rangeMaps = dataTypesMap.get(sheetName);
-				boolean singleRange = (rangeMaps.keySet().size() == 1);
-				for (String range : rangeMaps.keySet()) {
-					ExcelQueryStruct qs = new ExcelQueryStruct();
-					qs.setSheetName(sheetName);
-					qs.setSheetRange(range);
-					qs.setColumnTypes(rangeMaps.get(range));
-					if (additionalDataTypeMap.containsKey(sheetName)) {
-						Map<String, Map<String, String>> aRangeMap = additionalDataTypeMap.get(sheetName);
-						if (aRangeMap.containsKey(range)) {
-							qs.setAdditionalTypes(aRangeMap.get(range));
-						}
-					}
-					if (newHeaders.containsKey(sheetName)) {
-						Map<String, Map<String, String>> aNewHeadersMap = newHeaders.get(sheetName);
-						if (aNewHeadersMap.containsKey(range)) {
-							qs.setNewHeaderNames(aNewHeadersMap.get(range));
-						}
-					}
-					Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
-					ExcelSheetFileIterator sheetIterator = this.helper.getSheetIterator(qs);
-					Sheet sheet = sheetIterator.getSheet();
-					int[] headerIndicies = sheetIterator.getHeaderIndicies();
-					ExcelRange eRange = new ExcelRange(range);
-					int startRow = eRange.getStartRow();
-					SemossDataType[] types = sheetIterator.getTypes();
-					String[] headers = sheetIterator.getHeaders();
-					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
-					sheetName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
-					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
-						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
-						UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);
-					} else {
-						// get header descriptions
-						dataValidationMap = ExcelDataValidationHelper.getHeaderComments(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
-						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
-						UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);
-					}
-				}
-			}
-		}
-		this.engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
-		logger.info(stepCounter + ". Complete");
+//		if (dataTypesMap == null || dataTypesMap.isEmpty()) {
+//			// need to calculate all the ranges
+//			ExcelWorkbookFilePreProcessor wProcessor = new ExcelWorkbookFilePreProcessor();
+//			wProcessor.parse(this.helper.getFilePath());
+//			wProcessor.determineTableRanges();
+//			Map<String, ExcelSheetPreProcessor> sProcessor = wProcessor.getSheetProcessors();
+//			for (String sheetName : sProcessor.keySet()) {
+//				ExcelSheetPreProcessor sheetProcessor = sProcessor.get(sheetName);
+//				List<ExcelBlock> blocks = sheetProcessor.getAllBlocks();
+//				for (ExcelBlock eBlock : blocks) {
+//					List<ExcelRange> ranges = eBlock.getRanges();
+//					for (ExcelRange eRange : ranges) {
+//						String range = eRange.getRangeSyntax();
+//						boolean singleRange = (blocks.size() == 1 && ranges.size() == 1);
+//						ExcelQueryStruct qs = new ExcelQueryStruct();
+//						qs.setSheetName(sheetName);
+//						qs.setSheetRange(range);
+//						if (newHeaders.containsKey(sheetName)) {
+//							Map<String, Map<String, String>> aNewHeadersMap = newHeaders.get(sheetName);
+//							if (aNewHeadersMap.containsKey(range)) {
+//								qs.setNewHeaderNames(aNewHeadersMap.get(range));
+//							}
+//						}
+//						// sheetIterator will calculate all the types if
+//						// necessary
+//						ExcelSheetFileIterator sheetIterator = this.helper.getSheetIterator(qs);
+//						Sheet sheet = sheetIterator.getSheet();
+//						int[] headerIndicies = sheetIterator.getHeaderIndicies();
+//						Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
+//						int startRow = eRange.getStartRow();
+//						SemossDataType[] types = sheetIterator.getTypes();
+//						String[] headers = sheetIterator.getHeaders();
+//						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
+//						sheetName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
+//						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
+//							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap,  Arrays.copyOf(headers, headers.length));
+//							UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);
+//						} else {
+//							// get header descriptions
+//							dataValidationMap = ExcelDataValidationHelper.getHeaderComments(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
+//							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
+//							UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);							
+//						}
+//					}
+//				}
+//			}
+//		} else {
+//			// only load the things that are defined
+//			for (String sheetName : dataTypesMap.keySet()) {
+//				Map<String, Map<String, String>> rangeMaps = dataTypesMap.get(sheetName);
+//				boolean singleRange = (rangeMaps.keySet().size() == 1);
+//				for (String range : rangeMaps.keySet()) {
+//					ExcelQueryStruct qs = new ExcelQueryStruct();
+//					qs.setSheetName(sheetName);
+//					qs.setSheetRange(range);
+//					qs.setColumnTypes(rangeMaps.get(range));
+//					if (additionalDataTypeMap.containsKey(sheetName)) {
+//						Map<String, Map<String, String>> aRangeMap = additionalDataTypeMap.get(sheetName);
+//						if (aRangeMap.containsKey(range)) {
+//							qs.setAdditionalTypes(aRangeMap.get(range));
+//						}
+//					}
+//					if (newHeaders.containsKey(sheetName)) {
+//						Map<String, Map<String, String>> aNewHeadersMap = newHeaders.get(sheetName);
+//						if (aNewHeadersMap.containsKey(range)) {
+//							qs.setNewHeaderNames(aNewHeadersMap.get(range));
+//						}
+//					}
+//					Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
+//					ExcelSheetFileIterator sheetIterator = this.helper.getSheetIterator(qs);
+//					Sheet sheet = sheetIterator.getSheet();
+//					int[] headerIndicies = sheetIterator.getHeaderIndicies();
+//					ExcelRange eRange = new ExcelRange(range);
+//					int startRow = eRange.getStartRow();
+//					SemossDataType[] types = sheetIterator.getTypes();
+//					String[] headers = sheetIterator.getHeaders();
+//					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
+//					sheetName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
+//					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
+//						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
+//						UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);
+//					} else {
+//						// get header descriptions
+//						dataValidationMap = ExcelDataValidationHelper.getHeaderComments(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
+//						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
+//						UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);
+//					}
+//				}
+//			}
+//		}
 	}
 
 	@Override
-	public void addToExistingApp(String filePath) throws Exception {
+	public void addToExistingDatabase(String filePath) throws Exception {
 		if(!ExcelParsing.isExcelFile(filePath)) {
 			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException e = new SemossPixelException(error);
 			e.setContinueThreadOfExecution(false);
 			throw e;
 		}
-		if (!(this.engine instanceof RDBMSNativeEngine)) {
-			throw new IllegalArgumentException("App must be using a relational database");
+		if (!(this.database instanceof RDBMSNativeEngine)) {
+			throw new IllegalArgumentException("Database must be using a relational database");
 		}
 
 		Map<String, Map<String, Map<String, String>>> dataTypesMap = getDataTypeMap();
@@ -306,20 +287,17 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		 * make new tables We need to go to the sheet level and determine it
 		 */
 
-		Owler owler = new Owler(this.engine);
-		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, 
+		Owler owler = new Owler(this.database);
+		processExcelSheets(this.database, owler, this.helper, dataTypesMap, 
 				additionalDataTypeMap, newHeaders, 
 				metaDescriptions, metaLogicalNames, 
 				null, null, 
 				clean, replace);
 		owler.export();
-		this.engine.setOWL(this.engine.getOWL());
+		this.database.setOWL(this.database.getOWL());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
-		logger.info(stepCounter + ". Complete");
 	}
 
 	@Override
@@ -344,7 +322,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	
 	/**
 	 * Process all the excel sheets using the data type map
-	 * @param engine
+	 * @param database
 	 * @param owler
 	 * @param helper
 	 * @param dataTypesMap
@@ -357,7 +335,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @throws Exception
 	 */
 	private void processExcelSheets(
-			IEngine engine, 
+			IEngine database, 
 			Owler owler, 
 			ExcelWorkbookFileHelper helper, 
 			Map<String, Map<String, Map<String, String>>> dataTypesMap, 
@@ -427,7 +405,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 						// sheetIterator will calculate the types if necessary
 						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
 
-						processSheet(engine, owler, sheetIterator, singleRange, null, null, tableName, uniqueColumnName, clean, replace);
+						processSheet(database, owler, sheetIterator, singleRange, null, null, tableName, uniqueColumnName, clean, replace);
 					}
 				}
 			}
@@ -492,7 +470,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 					Map<String, List<String>> logicalNames = rangeLogicalNames == null ? null : rangeLogicalNames.get(range);
 					ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
 
-					processSheet(engine, owler, sheetIterator, singleRange, descriptions, logicalNames, tableName, uniqueColumnName, clean, replace);
+					processSheet(database, owler, sheetIterator, singleRange, descriptions, logicalNames, tableName, uniqueColumnName, clean, replace);
 				}
 			}
 		}
@@ -500,7 +478,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	
 	/**
 	 * Process a single sheet
-	 * @param engine
+	 * @param database
 	 * @param owler
 	 * @param helper
 	 * @param sheetname
@@ -510,7 +488,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @param logger
 	 * @throws Exception 
 	 */
-	private void processSheet(IEngine engine, Owler owler, ExcelSheetFileIterator helper, boolean singleRange, 
+	private void processSheet(IEngine database, Owler owler, ExcelSheetFileIterator helper, boolean singleRange, 
 			Map<String, String> descriptions, Map<String, List<String>> logicalNames, 
 			String sheet, String uniqueColumnName, 
 			boolean clean, boolean replace) throws Exception {
@@ -540,21 +518,21 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 		String[] sqlTypes = null;
 		try {
-			sqlTypes = RdbmsUploadReactorUtility.createNewTable(engine, tableName, uniqueRowId, headers, types, replace);
+			sqlTypes = RdbmsUploadReactorUtility.createNewTable(database, tableName, uniqueRowId, headers, types, replace);
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");
 
-		bulkInsertSheet(engine, helper, sheetName, tableName, headers, types, additionalTypes, clean, logger);
-		RdbmsUploadReactorUtility.addIndex(engine, tableName, uniqueRowId);
+		bulkInsertSheet(database, helper, sheetName, tableName, headers, types, additionalTypes, clean, logger);
+		RdbmsUploadReactorUtility.addIndex(database, tableName, uniqueRowId);
 
 		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, descriptions, logicalNames);
 	}
 
-	private void bulkInsertSheet(IEngine engine, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,
+	private void bulkInsertSheet(IEngine database, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,
 			SemossDataType[] types, String[] additionalTypes, boolean clean, Logger logger) throws IOException {
 
 		// now we need to loop through the excel sheet and cast to the appropriate type and insert
@@ -567,7 +545,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		for (int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
 			getPreparedStatementArgs[headerIndex + 1] = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
 		}
-		PreparedStatement ps = (PreparedStatement) engine.doAction(ACTION_TYPE.BULK_INSERT, getPreparedStatementArgs);
+		PreparedStatement ps = (PreparedStatement) database.doAction(ACTION_TYPE.BULK_INSERT, getPreparedStatementArgs);
 
 		// keep a batch size so we dont get heapspace
 		final int batchSize = 5000;
@@ -871,7 +849,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 //		reactor.setInsight(in);
 //		reactor.setPixelPlanner(planner);
 //		NounStore nStore = reactor.getNounStore();
-//		// app name struct
+//		// database name struct
 //		{
 //			GenRowStruct struct = new GenRowStruct();
 //			struct.add(new NounMetadata("a" + Utility.getRandomString(6), PixelDataType.CONST_STRING));

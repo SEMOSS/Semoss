@@ -18,32 +18,32 @@ import prerna.util.Utility;
 public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
 	public EditOwlLogicalNamesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
-		String appId = getAppId();
+		String databaseId = getDatabaseId();
 		// we may have an alias
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 
 		String concept = getConcept();
 		String prop = getProperty();
 		String[] logicalNames = getLogicalNames();
 
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
 		String physicalUri = null;
 		if (prop == null || prop.isEmpty()) {
-			physicalUri = engine.getPhysicalUriFromPixelSelector(concept);
+			physicalUri = database.getPhysicalUriFromPixelSelector(concept);
 		} else {
-			physicalUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + prop);
+			physicalUri = database.getPhysicalUriFromPixelSelector(concept + "__" + prop);
 		}
 		
 		// get the existing value if present
-		Set<String> existingLogicalNames = engine.getLogicalNames(physicalUri);
+		Set<String> existingLogicalNames = database.getLogicalNames(physicalUri);
 
-		Owler owler = new Owler(engine);
+		Owler owler = new Owler(database);
 		owler.deleteLogicalNames(physicalUri, existingLogicalNames);
 		owler.addLogicalNames(physicalUri, logicalNames);
 		try {
@@ -55,8 +55,8 @@ public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names",
@@ -70,12 +70,12 @@ public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	///////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////
 
-	private String getAppId() {
+	private String getDatabaseId() {
 		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {
-			String appId = (String) grs.get(0);
-			if (appId != null && !appId.isEmpty()) {
-				return appId;
+			String id = (String) grs.get(0);
+			if (id != null && !id.isEmpty()) {
+				return id;
 			}
 		}
 		throw new IllegalArgumentException("Need to define " + keysToGet[0]);

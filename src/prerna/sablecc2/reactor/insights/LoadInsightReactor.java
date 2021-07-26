@@ -13,7 +13,7 @@ public class LoadInsightReactor extends OpenInsightReactor {
 	
 	public LoadInsightReactor() {
 		this.keysToGet = new String[]{
-				ReactorKeysEnum.APP.getKey(), 
+				ReactorKeysEnum.PROJECT.getKey(), 
 				ReactorKeysEnum.ID.getKey(), 
 				ReactorKeysEnum.PARAM_KEY.getKey(), 
 				ReactorKeysEnum.ADDITIONAL_PIXELS.getKey(),

@@ -29,47 +29,11 @@ package prerna.ui.components;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.tinker.TinkerEngine;
-import prerna.poi.main.AbstractCSVFileReader;
-import prerna.poi.main.AbstractFileReader;
-import prerna.poi.main.CSVReader;
-import prerna.poi.main.NLPReader;
-import prerna.poi.main.POIReader;
-import prerna.poi.main.PropFileWriter;
-import prerna.poi.main.RDBMSFlatCSVUploader;
-import prerna.poi.main.RDBMSFlatExcelUploader;
-import prerna.poi.main.RDBMSReader;
-import prerna.poi.main.RdfExcelTableReader;
-import prerna.poi.main.TinkerCsvReader;
 import prerna.poi.main.helper.ImportOptions;
-import prerna.rdf.main.ImportRDBMSProcessor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ImportDataProcessor {
 	private static final Logger logger = LogManager.getLogger(ImportDataProcessor.class.getName());

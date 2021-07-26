@@ -1,7 +1,5 @@
 package prerna.query.querystruct;
 
-import net.sf.jsqlparser.statement.select.FromItem;
-
 // set operation is typically used for 
 
 public class OpExpression extends SelectQueryStruct

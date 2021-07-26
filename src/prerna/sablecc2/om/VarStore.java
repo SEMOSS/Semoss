@@ -1,15 +1,15 @@
 package prerna.sablecc2.om;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
@@ -38,14 +38,14 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	private List<String> insightParametersKeys;
 	
 	public VarStore() {
-		varMap = new ConcurrentHashMap<>();
-		frameKeys = new CopyOnWriteArrayList<>();
-		insightParametersKeys = new CopyOnWriteArrayList<>();
+		varMap = new HashMap<>();
+		frameKeys = new ArrayList<>();
+		insightParametersKeys = new ArrayList<>();
 		allCreatedFrames = new HashSet<>();
 	}
 	
 	@Override
-	public void put(String varName, NounMetadata variable) {
+	public synchronized void put(String varName, NounMetadata variable) {
 		varName = cleanVarName(varName);
 		if(variable.getNounType() == PixelDataType.COLUMN) {
 			if(varName.equals(variable.getValue().toString())) {
@@ -69,7 +69,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		}
 	}
 	
-	public void putAll(VarStore otherStore) {
+	public synchronized void putAll(VarStore otherStore) {
 		varMap.putAll(otherStore.varMap);
 		frameKeys.addAll(otherStore.frameKeys);
 		insightParametersKeys.addAll(otherStore.insightParametersKeys);
@@ -112,7 +112,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	}
 	
 	@Override
-	public NounMetadata remove(String varName) {
+	public synchronized NounMetadata remove(String varName) {
 		// also try to remove from frameSet if its a frame
 		this.frameKeys.remove(varName);
 		this.insightParametersKeys.remove(varName);
@@ -123,7 +123,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	 * Remove all keys 
 	 * @param keys
 	 */
-	public void removeAll(Collection<String> keys) {
+	public synchronized void removeAll(Collection<String> keys) {
 		// also try to remove from frameSet if its a frame
 		this.frameKeys.removeAll(keys);
 		this.insightParametersKeys.removeAll(keys);
@@ -131,7 +131,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	}
 	
 	@Override
-	public void clear() {
+	public synchronized void clear() {
 		this.frameKeys.clear();
 		this.insightParametersKeys.clear();
 		this.varMap.clear();
@@ -153,10 +153,17 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		return varMap.keySet();
 	}
 	
-	public List<String> getFrameKeys() {
-		return Collections.unmodifiableList(frameKeys);
+	public List<String> getFrameKeysCopy() {
+		return new ArrayList<>(frameKeys);
 	}
 	
+	/**
+	 * This method returns all the created frames
+	 * This is not a copy - so beware of concurrent modifications
+	 * This is only used right now when we are clearing the insight
+	 * and want to release all the frames used
+	 * @return
+	 */
 	public Set<ITableDataFrame> getAllCreatedFrames() {
 		return allCreatedFrames;
 	}

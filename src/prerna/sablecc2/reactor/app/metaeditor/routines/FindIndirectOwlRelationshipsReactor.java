@@ -32,15 +32,15 @@ public class FindIndirectOwlRelationshipsReactor extends AbstractMetaEditorReact
 	 */
 	
 	public FindIndirectOwlRelationshipsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), TABLES_FILTER};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), TABLES_FILTER};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = testAppId(appId, false);
+		databaseId = testDatabaseId(databaseId, false);
 		List<String> filters = getTableFilters();
 
 		// make sure R is good to go
@@ -51,13 +51,13 @@ public class FindIndirectOwlRelationshipsReactor extends AbstractMetaEditorReact
 		String[] packages = { "stringdist", "data.table" };
 		rJavaTranslator.checkPackages(packages);
 		
-		IEngine app = Utility.getEngine(appId);
+		IEngine database = Utility.getEngine(databaseId);
 		
 		// get 2 lists
 		// of all table names
 		// and column names
 		// matched by index
-		List<String>[] lists = getTablesAndColumnsList(app, filters);
+		List<String>[] lists = getTablesAndColumnsList(database, filters);
 		List<String> tableNamesList = lists[0];
 		List<String> columnNamesList = lists[1];
 		

@@ -17,33 +17,33 @@ import prerna.util.git.GitUtils;
 public class GitStatusReactor extends AbstractReactor {
 
 	public GitStatusReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		
-		String appId = this.keyValue.get(this.keysToGet[0]);
-		if(appId == null || appId.isEmpty()) {
-			throw new IllegalArgumentException("Need to provide the app name");
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		if(databaseId == null || databaseId.isEmpty()) {
+			throw new IllegalArgumentException("Need to provide the database id");
 		}
 		
-		String appName = null;
+		String databaseName = null;
 		
 		// you can only push
 		// if you are the owner
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
-				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 			}
-			appName = SecurityQueryUtils.getEngineAliasForId(appId);
+			databaseName = SecurityQueryUtils.getDatabaseAliasForId(databaseId);
 		} else {
-			appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		}
 		
-		List<Map<String, String>> fileInfo = GitUtils.getStatus(appId, appName);
+		List<Map<String, String>> fileInfo = GitUtils.getStatus(databaseId, databaseName);
 		return new NounMetadata(fileInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.MARKET_PLACE);
 	}
 

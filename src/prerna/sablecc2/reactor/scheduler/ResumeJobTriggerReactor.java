@@ -45,7 +45,7 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 		// user must be an admin or editor of the app
 		// to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityAppUtils.userCanEditEngine(user, jobGroup)) {
+		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityAppUtils.userCanEditDatabase(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
 		

@@ -18,7 +18,7 @@ public class MosfetFile {
 	public static final String RECIPE_FILE = ".mosfet";
 
 	// insight identifiers
-	private String engineId;
+	private String projectId;
 	private String rdbmsId;
 	private String insightName;
 	private String layout;
@@ -107,12 +107,12 @@ public class MosfetFile {
 	 * Setters and getters
 	 */
 	
-	public String getEngineId() {
-		return engineId;
+	public String getProjectId() {
+		return projectId;
 	}
 
-	public void setEngineId(String engineId) {
-		this.engineId = engineId;
+	public void setProjectId(String projectId) {
+		this.projectId = projectId;
 	}
 
 	public String getRdbmsId() {

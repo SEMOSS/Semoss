@@ -8,15 +8,13 @@ import org.apache.commons.io.FileUtils;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 public class DeleteUserAssetReactor extends AbstractReactor {
@@ -37,28 +35,24 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input file path and file name to delete");
 		}
 		
-		String assetEngineID = null;
+		String assetProjectId = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-		User user = this.insight.getUser();
-		if(user != null){
-			AuthProvider token = user.getPrimaryLogin();
-			if(token != null){
-				 assetEngineID = user.getAssetEngineId(token);
-				 Utility.getEngine(assetEngineID);
+			User user = this.insight.getUser();
+			if(user != null){
+				AuthProvider token = user.getPrimaryLogin();
+				if(token != null){
+					assetProjectId = user.getAssetProjectId(token);
+					Utility.getProject(assetProjectId);
+				}
 			}
 		}
-		}
-		
-		if(assetEngineID == null){
+
+		if(assetProjectId == null){
 			throw new IllegalArgumentException("Unable to find user asset app");
 		}
 
-		String userFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
-				WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID + DIR_SEPARATOR + "version";
-
+		String userFolder = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, true);
 		File relativeFile = new File(userFolder + DIR_SEPARATOR + relativeFilePath);
-		
-		
 		if(!relativeFile.exists()){
 			throw new IllegalArgumentException("File/Folder does not exist that this location");
 		}
@@ -70,11 +64,9 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 				FileUtils.deleteDirectory(relativeFile);
 				deleted = true;
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			catch (IllegalArgumentException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		} else{
@@ -82,7 +74,7 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 		}
 		
 		//When i get appId
-		ClusterUtil.reactorPushApp(assetEngineID);
+		ClusterUtil.reactorPushProject(assetProjectId);
 
 		
 		return new NounMetadata(deleted, PixelDataType.BOOLEAN, PixelOperationType.USER_DIR);

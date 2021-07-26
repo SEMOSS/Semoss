@@ -20,7 +20,7 @@ import prerna.util.Utility;
 public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 
 	public AddOwlConceptReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
 				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(),
 				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), CONCEPTUAL_NAME, ReactorKeysEnum.DESCRIPTION.getKey(),
 				ReactorKeysEnum.LOGICAL_NAME.getKey() };
@@ -30,26 +30,26 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if (concept == null || concept.isEmpty()) {
-			throw new IllegalArgumentException("Must define the concept being added to the app metadata");
+			throw new IllegalArgumentException("Must define the concept being added to the database metadata");
 		}
 
 		// if RDBMS, we need to know the prim key of the column
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
 		String column = this.keyValue.get(this.keysToGet[2]);
-		if ((column == null || column.isEmpty()) && engine.getEngineType() == ENGINE_TYPE.RDBMS) {
-			throw new IllegalArgumentException("Must define the column for the concept being added to the app metadata");
+		if ((column == null || column.isEmpty()) && database.getEngineType() == ENGINE_TYPE.RDBMS) {
+			throw new IllegalArgumentException("Must define the column for the concept being added to the database metadata");
 		}
 		String dataType = this.keyValue.get(this.keysToGet[3]);
 		if (dataType == null || dataType.isEmpty()) {
-			throw new IllegalArgumentException("Must define the data type for the concept being added to the app metadata");
+			throw new IllegalArgumentException("Must define the data type for the concept being added to the database metadata");
 		}
 		
 		// TODO: need to account for this on concepts!!!!
@@ -63,7 +63,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 			conceptual = conceptual.replaceAll("_{2,}", "_");
 		}
 
-		List<String> concepts = engine.getPhysicalConcepts();
+		List<String> concepts = database.getPhysicalConcepts();
 		for (String conceptUri : concepts) {
 			String table = Utility.getInstanceName(conceptUri);
 			if (table.equalsIgnoreCase(concept)) {
@@ -72,7 +72,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 			}
 		}
 
-		Owler owler = getOWLER(appId);
+		Owler owler = getOWLER(databaseId);
 //		String physicalUri = owler.addConcept(concept, column, dataType, conceptual);
 //
 //		// now add the description (checks done in method)
@@ -93,8 +93,8 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully added new concept", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

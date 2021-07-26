@@ -40,12 +40,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.ui.components.specific.tap.ServiceSelectPanel;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
 import prerna.ui.components.specific.tap.SystemListComboBox;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Controls the selection of a repository.
@@ -95,7 +97,8 @@ public class RepoSelectionListener implements ListSelectionListener {
 			// and then loads perspectives etc.
 			// once this is done.. keep the core properties pointed to it / need to modify the calls on process query listener etc.
 			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(selectedValue);
-			Vector<String> perspectives = engine.getPerspectives();
+			IProject project = Utility.getProject(engine.getEngineId());
+			Vector<String> perspectives = project.getPerspectives();
 			Collections.sort(perspectives);
 			
 			JComboBox<String> box = (JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE_SELECTOR);

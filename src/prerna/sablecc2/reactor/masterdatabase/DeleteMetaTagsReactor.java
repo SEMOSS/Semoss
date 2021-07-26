@@ -20,7 +20,7 @@ public class DeleteMetaTagsReactor extends  AbstractMetaDBReactor {
 	@Override
 	public NounMetadata execute() {
 		String engineId = getEngineId();
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
 		String concept = getConcept();
 		List<String> valuesToDelete = getValues();
 		String oldTagList = MasterDatabaseUtility.getMetadataValue(engineId, concept, Constants.TAG);

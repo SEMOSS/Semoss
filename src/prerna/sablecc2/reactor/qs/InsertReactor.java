@@ -82,7 +82,7 @@ public class InsertReactor extends AbstractReactor {
 				}
 				
 				// If security is enabled, then check that the user can edit the engine
-				if (AbstractSecurityUtils.securityEnabled() && !SecurityAppUtils.userCanEditEngine(user, engine.getEngineId())) {
+				if (AbstractSecurityUtils.securityEnabled() && !SecurityAppUtils.userCanEditDatabase(user, engine.getEngineId())) {
 					throw new IllegalArgumentException("User does not have permission to insert query for this app");
 				}
 			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
@@ -318,7 +318,7 @@ public class InsertReactor extends AbstractReactor {
 				}
 			}
 			// push back to the cluster
-			ClusterUtil.reactorPushApp(engine.getEngineId());
+			ClusterUtil.reactorPushDatabase(engine.getEngineId());
 		}
 	}
 	

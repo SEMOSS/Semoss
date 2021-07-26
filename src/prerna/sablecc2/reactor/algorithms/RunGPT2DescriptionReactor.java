@@ -23,7 +23,7 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 	private static final String NUMBER_DESCRIPTIONS = "numDescriptions";
 
 	public RunGPT2DescriptionReactor() {
-		this.keysToGet = new String[] { DESCRIPTION_TYPE, ReactorKeysEnum.APP.getKey(),
+		this.keysToGet = new String[] { DESCRIPTION_TYPE, ReactorKeysEnum.DATABASE.getKey(),
 				ReactorKeysEnum.TABLE.getKey() , NUMBER_DESCRIPTIONS };
 	}
 
@@ -40,7 +40,7 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 		
 		// get inputs
 		String descType = getInputString(DESCRIPTION_TYPE);
-		String appId = getInputString(ReactorKeysEnum.APP.getKey());
+		String databaseId = getInputString(ReactorKeysEnum.DATABASE.getKey());
 		String tableName = getInputString(ReactorKeysEnum.TABLE.getKey());
 		int numDescriptions = getInputInt(NUMBER_DESCRIPTIONS);
 
@@ -50,16 +50,16 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 		rsb.append(source.replace("\\", "/"));
 		
 		// get the db table
-		String dbTable = getDbTable(appId,tableName);
+		String dbTable = getDbTable(databaseId,tableName);
 		
-		// run the function on either table or app
+		// run the function on either table or database
 		String result = "result" + Utility.getRandomString(6);
 		String inputVar = "inputVar" + Utility.getRandomString(6);
 		if(descType.equals("Table")) {
-			rsb.append(inputVar + " <-" + dbTable + "[" + dbTable + "$Table==\"" + appId + "._." + tableName + "\",]$Column;");
+			rsb.append(inputVar + " <-" + dbTable + "[" + dbTable + "$Table==\"" + databaseId + "._." + tableName + "\",]$Column;");
 			rsb.append(result + " <- infer_tbl_desc(" + inputVar + ", qty=" + numDescriptions + ");");
 		} else if(descType.equals("App")) {
-			rsb.append(inputVar + " <-" + dbTable + "[" + dbTable + "$AppID==\"" + appId + "\",];");
+			rsb.append(inputVar + " <-" + dbTable + "[" + dbTable + "$AppID==\"" + databaseId + "\",];");
 			rsb.append(result + " <- infer_db_desc(" + inputVar + ", qty=" + numDescriptions + ");");
 		} 
 		
@@ -74,11 +74,11 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 		return new NounMetadata(resultStrings, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
-	private String getDbTable(String appId, String tableName) {
+	private String getDbTable(String databaseId, String tableName) {
 		StringBuilder sessionTableBuilder = new StringBuilder();
 
 		// first get the total number of cols
-		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(appId);
+		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(databaseId);
 		int totalColCount = allTableCols.size();
 
 		// start building script
@@ -100,14 +100,14 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 					String dataType = entry[2].toString();
 					String pk = entry[3].toString().toUpperCase();
 					if (i == 0) {
-						rAppIds += "'" + appId + "'";
-						rTableNames += "'" + appId + "._." + table + "'";
+						rAppIds += "'" + databaseId + "'";
+						rTableNames += "'" + databaseId + "._." + table + "'";
 						rColNames += "'" + column + "'";
 						rColTypes += "'" + dataType + "'";
 						rPrimKey += "'" + pk + "'";
 					} else {
-						rAppIds += ",'" + appId + "'";
-						rTableNames += ",'" + appId + "._." + table + "'";
+						rAppIds += ",'" + databaseId + "'";
+						rTableNames += ",'" + databaseId + "._." + table + "'";
 						rColNames += ",'" + column + "'";
 						rColTypes += ",'" + dataType + "'";
 						rPrimKey += ",'" + pk + "'";

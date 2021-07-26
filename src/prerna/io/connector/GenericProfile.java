@@ -5,7 +5,6 @@ import java.util.Hashtable;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.io.connector.IConnectorIOp;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.BeanFiller;
 

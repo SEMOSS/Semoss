@@ -19,7 +19,6 @@ import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
@@ -41,7 +40,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	protected static final String GLOBAL = "global";
 
 	public NLSQueryHelperReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.APP.getKey(), HELP_ON,
+		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey(), HELP_ON,
 				GLOBAL };
 	}
 
@@ -63,46 +62,46 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		String[] packages = new String[] { "igraph", "SteinerNet", "data.table" , "tools" };
 		this.rJavaTranslator.checkPackages(packages);
 		String query = this.keyValue.get(this.keysToGet[0]);
-		List<String> engineFilters = getEngineIds();
+		List<String> dbFilters = getDatabaseIds();
 
 		// Generate string to initialize R console
 		this.rJavaTranslator.runR(RSyntaxHelper.loadPackages(packages));
 		
 		// need to validate that the user has access to these ids
-		if (engineFilters.size() > 0) {
+		if (dbFilters.size() > 0) {
 			if (AbstractSecurityUtils.securityEnabled()) {
-				List<String> userIds = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+				List<String> databaseIds = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 				// make sure our ids are a complete subset of the user ids
 				// user defined list must always be a subset of all the engine ids
-				if (!userIds.containsAll(engineFilters)) {
+				if (!databaseIds.containsAll(dbFilters)) {
 					throw new IllegalArgumentException(
-							"Attempting to filter to app ids that user does not have access to or do not exist");
+							"Attempting to filter to database ids that user does not have access to or do not exist");
 				}
 			} else {
-				List<String> allIds = MasterDatabaseUtility.getAllEngineIds();
-				if (!allIds.containsAll(engineFilters)) {
-					throw new IllegalArgumentException("Attempting to filter to app ids that not exist");
+				List<String> allIds = MasterDatabaseUtility.getAllDatabaseIds();
+				if (!allIds.containsAll(dbFilters)) {
+					throw new IllegalArgumentException("Attempting to filter to database ids that not exist");
 				}
 			}
 		} else {
 			if (AbstractSecurityUtils.securityEnabled()) {
-				engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+				dbFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 			} else {
-				engineFilters = MasterDatabaseUtility.getAllEngineIds();
+				dbFilters = MasterDatabaseUtility.getAllDatabaseIds();
 			}
 		}
 		
-		//pull asset app
+		//pull asset database
 		//set default paths
 		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			String appId = user.getAssetEngineId(user.getPrimaryLogin());
-			String appName = "Asset";
-			if (appId != null && !(appId.isEmpty())) {
-				IEngine assetApp = Utility.getEngine(appId);
-				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPullFolder(assetApp, savePath);
+			String databaseId = user.getAssetProjectId(user.getPrimaryLogin());
+			String databaseName = "Asset";
+			if (databaseId != null && !(databaseId.isEmpty())) {
+				IEngine assetDb = Utility.getEngine(databaseId);
+				savePath = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPullDatabaseFolder(assetDb, savePath);
 			}
 		}
 		savePath = savePath.replace("\\", "/"); 
@@ -139,7 +138,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		// handle differently depending on whether it is from the frame or global
 		// convert json input into java map
 		String queryTable = getQueryTableFromJson(query);
-		String colHeadersAndTypesFrame = getColHeadersAndTypes(global,engineFilters);
+		String colHeadersAndTypesFrame = getColHeadersAndTypes(global,dbFilters);
 		Object[] retData = getDropdownItems(queryTable, colHeadersAndTypesFrame);
 		
 		// reset wd
@@ -152,15 +151,15 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			retData = new String[0];
 		}
 		
-		// push asset app
+		// push asset database
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			String appId = user.getAssetEngineId(user.getPrimaryLogin());
-			String appName = "Asset";
-			if (appId != null && !(appId.isEmpty())) {
-				IEngine assetApp = Utility.getEngine(appId);
-				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPushFolder(assetApp, savePath);
+			String databaseId = user.getAssetProjectId(user.getPrimaryLogin());
+			String databaseName = "Asset";
+			if (databaseId != null && !(databaseId.isEmpty())) {
+				IEngine assetDb = Utility.getEngine(databaseId);
+				savePath = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPushDatabaseFolder(assetDb, savePath);
 			}
 		}
 
@@ -168,7 +167,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		return new NounMetadata(retData, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
-	private String getColHeadersAndTypes(boolean global, List<String> engineFilters) {
+	private String getColHeadersAndTypes(boolean global, List<String> dbFilters) {
 		String dbTable = "db_" + Utility.getRandomString(6);
 		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
 		
@@ -180,8 +179,8 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			String appFilters = "appFilters" + Utility.getRandomString(8);
 			rsb.append(appFilters + " <- c(");
 			String comma = "";
-			for (String appId : engineFilters) {
-				rsb.append(comma + " \"" + appId + "\" ");
+			for (String dbId : dbFilters) {
+				rsb.append(comma + " \"" + dbId + "\" ");
 				comma = " , ";
 			}
 			rsb.append(");");
@@ -455,12 +454,12 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		sessionTableBuilder.append("source(\"" + filePath + "data_inquiry_guide.R\");");
 		sessionTableBuilder.append("source(\"" + filePath + "data_inquiry_assembly.R\");");
 
-		// use all the apps
+		// use all the databases
 		List<String> engineFilters = null;
 		if (AbstractSecurityUtils.securityEnabled()) {
-			engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			engineFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 		} else {
-			engineFilters = MasterDatabaseUtility.getAllEngineIds();
+			engineFilters = MasterDatabaseUtility.getAllDatabaseIds();
 		}
 
 		// first get the total number of cols and relationships
@@ -470,16 +469,16 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		int totalColCount = allTableCols.size();
 
 		// start building script
-		String rAppIds = "c(";
+		String rDatabaseIds = "c(";
 		String rTableNames = "c(";
 		String rColNames = "c(";
 		String rColTypes = "c(";
 		String rPrimKey = "c(";
 
-		// create R vector of appid, tables, and columns
+		// create R vector of dbId, tables, and columns
 		for (int i = 0; i < totalColCount; i++) {
 			Object[] entry = allTableCols.get(i);
-			String appId = entry[0].toString();
+			String databaseId = entry[0].toString();
 			String table = entry[1].toString();
 			if (entry[0] != null && entry[1] != null && entry[2] != null && entry[3] != null && entry[4] != null) {
 				String column = entry[2].toString();
@@ -487,14 +486,14 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 				String pk = entry[4].toString().toUpperCase();
 
 				if (i == 0) {
-					rAppIds += "'" + appId + "'";
-					rTableNames += "'" + appId + "._." + table + "'";
+					rDatabaseIds += "'" + databaseId + "'";
+					rTableNames += "'" + databaseId + "._." + table + "'";
 					rColNames += "'" + column + "'";
 					rColTypes += "'" + dataType + "'";
 					rPrimKey += "'" + pk + "'";
 				} else {
-					rAppIds += ",'" + appId + "'";
-					rTableNames += ",'" + appId + "._." + table + "'";
+					rDatabaseIds += ",'" + databaseId + "'";
+					rTableNames += ",'" + databaseId + "._." + table + "'";
 					rColNames += ",'" + column + "'";
 					rColTypes += ",'" + dataType + "'";
 					rPrimKey += ",'" + pk + "'";
@@ -503,7 +502,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		}
 
 		// create R vector of table columns and table rows
-		String rAppIDsJoin = "c(";
+		String rDatabaseIdsJoin = "c(";
 		String rTbl1 = "c(";
 		String rTbl2 = "c(";
 		String rJoinBy1 = "c(";
@@ -512,7 +511,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		int firstRel = 0;
 		for (int i = 0; i < totalNumRels; i++) {
 			String[] entry = allRelations.get(i);
-			String appId = entry[0];
+			String databaseId = entry[0];
 			String rel = entry[3];
 
 			String[] relSplit = rel.split("\\.");
@@ -527,23 +526,23 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 				// loop increments even if relSplit.length != 4
 				// whereas firstRel only increases if something is added to frame
 				if (firstRel == 0) {
-					rAppIDsJoin += "'" + appId + "'";
-					rTbl1 += "'" + appId + "._." + sourceTable + "'";
-					rTbl2 += "'" + appId + "._." + targetTable + "'";
+					rDatabaseIdsJoin += "'" + databaseId + "'";
+					rTbl1 += "'" + databaseId + "._." + sourceTable + "'";
+					rTbl2 += "'" + databaseId + "._." + targetTable + "'";
 					rJoinBy1 += "'" + sourceColumn + "'";
 					rJoinBy2 += "'" + targetColumn + "'";
 				} else {
-					rAppIDsJoin += ",'" + appId + "'";
-					rTbl1 += ",'" + appId + "._." + sourceTable + "'";
-					rTbl2 += ",'" + appId + "._." + targetTable + "'";
+					rDatabaseIdsJoin += ",'" + databaseId + "'";
+					rTbl1 += ",'" + databaseId + "._." + sourceTable + "'";
+					rTbl2 += ",'" + databaseId + "._." + targetTable + "'";
 					rJoinBy1 += ",'" + sourceColumn + "'";
 					rJoinBy2 += ",'" + targetColumn + "'";
 				}
 
 				if (sourceColumn.endsWith("_FK")) {
 					// if column ends with a _FK, then add it to NaturalLangTable also
-					rAppIds += ",'" + appId + "'";
-					rTableNames += ",'" + appId + "._." + sourceTable + "'";
+					rDatabaseIds += ",'" + databaseId + "'";
+					rTableNames += ",'" + databaseId + "._." + sourceTable + "'";
 					rColNames += ",'" + sourceColumn + "'";
 					rColTypes += ", 'STRING' ";
 					rPrimKey += ", 'FALSE' ";
@@ -557,15 +556,15 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 				String targetTable = entry[2];
 				String targetColumn = entry[2];
 				if (firstRel == 0) {
-					rAppIDsJoin += "'" + appId + "'";
-					rTbl1 += "'" + appId + "._." + sourceTable + "'";
-					rTbl2 += "'" + appId + "._." + targetTable + "'";
+					rDatabaseIdsJoin += "'" + databaseId + "'";
+					rTbl1 += "'" + databaseId + "._." + sourceTable + "'";
+					rTbl2 += "'" + databaseId + "._." + targetTable + "'";
 					rJoinBy1 += "'" + sourceColumn + "'";
 					rJoinBy2 += "'" + targetColumn + "'";
 				} else {
-					rAppIDsJoin += ",'" + appId + "'";
-					rTbl1 += ",'" + appId + "._." + sourceTable + "'";
-					rTbl2 += ",'" + appId + "._." + targetTable + "'";
+					rDatabaseIdsJoin += ",'" + databaseId + "'";
+					rTbl1 += ",'" + databaseId + "._." + sourceTable + "'";
+					rTbl2 += ",'" + databaseId + "._." + targetTable + "'";
 					rJoinBy1 += ",'" + sourceColumn + "'";
 					rJoinBy2 += ",'" + targetColumn + "'";
 				}
@@ -575,12 +574,12 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		}
 
 		// close all the arrays created
-		rAppIds += ")";
+		rDatabaseIds += ")";
 		rTableNames += ")";
 		rColNames += ")";
 		rColTypes += ")";
 		rPrimKey += ")";
-		rAppIDsJoin += ")";
+		rDatabaseIdsJoin += ")";
 		rTbl1 += ")";
 		rTbl2 += ")";
 		rJoinBy1 += ")";
@@ -588,7 +587,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 		// address where there were no rels
 		if (totalNumRels == 0) {
-			rAppIDsJoin = "character(0)";
+			rDatabaseIdsJoin = "character(0)";
 			rTbl1 = "character(0)";
 			rTbl2 = "character(0)";
 			rJoinBy1 = "character(0)";
@@ -599,10 +598,10 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		String db = "nldrDb" + Utility.getRandomString(5);
 		String joins = "nldrJoins" + Utility.getRandomString(5);
 		sessionTableBuilder.append(
-				db + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds
+				db + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rDatabaseIds
 						+ ", Datatype = " + rColTypes + ", Key = " + rPrimKey + ", stringsAsFactors = FALSE);");
 		sessionTableBuilder.append(joins + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = "
-				+ rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDsJoin + ", stringsAsFactors = FALSE);");
+				+ rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rDatabaseIdsJoin + ", stringsAsFactors = FALSE);");
 
 		// run the cluster tables function
 		sessionTableBuilder.append("cluster_tables (" + db + "," + joins + ");");
@@ -622,14 +621,14 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	 * 
 	 * @return
 	 */
-	private List<String> getEngineIds() {
-		List<String> engineFilters = new Vector<String>();
-		GenRowStruct engineGrs = this.store.getNoun(this.keysToGet[1]);
-		for (int i = 0; i < engineGrs.size(); i++) {
-			engineFilters.add(engineGrs.get(i).toString());
+	private List<String> getDatabaseIds() {
+		List<String> dbFilters = new Vector<String>();
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		for (int i = 0; i < grs.size(); i++) {
+			dbFilters.add(grs.get(i).toString());
 		}
 
-		return engineFilters;
+		return dbFilters;
 	}
 
 	private boolean getHelpOn() {

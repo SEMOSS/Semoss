@@ -38,10 +38,12 @@ import javax.swing.JTextField;
 
 import prerna.engine.api.IEngine;
 import prerna.om.OldInsight;
+import prerna.project.api.IProject;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class QuestionPlaySheetListListener implements IChakraListener {
 
@@ -75,7 +77,8 @@ public class QuestionPlaySheetListListener implements IChakraListener {
 							.getLocalProp(Constants.QUESTION_DB_SELECTOR);
 					String engineName = (String) questionDBSelector.getSelectedItem();
 					IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-					OldInsight in = (OldInsight) engine.getInsight(questionId).get(0);
+					IProject project = Utility.getProject(engine.getEngineId());
+					OldInsight in = (OldInsight) project.getInsight(questionId).get(0);
 					questionLayoutField.setText(in.getOutput());
 				}
 			} else {

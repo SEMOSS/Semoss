@@ -4,20 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GCPClient extends S3Client{
 
-	
-	private static Logger logger = LogManager.getLogger(S3Client.class);
-
 	private static final String PROVIDER = "google cloud storage";
-	private static final String SMSS_POSTFIX = "-smss";
 
 	private static String REGION = null;
 	private static String RCLONE = "rclone";
@@ -32,10 +25,6 @@ public class GCPClient extends S3Client{
 	static GCPClient client = null;
 	static String rcloneConfigFolder = null;
 
-	protected GCPClient() {
-
-	}
-	
 	// create an instance
 	// Also needs to be synchronized so multiple calls don't try to init at the same
 	// time
@@ -104,20 +93,7 @@ public class GCPClient extends S3Client{
 
 		runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "service_account_file",
 				GCP_SERVICE_ACCOUNT_FILE, "location", REGION , "bucket_policy_only", "true");
-		
 	
 		return rcloneConfig;
 	}
-
-//	@Override
-//	public static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
-//		String configPath = getConfigPath(rcloneConfig);
-//		try {
-//			runRcloneProcess(rcloneConfig, RCLONE, "config", "delete", rcloneConfig);
-//		} finally {
-//			new File(configPath).delete();
-//		}
-//	}
-
-
 }
