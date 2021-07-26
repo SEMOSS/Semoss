@@ -169,41 +169,30 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		// if the type is join.. you need to do other things
 		//System.err.println("Processing  " + qs.aQuery + " <>" + qs.expression + "<>" + qs.operation);
 		String newLine = "\n";
-		if(buf == null)
+		if(buf == null) {
 			buf = new StringBuffer();
+		}
 		boolean processed = false;
-		if(qs != null && qs.operation != null && !qs.neutralize)
-		{
-			if(qs.operation.equalsIgnoreCase("select") || qs.operation.equalsIgnoreCase("querystruct"))
-			{
+		if(qs != null && qs.operation != null && !qs.neutralize) {
+			if(qs.operation.equalsIgnoreCase("select") || qs.operation.equalsIgnoreCase("querystruct")) {
 				buf.append(newLine);
 				buf.append("SELECT  ");
 				if(qs.distinct) {
 					buf.append(" DISTINCT ");
 				}
-				for(int selIndex = 0;selIndex < qs.nselectors.size();selIndex++)
-				{
+				for(int selIndex = 0;selIndex < qs.nselectors.size();selIndex++) {
 					GenExpression sqs = qs.nselectors.get(selIndex);
-					
 					// need to handle telescope
-					
-
 					StringBuffer newBuf = printQS(sqs, null);
-					
-					if(newBuf != null && newBuf.length() > 0)
-					{
-						if(selIndex > 0)
+					if(newBuf != null && newBuf.length() > 0) {
+						if(selIndex > 0) {
 							buf.append(", ");
-
-						if(sqs.operation != null && sqs.operation.equalsIgnoreCase("querystruct"))		
-						{
+						}
+						if(sqs.operation != null && sqs.operation.equalsIgnoreCase("querystruct")) {
 							buf.append("(");
 						}
-					
 						buf.append(newBuf);
-						
-						if(sqs.operation != null && sqs.operation.equalsIgnoreCase("querystruct"))		
-						{
+						if(sqs.operation != null && sqs.operation.equalsIgnoreCase("querystruct")) {
 							buf.append(")");
 						}
 					}
@@ -232,11 +221,11 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 					buf.append("(");
 				}
 				// working with user table set
-				if(qs.userTableAlias != null)
+				if(qs.userTableAlias != null) {
 					buf.append(qs.userTableAlias).append(".");
-				else if(qs.userTableName != null)
+				} else if(qs.userTableName != null) {
 					buf.append(qs.userTableName).append(".");
-				
+				}
 				/*
 				if(qs.tableAlias != null && !qs.tableAlias.isEmpty()) {
 					buf.append(qs.tableAlias);
