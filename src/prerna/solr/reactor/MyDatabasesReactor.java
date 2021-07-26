@@ -46,21 +46,21 @@ public class MyDatabasesReactor extends AbstractReactor {
 			sortCol = "name";
 		}
 		
-		List<Map<String, Object>> appInfo = new Vector<>();
+		List<Map<String, Object>> dbInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly);
-			this.insight.getUser().setEngines(appInfo);
+			dbInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser(), favoritesOnly);
+			this.insight.getUser().setEngines(dbInfo);
 		} else {
-			appInfo = SecurityQueryUtils.getAllDatabaseList();
+			dbInfo = SecurityQueryUtils.getAllDatabaseList();
 		}
 
-		Map<String, Integer> index = new HashMap<>(appInfo.size());
-		int size = appInfo.size();
+		Map<String, Integer> index = new HashMap<>(dbInfo.size());
+		int size = dbInfo.size();
 		// now we want to add most executed insights
 		for(int i = 0; i < size; i++) {
-			Map<String, Object> app = appInfo.get(i);
-			String appId = app.get("app_id").toString();
+			Map<String, Object> app = dbInfo.get(i);
+			String appId = app.get("database_id").toString();
 			// keep list of app ids to get the index
 			index.put(appId, Integer.valueOf(i));
 		}
@@ -79,7 +79,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 				}
 
 				int indexToFind = index.get(appId);
-				Map<String, Object> res = appInfo.get(indexToFind);
+				Map<String, Object> res = dbInfo.get(indexToFind);
 				// right now only handling description + tags
 				if(metaKey.equals("description")) {
 					// we only have 1 description per insight
@@ -102,7 +102,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 		
 		// need to go through and sort the values
 		if(sortCol.equalsIgnoreCase("date")) {
-			Collections.sort(appInfo, new Comparator<Map<String, Object>>() {
+			Collections.sort(dbInfo, new Comparator<Map<String, Object>>() {
 
 				// we want descending - not ascending
 				// so values are swapped
@@ -122,21 +122,21 @@ public class MyDatabasesReactor extends AbstractReactor {
 				}
 			});
 		} else {
-			Collections.sort(appInfo, new Comparator<Map<String, Object>>() {
+			Collections.sort(dbInfo, new Comparator<Map<String, Object>>() {
 
 				// we want descending - not ascending
 				// so values are swapped
 				@Override
 				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-					String name1 = (String) o1.get("low_app_name");
-					String name2 = (String) o2.get("low_app_name");
+					String name1 = (String) o1.get("low_database_name");
+					String name2 = (String) o2.get("low_database_name");
 					
 					return name1.compareTo(name2);
 				}
 			});
 		}
 
-		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+		return new NounMetadata(dbInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
 	@Override

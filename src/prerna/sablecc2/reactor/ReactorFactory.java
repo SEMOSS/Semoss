@@ -409,7 +409,6 @@ import prerna.sablecc2.reactor.workspace.UserDirReactor;
 import prerna.solr.reactor.DatabaseInfoReactor;
 import prerna.solr.reactor.DatabaseUsersReactor;
 import prerna.solr.reactor.GetInsightsReactor;
-import prerna.solr.reactor.MyAppsReactor;
 import prerna.solr.reactor.MyDatabasesReactor;
 import prerna.solr.reactor.SetAppDescriptionReactor;
 import prerna.solr.reactor.SetAppTagsReactor;
@@ -1061,7 +1060,7 @@ public class ReactorFactory {
 		reactorHash.put("SyncAppFilesO", SyncAppFilesO.class);
 		
 		// App Metadata
-		reactorHash.put("MyApps", MyAppsReactor.class);
+//		reactorHash.put("MyApps", MyAppsReactor.class);
 		reactorHash.put("MyDatabases", MyDatabasesReactor.class);
 		reactorHash.put("DatabaseInfo", DatabaseInfoReactor.class);
 		reactorHash.put("DatabaseUsersReactor", DatabaseUsersReactor.class);

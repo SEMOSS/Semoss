@@ -343,10 +343,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_app_name");
+		fun.setAlias("low_database_name");
 		qs1.addSelector(fun);
 		// filters
 		{
@@ -449,6 +453,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
