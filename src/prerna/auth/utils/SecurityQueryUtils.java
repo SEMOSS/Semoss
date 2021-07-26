@@ -607,6 +607,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList(List<String> dbTypeFilter) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
