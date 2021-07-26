@@ -13,8 +13,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 public class NewDirReactor extends AbstractReactor {
@@ -31,32 +30,27 @@ public class NewDirReactor extends AbstractReactor {
 		organizeKeys();
 		String relativePath = this.keyValue.get(this.keysToGet[0]);
 
-
-
 		if(relativePath == null || relativePath.isEmpty() ) {
 			throw new IllegalArgumentException("Must input file path and file name to delete");
 		}
 
-
-		String assetEngineID = null;
+		String assetProjectId = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
 			if(user != null){
 				AuthProvider token = user.getPrimaryLogin();
 				if(token != null){
-					assetEngineID = user.getAssetEngineId(token);
-					Utility.getEngine(assetEngineID);
+					assetProjectId = user.getAssetProjectId(token);
+					Utility.getProject(assetProjectId);
 				}
 			}
 		}
 
-		if(assetEngineID == null){
+		if(assetProjectId == null){
 			throw new IllegalArgumentException("Unable to find user asset app");
 		}
 
-		String userFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
-				WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID + DIR_SEPARATOR +  "version";
-
+		String userFolder = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, true);
 		File relativeFolder = new File(userFolder + DIR_SEPARATOR + relativePath);
 
 		Boolean created = false;
@@ -66,9 +60,7 @@ public class NewDirReactor extends AbstractReactor {
 			created = relativeFolder.mkdirs();
 			//made folder but now we need to add a hidden file for the cloud 
 			if(ClusterUtil.IS_CLUSTER){
-
 				File hidden = new File(relativeFolder+ DIR_SEPARATOR + WorkspaceAssetUtils.HIDDEN_FILE);
-
 				//override created boolean if its cloud to be at the hidden file level
 				try {
 					created = hidden.createNewFile();
@@ -76,17 +68,14 @@ public class NewDirReactor extends AbstractReactor {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				ClusterUtil.reactorPushApp(assetEngineID);
+				ClusterUtil.reactorPushDatabase(assetProjectId);
 			}
-
 		}
-
 
 		return new NounMetadata(created, PixelDataType.BOOLEAN, PixelOperationType.USER_DIR);
 	}
 
-	public String getName()
-	{
+	public String getName() {
 		return "NewDir";
 	}
 

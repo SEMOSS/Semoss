@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.app.template;
 import java.util.Map;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -18,20 +18,20 @@ import prerna.util.Utility;
  */
 public class DeleteTemplateReactor extends AbstractReactor {
 	public DeleteTemplateReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.TEMPLATE_NAME.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.TEMPLATE_NAME.getKey(),
 				ReactorKeysEnum.TEMPLATE_FILE.getKey() };
 	}
 
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String templateFile = this.keyValue.get(ReactorKeysEnum.TEMPLATE_FILE.getKey());
 		String templateName = this.keyValue.get(ReactorKeysEnum.TEMPLATE_NAME.getKey());
 		
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
-		Map<String, String> templateDataMap = TemplateUtility.deleteTemplate(appId, templateFile, templateName);
-		ClusterUtil.reactorPushFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+		IProject project = Utility.getProject(projectId);
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
+		Map<String, String> templateDataMap = TemplateUtility.deleteTemplate(projectId, templateFile, templateName);
+		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 
 		// returning back the updated template information which will contain all the template
 		// information with template name as key and file name as the value

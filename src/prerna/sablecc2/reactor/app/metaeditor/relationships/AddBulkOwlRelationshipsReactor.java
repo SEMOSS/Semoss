@@ -37,7 +37,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 	 */
 	
 	public AddBulkOwlRelationshipsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FRAME.getKey(), PROP_MAX, STORE_VALUES_FRAME};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FRAME.getKey(), PROP_MAX, STORE_VALUES_FRAME};
 	}
 	
 	@Override
@@ -45,7 +45,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		String distanceStr = this.keyValue.get(this.keysToGet[2]);
 		if(distanceStr == null || distanceStr.isEmpty()) {
 			// default to direct matches only
@@ -60,15 +60,15 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		boolean canOptimize = (frame instanceof RDataTable);
 		
 		// we may have the alias
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 
-		Owler owler = getOWLER(appId);
+		Owler owler = getOWLER(databaseId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
-		IEngine engine = Utility.getEngine(appId);
+		IEngine database = Utility.getEngine(databaseId);
 //		boolean isRdbms = (engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS || 
 //				engine.getEngineType() == IEngine.ENGINE_TYPE.IMPALA);
-		setOwlerValues(engine, owler);
+		setOwlerValues(database, owler);
 		
 		// get tables
 		SelectQueryStruct qs = new SelectQueryStruct();

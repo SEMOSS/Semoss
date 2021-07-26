@@ -36,7 +36,7 @@ public class CLPModelReactor extends AbstractReactor {
 		
 		List<String> engineFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			engineFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 		}
 		
 		logger.info("Querying to retrieve conceptual to physical to logical model");

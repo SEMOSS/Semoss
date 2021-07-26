@@ -17,7 +17,7 @@ import prerna.util.Utility;
 public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 
 	public EditOwlConceptDataTypeReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
 				ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
 	}
 
@@ -25,14 +25,14 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if (concept == null || concept.isEmpty()) {
-			throw new IllegalArgumentException("Must define the concept being modified in the app metadata");
+			throw new IllegalArgumentException("Must define the concept being modified in the database metadata");
 		}
 
 		String newDataType = this.keyValue.get(this.keysToGet[2]);
@@ -44,17 +44,17 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 
 		String newAdditionalDataType = this.keyValue.get(this.keysToGet[3]);
 
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
-		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
+		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 
-		String conceptPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept);
+		String conceptPhysicalURI = database.getPhysicalUriFromPixelSelector(concept);
 		if (conceptPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before modifying the conceptual name");
 		}
 
 		// remove the current data type
-		String currentDataType = engine.getDataTypes(conceptPhysicalURI);
+		String currentDataType = database.getDataTypes(conceptPhysicalURI);
 		if (currentDataType != null) {
 			owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[] { conceptPhysicalURI, RDFS.CLASS.stringValue(), currentDataType, true });
 		}
@@ -66,7 +66,7 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 			String adtlTypeObject = "ADTLTYPE:" + Owler.encodeAdtlDataType(newAdditionalDataType);
 
 			// remove if additional data type is present
-			String currentAdditionalDataType = engine.getAdtlDataTypes(conceptPhysicalURI);
+			String currentAdditionalDataType = database.getAdtlDataTypes(conceptPhysicalURI);
 			if (currentAdditionalDataType != null) {
 				currentAdditionalDataType = "ADTLTYPE:" + Owler.encodeAdtlDataType(currentAdditionalDataType);
 				owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[] { conceptPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, currentAdditionalDataType, false });
@@ -82,8 +82,8 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to commit modifications", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully edited data type of " + concept + " to " + newDataType, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

@@ -12,24 +12,20 @@ import prerna.auth.User;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.app.AppEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.SmssUtilities;
+import prerna.project.api.IProject;
+import prerna.project.impl.Project;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 
 public class WorkspaceAssetUtils extends AbstractSecurityUtils {
-	
-	private static final String FS = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public static final String WORKSPACE_APP_NAME = "Workspace";
 	public static final String ASSET_APP_NAME = "Asset";
@@ -45,109 +41,85 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	//////////////////////////////////////////////////////////////////////
 	
 	/**
-	 * Create the user workspace app for the provided access token
+	 * Create the user workspace project for the provided access token
 	 * @param token
 	 * @return
 	 * @throws Exception 
 	 */
-	public static String createUserWorkspaceApp(AccessToken token) throws Exception {
-		String appId = createEmptyApp(token, WORKSPACE_APP_NAME, false);
-		registerUserWorkspaceApp(token, appId);
-		return appId;
+	public static String createUserWorkspaceProject(AccessToken token) throws Exception {
+		String projectId = createEmptyProject(token, WORKSPACE_APP_NAME, false);
+		registerUserWorkspaceProject(token, projectId);
+		return projectId;
 	}
 	
 	/**
-	 * Create the user workspace app for the provided user and auth token
+	 * Create the user workspace project for the provided user and auth token
 	 * @param user
 	 * @param token
 	 * @return
 	 * @throws Exception 
 	 */
-	public static String createUserWorkspaceApp(User user, AuthProvider token) throws Exception {
-		return createUserWorkspaceApp(user.getAccessToken(token));
+	public static String createUserWorkspaceProject(User user, AuthProvider token) throws Exception {
+		return createUserWorkspaceProject(user.getAccessToken(token));
 	}
 	
 	/**
-	 * Create the user asset app for the provided access token
+	 * Create the user asset project for the provided access token
 	 * @param token
 	 * @return
 	 * @throws Exception 
 	 */
-	public static String createUserAssetApp(AccessToken token) throws Exception {
-		String appId = createEmptyApp(token, ASSET_APP_NAME, true);
-		registerUserAssetApp(token, appId);
-		return appId;
+	public static String createUserAssetProject(AccessToken token) throws Exception {
+		String projectId = createEmptyProject(token, ASSET_APP_NAME, true);
+		registerUserAssetProject(token, projectId);
+		return projectId;
 	}
 	
 	/**
-	 * Create the user asset app for the provided user and auth token
+	 * Create the user asset project for the provided user and auth token
 	 * @param user
 	 * @param token
 	 * @return
 	 * @throws Exception 
 	 */
-	public static String createUserAssetApp(User user, AuthProvider token) throws Exception {
-		return createUserAssetApp(user.getAccessToken(token));
+	public static String createUserAssetProject(User user, AuthProvider token) throws Exception {
+		return createUserAssetProject(user.getAccessToken(token));
 	}
 	
-	// TODO >>>timb: WORKSPACE - DONE - look at GenerateEmptyAppReactor, use AppEngine
 	/**
 	 * Generate 
 	 * @param token
-	 * @param appName
-	 * @param ignoreAsset
+	 * @param projectName
+	 * @param isAsset
 	 * @return
 	 * @throws Exception
 	 */
-	private static String createEmptyApp(AccessToken token, String appName, boolean ignoreAsset) throws Exception {
-		// Create a new app id
-		String appId = UUID.randomUUID().toString();
+	private static String createEmptyProject(AccessToken token, String projectName, boolean isAsset) throws Exception {
+		// Create a new project id
+		String projectId = UUID.randomUUID().toString();
 
-		// Create the app folder
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		
-		//String appLocation = baseFolder + FS + "db" + FS + SmssUtilities.getUniqueName(appName, appId);
-		String appLocation = AssetUtility.getAppBaseFolder(appName, appId);
-		File appFolder = new File(appLocation);
-		appFolder.mkdirs();
-		
-		// Create the insights database
-		RDBMSNativeEngine insightDb = UploadUtilities.generateInsightsDatabase(appId, appName);
+		String userFolderLocation = AssetUtility.getUserAssetAndWorkspaceBaseFolder(projectName, projectId);
+		File userFolder = new File(userFolderLocation);
+		userFolder.mkdirs();
 
 		// Add database into DIHelper so that the web watcher doesn't try to load as well
-		File tempSmss = UploadUtilities.createTemporaryAppSmss(appId, appName, ignoreAsset);
-		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+		File tempSmss = SmssUtilities.createTemporaryAssetAndWorkspaceSmss(projectId, projectName, isAsset);
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		
-		// Add the app to security db
-		if(!ignoreAsset) {
-			SecurityUpdateUtils.addApp(appId, false);
-			SecurityUpdateUtils.addEngineOwner(appId, token.getId());
+		// Add the project to security db
+		if(!isAsset) {
+			SecurityUpdateUtils.addProject(projectId, false);
+			SecurityUpdateUtils.addProjectOwner(projectId, token.getId());
 		}
 		
-		// Create the app engine
-		AppEngine appEng = new AppEngine();
-		appEng.setEngineId(appId);
-		appEng.setEngineName(appName);
-		appEng.setInsightDatabase(insightDb);
+		// Create the project
+		Project project = new Project();
 		
 		// Only at end do we add to DIHelper
-		DIHelper.getInstance().setLocalProperty(appId, appEng);
-		String appNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-		appNames = appNames + ";" + appId;
-		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, appNames);
-		
-		// adding all the git here
-		//String versionFolder = appFolder.getAbsolutePath() + FS + "version";
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(appNames, appId);
-		
-		/*
-		File file = new File(versionFolder);
-		if (!file.exists()) {
-			file.mkdir();
-		}
-		// I will assume the directory is there now
-		GitRepoUtils.init(versionFolder);
-		*/
+		DIHelper.getInstance().setProjectProperty(projectId, project);
+		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
+		projects = projects + ";" + projectId;
+		DIHelper.getInstance().setLocalProperty(Constants.PROJECTS, projects);
 		
 		// Rename .temp to .smss
 		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -155,16 +127,14 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		tempSmss.delete();
 		
 		// Update engine smss file location
-		appEng.setPropFile(smssFile.getAbsolutePath());
+		project.openProject(smssFile.getAbsolutePath());
 		
 		if (ClusterUtil.IS_CLUSTER) {
-			CloudClient.getClient().pushApp(appId);
+			CloudClient.getClient().pushUserAssetOrWorkspace(projectId, isAsset);
 		}
 		
-		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, smssFile.getAbsolutePath());
-		DIHelper.getInstance().setLocalProperty(appId, appEng);
-		
-		return appId;
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		return projectId;
 	}
 	
 	
@@ -174,59 +144,59 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	// TODO >>>timb: WORKSPACE - DONE - register workspace
 
 	/**
-	 * Register the user workspace app for the provided access token and app id
+	 * Register the user workspace project for the provided access token and project id
 	 * @param token
-	 * @param appId
+	 * @param projectId
 	 * @throws SQLException 
 	 */
-	public static void registerUserWorkspaceApp(AccessToken token, String appId) throws SQLException {
-		String[] colNames = new String[] {"TYPE", "USERID", "ENGINEID"};
+	public static void registerUserWorkspaceProject(AccessToken token, String projectId) throws SQLException {
+		String[] colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
 		String[] types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
 		String insertQuery = RdbmsQueryBuilder.makeInsert("WORKSPACEENGINE", colNames, types, 
 				new String[] {	token.getProvider().name(), 
 								token.getId(), 
-								appId});
+								projectId});
 		securityDb.insertData(insertQuery);
 		securityDb.commit();
 	}
 	
 	/**
-	 * Register the user workspace app for the provided user, auth provider, and app id
+	 * Register the user workspace project for the provided user, auth provider, and project id
 	 * @param user
 	 * @param provider
-	 * @param appId
+	 * @param projectId
 	 * @throws SQLException 
 	 */
-	public static void registerUserWorkspaceApp(User user, AuthProvider provider, String appId) throws SQLException {
-		registerUserWorkspaceApp(user.getAccessToken(provider), appId);
+	public static void registerUserWorkspaceProject(User user, AuthProvider provider, String projectId) throws SQLException {
+		registerUserWorkspaceProject(user.getAccessToken(provider), projectId);
 	}
 	
 	/**
-	 * Register the user asset app for the provided access token and app id
+	 * Register the user asset project for the provided access token and project id
 	 * @param token
-	 * @param appId
+	 * @param projectId
 	 * @throws SQLException 
 	 */
-	public static void registerUserAssetApp(AccessToken token, String appId) throws SQLException {
-		String[] colNames = new String[] {"TYPE", "USERID", "ENGINEID"};
+	public static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
+		String[] colNames = new String[] {"TYPE", "USERID", "PROJECTID"};
 		String[] types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
 		String insertQuery = RdbmsQueryBuilder.makeInsert("ASSETENGINE", colNames, types, 
 				new String[] {	token.getProvider().name(), 
 								token.getId(), 
-								appId});
+								projectId});
 		securityDb.insertData(insertQuery);
 		securityDb.commit();
 	}
 	
 	/**
-	 * Register the user asset app for the provided user, auth provider, and app id
+	 * Register the user asset project for the provided user, auth provider, and project id
 	 * @param user
 	 * @param provider
-	 * @param appId
+	 * @param projectId
 	 * @throws SQLException 
 	 */
-	public static void registerUserAssetApp(User user, AuthProvider provider, String appId) throws SQLException {
-		registerUserAssetApp(user.getAccessToken(provider), appId);
+	public static void registerUserAssetProject(User user, AuthProvider provider, String projectId) throws SQLException {
+		registerUserAssetProject(user.getAccessToken(provider), projectId);
 	}
 
 	
@@ -235,19 +205,19 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	//////////////////////////////////////////////////////////////////////
 	
 	/**
-	 * Get the user workspace app for the provided access token; returns null if there is none
+	 * Get the user workspace project for the provided access token; returns null if there is none
 	 * @param token
 	 * @return
 	 */
-	public static String getUserWorkspaceApp(AccessToken token) {
-//		String query = "SELECT ENGINEID FROM WORKSPACEENGINE WHERE "
+	public static String getUserWorkspaceProject(AccessToken token) {
+//		String query = "SELECT PROJECTID FROM WORKSPACEENGINE WHERE "
 //				+ "TYPE = '" + token.getProvider().name() + "' AND "
 //				+ "USERID = '" + token.getId() + "'"
 //				;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__TYPE", "==", token.getProvider().name()));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__USERID", "==", token.getId()));
 		IRawSelectWrapper wrapper = null;
@@ -259,7 +229,6 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 					 return null;
 				 }
 				return rs.toString();
-				//return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -273,30 +242,30 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the user workspace app for the provided user and auth provider; returns null if is there is none
+	 * Get the user workspace project for the provided user and auth provider; returns null if is there is none
 	 * @param user
 	 * @param provider
 	 * @return
 	 */
-	public static String getUserWorkspaceApp(User user, AuthProvider provider) {
-		return getUserWorkspaceApp(user.getAccessToken(provider));
+	public static String getUserWorkspaceProject(User user, AuthProvider provider) {
+		return getUserWorkspaceProject(user.getAccessToken(provider));
 	}
 	
 	/**
-	 * Get the user asset app for the provided access token; returns null if there is none
+	 * Get the user asset project for the provided access token; returns null if there is none
 	 * @param user
 	 * @param token
 	 * @return
 	 */
-	public static String getUserAssetApp(AccessToken token) {
-//		String query = "SELECT ENGINEID FROM ASSETENGINE WHERE "
+	public static String getUserAssetProject(AccessToken token) {
+//		String query = "SELECT PROJECTID FROM ASSETENGINE WHERE "
 //				+ "TYPE = '" + token.getProvider().name() + "' AND "
 //				+ "USERID = '" + token.getId() + "'"
 //				;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ASSETENGINE__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("ASSETENGINE__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__TYPE", "==", token.getProvider().name()));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__USERID", "==", token.getId()));
 		IRawSelectWrapper wrapper = null;
@@ -322,31 +291,31 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the user asset app for the provided user and auth provider; returns null if there is none
+	 * Get the user asset project for the provided user and auth provider; returns null if there is none
 	 * @param user
 	 * @param provider
 	 * @return
 	 */
-	public static String getUserAssetApp(User user, AuthProvider provider) {
-		return getUserAssetApp(user.getAccessToken(provider));
+	public static String getUserAssetProject(User user, AuthProvider provider) {
+		return getUserAssetProject(user.getAccessToken(provider));
 	}
 	
 	/**
-	 * See if the app is a workspace or asset app
-	 * @param appId
+	 * See if the project is a workspace or asset
+	 * @param projectId
 	 * @return
 	 */
-	public static boolean isAssetOrWorkspaceApp(String appId) {
+	public static boolean isAssetOrWorkspaceProject(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__ENGINEID", "==", appId));
+		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__PROJECTID", "==", projectId));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			if (wrapper.hasNext()) {
 				return true;
 			} else {
-				return isAssetApp(appId);
+				return isAssetProject(projectId);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -360,14 +329,14 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Is the app an asset
-	 * @param appId
+	 * Is the project an asset
+	 * @param projectId
 	 * @return
 	 */
-	public static boolean isAssetApp(String appId) {
+	public static boolean isAssetProject(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ASSETENGINE__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__ENGINEID", "==", appId));
+		qs.addSelector(new QueryColumnSelector("ASSETENGINE__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__PROJECTID", "==", projectId));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -388,14 +357,13 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	// Asset folder locations
 	//////////////////////////////////////////////////////////////////////
 	public static String getUserAssetRootDirectory(User user, AuthProvider provider) {
-		String assetAppId = user.getAssetEngineId(provider);
-		if (assetAppId != null) {
-			IEngine assetEngine = Utility.getEngine(assetAppId);
-			if (assetEngine != null) {
-				String assetAppName = assetEngine.getEngineName();
-				if (assetAppName != null) {
-					return AssetUtility.getAppAssetVersionFolder(assetAppName, assetAppId);
-					//return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FS + "db" + FS + assetAppName + "__" + assetAppId + FS + "version";
+		String assetProjectId = user.getAssetProjectId(provider);
+		if (assetProjectId != null) {
+			IProject assetProject = Utility.getProject(assetProjectId);
+			if (assetProject != null) {
+				String assetProjectName = assetProject.getProjectName();
+				if (assetProjectName != null) {
+					return AssetUtility.getProjectAssetVersionFolder(assetProjectName, assetProjectId);
 				}
 			}
 		}

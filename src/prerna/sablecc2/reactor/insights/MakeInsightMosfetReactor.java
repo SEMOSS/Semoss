@@ -17,13 +17,13 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.engine.api.IEngine;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.MosfetFile;
+import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -41,13 +41,13 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 	private static final Logger logger = LogManager.getLogger(MakeInsightMosfetReactor.class);
 
 	public MakeInsightMosfetReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = getApp();
+		String projectId = getProject();
 		String rdbmsId = null;
 		try {
 			rdbmsId = getRdbmsId();
@@ -68,20 +68,20 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 					throwAnonymousUserError();
 				}
 				
-				if(!SecurityAppUtils.userIsOwner(this.insight.getUser(), appId)) {
+				if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
 					throw new IllegalArgumentException("User must be an owner of the app to update all the app mosfet files");
 				}
 			}
 			
-			IEngine app = Utility.getEngine(appId);
-			String appName = app.getEngineName();
-			List<String> insightIds = app.getInsights();
+			IProject project = Utility.getProject(projectId);
+			String projectName = project.getProjectName();
+			List<String> insightIds = project.getInsights();
 			
 			for(String id : insightIds) {
 				
 				String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-						+ DIR_SEPARATOR + "db"
-						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(app.getEngineName(), appId)
+						+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
+						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
 						+ DIR_SEPARATOR + "version" 
 						+ DIR_SEPARATOR + Utility.normalizePath(id);
 				
@@ -95,7 +95,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				
 				MosfetFile mosfet = null;
 				try {
-					mosfet = generateMosfetFromInsight(app, id);
+					mosfet = generateMosfetFromInsight(project, id);
 				} catch(IllegalArgumentException e) {
 					numIgnored++;
 				}
@@ -113,7 +113,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				}
 				
 				// add to git
-				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
 				files.add(rdbmsId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
 				GitRepoUtils.addSpecificFiles(gitFolder, files);
@@ -127,23 +127,23 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 					throwAnonymousUserError();
 				}
 				
-				if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, rdbmsId)) {
+				if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
 					throw new IllegalArgumentException("User does not have permission to edit this insight");
 				}
 			}
 			
-			IEngine app = Utility.getEngine(appId);
+			IProject project = Utility.getProject(projectId);
 			MosfetFile mosfet = null;
 			try {
-				mosfet = generateMosfetFromInsight(app, rdbmsId);
+				mosfet = generateMosfetFromInsight(project, rdbmsId);
 			} catch(IllegalArgumentException e) {
 				logger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 			
 			String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-					+ DIR_SEPARATOR + "db"
-					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(app.getEngineName(), appId)
+					+ DIR_SEPARATOR + Constants.PROJECT_FOLDER 
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), projectId)
 					+ DIR_SEPARATOR + "version" 
 					+ DIR_SEPARATOR + rdbmsId;
 			
@@ -156,7 +156,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 			}
 			
 			// add to git
-			String gitFolder = AssetUtility.getAppAssetVersionFolder(app.getEngineName(), appId);
+			String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId);
 			List<String> files = new Vector<>();
 			files.add(rdbmsId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
@@ -180,18 +180,18 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 	 * @param insightId
 	 * @return
 	 */
-	private MosfetFile generateMosfetFromInsight(IEngine app, String insightId) {
+	private MosfetFile generateMosfetFromInsight(IProject project, String insightId) {
 		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, CACHEABLE, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN ('" + insightId+ "');";
 		MosfetFile mosfet = new MosfetFile();
 
-		RDBMSNativeEngine insightRdbms = app.getInsightDatabase();
+		RDBMSNativeEngine insightRdbms = project.getInsightDatabase();
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
 			while(wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				
-				mosfet.setEngineId(app.getEngineId());
+				mosfet.setProjectId(project.getProjectId());
 				mosfet.setRdbmsId(values[0].toString());
 				mosfet.setInsightName(values[1].toString());
 				mosfet.setLayout(values[2].toString());

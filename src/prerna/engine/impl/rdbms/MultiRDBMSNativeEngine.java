@@ -351,11 +351,11 @@ public class MultiRDBMSNativeEngine extends AbstractEngine implements IRDBMSEngi
 
 		// Close the Insights RDBMS connection, the actual connection, and delete the folders
 		try {
-			this.insightRdbms.getConnection().close();
+//			this.insightRdbms.getConnection().close();
 			closeDB();
 
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
 

@@ -165,7 +165,7 @@ public class TableToXLSXReactor	extends AbstractReactor {
 		// check if any template has been selected to Export 
 		if(keyValue.containsKey(ReactorKeysEnum.EXPORT_TEMPLATE.getKey())) {
 			// fetch the template file with the provided template name and app id by calling getTemplateFile() method
-			exportTemplate = TemplateUtility.getTemplateFile(keyValue.get(ReactorKeysEnum.APP.getKey()), keyValue.get(ReactorKeysEnum.EXPORT_TEMPLATE.getKey()));
+			exportTemplate = TemplateUtility.getTemplateFile(keyValue.get(ReactorKeysEnum.PROJECT.getKey()), keyValue.get(ReactorKeysEnum.EXPORT_TEMPLATE.getKey()));
 		}
 		exportMap.put("EXPORT_TEMPLATE", exportTemplate);
 		// get the headers

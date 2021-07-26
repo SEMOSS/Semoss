@@ -46,8 +46,8 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 	@Override
 	public void write(JsonWriter out, Insight value) throws IOException {
 		String rdbmsId = value.getRdbmsId();
-		String engineId = value.getEngineId();
-		String engineName = value.getEngineName();
+		String engineId = value.getProjectId();
+		String engineName = value.getProjectName();
 		
 		// start insight object
 		out.beginObject();
@@ -161,7 +161,7 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 			in.nextNull();
 		} else {
 			String engineId = in.nextString();
-			insight.setEngineId(engineId);
+			insight.setProjectId(engineId);
 		}
 		
 		in.nextName();
@@ -169,7 +169,7 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 			in.nextNull();
 		} else {
 			String engineName = in.nextString();
-			insight.setEngineName(engineName);
+			insight.setProjectName(engineName);
 		}
 		
 		in.nextName();

@@ -2,21 +2,19 @@ package prerna.util.git.reactors;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.DIHelper;
 import prerna.util.git.GitRepoUtils;
 
 public class DeleteAppRepo extends GitBaseReactor {
 
 	public DeleteAppRepo() {
 		this.keysToGet = new String[]{
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
+				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
 	
@@ -26,17 +24,15 @@ public class DeleteAppRepo extends GitBaseReactor {
 		
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Removing remote...");
-		String appId = this.keyValue.get(this.keysToGet[0]);
-		String appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		String databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		String repository = this.keyValue.get(this.keysToGet[1]);
-
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appFolder = 	AssetUtility.getAppAssetVersionFolder(appName, appId);
+		String databaseFolder = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId);
 ;
 
 		// remove it from remote
 		// take it out from local in case the global fails since they have removed the repository
-		GitRepoUtils.deleteRemoteRepositorySettings(appFolder, repository);
+		GitRepoUtils.deleteRemoteRepositorySettings(databaseFolder, repository);
 
 		if(keyValue.size() == 4)
 		{

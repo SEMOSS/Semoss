@@ -14,13 +14,13 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class GetTemplateList extends AbstractReactor {
 
 	public GetTemplateList() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 	}
 
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
-		Map<String, String> templateDataMap = TemplateUtility.getTemplateList(appId);
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		Map<String, String> templateDataMap = TemplateUtility.getTemplateList(projectId);
 
 		// templateDataMap will contain all the template information with template name as key 
 		// and file name as the value for the corresponding app

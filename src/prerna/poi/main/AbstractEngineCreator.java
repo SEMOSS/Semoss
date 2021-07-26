@@ -19,7 +19,6 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
-import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -100,10 +99,6 @@ public class AbstractEngineCreator {
 		engine.setProp(prop);
 		engine.openDB(null);
 		
-		// create the insight database
-		if(engine.getInsightDatabase() == null) {
-			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
-		}
 	}
 
 	private void createNewRdfEngine(String appName, String appID) throws Exception {
@@ -121,10 +116,6 @@ public class AbstractEngineCreator {
 		obj = Constants.DEFAULT_PROPERTY_URI;
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
 		
-		// create the insight database
-		if(engine.getInsightDatabase() == null) {
-			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
-		}
 	}
 	
 	private void createNewTinkerEngine(String appName, String appID) throws Exception {
@@ -133,10 +124,6 @@ public class AbstractEngineCreator {
 		engine.setEngineName(appName);
 		engine.openDB(dbPropFile);
 		
-		// create the insight database
-		if(engine.getInsightDatabase() == null) {
-			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
-		}
 	}
 	
 	private void createNewREngine(String appName, String appID) throws Exception {
@@ -145,10 +132,6 @@ public class AbstractEngineCreator {
 		engine.setEngineId(appID);
 		engine.openDB(dbPropFile);
 		
-		// create the insight database
-		if(engine.getInsightDatabase() == null) {
-			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
-		}
 	}
 	
 	//added for connect to external RDBMS workflow
@@ -187,10 +170,6 @@ public class AbstractEngineCreator {
 		((AbstractEngine) engine).setProp(prop);
 		engine.openDB(null);
 		
-		// create the insight database
-		if(engine.getInsightDatabase() == null) {
-			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
-		}
 	}
 
 	//added for connect to external Impala workflow
@@ -218,10 +197,6 @@ public class AbstractEngineCreator {
 		((AbstractEngine) engine).setProp(prop);
 		engine.openDB(null);
 
-		// create the insight database
-		if(engine.getInsightDatabase() == null) {
-			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
-		}
 	}
 
 	protected void openEngineWithConnection(String engineId) {
@@ -245,8 +220,6 @@ public class AbstractEngineCreator {
 		logger.warn("Committing....");
 		// commit the created engine
 		engine.commit();
-		// also commit the created insights rdbms engine
-		engine.getInsightDatabase().commit();
 		
 		if(engine!=null && engine instanceof BigDataEngine){
 			((BigDataEngine)engine).infer();
@@ -317,12 +290,5 @@ public class AbstractEngineCreator {
 		sqlHash.put(SemossDataType.DATE.toString(), "DATE");
 		sqlHash.put(SemossDataType.TIMESTAMP.toString(), "TIMESTAMP");
 
-	}
-	
-	protected RDBMSNativeEngine createNewInsightsDatabase(String appName, String appId) {
-		RDBMSNativeEngine insightEngine = UploadUtilities.generateInsightsDatabase(appId, appName);
-		UploadUtilities.addExploreInstanceInsight(appId, appName, insightEngine);
-		UploadUtilities.addInsightUsageStats(appId, appName, insightEngine);
-		return insightEngine;
 	}
 }

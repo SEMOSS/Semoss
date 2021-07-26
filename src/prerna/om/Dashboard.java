@@ -8,9 +8,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-//import prerna.ds.DataFrameJoiner;
-import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -93,7 +90,7 @@ public class Dashboard implements IDataMaker {
 			Map<String, Object> nextInsightMap = new HashMap<>();
 			
 			nextInsightMap.put("insightID", insight.getInsightId());
-			nextInsightMap.put("engine", insight.getEngineId());
+			nextInsightMap.put("engine", insight.getProjectId());
 			nextInsightMap.put("questionID", insight.getRdbmsId());
 			
 			String[] ids = this.insight2frameMap.get(insight.getInsightId());
@@ -131,18 +128,18 @@ public class Dashboard implements IDataMaker {
 	@Override
 	public Map<String, String> getScriptReactors() {
 		Map<String, String> reactorNames = new HashMap<>();
-		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
-		reactorNames.put(PKQLEnum.DASHBOARD_UNJOIN, "prerna.sablecc.DashboardUnjoinReactor");
-		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
-		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
-		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
-		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor");
-		reactorNames.put(PKQLEnum.DASHBOARD_ADD, "prerna.sablecc.DashboardAddReactor");
-		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
-		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.DashboardClearDataReactor");
+//		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
+//		reactorNames.put(PKQLEnum.DASHBOARD_UNJOIN, "prerna.sablecc.DashboardUnjoinReactor");
+//		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
+//		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
+//		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
+//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor");
+//		reactorNames.put(PKQLEnum.DASHBOARD_ADD, "prerna.sablecc.DashboardAddReactor");
+//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+//		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
+//		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.DashboardClearDataReactor");
 		return reactorNames;
 	}
 

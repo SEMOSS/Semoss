@@ -22,21 +22,21 @@ import prerna.util.git.GitConsumer;
 public class CopyAppRepo extends AbstractReactor {
 
 	/**
-	 * Clone an existing remote app and bring it into the 
+	 * Clone an existing remote database and bring it into the 
 	 * local semoss that is running for collaboration
 	 */
 	
 	public CopyAppRepo() {
-		super.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey()};
+		super.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		
-		String localAppName = this.keyValue.get(this.keysToGet[0]);
-		if(localAppName == null || localAppName.isEmpty()) {
-			throw new IllegalArgumentException("Need to define the local app name");
+		String localDatabaseName = this.keyValue.get(this.keysToGet[0]);
+		if(localDatabaseName == null || localDatabaseName.isEmpty()) {
+			throw new IllegalArgumentException("Need to define the local database name");
 		}
 		String repository = this.keyValue.get(this.keysToGet[1]);
 		if(repository == null || repository.isEmpty()) {
@@ -50,8 +50,8 @@ public class CopyAppRepo extends AbstractReactor {
 			repository = repository.replace("https://github.com/","");
 		}
 		Logger logger = getLogger(this.getClass().getName());
-		logger.info("Downloading app located at " + repository);
-		logger.info("App will be named locally as " + localAppName);
+		logger.info("Downloading database located at " + repository);
+		logger.info("Database will be named locally as " + localDatabaseName);
 
 		
 		// throw error if user is anonymous
@@ -59,23 +59,23 @@ public class CopyAppRepo extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		// throw error is user doesn't have rights to publish new apps
+		// throw error is user doesn't have rights to publish new databases
 		if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
 			throwUserNotPublisherError();
 		}
 		
 		try {
-			String appId = GitConsumer.makeAppFromRemote(localAppName, repository, logger);
-			ClusterUtil.reactorPushApp(appId);
+			String databaseId = GitConsumer.makeDatabaseFromRemote(localDatabaseName, repository, logger);
+			ClusterUtil.reactorPushDatabase(databaseId);
 			User user = this.insight.getUser();
 			if(user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+					SecurityUpdateUtils.addDatabaseOwner(databaseId, user.getAccessToken(ap).getId());
 				}
 			}
-			logger.info("Congratulations! Downloading your new app has been completed");
-			return new NounMetadata(UploadUtilities.getAppReturnData(user, appId), PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+			logger.info("Congratulations! Downloading your new database has been completed");
+			return new NounMetadata(UploadUtilities.getDatabaseReturnData(user, databaseId), PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 		} catch(Exception e) {
 			SemossPixelException err = new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 			err.setContinueThreadOfExecution(false);

@@ -18,7 +18,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
@@ -36,16 +36,16 @@ public class TemplateUtility {
 	 * This method is used to fetch the list of templates from the corresponding App
 	 * template location
 	 * 
-	 * @param appId
+	 * @param projectId
 	 * @return
 	 */
-	public static Map<String, String> getTemplateList(String appId) {
+	public static Map<String, String> getTemplateList(String projectId) {
 		Map<String, String> templateDataMap = new HashMap<>();
-		IEngine engine = Utility.getEngine(appId);
-		// fetching the app base folder based on the app id
-		String appName = engine.getEngineName();
-		// fetching the app base folder based on the app id
-		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId).replace('\\', '/'); 
+		IProject project = Utility.getProject(projectId);
+		// fetching the project base folder based on the app id
+		String projectName = project.getProjectName();
+		// fetching the project base folder based on the app id
+		String assetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId).replace('\\', '/'); 
 
 		File file = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE); 
 		if (!file.exists()) {
@@ -68,14 +68,14 @@ public class TemplateUtility {
 	 * This method will return the complete template file location based on the
 	 * template file
 	 * 
-	 * @param appId
+	 * @param projectId
 	 * @param templateName
 	 * @return
 	 */
-	public static String getTemplateFile(String appId, String templateName) {
-		String assetFolder = AssetUtility.getAppAssetFolder(appId).replace('\\', '/');
-		String fileName = getTemplateList(appId).get(templateName);
-		// returns the app template folder appended with the template file name 
+	public static String getTemplateFile(String projectId, String templateName) {
+		String assetFolder = AssetUtility.getProjectAssetFolder(projectId).replace('\\', '/');
+		String fileName = getTemplateList(projectId).get(templateName);
+		// returns the project template folder appended with the template file name 
 		if(fileName.startsWith("/") || fileName.startsWith("\\")) {
 			return assetFolder + fileName;
 		} else {
@@ -87,21 +87,21 @@ public class TemplateUtility {
 	 * This method will delete the template information from property file and
 	 * delete the template file for the corresponding template name
 	 * 
-	 * @param appId
+	 * @param projectId
 	 * @param templateRelativeFilePath
 	 * @param templateName
 	 * @return
 	 */
-	public static Map<String, String> deleteTemplate(String appId, String templateRelativeFilePath, String templateName) {
+	public static Map<String, String> deleteTemplate(String projectId, String templateRelativeFilePath, String templateName) {
 		Map<String, String> templateDataMap = new HashMap<>();
 		
-		IEngine engine = Utility.getEngine(appId);
-		String appName = engine.getEngineName();
-		// fetching the app asset folder 
-		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId).replace('\\', '/');
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
+		// fetching the project asset folder 
+		String assetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId).replace('\\', '/');
 		templateRelativeFilePath = templateRelativeFilePath.replace('\\', '/');
 		// deleting the corresponding template file by appending 
-		// the template folder and filename to the app asset folder
+		// the template folder and filename to the project asset folder
 		File file = null;
 		if(templateRelativeFilePath.startsWith("/") || templateRelativeFilePath.startsWith("\\")) {
 			file = new File(assetFolder + templateRelativeFilePath);
@@ -145,17 +145,17 @@ public class TemplateUtility {
 	 * This method will add a new template file and update the template information
 	 * in template property file
 	 * 
-	 * @param appId
+	 * @param projectId
 	 * @param filename
 	 * @param templateName
 	 * @return
 	 */
-	public static Map<String, String> addTemplate(String appId, String filename, String templateName) {
+	public static Map<String, String> addTemplate(String projectId, String filename, String templateName) {
 		Map<String, String> templateDataMap = new HashMap<>();
-		IEngine engine = Utility.getEngine(appId);
-		String appName = engine.getEngineName();
-		// fetching the app asset folder
-		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId);
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
+		// fetching the project asset folder
+		String assetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId);
 		assetFolder = assetFolder.replace('\\', '/');
 
 		File templatePropsFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
@@ -208,18 +208,18 @@ public class TemplateUtility {
 	 * This method will update an existing template file and update the template
 	 * information in template property file
 	 * 
-	 * @param appId
+	 * @param projectId
 	 * @param templateRelativeFilePath
 	 * @param templateName
 	 * @return
 	 */
-	public static Map<String, String> editTemplate(String appId, String templateRelativeFilePath, String templateName) {
+	public static Map<String, String> editTemplate(String projectId, String templateRelativeFilePath, String templateName) {
 		Map<String, String> templateDataMap = new HashMap<>();
 		
-		IEngine engine = Utility.getEngine(appId);
-		String appName = engine.getEngineName();
-		// fetching the app asset folder 
-		String assetFolder = AssetUtility.getAppAssetFolder(appName, appId).replace('\\', '/');
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
+		// fetching the project asset folder 
+		String assetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId).replace('\\', '/');
 		templateRelativeFilePath = templateRelativeFilePath.replace('\\', '/');
 		
 		// get the properties file 
@@ -275,16 +275,16 @@ public class TemplateUtility {
 	 * This method will fetch the placeholder information from the placeholder sheet
 	 * of the corresponding template
 	 * 
-	 * @param appId
+	 * @param projectId
 	 * @param templateName
 	 * @return
 	 */
-	public static Map<String, List<String>> getPlaceHolderInfo(String appId, String templateName) {
+	public static Map<String, List<String>> getPlaceHolderInfo(String projectId, String templateName) {
 		Map<String, List<String>> placeHolderData = new HashMap<String, List<String>>();
 		FileInputStream fis = null;
 		XSSFWorkbook wb = null;
 		try {
-			String exportTemplateFile = getTemplateFile(appId, templateName);
+			String exportTemplateFile = getTemplateFile(projectId, templateName);
 			 // fetching the template file 
 			File file = new File(exportTemplateFile);
 			fis = new FileInputStream(file);

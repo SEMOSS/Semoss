@@ -20,7 +20,7 @@ public class CreateExternalNeo4jDatabaseReactor extends AbstractCreateExternalGr
 	private String password;
 	
 	public CreateExternalNeo4jDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(),
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
 				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
 				ReactorKeysEnum.GRAPH_METAMODEL.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
@@ -63,17 +63,17 @@ public class CreateExternalNeo4jDatabaseReactor extends AbstractCreateExternalGr
 	protected File generateTempSmss(File owlFile) throws IOException {
 		// the file path will become parameterized inside
 		return UploadUtilities.generateTemporaryExternalNeo4jSmss(
-				this.newAppId, this.newAppName, owlFile, 
+				this.newDatabaseId, this.newDatabaseName, owlFile, 
 				this.connectionStringKey, this.username, this.password, this.typeMap, this.nameMap, useLabel());
 	}
 
 	@Override
 	protected IEngine generateEngine() {
-		Neo4jEngine neo4jEngine = new Neo4jEngine();
-		neo4jEngine.setEngineId(this.newAppId);
-		neo4jEngine.setEngineName(this.newAppName);
-		neo4jEngine.openDB(this.smssFile.getAbsolutePath());
-		return neo4jEngine;
+		Neo4jEngine neo4jDatabase = new Neo4jEngine();
+		neo4jDatabase.setEngineId(this.newDatabaseId);
+		neo4jDatabase.setEngineName(this.newDatabaseName);
+		neo4jDatabase.openDB(this.smssFile.getAbsolutePath());
+		return neo4jDatabase;
 	}
 
 }

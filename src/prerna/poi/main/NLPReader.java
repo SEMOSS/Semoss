@@ -59,7 +59,7 @@ public class NLPReader extends AbstractFileReader {
 			triples = processor.generateTriples(files);
 			createNLPrelationships();
 			createBaseRelations();
-			RDFEngineCreationHelper.insertNLPDefaultQuestions(engine);
+//			RDFEngineCreationHelper.insertNLPDefaultQuestions(engine);
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());

@@ -24,27 +24,27 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	
 	public SaveOwlPositionsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.POSITION_MAP.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.POSITION_MAP.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		String appId = UploadInputUtility.getAppNameOrId(this.store);
-		if(appId == null) {
-			throw new IllegalArgumentException("Must pass in the app id");
+		String databaseId = UploadInputUtility.getDatabaseNameOrId(this.store);
+		if(databaseId == null) {
+			throw new IllegalArgumentException("Must pass in the database id");
 		}
 		// run security tests + alias replacement
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 		Map<String, Object> positions = getPositionMap();
 		if(positions == null || positions.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the valid position map");
 		}
 		
-		// write the json file in the app folder
+		// write the json file in the database folder
 		// just put it in the same location as the OWL
-		IEngine app = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
-		File positionFile = app.getOwlPositionFile();
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
+		File positionFile = database.getOwlPositionFile();
 		
 		FileWriter writer = null;
 		try {
@@ -61,7 +61,7 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 				}
 			}
 		}
-		ClusterUtil.reactorPushOwl(appId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}

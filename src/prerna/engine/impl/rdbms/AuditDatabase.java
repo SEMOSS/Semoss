@@ -44,9 +44,9 @@ public class AuditDatabase {
 	private Connection conn;
 	private AbstractSqlQueryUtil queryUtil;
 
-	private IEngine engine;
-	private String engineId;
-	private String engineName;
+	private IEngine database;
+	private String databaseId;
+	private String databaseName;
 
 	@Deprecated
 	private Map<String, String[]> primaryKeyCache = new HashMap<>();
@@ -58,16 +58,17 @@ public class AuditDatabase {
 	/**
 	 * First method that needs to be run to generate the actual connection details
 	 * 
-	 * @param engineId
-	 * @param engineName
+	 * @param database
+	 * @param databaseId
+	 * @param databaseName
 	 */
-	public void init(IEngine engine, String engineId, String engineName) {
-		this.engine = engine;
-		this.engineId = engineId;
-		this.engineName = engineName;
+	public void init(IEngine database, String databaseId, String databaseName) {
+		this.database = database;
+		this.databaseId = databaseId;
+		this.databaseName = databaseName;
 
 		String dbFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		dbFolder += DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId);
+		dbFolder += DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(databaseName, databaseId);
 
 		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 		if (rdbmsTypeStr == null) {
@@ -459,8 +460,8 @@ public class AuditDatabase {
 		}
 
 		// we dont have it.. so query for it
-		String physicalUri = engine.getPhysicalUriFromPixelSelector(pixelName);
-		String column = engine.getLegacyPrimKey4Table(physicalUri);
+		String physicalUri = database.getPhysicalUriFromPixelSelector(pixelName);
+		String column = database.getLegacyPrimKey4Table(physicalUri);
 		String[] split = new String[] { pixelName, column };
 		// store the value
 		primaryKeyCache.put(pixelName, split);

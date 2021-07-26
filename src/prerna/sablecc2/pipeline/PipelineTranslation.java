@@ -1,36 +1,24 @@
 package prerna.sablecc2.pipeline;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.rdbms.h2.H2Frame;
 import prerna.om.Insight;
 import prerna.om.Pixel;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.sablecc2.LazyTranslation;
-import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelUtility;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.ABooleanScalar;
 import prerna.sablecc2.node.AFractionDecimal;
 import prerna.sablecc2.node.AIdWordOrId;
@@ -38,7 +26,6 @@ import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.PRoutine;
-import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -47,15 +34,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.gson.GsonUtility;
 
 public class PipelineTranslation extends LazyTranslation {
 

@@ -17,14 +17,14 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class GetDatabaseConnectionsReactor extends AbstractReactor {
 	
 	public GetDatabaseConnectionsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.APP.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DATABASE.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
-		String engineId = getApp();
-		if(engineId != null) {
-			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		String databaseId = getDatabaseId();
+		if(databaseId != null) {
+			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 		}
 		
 		List<String> appliedAppFilters = new Vector<String>();
@@ -33,26 +33,26 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
 		List<String> appFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			appFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 			if(!appFilters.isEmpty()) {
-				if(engineId != null) {
+				if(databaseId != null) {
 					// need to make sure it is a valid engine id
-					if(!appFilters.contains(engineId)) {
+					if(!appFilters.contains(databaseId)) {
 						throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 					}
 					// we are good
-					appliedAppFilters.add(engineId);
+					appliedAppFilters.add(databaseId);
 				} else {
 					// set default as filters
 					appliedAppFilters = appFilters;
 				}
 			} else {
-				if(engineId != null) {
-					appliedAppFilters.add(engineId);
+				if(databaseId != null) {
+					appliedAppFilters.add(databaseId);
 				}
 			}
-		} else if(engineId != null) {
-			appliedAppFilters.add(engineId);
+		} else if(databaseId != null) {
+			appliedAppFilters.add(databaseId);
 		}
 		
 		List<String> inputColumnValues = getColumns();
@@ -98,7 +98,7 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 		return columns;
 	}
 	
-	private String getApp() {
+	private String getDatabaseId() {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();

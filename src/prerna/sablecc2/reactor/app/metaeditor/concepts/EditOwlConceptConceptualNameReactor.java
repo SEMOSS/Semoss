@@ -17,21 +17,21 @@ import prerna.util.Utility;
 public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReactor {
 
 	public EditOwlConceptConceptualNameReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), CONCEPTUAL_NAME };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), CONCEPTUAL_NAME };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if (concept == null || concept.isEmpty()) {
-			throw new IllegalArgumentException("Must define the concept being modified in the app metadata");
+			throw new IllegalArgumentException("Must define the concept being modified in the database metadata");
 		}
 
 		String newPixelName = this.keyValue.get(this.keysToGet[2]);
@@ -47,26 +47,26 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 
 		String newPixelURI = "http://semoss.org/ontologies/Concept/" + newPixelName;
 
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
-		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
+		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 
 		// make sure this name isn't currently present in the engine
-		if (engine.getPhysicalUriFromPixelSelector(newPixelName) != null) {
+		if (database.getPhysicalUriFromPixelSelector(newPixelName) != null) {
 			throw new IllegalArgumentException("This conceptual name already exists");
 		}
 
 		String existingPixelURI = "http://semoss.org/ontologies/Concept/" + concept;
-		String conceptPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept);
+		String conceptPhysicalURI = database.getPhysicalUriFromPixelSelector(concept);
 		if (conceptPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before modifying the conceptual name");
 		}
 
 		// okay, not only do i need to change this concept
 		// but i have to change all the properties conceptual
-		List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysicalURI);
+		List<String> properties = database.getPropertyUris4PhysicalUri(conceptPhysicalURI);
 		for (String propertyPhysicalUri : properties) {
-			String propertyPixelUri = engine.getPropertyPixelUriFromPhysicalUri(conceptPhysicalURI, propertyPhysicalUri);
+			String propertyPixelUri = database.getPropertyPixelUriFromPhysicalUri(conceptPhysicalURI, propertyPhysicalUri);
 			String propPixelName = Utility.getClassName(propertyPixelUri);
 			String newPropertyPixelUri = "http://semoss.org/ontologies/Relation/Contains/" + propPixelName + "/" + newPixelName;
 
@@ -90,8 +90,8 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to commit modifications", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully edited concept name from " + concept + " to " + newPixelName, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

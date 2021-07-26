@@ -29,22 +29,22 @@ public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor
 	 */
 	
 	public FindDirectOwlRelationshipsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), TABLES_FILTER};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), TABLES_FILTER};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = testAppId(appId, false);
+		databaseId = testDatabaseId(databaseId, false);
 		List<String> filters = getTableFilters();
 
-		IEngine app = Utility.getEngine(appId);
+		IEngine database = Utility.getEngine(databaseId);
 		
 		Map<String, List<String>> tableToCol = new TreeMap<String, List<String>>();
 		// grab all the concepts
-		List<String> concepts = app.getPhysicalConcepts();
+		List<String> concepts = database.getPhysicalConcepts();
 		for(String cUri : concepts) {
 			String tableName = Utility.getInstanceName(cUri);
 
@@ -62,7 +62,7 @@ public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor
 			List<String> columnNames = new Vector<String>();
 
 			// grab all the properties
-			List<String> properties = app.getPropertyUris4PhysicalUri(cUri);
+			List<String> properties = database.getPropertyUris4PhysicalUri(cUri);
 			for(String pUri : properties) {
 				// load all upper case to ignore case
 				columnNames.add(Utility.getClassName(pUri));

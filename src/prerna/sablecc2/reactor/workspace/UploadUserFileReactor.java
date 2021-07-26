@@ -17,8 +17,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 public class UploadUserFileReactor extends AbstractReactor {
@@ -44,27 +43,24 @@ public class UploadUserFileReactor extends AbstractReactor {
 
 		File uploadedFile = new File(uploadedFilePath);
 
-		String assetEngineID = null;
+		String assetProjectId = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
 			if(user != null){
 				AuthProvider token = user.getPrimaryLogin();
 				if(token != null){
-					assetEngineID = user.getAssetEngineId(token);
-					Utility.getEngine(assetEngineID);
+					assetProjectId = user.getAssetProjectId(token);
+					Utility.getProject(assetProjectId);
 				}
 			}
 		}
 
-		if(assetEngineID == null){
+		if(assetProjectId == null){
 			throw new IllegalArgumentException("Unable to find Asset App ID for user");
 		}
 
-		String baseUserFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" + DIR_SEPARATOR +
-				WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID ;
-
+		String baseUserFolderPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, true);
 		File baseUserFolder = new File(baseUserFolderPath);
-
 		if(!baseUserFolder.exists()){
 			throw new IllegalArgumentException("Unable to find user asset app directory");
 		}
@@ -79,7 +75,6 @@ public class UploadUserFileReactor extends AbstractReactor {
 			try {
 				hidden.createNewFile();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -91,10 +86,9 @@ public class UploadUserFileReactor extends AbstractReactor {
 			throw new IllegalArgumentException("File must be of type .r or .py");
 		}
 
-
 		try {
 			FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + DIR_SEPARATOR + relativeFilePath + DIR_SEPARATOR + uploadedFile.getName()));
-			ClusterUtil.reactorPushApp(assetEngineID);
+			ClusterUtil.reactorPushDatabase(assetProjectId);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Unable to copy file");
@@ -103,7 +97,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 
 		Map<String, Object> uploadUserData = new HashMap<String, Object>();
 		uploadUserData.put("uploadedFile", uploadedFilePath);
-		uploadUserData.put("app", assetEngineID);
+		uploadUserData.put("app", assetProjectId);
 		return new NounMetadata(uploadUserData, PixelDataType.MAP, PixelOperationType.USER_UPLOAD);
 	}
 

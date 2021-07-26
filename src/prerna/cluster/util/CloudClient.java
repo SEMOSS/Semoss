@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -52,41 +52,94 @@ public abstract class CloudClient {
 
 	public abstract void init();
 
-	public  abstract void pushApp(String appId) throws IOException, InterruptedException;
+	public abstract void pushApp(String appId) throws IOException, InterruptedException;
 	
-	public  abstract void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException;
+	public abstract void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException;
 
-	public  abstract void pullApp(String appId) throws IOException, InterruptedException;
+	public abstract void pullApp(String appId) throws IOException, InterruptedException;
 	
-	public  abstract void pullDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException;
+	public abstract void pullDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException;
 
 	protected abstract void pullApp(String appId, boolean appAlreadyLoaded) throws IOException, InterruptedException; 
 	
-	public  abstract void pullImageFolder() throws IOException, InterruptedException;
-
-	public  abstract void pushImageFolder() throws IOException, InterruptedException;
-
 	public abstract void updateApp(String appId) throws IOException, InterruptedException;
 
 	public abstract void deleteApp(String appId) throws IOException, InterruptedException;
 
+	@Deprecated
+	// TODO: need to make sep for db and project
 	public abstract List<String> listAllBlobContainers() throws IOException, InterruptedException; 
 
 	public abstract void deleteContainer(String containerId) throws IOException, InterruptedException; 
-
-	public abstract void pullInsightsDB(String appId) throws IOException, InterruptedException;
-	
-	public abstract void pushInsightDB(String appId)  throws IOException, InterruptedException;
 
 	public abstract void pushOwl(String appId)  throws IOException, InterruptedException;
 
 	public abstract void pullOwl(String appId)  throws IOException, InterruptedException;
 
-	public abstract void pushFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
-
-	public abstract void pullFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
-
 	public abstract String  createRcloneConfig() throws IOException, InterruptedException;
+	
+	/*
+	 * MAHER MODIFIED METHODS
+	 */
+	
+	public abstract void pullAppImageFolder() throws IOException, InterruptedException;
+
+	public abstract void pushAppImageFolder() throws IOException, InterruptedException;
+	
+	public abstract void pullProjectImageFolder() throws IOException, InterruptedException;
+
+	public abstract void pushProjectImageFolder() throws IOException, InterruptedException;
+	
+	public abstract void pushProject(String projectId) throws IOException, InterruptedException;
+	
+	public abstract void pullProject(String projectId) throws IOException, InterruptedException;
+
+	protected abstract void pullProject(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException; 
+	
+	public abstract void deleteProject(String projectId) throws IOException, InterruptedException;
+	
+	public abstract void pullInsightsDB(String projectId) throws IOException, InterruptedException;
+	
+	public abstract void pushInsightDB(String projectId)  throws IOException, InterruptedException;
+
+	public abstract void pushEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+
+	public abstract void pullEngineFolder(String appId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+
+	public abstract void pushProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+
+	public abstract void pullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) throws IOException, InterruptedException;
+
+	public abstract void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded) throws IOException, InterruptedException;
+	
+	public abstract void pushUserAssetOrWorkspace(String projectId, boolean isAsset) throws IOException, InterruptedException;
+
+	/**
+	 * This is temporary - to fix old cloud deployments so the structure has the split between db and project
+	 * @param appId
+	 * @throws IOException 
+	 * @throws InterruptedException 
+	 */
+	@Deprecated
+	public abstract void fixLegacyDbStructure(String appId) throws IOException, InterruptedException;
+	
+	/**
+	 * This is temporary - to fix old cloud deployments so the structure has the split between db and project
+	 * @throws IOException 
+	 * @throws InterruptedException 
+	 */
+	@Deprecated
+	public abstract void fixLegacyImageStructure() throws IOException, InterruptedException;
+	
+	/**
+	 * This is temporary - to fix old cloud deployments so the structure has the split between db and project
+	 * @param appId
+	 * @param isAsset
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	@Deprecated
+	public abstract void fixLegacyUserAssetStructure(String appId, boolean isAsset) throws IOException, InterruptedException;
 	
 	protected static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rcloneConfig);
@@ -103,6 +156,7 @@ public abstract class CloudClient {
 		commandList.addAll(Arrays.asList(command));
 		commandList.add("--config");
 		commandList.add(configPath);
+		commandList.add("--fast-list");
 		String[] newCommand = commandList.toArray(new String[] {});
 		return runAnyProcess(newCommand);	
 	}
@@ -115,6 +169,7 @@ public abstract class CloudClient {
 		commandList.add(TRANSFER_LIMIT);
 		commandList.add("--config");
 		commandList.add(configPath);
+		commandList.add("--fast-list");
 		String[] newCommand = commandList.toArray(new String[] {});
 		return runAnyProcess(newCommand);	
 	}
@@ -128,7 +183,6 @@ public abstract class CloudClient {
 	}
 
 	protected static List<String> runAnyProcess(String... command) throws IOException, InterruptedException {
-		
 		// Need to allow this process to execute the below commands
 		SecurityManager priorManager = System.getSecurityManager();
 		System.setSecurityManager(null);
@@ -178,40 +232,37 @@ public abstract class CloudClient {
 	}
 	
 	protected List<String> getSqlLiteFile(String appFolder) {
-        File dir = new File(appFolder);
-        List<String> sqlFiles = new ArrayList<String>();
-        //search dir for .sqlite files 
-        for (File file : dir.listFiles()) {
-            if (file.getName().endsWith((".sqlite"))) {
-            	if (!(file.getName().equals("insights_database.sqlite")))
-            	sqlFiles.add(file.getName());
-            }
-          }
-        if (sqlFiles.size() > 1){
-        	System.out.println("More than 1 sqlite file found in app dir. Adding only first");
-        }
+		File dir = new File(appFolder);
+		List<String> sqlFiles = new ArrayList<String>();
+		//search dir for .sqlite files 
+		for (File file : dir.listFiles()) {
+			if (file.getName().endsWith((".sqlite"))) {
+				if (!(file.getName().equals("insights_database.sqlite"))) {
+					sqlFiles.add(file.getName());
+				}
+			}
+		}
+		if (sqlFiles.size() > 1){
+			System.out.println("More than 1 sqlite file found in app dir. Adding only first");
+		}
 		return sqlFiles;
 	}
 
-	protected String getInsightDB(IEngine engine, String appFolder) {
-		String insightDbType = engine.getProperty(Constants.RDBMS_INSIGHTS_TYPE);
+	protected String getInsightDB(IProject project, String projectFolder) {
+		RdbmsTypeEnum insightDbType = project.getInsightDatabase().getDbType();
 		String insightDbName = null;
-		if (insightDbType.toLowerCase().contains("h2")) {
+		if (insightDbType == RdbmsTypeEnum.H2_DB) {
 			insightDbName = "insights_database.mv.db";
 		} else {
 			insightDbName = "insights_database.sqlite";
 		}
-        File dir = new File(appFolder);
-        for (File file : dir.listFiles()) {
-            if (file.getName().equalsIgnoreCase(insightDbName)){
-            	return file.getName();
-            }
-          }
-		throw new IllegalArgumentException("There is no insight database for app: " + engine.getEngineName());
+		File dir = new File(projectFolder);
+		for (File file : dir.listFiles()) {
+			if (file.getName().equalsIgnoreCase(insightDbName)){
+				return file.getName();
+			}
+		}
+		throw new IllegalArgumentException("There is no insight database for project: " + project.getProjectName());
 	}
 
-	
-
-	
 }
-

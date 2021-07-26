@@ -21,7 +21,7 @@ public class AllConceptualNamesReactor extends AbstractReactor {
 		// need to take into consideration security
 		Collection<String> conceptualNames = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			List<String> engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			List<String> engineFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 			conceptualNames = MasterDatabaseUtility.getAllConceptualNames(engineFilters);
 		} else {
 			conceptualNames = MasterDatabaseUtility.getAllConceptualNames(null);

@@ -16,7 +16,7 @@ public class MountReactor extends AbstractReactor {
 
 	public MountReactor()
 	{
-		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.VARIABLE.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.VARIABLE.getKey()};
 		this.keyRequired = new int[]{1,1};
 	}
 	

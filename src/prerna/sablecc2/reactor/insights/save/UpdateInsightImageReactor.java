@@ -14,7 +14,7 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = UpdateInsightImageReactor.class.getName();
 	
 	public UpdateInsightImageReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.URL.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.URL.getKey()};
 	}
 	
 	@Override
@@ -23,15 +23,15 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 		logger.info("Starting image capture...");
 		logger.info("Operation can take up to 10 seconds to complete");
 		
-		String appId = getApp();
+		String projectId = getProject();
 		String rdbmsId = getRdbmsId();
 		String feUrl = getUrl();
 		String sessionId = ThreadStore.getSessionId();
 		Object params = getExecutionParams();
 		if(params == null) {
-			ImageCaptureReactor.runImageCapture(feUrl, appId, rdbmsId, null, sessionId);
+			ImageCaptureReactor.runImageCapture(feUrl, projectId, rdbmsId, null, sessionId);
 		} else {
-			ImageCaptureReactor.runImageCapture(feUrl, appId, rdbmsId, params.toString(), sessionId);
+			ImageCaptureReactor.runImageCapture(feUrl, projectId, rdbmsId, params.toString(), sessionId);
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}

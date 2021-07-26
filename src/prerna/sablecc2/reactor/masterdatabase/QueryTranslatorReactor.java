@@ -24,8 +24,8 @@ public class QueryTranslatorReactor extends AbstractReactor {
 		System.out.println(query);
 		String sourceDbId = this.keyValue.get(this.keysToGet[1]);
 		String targetDbId = this.keyValue.get(this.keysToGet[2]);
-		sourceDbId = MasterDatabaseUtility.testEngineIdIfAlias(sourceDbId);
-		targetDbId = MasterDatabaseUtility.testEngineIdIfAlias(targetDbId);
+		sourceDbId = MasterDatabaseUtility.testDatabaseIdIfAlias(sourceDbId);
+		targetDbId = MasterDatabaseUtility.testDatabaseIdIfAlias(targetDbId);
 		// get physical to physical translation from sourceDB to targetDB
 		Map<String, List<String>> translation = MasterDatabaseUtility.databaseTranslator(sourceDbId, targetDbId);
 		// generate translated queries

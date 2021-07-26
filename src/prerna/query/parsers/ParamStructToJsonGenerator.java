@@ -1,19 +1,13 @@
 package prerna.query.parsers;
 
-import java.lang.reflect.Modifier;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.query.parsers.ParamStruct.FILL_TYPE;
-import prerna.query.parsers.ParamStructDetails.LEVEL;
 import prerna.query.parsers.ParamStructDetails.QUOTE;
 import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.test.TestUtilityMethods;
 
 public class ParamStructToJsonGenerator {
 

@@ -71,7 +71,7 @@ public class SyncUserAppsThread implements Runnable {
 			if(workspaceIds != null) {
 				for(String workspaceAppId : workspaceIds) {
 					try {
-						CloudClient.getClient().pushApp(workspaceAppId);
+						CloudClient.getClient().pushUserAssetOrWorkspace(workspaceAppId, false);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -80,7 +80,7 @@ public class SyncUserAppsThread implements Runnable {
 			if(assetIds != null) {
 				for(String assetAppId : assetIds) {
 					try {
-						CloudClient.getClient().pushApp(assetAppId);
+						CloudClient.getClient().pushUserAssetOrWorkspace(assetAppId, true);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}

@@ -5,9 +5,7 @@ import java.util.Properties;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
-import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.CassandraSqlInterpreter;
-import prerna.query.interpreters.sql.ImpalaSqlInterpreter;
 
 public class CassandraQueryUtil extends AnsiSqlQueryUtil {
 

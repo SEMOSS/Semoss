@@ -43,10 +43,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	private static final Logger logger = LogManager.getLogger(SecurityQueryUtils.class);
 	
 	/**
-	 * Try to reconcile and get the engine id
+	 * Try to reconcile and get the database id
 	 * @return
 	 */
-	public static String testUserEngineIdForAlias(User user, String potentialId) {
+	public static String testUserDatabaseIdForAlias(User user, String potentialId) {
 		List<String> ids = new Vector<String>();
 		
 //		String userFilters = getUserFilters(user);
@@ -74,9 +74,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			ids = QueryExecutionUtility.flushToListString(securityDb, qs);
 		}
 		
-		if(ids.size() == 1) {
+		if (ids.size() == 1) {
 			potentialId = ids.get(0);
-		} else if(ids.size() > 1) {
+		} else if (ids.size() > 1) {
 			throw new IllegalArgumentException("There are 2 databases with the name " + potentialId + ". Please pass in the correct id to know which source you want to load from");
 		}
 		
@@ -84,10 +84,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get a list of the engine ids
+	 * Get a list of the database ids
 	 * @return
 	 */
-	public static List<String> getEngineIds() {
+	public static List<String> getDatabaseIds() {
 //		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
@@ -97,10 +97,23 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the engine alias for a id
+	 * Get a list of the project ids
 	 * @return
 	 */
-	public static String getEngineAliasForId(String id) {
+	public static List<String> getProjectIds() {
+//		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+	
+	/**
+	 * Get the database alias for a id
+	 * @return
+	 */
+	public static String getDatabaseAliasForId(String id) {
 //		String query = "SELECT ENGINENAME FROM ENGINE WHERE ENGINEID='" + id + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
@@ -108,23 +121,41 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", id));
 		List<String> results = QueryExecutionUtility.flushToListString(securityDb, qs);
-		if(results.isEmpty()) {
+		if (results.isEmpty()) {
 			return null;
 		}
 		return results.get(0);
 	}
 	
 	/**
-	 * Get the engine alias for a id
+	 * Get the project alias for a id
 	 * @return
 	 */
-	public static String getInsightNameForId(String engineId, String insightId) {
+	public static String getProjectAliasForId(String id) {
+//		String query = "SELECT PROJECTNAME FROM PROJECT WHERE PROJECTID='" + id + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", id));
+		List<String> results = QueryExecutionUtility.flushToListString(securityDb, qs);
+		if (results.isEmpty()) {
+			return null;
+		}
+		return results.get(0);
+	}
+	
+	/**
+	 * Get the insight alias for a id
+	 * @return
+	 */
+	public static String getInsightNameForId(String projectId, String insightId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
 		List<String> results = QueryExecutionUtility.flushToListString(securityDb, qs);
-		if(results.isEmpty()) {
+		if (results.isEmpty()) {
 			return null;
 		}
 		return results.get(0);
@@ -135,7 +166,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	///////////////////////////////////////////////////////////////////////////////////
 	
 	/*
-	 * Querying engine data
+	 * Querying database data
 	 */
 	
 	/**
@@ -183,25 +214,25 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "left.outer.join");
 		
-		Set<String> engineIdsIncluded = new HashSet<String>();
+		Set<String> dbIdsIncluded = new HashSet<String>();
 		
 		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
 
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while(wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				IHeadersDataRow headerRow = wrapper.next();
 				String[] headers = headerRow.getHeaders();
 				Object[] values = headerRow.getValues();
 				
-				// store the engine ids
+				// store the database ids
 				// we will exclude these later
-				// engine id is the first one to be returned
-				engineIdsIncluded.add(values[0].toString());
+				// database id is the first one to be returned
+				dbIdsIncluded.add(values[0].toString());
 				
 				Map<String, Object> map = new HashMap<String, Object>();
-				for(int i = 0; i < headers.length; i++) {
+				for (int i = 0; i < headers.length; i++) {
 					map.put(headers[i], values[i]);
 				}
 				result.add(map);
@@ -215,7 +246,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		
 		// now need to add the global ones
-		// that DO NOT sit in the engine permission
+		// that DO NOT sit in the database permission
 		// (this is because we do not update that table when a user modifies the global)
 //		query = "SELECT DISTINCT "
 //				+ "ENGINE.ENGINEID as \"app_id\", "
@@ -237,8 +268,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		// since some rdbms do not allow "not in ()" - we will only add if necessary
-		if(!engineIdsIncluded.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", new Vector<String>(engineIdsIncluded)));
+		if (!dbIdsIncluded.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", new Vector<String>(dbIdsIncluded)));
 		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		try {
@@ -281,7 +312,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Get the list of the engine information that the user has access to
+	 * Get the list of the database information that the user has access to
 	 * @param favoritesOnly 
 	 * @param userId
 	 * @return
@@ -369,7 +400,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get all user engines and engine Ids regardless of it being hidden or not 
+	 * Get all user database and database Ids regardless of it being hidden or not 
 	 * @param userId
 	 * @return
 	 */
@@ -391,13 +422,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs2.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
 		
-		List<Map<String, Object>> engineMap = QueryExecutionUtility.flushRsToMap(securityDb, qs2);
-		engineMap.addAll(allGlobalEnginesMap);
-		return engineMap;
+		List<Map<String, Object>> databaseMap = QueryExecutionUtility.flushRsToMap(securityDb, qs2);
+		databaseMap.addAll(allGlobalEnginesMap);
+		return databaseMap;
 	}
 	
 	/**
-	 * Get the list of the engine information that the user has access to
+	 * Get the list of the database information that the user has access to
 	 * @param userId
 	 * @return
 	 */
@@ -430,11 +461,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the list of the engine information that the user has access to
+	 * Get the list of the database information that the user has access to
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user, String engineFilter) {
+	public static List<Map<String, Object>> getUserDatabaseList(User user, String databaseFilter) {
 //		String userFilters = getUserFilters(user);
 //		String filter = createFilter(engineFilter); 
 //		String query = "SELECT DISTINCT "
@@ -452,17 +483,17 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_app_name");
+		fun.setAlias("low_database_name");
 		qs.addSelector(fun);
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
 		}
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
@@ -471,18 +502,18 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**
-	 * Get the list of the engine information that the user has access to filter appType
+	 * Get the list of the database information that the user has access to
 	 * @param user
-	 * @param appTypeFilter
+	 * @param dbTypeFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(User user, List<String> appTypeFilter) {
+	public static List<Map<String, Object>> getUserDatabaseList(User user, List<String> dbTypeFilter) {
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -495,8 +526,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		fun.setAlias("low_app_name");
 		qs.addSelector(fun);
-		if(appTypeFilter != null && !appTypeFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", appTypeFilter));
+		if(dbTypeFilter != null && !dbTypeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", dbTypeFilter));
 		}
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
@@ -522,11 +553,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the list of the engine information that the user has access to
+	 * Get the list of the database information that the user has access to
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getAllDatabaseList(String engineFilter) {
+	public static List<Map<String, Object>> getAllDatabaseList(String databaseFilter) {
 //		String filter = createFilter(engineFilter); 
 //		String query = "SELECT DISTINCT "
 //				+ "ENGINE.ENGINEID as \"app_id\", "
@@ -540,53 +571,53 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_app_name");
+		fun.setAlias("low_database_name");
 		qs.addSelector(fun);
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
+		if(databaseFilter != null && !databaseFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseFilter));
 		}
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**
-	 * Get the list of the engine information that the user has access to
-	 * @param engineTypeFilter
+	 * Get the list of the database information that the user has access to
+	 * @param dbTypeFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getAllDatabaseList(List<String> engineTypeFilter) {
+	public static List<Map<String, Object>> getAllDatabaseList(List<String> dbTypeFilter) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_app_name");
+		fun.setAlias("low_database_name");
 		qs.addSelector(fun);
-		if(engineTypeFilter != null && !engineTypeFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", engineTypeFilter));
+		if(dbTypeFilter != null && !dbTypeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", dbTypeFilter));
 		}
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
 	/**
-	 * Get user engines + global engines 
+	 * Get user databases + global databases 
 	 * @param userId
 	 * @return
 	 */
-	public static List<String> getFullUserEngineIds(User user) {
+	public static List<String> getFullUserDatabaseIds(User user) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT ENGINEID FROM ENGINEPERMISSION WHERE USERID IN " + userFilters;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -594,17 +625,17 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		List<String> engineList = QueryExecutionUtility.flushToListString(securityDb, qs);
-		engineList.addAll(getGlobalEngineIds());
-		return engineList.stream().distinct().sorted().collect(Collectors.toList());
+		List<String> databaseList = QueryExecutionUtility.flushToListString(securityDb, qs);
+		databaseList.addAll(getGlobalDatabaseIds());
+		return databaseList.stream().distinct().sorted().collect(Collectors.toList());
 	}
 	
 	/**
-	 * Get the visual user engines
+	 * Get the visual user databases
 	 * @param userId
 	 * @return
 	 */
-	public static List<String> getVisibleUserEngineIds(User user) {
+	public static List<String> getVisibleUserDatabaseIds(User user) {
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -631,10 +662,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get global engines
+	 * Get global databases
 	 * @return
 	 */
-	public static Set<String> getGlobalEngineIds() {
+	public static Set<String> getGlobalDatabaseIds() {
 //		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
@@ -651,9 +682,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * Get all the users for a database
 	 */
 	
-	public static List<Map<String, Object>> getDisplayDatabaseOwnersAndEditors(String engineId) {
+	public static List<Map<String, Object>> getDisplayDatabaseOwnersAndEditors(String databaseId) {
 		List<Map<String, Object>> users = null;
-		if(getGlobalEngineIds().contains(engineId)) {
+		if(getGlobalDatabaseIds().contains(databaseId)) {
 //			String query = "SELECT DISTINCT "
 //					+ "SMSS_USER.NAME AS \"name\", "
 //					+ "PERMISSION.NAME as \"permission\" "
@@ -670,7 +701,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			permissionValues.add(new Integer(1));
 			permissionValues.add(new Integer(2));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", permissionValues, PixelDataType.CONST_INT));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 			qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 			qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 			
@@ -690,18 +721,18 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 //					+ "WHERE ENGINEPERMISSION.ENGINEID='" + engineId + "'";
 //			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 			
-			users = getFullDatabaseOwnersAndEditors(engineId);
+			users = getFullDatabaseOwnersAndEditors(databaseId);
 		}
 		return users;
 	}
 	
-	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String engineId) {
+	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String databaseId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
@@ -709,6 +740,20 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
+	
+	public static List<Map<String, Object>> getFullProjectOwnersAndEditors(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
+		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
+
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
@@ -725,14 +770,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 //		return false;
 //	}
 	
-	public static boolean insightIsGlobal(String engineId, String insightId) {
+	public static boolean insightIsGlobal(String projectId, String insightId) {
 //		String query = "SELECT DISTINCT INSIGHT.GLOBAL FROM INSIGHT  "
 //				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND INSIGHT.GLOBAL=TRUE";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = null;
@@ -752,17 +797,17 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
-	public static SemossDate getLastModifiedDateForInsightInApp(String engineId) {
+	public static SemossDate getLastModifiedDateForInsightInProject(String projectId) {
 //		String query = "SELECT DISTINCT INSIGHT.LASTMODIFIEDON "
 //				+ "FROM INSIGHT "
-//				+ "WHERE INSIGHT.ENGINEID='" + engineId + "'"
+//				+ "WHERE INSIGHT.PROJECTID='" + projectId + "'"
 //				+ "ORDER BY INSIGHT.LASTMODIFIEDON DESC LIMIT 1"
 //				;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHT__LASTMODIFIEDON", "DESC"));
 		qs.setLimit(1);
 		
@@ -909,7 +954,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserAccessRequestsByProvider(User user, String engineFilter) {
+	public static List<Map<String, Object>> getUserAccessRequestsByProvider(User user, String databaseFilter) {
 //		String filter = getUserFilters(user);
 //		String query = "SELECT DISTINCT ID, SUBMITTEDBY, ENGINE, PERMISSION FROM ACCESSREQUEST "
 //				+ "WHERE ENGINE='" + engineFilter + "' AND SUBMITTEDBY IN " + filter;
@@ -920,7 +965,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ACCESSREQUEST__SUBMITTEDBY"));
 		qs.addSelector(new QueryColumnSelector("ACCESSREQUEST__ENGINE"));
 		qs.addSelector(new QueryColumnSelector("ACCESSREQUEST__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ACCESSREQUEST__ENGINE", "==", engineFilter));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ACCESSREQUEST__ENGINE", "==", databaseFilter));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ACCESSREQUEST__SUBMITTEDBY", "==", getUserFiltersQs(user)));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
@@ -1088,6 +1133,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	/**
 	 * Check if the user is of the type requested
 	 * @param userId	String representing the id of the user to check
+	 * @param type
 	 */
 	public static Boolean isUserType(String userId, AuthProvider type) {
 //		String query = "SELECT NAME FROM SMSS_USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "' AND TYPE = '"+ type + "';";

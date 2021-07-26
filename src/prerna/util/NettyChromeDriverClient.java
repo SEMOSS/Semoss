@@ -2,7 +2,6 @@ package prerna.util;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openqa.selenium.chrome.ChromeDriver;
 
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.Client;

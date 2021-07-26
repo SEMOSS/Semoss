@@ -10,9 +10,10 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.engine.api.IEngine;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
+import prerna.project.api.IProject;
 import prerna.util.git.GitRepoUtils;
 
 public class AssetUtility {
@@ -25,9 +26,9 @@ public class AssetUtility {
 	/**
 	 * Grab the workspace to work with asset files
 	 * 
-	 * APP-ID: db/app/version/assets 
-	 * USER: db/userApp/version/assets 
-	 * INSIGHT: db/app/version/insightID
+	 * PROJECT-ID: project/project_folder/version/assets 
+	 * USER: project/userApp/version/assets 
+	 * INSIGHT: project/project_folder/app_root/version/insightID
 	 * 
 	 * @param in
 	 * @param space
@@ -44,36 +45,36 @@ public class AssetUtility {
 						throw new IllegalArgumentException("Must be logged in to access user specific assets");
 					}
 					AuthProvider provider = user.getPrimaryLogin();
-					String appId = user.getAssetEngineId(provider);
-					String appName = "Asset";
-					assetFolder = getAppBaseFolder(appName, appId);
+					String projectId = user.getAssetProjectId(provider);
+					String projectName = "Asset";
+					assetFolder = getUserAssetAndWorkspaceBaseFolder(projectName, projectId);
 				}
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
 				// but need to perform check
-				if(editRequired && in.isSavedInsight() && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getEngineId(), in.getRdbmsId())) {
+				if(editRequired && in.isSavedInsight() && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 					throw new IllegalArgumentException("User does not have permission for this insight");
 				}
 			} else {
 				// user has passed an id
-				String appId = space;
+				String projectId = space;
 				// check if the user has permission for the app
 				if (AbstractSecurityUtils.securityEnabled()) {
 					if(editRequired) {
-						if(!SecurityAppUtils.userCanEditEngine(in.getUser(), space)) {
-							throw new IllegalArgumentException("User does not have permission for this app");
+						if(!SecurityProjectUtils.userCanEditProject(in.getUser(), projectId)) {
+							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					} else {
 						// only read access
-						if(!SecurityAppUtils.userCanViewEngine(in.getUser(), space)) {
-							throw new IllegalArgumentException("User does not have permission for this app");
+						if(!SecurityProjectUtils.userCanViewProject(in.getUser(), projectId)) {
+							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					}
 				}
-				IEngine engine = Utility.getEngine(appId);
-				String appName = engine.getEngineName();
-				//assetFolder = getAppAssetFolder(appName, appId);
-				assetFolder = getAppBaseFolder(appName, appId);
+				IProject project = Utility.getProject(projectId);
+				String projectName = project.getProjectName();
+				// assetFolder = getAppAssetFolder(appName, appId);
+				assetFolder = getProjectBaseFolder(projectName, projectId);
 			}
 		} else if(in.isSavedInsight() && editRequired){
 			// we are about to send back the insight folder 
@@ -81,7 +82,7 @@ public class AssetUtility {
 			// FE very rarely sends the INSIGHT_SPACE_KEY
 			// and edit is required
 			// make sure user has access
-			if(!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getEngineId(), in.getRdbmsId())) {
+			if(!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 				throw new IllegalArgumentException("User does not have permission for this insight");
 			}
 		}
@@ -100,7 +101,7 @@ public class AssetUtility {
 	public static String getAssetVersionBasePath(Insight in, String space, boolean editRequired) {
 		String assetFolder = null;
 		if(in.isSavedInsight()) {
-			assetFolder = getAppAssetVersionFolder(in.getEngineName(), in.getEngineId());
+			assetFolder = getProjectAssetVersionFolder(in.getProjectName(), in.getProjectId());
 		} else {
 			assetFolder = in.getInsightFolder();
 		}
@@ -114,35 +115,35 @@ public class AssetUtility {
 						throw new IllegalArgumentException("Must be logged in to perform this operation");
 					}
 					AuthProvider provider = user.getPrimaryLogin();
-					String appId = user.getAssetEngineId(provider);
-					String appName = "Asset";
-					assetFolder = getAppBaseFolder(appName, appId);
+					String projectId = user.getAssetProjectId(provider);
+					String projectName = "Asset";
+					assetFolder = getUserAssetAndWorkspaceBaseFolder(projectName, projectId);
 				}
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
 				// but need to perform check
-				if(editRequired && in.isSavedInsight() && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getEngineId(), in.getRdbmsId())) {
+				if(editRequired && in.isSavedInsight() && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 					throw new IllegalArgumentException("User does not have permission for this insight");
 				}
 			} else {
 				// user has passed an id
-				String appId = space;
+				String projectId = space;
 				// check if the user has permission for the app
 				if (AbstractSecurityUtils.securityEnabled()) {
 					if(editRequired) {
-						if(!SecurityAppUtils.userCanEditEngine(in.getUser(), space)) {
-							throw new IllegalArgumentException("User does not have permission for this app");
+						if(!SecurityAppUtils.userCanEditDatabase(in.getUser(), space)) {
+							throw new IllegalArgumentException("User does not have permission for this database");
 						}
 					} else {
 						// only read access
-						if(!SecurityAppUtils.userCanViewEngine(in.getUser(), space)) {
-							throw new IllegalArgumentException("User does not have permission for this app");
+						if(!SecurityAppUtils.userCanViewDatabase(in.getUser(), space)) {
+							throw new IllegalArgumentException("User does not have permission for this database");
 						}
 					}
 				}
-				IEngine engine = Utility.getEngine(appId);
-				String appName = engine.getEngineName();
-				assetFolder = getAppBaseFolder(appName, appId);
+				IProject project = Utility.getProject(projectId);
+				String projectName = project.getProjectName();
+				assetFolder = getProjectBaseFolder(projectName, projectId);
 			}
 		} else if(in.isSavedInsight() && editRequired){
 			// we are about to send back the insight folder 
@@ -150,7 +151,7 @@ public class AssetUtility {
 			// FE very rarely sends the INSIGHT_SPACE_KEY
 			// and edit is required
 			// make sure user has access
-			if(!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getEngineId(), in.getRdbmsId())) {
+			if(!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getProjectId(), in.getRdbmsId())) {
 				throw new IllegalArgumentException("User does not have permission for this insight");
 			}
 		}
@@ -163,26 +164,26 @@ public class AssetUtility {
 		return assetFolder;
 	}
 	
-	public static String getAppAssetFolder(String appId) {
-		IEngine engine = Utility.getEngine(appId);
-		String appName = engine.getEngineName();
-		return AssetUtility.getAppAssetFolder(appName, appId);
+	public static String getProjectAssetFolder(String projectId) {
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
+		return AssetUtility.getProjectAssetFolder(projectName, projectId);
 	}
 	
-	public static String getAppAssetFolder(String appName, String appId) {
-		String appVersionBaseFolder = getAppAssetVersionFolder(appName, appId);
-		String appFolder = appVersionBaseFolder + DIR_SEPARATOR + "assets";
+	public static String getProjectAssetFolder(String projectName, String projectId) {
+		String projectVersionBaseFolder = getProjectAssetVersionFolder(projectName, projectId);
+		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + "assets";
 
 		// if this folder does not exist create it
-		File file = new File(appFolder);
+		File file = new File(projectFolder);
 		if (!file.exists()) {
 			file.mkdir();
 		}
-		return appFolder;
+		return projectFolder;
 	}
 	
-	public static String getAppAssetVersionFolder(String appName, String appId) {
-		String appBaseFolder = getAppBaseFolder(appName, appId);
+	public static String getProjectAssetVersionFolder(String projectName, String projectId) {
+		String appBaseFolder = getProjectBaseFolder(projectName, projectId);
 		String gitFolder = appBaseFolder + DIR_SEPARATOR + "version";
 		// if this folder does not exist create it
 		File file = new File(Utility.normalizePath(gitFolder));
@@ -214,40 +215,59 @@ public class AssetUtility {
 		return file.exists();
 	}
 	
-	public static String getAppBaseFolder(String appName, String appId) {
+	public static String getProjectBaseFolder(String projectName, String projectId) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
 			baseFolder += DIR_SEPARATOR;
 		}
 		
-		String baseAppFolder = Utility.normalizePath(baseFolder + "db" + DIR_SEPARATOR 
-				+ SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "app_root" );
+		String baseProjectFolder = Utility.normalizePath(baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR 
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "app_root" );
 
-		File baseAppFolderFile = new File(baseAppFolder);
+		File baseAppFolderFile = new File(baseProjectFolder);
 		if(!baseAppFolderFile.exists()) {
 			baseAppFolderFile.mkdir();
 			// if you are creating this.. there is a possibility we need to fix this engine
-			rehomeDB(appName, appId, baseAppFolder);
-		}		
+			rehomeDB(projectName, projectId, baseProjectFolder);
+		}
 		// try to see if there is a version folder and if so move it into app_root
-		return baseAppFolder;
+		return baseProjectFolder;
 	}
 	
-	private static void rehomeDB(String appName, String appId, String newRoot) {
+	public static String getUserAssetAndWorkspaceBaseFolder(String projectName, String projectId) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
 			baseFolder += DIR_SEPARATOR;
 		}
 		
-		String oldBaseAppFolder = Utility.normalizePath(baseFolder + "db" + DIR_SEPARATOR 
-				+ SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" );
+		String baseProjectFolder = Utility.normalizePath(baseFolder + Constants.USER_FOLDER + DIR_SEPARATOR 
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "app_root" );
+
+		File baseAppFolderFile = new File(baseProjectFolder);
+		if(!baseAppFolderFile.exists()) {
+			baseAppFolderFile.mkdir();
+			// if you are creating this.. there is a possibility we need to fix this engine
+			rehomeDB(projectName, projectId, baseProjectFolder);
+		}
+		// try to see if there is a version folder and if so move it into app_root
+		return baseProjectFolder;
+	}
+	
+	private static void rehomeDB(String projectName, String projectId, String newRoot) {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if( !(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) ) {
+			baseFolder += DIR_SEPARATOR;
+		}
+
+		String oldBaseAppFolder = Utility.normalizePath(baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR 
+				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "version" );
 
 		File oldBaseAppFolderFile = new File(oldBaseAppFolder);
 
 		if(oldBaseAppFolderFile.exists()) {
 			try {
-					System.err.println(">>>>> Rehoming Catalog : " + appName + " <<<<<<");
-					Files.move(oldBaseAppFolderFile.toPath(), new File(newRoot + DIR_SEPARATOR + "version").toPath(), StandardCopyOption.REPLACE_EXISTING);
+				System.err.println(">>>>> Rehoming Catalog : " + projectName + " <<<<<<");
+				Files.move(oldBaseAppFolderFile.toPath(), new File(newRoot + DIR_SEPARATOR + "version").toPath(), StandardCopyOption.REPLACE_EXISTING);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

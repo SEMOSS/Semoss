@@ -330,7 +330,7 @@ public class NativeImporter extends AbstractImporter {
 			}
 
 			boolean multiTable = tables.size() > 1;
-			Collection<String> possibleSelectors = MasterDatabaseUtility.getSelectorsWithinEngineRDBMS(engineId);
+			Collection<String> possibleSelectors = MasterDatabaseUtility.getSelectorsWithinDatabaseRDBMS(engineId);
 			for(String pSelector : possibleSelectors) {
 				if(pSelector.contains("__")) {
 					String possibleT = pSelector.split("__")[0];

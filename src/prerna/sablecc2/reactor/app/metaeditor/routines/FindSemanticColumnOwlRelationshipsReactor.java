@@ -18,7 +18,7 @@ import prerna.util.Utility;
 
 public class FindSemanticColumnOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 
-	private static final String CLASS_NAME = FindIndirectOwlRelationshipsReactor.class.getName();
+	private static final String CLASS_NAME = FindSemanticColumnOwlRelationshipsReactor.class.getName();
 
 	/**
 	 * Example script to run:
@@ -32,15 +32,15 @@ public class FindSemanticColumnOwlRelationshipsReactor extends AbstractMetaEdito
 	 */
 	
 	public FindSemanticColumnOwlRelationshipsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), TABLES_FILTER, STORE_VALUES_FRAME};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), TABLES_FILTER, STORE_VALUES_FRAME};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = testAppId(appId, false);
+		databaseId = testDatabaseId(databaseId, false);
 		List<String> filters = getTableFilters();
 		
 		// make sure R is good to go
@@ -51,13 +51,13 @@ public class FindSemanticColumnOwlRelationshipsReactor extends AbstractMetaEdito
 		String[] packages = { "text2vec", "data.table", "lsa", "WikidataR", "XML", "RCurl", "stringr"};
 		rJavaTranslator.checkPackages(packages);
 		
-		IEngine app = Utility.getEngine(appId);
+		IEngine database = Utility.getEngine(databaseId);
 		
 		// get 2 lists
 		// of all table names
 		// and column names
 		// matched by index
-		List<String>[] lists = getTablesAndColumnsList(app, filters);
+		List<String>[] lists = getTablesAndColumnsList(database, filters);
 		List<String> tableNamesList = lists[0];
 		List<String> columnNamesList = lists[1];
 		
@@ -84,7 +84,7 @@ public class FindSemanticColumnOwlRelationshipsReactor extends AbstractMetaEdito
 		for(int i = 0; i < size; i++) {
 			String tName = tableNamesList.get(i);
 			String cName = columnNamesList.get(i);
-			String description = app.getDescription("http://semoss.org/ontologies/Relation/Contains/" + cName + "/" + tName);
+			String description = database.getDescription("http://semoss.org/ontologies/Relation/Contains/" + cName + "/" + tName);
 			if(description != null && !description.isEmpty()) {
 				if(existingDefinitions == null) {
 					existingDefinitions = new StringBuilder("list(");

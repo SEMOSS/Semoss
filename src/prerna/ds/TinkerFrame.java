@@ -46,8 +46,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.TinkerImporter;
@@ -1001,44 +999,44 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		LOGGER.info("DONE inserting of blanks.......");
 	}
 
-	@Override
-	public Map<String, String> getScriptReactors() {
-		Map<String, String> reactorNames = super.getScriptReactors();
-		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
-		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-//		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
-		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.TinkerColAddReactor");
-		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.TinkerColSplitReactor");
-		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.TinkerImportDataReactor");
-		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
-		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
-		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
-		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
-		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.TinkerDuplicatesReactor");
-		reactorNames.put(PKQLEnum.COL_FILTER_MODEL, "prerna.sablecc.TinkerColFilterModelReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.TinkerChangeTypeReactor");
-		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
-		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
-		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.ExcelApiReactor");
-		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-		
-//		switch(reactorType) {
-//			case IMPORT_DATA : return new TinkerImportDataReactor();
-//			case COL_ADD : return new TinkerColAddReactor();
-//		}
-		
-		return reactorNames;
-	}
+//	@Override
+//	public Map<String, String> getScriptReactors() {
+//		Map<String, String> reactorNames = super.getScriptReactors();
+//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+//		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
+//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
+//		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
+////		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
+//		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
+//		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+//		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
+//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.TinkerColAddReactor");
+//		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.TinkerColSplitReactor");
+//		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.TinkerImportDataReactor");
+//		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
+//		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
+//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+//		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
+//		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+//		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
+//		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
+//		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
+//		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.TinkerDuplicatesReactor");
+//		reactorNames.put(PKQLEnum.COL_FILTER_MODEL, "prerna.sablecc.TinkerColFilterModelReactor");
+//		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.TinkerChangeTypeReactor");
+//		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+//		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
+//		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.ExcelApiReactor");
+//		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
+//		
+////		switch(reactorType) {
+////			case IMPORT_DATA : return new TinkerImportDataReactor();
+////			case COL_ADD : return new TinkerColAddReactor();
+////		}
+//		
+//		return reactorNames;
+//	}
 	
 	@Override
 	public DataFrameTypeEnum getFrameType() {
