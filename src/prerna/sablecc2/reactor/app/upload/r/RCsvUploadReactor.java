@@ -22,16 +22,17 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RCsvUploadReactor extends AbstractUploadFileReactor {
+	
 	private CSVFileHelper helper;
 
 	public RCsvUploadReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
+		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
 				UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
 				UploadInputUtility.ADDITIONAL_DATA_TYPES};
 	}
 
 	@Override
-	public void generateNewApp(User user, String newAppName, String filePath) throws Exception {
+	public void generateNewDatabase(User user, String newDatabaseName, String filePath) throws Exception {
 		// grab inputs passed in
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> dataTypesMap = UploadInputUtility.getCsvDataTypeMap(this.store);
@@ -49,9 +50,9 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create smss file for database...");
-		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
-		this.tempSmss = UploadUtilities.createTemporaryRSmss(this.appId, newAppName, owlFile, fileName, newHeaders, dataTypesMap, additionalDataTypeMap);
-		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		File owlFile = UploadUtilities.generateOwlFile(this.databaseId, newDatabaseName);
+		this.tempSmss = UploadUtilities.createTemporaryRSmss(this.databaseId, newDatabaseName, owlFile, fileName, newHeaders, dataTypesMap, additionalDataTypeMap);
+		DIHelper.getInstance().setDbProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
@@ -66,7 +67,7 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 		
 
-		logger.info(stepCounter + ". Start generating engine metadata");
+		logger.info(stepCounter + ". Start generating database metadata");
 		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.R);
 		// table name is the file name
 		String tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
@@ -89,14 +90,14 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		FileUtils.copyFile(uploadFile, dataFile);
 		
 		logger.info(stepCounter + ". Create database store...");
-		this.engine = new RNativeEngine();
-		this.engine.openDB(this.tempSmss.getAbsolutePath());
+		this.database = new RNativeEngine();
+		this.database.openDB(this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 	}
 
 	@Override
-	public void addToExistingApp(String filePath) throws Exception {
+	public void addToExistingDatabase(String filePath) throws Exception {
 		// TODO Auto-generated method stub
 
 	}

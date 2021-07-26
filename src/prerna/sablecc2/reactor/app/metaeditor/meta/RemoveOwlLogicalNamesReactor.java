@@ -18,29 +18,29 @@ import prerna.util.Utility;
 public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
 	public RemoveOwlLogicalNamesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		String appId = getAppId();
+		String databaseId = getDatabaseId();
 		// we may have an alias
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 		
 		String concept = getConcept();
 		String prop = getProperty();
 		String[] logicalNames = getLogicalNames();
 		
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
 		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
-			physicalUri = engine.getPhysicalUriFromPixelSelector(concept);
+			physicalUri = database.getPhysicalUriFromPixelSelector(concept);
 		} else {
-			physicalUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + prop);
+			physicalUri = database.getPhysicalUriFromPixelSelector(concept + "__" + prop);
 		}
 		
-		Owler owler = new Owler(engine);
+		Owler owler = new Owler(database);
 		owler.deleteLogicalNames(physicalUri, logicalNames);
 		
 		try {
@@ -51,8 +51,8 @@ public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove logical names : " + Arrays.toString(logicalNames), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed logical names : " + Arrays.toString(logicalNames), PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
@@ -66,7 +66,7 @@ public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	///////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////
 
-	private String getAppId() {
+	private String getDatabaseId() {
 		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {
 			String appId = (String) grs.get(0);

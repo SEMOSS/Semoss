@@ -71,8 +71,8 @@ public abstract class JobConfig {
 			return new OneColConditionJobConfig(jobDefinition);
 		case CREATE_INSIGHT_JOB:
 			return new CreateInsightJobConfig(jobDefinition);
-		case INSIGHT_RERUN_JOB:
-			return new InsightsRerunCronJobConfig(jobDefinition);
+//		case INSIGHT_RERUN_JOB:
+//			return new InsightsRerunCronJobConfig(jobDefinition);
 		case GET_SMTP_SESSION_JOB:
 			return new GetSMTPSessionJobConfig(jobDefinition);
 		case SEND_EMAIL_JOB:

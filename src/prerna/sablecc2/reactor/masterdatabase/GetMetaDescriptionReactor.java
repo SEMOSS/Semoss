@@ -28,15 +28,15 @@ public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {
 		String engineId = getEngineId();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineId);
+			if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 		} else {
-			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+			engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
 		}
 		
-		if(!SecurityQueryUtils.getEngineIds().contains(engineId)) {
+		if(!SecurityQueryUtils.getDatabaseIds().contains(engineId)) {
 			throw new IllegalArgumentException("App id does not exist");
 		}
 		

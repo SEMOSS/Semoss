@@ -48,9 +48,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
+import prerna.project.api.IProject;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
@@ -58,6 +58,7 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.helpers.OldInsightProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * 1. Get information from the textarea for the query 2. Process the query
@@ -194,13 +195,14 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 	}
 	
 	private OldInsight getSelectedInsight(IEngine engine){
+		IProject project = Utility.getProject(engine.getEngineId());
 		String insightString = ((Map<String, String>) ((JComboBox<Map<String,String>>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem()).get(MapComboBoxRenderer.KEY);
 		String[] insightStringSplit = insightString.split("\\. ", 2);
-		if( ((OldInsight) ((AbstractEngine)engine).getInsight(insightString).get(0)).getOutput().equals("Unknown")){
+		if( ((OldInsight) project.getInsight(insightString).get(0)).getOutput().equals("Unknown")){
 			insightString = insightStringSplit[1];
 		}
 
-		return (OldInsight) engine.getInsight(insightString).get(0);
+		return (OldInsight) project.getInsight(insightString).get(0);
 	}
 	
 	private DataMakerComponent createDMC(String engineName){

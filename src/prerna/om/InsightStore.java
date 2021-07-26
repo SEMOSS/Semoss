@@ -107,7 +107,7 @@ public class InsightStore extends Hashtable<String, Insight> {
 		Insight retIn = null;
 		INSIGHT_LOOP : for(String insightKey : this.keySet()) {
 			Insight in = this.get(insightKey);
-			String inEngineName = in.getEngineId();
+			String inEngineName = in.getProjectId();
 			String inRdbmsId = in.getRdbmsId();
 			if(engineName.equals(inEngineName) && rdbmsId.equals(inRdbmsId)) {
 				retIn = in;

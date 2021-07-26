@@ -60,12 +60,12 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		if(app == null) {
 			throw new IllegalArgumentException("Need to specify the app to export");
 		}
-		String appId = MasterDatabaseUtility.testEngineIdIfAlias(app);
+		String appId = MasterDatabaseUtility.testDatabaseIdIfAlias(app);
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
 			throw new IllegalArgumentException("Cannot find the specified app");
 		}
-		String propFileLoc = DIHelper.getInstance().getProperty(appId + "_" + Constants.STORE);
+		String propFileLoc = (String) DIHelper.getInstance().getDbProperty(appId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(propFileLoc);
 		
 		Date date = new Date();

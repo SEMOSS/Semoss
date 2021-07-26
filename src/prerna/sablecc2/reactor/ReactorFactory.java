@@ -17,7 +17,6 @@ import io.github.classgraph.ScanResult;
 import me.xdrop.fuzzywuzzy.FuzzySearch;
 import me.xdrop.fuzzywuzzy.model.ExtractedResult;
 import prerna.algorithm.api.ITableDataFrame;
-//import prerna.cluster.util.PullCloudAppReactor;
 import prerna.cluster.util.PushAppsReactor;
 import prerna.comments.AddInsightCommentReactor;
 import prerna.comments.DeleteInsightCommentReactor;
@@ -67,12 +66,11 @@ import prerna.sablecc2.reactor.algorithms.xray.RunXRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.AddDefaultInsightsReactor;
 import prerna.sablecc2.reactor.app.DatabaseColumnUniqueReactor;
-import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlDescriptionsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlDictionaryReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlMetamodelReactor;
-import prerna.sablecc2.reactor.app.metaeditor.ReloadAppOwlReactor;
+import prerna.sablecc2.reactor.app.metaeditor.ReloadDatabaseOwlReactor;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.AddOwlConceptReactor;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.EditOwlConceptConceptualNameReactor;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.EditOwlConceptDataTypeReactor;
@@ -97,7 +95,6 @@ import prerna.sablecc2.reactor.app.metaeditor.routines.FindSemanticInstanceOwlRe
 import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.upload.CheckHeadersReactor;
-import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.PredictDataTypesReactor;
 import prerna.sablecc2.reactor.app.upload.PredictExcelDataTypesReactor;
@@ -122,9 +119,9 @@ import prerna.sablecc2.reactor.app.upload.rdbms.external.ExternalJdbcTablesAndVi
 import prerna.sablecc2.reactor.app.upload.rdbms.external.RdbmsExternalUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdf.RdfCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdf.RdfLoaderSheetUploadReactor;
-import prerna.sablecc2.reactor.cluster.CleanUpAppsReactor;
-import prerna.sablecc2.reactor.cluster.OpenAppReactor;
-import prerna.sablecc2.reactor.cluster.UpdateAppReactor;
+import prerna.sablecc2.reactor.cluster.CleanUpDatabasesReactor;
+import prerna.sablecc2.reactor.cluster.OpenDatabaseReactor;
+import prerna.sablecc2.reactor.cluster.UpdateDatabaseReactor;
 import prerna.sablecc2.reactor.cluster.VersionReactor;
 import prerna.sablecc2.reactor.export.AsTaskReactor;
 import prerna.sablecc2.reactor.export.CollectAllReactor;
@@ -223,7 +220,6 @@ import prerna.sablecc2.reactor.insights.InsightHandleReactor;
 import prerna.sablecc2.reactor.insights.LoadInsightReactor;
 import prerna.sablecc2.reactor.insights.OpenEmptyInsightReactor;
 import prerna.sablecc2.reactor.insights.OpenInsightReactor;
-import prerna.sablecc2.reactor.insights.OpenOptimizedInsightReactor;
 import prerna.sablecc2.reactor.insights.RetrieveInsightOrnamentReactor;
 import prerna.sablecc2.reactor.insights.SetInsightOrnamentReactor;
 import prerna.sablecc2.reactor.insights.copy.CopyInsightReactor;
@@ -253,7 +249,7 @@ import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToPhysicalMapping;
 import prerna.sablecc2.reactor.masterdatabase.GetSpecificConceptPropertiesReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.QueryTranslatorReactor;
-import prerna.sablecc2.reactor.masterdatabase.SyncAppWithLocalMasterReactor;
+import prerna.sablecc2.reactor.masterdatabase.SyncDatabaseWithLocalMasterReactor;
 import prerna.sablecc2.reactor.panel.AddPanelConfigReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
 import prerna.sablecc2.reactor.panel.AddPanelReactor;
@@ -308,7 +304,6 @@ import prerna.sablecc2.reactor.qs.QueryAllReactor;
 import prerna.sablecc2.reactor.qs.QueryReactor;
 import prerna.sablecc2.reactor.qs.SortReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
-import prerna.sablecc2.reactor.qs.filter.FilterReactor;
 import prerna.sablecc2.reactor.qs.filter.HavingReactor;
 import prerna.sablecc2.reactor.qs.filter.RegexFilterReactor;
 import prerna.sablecc2.reactor.qs.selectors.AverageReactor;
@@ -370,11 +365,11 @@ import prerna.sablecc2.reactor.task.RemoveTaskReactor;
 import prerna.sablecc2.reactor.task.ResetTaskReactor;
 import prerna.sablecc2.reactor.task.TaskOptionsReactor;
 import prerna.sablecc2.reactor.task.TaskReactor;
+import prerna.sablecc2.reactor.task.lambda.map.MapLambdaReactor;
 import prerna.sablecc2.reactor.task.lambda.map.function.ApplyFormattingReactor;
 import prerna.sablecc2.reactor.task.modifiers.CodeLambdaReactor;
 import prerna.sablecc2.reactor.task.modifiers.FilterLambdaReactor;
 import prerna.sablecc2.reactor.task.modifiers.FlatMapLambdaReactor;
-import prerna.sablecc2.reactor.task.modifiers.MapLambdaReactor;
 import prerna.sablecc2.reactor.task.modifiers.ToNumericTypeReactor;
 import prerna.sablecc2.reactor.task.modifiers.ToUrlTypeReactor;
 import prerna.sablecc2.reactor.task.modifiers.TransposeRowsReactor;
@@ -384,14 +379,14 @@ import prerna.sablecc2.reactor.test.RunLSILearnedReactor;
 import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
 import prerna.sablecc2.reactor.utils.BDelReactor;
 import prerna.sablecc2.reactor.utils.BQReactor;
-import prerna.sablecc2.reactor.utils.BackupAppReactor;
+import prerna.sablecc2.reactor.utils.BackupDatabaseReactor;
 import prerna.sablecc2.reactor.utils.BaddReactor;
 import prerna.sablecc2.reactor.utils.BupdReactor;
 import prerna.sablecc2.reactor.utils.CheckRPackagesReactor;
 import prerna.sablecc2.reactor.utils.CheckRecommendOptimizationReactor;
 import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
-import prerna.sablecc2.reactor.utils.DeleteAppReactor;
-import prerna.sablecc2.reactor.utils.ExportAppReactor;
+import prerna.sablecc2.reactor.utils.DeleteDatabaseReactor;
+import prerna.sablecc2.reactor.utils.ExportDatabaseReactor;
 import prerna.sablecc2.reactor.utils.ExternalDatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.GetNumTableReactor;
 import prerna.sablecc2.reactor.utils.GetRequestReactor;
@@ -411,10 +406,11 @@ import prerna.sablecc2.reactor.workspace.MoveUserAssetReactor;
 import prerna.sablecc2.reactor.workspace.NewDirReactor;
 import prerna.sablecc2.reactor.workspace.UploadUserFileReactor;
 import prerna.sablecc2.reactor.workspace.UserDirReactor;
-import prerna.solr.reactor.AppInfoReactor;
-import prerna.solr.reactor.AppUsersReactor;
+import prerna.solr.reactor.DatabaseInfoReactor;
+import prerna.solr.reactor.DatabaseUsersReactor;
 import prerna.solr.reactor.GetInsightsReactor;
 import prerna.solr.reactor.MyAppsReactor;
+import prerna.solr.reactor.MyDatabasesReactor;
 import prerna.solr.reactor.SetAppDescriptionReactor;
 import prerna.solr.reactor.SetAppTagsReactor;
 //import prerna.solr.reactor.SetInsightDescriptionReactor;
@@ -438,7 +434,7 @@ import prerna.util.git.reactors.SyncApp;
 import prerna.util.git.reactors.SyncAppFiles;
 import prerna.util.git.reactors.SyncAppFilesO;
 import prerna.util.git.reactors.SyncAppOReactor;
-import prerna.util.usertracking.reactors.ExtractAppMetaReactor;
+import prerna.util.usertracking.reactors.ExtractDatabaseMetaReactor;
 import prerna.util.usertracking.reactors.UpdateQueryDataReactor;
 import prerna.util.usertracking.reactors.UpdateSemanticDataReactor;
 import prerna.util.usertracking.reactors.WidgetTReactor;
@@ -654,9 +650,9 @@ public class ReactorFactory {
 		reactorHash.put("VariableExists", VariableExistsReactor.class);
 		reactorHash.put("RemoveVariable", RemoveVariableReactor.class);
 		reactorHash.put("SendEmail", SendEmailReactor.class);
-		reactorHash.put("BackupApp", BackupAppReactor.class);
-		reactorHash.put("ExportApp", ExportAppReactor.class);
-		reactorHash.put("DeleteApp", DeleteAppReactor.class);
+		reactorHash.put("BackupDatabase", BackupDatabaseReactor.class);
+		reactorHash.put("ExportDatabase", ExportDatabaseReactor.class);
+		reactorHash.put("DeleteDatabase", DeleteDatabaseReactor.class);
 		reactorHash.put("ImageCapture", ImageCaptureReactor.class);
 		reactorHash.put("Help", HelpReactor.class);
 		reactorHash.put("help", HelpReactor.class);
@@ -678,7 +674,7 @@ public class ReactorFactory {
 		reactorHash.put("PredictExcelDataTypes", PredictExcelDataTypesReactor.class);
 		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
-		reactorHash.put("ExtractAppMeta", ExtractAppMetaReactor.class);
+		reactorHash.put("ExtractAppMeta", ExtractDatabaseMetaReactor.class);
 		reactorHash.put("NLPInstanceCache", NLPInstanceCacheReactor.class);
 		
 		// Excel Data validation
@@ -687,7 +683,7 @@ public class ReactorFactory {
 		// Database Uploading
 		reactorHash.put("ExternalJdbcSchema", ExternalJdbcSchemaReactor.class);
 		reactorHash.put("ExternalJdbcTablesAndViews", ExternalJdbcTablesAndViewsReactor.class);
-		reactorHash.put("GenerateEmptyApp", GenerateEmptyAppReactor.class);
+//		reactorHash.put("GenerateEmptyApp", GenerateEmptyAppReactor.class);
 		reactorHash.put("RdbmsUploadTableData", RdbmsUploadTableReactor.class);
 		reactorHash.put("RdbmsUploadExcelData", RdbmsUploadExcelDataReactor.class);
 		reactorHash.put("RdbmsExternalUpload", RdbmsExternalUploadReactor.class);
@@ -854,7 +850,7 @@ public class ReactorFactory {
 		reactorHash.put("FederationBestMatches", FederationBestMatches.class);
 		
 		// app meta and local master utilities
-		reactorHash.put("ReloadAppOwl", ReloadAppOwlReactor.class);
+		reactorHash.put("ReloadAppOwl", ReloadDatabaseOwlReactor.class);
 		reactorHash.put("GetOwlMetamodel", GetOwlMetamodelReactor.class);
 		reactorHash.put("GetOwlDictionary", GetOwlDictionaryReactor.class);
 		// owl concepts
@@ -891,7 +887,7 @@ public class ReactorFactory {
 		reactorHash.put("FindSemanticColumnOwlRelationships", FindSemanticColumnOwlRelationshipsReactor.class);
 		reactorHash.put("FindSemanticInstanceOwlRelationships", FindSemanticInstanceOwlRelationshipsReactor.class);
 		
-		reactorHash.put("SyncAppWithLocalMaster", SyncAppWithLocalMasterReactor.class);
+		reactorHash.put("SyncDatabaseWithLocalMaster", SyncDatabaseWithLocalMasterReactor.class);
 		reactorHash.put("QueryTranslator", QueryTranslatorReactor.class);
 		reactorHash.put("AllConceptualNames", AllConceptualNamesReactor.class);
 		reactorHash.put("CLPModel", CLPModelReactor.class);
@@ -964,7 +960,6 @@ public class ReactorFactory {
 		reactorHash.put("LoadInsight", LoadInsightReactor.class);
 		reactorHash.put("ReloadInsight", ReloadInsightReactor.class);
 		reactorHash.put("CopyInsight", CopyInsightReactor.class);
-		reactorHash.put("OpenOptimizedInsight", OpenOptimizedInsightReactor.class);
 		reactorHash.put("OpenEmptyInsight", OpenEmptyInsightReactor.class);
 		reactorHash.put("DropInsight", DropInsightReactor.class);
 		reactorHash.put("ClearInsight", ClearInsightReactor.class);
@@ -1067,14 +1062,15 @@ public class ReactorFactory {
 		
 		// App Metadata
 		reactorHash.put("MyApps", MyAppsReactor.class);
-		reactorHash.put("AppInfo", AppInfoReactor.class);
-		reactorHash.put("AppUsers", AppUsersReactor.class);
+		reactorHash.put("MyDatabases", MyDatabasesReactor.class);
+		reactorHash.put("DatabaseInfo", DatabaseInfoReactor.class);
+		reactorHash.put("DatabaseUsersReactor", DatabaseUsersReactor.class);
 		// TODO: to be removed once FE changes to only use GetInsights
 		reactorHash.put("GetAppInsights", GetInsightsReactor.class);
 		reactorHash.put("GetInsights", GetInsightsReactor.class);
 		reactorHash.put("SetAppDescription", SetAppDescriptionReactor.class);
 		reactorHash.put("SetAppTags", SetAppTagsReactor.class);
-		reactorHash.put("GetAppWidgets", GetAppWidgetsReactor.class);
+//		reactorHash.put("GetAppWidgets", GetAppWidgetsReactor.class);
 		reactorHash.put("AddDefaultInsights", AddDefaultInsightsReactor.class);
 		// Insight Metadata
 //		reactorHash.put("SetInsightTags", SetInsightTagsReactor.class);
@@ -1087,9 +1083,9 @@ public class ReactorFactory {
 		reactorHash.put("GetInsightComments", GetInsightCommentsReactor.class);
 		
 		// Clusters
-		reactorHash.put("OpenApp", OpenAppReactor.class);
-		reactorHash.put("UpdateApp", UpdateAppReactor.class);
-		reactorHash.put("CleanUpApps", CleanUpAppsReactor.class);
+		reactorHash.put("OpenDatabase", OpenDatabaseReactor.class);
+		reactorHash.put("UpdateDatabase", UpdateDatabaseReactor.class);
+		reactorHash.put("CleanUpDatabases", CleanUpDatabasesReactor.class);
 		reactorHash.put("Version", VersionReactor.class);
 		//reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
 		//reactorHash.put("SyncRedis", SyncRedisReactor.class);

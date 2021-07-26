@@ -16,9 +16,9 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.MosfetFile;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -37,7 +37,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = UploadInsightReactor.class.getName();
 
 	public UploadInsightReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
@@ -45,7 +45,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		// get inputs
 		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
-		String appId = getApp();
+		String projectId = getProject();
 		String author = null;
 		String email = null;
 
@@ -55,8 +55,8 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 				throwAnonymousUserError();
 			}
-			if (!SecurityAppUtils.userCanEditEngine(user, appId)) {
-				throw new IllegalArgumentException("User does not have permission to add insights in the app");
+			if (!SecurityAppUtils.userCanEditDatabase(user, projectId)) {
+				throw new IllegalArgumentException("User does not have permission to add insights in the proejct");
 			}
 			// Get the user's email
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
@@ -68,8 +68,8 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		List<String> fileList = new Vector<>();
 		String mosfetFileLoc = null;
 		File mosfetFile = null;
-		IEngine app = Utility.getEngine(appId);
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(app.getEngineName(), appId);
+		IProject project = Utility.getProject(projectId);
+		String versionFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId);
 		// unzip asset to db folder
 		try {
 			filesAdded = ZipUtils.unzip(zipFilePath, versionFolder);
@@ -125,7 +125,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		}
 
 		// add the recipe to the insights database
-		InsightAdministrator admin = new InsightAdministrator(app.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 
 		String insightName = mosfet.getInsightName();
 		int step = 1;
@@ -141,7 +141,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 
 		// add file to git
 		logger.info(step + ") Adding insight to git...");
-		String gitFolder = AssetUtility.getAppAssetVersionFolder(app.getEngineName(), app.getEngineId());
+		String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId);
 		GitRepoUtils.addSpecificFiles(gitFolder, fileList);
 		// commit it
 		String comment = "Adding " + insightName + " insight.";
@@ -150,20 +150,20 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		step++;
 
 		logger.info(step + ") Regsiter insight...");
-		SecurityInsightUtils.addInsight(appId, newInsightId, insightName, true, Utility.getApplicationCacheInsight(), layout, pixelRecipeToSave);
+		SecurityInsightUtils.addInsight(projectId, newInsightId, insightName, true, Utility.getApplicationCacheInsight(), layout, pixelRecipeToSave);
 		if (this.insight.getUser() != null) {
-			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), appId, newInsightId);
+			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, newInsightId);
 		}
 		logger.info(step + ") Done...");
 		step++;
 
-		ClusterUtil.reactorPushInsightDB(appId);
+		ClusterUtil.reactorPushInsightDB(projectId);
 
 		Map<String, Object> returnMap = new HashMap<>();
 		returnMap.put("name", insightName);
 		returnMap.put("app_insight_id", newRdbmsId);
-		returnMap.put("app_name", app.getEngineName());
-		returnMap.put("app_id", app.getEngineId());
+		returnMap.put("app_name", project.getProjectName());
+		returnMap.put("app_id", projectId);
 		returnMap.put("recipe", pixelRecipeToSave);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully added new insight."));

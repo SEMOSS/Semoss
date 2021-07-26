@@ -109,7 +109,7 @@ public class CSVReader extends AbstractCSVFileReader {
 			}
 			loadMetadataIntoEngine();
 			createBaseRelations();
-			RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getPixelNames());
+//			RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getPixelNames());
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
@@ -175,7 +175,7 @@ public class CSVReader extends AbstractCSVFileReader {
 				parseMetadata();
 				skipRows();
 				processRelationShips();
-				RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getPixelNames());
+//				RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getPixelNames());
 			} finally {
 				closeCSVFile();
 			}

@@ -33,7 +33,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 
 	public AuditDatabaseReactor() {
 		this.keysToGet = new String[] { 
-				ReactorKeysEnum.APP.getKey(), 
+				ReactorKeysEnum.DATABASE.getKey(), 
 				ReactorKeysEnum.TABLES.getKey(),
 				ReactorKeysEnum.COLUMNS.getKey(), 
 				ReactorKeysEnum.DATE_TIME_FIELD.getKey(),
@@ -44,23 +44,23 @@ public class AuditDatabaseReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
 		// we may have the alias
 		if (AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if (!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), appId)) {
+			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			if (!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException(
-						"Database " + appId + " does not exist or user does not have access to database");
+						"Database " + databaseId + " does not exist or user does not have access to database");
 			}
 		} else {
-			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
-			if (!MasterDatabaseUtility.getAllEngineIds().contains(appId)) {
-				throw new IllegalArgumentException("Database " + appId + " does not exist");
+			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
+			if (!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
 			}
 		}
 
-		if (!(Utility.getEngine(appId) instanceof RDBMSNativeEngine)) {
-			throw new IllegalArgumentException("App must be using a relational database");
+		if (!(Utility.getEngine(databaseId) instanceof RDBMSNativeEngine)) {
+			throw new IllegalArgumentException("Database must be a relational database");
 		}
 		// process table filters
 		String tableFilterSyntax = generateFilterSyntax(ReactorKeysEnum.TABLES.getKey());
@@ -80,9 +80,9 @@ public class AuditDatabaseReactor extends AbstractReactor {
 			}
 		}
 		
-		// get audit database from app id
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(appId);
-		AuditDatabase audit = engine.generateAudit();
+		// get audit database from database id
+		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getEngine(databaseId);
+		AuditDatabase audit = database.generateAudit();
 		AbstractSqlQueryUtil queryUtil = audit.getQueryUtil();
 		Connection conn = null;
 

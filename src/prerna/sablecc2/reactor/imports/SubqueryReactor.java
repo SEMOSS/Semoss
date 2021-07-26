@@ -1,48 +1,19 @@
 package prerna.sablecc2.reactor.imports;
 
-import java.io.File;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
-
-import org.apache.logging.log4j.Logger;
-
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.api.SemossDataType;
-import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
-import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.HardSelectQueryStruct;
-import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.SQLQueryUtils;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class SubqueryReactor extends AbstractReactor {
 	

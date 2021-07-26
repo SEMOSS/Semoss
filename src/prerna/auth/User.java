@@ -54,12 +54,12 @@ public class User implements Serializable {
 	private String port = "undefined";
 	public String pyTupleSpace = null;
 	public String tupleSpace = null;
-		
+	
 	// keeping this for a later time when personal experimental stuff
 	private transient ClassLoader customLoader = null;
 	
-	private Map<AuthProvider, String> workspaceEngineMap = new HashMap<>();
-	private Map<AuthProvider, String> assetEngineMap = new HashMap<>();
+	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
+	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
 	private AuthProvider primaryLogin;
 	
 	private transient Object assetSyncObject = null;
@@ -80,7 +80,6 @@ public class User implements Serializable {
 	private String anonymousId;
 	
 	public transient CopyObject cp = null;
-
 	private transient CmdExecUtil cmdUtil = null;
 	
 	private transient Process rProcess = null;
@@ -100,6 +99,7 @@ public class User implements Serializable {
 		addUserMemory();
 		
 	}
+	
 	/**
 	 * Set the access token for a given provider
 	 * @param value
@@ -212,60 +212,73 @@ public class User implements Serializable {
 		this.primaryLogin = primaryLogin;
 	}
 	
-	public String getWorkspaceEngineId(AuthProvider token) {
-		if (this.workspaceEngineMap.get(token) != null) {
-			return this.workspaceEngineMap.get(token);
+	public String getWorkspaceProjectId(AuthProvider token) {
+		if (this.workspaceProjectMap.get(token) != null) {
+			return this.workspaceProjectMap.get(token);
 		}
 
-		String engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
+		String projectId = WorkspaceAssetUtils.getUserWorkspaceProject(this, token);
 		
-		if (engineId != null) {
-			this.workspaceEngineMap.put(token, engineId);
+		if (projectId != null) {
+			this.workspaceProjectMap.put(token, projectId);
 		} else {
 			try {
 				synchronized(workspaceSyncObject) {
-					engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
-					if(engineId == null) {
-						engineId = WorkspaceAssetUtils.createUserWorkspaceApp(this, token);
+					projectId = WorkspaceAssetUtils.getUserWorkspaceProject(this, token);
+					if(projectId == null) {
+						projectId = WorkspaceAssetUtils.createUserWorkspaceProject(this, token);
 					}
 				}
 			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
 
-			this.workspaceEngineMap.put(token, engineId);
-		}
-
-		return this.workspaceEngineMap.get(token);
-	}
-	
-	public String getAssetEngineId(AuthProvider token) {
-		if(this.assetEngineMap.get(token) != null) {
-			return this.assetEngineMap.get(token);
-		}
-		String engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
-
-		if (engineId != null) {
-			this.assetEngineMap.put(token, engineId);
-		} else {
-			try {
-				synchronized(assetSyncObject) {
-					engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
-					if(engineId == null) {
-						engineId = WorkspaceAssetUtils.createUserAssetApp(this, token);
-					}
-				}
-			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-
-			this.assetEngineMap.put(token, engineId);
+			this.workspaceProjectMap.put(token, projectId);
 		}
 
 		//TODO actually sync the pull, not sure pull it
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullApp(engineId);
+				CloudClient.getClient().pullUserAssetOrWorkspace(projectId, false, false);
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			} catch (InterruptedException ie) {
+				// Restore interrupted state...
+				Thread.currentThread().interrupt();
+				logger.error(Constants.STACKTRACE, ie);
+			}
+		}
+		
+		return this.workspaceProjectMap.get(token);
+	}
+	
+	public String getAssetProjectId(AuthProvider token) {
+		if(this.assetProjectMap.get(token) != null) {
+			return this.assetProjectMap.get(token);
+		}
+		String projectId = WorkspaceAssetUtils.getUserAssetProject(this, token);
+
+		if (projectId != null) {
+			this.assetProjectMap.put(token, projectId);
+		} else {
+			try {
+				synchronized(assetSyncObject) {
+					projectId = WorkspaceAssetUtils.getUserAssetProject(this, token);
+					if(projectId == null) {
+						projectId = WorkspaceAssetUtils.createUserAssetProject(this, token);
+					}
+				}
+			} catch (Exception e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+
+			this.assetProjectMap.put(token, projectId);
+		}
+
+		//TODO actually sync the pull, not sure pull it
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pullUserAssetOrWorkspace(projectId, true, false);
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} catch (InterruptedException ie) {
@@ -275,15 +288,15 @@ public class User implements Serializable {
 			}
 		}
 
-		return this.assetEngineMap.get(token);
+		return this.assetProjectMap.get(token);
 	}
 
 	public Map<AuthProvider, String> getWorkspaceEngineMap() {
-		return this.workspaceEngineMap;
+		return this.workspaceProjectMap;
 	}
 	
 	public Map<AuthProvider, String> getAssetEngineMap() {
-		return this.assetEngineMap;
+		return this.assetProjectMap;
 	}
 	
 	////////////////////////////////////////////////////////////////////////
@@ -526,7 +539,7 @@ public class User implements Serializable {
 		if(engineId == null) // there is a possibility that this is a mount path at this point
 			return false;
 		// giving it the main folder intstead of the version
-		String varValue = AssetUtility.getAppBaseFolder(semossAppName, engineId) + subFolder;
+		String varValue = AssetUtility.getProjectBaseFolder(semossAppName, engineId) + subFolder;
 
 
 		varValue = varValue.replace("\\", "/");
@@ -536,7 +549,7 @@ public class User implements Serializable {
 		appMap.put(varName, new StringBuffer(varValue));
 		
 		IEngine engine = Utility.getEngine(engineId);
-		ClusterUtil.reactorPullFolder(engine, varValue);
+		ClusterUtil.reactorPullDatabaseFolder(engine, varValue);
 		
 		
 		if(oldValue != null)
@@ -618,9 +631,9 @@ public class User implements Serializable {
 		externalMounts.put(name, mountHelper);
 		// get the user asset folder
 		AuthProvider provider = getPrimaryLogin();
-		String appId = getAssetEngineId(provider);
+		String appId = getAssetProjectId(provider);
 		String appName = "Asset";
-		String userAssetFolder = AssetUtility.getAppAssetFolder(appName, appId);
+		String userAssetFolder = AssetUtility.getProjectAssetFolder(appName, appId);
 
 		// if this folder does not exist create it
 		File file = new File(userAssetFolder);

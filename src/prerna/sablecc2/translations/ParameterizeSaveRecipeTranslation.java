@@ -1,10 +1,5 @@
 package prerna.sablecc2.translations;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,9 +8,6 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -28,18 +20,12 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.transform.QsFilterParameterizeConverter;
 import prerna.query.querystruct.transform.QsToPixelConverter;
 import prerna.sablecc2.LazyTranslation;
-import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelUtility;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.PRoutine;
-import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.imports.ImportReactor;
 import prerna.sablecc2.reactor.imports.MergeReactor;
@@ -48,7 +34,6 @@ import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.FileReadReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.Utility;
 

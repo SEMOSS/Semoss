@@ -216,9 +216,9 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	/////////////////////////////////////////////////////////////////////////////////////////////
 
 	public void runSupportQueries() {
-		this.tapPortfolio = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Portfolio"));
-		this.tapSite = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Site_Data"));
-		this.tapCore = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Core_Data"));
+		this.tapPortfolio = (IEngine) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Portfolio"));
+		this.tapSite = (IEngine) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Site_Data"));
+		this.tapCore = (IEngine) Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Core_Data"));
 
 		this.waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(tapSite);
 		// calculate the wave start/end dates
@@ -559,7 +559,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	private H2Frame appendSystemSustainmentInfo(H2Frame mainSustainmentFrame, double[] inflationArr) {
 		LOGGER.info("Running query to get the systems and their costs");
 
-		IEngine tapPortfolio = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Portfolio"));
+		IEngine tapPortfolio = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Portfolio"));
 		String systemSustainmentBudgetQuery = "SELECT DISTINCT ?System ?FY (SUM(?Cost) AS ?Cost) WHERE { "
 				+ "BIND(<http://health.mil/ontologies/Concept/GLTag/Grand_Total> AS ?OMTag) "
 				+ "{?OMTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} "
@@ -772,7 +772,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		String[] waveSiteSystemHeaders = new String[]{"Wave","HostSiteAndFloater","System"};
 		H2Frame mainSustainmentFrame2 = new H2Frame(waveSiteSystemHeaders);
 		// execute the query
-		IEngine tapSite = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Site_Data"));
+		IEngine tapSite = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Site_Data"));
 		Map<String, SemossDataType> dataTypes = new Hashtable<String, SemossDataType>();
 		dataTypes.put("Wave", SemossDataType.STRING);
 		dataTypes.put("HostSiteAndFloater", SemossDataType.STRING);
@@ -803,7 +803,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		if(this.hpSystemFilterStr == null) {
 			final String systemFilterQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved')) }";
 			// this will run and get the list of system with the requierd set of property values
-			IEngine tapCore = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Core_Data"));
+			IEngine tapCore = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Core_Data"));
 			StringBuilder waveSiteSystemBuilder = new StringBuilder(" BINDINGS ?System {");
 			IRawSelectWrapper rawWrapper = null;
 			try {
@@ -850,7 +850,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			this.systemSiteSustainmentFrame = new H2Frame();
 			this.systemSiteSustainmentFrame.addNewColumn(headers, dataTypes, this.systemSiteSustainmentFrame.getName());
 
-			IEngine tapPortfolio = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Portfolio"));
+			IEngine tapPortfolio = Utility.getEngine(MasterDatabaseUtility.testDatabaseIdIfAlias("TAP_Portfolio"));
 			String[] systemSiteSustainmentQueryArr = new String[2];
 			systemSiteSustainmentQueryArr[0] = "SELECT DISTINCT ?System ?Site ?Cost ?FYTag WHERE { "
 					+ "{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "

@@ -315,7 +315,7 @@ public final class CentralityCalculator {
 	
 	/**
 	 * Creates the GraphPlaySheet for a database that shows the metamodel.
-	 * @param engine IEngine to create the metamodel from
+	 * @param database IEngine to create the metamodel from
 	 * @return GraphPlaySheet that displays the metamodel
 	 */
 	public static GraphPlaySheet createMetamodel(IEngine coreEngine, String query, boolean physicalMetamodel){

@@ -57,10 +57,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	protected static final String GLOBAL = "global";
 
-	private static LinkedHashMap<String, String> appIdToTypeStore = new LinkedHashMap<>(250);
+	private static LinkedHashMap<String, String> databaseIdToTypeStore = new LinkedHashMap<>(250);
 	
 	public NaturalLanguageSearchReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.APP.getKey(), GLOBAL , ReactorKeysEnum.PANEL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey(), GLOBAL , ReactorKeysEnum.PANEL.getKey() };
 	}
 
 	@Override
@@ -71,8 +71,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		int stepCounter = 1;
 		Logger logger = this.getLogger(CLASS_NAME);
 		String query = this.keyValue.get(this.keysToGet[0]);
-		List<String> engineFilters = getEngineIds();
-		boolean hasFilters = !engineFilters.isEmpty();
+		List<String> dbFilters = getDatabaseIds();
+		boolean hasFilters = !dbFilters.isEmpty();
 		boolean global = getGlobal();
 		String panelId = getPanelId();
 		
@@ -88,24 +88,24 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		if (hasFilters) {
 			// need to validate that the user has access to these ids
 			if (AbstractSecurityUtils.securityEnabled()) {
-				List<String> userIds = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+				List<String> databaseIds = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 				// make sure our ids are a complete subset of the user ids
 				// user defined list must always be a subset of all the engine ids
-				if (!userIds.containsAll(engineFilters)) {
+				if (!databaseIds.containsAll(dbFilters)) {
 					throw new IllegalArgumentException(
 							"Attempting to filter to app ids that user does not have access to or do not exist");
 				}
 			} else {
-				List<String> allIds = MasterDatabaseUtility.getAllEngineIds();
-				if (!allIds.containsAll(engineFilters)) {
+				List<String> allIds = MasterDatabaseUtility.getAllDatabaseIds();
+				if (!allIds.containsAll(dbFilters)) {
 					throw new IllegalArgumentException("Attempting to filter to app ids that not exist");
 				}
 			}
 		} else {
 			if (AbstractSecurityUtils.securityEnabled()) {
-				engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+				dbFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 			} else {
-				engineFilters = MasterDatabaseUtility.getAllEngineIds();
+				dbFilters = MasterDatabaseUtility.getAllDatabaseIds();
 			}
 		}
 
@@ -114,12 +114,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			String appId = user.getAssetEngineId(user.getPrimaryLogin());
-			String appName = "Asset";
-			if (appId != null && !(appId.isEmpty())) {
-				IEngine assetApp = Utility.getEngine(appId);
-				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPullFolder(assetApp, savePath);
+			String databaseId = user.getAssetProjectId(user.getPrimaryLogin());
+			String databaseName = "Asset";
+			if (databaseId != null && !(databaseId.isEmpty())) {
+				IEngine assetApp = Utility.getEngine(databaseId);
+				savePath = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPullDatabaseFolder(assetApp, savePath);
 			}
 		}
 		savePath = savePath.replace("\\", "/");
@@ -165,7 +165,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		
 		logger.info(stepCounter + ". Generating search results");
 		stepCounter++;
-		List<Object[]> retData = generateAndRunScript(query, engineFilters, rSessionTable, rSessionJoinTable, global);
+		List<Object[]> retData = generateAndRunScript(query, dbFilters, rSessionTable, rSessionJoinTable, global);
 		
 		// check for error
 		if(retData == null || retData.size() == 0) {
@@ -186,12 +186,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// push asset app
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			String appId = user.getAssetEngineId(user.getPrimaryLogin());
-			String appName = "Asset";
-			if (appId != null && !(appId.isEmpty())) {
-				IEngine assetApp = Utility.getEngine(appId);
-				savePath = AssetUtility.getAppAssetVersionFolder(appName, appId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPushFolder(assetApp, savePath);
+			String databaseId = user.getAssetProjectId(user.getPrimaryLogin());
+			String databaseName = "Asset";
+			if (databaseId != null && !(databaseId.isEmpty())) {
+				IEngine assetDatabase = Utility.getEngine(databaseId);
+				savePath = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPushDatabaseFolder(assetDatabase, savePath);
 			}
 		}
 
@@ -377,11 +377,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		StringBuilder sessionTableBuilder = new StringBuilder();
 
 		// use all the apps
-		List<String> engineFilters = null;
+		List<String> databaseFilters = null;
 		if (AbstractSecurityUtils.securityEnabled()) {
-			engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			databaseFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 		} else {
-			engineFilters = MasterDatabaseUtility.getAllEngineIds();
+			databaseFilters = MasterDatabaseUtility.getAllDatabaseIds();
 		}
 		
 		// source the files
@@ -391,8 +391,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		sessionTableBuilder.append("source(\""+ filePath + "data_inquiry_assembly.R\");");
 
 		// first get the total number of cols and relationships
-		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engineFilters);
-		List<String[]> allRelations = MasterDatabaseUtility.getRelationships(engineFilters);
+		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(databaseFilters);
+		List<String[]> allRelations = MasterDatabaseUtility.getRelationships(databaseFilters);
 		int totalNumRels = allRelations.size();
 		int totalColCount = allTableCols.size();
 
@@ -439,7 +439,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		int firstRel = 0;
 		for (int i = 0; i < totalNumRels; i++) {
 			String[] entry = allRelations.get(i);
-			String appId = entry[0];
+			String databaseId = entry[0];
 			String rel = entry[3];
 
 			String[] relSplit = rel.split("\\.");
@@ -454,23 +454,23 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// loop increments even if relSplit.length != 4
 				// whereas firstRel only increases if something is added to frame
 				if (firstRel == 0) {
-					rAppIDsJoin += "'" + appId + "'";
-					rTbl1 += "'" + appId + "._." + sourceTable + "'";
-					rTbl2 += "'" + appId + "._." + targetTable + "'";
+					rAppIDsJoin += "'" + databaseId + "'";
+					rTbl1 += "'" + databaseId + "._." + sourceTable + "'";
+					rTbl2 += "'" + databaseId + "._." + targetTable + "'";
 					rJoinBy1 += "'" + sourceColumn + "'";
 					rJoinBy2 += "'" + targetColumn + "'";
 				} else {
-					rAppIDsJoin += ",'" + appId + "'";
-					rTbl1 += ",'" + appId + "._." + sourceTable + "'";
-					rTbl2 += ",'" + appId + "._." + targetTable + "'";
+					rAppIDsJoin += ",'" + databaseId + "'";
+					rTbl1 += ",'" + databaseId + "._." + sourceTable + "'";
+					rTbl2 += ",'" + databaseId + "._." + targetTable + "'";
 					rJoinBy1 += ",'" + sourceColumn + "'";
 					rJoinBy2 += ",'" + targetColumn + "'";
 				}
 
 				if (sourceColumn.endsWith("_FK")) {
 					// if column ends with a _FK, then add it to NaturalLangTable also
-					rAppIds += ",'" + appId + "'";
-					rTableNames += ",'" + appId + "._." + sourceTable + "'";
+					rAppIds += ",'" + databaseId + "'";
+					rTableNames += ",'" + databaseId + "._." + sourceTable + "'";
 					rColNames += ",'" + sourceColumn + "'";
 					rColTypes += ", 'STRING' ";
 					rPrimKey += ", 'FALSE' ";
@@ -484,15 +484,15 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				String targetTable = entry[2];
 				String targetColumn = entry[2];
 				if (firstRel == 0) {
-					rAppIDsJoin += "'" + appId + "'";
-					rTbl1 += "'" + appId + "._." + sourceTable + "'";
-					rTbl2 += "'" + appId + "._." + targetTable + "'";
+					rAppIDsJoin += "'" + databaseId + "'";
+					rTbl1 += "'" + databaseId + "._." + sourceTable + "'";
+					rTbl2 += "'" + databaseId + "._." + targetTable + "'";
 					rJoinBy1 += "'" + sourceColumn + "'";
 					rJoinBy2 += "'" + targetColumn + "'";
 				} else {
-					rAppIDsJoin += ",'" + appId + "'";
-					rTbl1 += ",'" + appId + "._." + sourceTable + "'";
-					rTbl2 += ",'" + appId + "._." + targetTable + "'";
+					rAppIDsJoin += ",'" + databaseId + "'";
+					rTbl1 += ",'" + databaseId + "._." + sourceTable + "'";
+					rTbl2 += ",'" + databaseId + "._." + targetTable + "'";
 					rJoinBy1 += ",'" + sourceColumn + "'";
 					rJoinBy2 += ",'" + targetColumn + "'";
 				}
@@ -565,10 +565,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * 
 	 * @param query
 	 * @param allApps
-	 * @param engineFilters
+	 * @param dbFilters
 	 * @return
 	 */
-	private List<Object[]> generateAndRunScript(String query, List<String> engineFilters,String rSessionTable, String rSessionJoinTable, boolean global) {
+	private List<Object[]> generateAndRunScript(String query, List<String> dbFilters, String rSessionTable, String rSessionJoinTable, boolean global) {
 		String tempResult = "result" + Utility.getRandomString(8);
 		StringBuilder rsb = new StringBuilder();
 		String gcToAdd = "";
@@ -584,8 +584,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			gcToAdd += "," + appFilters;
 			rsb.append(appFilters + " <- c(");
 			String comma = "";
-			for (String appId : engineFilters) {
-				rsb.append(comma + " \"" + appId + "\" ");
+			for (String databaseId : dbFilters) {
+				rsb.append(comma + " \"" + databaseId + "\" ");
 				comma = " , ";
 			}
 			rsb.append(");");
@@ -656,7 +656,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// and the rows are ordered with regards to how the engine comes back
 		Map<String, SelectQueryStruct> qsList = new LinkedHashMap<>();
 		// when this value doesn't match the previous, we know to add a new QS
-		String currAppId = null;
+		String currDatabaseId = null;
 		String label = null;
 		SelectQueryStruct curQs = null;
 
@@ -691,39 +691,39 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			}
 
 			// figure out whether this row is the first of a new qs
-			String rowAppId = row[1].toString();
-			if (combined && !combinedQs.containsKey(rowAppId)) {
+			String rowDatabaseId = row[1].toString();
+			if (combined && !combinedQs.containsKey(rowDatabaseId)) {
 				// this is the combined result where the qs is not created yet
 				// meaning it is the first of a certain select of a combined entry
-				currAppId = rowAppId;
+				currDatabaseId = rowDatabaseId;
 				curQs = new SelectQueryStruct();
 				if(global) {
 					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-					curQs.setEngineId(currAppId);
+					curQs.setEngineId(currDatabaseId);
 				} else {
 					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
 				}
 				qsList.put("Multiple" + combinedQs.size(), curQs);
-				combinedQs.put(currAppId, curQs);
-			} else if (!combined && currAppId == null) {
+				combinedQs.put(currDatabaseId, curQs);
+			} else if (!combined && currDatabaseId == null) {
 				// this is the first one of a non-combined
-				currAppId = rowAppId;
+				currDatabaseId = rowDatabaseId;
 				curQs = new SelectQueryStruct();
 				if(global) {
 					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-					curQs.setEngineId(currAppId);
+					curQs.setEngineId(currDatabaseId);
 				} else {
 					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
 				}
 				qsList.put(label, curQs);
-			} else if (!combined && currAppId != null && !currAppId.equals(rowAppId)) {
+			} else if (!combined && currDatabaseId != null && !currDatabaseId.equals(rowDatabaseId)) {
 				// okay this row is now starting a new QS
 				// we gotta init another one
-				currAppId = rowAppId;
+				currDatabaseId = rowDatabaseId;
 				curQs = new SelectQueryStruct();
 				if(global) {
 					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-					curQs.setEngineId(currAppId);
+					curQs.setEngineId(currDatabaseId);
 				} else {
 					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
 				}
@@ -732,8 +732,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 			// if this is a combined row, pull the qs that matches the appid
 			if (combined) {
-				currAppId = rowAppId;
-				curQs = combinedQs.get(currAppId);
+				currDatabaseId = rowDatabaseId;
+				curQs = combinedQs.get(currDatabaseId);
 			}
 
 			if (curQs == null) {
@@ -749,7 +749,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				IQuerySelector selector = null;
 				// need to properly send/receive null values in case there is a
 				// property with the same name as the node
-				boolean isPK = checkForPK(selectConcept, selectProperty, rSessionTable, currAppId, global);
+				boolean isPK = checkForPK(selectConcept, selectProperty, rSessionTable, currDatabaseId, global);
 				if (isPK) {
 					selector = new QueryColumnSelector(selectConcept);
 				} else {
@@ -832,7 +832,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				IQuerySelector selector = null;
 				// need to properly send/receive null values in case there is a
 				// property with the same name as the node
-				boolean isPK = checkForPK(whereTable, whereCol, rSessionTable, currAppId, global);
+				boolean isPK = checkForPK(whereTable, whereCol, rSessionTable, currDatabaseId, global);
 				if (isPK) {
 					selector = new QueryColumnSelector(whereTable);
 				} else {
@@ -930,7 +930,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// so we exec a query to determine if we should use the current selectedProperty
 				// or keep it as PRIM_KEY_PLACEHOLDER
 				IQuerySelector selector = null;
-				boolean isPK = checkForPK(havingTable, havingCol, rSessionTable, currAppId, global);
+				boolean isPK = checkForPK(havingTable, havingCol, rSessionTable, currDatabaseId, global);
 				if (isPK) {
 					selector = new QueryColumnSelector(havingTable);
 				} else {
@@ -966,7 +966,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 					// my rhs is another column agg
 					IQuerySelector selectorR = null;
-					isPK = checkForPK(havingTable, havingCol, rSessionTable, currAppId, global);
+					isPK = checkForPK(havingTable, havingCol, rSessionTable, currDatabaseId, global);
 					if (isPK) {
 						selector = new QueryColumnSelector(havingTable);
 					} else {
@@ -1035,7 +1035,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					// we do not know the correct primary key
 					// so we exec a query to determine if we should use the current selectedProperty
 					// or keep it as PRIM_KEY_PLACEHOLDER
-					boolean isPK = checkForPK(groupConcept, groupProperty, rSessionTable, currAppId, global);
+					boolean isPK = checkForPK(groupConcept, groupProperty, rSessionTable, currDatabaseId, global);
 					if (isPK) {
 						curQs.addGroupBy(groupConcept, null);
 					} else if(hasDateGroup){
@@ -1068,8 +1068,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					rankDir = ORDER_BY_DIRECTION.ASC.toString();
 				}
 				
-				boolean isPK = checkForPK(rankTable, rankCol, rSessionTable, currAppId, global);
-				boolean isDerived = checkForDerived(rankTable, rankCol, rSessionTable, currAppId, global);
+				boolean isPK = checkForPK(rankTable, rankCol, rSessionTable, currDatabaseId, global);
+				boolean isDerived = checkForDerived(rankTable, rankCol, rSessionTable, currDatabaseId, global);
 				QueryColumnOrderBySelector orderBy = null;
 				if (isPK) {
 					orderBy = new QueryColumnOrderBySelector(rankTable);
@@ -1100,8 +1100,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					sortDir = ORDER_BY_DIRECTION.DESC.toString();
 				}
 				
-				boolean isPK = checkForPK(sortTable, sortCol, rSessionTable, currAppId, global);
-				boolean isDerived = checkForDerived(sortTable, sortCol, rSessionTable, currAppId, global);
+				boolean isPK = checkForPK(sortTable, sortCol, rSessionTable, currDatabaseId, global);
+				boolean isDerived = checkForDerived(sortTable, sortCol, rSessionTable, currDatabaseId, global);
 				QueryColumnOrderBySelector orderBy = null;
 				if (isPK) {
 					orderBy = new QueryColumnOrderBySelector(sortTable);
@@ -1125,7 +1125,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String importPixel = "";
 		String vizTypesPixel = "";
 		String vizPixel = "";
-		LinkedHashSet<String> prevAppIds = new LinkedHashSet<>();
+		LinkedHashSet<String> prevDatabaseIds = new LinkedHashSet<>();
 		int entryCount = 1;
 
 		for (Entry<String, SelectQueryStruct> entry : qsList.entrySet()) {
@@ -1152,8 +1152,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					// in the case where there is only one combined qs, lets return
 					if (entryCount == qsList.entrySet().size()) {
 						// return map
-						map.put("app_id", "Multiple Apps");
-						map.put("app_name", "Multiple Apps");
+						map.put("database_id", "Multiple Apps");
+						map.put("database_name", "Multiple Apps");
 						map.put("frame_name", frameName);
 						
 						// put all three pixels in the map
@@ -1181,7 +1181,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 					}
 					// store the previous app id for when we join across db's later
-					prevAppIds.add(qs.getEngineId());
+					prevDatabaseIds.add(qs.getEngineId());
 					entryCount++;
 
 				}
@@ -1191,13 +1191,13 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					SelectQueryStruct qs = entry.getValue();
 					
 					// return map
-					map.put("app_id", "Multiple Apps");
-					map.put("app_name", "Multiple Apps");
+					map.put("database_id", "Multiple Apps");
+					map.put("database_name", "Multiple Apps");
 					map.put("frame_name", frameName);
 					
 					// put all three pixels in the map
 					importPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true, global);
-					importPixel += addMergePixel(qs, prevAppIds, joinCombinedResult, frameName);
+					importPixel += addMergePixel(qs, prevDatabaseIds, joinCombinedResult, frameName);
 					importPixel += dropUnwantedCols(colsToDrop, groupedCols);
 					importPixel += addGroupingsAndHavings(aggregateCols, groupedCols, combinedHavingRows, frameName, global);
 					importPixel += "));";
@@ -1225,11 +1225,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					// add to the existing pixel
 					SelectQueryStruct qs = entry.getValue();
 					importPixel += buildImportPixelFromQs(qs, qs.getEngineId(), frameName, true, global);
-					importPixel += addMergePixel(qs, prevAppIds, joinCombinedResult, frameName);
+					importPixel += addMergePixel(qs, prevDatabaseIds, joinCombinedResult, frameName);
 					entryCount++;
 
 					// store the previous app id for when we join across db's later
-					prevAppIds.add(qs.getEngineId());
+					prevDatabaseIds.add(qs.getEngineId());
 				}
 			} else {
 				// if the result is not combined, then there is only one qs
@@ -1238,9 +1238,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				map = new HashMap<>();
 				SelectQueryStruct qs = entry.getValue();
 				String appId = qs.getEngineId();
-				String appName = MasterDatabaseUtility.getEngineAliasForId(appId);
-				map.put("app_id", appId);
-				map.put("app_name", appName);
+				String appName = MasterDatabaseUtility.getDatabaseAliasForId(appId);
+				map.put("database_id", appId);
+				map.put("database_name", appName);
 				map.put("frame_name", frameName);
 				
 				// put all three pixels in the map
@@ -1398,19 +1398,19 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * Build the pixel based on the query struct and app id
 	 * 
 	 * @param qs
-	 * @param appId
+	 * @param databaseId
 	 * @param frameName
 	 * @param merge
 	 * @return
 	 */
-	public String buildImportPixelFromQs(SelectQueryStruct qs, String appId, String frameName, boolean merge, boolean global) {
+	public String buildImportPixelFromQs(SelectQueryStruct qs, String databaseId, String frameName, boolean merge, boolean global) {
 		StringBuilder psb = new StringBuilder();
 		QUERY_STRUCT_TYPE type = qs.getQsType();
 		
 		// continue with import if false
 		if (type == QUERY_STRUCT_TYPE.ENGINE) {
 			// pull from the appId
-			psb.append("Database ( database = [ \"" + appId + "\" ] ) | ");
+			psb.append("Database ( database = [ \"" + databaseId + "\" ] ) | ");
 		} else if (type == QUERY_STRUCT_TYPE.FRAME) {
 			psb.append("Frame ( frame = [" + this.getFrame().getName() + "] ) | ");
 		}
@@ -1491,7 +1491,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					} else {
 						// if it is an RDF database make sure that the wild card is *
 						String value = rhs.getValue().toString();
-						if (value.contains("%") && getAppTypeFromId(appId).equals("TYPE:RDF")) {
+						if (value.contains("%") && getAppTypeFromId(databaseId).equals("TYPE:RDF")) {
 							value = value.replace("%", "/.*");
 						}
 						psb.append("\"" + value + "\"");
@@ -1938,11 +1938,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 */
 
 	/**
-	 * Get input engine ids
+	 * Get input database ids
 	 * 
 	 * @return
 	 */
-	private List<String> getEngineIds() {
+	private List<String> getDatabaseIds() {
 		List<String> engineFilters = new Vector<>();
 		GenRowStruct engineGrs = this.store.getNoun(this.keysToGet[1]);
 		for (int i = 0; i < engineGrs.size(); i++) {
@@ -1996,28 +1996,28 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 	/**
 	 * Utilize a static cache so we do not query local master to get the type of an
-	 * engine every time
+	 * database every time
 	 * 
-	 * @param appId
+	 * @param databaseId
 	 * @return
 	 */
-	private static String getAppTypeFromId(String appId) {
-		String type = appIdToTypeStore.get(appId);
+	private static String getAppTypeFromId(String databaseId) {
+		String type = databaseIdToTypeStore.get(databaseId);
 		if (type != null) {
 			return type;
 		}
 
 		// store the result so we don't need to query all the time
-		type = MasterDatabaseUtility.getEngineTypeForId(appId);
-		appIdToTypeStore.put(appId, type);
-		if (appIdToTypeStore.size() > 200) {
-			synchronized (appIdToTypeStore) {
-				if (appIdToTypeStore.size() > 100) {
+		type = MasterDatabaseUtility.getDatabaseTypeForId(databaseId);
+		databaseIdToTypeStore.put(databaseId, type);
+		if (databaseIdToTypeStore.size() > 200) {
+			synchronized (databaseIdToTypeStore) {
+				if (databaseIdToTypeStore.size() > 100) {
 					// it should be ordered from first to last
-					Iterator<String> it = appIdToTypeStore.keySet().iterator();
+					Iterator<String> it = databaseIdToTypeStore.keySet().iterator();
 					int counter = 0;
 					while (it.hasNext() && counter < 100) {
-						appIdToTypeStore.remove(it.next());
+						databaseIdToTypeStore.remove(it.next());
 					}
 				}
 			}

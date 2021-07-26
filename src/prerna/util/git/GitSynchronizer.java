@@ -26,7 +26,6 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 
-import prerna.engine.impl.SmssUtilities;
 import prerna.util.AssetUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -40,27 +39,27 @@ public class GitSynchronizer {
 
 	}
 	
-	public static void syncDatabases(String localAppId, String localAppName, String remoteAppName, String username, String password, Logger logger) {
+	public static void syncDatabases(String localDatabaseId, String localDatabaseName, String remoteDatabaseName, String username, String password, Logger logger) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appFolder = AssetUtility.getAppBaseFolder(localAppName, localAppId); //baseFolder + "/db/" + SmssUtilities.getUniqueName(localAppName, localAppId);
+		String appFolder = AssetUtility.getProjectBaseFolder(localDatabaseName, localDatabaseId); //baseFolder + "/db/" + SmssUtilities.getUniqueName(localAppName, localAppId);
 		
 		// the remote location
 		// is of the form account_name/repo_name
 		// so we want to split this out
 		String repoName = "";
-		if(remoteAppName.contains("/")) {
-			String[] remoteLocationSplit = remoteAppName.split("/");
+		if(remoteDatabaseName.contains("/")) {
+			String[] remoteLocationSplit = remoteDatabaseName.split("/");
 			String accountName = remoteLocationSplit[0];
 			repoName = remoteLocationSplit[1];
 		} else {
-			repoName = remoteAppName;
+			repoName = remoteDatabaseName;
 		}
 		
 		// we need to move the database files from the current db
 		// into the version folder
 		pushFilesToVersionFolder(appFolder);
 		
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(localAppName, localAppId);
+		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localDatabaseName, localDatabaseId);
 		// we want to get rid of the ignore 
 		GitUtils.removeAllIgnore(versionFolder);
 		// now we push everything locally
@@ -75,7 +74,7 @@ public class GitSynchronizer {
 		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
 		
 		// we now need to move over these new files
-		GitConsumer.moveDataFilesToApp(baseFolder, localAppId, localAppName, logger);
+		GitConsumer.moveDataFilesToDatabase(baseFolder, localDatabaseId, localDatabaseName, logger);
 	}
 	
 	private static void pushFilesToVersionFolder(String appFolder) {
@@ -177,7 +176,7 @@ public class GitSynchronizer {
 	 */
 	public static Map<String, List<String>> synchronizeSpecific(String appId, String localAppName, String remoteAppName, String username, String password, List<String> filesToSync, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(localAppName, appId);
+		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localAppName, appId);
 		
 		String repoName = "";
 		if(remoteAppName.contains("/")) {
@@ -248,7 +247,7 @@ public class GitSynchronizer {
 	
 	public static Map<String, List<String>> synchronize(String appId, String localAppName, String remoteAppName, String username, String password, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(localAppName, appId);
+		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localAppName, appId);
 
 		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
 		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
@@ -302,7 +301,7 @@ public class GitSynchronizer {
 	
 	public static Map<String, List<String>> synchronize(String appId, String localAppName, String remoteAppName, String token, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(localAppName, appId);
+		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localAppName, appId);
 
 		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
 		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
@@ -482,7 +481,7 @@ public class GitSynchronizer {
 	
 	public static void syncDatabases(String appId, String localAppName, String remoteAppName, String token, Logger logger) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appFolder = AssetUtility.getAppBaseFolder(localAppName, appId);;
+		String appFolder = AssetUtility.getProjectBaseFolder(localAppName, appId);;
 		
 		// the remote location
 		// is of the form account_name/repo_name
@@ -500,7 +499,7 @@ public class GitSynchronizer {
 		// into the version folder
 		pushFilesToVersionFolder(appFolder);
 		
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(localAppName, appId);;
+		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localAppName, appId);;
 		// we want to get rid of the ignore 
 		GitUtils.removeAllIgnore(versionFolder);
 		// now we push everything locally
@@ -515,7 +514,7 @@ public class GitSynchronizer {
 		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
 		
 		// we now need to move over these new files
-		GitConsumer.moveDataFilesToApp(baseFolder, appId, localAppName, logger);
+		GitConsumer.moveDataFilesToDatabase(baseFolder, appId, localAppName, logger);
 	}
 
 	/**
@@ -530,7 +529,7 @@ public class GitSynchronizer {
 	 */
 	public static Map<String, List<String>> synchronizeSpecific(String appId, String localAppName, String remoteAppName, String token, List<String> filesToSync, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = AssetUtility.getAppAssetVersionFolder(localAppName, appId);;
+		String versionFolder = AssetUtility.getProjectAssetVersionFolder(localAppName, appId);;
 		
 		String repoName = "";
 		if(remoteAppName.contains("/")) {

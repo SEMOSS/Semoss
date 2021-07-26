@@ -10,22 +10,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.RawGemlinSelectWrapper;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.om.HeadersDataRow;
-import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
-import prerna.test.TestUtilityMethods;
-import prerna.util.DIHelper;
 
 public class QueryStructExpressionIterator extends AbstractWrapper implements IRawSelectWrapper {
 

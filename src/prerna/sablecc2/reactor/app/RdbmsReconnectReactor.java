@@ -16,29 +16,29 @@ import prerna.util.Utility;
 public class RdbmsReconnectReactor extends AbstractReactor {
 
 	public RdbmsReconnectReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		
 		// make sure user has at least edit access
 		if (AbstractSecurityUtils.securityEnabled()) {
 			if(!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-				if (!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
-					throw new IllegalArgumentException("User does not have permission to re-establish the connection for this app");
+				if (!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+					throw new IllegalArgumentException("User does not have permission to re-establish the connection for this database");
 				}
 			}
 		}
 		
-		IEngine engine = Utility.getEngine(appId);
-		if(!(engine instanceof RDBMSNativeEngine)) {
-			throw new IllegalArgumentException("App must be an RDBMS native engine");
+		IEngine database = Utility.getEngine(databaseId);
+		if(!(database instanceof RDBMSNativeEngine)) {
+			throw new IllegalArgumentException("Database must be an RDBMS native engine");
 		}
 		
-		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) engine;
+		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) database;
 		try {
 			rdbms.makeConnection().close();
 			rdbms.makeConnection();

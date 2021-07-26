@@ -36,6 +36,7 @@ import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
+@Deprecated
 public class RDBMSReader extends AbstractCSVFileReader {
 
 	private static final Logger logger = LogManager.getLogger(RDBMSReader.class);
@@ -150,7 +151,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			}
 			cleanUpDBTables(engineName, allowDuplicates);
 			createBaseRelations();
-			RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, this.owler);
+//			RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, this.owler);
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
@@ -248,7 +249,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			createBaseRelations();
 			addOriginalIndices();
 			cleanUpDBTables(engineName, allowDuplicates);
-			RDBMSEngineCreationHelper.insertNewTablesAsInsights(this.engine, this.owler, this.addedTables);
+//			RDBMSEngineCreationHelper.insertNewTablesAsInsights(this.engine, this.owler, this.addedTables);
 		} finally {
 //			if(scriptFile != null) {
 //				scriptFile.println("-- ********* completed load process ********* ");

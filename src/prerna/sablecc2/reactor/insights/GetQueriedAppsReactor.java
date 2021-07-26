@@ -12,8 +12,8 @@ public class GetQueriedAppsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		List<String> apps = this.insight.getQueriedEngines();
 		if(this.insight.isSavedInsight()) {
-			if(apps.contains(this.insight.getEngineId())) {
-				apps.remove(this.insight.getEngineId());
+			if(apps.contains(this.insight.getProjectId())) {
+				apps.remove(this.insight.getProjectId());
 			}
 			apps.add(0, this.insight.getInsightId());
 		}

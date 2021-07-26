@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.algorithms;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector.AnomDirection;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
@@ -14,6 +13,13 @@ import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 
 public class RunAnomalyReactor extends AbstractRFrameReactor {
 
+	/**
+	 * The direction in which to detect anomalies
+	 */
+	public enum AnomDirection {
+		POSITIVE, NEGATIVE, BOTH
+	}
+	
 	public static final String TIME_COLUMN = "timeColumn";
 	public static final String SERIES_COLUMN = "seriesColumn";
 	public static final String AGG_FUNC = "aggregateFunction";

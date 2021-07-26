@@ -8,12 +8,12 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
+import prerna.project.api.IProject;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -29,7 +29,7 @@ public class IsInsightParameterizedReactor extends AbstractInsightReactor {
 	
 	public IsInsightParameterizedReactor() {
 		this.keysToGet = new String[]{
-				ReactorKeysEnum.APP.getKey(), 
+				ReactorKeysEnum.PROJECT.getKey(), 
 				ReactorKeysEnum.ID.getKey() };
 	}
 
@@ -43,8 +43,8 @@ public class IsInsightParameterizedReactor extends AbstractInsightReactor {
 		
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String appId = getApp();
-		if(appId == null) {
+		String projectId = getProject();
+		if(projectId == null) {
 			throw new IllegalArgumentException("Need to input the app name");
 		}
 		String rdbmsId = getRdbmsId();
@@ -53,33 +53,33 @@ public class IsInsightParameterizedReactor extends AbstractInsightReactor {
 		}
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), appId, rdbmsId)) {
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
 				NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		} else {
-			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
+			projectId = MasterDatabaseUtility.testDatabaseIdIfAlias(projectId);
 		}
 		
 		// get the engine so i can get the new insight
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
-			throw new IllegalArgumentException("Cannot find app = " + appId);
+		IProject project = Utility.getProject(projectId);
+		if(project == null) {
+			throw new IllegalArgumentException("Cannot find project = " + projectId);
 		}
 		Insight newInsight = null;
 		try {
-			List<Insight> in = engine.getInsight(rdbmsId + "");
+			List<Insight> in = project.getInsight(rdbmsId + "");
 			newInsight = in.get(0);
 		} catch (ArrayIndexOutOfBoundsException e) {
-			logger.info("Pulling app from cloud storage, appid=" + appId);
-			ClusterUtil.reactorPullInsightsDB(appId);
+			logger.info("Pulling app from cloud storage, projectId=" + projectId);
+			ClusterUtil.reactorPullInsightsDB(projectId);
 			// this is needed for the pipeline json
-			ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+			ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 			try {
-				List<Insight> in = engine.getInsight(rdbmsId + "");
+				List<Insight> in = project.getInsight(rdbmsId + "");
 				newInsight = in.get(0);
 			} catch(IllegalArgumentException e2) {
 				NounMetadata noun = new NounMetadata(e2.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);

@@ -22,14 +22,15 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.insight.TextToGraphic;
@@ -42,6 +43,12 @@ public class ClusterUtil {
 	
 	private static final Logger logger = LogManager.getLogger(ClusterUtil.class);
 
+	public static final String DB_BLOB = "semoss-db";
+	public static final String PROJECT_BLOB = "semoss-project";
+	public static final String USER_BLOB = "semoss-user";
+	public static final String DB_IMAGES_BLOB = "semoss-dbimagecontainer";
+	public static final String PROJECT_IMAGES_BLOB = "semoss-projectimagecontainer";
+	
 	private static final String IS_CLUSTER_KEY = "SEMOSS_IS_CLUSTER";
 	public static final boolean IS_CLUSTER = (DIHelper.getInstance().getProperty(IS_CLUSTER_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY).isEmpty())) 
 			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY)) : (
@@ -67,13 +74,11 @@ public class ClusterUtil {
 					(System.getenv().containsKey(LOAD_ENGINES_LOCALLY_KEY)) 
 					? Boolean.parseBoolean(System.getenv(LOAD_ENGINES_LOCALLY_KEY)) : false);
 
-	public static final String IMAGES_BLOB = "semoss-imagecontainer";
-
-	public static final List<String> CONFIGURATION_BLOBS = new ArrayList<String>(Arrays.asList(IMAGES_BLOB));
+	public static final List<String> CONFIGURATION_BLOBS = new ArrayList<String>(Arrays.asList(DB_IMAGES_BLOB));
 	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
-	public static String IMAGES_FOLDER_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR+"images";
+	public static String IMAGES_FOLDER_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "images";
 	private static final String SCHEDULER_EXECUTOR_KEY = "SCHEDULER_EXECUTOR";
 
 	private static final String IS_CLUSTERED_SCHEDULER_KEY = "SEMOSS_SCHEDULER_IS_CLUSTER";
@@ -103,7 +108,7 @@ public class ClusterUtil {
 	public static void reactorPushApp(Collection<String> appIds) {
 		if (ClusterUtil.IS_CLUSTER) {
 			for (String appId : appIds) {
-				reactorPushApp(appId);
+				reactorPushDatabase(appId);
 			}
 		}
 
@@ -205,7 +210,7 @@ public class ClusterUtil {
 		}
 	}
 
-	public static void reactorPushApp(String appId) {
+	public static void reactorPushDatabase(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 				CloudClient.getClient().pushApp(appId);
@@ -220,13 +225,13 @@ public class ClusterUtil {
 		}
 	}
 
-	public static void reactorPullInsightsDB(String appId) {
+	public static void reactorPullInsightsDB(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullInsightsDB(appId);
+				CloudClient.getClient().pullInsightsDB(projectId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to check if app has been modified", PixelDataType.CONST_STRING,
+				NounMetadata noun = new NounMetadata("Failed to check if project has been modified", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -236,13 +241,13 @@ public class ClusterUtil {
 		return;
 	}
 
-	public static void reactorPushInsightDB(String appId) {
+	public static void reactorPushInsightDB(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushInsightDB(appId);
+				CloudClient.getClient().pushInsightDB(projectId);
 			} catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
-				NounMetadata noun = new NounMetadata("Failed to check if app has been modified", PixelDataType.CONST_STRING,
+				NounMetadata noun = new NounMetadata("Failed to check if project has been modified", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
@@ -316,41 +321,22 @@ public class ClusterUtil {
 		}
 	}
 
-	public static void  reactorPushVersionFolder(IEngine engine, String relativePath) {
-		if (ClusterUtil.IS_CLUSTER) {
-
-//			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-//					+ DIR_SEPARATOR + "db"
-//					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
-			
-			String appHome = AssetUtility.getAppBaseFolder(engine.getEngineName(), engine.getEngineId());
-			Path appHomePath = Paths.get(appHome);
-			//String abolsutePath = appHome + DIR_SEPARATOR + "version";
-			String abolsutePath = AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), engine.getEngineId());
-			Path relative = appHomePath.relativize( Paths.get(abolsutePath));
-			ClusterUtil.reactorPushFolder(engine.getEngineId(),abolsutePath, relative.toString());
-
-		}		
-	}
-
-	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
-	public static void  reactorPushFolder(IEngine engine, String absolutePath) {
+	public static void  reactorPushDatabaseFolder(IEngine engine, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
 			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-					+ DIR_SEPARATOR + "db"
+					+ DIR_SEPARATOR + Constants.DB_FOLDER
 					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
 			Path appHomePath = Paths.get(appHome);
 			Path relative = appHomePath.relativize( Paths.get(absolutePath));
-			ClusterUtil.reactorPushFolder(engine.getEngineId(),absolutePath, relative.toString());
-
+			ClusterUtil.reactorPushDatabaseFolder(engine.getEngineId(),absolutePath, relative.toString());
 		}		
 	}
 
-	public static void reactorPushFolder(String appId, String absolutePath, String remoteRelativePath) {
+	private static void reactorPushDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pushFolder(appId, absolutePath, remoteRelativePath);
+				CloudClient.getClient().pushEngineFolder(appId, absolutePath, remoteRelativePath);
 			}  catch (IOException | InterruptedException e) {
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
@@ -362,24 +348,24 @@ public class ClusterUtil {
 	}
 
 	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
-	public static void  reactorPullFolder(IEngine engine, String absolutePath) {
+	public static void  reactorPullDatabaseFolder(IEngine engine, String absolutePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 
 			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-					+ DIR_SEPARATOR + "db"
+					+ DIR_SEPARATOR + Constants.DB_FOLDER
 					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId());
 			Path appHomePath = Paths.get(appHome);
 			Path relative = appHomePath.relativize( Paths.get(absolutePath));
-			ClusterUtil.reactorPullFolder(engine.getEngineId(),absolutePath, relative.toString());
+			ClusterUtil.reactorPullDatabaseFolder(engine.getEngineId(),absolutePath, relative.toString());
 
 		}		
 	}
 
 	//create a pull folder
-	public static void reactorPullFolder(String appId, String absolutePath, String remoteRelativePath) {
+	public static void reactorPullDatabaseFolder(String appId, String absolutePath, String remoteRelativePath) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				CloudClient.getClient().pullFolder(appId, absolutePath, remoteRelativePath);
+				CloudClient.getClient().pullEngineFolder(appId, absolutePath, remoteRelativePath);
 			}  catch (IOException | InterruptedException e) {
 				logger.error(Constants.STACKTRACE, e);
 				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
@@ -390,11 +376,112 @@ public class ClusterUtil {
 			}
 		}		
 	}
+	
+	public static void reactorPushProject(String projectId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pushProject(projectId);
+			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata("Failed to push project to cloud storage", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	public static void  reactorPushProjectFolder(IProject project, String absolutePath) {
+		if (ClusterUtil.IS_CLUSTER) {
 
-	public static File getImage(String appID) {
+			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+					+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), project.getProjectId());
+			Path appHomePath = Paths.get(appHome);
+			Path relative = appHomePath.relativize( Paths.get(absolutePath));
+			ClusterUtil.reactorPushProjectFolder(project.getProjectId(), absolutePath, relative.toString());
 
+		}		
+	}
+
+	public static void reactorPushProjectFolder(String projectId, String absolutePath, String remoteRelativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pushProjectFolder(projectId, absolutePath, remoteRelativePath);
+			}  catch (IOException | InterruptedException e) {
+				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+
+	//This is only for items that fall under the an app directory. it won't work for abstract folders etc. 
+	public static void  reactorPullProjectFolder(IProject project, String absolutePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+
+			String appHome = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+					+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), project.getProjectId());
+			Path appHomePath = Paths.get(appHome);
+			Path relative = appHomePath.relativize( Paths.get(absolutePath));
+			ClusterUtil.reactorPullProjectFolder(project.getProjectId(), absolutePath, relative.toString());
+
+		}		
+	}
+
+	//create a pull folder
+	public static void reactorPullProjectFolder(String projectId, String absolutePath, String remoteRelativePath) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pullProjectFolder(projectId, absolutePath, remoteRelativePath);
+			}  catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata("Failed to push files", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}		
+	}
+	
+	public static void reactorPushUserWorkspace(IProject project, boolean isAsset) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pushUserAssetOrWorkspace(project.getProjectId(), isAsset);
+			}  catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata("Failed to push user/workplace project", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+	
+	public static void reactorPullUserWorkspace(IProject project, boolean isAsset) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pullUserAssetOrWorkspace(project.getProjectId(), isAsset, false);
+			}  catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata("Failed to push user/workplace project", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+
+	public static File getDatabaseImage(String databaseId) {
 		File imageFile = null;
-		File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "apps");
+		File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases");
 		String imageFilePath; 
 		imageFolder.mkdirs();
 
@@ -402,37 +489,37 @@ public class ClusterUtil {
 		File[] images = imageFolder.listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
-				return name.contains(appID);
+				return name.contains(databaseId);
 			}
 		});
 		if(images!= null && images.length > 0){
 			//we got a file. hopefully there is only 1 file if there is more, return [0] for now
 			return images[0];
 		}	
-		else
+		else {
 			try {
 				//first try to pull the images folder, Return it after the pull, or else we make the file
-				CloudClient.getClient().pullImageFolder();
+				CloudClient.getClient().pullAppImageFolder();
 				//so i dont always know the extension, but every image should be named by the appid which means i need to search the folder for something like the file
 				images = imageFolder.listFiles(new FilenameFilter() {
 					@Override
 					public boolean accept(File dir, String name) {
-						return name.contains(appID);
+						return name.contains(databaseId);
 					}
 				});
 				if(images.length > 0){
 					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
 					return images[0];
 				} else {
-					String alias = SecurityQueryUtils.getEngineAliasForId(appID);
-					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "apps" + DIR_SEPARATOR + appID + ".png";
+					String alias = SecurityQueryUtils.getDatabaseAliasForId(databaseId);
+					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "apps" + DIR_SEPARATOR + databaseId + ".png";
 
 					if(alias != null) {
 						TextToGraphic.makeImage(alias, imageFilePath);
 					} else{
-						TextToGraphic.makeImage(appID, imageFilePath);
+						TextToGraphic.makeImage(databaseId, imageFilePath);
 					}
-					CloudClient.getClient().pushImageFolder();
+					CloudClient.getClient().pushAppImageFolder();
 				}
 				//finally we will return it if it exists, and if it doesn't we return back the stock. 
 				imageFile = new File(imageFilePath);
@@ -451,9 +538,77 @@ public class ClusterUtil {
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
 				throw err;
-			} 
+			}
+		}
 		return imageFile;
 	}
+	
+	public static File getProjectImage(String projectId) {
+		File imageFile = null;
+		File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects");
+		String imageFilePath; 
+		imageFolder.mkdirs();
+
+		// so i dont always know the extension, 
+		// but every image should be named by the projectid 
+		// which means i need to search the folder for something like the file
+		File[] images = imageFolder.listFiles(new FilenameFilter() {
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.contains(projectId);
+			}
+		});
+		if(images!= null && images.length > 0){
+			// we got a file. hopefully there is only 1 file if there is more, return [0] for now
+			return images[0];
+		}	
+		else {
+			try {
+				// first try to pull the images folder, Return it after the pull, or else we make the file
+				CloudClient.getClient().pullProjectImageFolder();
+				// so i dont always know the extension, but every image should be named by the 
+				// projectId which means i need to search the folder for something like the file
+				images = imageFolder.listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.contains(projectId);
+					}
+				});
+				if(images.length > 0){
+					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
+					return images[0];
+				} else {
+					String alias = SecurityProjectUtils.getProjectAliasForId(projectId);
+					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects" + DIR_SEPARATOR + projectId + ".png";
+
+					if(alias != null) {
+						TextToGraphic.makeImage(alias, imageFilePath);
+					} else{
+						TextToGraphic.makeImage(projectId, imageFilePath);
+					}
+					CloudClient.getClient().pushAppImageFolder();
+				}
+				//finally we will return it if it exists, and if it doesn't we return back the stock. 
+				imageFile = new File(imageFilePath);
+
+				if(imageFile.exists()){
+					return imageFile;
+				} else{
+					String stockImageDir = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "stock" + DIR_SEPARATOR + "color-logo.png";
+					imageFile = new File (stockImageDir);
+				}
+
+			} catch (IOException | InterruptedException e) {
+				logger.error(Constants.STACKTRACE, e);
+				NounMetadata noun = new NounMetadata("Failed to fetch project image", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		return imageFile;
+	}
+
 
 	public static List<File> getSubdirs(String path) {
 

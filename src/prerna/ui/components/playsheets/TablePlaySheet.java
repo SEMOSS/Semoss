@@ -43,8 +43,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.om.InsightStore;
-import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
 import prerna.ui.components.GridTableModel;
@@ -287,20 +285,20 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 	@Override
 	public Map<String, String> getScriptReactors() {
 		Map<String, String> reactorNames = new HashMap<String, String>();
-		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
+//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+//		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
 //		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.TinkerColAddReactor");
-		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
+//		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
+//		reactorNames.put(PKQLEnum.API, "prerna.sablecc.ApiReactor");
 //		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
+//		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+//		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
 //		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
 //		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.GDMImportDataReactor");
 //		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
 //		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 //		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 //		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
 //		switch(reactorType) {

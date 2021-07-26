@@ -12,19 +12,18 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class CheckInsightNameExistsReactor extends AbstractReactor {
 
 	public CheckInsightNameExistsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String insightName = this.keyValue.get(this.keysToGet[1]);
 		
 		// will just return false
-		if(appId == null || appId.isEmpty()) {
-			throw new IllegalArgumentException("Must provide an app id");
+		if(projectId == null || projectId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a project id");
 		}
 		
 		if(insightName == null || (insightName = insightName.trim()).isEmpty()) {
@@ -33,13 +32,13 @@ public class CheckInsightNameExistsReactor extends AbstractReactor {
 			return new NounMetadata(retMap, PixelDataType.MAP);
 		}
 		
-		String existingInsightId = SecurityInsightUtils.insightNameExists(appId, insightName);
+		String existingInsightId = SecurityInsightUtils.insightNameExists(projectId, insightName);
 		Map<String, Object> retMap = new HashMap<>();
 		if(existingInsightId != null) {
 			retMap.put("exists", true);
-			retMap.put("appId", appId);
+			retMap.put("projectId", projectId);
 			retMap.put("insightId", existingInsightId);
-			boolean canEdit = SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, existingInsightId);
+			boolean canEdit = SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingInsightId);
 			retMap.put("userCanEdit", canEdit);
 		} else {
 			retMap.put("exists", false);

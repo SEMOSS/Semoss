@@ -38,6 +38,7 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
@@ -98,22 +99,22 @@ public class ClusterEngine extends AbstractEngine {
 		}	
 		
 		// do the same with insights
-		initializeInsightBase();
-		
-		//TODO: after moving to RDBMS insights, this has not been tested
-		String insights = engine.getInsightDefinition();
-		logger.info("Have insights string::: " + insights);
-		String[] insightBuilderQueries = insights.split("%!%");
-		
-		for (String insightBuilderQuery : insightBuilderQueries)
-		{
-			logger.info("running query " +  insightBuilderQuery);
-			try {
-				this.insightRdbms.insertData(insightBuilderQuery);
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+//		initializeInsightBase();
+//		
+//		//TODO: after moving to RDBMS insights, this has not been tested
+//		String insights = engine.getInsightDefinition();
+//		logger.info("Have insights string::: " + insights);
+//		String[] insightBuilderQueries = insights.split("%!%");
+//		
+//		for (String insightBuilderQuery : insightBuilderQueries)
+//		{
+//			logger.info("running query " +  insightBuilderQuery);
+//			try {
+//				this.insightRdbms.insertData(insightBuilderQuery);
+//			} catch (SQLException e) {
+//				e.printStackTrace();
+//			}
+//		}
 		
 //		con = engine.getInsightDB();
 //		if(con != null)
@@ -128,14 +129,14 @@ public class ClusterEngine extends AbstractEngine {
 //		}	
 	}	
 	
-	public void initializeInsightBase()
-	{
-		Properties dbProp = writePropFile();
-		this.insightRdbms = new RDBMSNativeEngine();
-		this.insightRdbms.setProp(dbProp);;
-		this.insightRdbms.openDB(null);
-	}
-	
+//	public void initializeInsightBase()
+//	{
+//		Properties dbProp = writePropFile();
+//		this.insightRdbms = new RDBMSNativeEngine();
+//		this.insightRdbms.setProp(dbProp);;
+//		this.insightRdbms.openDB(null);
+//	}
+//	
 	
 	// the only other thing I really need to be able to do is
 	// say pull data from multiple of these engines

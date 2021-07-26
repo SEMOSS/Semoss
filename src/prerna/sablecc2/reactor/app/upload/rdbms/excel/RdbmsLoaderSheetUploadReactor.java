@@ -56,10 +56,10 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	private List<String> tempIndexDropList = new Vector<String>();
 	
 	public RdbmsLoaderSheetUploadReactor() {
-		this.keysToGet = new String[]{ UploadInputUtility.APP, UploadInputUtility.FILE_PATH};
+		this.keysToGet = new String[]{ UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH};
 	}
 
-	public void generateNewApp(User user, final String newAppName, final String filePath) throws Exception{
+	public void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception{
 		if(!ExcelParsing.isExcelFile(filePath)) {
 			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException e = new SemossPixelException(error);
@@ -68,24 +68,24 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.databaseId, newDatabaseName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.appId, newAppName, owlFile, RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile, RdbmsTypeEnum.H2_DB, null);
+		DIHelper.getInstance().setDbProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create database store...");
-		this.engine = new RDBMSNativeEngine();
-		this.engine.setEngineId(this.appId);
-		this.engine.setEngineName(newAppName);
+		this.database = new RDBMSNativeEngine();
+		this.database.setEngineId(this.databaseId);
+		this.database.setEngineName(newDatabaseName);
 		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
-		this.engine.setProp(props);
-		this.engine.openDB(null);
+		this.database.setProp(props);
+		this.database.openDB(null);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -93,18 +93,18 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 * Load Data
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
-		Owler owler = new Owler(owlFile.getAbsolutePath(), this.engine.getEngineType());
-		importFileRDBMS((RDBMSNativeEngine) this.engine, owler, filePath);
+		Owler owler = new Owler(owlFile.getAbsolutePath(), this.database.getEngineType());
+		importFileRDBMS((RDBMSNativeEngine) this.database, owler, filePath);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		/*
-		 * Back to normal app flow
+		 * Back to normal database flow
 		 */
-		logger.info(stepCounter + ". Commit app metadata...");
+		logger.info(stepCounter + ". Commit database metadata...");
 		owler.commit();
 		owler.export();
-		this.engine.setOWL(owler.getOwlPath());
+		this.database.setOWL(owler.getOwlPath());
 		// if(scriptFile != null) {
 		// scriptFile.println("-- ********* completed load process ********* ");
 		// scriptFile.close();
@@ -113,17 +113,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 
-		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(this.appId, newAppName, insightDatabase);
-		UploadUtilities.addInsightUsageStats(this.appId, newAppName, insightDatabase);
-
-		UploadUtilities.addGridDeltaInsight(this.appId, newAppName, insightDatabase);
-		this.engine.setInsightDatabase(insightDatabase);
-		logger.info(stepCounter + ". Complete");
 	}
 
-	public void addToExistingApp(final String filePath) throws Exception {
+	public void addToExistingDatabase(final String filePath) throws Exception {
 		// TODO Auto-generated method stub
 	}
 
@@ -145,7 +137,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public void importFileRDBMS(RDBMSNativeEngine engine, Owler owler, String fileName) throws FileNotFoundException, IOException {
+	public void importFileRDBMS(RDBMSNativeEngine database, Owler owler, String fileName) throws FileNotFoundException, IOException {
 		Workbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
@@ -207,8 +199,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			Enumeration<String> conceptKeys = concepts.keys();
 			while (conceptKeys.hasMoreElements()) {
 				String thisConcept = conceptKeys.nextElement();
-				createTable(engine, owler, thisConcept);
-				processTable(engine, thisConcept, workbook);
+				createTable(database, owler, thisConcept);
+				processTable(database, thisConcept, workbook);
 			}
 			// I need to first create all the concepts
 			// then all the relationships
@@ -217,7 +209,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				String thisConcept = relationConcepts.nextElement();
 				Vector<String> allRels = relations.get(thisConcept);
 				if (!allRels.isEmpty()) {
-					createRelations(engine, owler, thisConcept, allRels, workbook);
+					createRelations(database, owler, thisConcept, allRels, workbook);
 				}
 
 				// for(int toIndex = 0;toIndex < allRels.size();toIndex++)
@@ -428,7 +420,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
-	private void createTable(RDBMSNativeEngine engine, Owler owler, String thisConcept) {
+	private void createTable(RDBMSNativeEngine database, Owler owler, String thisConcept) {
 		Hashtable<String, String> props = concepts.get(thisConcept);
 
 		String conceptType = props.get(thisConcept);
@@ -454,6 +446,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			createString = createString + " , " + fieldName + " " + fieldType;
 
 			// also add this to the OWLER
+			// also add this to the OWLER
 			//if (!fieldName.equalsIgnoreCase(thisConcept) && !fieldName.endsWith("_FK")) {
 				owler.addProp(thisConcept, fieldName, fieldType);
 			//}
@@ -464,7 +457,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		createString = createString + ")";
 		System.out.println("Creator....  " + createString);
 		try {
-			engine.insertData(createString);
+			database.insertData(createString);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -472,7 +465,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 
 	}
 
-	private void processTable(RDBMSNativeEngine engine, String conceptName, Workbook workbook) {
+	private void processTable(RDBMSNativeEngine database, String conceptName, Workbook workbook) {
 		// this is where the stuff kicks in
 		String sheetName = sheets.get(conceptName);
 		if (sheetName != null) {
@@ -544,7 +537,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				// close the values
 				values = values + ")";
 				try {
-					engine.insertData(inserter + values);
+					database.insertData(inserter + values);
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -552,7 +545,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
-	private void createRelations(RDBMSNativeEngine engine, Owler owler, String fromName, List<String> toNameList, Workbook workbook) throws SQLException {
+	private void createRelations(RDBMSNativeEngine database, Owler owler, String fromName, List<String> toNameList, Workbook workbook) throws SQLException {
 		int size = toNameList.size();
 		List<String> relsAdded = new ArrayList<String>();
 
@@ -598,7 +591,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			owler.addRelation(tableToSet, tableToInsert, predicate);
 			// TODO: figure out where to find the data type for the join column to add it as a property!!!
 			
-			createIndices(engine, tableToSet, tableToSet);
+			createIndices(database, tableToSet, tableToSet);
 
 			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
 				thisRow = lSheet.getRow(rowIndex);
@@ -622,7 +615,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				boolean isInsert = false;
 				IRawSelectWrapper wrapper = null;
 				try {
-					wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
+					wrapper = WrapperManager.getInstance().getRawWrapper(database, getRowCountQuery);
 					if (wrapper.hasNext()) {
 						String rowcount = wrapper.next().getValues()[0].toString();
 						if (rowcount.equals("0")) {
@@ -670,7 +663,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 						String insert = "INSERT INTO " + tableToSet + "(" + tableToSet + " ," + tableToInsert + "_FK"
 								+ ") VALUES ( '" + cells[setter] + "' , '" + cells[inserter] + "')";
 
-						engine.insertData(insert);
+						database.insertData(insert);
 
 					} else {
 						// need to generate query to pull all existing
@@ -714,13 +707,13 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 						selectingValues.append(" FROM ").append(tableToSet).append(",");
 
 						String insert = "INSERT INTO " + tableToSet + "(" + colsToSelect + " ) " + selectingValues.toString() + existingValues;
-						engine.insertData(insert);
+						database.insertData(insert);
 					}
 				} else {
 					// this is a nice and simple insert
 					String updateString = "Update " + tableToSet + "  SET ";
 					String values = tableToInsert + "_FK" + " = '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[inserter]) + "' WHERE " + tableToSet + " = '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[setter])  + "'";
-					engine.insertData(updateString + values);
+					database.insertData(updateString + values);
 				}
 			}
 			relsAdded.add(tableToInsert + "_FK");
@@ -772,17 +765,17 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		return cols;
 	}
 
-	private void createIndices(RDBMSNativeEngine engine, String cleanTableKey, String indexStr) {
+	private void createIndices(RDBMSNativeEngine database, String cleanTableKey, String indexStr) {
 		String indexOnTable = cleanTableKey + " ( " + indexStr + " ) ";
 		String indexName = "INDX_" + cleanTableKey + indexUniqueId;
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
-		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(engine.getDbType());
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(database.getDbType());
 
 		// "DROP INDEX " + indexName;
 		String dropIndex = queryUtil.dropIndex(indexName, cleanTableKey);
 		if (tempIndexAddedList.size() == 0) {
 			try {
-				engine.insertData(createIndex);
+				database.insertData(createIndex);
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -802,7 +795,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			}
 			if (!indexAlreadyExists) {
 				try {
-					engine.insertData(createIndex);
+					database.insertData(createIndex);
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}

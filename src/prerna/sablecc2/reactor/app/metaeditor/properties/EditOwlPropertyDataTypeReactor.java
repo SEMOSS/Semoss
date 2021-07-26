@@ -17,7 +17,7 @@ import prerna.util.Utility;
 public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 
 	public EditOwlPropertyDataTypeReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
 				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey()};
 	}
 
@@ -25,19 +25,19 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if(concept == null || concept.isEmpty()) {
-			throw new IllegalArgumentException("Must define the concept being modified in the app metadata");
+			throw new IllegalArgumentException("Must define the concept being modified in the database metadata");
 		}
 		
 		String property = this.keyValue.get(this.keysToGet[2]);
 		if(property == null || property.isEmpty()) {
-			throw new IllegalArgumentException("Must define the property being modified in the app metadata");
+			throw new IllegalArgumentException("Must define the property being modified in the database metadata");
 		}
 		
 		String newDataType = this.keyValue.get(this.keysToGet[3]);
@@ -49,22 +49,22 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 				
 		String newAdditionalDataType = this.keyValue.get(this.keysToGet[4]);
 
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
-		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
+		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
 		
-		String parentPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept);
+		String parentPhysicalURI = database.getPhysicalUriFromPixelSelector(concept);
 		if (parentPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the concept");
 		}
 
-		String propertyPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept + "__" + property);
+		String propertyPhysicalURI = database.getPhysicalUriFromPixelSelector(concept + "__" + property);
 		if (propertyPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the property. Please define the property first before modifying the conceptual name");
 		}
 
 		// remove if current data type is present
-		String currentDataType = engine.getDataTypes(propertyPhysicalURI);
+		String currentDataType = database.getDataTypes(propertyPhysicalURI);
 		if (currentDataType != null) {
 			owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, RDFS.CLASS.stringValue(), currentDataType, true});
 		}
@@ -75,7 +75,7 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 			String adtlTypeObject = "ADTLTYPE:" + Owler.encodeAdtlDataType(newAdditionalDataType);
 
 			// remove if additional data type is present
-			String currentAdditionalDataType = engine.getAdtlDataTypes(propertyPhysicalURI);
+			String currentAdditionalDataType = database.getAdtlDataTypes(propertyPhysicalURI);
 			if (currentAdditionalDataType != null) {
 				currentAdditionalDataType = "ADTLTYPE:" + Owler.encodeAdtlDataType(currentAdditionalDataType);
 				owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, Owler.ADDITIONAL_DATATYPE_RELATION_URI, currentAdditionalDataType, false});
@@ -91,8 +91,8 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to commit modifications", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully edited data type of " + property + " to " + newDataType, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

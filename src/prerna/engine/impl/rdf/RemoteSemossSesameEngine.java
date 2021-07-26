@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringBufferInputStream;
-import java.sql.SQLException;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -135,12 +134,12 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 //				this.insightRdbms.openDB(null);
 				
 				// new - load from abstract method and then run through queries
-				loadInsightsRdbms();
-				for (String insightBuilderQuery : insightBuilderQueries)
-				{
-					logger.info("running query " +  insightBuilderQuery);
-					this.insightRdbms.insertData(insightBuilderQuery);
-				}
+//				loadInsightsRdbms();
+//				for (String insightBuilderQuery : insightBuilderQueries)
+//				{
+//					logger.info("running query " +  insightBuilderQuery);
+//					this.insightRdbms.insertData(insightBuilderQuery);
+//				}
 
 				
 //				this.createInsightBase();
@@ -193,9 +192,10 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 			logger.error(STACKTRACE, re);
 		} catch (IOException ioe) {
 			logger.error(STACKTRACE, ioe);
-		} catch (SQLException sqe) {
-			logger.error(STACKTRACE, sqe);
-		}	
+		}
+//		catch (SQLException sqe) {
+//			logger.error(STACKTRACE, sqe);
+//		}	
 	}
 
 	// TODO: do we really need this?
@@ -408,7 +408,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	@Override
 	public void closeDB() {
 		// this does nothing
-		this.insightRdbms.closeDB();
+//		this.insightRdbms.closeDB();
 		logger.info("cannot close remote engine");
 	}
 	

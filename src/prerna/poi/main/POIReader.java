@@ -114,7 +114,7 @@ public class POIReader extends AbstractFileReader {
 		}
 		loadMetadataIntoEngine();
 		createBaseRelations();
-		RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getPixelNames());
+//		RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getPixelNames());
 		commitDB();
 	}
 
@@ -155,7 +155,7 @@ public class POIReader extends AbstractFileReader {
 			}
 			loadMetadataIntoEngine();
 			createBaseRelations();
-			RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getPixelNames());
+//			RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getPixelNames());
 		}  catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
@@ -197,7 +197,7 @@ public class POIReader extends AbstractFileReader {
 			}
 			commitDB();
 			createBaseRelations();
-			RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, this.owler);
+//			RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, this.owler);
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());

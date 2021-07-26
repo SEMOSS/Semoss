@@ -23,12 +23,12 @@ import prerna.util.git.GitCreator;
 public class InitAppRepo extends GitBaseReactor {
 
 	/**
-	 * Synchronize an existing app to a specified remote
+	 * Synchronize an existing database to a specified remote
 	 */
 
 	public InitAppRepo() {
 		super.keysToGet = new String[]{
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
+				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
 				ReactorKeysEnum.SYNC_DATABASE.getKey()};
 	}
@@ -39,36 +39,36 @@ public class InitAppRepo extends GitBaseReactor {
 		logger.info("Welcome to App IF ANY : SEMOSS Marketplace");
 
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
-		if(appId == null || appId.isEmpty()) {
-			throw new IllegalArgumentException("Need to specify the app name");
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		if(databaseId == null || databaseId.isEmpty()) {
+			throw new IllegalArgumentException("Need to specify the database id");
 		}
-		String appName = null;
+		String databaseName = null;
 		
 		// you can only push
 		// if you are the owner
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityAppUtils.userIsOwner(this.insight.getUser(), appId)) {
-				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			if(!SecurityAppUtils.userIsOwner(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 			}
-			appName = SecurityQueryUtils.getEngineAliasForId(appId);
+			databaseName = SecurityQueryUtils.getDatabaseAliasForId(databaseId);
 		} else {
-			appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		}
 		
 		
 		String repository = this.keyValue.get(this.keysToGet[1]);
 		if(repository == null || repository.isEmpty()) {
-			throw new IllegalArgumentException("Need to specify the repository to publish the app");
+			throw new IllegalArgumentException("Need to specify the repository to publish the database");
 		}
 		String username = this.keyValue.get(this.keysToGet[2]);
 		if(this.keyValue.size() == 5 && (username == null || username.isEmpty())) {
-			throw new IllegalArgumentException("Need to specify the username for the remote app");
+			throw new IllegalArgumentException("Need to specify the username for the remote database");
 		}
 		String password = this.keyValue.get(this.keysToGet[3]);
 		if(this.keyValue.size() == 5 &&  (password == null || password.isEmpty())) {
-			throw new IllegalArgumentException("Need to password for the remote app");
+			throw new IllegalArgumentException("Need to password for the remote database");
 		}
 		String databaseStr = this.keyValue.get(this.keysToGet[4]);
 		boolean syncDatabase = true;
@@ -78,21 +78,21 @@ public class InitAppRepo extends GitBaseReactor {
 		// this is not actually used at the moment
 		// String type = this.keyValue.get(this.keysToGet[5]);
 
-//		logger.info("Using app name = " + appName);
+//		logger.info("Using database name = " + appName);
 //		logger.info("Using remote = " + repository);
 //		logger.info("Using username = " + username);
 		logger.info("Beginning process to make your application global");
 		logger.info("This can take several minutes");
 
 		try {
-			// close the app
+			// close the database
 			if(syncDatabase) {
-				Utility.getEngine(appId).closeDB();
-				DIHelper.getInstance().removeLocalProperty(appId);
+				Utility.getEngine(databaseId).closeDB();
+				DIHelper.getInstance().removeLocalProperty(databaseId);
 			}
-			// make app to remote
+			// make database to remote
 			if (this.keyValue.size() == 5) {
-				GitCreator.makeRemoteFromApp(appId, appName, repository, username, password, syncDatabase, "");
+				GitCreator.makeRemoteFromDatabase(databaseId, databaseName, repository, username, password, syncDatabase, "");
 			} else {
 				String token = getToken();
 				String url = "https://api.github.com/user";
@@ -105,17 +105,17 @@ public class InitAppRepo extends GitBaseReactor {
 				AccessToken accessToken2 = (AccessToken)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new AccessToken());
 				username = accessToken2.getProfile();
 
-				GitCreator.makeRemoteFromApp(appId, appName, repository, username, "", syncDatabase, token);
+				GitCreator.makeRemoteFromDatabase(databaseId, databaseName, repository, username, "", syncDatabase, token);
 				
-				ClusterUtil.reactorPushApp(appId);
+				ClusterUtil.reactorPushDatabase(databaseId);
 			}
-			logger.info("Congratulations! You have successfully created your app " + repository);
+			logger.info("Congratulations! You have successfully created your database " + repository);
 		} catch(Exception e) {
 			e.printStackTrace();
 		} finally {
 			// open it back up
 			if(syncDatabase) {
-				Utility.getEngine(appId);
+				Utility.getEngine(databaseId);
 			}
 		}
 		

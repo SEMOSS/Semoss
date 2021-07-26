@@ -34,12 +34,12 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 		if(engineId == null) {
 			throw new IllegalArgumentException("Need to define the database to get the structure from from");
 		}
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
 		
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
 		}

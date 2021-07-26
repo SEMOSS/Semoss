@@ -126,7 +126,7 @@ public class TableUserTracker implements IUserTracker {
 								continue;
 							}
 							String engineId = engineQs[0];
-							String engineName = MasterDatabaseUtility.getEngineAliasForId(engineId);
+							String engineName = MasterDatabaseUtility.getDatabaseAliasForId(engineId);
 							if(engineName == null) {
 								engineName = engineId;
 							}
@@ -288,7 +288,7 @@ public class TableUserTracker implements IUserTracker {
 								continue;
 							}
 							String engineId = engineQs[0];
-							String engineName = MasterDatabaseUtility.getEngineAliasForId(engineId);
+							String engineName = MasterDatabaseUtility.getDatabaseAliasForId(engineId);
 							if(engineName == null) {
 								engineName = engineId;
 							}
@@ -527,7 +527,7 @@ public class TableUserTracker implements IUserTracker {
 							continue;
 						}
 						String engineId = engineQs[0];
-						String engineName = MasterDatabaseUtility.getEngineAliasForId(engineId);
+						String engineName = MasterDatabaseUtility.getDatabaseAliasForId(engineId);
 						if(engineName == null) {
 							engineName = engineId;
 						}
@@ -716,8 +716,8 @@ public class TableUserTracker implements IUserTracker {
 		List<Object[]> rows = new Vector<>();
 		String[] insightDetails = getInsightDetailsString(in);
 		Object[] row = new Object[7];
-		row[0] = RdbmsQueryBuilder.escapeForSQLStatement(in.getEngineId());
-		row[1] = RdbmsQueryBuilder.escapeForSQLStatement(in.getEngineName());
+		row[0] = RdbmsQueryBuilder.escapeForSQLStatement(in.getProjectId());
+		row[1] = RdbmsQueryBuilder.escapeForSQLStatement(in.getProjectName());
 		row[2] = RdbmsQueryBuilder.escapeForSQLStatement(in.getRdbmsId());
 		row[3] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[0]);
 		row[4] = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[1]);

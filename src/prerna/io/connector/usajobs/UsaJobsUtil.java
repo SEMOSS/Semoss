@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
-import net.snowflake.client.jdbc.internal.apache.commons.io.FileUtils;
 import prerna.util.Utility;
 
 public class UsaJobsUtil {

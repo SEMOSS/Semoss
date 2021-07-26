@@ -25,7 +25,7 @@ public class SyncApp extends GitBaseReactor {
 
 	public SyncApp() {
 		this.keysToGet = new String[]{
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
+				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
 				ReactorKeysEnum.SYNC_PULL.getKey(), ReactorKeysEnum.SYNC_DATABASE.getKey()};
 	}
@@ -34,22 +34,22 @@ public class SyncApp extends GitBaseReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appId = this.keyValue.get(this.keysToGet[0]);
-		if(appId == null || appId.isEmpty()) {
-			throw new IllegalArgumentException("Need to specify the app name");
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		if(databaseId == null || databaseId.isEmpty()) {
+			throw new IllegalArgumentException("Need to specify the database id");
 		}
-		String appName = null;
+		String databaseName = null;
 		
 		// you can only push
 		// if you are the owner
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
-				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 			}
-			appName = SecurityQueryUtils.getEngineAliasForId(appId);
+			databaseName = SecurityQueryUtils.getDatabaseAliasForId(databaseId);
 		} else {
-			appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		}
 		
 		String repository = this.keyValue.get(this.keysToGet[1]);
@@ -75,21 +75,21 @@ public class SyncApp extends GitBaseReactor {
 		if(database) {
 			try {
 				logger.info("Synchronizing Database Now... ");
-				logger.info("Stopping the engine ... ");
+				logger.info("Stopping the database ... ");
 				// remove the app
-				Utility.getEngine(appId).closeDB();
-				DIHelper.getInstance().removeLocalProperty(appId);
+				Utility.getEngine(databaseId).closeDB();
+				DIHelper.getInstance().removeLocalProperty(databaseId);
 				if (keyValue.size() == 6) {
-					GitSynchronizer.syncDatabases(appId, appName, repository, username, password, logger);
+					GitSynchronizer.syncDatabases(databaseId, databaseName, repository, username, password, logger);
 				} else {
 					String token = getToken();
-					GitSynchronizer.syncDatabases(appId, appName, repository, token, logger);
+					GitSynchronizer.syncDatabases(databaseId, databaseName, repository, token, logger);
 				}
 				logger.info("Synchronize Database Complete");
 			} finally {
 				// open it back up
-				logger.info("Opening the engine again ... ");
-				Utility.getEngine(appId);
+				logger.info("Opening the database again ... ");
+				Utility.getEngine(databaseId);
 			}
 		}
 
@@ -97,10 +97,10 @@ public class SyncApp extends GitBaseReactor {
 		logger.info("Synchronizing Insights Now... ");
 		Map<String, List<String>> filesChanged = new HashMap<String, List<String>>();
 		if (keyValue.size() == 6) {
-			filesChanged = GitSynchronizer.synchronize(appId, appName, repository, username, password, dual);
+			filesChanged = GitSynchronizer.synchronize(databaseId, databaseName, repository, username, password, dual);
 		} else {
 			String token = getToken();
-			filesChanged = GitSynchronizer.synchronize(appId, appName, repository, token, dual);
+			filesChanged = GitSynchronizer.synchronize(databaseId, databaseName, repository, token, dual);
 		}
 		logger.info("Synchronize Insights Complete");
 
@@ -130,7 +130,7 @@ public class SyncApp extends GitBaseReactor {
 			output.append("0");
 		}
 
-		// will update solr and in the engine rdbms insights database
+		// will update solr and in the database rdbms insights database
 		Map<String, List<String>> mosfetFiles = getMosfetFiles(filesChanged);
 		if(!mosfetFiles.isEmpty()) {
 			logger.info("Indexing your insight changes");

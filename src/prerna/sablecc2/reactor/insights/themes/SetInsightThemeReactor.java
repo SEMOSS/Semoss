@@ -9,7 +9,7 @@ import java.util.Map;
 
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -52,8 +52,8 @@ public class SetInsightThemeReactor extends AbstractInsightReactor {
 		}
 		
 		if(this.insight.isSavedInsight()) {
-			IEngine engine = Utility.getEngine(insight.getEngineId());
-			ClusterUtil.reactorPushFolder(engine, versionFilePath);
+			IProject project = Utility.getProject(insight.getProjectId());
+			ClusterUtil.reactorPushProjectFolder(project, versionFilePath);
 		}
 		
 		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.INSIGHT_THEME);

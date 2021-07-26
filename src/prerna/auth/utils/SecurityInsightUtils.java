@@ -48,11 +48,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * See if the insight name exists within the engine
-	 * @param engineId
+	 * @param projectId
 	 * @param insightName
 	 * @return
 	 */
-	public static String insightNameExists(String engineId, String insightName) {
+	public static String insightNameExists(String projectId, String insightName) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
@@ -60,7 +60,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
 		fun.setAlias("low_name");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(fun, "==", insightName.toLowerCase(), PixelDataType.CONST_STRING));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -80,12 +80,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * See if the insight name exists within the engine
-	 * @param engineId
+	 * See if the insight name exists within the project
+	 * @param projectId
 	 * @param insightName
 	 * @return
 	 */
-	public static boolean insightNameExistsMinusId(String engineId, String insightName, String currInsightId) {
+	public static boolean insightNameExistsMinusId(String projectId, String insightName, String currInsightId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
@@ -93,7 +93,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
 		fun.setAlias("low_name");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(fun, "==", insightName.toLowerCase(), PixelDataType.CONST_STRING));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "!=", currInsightId));
 
 		IRawSelectWrapper wrapper = null;
@@ -114,16 +114,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * Get what permission the user has for a given insight
 	 * @param userId
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @return
 	 */
-	public static String getActualUserInsightPermission(User user, String engineId, String insightId) {
+	public static String getActualUserInsightPermission(User user, String projectId, String insightId) {
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityAppUtils.userIsOwner(userIds, engineId)) {
+		if(SecurityProjectUtils.userIsOwner(userIds, projectId)) {
 			return AccessPermission.OWNER.getPermission();
 		}
 		
@@ -134,7 +134,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 		IRawSelectWrapper wrapper = null;
@@ -154,7 +154,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
+		if(SecurityQueryUtils.insightIsGlobal(projectId, insightId)) {
 			return AccessPermission.READ_ONLY.getPermission();
 		}
 		
@@ -162,14 +162,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * TODO >>> Kunal: change app_id to projectId. Have to cordinate with FE.
 	 * Get the insights the user has edit access to
 	 * @param user
 	 * @param appId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserEditableInsighs(User user, String appId) {
+	public static List<Map<String, Object>> getUserEditableInsighs(User user, String projectId) {
 		
-		String permission = SecurityAppUtils.getActualUserAppPermission(user, appId);
+		String permission = SecurityProjectUtils.getActualUserProjectPermission(user, projectId);
 		if(permission == null || permission.equals(AccessPermission.READ_ONLY.getPermission())) {
 			return new Vector<>();
 		}
@@ -179,7 +180,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// you are the owner
 			// you get all the insights
 			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
@@ -188,7 +189,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
 			qs.addSelector(new QueryConstantSelector("OWNER"));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", appId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 			qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHT__INSIGHTNAME"));
 			return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 		} else {
@@ -196,7 +197,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			Collection<String> userIds = getUserFiltersQs(user);
 
 			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
+			qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
 			qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
@@ -208,7 +209,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// must have explicit access to the insight
 			qs.addRelation("INSIGHT__INSIGHTID", "USERINSIGHTPERMISSION__INSIGHTID", "inner.join");
 			qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", appId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 			List<Integer> permissions = new Vector<>();
 			permissions.add(AccessPermission.OWNER.getId());
@@ -222,18 +223,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * 
 	 * @param singleUserId
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @return
 	 */
-	static Integer getUserInsightPermission(String singleUserId, String engineId, String insightId) {
+	static Integer getUserInsightPermission(String singleUserId, String projectId, String insightId) {
 //		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
 //				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + singleUserId + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", singleUserId));
 		
@@ -261,20 +262,20 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * Determine if the user can edit the insight
 	 * User must be database owner OR be given explicit permissions on the insight
 	 * @param userId
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @return
 	 */
-	public static boolean userCanViewInsight(User user, String engineId, String insightId) {
+	public static boolean userCanViewInsight(User user, String projectId, String insightId) {
 		Collection<String> userIds = getUserFiltersQs(user);
 
-		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
+		if(SecurityQueryUtils.insightIsGlobal(projectId, insightId)) {
 			return true;
 		}
 		
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityAppUtils.userIsOwner(userIds, engineId)) {
+		if(SecurityProjectUtils.userIsOwner(userIds, projectId)) {
 			return true;
 		}
 		
@@ -285,7 +286,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 		
@@ -311,16 +312,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * Determine if the user can edit the insight
 	 * User must be database owner OR be given explicit permissions on the insight
 	 * @param userId
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @return
 	 */
-	public static boolean userCanEditInsight(User user, String engineId, String insightId) {
+	public static boolean userCanEditInsight(User user, String projectId, String insightId) {
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityAppUtils.userIsOwner(userIds, engineId)) {
+		if(SecurityProjectUtils.userIsOwner(userIds, projectId)) {
 			return true;
 		}
 		
@@ -331,7 +332,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 		
@@ -362,16 +363,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * Determine if the user is an owner of an insight
 	 * User must be database owner OR be given explicit permissions on the insight
 	 * @param userId
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @return
 	 */
-	public static boolean userIsInsightOwner(User user, String engineId, String insightId) {
+	public static boolean userIsInsightOwner(User user, String projectId, String insightId) {
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner of app
 		// they can do whatever they want
-		if(SecurityAppUtils.userIsOwner(userIds, engineId)) {
+		if(SecurityProjectUtils.userIsOwner(userIds, projectId)) {
 			return true;
 		}
 		
@@ -382,7 +383,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 		
@@ -413,17 +414,17 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * Determine if the user can edit the insight
 	 * User must be database owner OR be given explicit permissions on the insight
 	 * @param userId
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @return
 	 */
-	static int getMaxUserInsightPermission(User user, String engineId, String insightId) {
+	static int getMaxUserInsightPermission(User user, String projectId, String insightId) {
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner of the app
 		// they can do whatever they want
-		if(SecurityAppUtils.userIsOwner(userIds, engineId)) {
-			// owner of engine is owner of all the insights
+		if(SecurityProjectUtils.userIsOwner(userIds, projectId)) {
+			// owner of project is owner of all the insights
 			return AccessPermission.OWNER.getId();
 		}
 		
@@ -434,7 +435,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 		qs.addOrderBy(new QueryColumnOrderBySelector("USERINSIGHTPERMISSION__PERMISSION"));
@@ -471,23 +472,23 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * 
 	 * @param user
-	 * @param appId
+	 * @param projectId
 	 * @param insightId
 	 * @param isPublic
 	 * @throws IllegalAccessException
 	 */
-	public static void setInsightGlobalWithinApp(User user, String appId, String insightId, boolean isPublic) throws IllegalAccessException {
-		if(!userIsInsightOwner(user, appId, insightId)) {
+	public static void setInsightGlobalWithinApp(User user, String projectId, String insightId, boolean isPublic) throws IllegalAccessException {
+		if(!userIsInsightOwner(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
 		}
 		
-		String query = "UPDATE INSIGHT SET GLOBAL=? WHERE ENGINEID=? AND INSIGHTID=?";
+		String query = "UPDATE INSIGHT SET GLOBAL=? WHERE PROJECTID=? AND INSIGHTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setBoolean(parameterIndex++, isPublic);
-			ps.setString(parameterIndex++, appId);
+			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
 			ps.execute();
 			securityDb.commit();
@@ -514,19 +515,19 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * Change the user favorite (is favorite / not favorite) for a database. Without removing its permissions.
 	 * @param user
-	 * @param engineId
+	 * @param projectId
 	 * @param visibility
 	 * @throws SQLException 
 	 * @throws IllegalAccessException 
 	 */
-	public static void setInsightFavorite(User user, String appId, String insightId, boolean isFavorite) throws SQLException, IllegalAccessException {
-		if(!SecurityInsightUtils.userCanViewInsight(user, appId, insightId)) {
+	public static void setInsightFavorite(User user, String projectId, String insightId, boolean isFavorite) throws SQLException, IllegalAccessException {
+		if(!SecurityInsightUtils.userCanViewInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify this insight");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIdFilters));
 
@@ -536,7 +537,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if(wrapper.hasNext()){
 				UpdateQueryStruct uqs = new UpdateQueryStruct();
 				uqs.setEngine(securityDb);
-				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
+				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 				uqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIdFilters));
 
@@ -554,7 +555,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			} else {
 				// need to insert
 				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO USERINSIGHTPERMISSION "
-						+ "(USERID, ENGINEID, INSIGHTID, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
+						+ "(USERID, PROJECTID, INSIGHTID, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
 				if(ps == null) {
 					throw new IllegalArgumentException("Error generating prepared statement to set app visibility");
 				}
@@ -564,7 +565,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, appId);
+						ps.setString(parameterIndex++, projectId);
 						ps.setString(parameterIndex++, insightId);
 						ps.setBoolean(parameterIndex++, isFavorite);
 						ps.setInt(parameterIndex++, 3);
@@ -609,8 +610,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getInsightUsers(User user, String appId, String insightId) throws IllegalAccessException {
-		if(!userCanViewInsight(user, appId, insightId)) {
+	public static List<Map<String, Object>> getInsightUsers(User user, String projectId, String insightId) throws IllegalAccessException {
+		if(!userCanViewInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user does not have access to view this insight");
 		}
 		
@@ -633,7 +634,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "inner.join");
 		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
@@ -648,7 +649,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 	/**
 	 * 
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @param insightName
 	 * @param global
@@ -656,8 +657,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param layout
 	 * @param recipe
 	 */
-	public static void addInsight(String engineId, String insightId, String insightName, boolean global, boolean cacheable, String layout, List<String> recipe) {
-		String insertQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, "
+	public static void addInsight(String projectId, String insightId, String insightName, boolean global, boolean cacheable, String layout, List<String> recipe) {
+		String insertQuery = "INSERT INTO INSIGHT (PROJECTID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, "
 				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, RECIPE) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
 		
@@ -665,7 +666,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try {
 			ps = securityDb.getPreparedStatement(insertQuery);
 			int parameterIndex = 1;
-			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, projectId);
 			ps.setString(parameterIndex++, insightId);
 			ps.setString(parameterIndex++, insightName);
 			ps.setBoolean(parameterIndex++, global);
@@ -707,14 +708,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * 
 	 * @param user
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 */
-	public static void addUserInsightCreator(User user, String engineId, String insightId) {
+	public static void addUserInsightCreator(User user, String projectId, String insightId) {
 		List<AuthProvider> logins = user.getLogins();
 		
 		int ownerId = AccessPermission.OWNER.getId();
-		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) VALUES (?,?,?,?)";
+		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES (?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -722,7 +723,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				String id = user.getAccessToken(login).getId();
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, id);
-				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, projectId);
 				ps.setString(parameterIndex++, insightId);
 				ps.setInt(parameterIndex++, ownerId);
 				ps.addBatch();
@@ -752,7 +753,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	// TODO >>>timb: push app here on create/update
 	/**
 	 * 
- 	 * @param engineId
+ 	 * @param projectId
 	 * @param insightId
 	 * @param insightName
 	 * @param global
@@ -760,9 +761,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param lastModified
 	 * @param layout
 	 */
-	public static void updateInsight(String engineId, String insightId, String insightName, boolean global, String layout, List<String> recipe) {
+	public static void updateInsight(String projectId, String insightId, String insightName, boolean global, String layout, List<String> recipe) {
 		String updateQuery = "UPDATE INSIGHT SET INSIGHTNAME=?, GLOBAL=?, LASTMODIFIEDON=?, "
-				+ "LAYOUT=?, RECIPE=? WHERE INSIGHTID = ? AND ENGINEID=?";
+				+ "LAYOUT=?, RECIPE=? WHERE INSIGHTID = ? AND PROJECTID=?";
 
 		PreparedStatement ps = null;
 		try {
@@ -781,7 +782,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, securityGson.toJson(recipe));
 			}
 			ps.setString(parameterIndex++, insightId);
-			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, projectId);
 			ps.execute();
 			securityDb.commit();
 		} catch(SQLException e) {
@@ -806,12 +807,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Update the insight name
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @param insightName
 	 */
-	public static void updateInsightName(String engineId, String insightId, String insightName) {
-		String query = "UPDATE INSIGHT SET INSIGHTNAME=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND ENGINEID=?";
+	public static void updateInsightName(String projectId, String insightId, String insightName) {
+		String query = "UPDATE INSIGHT SET INSIGHTNAME=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -819,7 +820,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, insightName);
 			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.setString(parameterIndex++, insightId);
-			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, projectId);
 			ps.execute();
 			securityDb.commit();
 		} catch(SQLException e) {
@@ -848,8 +849,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param existingId
 	 * @param cacheInsight
 	 */
-	public static void updateInsightCache(String engineId, String insightId, boolean cacheInsight) {
-		String query = "UPDATE INSIGHT SET CACHEABLE=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND ENGINEID=?";
+	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight) {
+		String query = "UPDATE INSIGHT SET CACHEABLE=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -857,7 +858,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, cacheInsight);
 			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			ps.setString(parameterIndex++, insightId);
-			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, projectId);
 			ps.execute();
 			securityDb.commit();
 		} catch(SQLException e) {
@@ -883,11 +884,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * Update the insight description
 	 * Will perform an insert if the description doesn't currently exist
-	 * @param engineId
+	 * @param projectId
 	 * @param insideId
 	 * @param description
 	 */
-	public static void updateInsightDescription(String engineId, String insightId, String description) {
+	public static void updateInsightDescription(String projectId, String insightId, String description) {
 		// try to do an update
 		// if nothing is updated
 		// do an insert
@@ -895,7 +896,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		int updateCount = 0;
 		final String META_KEY = "description";
 		
-		String query = "UPDATE INSIGHTMETA SET METAVALUE=? WHERE METAKEY=? AND INSIGHTID=? AND ENGINEID=?";
+		String query = "UPDATE INSIGHTMETA SET METAVALUE=? WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -903,7 +904,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, description);
 			ps.setString(parameterIndex++, META_KEY);
 			ps.setString(parameterIndex++, insightId);
-			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, projectId);
 			ps.execute();
 			updateCount = ps.getUpdateCount();
 		} catch(SQLException e) {
@@ -928,10 +929,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// no updates, insert
 		if(updateCount <= 0) {
 			try {
-				query = "INSERT INTO INSIGHTMETA (ENGINEID, INSIGHTID, METAKEY, METAVALUE, METAORDER) VALUES (?,?,?,?,?)";
+				query = "INSERT INTO INSIGHTMETA (PROJECTID, INSIGHTID, METAKEY, METAVALUE, METAORDER) VALUES (?,?,?,?,?)";
 				ps = securityDb.getPreparedStatement(query);
 				int parameterIndex = 1;
-				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, projectId);
 				ps.setString(parameterIndex++, insightId);
 				ps.setString(parameterIndex++, META_KEY);
 				ps.setString(parameterIndex++, description);
@@ -963,21 +964,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * Update the insight tags for the insight
 	 * Will delete existing values and then perform a bulk insert
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @param tags
 	 */
-	public static void updateInsightTags(String engineId, String insightId, List<String> tags) {
+	public static void updateInsightTags(String projectId, String insightId, List<String> tags) {
 		// first do a delete
 		final String metaKey = "tag";
-		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND ENGINEID=?";
+		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, metaKey);
 			ps.setString(parameterIndex++, insightId);
-			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, projectId);
 			ps.execute();
 			securityDb.commit();
 		} catch(Exception e) {
@@ -1001,14 +1002,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		// now we do the new insert with the order of the tags
 		query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA", 
-				new String[]{"ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
+				new String[]{"PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
 		ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			for(int i = 0; i < tags.size(); i++) {
 				String tag = tags.get(i);
 				int parameterIndex = 1;
-				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, projectId);
 				ps.setString(parameterIndex++, insightId);
 				ps.setString(parameterIndex++, metaKey);
 				ps.setString(parameterIndex++, tag);
@@ -1041,21 +1042,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * Update the insight tags for the insight
 	 * Will delete existing values and then perform a bulk insert
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @param tags
 	 */
-	public static void updateInsightTags(String engineId, String insightId, String[] tags) {
+	public static void updateInsightTags(String projectId, String insightId, String[] tags) {
 		// first do a delete
 		final String metaKey = "tag";
-		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND ENGINEID=?";
+		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, metaKey);
 			ps.setString(parameterIndex++, insightId);
-			ps.setString(parameterIndex++, engineId);
+			ps.setString(parameterIndex++, projectId);
 			ps.execute();
 			securityDb.commit();
 		} catch(Exception e) {
@@ -1079,14 +1080,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		// now we do the new insert with the order of the tags
 		query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA", 
-				new String[]{"ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
+				new String[]{"PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
 		ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
 			for(int i = 0; i < tags.length; i++) {
 				String tag = tags[i];
 				int parameterIndex = 1;
-				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, projectId);
 				ps.setString(parameterIndex++, insightId);
 				ps.setString(parameterIndex++, metaKey);
 				ps.setString(parameterIndex++, tag);
@@ -1117,25 +1118,25 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * 
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 */
-	public static void deleteInsight(String engineId, String insightId) {
-		String query = "DELETE FROM INSIGHT WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
+	public static void deleteInsight(String projectId, String insightId) {
+		String query = "DELETE FROM INSIGHT WHERE INSIGHTID ='" + insightId + "' AND PROJECTID='" + projectId + "'";
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}		
-		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID ='" + insightId + "' AND PROJECTID='" + projectId + "'";
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
-		query = "DELETE FROM INSIGHTMETA WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		query = "DELETE FROM INSIGHTMETA WHERE INSIGHTID ='" + insightId + "' AND PROJECTID='" + projectId + "'";
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
@@ -1146,19 +1147,19 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * 
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 */
-	public static void deleteInsight(String engineId, String... insightId) {
+	public static void deleteInsight(String projectId, String... insightId) {
 		String insightFilter = createFilter(insightId);
-		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilter + " AND ENGINEID='" + engineId + "'";
+		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId + "'";
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
-		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND ENGINEID='" + engineId + "'";
+		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId + "'";
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
@@ -1172,9 +1173,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param insightId
 	 */
-	public static void updateExecutionCount(String engineId, String insightId) {
+	public static void updateExecutionCount(String projectId, String insightId) {
 		String updateQuery = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "'";
+				+ "WHERE PROJECTID='" + projectId + "' AND INSIGHTID='" + insightId + "'";
 		try {
 			securityDb.insertData(updateQuery);
 			securityDb.commit();
@@ -1191,25 +1192,25 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param user
 	 * @param newUserId
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @param permission
 	 * @return
 	 */
-	public static void addInsightUser(User user, String newUserId, String engineId, String insightId, String permission) {
-		if(!userCanEditInsight(user, engineId, insightId)) {
+	public static void addInsightUser(User user, String newUserId, String projectId, String insightId, String permission) {
+		if(!userCanEditInsight(user, projectId, insightId)) {
 			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
 		// make sure user doesn't already exist for this insight
-		if(getUserInsightPermission(newUserId, engineId, insightId) != null) {
+		if(getUserInsightPermission(newUserId, projectId, insightId) != null) {
 			// that means there is already a value
 			throw new IllegalArgumentException("This user already has access to this insight. Please edit the existing permission level.");
 		}
 		
-		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) VALUES('"
+		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION) VALUES('"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
 				+ AccessPermission.getIdByPermission(permission) + ");";
 
@@ -1225,21 +1226,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param user
 	 * @param existingUserId
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @param newPermission
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editInsightUserPermission(User user, String existingUserId, String engineId, String insightId, String newPermission) throws IllegalAccessException {
+	public static void editInsightUserPermission(User user, String existingUserId, String projectId, String insightId, String newPermission) throws IllegalAccessException {
 		// make sure user can edit the insight
-		int userPermissionLvl = getMaxUserInsightPermission(user, engineId, insightId);
+		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if(!AccessPermission.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = getUserInsightPermission(existingUserId, engineId, insightId);
+		Integer existingUserPermission = getUserInsightPermission(existingUserId, projectId, insightId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
 		}
@@ -1263,7 +1264,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		String query = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=" + newPermissionLvl
 				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "' "
+				+ "AND PROJECTID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "' "
 				+ "AND INSIGHTID='" + RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
 		try {
 			securityDb.insertData(query);
@@ -1277,20 +1278,20 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param user
 	 * @param editedUserId
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void removeInsightUser(User user, String existingUserId, String engineId, String insightId) throws IllegalAccessException {
+	public static void removeInsightUser(User user, String existingUserId, String projectId, String insightId) throws IllegalAccessException {
 		// make sure user can edit the insight
-		int userPermissionLvl = getMaxUserInsightPermission(user, engineId, insightId);
+		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if(!AccessPermission.isEditor(userPermissionLvl)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = getUserInsightPermission(existingUserId, engineId, insightId);
+		Integer existingUserPermission = getUserInsightPermission(existingUserId, projectId, insightId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
 		}
@@ -1307,7 +1308,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		String query = "DELETE FROM USERINSIGHTPERMISSION WHERE "
 				+ "USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "' "
+				+ "AND PROJECTID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(projectId) + "' "
 				+ "AND INSIGHTID='" + RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
 		try {
 			securityDb.insertData(query);
@@ -1327,13 +1328,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
-	 * User has access to specific insights within a database
+	 * User has access to specific insights within a project
 	 * User can access if:
 	 * 	1) Is Owner, Editer, or Reader of insight
 	 * 	2) Insight is global
 	 * 	3) Is Owner of database
 	 * 
-	 * @param engineId
+	 * TODO >>> Kunal: change app_name and app_name_id to project references
+	 * @param projectId
 	 * @param userId
 	 * @param searchTerm
 	 * @param tags
@@ -1342,7 +1344,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchUserInsights(User user, List<String> engineFilter, String searchTerm, List<String> tags, 
+	public static List<Map<String, Object>> searchUserInsights(User user, List<String> projectFilter, String searchTerm, List<String> tags, 
 			Boolean favoritesOnly, QueryColumnOrderBySelector sortBy, String limit, String offset) {
 //		String userFilters = getUserFilters(user);
 //
@@ -1410,13 +1412,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 //				;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
-		boolean hasEngineFilters = engineFilter != null && !engineFilter.isEmpty();
+		boolean hasProjectFilters = projectFilter != null && !projectFilter.isEmpty();
 		
 		Collection<String> userIds = getUserFiltersQs(user);
 		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
-		qs1.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs1.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
+		qs1.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "app_name"));
 		qs1.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
 		qs1.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
 		qs1.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
@@ -1434,9 +1436,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// filters
 		// if we have an engine filter
 		// i'm assuming you want these even if visibility is false
-		if(hasEngineFilters) {
+		if(hasProjectFilters) {
 			// will filter to the list of engines
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
 			// make sure you have access to each of these insights
 			// 1) you have access based on user insight permission table -- or
 			// 2) the insight is global -- or 
@@ -1446,8 +1448,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 				AndQueryFilter embedAndFilter = new AndQueryFilter();
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
 				orFilter.addFilter(embedAndFilter);
 			}
 			qs1.addExplicitFilter(orFilter);
@@ -1459,8 +1461,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			
 			OrQueryFilter firstOrFilter = new OrQueryFilter();
 			{
-				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
 			}
 			qs1.addExplicitFilter(firstOrFilter);
 
@@ -1469,12 +1471,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			{
 				SelectQueryStruct subQs = new SelectQueryStruct();
 				// store first and fill in sub query after
-				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
 				
 				// fill in the sub query with the single return + filters
-				subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
 			}
 			
 			OrQueryFilter secondOrFilter = new OrQueryFilter();
@@ -1482,9 +1484,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 				AndQueryFilter embedAndFilter = new AndQueryFilter();
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", true, PixelDataType.BOOLEAN));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", true, PixelDataType.BOOLEAN));
 				secondOrFilter.addFilter(embedAndFilter);
 			}
 			qs1.addExplicitFilter(secondOrFilter);
@@ -1501,12 +1503,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		
 		// joins
-		qs1.addRelation("ENGINE", "INSIGHT", "inner.join");
+		qs1.addRelation("PROJECT", "INSIGHT", "inner.join");
 		if(tagFiltering) {
 			qs1.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
-			qs1.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
+			qs1.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "inner.join");
 		}
-		qs1.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		qs1.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
 		qs1.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
 		
 		// get the favorites for this user
@@ -1563,15 +1565,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * TODO >>> Kunal: change app_name and app_name_id to project references
 	 * Search through all insights with an optional filter on engines and an optional search term
-	 * @param engineFilter
+	 * @param projectFilter
 	 * @param searchTerm
 	 * @param tags
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchInsights(List<String> engineFilter, String searchTerm, List<String> tags, 
+	public static List<Map<String, Object>> searchInsights(List<String> projectFilter, String searchTerm, List<String> tags, 
 			QueryColumnOrderBySelector sortBy, String limit, String offset) {
 //		String query = "SELECT DISTINCT "
 //				+ "INSIGHT.ENGINEID AS \"app_id\", "
@@ -1599,8 +1602,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// THAT CALL THIS METHOD AS THAT IS PASSED IN THE SORT BY FIELD
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
-		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
@@ -1615,8 +1618,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		fun.setAlias("low_name");
 		qs.addSelector(fun);
 		// filters
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
+		if(projectFilter != null && !projectFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
 		}
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
 			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
@@ -1628,10 +1631,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
 		}
 		// joins
-		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
+		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
 		if(tagFiltering) {
 			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
-			qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
+			qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "inner.join");
 		}
 		// sort
 		if(sortBy == null) {
@@ -1653,26 +1656,26 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	
 	
 	/**
-	 * User has access to specific insights within a database
+	 * User has access to specific insights within a project
 	 * User can access if:
 	 * 	1) Is Owner, Editer, or Reader of insight
 	 * 	2) Insight is global
 	 * 	3) Is Owner of database
 	 * 
-	 * @param engineId
+	 * @param projectId
 	 * @param userId
 	 * @param searchTerm
 	 * @param tags
 	 * @return
 	 */
-	public static SelectQueryStruct searchUserInsightsUsage(User user, List<String> engineFilter, String searchTerm, List<String> tags) {
-		boolean hasEngineFilters = engineFilter != null && !engineFilter.isEmpty();
+	public static SelectQueryStruct searchUserInsightsUsage(User user, List<String> projectFilter, String searchTerm, List<String> tags) {
+		boolean hasEngineFilters = projectFilter != null && !projectFilter.isEmpty();
 		
 		Collection<String> userIds = getUserFiltersQs(user);
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
-		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
@@ -1687,7 +1690,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// i'm assuming you want these even if visibility is false
 		if(hasEngineFilters) {
 			// will filter to the list of engines
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
 			// make sure you have access to each of these insights
 			// 1) you have access based on user insight permission table -- or
 			// 2) the insight is global -- or 
@@ -1697,8 +1700,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 				AndQueryFilter embedAndFilter = new AndQueryFilter();
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
 				orFilter.addFilter(embedAndFilter);
 			}
 			qs.addExplicitFilter(orFilter);
@@ -1710,8 +1713,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			
 			OrQueryFilter firstOrFilter = new OrQueryFilter();
 			{
-				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
 			}
 			qs.addExplicitFilter(firstOrFilter);
 
@@ -1720,12 +1723,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			{
 				SelectQueryStruct subQs = new SelectQueryStruct();
 				// store first and fill in sub query after
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
 				
 				// fill in the sub query with the single return + filters
-				subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
 			}
 			
 			OrQueryFilter secondOrFilter = new OrQueryFilter();
@@ -1733,9 +1736,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 				AndQueryFilter embedAndFilter = new AndQueryFilter();
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", true, PixelDataType.BOOLEAN));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==", true, PixelDataType.BOOLEAN));
 				secondOrFilter.addFilter(embedAndFilter);
 			}
 			qs.addExplicitFilter(secondOrFilter);
@@ -1751,11 +1754,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
 		}
 		// joins
-		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
+		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
 		// always adding the tags as returns
 //		if(tagFiltering) {
 			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "left.outer.join");
-			qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "left.outer.join");
+			qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "left.outer.join");
 //		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
@@ -1765,16 +1768,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Search through all insights with an optional filter on engines and an optional search term
-	 * @param engineFilter
+	 * @param projectFilter
 	 * @param searchTerm
 	 * @param tags
 	 * @return
 	 */
-	public static SelectQueryStruct searchInsightsUsage(List<String> engineFilter, String searchTerm, List<String> tags) {
+	public static SelectQueryStruct searchInsightsUsage(List<String> projectFilter, String searchTerm, List<String> tags) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
-		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
@@ -1785,8 +1788,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "insight_tags"));
 
 		// filters
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
+		if(projectFilter != null && !projectFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
 		}
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
 			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
@@ -1798,11 +1801,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
 		}
 		// joins
-		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
+		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
 		// always add tags
 //		if(tagFiltering) {
 		qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "left.outer.join");
-		qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "left.outer.join");
+		qs.addRelation("INSIGHT__PROJECTID", "INSIGHTMETA__PROJECTID", "left.outer.join");
 //		}
 
 		return qs;
@@ -1811,21 +1814,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get the wrapper for additional insight metadata
-	 * @param engineId
+	 * @param projectId
 	 * @param insightIds
 	 * @param metaKeys
 	 * @return
 	 */
-	public static IRawSelectWrapper getInsightMetadataWrapper(String engineId, Collection<String> insightIds, List<String> metaKeys) {
+	public static IRawSelectWrapper getInsightMetadataWrapper(String projectId, Collection<String> insightIds, List<String> metaKeys) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
-		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
 		// filters
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__INSIGHTID", "==", insightIds));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", metaKeys));
 		// order
@@ -1842,21 +1845,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Get the insight metadata for a specific insight
-	 * @param engineId
+	 * @param projectId
 	 * @param insightId
 	 * @param metaKeys
 	 * @return
 	 */
-	public static Map<String, Object> getSpecificInsightMetadata(String engineId, String insightId, List<String> metaKeys) {
+	public static Map<String, Object> getSpecificInsightMetadata(String projectId, String insightId, List<String> metaKeys) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
-		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
 		// filters
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", metaKeys));
 		// order
@@ -1905,7 +1908,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param engineFilters
 	 * @return
 	 */
-	public static List<Map<String, Object>> getAvailableInsightTagsAndCounts(List<String> engineFilters) {
+	public static List<Map<String, Object>> getAvailableInsightTagsAndCounts(List<String> projectFilters) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "tag"));
@@ -1916,8 +1919,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(fSelector);
 		// filters
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
-		if(engineFilters != null && !engineFilters.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__ENGINEID", "==", engineFilters));
+		if(projectFilters != null && !projectFilters.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__PROJECTID", "==", projectFilters));
 		}
 		// group
 		qs.addGroupBy(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "tag"));
@@ -1981,8 +1984,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// or, i'm the app owner ( you can't hide your stuff from me O_O )
 			AndQueryFilter andFilter = new AndQueryFilter();
 			{
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
 			}
 			orFilters.addFilter(andFilter);
 		}
@@ -2049,22 +2052,22 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
-	 * Copy the app permissions from one app to another
-	 * @param sourceEngineId
-	 * @param targetEngineId
+	 * Copy the insight permissions from one project to another
+	 * @param sourceProjectId
+	 * @param targetProjectId
 	 * @throws SQLException
 	 */
-	public static void copyInsightPermissions(String sourceEngineId, String sourceInsightId, String targetEngineId, String targetInsightId) throws Exception {
+	public static void copyInsightPermissions(String sourceProjectId, String sourceInsightId, String targetProjectId, String targetInsightId) throws Exception {
 		String insertTargetAppInsightPermissionSql = "INSERT INTO USERINSIGHTPERMISSION (ENGINEID, INSIGHTID, USERID, PERMISSION) VALUES (?, ?, ?, ?)";
 		PreparedStatement insertTargetAppInsightPermissionStatement = securityDb.getPreparedStatement(insertTargetAppInsightPermissionSql);
 		
 		// grab the permissions, filtered on the source engine id and source insight id
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID"));
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", sourceEngineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", sourceProjectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", sourceInsightId));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -2073,7 +2076,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				Object[] row = wrapper.next().getValues();
 				// now loop through all the permissions
 				// but with the target engine/insight id instead of the source engine/insight id
-				insertTargetAppInsightPermissionStatement.setString(1, targetEngineId);
+				insertTargetAppInsightPermissionStatement.setString(1, targetProjectId);
 				insertTargetAppInsightPermissionStatement.setString(2, targetInsightId);
 				insertTargetAppInsightPermissionStatement.setString(3, (String) row[2]);
 				insertTargetAppInsightPermissionStatement.setInt(4, ((Number) row[3]).intValue());
@@ -2090,8 +2093,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		
 		// first delete the current app permissions on the database
-		String deleteTargetAppPermissionsSql = "DELETE FROM USERINSIGHTPERMISSION WHERE ENGINEID = '" 
-				+ AbstractSqlQueryUtil.escapeForSQLStatement(targetEngineId) + "' AND INSIGHTID = '" 
+		String deleteTargetAppPermissionsSql = "DELETE FROM USERINSIGHTPERMISSION WHERE PROJECTID = '" 
+				+ AbstractSqlQueryUtil.escapeForSQLStatement(targetProjectId) + "' AND INSIGHTID = '" 
 				+ AbstractSqlQueryUtil.escapeForSQLStatement(targetInsightId) + "'";
 		securityDb.removeData(deleteTargetAppPermissionsSql);
 		// execute the query
@@ -2103,11 +2106,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightID
 	 * @return 
 	 */
-	public static List<Map<String, Object>> getInsightUsersNoCredentials(User user, String appId, String insightId) throws IllegalAccessException {
+	public static List<Map<String, Object>> getInsightUsersNoCredentials(User user, String projectId, String insightId) throws IllegalAccessException {
 		/*
 		 * Security check to ensure the user can access the insight provided. 
 		 */
-		if(!userCanViewInsight(user, appId, insightId)) {
+		if(!userCanViewInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user does not have access to view this insight");
 		}
 		
@@ -2128,7 +2131,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
 			//Sub-query itself
 			subQs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION","!=",null,PixelDataType.NULL_VALUE));
 		}

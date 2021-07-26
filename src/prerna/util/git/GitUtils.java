@@ -26,19 +26,15 @@ import org.eclipse.jgit.lib.StoredConfig;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
-import prerna.engine.impl.SmssUtilities;
 import prerna.security.InstallCertNow;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 
 public class GitUtils {
 	
 	private static final Logger logger = LogManager.getLogger(GitUtils.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
 
 	/**
 	 * This class is not intended to be extended or used outside of its static method
@@ -76,16 +72,16 @@ public class GitUtils {
 				gh.getMyself();
 				return gh;
 			} catch(HttpException ex) {
-				logger.error(STACKTRACE, ex);
+				logger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				login(username, password, attempt);
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Invalid Git Credentials for username = \"" + username + "\"");
 			}
 		}
@@ -106,16 +102,16 @@ public class GitUtils {
 				gh.getMyself();
 				return gh;
 			} catch(HttpException ex) {
-				logger.error(STACKTRACE, ex);
+				logger.error(Constants.STACKTRACE, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 				attempt = attempt + 1;
 				login(oAuth, attempt);
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Invalid Git Credentials for username = \"" + oAuth + "\"");
 			}
 		}
@@ -140,7 +136,7 @@ public class GitUtils {
 		try {
 			myFile.createNewFile();
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -174,7 +170,7 @@ public class GitUtils {
 			// I have to delete for now
 			myNewFile.delete();
 		} catch(IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(thisRepo != null) {
 				thisRepo.close();
@@ -202,7 +198,7 @@ public class GitUtils {
 			config.setString("core", null, "sparseCheckout", "true");
 			config.save();
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(thisRepo != null) {
 				thisRepo.close();
@@ -231,7 +227,7 @@ public class GitUtils {
 				}
 				pw.close();
 			} catch(IOException e) {
-				logger.error(STACKTRACE, e);
+				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(pw != null) {
 					pw.close();
@@ -240,14 +236,14 @@ public class GitUtils {
 					try {
 						osw.close();
 					} catch (IOException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 				if(fos != null) {
 					try {
 						fos.close();
 					} catch (IOException e) {
-						logger.error(STACKTRACE, e);
+						logger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -264,7 +260,7 @@ public class GitUtils {
 		try {
 			myNewFile.createNewFile();
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		FileOutputStream fos = null;
 		OutputStreamWriter osw = null;
@@ -277,7 +273,7 @@ public class GitUtils {
 				pw.println("/" + files[fileIndex]);
 			}
 		} catch (FileNotFoundException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to write .gitignore file");
 		} finally {
 			if(pw != null) {
@@ -287,14 +283,14 @@ public class GitUtils {
 				try {
 					osw.close();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if(fos != null) {
 				try {
 					fos.close();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -321,30 +317,30 @@ public class GitUtils {
 	///////////////////////////////////////////////////////
 
 	
-	public static List<Map<String, String>> getStatus(String appId, String appName)
+	public static List<Map<String, String>> getStatus(String projectId, String ProjectName)
 	{
 		List<Map<String, String>> output = new Vector<>();
-		String location = AssetUtility.getAppAssetVersionFolder(appName, appId);; //DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(appName, appId) + "/version";
+		String location = AssetUtility.getProjectAssetVersionFolder(ProjectName, projectId);; //DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(ProjectName, projectId) + "/version";
 		Git thisGit = null;
 		Status status = null;
 		try {
 			thisGit = Git.open(new File(location));
 			status = thisGit.status().call();
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			logger.error(Constants.STACKTRACE, ioe);
 		} catch (NoWorkTreeException nwte) {
-			logger.error(STACKTRACE, nwte);
+			logger.error(Constants.STACKTRACE, nwte);
 		} catch (GitAPIException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 
 		if (status != null) {
-			output.addAll(getFiles(appId, appName, "ADD", status.getAdded().iterator()));
-			output.addAll(getFiles(appId, appName, "MOD", status.getModified().iterator()));
-			output.addAll(getFiles(appId, appName, "DEL", status.getRemoved().iterator()));
-			output.addAll(getFiles(appId, appName, "DEL", status.getMissing().iterator()));
-			output.addAll(getFiles(appId, appName, "CON", status.getConflicting().iterator()));
-			output.addAll(getFiles(appId, appName, "NEW", status.getUntracked().iterator()));
+			output.addAll(getFiles(projectId, ProjectName, "ADD", status.getAdded().iterator()));
+			output.addAll(getFiles(projectId, ProjectName, "MOD", status.getModified().iterator()));
+			output.addAll(getFiles(projectId, ProjectName, "DEL", status.getRemoved().iterator()));
+			output.addAll(getFiles(projectId, ProjectName, "DEL", status.getMissing().iterator()));
+			output.addAll(getFiles(projectId, ProjectName, "CON", status.getConflicting().iterator()));
+			output.addAll(getFiles(projectId, ProjectName, "NEW", status.getUntracked().iterator()));
 		}
 
 		if (thisGit != null) {
@@ -362,10 +358,10 @@ public class GitUtils {
 	 * @param iterator
 	 * @return
 	 */
-	public static List<Map<String, String>> getFiles(String appId, String appName, String fileType, Iterator<String> iterator) {
+	public static List<Map<String, String>> getFiles(String projectId, String ProjectName, String fileType, Iterator<String> iterator) {
 		List<Map<String, String>> retFiles = new Vector<>();
 		while(iterator.hasNext()) {
-			String daFile = AssetUtility.getAppAssetVersionFolder(appName, appId) + "/" + iterator.next();
+			String daFile = AssetUtility.getProjectAssetVersionFolder(ProjectName, projectId) + "/" + iterator.next();
 			if(!daFile.endsWith(".mosfet")) {
 				continue;
 			}
@@ -376,7 +372,7 @@ public class GitUtils {
 				try {
 					fileName = MosfetSyncHelper.getInsightName(new File(daFile));
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 			Map<String, String> fileData = new Hashtable<>();

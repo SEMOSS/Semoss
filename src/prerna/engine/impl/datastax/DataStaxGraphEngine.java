@@ -13,6 +13,7 @@ import com.datastax.driver.dse.graph.GraphOptions;
 import com.datastax.dse.graph.api.DseGraph;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;

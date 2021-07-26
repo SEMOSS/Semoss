@@ -20,6 +20,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -51,16 +52,16 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	public static String USER_SPACE_KEY = "USER";
 	public static final String SPACE = ReactorKeysEnum.SPACE.getKey();
 	
-	protected String getApp() {
-		String appId = null;
+	protected String getProject() {
+		String projectId = null;
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
-		GenRowStruct genericEngineGrs = this.store.getNoun(ReactorKeysEnum.APP.getKey());
+		GenRowStruct genericEngineGrs = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey());
 		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
-			appId = (String) genericEngineGrs.get(0);
+			projectId = (String) genericEngineGrs.get(0);
 		}
 		
-		if(appId == null) {
+		if(projectId == null) {
 			// see if it is in the curRow
 			// if it was passed directly in as a variable
 			List<NounMetadata> stringNouns = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
@@ -69,18 +70,18 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			}
 		}
 		
-		if(appId == null) {
+		if(projectId == null) {
 			// well, you are out of luck
-			throw new IllegalArgumentException("Need to define the app where the insight currently exists");
+			throw new IllegalArgumentException("Need to define the project where the insight currently exists");
 		}
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		} else {
-			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
+			projectId = MasterDatabaseUtility.testDatabaseIdIfAlias(projectId);
 		}
 		
-		return appId;
+		return projectId;
 	}
 	
 	/**
@@ -295,7 +296,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		// set up path to save image to file
 		final String DIR_SEP = java.nio.file.FileSystems.getDefault().getSeparator();
 		final String basePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEP + "db" + DIR_SEP + SmssUtilities.getUniqueName(appName, appId) + DIR_SEP + "version" 
+				+ DIR_SEP + "project" + DIR_SEP + SmssUtilities.getUniqueName(appName, appId) + DIR_SEP + "version" 
 				+ DIR_SEP + insightId;
 		final String newImageFile = basePath + DIR_SEP + fileName;
 		final File newImage = new File(newImageFile);
@@ -341,7 +342,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		// set up path to save image to file
 		final String DIR_SEP = java.nio.file.FileSystems.getDefault().getSeparator();
 		final String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEP + "db" + DIR_SEP + SmssUtilities.getUniqueName(appName, appId) + DIR_SEP + "version" 
+				+ DIR_SEP + Constants.PROJECT_FOLDER + DIR_SEP + SmssUtilities.getUniqueName(appName, appId) + DIR_SEP + "version" 
 				+ DIR_SEP + insightId + DIR_SEP + "image.png";
 		
 		// decode image and write to file
@@ -367,7 +368,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		
-		String appName = SecurityQueryUtils.getEngineAliasForId(appId);
+		String appName = SecurityQueryUtils.getDatabaseAliasForId(appId);
 		
 		for(Pixel p : insightPixelList) {
 			// use the metadata captured to determine if this is a file read
@@ -413,9 +414,9 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 						boolean isUserSpace = space != null && space.toUpperCase().equals(AssetUtility.USER_SPACE_KEY);
 						if(space == null || space.isEmpty() || isUserSpace) {
 							File origF = new File(fileLoc);
-							String newFileLoc = BASE + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
+							String newFileLoc = BASE + DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR + 
 													SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "app_root" + DIR_SEPARATOR + 
-													"version" + DIR_SEPARATOR +
+													"app_root" + DIR_SEPARATOR + "version" + DIR_SEPARATOR +
 													newInsightId + DIR_SEPARATOR + 
 													"data";
 							// create parent directory
@@ -471,8 +472,9 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 */
 	protected File getPipelineFileLocation(String appId, String appName, String rdbmsID) {
 		String pipelinePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + "project"
 				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
+				+ DIR_SEPARATOR + "app_root" 
 				+ DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsID;
 		

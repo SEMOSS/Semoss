@@ -16,48 +16,48 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class GetAvailableTagsReactor extends AbstractReactor {
 
 	public GetAvailableTagsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		List<String> inputFilters = getAppFilters();
 		List<NounMetadata> warningNouns = new Vector<>();
-		List<String> appliedAppFilters = null;
+		List<String> appliedDatabaseFilters = null;
 
 		// account for security
-		List<String> appFilters = null;
+		List<String> databaseFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appliedAppFilters = new Vector<>();
-			appFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			appliedDatabaseFilters = new Vector<>();
+			databaseFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 			if(!inputFilters.isEmpty()) {
 				// loop through and compare what the user has access to
 				for(String inputAppFilter : inputFilters) {
-					if(!appFilters.contains(inputAppFilter)) {
+					if(!databaseFilters.contains(inputAppFilter)) {
 						warningNouns.add(NounMetadata.getWarningNounMessage(inputAppFilter + " does not exist or user does not have access to database."));
 					} else {
-						appliedAppFilters.add(inputAppFilter);
+						appliedDatabaseFilters.add(inputAppFilter);
 					}
 				}
 			} else {
 				// set the permissions to everything the user has access to
-				appliedAppFilters.addAll(appFilters);
+				appliedDatabaseFilters.addAll(databaseFilters);
 			}
 		}
 //		else {
 //			// no security
-//			// keep null, we will not have an engine filter
+//			// keep null, we will not have an database filter
 //		}
 		
-		if(AbstractSecurityUtils.securityEnabled() && appliedAppFilters != null && appliedAppFilters.isEmpty()) {
+		if(AbstractSecurityUtils.securityEnabled() && appliedDatabaseFilters != null && appliedDatabaseFilters.isEmpty()) {
 			if(inputFilters.isEmpty()) {
-				return NounMetadata.getWarningNounMessage("User does not have access to any apps");
+				return NounMetadata.getWarningNounMessage("User does not have access to any databases");
 			} else {
-				return NounMetadata.getErrorNounMessage("Input app filters do not exist or user does not have access to the apps");
+				return NounMetadata.getErrorNounMessage("Input database filters do not exist or user does not have access to the databases");
 			}
 		}
 		
-		List<Map<String, Object>> ret = SecurityInsightUtils.getAvailableInsightTagsAndCounts(appliedAppFilters);
+		List<Map<String, Object>> ret = SecurityInsightUtils.getAvailableInsightTagsAndCounts(appliedDatabaseFilters);
 		NounMetadata noun = new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		if(!warningNouns.isEmpty()) {
 			noun.addAllAdditionalReturn(warningNouns);
