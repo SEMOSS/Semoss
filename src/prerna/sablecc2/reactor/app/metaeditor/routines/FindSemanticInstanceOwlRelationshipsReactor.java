@@ -22,7 +22,7 @@ import prerna.util.Utility;
 
 public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 
-	private static final String CLASS_NAME = FindIndirectOwlRelationshipsReactor.class.getName();
+	private static final String CLASS_NAME = FindSemanticInstanceOwlRelationshipsReactor.class.getName();
 
 	/**
 	 * Example script to run:
@@ -39,15 +39,15 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 	 */
 	
 	public FindSemanticInstanceOwlRelationshipsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), TABLES_FILTER, STORE_VALUES_FRAME};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), TABLES_FILTER, STORE_VALUES_FRAME};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = testAppId(appId, false);
+		databaseId = testDatabaseId(databaseId, false);
 		List<String> filters = getTableFilters();
 
 		// make sure R is good to go
@@ -58,7 +58,7 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 		String[] packages = { "text2vec", "data.table", "lsa", "WikidataR", "XML", "RCurl", "stringr", "httr"};
 		rJavaTranslator.checkPackages(packages);
 		
-		IEngine app = Utility.getEngine(appId);
+		IEngine database = Utility.getEngine(databaseId);
 		
 		// store 2 lists
 		// of all table names
@@ -69,7 +69,7 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 		// also store a matrix of instances
 		List<List<String>> sampleInstances = new Vector<List<String>>();
 		
-		List<String> concepts = app.getPhysicalConcepts();
+		List<String> concepts = database.getPhysicalConcepts();
 		for(String cUri : concepts) {
 			String tableName = Utility.getInstanceName(cUri);
 			
@@ -85,10 +85,10 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 			}
 			
 			// grab all the properties
-			List<String> properties = app.getPropertyUris4PhysicalUri(cUri);
+			List<String> properties = database.getPropertyUris4PhysicalUri(cUri);
 			for(String pUri : properties) {
 				// we will only store string values!!!
-				SemossDataType pDataType = SemossDataType.convertStringToDataType(app.getDataTypes(pUri).replace("TYPE:", ""));
+				SemossDataType pDataType = SemossDataType.convertStringToDataType(database.getDataTypes(pUri).replace("TYPE:", ""));
 				if(pDataType == SemossDataType.STRING) {
 					tableNamesList.add(tableName);
 					String colName = Utility.getClassName(pUri);
@@ -97,7 +97,7 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 					List<String> colValues = new Vector<String>();
 					IRawSelectWrapper wrapper = null;
 					try {
-						wrapper = WrapperManager.getInstance().getRawWrapper(app, getMostOccuringSingleColumnNonEmptyQs(tableName + "__" + colName, 5));
+						wrapper = WrapperManager.getInstance().getRawWrapper(database, getMostOccuringSingleColumnNonEmptyQs(tableName + "__" + colName, 5));
 						while(wrapper.hasNext()) {
 							String value = wrapper.next().getValues()[0].toString();
 							if(value.contains("\"")) {

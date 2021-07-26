@@ -7,10 +7,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.engine.api.IEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -54,11 +53,11 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			Insight insight = getInsight(insightStrings.get(i));
 			insightMap.put("name", insight.getInsightName());
 			// keys below match those in solr
-			insightMap.put("app_id", insight.getEngineId());
+			insightMap.put("app_id", insight.getProjectId());
 			insightMap.put("app_insight_id", insight.getRdbmsId());
 			insightMap.put("recipe", "META|ReloadInsight(cache=[" + dashboardCacheable + "])");
 			// TODO: delete this once we update ids
-			insightMap.put("core_engine", insight.getEngineId());
+			insightMap.put("core_engine", insight.getProjectId());
 			insightMap.put("core_engine_id", insight.getRdbmsId());
 			
 			// the old id -> needed to properly update the dashboard config
@@ -67,8 +66,8 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			// this is used so they can automatically update the config 
 			// without waiting on a new id to come back
 			Insight newInsight = new Insight();
-			newInsight.setEngineId(insight.getEngineId());
-			newInsight.setEngineName(insight.getEngineName());
+			newInsight.setProjectId(insight.getProjectId());
+			newInsight.setProjectName(insight.getProjectName());
 			newInsight.setRdbmsId(insight.getRdbmsId());
 			newInsight.setInsightName(insight.getInsightName());
 			newInsight.setPixelRecipe(insight.getPixelList().getPixelRecipe());
@@ -95,18 +94,17 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 	
 	private Insight getInsight(String engineId_rdbmsId_concat) {
 		String[] split = engineId_rdbmsId_concat.split("__");
-		String engineId = split[0];
+		String projectId = split[0];
 		String rdbmsId = split[1];
 		// get the engine so i can get the new insight
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 
-		IEngine engine = Utility.getEngine(engineId);
-		if(engine == null) {
-			throw new IllegalArgumentException("Could not find engine " + engineId);
+		IProject project = Utility.getProject(projectId);
+		if(project == null) {
+			throw new IllegalArgumentException("Could not find project " + projectId);
 		}
-		List<Insight> in = engine.getInsight(rdbmsId + "");
+		List<Insight> in = project.getInsight(rdbmsId + "");
 		if(in == null || in.size() == 0) {
-			throw new IllegalArgumentException("Could not find insight with id " + rdbmsId + " within the engine " + engineId);
+			throw new IllegalArgumentException("Could not find insight with id " + rdbmsId + " within the project " + projectId);
 		}
 		Insight insight = in.get(0);
 		return insight;

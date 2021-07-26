@@ -42,6 +42,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.OwlPrettyPrintFixer;
 import prerna.engine.impl.OwlSeparatePixelFromConceptual;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -86,7 +87,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * @param 	Specifies properties to load 
 	 */
 	public static String loadNewDB(String newFile, String folderToWatch) {
-		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
+		String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
 		String engineId = null;
 		try{
@@ -128,7 +129,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * @param 	Specifies properties to load 
 	 */	
 	public static String catalogDB(String newFile, String folderToWatch) {
-		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
+		String engines = DIHelper.getInstance().getDbProperty(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
 		String engineId = null;
 		try{
@@ -148,7 +149,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
-				DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.STORE, fileName);
+				DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.STORE, fileName);
 				String engineTypeString = null;
 				String rawType = prop.get(Constants.ENGINE_TYPE).toString();
 				if(rawType.contains("RDBMS")) {
@@ -162,12 +163,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				else {
 					engineTypeString = "RDF";
 				}
-				DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.TYPE, engineTypeString);
+				DIHelper.getInstance().setDbProperty(engineId + "_" + Constants.TYPE, engineTypeString);
 				
-				String engineNames = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+				String engineNames = (String)DIHelper.getInstance().getDbProperty(Constants.ENGINES);
 				if(!(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId))) {
 					engineNames = engineNames + ";" + engineId;
-					DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
+					DIHelper.getInstance().setDbProperty(Constants.ENGINES, engineNames);
 				}
 
 				// the issue with remote engines is it needs to be loaded to get the insights and the owl file
@@ -198,7 +199,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				if(!engineTypeString.equals("REMOTE") && !ignoreSmssList.contains(engineId)) {
 					// sync up the engine metadata now
 					Utility.synchronizeEngineMetadata(engineId);
-					SecurityUpdateUtils.addApp(engineId);
+					SecurityUpdateUtils.addDatabase(engineId);
 				} else {
 					logger.info("Ignoring engine ... " + Utility.cleanLogString(prop.getProperty(Constants.ENGINE_ALIAS)) + " >>> " + engineId );
 				}
@@ -235,7 +236,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		} catch (Exception e) {
 			// we couldn't initialize the db
 			// remove it from DIHelper
-			DIHelper.getInstance().removeLocalProperty(Constants.LOCAL_MASTER_DB_NAME);
+			DIHelper.getInstance().removeDbProperty(Constants.LOCAL_MASTER_DB_NAME);
 			logger.error(Constants.STACKTRACE, e);
 			return;
 		}
@@ -250,7 +251,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		} catch (Exception e) {
 			// we couldn't initialize the db
 			// remove it from DIHelper
-			DIHelper.getInstance().removeLocalProperty(Constants.SECURITY_DB);
+			DIHelper.getInstance().removeDbProperty(Constants.SECURITY_DB);
 			logger.error(Constants.STACKTRACE, e);
 			return;
 		}
@@ -265,7 +266,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			} catch (SQLException e) {
 				// we couldn't initialize the db
 				// remove it from DIHelper
-				DIHelper.getInstance().removeLocalProperty(Constants.THEMING_DB);
+				DIHelper.getInstance().removeDbProperty(Constants.THEMING_DB);
 				logger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -280,12 +281,20 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				SchedulerDatabaseUtility.startServer();
 			} catch (SQLException sqe) {
 				// we couldn't initialize the db remove it from DIHelper
-				DIHelper.getInstance().removeLocalProperty(Constants.SCHEDULER_DB);
+				DIHelper.getInstance().removeDbProperty(Constants.SCHEDULER_DB);
 				logger.error(Constants.STACKTRACE, sqe);
 			} catch (IOException e) {
-				DIHelper.getInstance().removeLocalProperty(Constants.SCHEDULER_DB);
+				DIHelper.getInstance().removeDbProperty(Constants.SCHEDULER_DB);
 				logger.error(Constants.STACKTRACE, e);
 			}
+		}
+		
+		// THIS IS TEMPORARY UNTIL WE HAVE ALL USERS ON THE NEW VERSION
+		// USING THE DB AND PROJECT SPLIT OF AN APP
+		// TODO: need to update this for the cloud
+		if (!ClusterUtil.IS_CLUSTER) {
+			LegacyToProjectRestructurerHelper updater = new LegacyToProjectRestructurerHelper();
+			updater.executeRestructure();
 		}
 	}
 
@@ -297,7 +306,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		// I need to get all the SMSS files
 		// Read the engine names and profile the SMSS files i.e. capture that in some kind of hashtable
 		// and let it go that is it
-		
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
 		String[] engineIds = new String[fileNames.length];
@@ -329,7 +337,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		
 		// remove unused databases
 		if (!ClusterUtil.IS_CLUSTER) {
-			List<String> engines = MasterDatabaseUtility.getAllEngineIds();
+			List<String> engines = MasterDatabaseUtility.getAllDatabaseIds();
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
 			
 			for(String engine : engines) {
@@ -339,11 +347,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				}
 			}
 			
-			engines = SecurityQueryUtils.getEngineIds();
+			engines = SecurityQueryUtils.getDatabaseIds();
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
 					logger.info("Deleting the engine from security..... " + Utility.cleanLogString(engine));
-					SecurityUpdateUtils.deleteApp(engine);
+					SecurityUpdateUtils.deleteDatabase(engine);
 				}
 			}
 		}

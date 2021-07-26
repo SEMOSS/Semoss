@@ -237,7 +237,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 		}
 
 		// remove unused databases
-		List<String> engines = MasterDatabaseUtility.getAllEngineIds();
+		List<String> engines = MasterDatabaseUtility.getAllDatabaseIds();
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		
 		// so delete the engines if the SMSS is not there anymore sure makes sense

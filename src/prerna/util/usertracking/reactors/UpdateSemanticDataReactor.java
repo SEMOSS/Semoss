@@ -59,7 +59,7 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 				extension += parsed[0] + ";";
 			}
 			
-			List<String> enginesWithAccess = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			List<String> enginesWithAccess = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 			for (String row : enginesWithAccess) {
 				extension+= row + ";";
 			}

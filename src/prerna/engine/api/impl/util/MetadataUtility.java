@@ -21,7 +21,7 @@ public class MetadataUtility {
 	}
 	
 	public static boolean ignoreConceptData(String engineId) {
-		String eType = MasterDatabaseUtility.getEngineTypeForId(engineId);
+		String eType = MasterDatabaseUtility.getDatabaseTypeForId(engineId);
 		if(eType.startsWith("TYPE:")) {
 			eType = eType.replace("TYPE:", "");
 		}

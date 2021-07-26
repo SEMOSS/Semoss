@@ -13,12 +13,11 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.MosfetFile;
 import prerna.om.PixelList;
+import prerna.project.api.IProject;
 import prerna.query.parsers.ParamStruct;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -41,7 +40,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = UpdateInsightReactor.class.getName();
 
 	public UpdateInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), 
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), 
 				ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, 
 				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
 				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), 
@@ -52,7 +51,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
 		boolean optimizeRecipe = true;
-		String appId = getApp();
+		String projectId = getProject();
 		// need to know what we are updating
 		String existingId = getRdbmsId();
 		
@@ -62,7 +61,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				throwAnonymousUserError();
 			}
 			
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, existingId)) {
+			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}
 		}
@@ -72,7 +71,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
 		
-		if(SecurityInsightUtils.insightNameExistsMinusId(appId, insightName, existingId)) {
+		if(SecurityInsightUtils.insightNameExistsMinusId(projectId, insightName, existingId)) {
 			throw new IllegalArgumentException("Insight name already exists");
 		}
 		
@@ -124,7 +123,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(insightPixelList != null) {
 			try {
 				// we will delete and move the files used in this insight space to the data folder
-				if(saveFilesInInsight(insightPixelList, appId, existingId, true)) {
+				if(saveFilesInInsight(insightPixelList, projectId, existingId, true)) {
 					// need to pull the new saved recipe
 					recipeToSave = insightPixelList.getPixelRecipe();
 				}
@@ -140,21 +139,14 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params, insightName);
 		}
 		
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
-			// we may have the alias
-			engine = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(appId));
-			if(engine == null) {
-				throw new IllegalArgumentException("Cannot find app = " + appId);
-			}
-		}
+		IProject project = Utility.getProject(projectId);
 		
 		//Pull the insights db again incase someone just saved something 
-		ClusterUtil.reactorPullInsightsDB(appId);
-		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+		ClusterUtil.reactorPullInsightsDB(projectId);
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 
 		// add the recipe to the insights database
-		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 
 		// update insight db
 		logger.info("1) Updating insight in rdbms");
@@ -166,13 +158,13 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		if(!hidden) {
 			logger.info("2) Updated registered insight...");
-			editRegisteredInsightAndMetadata(engine, existingId, insightName, layout, recipeToSave, description, tags);
+			editRegisteredInsightAndMetadata(project, existingId, insightName, layout, recipeToSave, description, tags);
 			logger.info("2) Done...");
 		}
 		
 		// update recipe text file
 		logger.info("3) Update Mosfet file for collaboration");
-		updateRecipeFile(engine.getEngineId(), engine.getEngineName(), 
+		updateRecipeFile(projectId, project.getProjectName(), 
 				existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden, description, tags);
 		logger.info("3) Done");
 		
@@ -180,26 +172,26 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String imageFile = getImage();
 		if(imageFile != null && !imageFile.trim().isEmpty()) {
 			logger.info("4) Storing insight image...");
-			storeImageFromFile(imageFile, existingId, engine.getEngineId(), engine.getEngineName());
+			storeImageFromFile(imageFile, existingId, projectId, project.getProjectName());
 			logger.info("4) Done...");
 		}
 		
 		// update the workspace cache for the saved insight
-		this.insight.setEngineId(engine.getEngineId());
+		this.insight.setProjectId(projectId);
 		this.insight.setInsightName(insightName);
 
 		// delete the cache
 		// NOTE ::: We already pulled above, so we will not pull again to delete the cache
-		InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), existingId, false);
+		InsightCacheUtility.deleteCache(projectId, project.getProjectName(), existingId, false);
 		// push back to the cluster
-		ClusterUtil.reactorPushInsightDB(appId);
-		ClusterUtil.reactorPushFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+		ClusterUtil.reactorPushInsightDB(projectId);
+		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("app_insight_id", existingId);
-		returnMap.put("app_name", engine.getEngineName());
-		returnMap.put("app_id", engine.getEngineId());
+		returnMap.put("app_name", project.getProjectName());
+		returnMap.put("app_id", projectId);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
@@ -213,18 +205,18 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param description
 	 * @param tags
 	 */
-	private void editRegisteredInsightAndMetadata(IEngine engine, String existingRdbmsId, String insightName, String layout, 
+	private void editRegisteredInsightAndMetadata(IProject project, String existingRdbmsId, String insightName, String layout, 
 			List<String> recipe, String description, List<String> tags) {
-		String appId = engine.getEngineId();
-		SecurityInsightUtils.updateInsight(appId, existingRdbmsId, insightName, true, layout, recipe);
-		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+		String projectId = project.getProjectId();
+		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, true, layout, recipe);
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if(description != null) {
 			admin.updateInsightDescription(existingRdbmsId, description);
-			SecurityInsightUtils.updateInsightDescription(appId, existingRdbmsId, description);
+			SecurityInsightUtils.updateInsightDescription(projectId, existingRdbmsId, description);
 		}
 		if(tags != null) {
 			admin.updateInsightTags(existingRdbmsId, tags);
-			SecurityInsightUtils.updateInsightTags(appId, existingRdbmsId, tags);
+			SecurityInsightUtils.updateInsightTags(projectId, existingRdbmsId, tags);
 		}
 	}
 	
@@ -235,16 +227,16 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	protected void updateRecipeFile(String appId, String appName, String rdbmsID, String insightName, 
+	protected void updateRecipeFile(String projectId, String projectName, String rdbmsID, String insightName, 
 			String layout, String imageName, List<String> recipeToSave, boolean hidden, String description, List<String> tags) {
-		String recipeLocation = AssetUtility.getAppAssetVersionFolder(appName, appId)
+		String recipeLocation = AssetUtility.getProjectAssetVersionFolder(projectName, projectId)
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
 		// update the mosfet
 		try {
-			MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName,
+			MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), projectId, projectName, rdbmsID, insightName,
 					layout, imageName, recipeToSave, hidden, description, tags);
 			// add to git
-			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 			List<String> files = new Vector<>();
 			files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
 			GitRepoUtils.addSpecificFiles(gitFolder, files);

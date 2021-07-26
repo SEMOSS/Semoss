@@ -1,17 +1,10 @@
 package prerna.sablecc2.reactor.app;
 
-import java.util.Map;
-
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class SetContextReactor extends AbstractReactor {
 	

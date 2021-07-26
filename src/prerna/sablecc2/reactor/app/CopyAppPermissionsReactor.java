@@ -35,23 +35,23 @@ public class CopyAppPermissionsReactor extends AbstractReactor {
 		String targetAppId = this.keyValue.get(this.keysToGet[1]);
 
 		// must be an editor for both to run this
-		if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), sourceAppId)) {
-			throw new IllegalArgumentException("You do not have edit access to the source app");
+		if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), sourceAppId)) {
+			throw new IllegalArgumentException("You do not have edit access to the source database");
 		}
-		if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), targetAppId)) {
-			throw new IllegalArgumentException("You do not have edit access to the target app");
+		if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), targetAppId)) {
+			throw new IllegalArgumentException("You do not have edit access to the target database");
 		}
 		
 		// now perform the operation
 		try {
-			SecurityAppUtils.copyAppPermissions(sourceAppId, targetAppId);
+			SecurityAppUtils.copyDatabasePermissions(sourceAppId, targetAppId);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occured copying the app permissions.  Detailed error: " + e.getMessage());
 		}
 
-		String sourceApp = SecurityQueryUtils.getEngineAliasForId(sourceAppId);
-		String targetApp = SecurityQueryUtils.getEngineAliasForId(targetAppId);
+		String sourceApp = SecurityQueryUtils.getDatabaseAliasForId(sourceAppId);
+		String targetApp = SecurityQueryUtils.getDatabaseAliasForId(targetAppId);
 
 		return new NounMetadata("Copied permissions from app " + sourceApp  + "__" + sourceAppId + " to " + targetApp + "__" + targetAppId, PixelDataType.CONST_STRING);
 	}

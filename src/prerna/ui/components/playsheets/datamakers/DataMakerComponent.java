@@ -36,7 +36,7 @@ public class DataMakerComponent {
 	
 	/**
 	 * Constructor for the data maker component object
-	 * @param engine					The name of the engine
+	 * @param databasese					The name of the engine
 	 * @param query						The query corresponding to the data maker component to be run on the engine
 	 */
 	public DataMakerComponent(String engineName, String query){
@@ -57,7 +57,7 @@ public class DataMakerComponent {
 
 	/**
 	 * Constructor for the data maker component object
-	 * @param engine					The name of the engine
+	 * @paradatabasebase					The name of the engine
 	 * @param metamodelData				The map to build the query based on the OWL
 	 */
 	public DataMakerComponent(String engineName, QueryStruct qs){

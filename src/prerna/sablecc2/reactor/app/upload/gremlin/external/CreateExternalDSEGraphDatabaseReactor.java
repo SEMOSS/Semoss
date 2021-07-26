@@ -22,7 +22,7 @@ public class CreateExternalDSEGraphDatabaseReactor extends AbstractCreateExterna
 	private String graphName = this.keyValue.get(this.keysToGet[5]);
 	
 	public CreateExternalDSEGraphDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.HOST.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.HOST.getKey(),
 				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
 				ReactorKeysEnum.GRAPH_NAME.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
 				ReactorKeysEnum.GRAPH_NAME_ID.getKey(), ReactorKeysEnum.GRAPH_METAMODEL.getKey(),
@@ -51,17 +51,17 @@ public class CreateExternalDSEGraphDatabaseReactor extends AbstractCreateExterna
 
 	@Override
 	protected File generateTempSmss(File owlFile) throws IOException {
-		return UploadUtilities.generateTemporaryDatastaxSmss(this.newAppId, this.newAppName, owlFile, this.host,
+		return UploadUtilities.generateTemporaryDatastaxSmss(this.newDatabaseId, this.newDatabaseName, owlFile, this.host,
 				this.port, this.username, this.password, this.graphName, this.typeMap, this.nameMap, useLabel());
 	}
 
 	@Override
 	protected IEngine generateEngine() {
 		DataStaxGraphEngine dseEngine = new DataStaxGraphEngine();
-		dseEngine.setEngineId(this.newAppId);
-		dseEngine.setEngineName(this.newAppName);
+		dseEngine.setEngineId(this.newDatabaseId);
+		dseEngine.setEngineName(this.newDatabaseName);
 		dseEngine.openDB(this.smssFile.getAbsolutePath());
-		return engine;
+		return dseEngine;
 	}
 
 	public String getName()

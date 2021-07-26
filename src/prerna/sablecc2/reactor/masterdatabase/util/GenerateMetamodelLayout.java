@@ -27,9 +27,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -39,7 +37,7 @@ public class GenerateMetamodelLayout {
 	private static final Logger logger = LogManager.getLogger(GenerateMetamodelLayout.class);
 	
 	public static void generateLayout(String appId) {
-		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
+		String smssFile = (String) DIHelper.getInstance().getDbProperty(appId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
 		String owlFileLocation = SmssUtilities.getOwlFile(prop).getAbsolutePath();
 		File owlF = new File(owlFileLocation);

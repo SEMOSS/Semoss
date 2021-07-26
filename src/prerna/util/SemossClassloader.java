@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Map;
 
+import com.amazon.support.CustomClassLoader;
+
 public class SemossClassloader extends ClassLoader {
 	
 	String folder = null;

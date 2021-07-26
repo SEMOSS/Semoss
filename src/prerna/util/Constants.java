@@ -371,7 +371,10 @@ public class Constants {
 
 	public static final String GLITEM_SITE_LOADING_SHEET = "Site_HWSW_GLItems.xlsx";
 	public static final String OWL = "OWL";
-	public static final String DB = "DB";
+	public static final String DB_FOLDER = "db";
+	public static final String PROJECT_FOLDER = "project";
+	public static final String USER_FOLDER = "user";
+
 	@Deprecated
 	public static final String PIXEL_UPDATE = "PIXEL_UPDATE";
 	
@@ -385,6 +388,8 @@ public class Constants {
 	public static final String SPARQL = "SPARQL";
 
 	public static final String ENGINE_WEB_WATCHER = "ENGINE_WEB_WATCHER";
+	public static final String PROJECT_WATCHER = "PROJECT_WATCHER";
+
 	public static final String DEPEND = "DEPEND";
 	public static final String REDIS_HOST = "REDIS_HOST";
 	public static final String REDIS_PORT = "REDIS_PORT";
@@ -392,7 +397,8 @@ public class Constants {
 	
 	public static final String INSIGHT_CACHE_DIR = "INSIGHT_CACHE_DIR";
 	public static final String CSV_INSIGHT_CACHE_FOLDER = "CSV_INSIGHT_CACHE_FOLDER";
-	
+	public static final String USER_ASSETS = "user_assets";
+
 	// question modification
 	public static final String LABEL_QUESTION_SELECT_PERSPECTIVE = "lblQuestionSelectPerspective";
 	public static final String QUESTION_PERSPECTIVE_SELECTOR = "questionPerspectiveSelector";
@@ -489,7 +495,7 @@ public class Constants {
 	public static final String SCHEDULER_ENDPOINT = "SCHEDULER_ENDPOINT";
 	public static final String SCHEDULER_KEYSTORE = "SCHEDULER_KEYSTORE";
 	public static final String SCHEDULER_KEYSTORE_PASSWORD = "SCHEDULER_KEYSTORE_PASSWORD";
-
+	
 	//RDBMS specific
 	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of inner joins
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
@@ -679,10 +685,16 @@ public class Constants {
 	public static final String SAML_FEDERATION_LOG_PATH = "SAML_FEDERATION_LOG_PATH";
 	public static final String SAML_PROP_LOC = "SAML_PROP_LOC";
 	
+	//project 
+	public static final String PROJECTS = "PROJECTS";
+	public static final String PROJECT = "PROJECT";
+	public static final String PROJECT_ALIAS = "PROJECT_ALIAS";
+	public static final String PROJECT_TYPE = "PROJECT_TYPE";
+	
 	// starting process for r/py
 	public static final String JAVA_HOME = "JAVA_HOME";
 	public static final String LD_LIBRARY_PATH = "LD_LIBRARY_PATH";
 	public static final String TCP_WORKER = "TCP_WORKER";
 	public static final String ULIMIT_R_MEM_LIMIT = "ULIMIT_R_MEM_LIMIT";
-	
+
 }

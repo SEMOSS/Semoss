@@ -101,7 +101,7 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 					continue;
 				}
 				String db = engineQs[0];
-				String dbname = SecurityQueryUtils.getEngineAliasForId(db);
+				String dbname = SecurityQueryUtils.getDatabaseAliasForId(db);
 				String conceptProp = engineQs[1];
 				String table = conceptProp;
 				String column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;

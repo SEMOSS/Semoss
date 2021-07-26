@@ -56,13 +56,13 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		
 		this.engineId = getEngineId();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
-			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
+			this.engineId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), this.engineId);
+			if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), this.engineId)) {
 				throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the app");
 			}
 		} else {
-			this.engineId = MasterDatabaseUtility.testEngineIdIfAlias(this.engineId);
-			if(!MasterDatabaseUtility.getAllEngineIds().contains(this.engineId)) {
+			this.engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(this.engineId);
+			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(this.engineId)) {
 				throw new IllegalArgumentException("Database " + this.engineId + " does not exist");
 			}
 		}
@@ -72,7 +72,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		this.targetTable = Utility.makeAlphaNumeric(this.targetTable);
 		this.override = getOverride();
 		// checks if targetTable doesn't exist in the engine
-		this.newTable = !MasterDatabaseUtility.getConceptsWithinEngineRDBMS(this.engineId).contains(this.targetTable);
+		this.newTable = !MasterDatabaseUtility.getConceptsWithinDatabaseRDBMS(this.engineId).contains(this.targetTable);
 		// boolean check if a unique id will be generated
 		this.genId = getInsertKey();
 		if(this.newTable && this.override) {
@@ -88,7 +88,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			// clean up
 			throw e;
 		}
-		ClusterUtil.reactorPushApp(getEngineId());
+		ClusterUtil.reactorPushDatabase(getEngineId());
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION, 
 				PixelOperationType.FORCE_SAVE_DATA_EXPORT);
 	}
@@ -332,7 +332,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			// since the add is the same in either case
 			RemoveOwlConceptReactor remover = new RemoveOwlConceptReactor();
 			remover.In();
-			remover.getNounStore().makeNoun(ReactorKeysEnum.APP.getKey()).addLiteral(this.engineId);
+			remover.getNounStore().makeNoun(ReactorKeysEnum.DATABASE.getKey()).addLiteral(this.engineId);
 			remover.getNounStore().makeNoun(ReactorKeysEnum.CONCEPT.getKey()).addLiteral(this.targetTable);
 			remover.setInsight(this.insight);
 			remover.execute();

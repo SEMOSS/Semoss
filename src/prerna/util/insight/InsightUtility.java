@@ -106,8 +106,8 @@ public class InsightUtility {
 	 */
 	public static void transferInsightIdentifiers(Insight origInsight, Insight newInsight) {
 		newInsight.setInsightId(origInsight.getInsightId());
-		newInsight.setEngineId(origInsight.getEngineId());
-		newInsight.setEngineName(origInsight.getEngineName());
+		newInsight.setProjectId(origInsight.getProjectId());
+		newInsight.setProjectName(origInsight.getProjectName());
 		newInsight.setRdbmsId(origInsight.getRdbmsId());
 		newInsight.setInsightName(origInsight.getInsightName());
 	}
@@ -302,7 +302,7 @@ public class InsightUtility {
 	
 			// drop all the frame connections
 			VarStore varStore = insight.getVarStore();
-			List<String> keys = varStore.getFrameKeys();
+			List<String> keys = varStore.getFrameKeysCopy();
 			Set<ITableDataFrame> allCreatedFrames = varStore.getAllCreatedFrames();
 			
 			// find all the vars which are frames
@@ -434,7 +434,7 @@ public class InsightUtility {
 			logger.info("Successfully dropped insight " + insight.getInsightId());
 			// also remove from the user object as an open insight
 			if(insight.isSavedInsight() && insight.getUser() != null) {
-				insight.getUser().removeOpenInsight(insight.getEngineId(), insight.getRdbmsId(), insightId);
+				insight.getUser().removeOpenInsight(insight.getProjectId(), insight.getRdbmsId(), insightId);
 			}
 			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DROP_INSIGHT);
 		}
@@ -498,7 +498,7 @@ public class InsightUtility {
 		// add all the frame headers to the payload first
 		try {
 			VarStore vStore = in.getVarStore();
-			List<String> keys = vStore.getFrameKeys();
+			List<String> keys = vStore.getFrameKeysCopy();
 			for(String k : keys) {
 				NounMetadata noun = vStore.get(k);
 				PixelDataType type = noun.getNounType();
@@ -631,9 +631,10 @@ public class InsightUtility {
 	 */
 	public static Map<String, Map<String, Object>> getAllFrameHeaders(VarStore varStore) {
 		Map<String, Map<String, Object>> retMap = new HashMap<>();
-		Iterator<String> frameKeys = varStore.getFrameKeys().iterator();
+		Iterator<String> frameKeys = varStore.getFrameKeysCopy().iterator();
 		while(frameKeys.hasNext()) {
-			NounMetadata noun = varStore.get(frameKeys.next());
+			String frameName = frameKeys.next();
+			NounMetadata noun = varStore.get(frameName);
 			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 			if(!retMap.containsKey(frame.getName())) {
 				Map<String, Object> headers = frame.getFrameHeadersObject();

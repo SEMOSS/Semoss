@@ -227,6 +227,134 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 
+		
+		/*
+		 * 
+		 * 
+		 * ADDING IN INITIAL PROJECT TABLES
+		 * 
+		 */
+		
+		// PROJECT
+		// Type and cost are the main questions - 
+		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "TYPE", "COST" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("PROJECT", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "PROJECT", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("PROJECT", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_PROJECTENAME_INDEX", "PROJECT", "PROJECTNAME"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID"));
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(securityDb, "PROJECT_GLOBAL_INDEX", "PROJECT", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL"));
+			}
+			if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTENAME_INDEX", "PROJECT", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECT_PROJECTENAME_INDEX", "PROJECT", "PROJECTNAME"));
+			}
+			if(!queryUtil.indexExists(securityDb, "PROJECT_PROJECTID_INDEX", "PROJECT", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID"));
+			}
+		}
+		
+		{
+			// if the project table is empty
+			// init it with the engines since they need to be broken out
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from project");
+				if(wrapper.hasNext()) {
+					int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+					if(numrows == 0) {
+						IRawSelectWrapper wrapper2 = null;
+						try {
+							wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select engineid, enginename, global from engine");
+							while(wrapper2.hasNext()) {
+								Object[] values = wrapper2.next().getValues();
+								// insert into project table
+								securityDb.insertData(queryUtil.insertIntoTable("PROJECT", colNames, types, new Object[]{values[1], values[0], values[2], null, null}));
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						} finally {
+							if(wrapper2 != null) {
+								wrapper2.cleanUp();
+							}
+						}
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
+			}
+		}
+		
+		// PROJECTMETA
+		// check if column exists
+		colNames = new String[] { "PROJECTID", "METAKEY", "METAVALUE", "METAORDER" };
+		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTMETA", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "PROJECTMETA", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("PROJECTMETA", colNames, types));
+			}
+		}
+		
+		// PROJECTPERMISSION
+		colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE" };
+		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+		defaultValues = new Object[]{null, null, null, true, false};
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("PROJECTPERMISSION", colNames, types, defaultValues));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "PROJECTPERMISSION", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("PROJECTPERMISSION", colNames, types));
+			}
+		}
+
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", "PERMISSION"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", "VISIBILITY"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", "PERMISSION"));
+			}
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", "VISIBILITY"));
+			}
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
+			}
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
+			}
+		}
+		
+		/**
+		 * 
+		 * END PROJECT TABLES
+		 * 
+		 */
+
 		// WORKSPACEENGINE
 		colNames = new String[] {"TYPE", "USERID", "ENGINEID"};
 		types = new String[] {"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)"};
@@ -250,6 +378,16 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", schema)) {
 				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
 			}			
+		}
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+		{
+			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "WORKSPACEENGINE", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+				String updateColName = queryUtil.modColumnName("WORKSPACEENGINE", "ENGINEID", "PROJECTID");
+				securityDb.insertData(updateColName);
+			}
 		}
 		
 		// ASSETENGINE
@@ -276,9 +414,20 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
 			}
 		}
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+		{
+			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "ASSETENGINE", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+				String updateColName = queryUtil.modColumnName("ASSETENGINE", "ENGINEID", "PROJECTID");
+				securityDb.insertData(updateColName);
+			}
+		}
+		
 		
 		// INSIGHT
-		colNames = new String[] { "ENGINEID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", "CACHEABLE", "RECIPE" };
+		colNames = new String[] { "PROJECTID", "INSIGHTID", "INSIGHTNAME", "GLOBAL", "EXECUTIONCOUNT", "CREATEDON", "LASTMODIFIEDON", "LAYOUT", "CACHEABLE", "RECIPE" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "BIGINT", "TIMESTAMP", "TIMESTAMP", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, CLOB_DATATYPE_NAME };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
@@ -301,10 +450,21 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(addRecipeColumnSql);
 			}
 		}
+		
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
+		{
+			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "INSIGHT", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+				String updateColName = queryUtil.modColumnName("INSIGHT", "ENGINEID", "PROJECTID");
+				securityDb.insertData(updateColName);
+			}
+		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", schema)) {
@@ -313,13 +473,13 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.indexExists(securityDb, "INSIGHT_GLOBAL_INDEX", "INSIGHT", schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
 			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHT_ENGINEID_INDEX", "INSIGHT", schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHT_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
+			if(!queryUtil.indexExists(securityDb, "INSIGHT_PROJECTID_INDEX", "INSIGHT", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHT_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
 			}
 		}
 
 		// USERINSIGHTPERMISSION
-		colNames = new String[] { "USERID", "ENGINEID", "INSIGHTID", "PERMISSION", "FAVORITE" };
+		colNames = new String[] { "USERID", "PROJECTID", "INSIGHTID", "PERMISSION", "FAVORITE" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", BOOLEAN_DATATYPE_NAME };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types));
@@ -343,9 +503,20 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 		}
+		
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		{
+			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "USERINSIGHTPERMISSION", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+				String updateColName = queryUtil.modColumnName("USERINSIGHTPERMISSION", "ENGINEID", "PROJECTID");
+				securityDb.insertData(updateColName);
+			}
+		}
 		if(allowIfExistsIndexs) {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", "ENGINEID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", "PROJECTID"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION", "FAVORITE"));
 		} else {
@@ -353,8 +524,8 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
 			}
-			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", schema)) {
-				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", "ENGINEID"));
+			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION", "PROJECTID"));
 			}
 			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
@@ -365,7 +536,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// INSIGHTMETA
-		colNames = new String[] { "ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" };
+		colNames = new String[] { "PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "INT" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTMETA", colNames, types));
@@ -376,13 +547,25 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("INSIGHTMETA", colNames, types));
 			}
 		}
+		
+		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
+		{
+			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "INSIGHTMETA", schema);
+			// this should return in all upper case
+			// ... but sometimes it is not -_- i.e. postgres always lowercases
+			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
+				String updateColName = queryUtil.modColumnName("INSIGHTMETA", "ENGINEID", "PROJECTID");
+				securityDb.insertData(updateColName);
+			}
+		}
+		
 		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
 			}
 			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
@@ -444,27 +627,29 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
-			if(wrapper.hasNext()) {
-				int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-				if(numrows > 3) {
-					securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
-					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
-				} else if(numrows == 0) {
-					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-					securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+		{
+			IRawSelectWrapper wrapper = null;
+			try {
+				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
+				if(wrapper.hasNext()) {
+					int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+					if(numrows > 3) {
+						securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+					} else if(numrows == 0) {
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+						securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+					}
 				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper != null) {
+					wrapper.cleanUp();
+				}
 			}
 		}
 		
@@ -480,6 +665,8 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
 			}
 		}
+		
+		
 		
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
@@ -651,13 +838,13 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Does this engine name already exist
+	 * Does this database name already exist
 	 * @param user
-	 * @param appName
+	 * @param databaseName
 	 * @return
 	 */
-	public static boolean userContainsEngineName(User user, String appName) {
-		if(ignoreEngine(appName)) {
+	public static boolean userContainsDatabaseName(User user, String databaseName) {
+		if(ignoreDatabase(databaseName)) {
 			// dont add local master or security db to security db
 			return true;
 		}
@@ -671,7 +858,7 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", appName));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", databaseName));
 		List<Integer> permissionValues = new Vector<Integer>(2);
 		permissionValues.add(new Integer(1));
 		permissionValues.add(new Integer(2));
@@ -694,8 +881,8 @@ public abstract class AbstractSecurityUtils {
 		return false;
 	}
 	
-	public static boolean containsEngineName(String appName) {
-		if(ignoreEngine(appName)) {
+	public static boolean containsDatabaseName(String databaseName) {
+		if(ignoreDatabase(databaseName)) {
 			// dont add local master or security db to security db
 			return true;
 		}
@@ -704,7 +891,7 @@ public abstract class AbstractSecurityUtils {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", appName));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", databaseName));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -722,8 +909,56 @@ public abstract class AbstractSecurityUtils {
 		return false;
 	}
 	
-	public static boolean containsEngineId(String appId) {
-		if(ignoreEngine(appId)) {
+	public static boolean userContainsProjectName(User user, String projectName) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTNAME", "==", projectName));
+		List<Integer> permissionValues = new Vector<Integer>(2);
+		permissionValues.add(new Integer(1));
+		permissionValues.add(new Integer(2));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", permissionValues, PixelDataType.CONST_INT));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
+	public static boolean containsProjectName(String projectName) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTNAME", "==", projectName));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
+	public static boolean containsDatabaseId(String databaseId) {
+		if(ignoreDatabase(databaseId)) {
 			// dont add local master or security db to security db
 			return true;
 		}
@@ -732,7 +967,7 @@ public abstract class AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", appId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseId));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -750,18 +985,49 @@ public abstract class AbstractSecurityUtils {
 		return false;
 	}
 	
-	static boolean ignoreEngine(String appId) {
-		if(appId.equals(Constants.LOCAL_MASTER_DB_NAME) || appId.equals(Constants.SECURITY_DB) || appId.equals(Constants.SCHEDULER_DB) ) {
+	
+	public static boolean containsProjectId(String projectId) {
+		if(ignoreDatabase(projectId)) {
+			// dont add local master or security db to security db
+			return true;
+		}
+//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID='" + appId + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			if(wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(wrapper != null) {
+				wrapper.cleanUp();
+			}
+		}
+		
+		return false;
+	}
+	
+	
+	public static boolean ignoreDatabase(String databaseId) {
+		if(databaseId.equals(Constants.LOCAL_MASTER_DB_NAME) || databaseId.equals(Constants.SECURITY_DB) || databaseId.equals(Constants.SCHEDULER_DB) ) {
 			// dont add local master or security db to security db
 			return true;
 		}
 		// engine is an asset
-		if(WorkspaceAssetUtils.isAssetApp(appId)) {
+		if(WorkspaceAssetUtils.isAssetProject(databaseId)) {
 			return true;
 		}
 		// so that way all those Asset apps do not appear a bunch of times
-		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
-		if(smssFile != null && new File(smssFile).exists()) {
+		String smssFile = DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE) + "";
+		File smssF = new File(smssFile);
+		if(smssFile != null && smssF.exists() && smssF.isFile()) {
 			Properties prop = Utility.loadProperties(smssFile);
 			return Boolean.parseBoolean(prop.get(Constants.IS_ASSET_APP) + "");
 		}
@@ -771,11 +1037,11 @@ public abstract class AbstractSecurityUtils {
 	
 	/**
 	 * Get default image for insight
-	 * @param appId
+	 * @param databaseId
 	 * @param insightId
 	 * @return
 	 */
-	public static File getStockImage(String appId, String insightId) {
+	public static File getStockImage(String databaseId, String insightId) {
 		String imageDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/images/stock/";
 		String layout = null;
 
@@ -784,7 +1050,7 @@ public abstract class AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", appId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
 		
 		IRawSelectWrapper wrapper = null;
@@ -1072,4 +1338,5 @@ public abstract class AbstractSecurityUtils {
 	public static String hash(String password, String salt) {
 		return BCrypt.hashpw(password, salt);
 	}
+
 }

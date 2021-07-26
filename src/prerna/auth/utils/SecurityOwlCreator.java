@@ -25,6 +25,9 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("USERINSIGHTPERMISSION");
 		conceptsRequired.add("SMSS_USER");
 		conceptsRequired.add("PERMISSION");
+		conceptsRequired.add("PROJECT");
+		conceptsRequired.add("PROJECTPERMISSION");
+		conceptsRequired.add("PROJECTMETA");
 	}
 	
 	private IEngine securityDb;
@@ -68,6 +71,11 @@ public class SecurityOwlCreator {
 			
 			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEPERMISSION");
 			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/FAVORITE/ENGINEPERMISSION")) {
+				return true;
+			}
+			
+			props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/INSIGHT");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/PROJECTID/INSIGHT")) {
 				return true;
 			}
 		}
@@ -132,22 +140,46 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "VISIBILITY", "BOOLEAN");
 		owler.addProp("ENGINEPERMISSION", "FAVORITE", "BOOLEAN");
 
+		//PROJECT
+		owler.addConcept("PROJECT", null, null);
+		owler.addProp("PROJECT", "PROJECTID", "VARCHAR(255)");
+		owler.addProp("PROJECT", "PROJECTNAME", "VARCHAR(255)");
+		owler.addProp("PROJECT", "GLOBAL", "BOOLEAN");
+		owler.addProp("PROJECT", "TYPE", "VARCHAR(255)");
+		owler.addProp("PROJECT", "COST", "VARCHAR(255)");
+		
+		//PROJECTPERMISSION
+		owler.addConcept("PROJECTPERMISSION", null, null);
+		owler.addProp("PROJECTPERMISSION", "PROJECTID", "VARCHAR(255)");
+		owler.addProp("PROJECTPERMISSION", "USERID", "VARCHAR(255)");
+		owler.addProp("PROJECTPERMISSION", "PERMISSION", "INT");
+		owler.addProp("PROJECTPERMISSION", "VISIBILITY", "BOOLEAN");
+		owler.addProp("PROJECTPERMISSION", "FAVORITE", "BOOLEAN");
+
+		
+		//PROJECTMETA
+		owler.addConcept("PROJECTMETA", null, null);
+		owler.addProp("PROJECTMETA", "PROJECTID", "VARCHAR(255)");
+		owler.addProp("PROJECTMETA", "METAKEY", "VARCHAR(255)");
+		owler.addProp("PROJECTMETA", "METAVALUE", "CLOB");
+		owler.addProp("PROJECTMETA", "METAORDER", "INT");
+		
 		// WORKSPACEENGINE
 		owler.addConcept("WORKSPACEENGINE", null, null);
-		owler.addProp("WORKSPACEENGINE", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("WORKSPACEENGINE", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("WORKSPACEENGINE", "USERID", "VARCHAR(255)");
 		owler.addProp("WORKSPACEENGINE", "TYPE", "VARCHAR(255)");
 		
 		// ASSETENGINE
 		owler.addConcept("ASSETENGINE", null, null);
-		owler.addProp("ASSETENGINE", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("ASSETENGINE", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("ASSETENGINE", "USERID", "VARCHAR(255)");
 		owler.addProp("ASSETENGINE", "TYPE", "VARCHAR(255)");
 		
 		// INSIGHT
 		owler.addConcept("INSIGHT", null, null);
 		owler.addProp("INSIGHT", "INSIGHTID", "VARCHAR(255)");
-		owler.addProp("INSIGHT", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("INSIGHT", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("INSIGHT", "INSIGHTNAME", "VARCHAR(255)");
 		owler.addProp("INSIGHT", "GLOBAL", "BOOLEAN");
 		owler.addProp("INSIGHT", "EXECUTIONCOUNT", "BIGINT");
@@ -160,14 +192,14 @@ public class SecurityOwlCreator {
 		owler.addConcept("USERINSIGHTPERMISSION", null, null);
 		owler.addProp("USERINSIGHTPERMISSION", "INSIGHTID", "VARCHAR(255)");
 		owler.addProp("USERINSIGHTPERMISSION", "USERID", "VARCHAR(255)");
-		owler.addProp("USERINSIGHTPERMISSION", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("USERINSIGHTPERMISSION", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("USERINSIGHTPERMISSION", "PERMISSION", "INT");
 		owler.addProp("USERINSIGHTPERMISSION", "FAVORITE", "BOOLEAN");
 
 		// INSIGHTMETA
 		owler.addConcept("INSIGHTMETA", null, null);
 		owler.addProp("INSIGHTMETA", "INSIGHTID", "VARCHAR(255)");
-		owler.addProp("INSIGHTMETA", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("INSIGHTMETA", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("INSIGHTMETA", "METAKEY", "VARCHAR(255)");
 		owler.addProp("INSIGHTMETA", "METAVALUE", "CLOB");
 		owler.addProp("INSIGHTMETA", "METAORDER", "INT");
@@ -194,20 +226,25 @@ public class SecurityOwlCreator {
 		owler.addRelation("ENGINE", "ENGINEPERMISSION", "ENGINE.ENGINEID.ENGINEPERMISSION.ENGINEID");
 		owler.addRelation("ENGINE", "WORKSPACEENGINE", "ENGINE.ENGINEID.WORKSPACEENGINE.ENGINEID");
 		owler.addRelation("ENGINE", "ASSETENGINE", "ENGINE.ENGINEID.ASSETENGINE.ENGINEID");
-		owler.addRelation("ENGINE", "INSIGHT", "ENGINE.ENGINEID.INSIGHT.ENGINEID");
-		owler.addRelation("ENGINE", "USERINSIGHTPERMISSION", "ENGINE.ENGINEID.USERINSIGHTPERMISSION.ENGINEID");
+		
+		owler.addRelation("PROJECT", "PROJECTMETA", "PROJECT.PROJECTID.PROJECTMETA.PROJECTID");
+		owler.addRelation("PROJECT", "INSIGHT", "PROJECT.PROJECTID.INSIGHT.PROJECTID");
+		owler.addRelation("PROJECT", "USERINSIGHTPERMISSION", "PROJECT.PROJECTID.USERINSIGHTPERMISSION.PROJECTID");
+		owler.addRelation("PROJECT", "PROJECTPERMISSION", "PROJECT.PROJECTID.PROJECTPERMISSION.PROJECTID");
 
 		owler.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "INSIGHT.INSIGHTID.USERINSIGHTPERMISSION.INSIGHTID");
 		
 		owler.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "SMSS_USER.ID.USERINSIGHTPERMISSION.USERID");
 		owler.addRelation("SMSS_USER", "ENGINEPERMISSION", "SMSS_USER.ID.ENGINEPERMISSION.USERID");
+		owler.addRelation("SMSS_USER", "PROJECTPERMISSION", "SMSS_USER.ID.PROJECTPERMISSION.USERID");
 
 		owler.addRelation("ENGINEPERMISSION", "PERMISSION", "ENGINEPERMISSION.PERMISSION.PERMISSION.ID");
 		owler.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "USERINSIGHTPERMISSION.PERMISSION.PERMISSION.ID");
-
+		owler.addRelation("PROJECTPERMISSION", "PERMISSION", "PROJECTPERMISSION.PERMISSION.PERMISSION.ID");
+		
 		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.INSIGHTID.INSIGHTMETA.INSIGHTID");
-		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.ENGINEID.INSIGHTMETA.ENGINEID");
-
+		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.PROJECTID.INSIGHTMETA.PROJECTID");
+		
 		owler.commit();
 		owler.export();
 	}

@@ -110,7 +110,7 @@ public class Xray {
 				writeLocalEngineToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode,
 						semanticFolder);
 				String id = connectorData.get("engineId") + "";
-				engineNameLookup.put(id, MasterDatabaseUtility.getEngineAliasForId(id));
+				engineNameLookup.put(id, MasterDatabaseUtility.getDatabaseAliasForId(id));
 			} else if (connectorType.equalsIgnoreCase("EXTERNAL")) {
 				writeExternalToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode, semanticFolder);
 			} else if (connectorType.equalsIgnoreCase("FILE")) {

@@ -15,8 +15,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 public class UserDirReactor extends AbstractReactor {
@@ -46,8 +45,8 @@ public class UserDirReactor extends AbstractReactor {
 			if(user != null){
 				AuthProvider token = user.getPrimaryLogin();
 				if(token != null){
-					assetEngineID = user.getAssetEngineId(token);
-					Utility.getEngine(assetEngineID);
+					assetEngineID = user.getAssetProjectId(token);
+					Utility.getProject(assetEngineID);
 				}
 			}
 		}
@@ -58,11 +57,7 @@ public class UserDirReactor extends AbstractReactor {
 
 
 		//Base Asset Folder. Checking that is exists, otherwise error
-		String baseUserFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" 
-				+ DIR_SEPARATOR + WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID;
-
-		File baseUserFolder = new File(baseUserFolderPath);
-
+		String baseUserFolderPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, true);
 		//Where we are storing their information under version. Make the version folder if it doesn't exist.
 		String userFolderPath =  baseUserFolderPath + DIR_SEPARATOR + "version";
 		File userFolder = new File(userFolderPath);
@@ -73,7 +68,6 @@ public class UserDirReactor extends AbstractReactor {
 				try {
 					hidden.createNewFile();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}

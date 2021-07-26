@@ -9,7 +9,7 @@ import jep.Jep;
 import jep.JepConfig;
 import jep.JepException;
 import jep.SharedInterpreter;
-import prerna.sablecc.ReactorSecurityManager;
+import prerna.sablecc2.ReactorSecurityManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 

@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
 import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
@@ -383,9 +382,9 @@ public class DBSynchronizer extends ZKClient
 	
 	public static void main(String [] args)
 	{
-		DBSynchronizer dbw = DBSynchronizer.getInstance("c:/users/pkapaleeswaran/workspacej3/SemossDev");
-		dbw.semossHome = "c:/users/pkapaleeswaran/workspacej3/SemossDev";
-		dbw.registerDB("Mv_Audit__92b0083f-0c22-4530-b2b8-4439a85d4e21");
+		DBSynchronizer dbw = DBSynchronizer.getInstance("c:/workspace3/Semoss_Dev");
+		dbw.semossHome = "c:/workspace3/Semoss_Dev";
+		dbw.registerDB("Diabetes__995cf169-6b44-4a42-b75c-af12f9f45c36");
 		
 	}
 	

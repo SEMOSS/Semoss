@@ -32,21 +32,21 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	private static final Logger logger = LogManager.getLogger(SecurityAppUtils.class);
 
 	/**
-	 * Get what permission the user has for a given app
+	 * Get what permission the user has for a given database
 	 * @param userId
-	 * @param engineId
+	 * @param databaseId
 	 * @param insightId
 	 * @return
 	 */
-	public static String getActualUserAppPermission(User user, String engineId) {
+	public static String getActualUserDatabasePermission(User user, String databaseId) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-//				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
+//				+ "WHERE ENGINEID='" + databaseId + "' AND USERID IN " + userFilters;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -66,8 +66,8 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		// see if engine is public
-		if(appIsGlobal(engineId)) {
+		// see if database is public
+		if(databaseIsGlobal(databaseId)) {
 			return AccessPermission.READ_ONLY.getPermission();
 		}
 				
@@ -75,19 +75,19 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the app permissions for a specific user
+	 * Get the database permissions for a specific user
 	 * @param singleUserId
-	 * @param engineId
+	 * @param databaseId
 	 * @return
 	 */
-	public static Integer getUserAppPermission(String singleUserId, String engineId) {
+	public static Integer getUserDatabasePermission(String singleUserId, String databaseId) {
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION  "
-//				+ "WHERE ENGINEID='" + engineId + "' AND USERID='" + singleUserId + "'";
+//				+ "WHERE ENGINEID='" + databaseId + "' AND USERID='" + singleUserId + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -110,17 +110,17 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * See if specific app is global
+	 * See if specific database is global
 	 * @return
 	 */
-	public static boolean appIsGlobal(String engineId) {
-//		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE and ENGINEID='" + engineId + "'";
+	public static boolean databaseIsGlobal(String databaseId) {
+//		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE and ENGINEID='" + databaseId + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseId));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -138,23 +138,23 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Determine if the user is the owner of an app
+	 * Determine if the user is the owner of an database
 	 * @param userFilters
-	 * @param engineId
+	 * @param databaseId
 	 * @return
 	 */
-	public static boolean userIsOwner(User user, String engineId) {
-		return userIsOwner(getUserFiltersQs(user), engineId);
+	public static boolean userIsOwner(User user, String databaseId) {
+		return userIsOwner(getUserFiltersQs(user), databaseId);
 	}
 	
-	static boolean userIsOwner(Collection<String> userIds, String engineId) {
+	static boolean userIsOwner(Collection<String> userIds, String databaseId) {
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-//				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
+//				+ "WHERE ENGINEID='" + databaseId + "' AND USERID IN " + userFilters;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -181,19 +181,19 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Determine if a user can view an engine
+	 * Determine if a user can view a database
 	 * @param user
-	 * @param engineId
+	 * @param databaseId
 	 * @return
 	 */
-	public static boolean userCanViewEngine(User user, String engineId) {
+	public static boolean userCanViewDatabase(User user, String databaseId) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT * "
 //				+ "FROM ENGINE "
 //				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 //				+ "WHERE ("
 //				+ "ENGINE.GLOBAL=TRUE "
-//				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + ") AND ENGINE.ENGINEID='" + engineId + "'"
+//				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + ") AND ENGINE.ENGINEID='" + databaseId + "'"
 //				;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
@@ -203,7 +203,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addExplicitFilter(orFilter);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseId));
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -224,19 +224,19 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Determine if the user can modify the database
-	 * @param engineId
+	 * @param databaseId
 	 * @param userId
 	 * @return
 	 */
-	public static boolean userCanEditEngine(User user, String engineId) {
+	public static boolean userCanEditDatabase(User user, String databaseId) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-//				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
+//				+ "WHERE ENGINEID='" + databaseId + "' AND USERID IN " + userFilters;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -262,21 +262,21 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Determine if the user can edit the app
+	 * Determine if the user can edit the database
 	 * @param userId
-	 * @param engineId
+	 * @param databaseId
 	 * @return
 	 */
-	static int getMaxUserAppPermission(User user, String engineId) {
+	static int getMaxUserDatabasePermission(User user, String databaseId) {
 //		String userFilters = getUserFilters(user);
 //		// query the database
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-//				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters + " ORDER BY PERMISSION";
+//				+ "WHERE ENGINEID='" + databaseId + "' AND USERID IN " + userFilters + " ORDER BY PERMISSION";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__PERMISSION"));
 		IRawSelectWrapper wrapper = null;
@@ -306,20 +306,20 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	///////////////////////////////////////////////////////////////////////////////////
 	
 	/*
-	 * Query for app users
+	 * Query for database users
 	 */
 	
 	/**
-	 * Retrieve the list of users for a given insight
+	 * Retrieve the list of users for a given database
 	 * @param user
-	 * @param engineId
+	 * @param databaseId
 	 * @param insightId
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getAppUsers(User user, String engineId) throws IllegalAccessException {
-		if(!userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("The user does not have access to view this app");
+	public static List<Map<String, Object>> getDatabaseUsers(User user, String databaseId) throws IllegalAccessException {
+		if(userCanViewDatabase(user, databaseId)) {
+			throw new IllegalArgumentException("The user does not have access to view this database");
 		}
 		
 //		String query = "SELECT SMSS_USER.ID AS \"id\", "
@@ -328,7 +328,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 //				+ "FROM SMSS_USER "
 //				+ "INNER JOIN ENGINEPERMISSION ON (USER.ID = ENGINEPERMISSION.USERID) "
 //				+ "INNER JOIN PERMISSION ON (ENGINEPERMISSION.PERMISSION = PERMISSION.ID) "
-//				+ "WHERE ENGINEPERMISSION.ENGINEID='" + appId + "';"
+//				+ "WHERE ENGINEPERMISSION.ENGINEID='" + databaseId + "';"
 //				;
 //		
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -337,7 +337,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
@@ -349,25 +349,25 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param user
 	 * @param newUserId
-	 * @param engineId
+	 * @param databaseId
 	 * @param permission
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void addAppUser(User user, String newUserId, String engineId, String permission) throws IllegalAccessException {
-		if(!userCanEditEngine(user, engineId)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this app's permissions.");
+	public static void addAppUser(User user, String newUserId, String databaseId, String permission) throws IllegalAccessException {
+		if(userCanEditDatabase(user, databaseId)) {
+			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		
 		// make sure user doesn't already exist for this insight
-		if(getUserAppPermission(newUserId, engineId) != null) {
+		if(getUserDatabasePermission(newUserId, databaseId) != null) {
 			// that means there is already a value
-			throw new IllegalArgumentException("This user already has access to this app. Please edit the existing permission level.");
+			throw new IllegalArgumentException("This user already has access to this database. Please edit the existing permission level.");
 		}
 		
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES('"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', "
+				+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "', "
 				+ "TRUE, "
 				+ AccessPermission.getIdByPermission(permission) + ");";
 
@@ -383,22 +383,22 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param user
 	 * @param existingUserId
-	 * @param engineId
+	 * @param databaseId
 	 * @param newPermission
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void editAppUserPermission(User user, String existingUserId, String engineId, String newPermission) throws IllegalAccessException {
-		// make sure user can edit the app
-		int userPermissionLvl = getMaxUserAppPermission(user, engineId);
+	public static void editDatabaseUserPermission(User user, String existingUserId, String databaseId, String newPermission) throws IllegalAccessException {
+		// make sure user can edit the database
+		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
 		if(!AccessPermission.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this app's permissions.");
+			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = getUserAppPermission(existingUserId, engineId);
+		Integer existingUserPermission = getUserDatabasePermission(existingUserId, databaseId);
 		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify app permission for a user who does not currently have access to the app");
+			throw new IllegalArgumentException("Attempting to modify database permission for a user who does not currently have access to the database");
 		}
 		
 		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
@@ -409,7 +409,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
 			if(AccessPermission.OWNER.getId() == existingUserPermission) {
-				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users app permission.");
+				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users database permission.");
 			}
 			
 			// also, cannot give some owner permission if i am just an editor
@@ -420,7 +420,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		
 		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=" + newPermissionLvl
 				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "';";
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
@@ -433,21 +433,21 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param user
 	 * @param editedUserId
-	 * @param engineId
+	 * @param databaseId
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static void removeAppUser(User user, String existingUserId, String engineId) throws IllegalAccessException {
-		// make sure user can edit the app
-		int userPermissionLvl = getMaxUserAppPermission(user, engineId);
+	public static void removeDatabaseUser(User user, String existingUserId, String databaseId) throws IllegalAccessException {
+		// make sure user can edit the database
+		int userPermissionLvl = getMaxUserDatabasePermission(user, databaseId);
 		if(!AccessPermission.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this app's permissions.");
+			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = getUserAppPermission(existingUserId, engineId);
+		Integer existingUserPermission = getUserDatabasePermission(existingUserId, databaseId);
 		if(existingUserPermission == null) {
-			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the app");
+			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the database");
 		}
 		
 		// if i am not an owner
@@ -456,65 +456,67 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			// not an owner, check if trying to edit an owner or an editor/reader
 			// get the current permission
 			if(AccessPermission.OWNER.getId() == existingUserPermission) {
-				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users app permission.");
+				throw new IllegalAccessException("The user doesn't have the high enough permissions to modify this users database permission.");
 			}
 		}
 		
 		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID='" 
 				+ RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "';";
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured removing the user permissions for this app");
+			throw new IllegalArgumentException("An error occured removing the user permissions for this database");
 		}
 		
-		// need to also delete all insight permissions for this app
-		query = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID='" 
-				+ RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
-		try {
-			securityDb.insertData(query);
-		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occured removing the user permissions for the insights of this app");
-		}
+		
+		//TODO >>> Kunal: There are no more insights in an database. likely need to clean whole file
+		// need to also delete all insight permissions for this database
+//		query = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID='" 
+//				+ RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
+//				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(databaseId) + "';";
+//		try {
+//			securityDb.insertData(query);
+//		} catch (SQLException e) {
+//			logger.error(Constants.STACKTRACE, e);
+//			throw new IllegalArgumentException("An error occured removing the user permissions for the insights of this database");
+//		}
 	}
 	
 	/**
 	 * Set if the database is public to all users on this instance
 	 * @param user
-	 * @param appId
+	 * @param databaseId
 	 * @param isPublic
 	 * @return
 	 * @throws IllegalAccessException 
 	 */
-	public static boolean setAppGlobal(User user, String appId, boolean isPublic) throws IllegalAccessException {
-		if(!SecurityAppUtils.userIsOwner(user, appId)) {
+	public static boolean setDatabaseGlobal(User user, String databaseId, boolean isPublic) throws IllegalAccessException {
+		if(!SecurityAppUtils.userIsOwner(user, databaseId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
 		}
-		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
-		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + appId + "';";
+		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
+		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + databaseId + "';";
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
 		return true;
 	}
 	
 	/**
-	 * update the app name
+	 * update the database name
 	 * @param user
-	 * @param engineId
+	 * @param databaseId
 	 * @param isPublic
 	 * @return
 	 */
-	public static boolean setAppName(User user, String appId, String newAppName) {
-		if(!SecurityAppUtils.userIsOwner(user, appId)) {
+	public static boolean setDatabaseName(User user, String databaseId, String newDatabaseName) {
+		if(!SecurityAppUtils.userIsOwner(user, databaseId)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to change the database name. Only the owner or an admin can perform this action.");
 		}
-		newAppName = RdbmsQueryBuilder.escapeForSQLStatement(newAppName);
-		appId = RdbmsQueryBuilder.escapeForSQLStatement(appId);
-		String query = "UPDATE ENGINE SET ENGINENAME = '" + newAppName + "' WHERE ENGINEID ='" + appId + "';";
+		newDatabaseName = RdbmsQueryBuilder.escapeForSQLStatement(newDatabaseName);
+		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
+		String query = "UPDATE ENGINE SET ENGINENAME = '" + newDatabaseName + "' WHERE ENGINEID ='" + databaseId + "';";
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
 		return true;
@@ -525,23 +527,23 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	//////////////////////////////////////////////////////////////////////////////
 
 	/*
-	 * App Metadata
+	 * Database Metadata
 	 */
 	
 	/**
-	 * Update the app description
+	 * Update the database description
 	 * Will perform an insert if the description doesn't currently exist
-	 * @param engineId
+	 * @param databaseId
 	 * @param insideId
 	 */
-	public static void updateAppDescription(String engineId, String description) {
+	public static void updateDatabaseDescription(String databaseId, String description) {
 		// try to do an update
 		// if nothing is updated
 		// do an insert
-		engineId = RdbmsQueryBuilder.escapeForSQLStatement(engineId);
+		databaseId = RdbmsQueryBuilder.escapeForSQLStatement(databaseId);
 		String query = "UPDATE ENGINEMETA SET METAVALUE='" 
 				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
-				+ "WHERE METAKEY='description' AND ENGINEID='" + engineId + "'";
+				+ "WHERE METAKEY='description' AND ENGINEID='" + databaseId + "'";
 		Statement stmt = null;
 		try {
 			stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
@@ -550,7 +552,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				query = securityDb.getQueryUtil().insertIntoTable("ENGINEMETA", 
 						new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"}, 
 						new String[]{"varchar(255)", "varchar(255)", "clob", "int"}, 
-						new Object[]{engineId, "description", description, 0});
+						new Object[]{databaseId, "description", description, 0});
 				securityDb.insertData(query);
 			}
 		} catch(SQLException e) {
@@ -574,15 +576,15 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Update the app tags
+	 * Update the database tags
 	 * Will delete existing values and then perform a bulk insert
-	 * @param engineId
+	 * @param databaseId
 	 * @param insightId
 	 * @param tags
 	 */
-	public static void updateAppTags(String engineId, List<String> tags) {
+	public static void updateDatabaseTags(String databaseId, List<String> tags) {
 		// first do a delete
-		String query = "DELETE FROM ENGINEMETA WHERE METAKEY='tag' AND ENGINEID='" + engineId + "'";
+		String query = "DELETE FROM ENGINEMETA WHERE METAKEY='tag' AND ENGINEID='" + databaseId + "'";
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
@@ -598,7 +600,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			ps = securityDb.getPreparedStatement(query);
 			for(int i = 0; i < tags.size(); i++) {
 				String tag = tags.get(i);
-				ps.setString(1, engineId);
+				ps.setString(1, databaseId);
 				ps.setString(2, "tag");
 				ps.setString(3, tag);
 				ps.setInt(4, i);
@@ -620,13 +622,13 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the wrapper for additional app metadata
-	 * @param engineId
+	 * Get the wrapper for additional database metadata
+	 * @param databaseIds
 	 * @param metaKeys
 	 * @return
 	 * @throws Exception 
 	 */
-	public static IRawSelectWrapper getAppMetadataWrapper(Collection<String> engineId, List<String> metaKeys) throws Exception {
+	public static IRawSelectWrapper getDatabaseMetadataWrapper(Collection<String> databaseIds, List<String> metaKeys) throws Exception {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
@@ -634,7 +636,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAORDER"));
 		// filters
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", databaseIds));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metaKeys));
 		// order
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAORDER"));
@@ -643,15 +645,15 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get the metadata for a specific app
-	 * @param engineId
+	 * Get the metadata for a specific database
+	 * @param databaseId
 	 * @return
 	 */
-	public static Map<String, Object> getAggregateAppMetadata(String engineId) {
+	public static Map<String, Object> getAggregateDatabaseMetadata(String databaseId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAKEY"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", databaseId));
 		
 		Map<String, Object> retMap = new HashMap<String, Object>();
 
@@ -692,17 +694,17 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Check if the user has access to the app
-	 * @param engineId
+	 * Check if the user has access to the database
+	 * @param databaseId
 	 * @param userId
 	 * @return
 	 * @throws Exception
 	 */
-	public static boolean checkUserHasAccessToApp(String engineId, String userId) throws Exception {
+	public static boolean checkUserHasAccessToDatabase(String databaseId, String userId) throws Exception {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -727,22 +729,22 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
-	 * Copy the app permissions from one app to another
-	 * @param sourceEngineId
-	 * @param targetEngineId
+	 * Copy the database permissions from one database to another
+	 * @param sourceDatabaseId
+	 * @param targetDatabaseId
 	 * @throws SQLException
 	 */
-	public static void copyAppPermissions(String sourceEngineId, String targetEngineId) throws Exception {
-		String insertTargetAppPermissionSql = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
-		PreparedStatement insertTargetAppPermissionStatement = securityDb.getPreparedStatement(insertTargetAppPermissionSql);
+	public static void copyDatabasePermissions(String sourceDatabaseId, String targetDatabaseId) throws Exception {
+		String insertTargetDbPermissionSql = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
+		PreparedStatement insertTargetDbPermissionStatement = securityDb.getPreparedStatement(insertTargetDbPermissionSql);
 		
-		// grab the permissions, filtered on the source engine id
+		// grab the permissions, filtered on the source database id
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", sourceEngineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", sourceDatabaseId));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -750,12 +752,12 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				Object[] row = wrapper.next().getValues();
 				// now loop through all the permissions
 				// but with the target engine id instead of the source engine id
-				insertTargetAppPermissionStatement.setString(1, targetEngineId);
-				insertTargetAppPermissionStatement.setString(2, (String) row[1]);
-				insertTargetAppPermissionStatement.setInt(3, ((Number) row[2]).intValue() );
-				insertTargetAppPermissionStatement.setBoolean(4, (Boolean) row[3]);
+				insertTargetDbPermissionStatement.setString(1, targetDatabaseId);
+				insertTargetDbPermissionStatement.setString(2, (String) row[1]);
+				insertTargetDbPermissionStatement.setInt(3, ((Number) row[2]).intValue() );
+				insertTargetDbPermissionStatement.setBoolean(4, (Boolean) row[3]);
 				// add to batch
-				insertTargetAppPermissionStatement.addBatch();
+				insertTargetDbPermissionStatement.addBatch();
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -766,24 +768,24 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			}
 		}
 		
-		// first delete the current app permissions on the database
-		String deleteTargetAppPermissionsSql = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID = '" + AbstractSqlQueryUtil.escapeForSQLStatement(targetEngineId) + "'";
-		securityDb.removeData(deleteTargetAppPermissionsSql);
+		// first delete the current database permissions on the database
+		String deleteTargetDbPermissionsSql = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID = '" + AbstractSqlQueryUtil.escapeForSQLStatement(targetDatabaseId) + "'";
+		securityDb.removeData(deleteTargetDbPermissionsSql);
 		// execute the query
-		insertTargetAppPermissionStatement.executeBatch();
+		insertTargetDbPermissionStatement.executeBatch();
 	}
 	
 	/**
-	 * Returns List of users that have no access credentials to a given App.
-	 * @param appID
+	 * Returns List of users that have no access credentials to a given database.
+	 * @param databaseId
 	 * @return 
 	 */
-	public static List<Map<String, Object>> getAppUsersNoCredentials(User user, String appId) throws IllegalAccessException {
+	public static List<Map<String, Object>> getDatabaseUsersNoCredentials(User user, String databaseId) throws IllegalAccessException {
 		/*
 		 * Security check to make sure that the user can view the application provided. 
 		 */
-		if(!userCanViewEngine(user, appId)) {
-			throw new IllegalArgumentException("The user does not have access to view this app");
+		if (userCanViewDatabase(user, databaseId)) {
+			throw new IllegalArgumentException("The user does not have access to view this database");
 		}	
 		
 		/*
@@ -803,7 +805,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("SMSS_USER__ID", "!=", subQs));
 			//Sub-query itself
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",appId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID","==",databaseId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
 		}
 		

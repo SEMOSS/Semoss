@@ -20,10 +20,9 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
@@ -31,6 +30,7 @@ import prerna.om.InsightPanel;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.om.PixelList;
+import prerna.project.api.IProject;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
 import prerna.sablecc2.PixelRunner;
@@ -56,7 +56,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	
 	public OpenInsightReactor() {
 		this.keysToGet = new String[]{
-				ReactorKeysEnum.APP.getKey(), 
+				ReactorKeysEnum.PROJECT.getKey(), 
 				ReactorKeysEnum.ID.getKey(), 
 				ReactorKeysEnum.PARAM_KEY.getKey(), 
 				ReactorKeysEnum.ADDITIONAL_PIXELS.getKey(),
@@ -92,9 +92,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String appId = getApp();
-		if(appId == null) {
-			throw new IllegalArgumentException("Need to input the app name");
+		String projectId = getProject();
+		if(projectId == null) {
+			throw new IllegalArgumentException("Need to input the project id");
 		}
 		String rdbmsId = getRdbmsId();
 		if(rdbmsId == null) {
@@ -103,33 +103,33 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		User user = this.insight.getUser();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(user, appId);
-			if(!SecurityInsightUtils.userCanViewInsight(user, appId, rdbmsId)) {
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+			if(!SecurityInsightUtils.userCanViewInsight(user, projectId, rdbmsId)) {
 				NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		} else {
-			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
+			projectId = MasterDatabaseUtility.testDatabaseIdIfAlias(projectId);
 		}
 		
 		// get the engine so i can get the new insight
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
-			throw new IllegalArgumentException("Cannot find app = " + appId);
+		IProject project = Utility.getProject(projectId);
+		if(project == null) {
+			throw new IllegalArgumentException("Cannot find project = " + projectId);
 		}
 		Insight newInsight = null;
 		try {
-			List<Insight> in = engine.getInsight(rdbmsId + "");
+			List<Insight> in = project.getInsight(rdbmsId + "");
 			newInsight = in.get(0);
 		} catch (ArrayIndexOutOfBoundsException e) {
-			logger.info("Pulling app from cloud storage, appid=" + appId);
-			ClusterUtil.reactorPullInsightsDB(appId);
+			logger.info("Pulling project from cloud storage, projectId=" + projectId);
+			ClusterUtil.reactorPullInsightsDB(projectId);
 			// this is needed for the pipeline json
-			ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+			ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 			try {
-				List<Insight> in = engine.getInsight(rdbmsId + "");
+				List<Insight> in = project.getInsight(rdbmsId + "");
 				newInsight = in.get(0);
 			} catch(IllegalArgumentException e2) {
 				NounMetadata noun = new NounMetadata(e2.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -161,12 +161,12 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		 * 3) Do we want to use an existing insight that the user has opened? 
 		 */
 		if(user != null && useExistingInsightIfOpen()) {
-			List<String> userOpen = user.getOpenInsightInstances(appId, rdbmsId);
+			List<String> userOpen = user.getOpenInsightInstances(projectId, rdbmsId);
 			if(userOpen != null && !userOpen.isEmpty()) {
 				Insight alreadyOpenedInsight = InsightStore.getInstance().get(userOpen.get(0));
 				if(alreadyOpenedInsight == null) {
 					// this is weird -- just do a cleanup
-					user.removeOpenInsight(appId, rdbmsId, userOpen.get(0));
+					user.removeOpenInsight(projectId, rdbmsId, userOpen.get(0));
 				} else {
 					// return the recipe steps
 					PixelRunner runner = InsightUtility.recreateInsightState(alreadyOpenedInsight);
@@ -229,7 +229,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		if(cacheable && hasCache && cachedInsight == null) {
 			// this means we have a cache
 			// but there was an error with it
-			InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId, true);
+			InsightCacheUtility.deleteCache(newInsight.getProjectId(), newInsight.getProjectName(), rdbmsId, true);
 			additionalMetas.add(getWarning("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight."));
 		} else if(cacheable && hasCache) {
 			try {
@@ -237,7 +237,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				runner = getCachedInsightData(cachedInsight);
 			} catch (IOException | RuntimeException e) {
 				logger.info("Error occured pulling cached insight. Deleting cache and executing original recipe.");
-				InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId, true);
+				InsightCacheUtility.deleteCache(newInsight.getProjectId(), newInsight.getProjectName(), rdbmsId, true);
 				additionalMetas.add(getWarning("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight."));
 				classLogger.error(Constants.STACKTRACE, e);
 			}
@@ -252,10 +252,11 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				logger.info("Caching insight for future use");
 				try {
 					InsightCacheUtility.cacheInsight(newInsight, getCachedRecipeVariableExclusion(runner));
-					Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engine.getEngineName(), appId));
+					Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+							+ DIR_SEPARATOR + "project"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), projectId));
 					String cacheFolder = InsightCacheUtility.getInsightCacheFolderPath(newInsight);
 					Path relative = appFolder.relativize( Paths.get(cacheFolder));
-					ClusterUtil.reactorPushFolder(appId,cacheFolder, relative.toString());
+					ClusterUtil.reactorPushProjectFolder(projectId, cacheFolder, relative.toString());
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -343,11 +344,11 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		// add to the users opened insights
 		if(user != null) {
-			user.addOpenInsight(appId, rdbmsId, newInsight.getInsightId());
+			user.addOpenInsight(projectId, rdbmsId, newInsight.getInsightId());
 		}
 		
 		// update the universal view count
-		GlobalInsightCountUpdater.getInstance().addToQueue(appId, rdbmsId);
+		GlobalInsightCountUpdater.getInstance().addToQueue(projectId, rdbmsId);
 		// tracking execution
 		UserTrackerFactory.getInstance().trackInsightExecution(newInsight);
 		
@@ -436,7 +437,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			{
 				// get all frame headers
 				VarStore vStore = cachedInsight.getVarStore();
-				List<String> keys = vStore.getFrameKeys();
+				List<String> keys = vStore.getFrameKeysCopy();
 				for(String k : keys) {
 					NounMetadata noun = vStore.get(k);
 					PixelDataType type = noun.getNounType();
@@ -501,12 +502,12 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// return to the FE the recipe
 		insightMap.put("name", oldInsight.getInsightName());
 		// keys below match those in solr
-		insightMap.put("app_id", oldInsight.getEngineId());
-		insightMap.put("app_name", oldInsight.getEngineName());
+		insightMap.put("app_id", oldInsight.getProjectId());
+		insightMap.put("app_name", oldInsight.getProjectName());
 		insightMap.put("app_insight_id", oldInsight.getRdbmsId());
 		
 		// LEGACY PARAMS
-		insightMap.put("core_engine", oldInsight.getEngineName());
+		insightMap.put("core_engine", oldInsight.getProjectName());
 		insightMap.put("core_engine_id", oldInsight.getRdbmsId());
 		
 		insightMap.put("layout", oldInsight.getOutput());

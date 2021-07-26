@@ -30,13 +30,14 @@ import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
+	
 	private static final String CLASS_NAME = ExternalUpdateJdbcSchemaReactor.class.getName();
 	
 	public static final String TABLES_KEY = "tables";
 	public static final String RELATIONS_KEY = "relationships";
 	
 	public ExternalUpdateJdbcSchemaReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILTERS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILTERS.getKey()};
 	}
 
 	@Override
@@ -44,17 +45,17 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
-		IEngine engine = Utility.getEngine(appId);
-		IRDBMSEngine nativeEngine = null;
-		if(engine instanceof IRDBMSEngine) {
-			nativeEngine = (IRDBMSEngine) engine;
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		IEngine database = Utility.getEngine(databaseId);
+		IRDBMSEngine nativeDatabase = null;
+		if(database instanceof IRDBMSEngine) {
+			nativeDatabase = (IRDBMSEngine) database;
 		} else {
-			throw new IllegalArgumentException("Engine must be a valid JDBC engine");
+			throw new IllegalArgumentException("Database must be a valid JDBC engine");
 		}
 		Connection connection = null;
 		try {
-			connection = nativeEngine.getConnection();
+			connection = nativeDatabase.getConnection();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());
@@ -84,9 +85,9 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 		
-		RdbmsTypeEnum driverEnum = nativeEngine.getDbType();
+		RdbmsTypeEnum driverEnum = nativeDatabase.getDbType();
 //		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, connection, connectionUrl, driverEnum);
-		String schemaFilter = nativeEngine.getSchema();
+		String schemaFilter = nativeDatabase.getSchema();
 
 		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(connection, meta, catalogFilter, schemaFilter, driverEnum, tableAndViewFilters); 
 		

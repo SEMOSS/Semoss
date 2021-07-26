@@ -23,6 +23,7 @@ import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.MosfetFile;
+import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.CustomTableAndViewIterator;
 import prerna.util.AssetUtility;
@@ -42,20 +43,20 @@ public class RDBMSEngineCreationHelper {
 	 * Create existing metamodel from owl to create insights
 	 * @param owl
 	 */
-	public static void insertAllTablesAsInsights(IEngine rdbmsEngine, Owler owl) {
+	public static void insertAllTablesAsInsights(IProject project, IEngine rdbmsEngine, Owler owl) {
 		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(owl);
-		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel.keySet());
+		insertNewTablesAsInsights(project, rdbmsEngine, existingMetaModel.keySet());
 	}
 	
-	public static void insertNewTablesAsInsights(IEngine rdbmsEngine, Owler owl, Set<String> newTables) {
+	public static void insertNewTablesAsInsights(IProject project, IEngine rdbmsEngine, Owler owl, Set<String> newTables) {
 		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(owl, newTables);
 		// use the keyset from the OWL to help with the upload
-		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel.keySet());
+		insertNewTablesAsInsights(project, rdbmsEngine, existingMetaModel.keySet());
 	}
 	
-	public static void insertNewTablesAsInsights(IEngine rdbmsEngine, Set<String> newTables) {
+	public static void insertNewTablesAsInsights(IProject project, IEngine rdbmsEngine, Set<String> newTables) {
 		String appId = rdbmsEngine.getEngineId();
-		InsightAdministrator admin = new InsightAdministrator(rdbmsEngine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		
 		//determine the # where the new questions should start
 		String insightName = ""; 
@@ -86,10 +87,10 @@ public class RDBMSEngineCreationHelper {
 				
 				// write recipe to file
 				try {
-					MosfetSyncHelper.makeMosfitFile(appId, rdbmsEngine.getEngineName(), 
+					MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
 							insightId, insightName, layout, recipeArray, false, description, tags);
 					// add the insight to git
-					String gitFolder = AssetUtility.getAppAssetVersionFolder(rdbmsEngine.getEngineName(), appId);
+					String gitFolder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), project.getProjectId());
 					List<String> files = new Vector<>();
 					files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 					GitRepoUtils.addSpecificFiles(gitFolder, files);				
@@ -99,10 +100,9 @@ public class RDBMSEngineCreationHelper {
 				}
 				
 				// insight security
-				SecurityInsightUtils.addInsight(rdbmsEngine.getEngineId(), insightId, insightName, false, 
-						Utility.getApplicationCacheInsight(), layout, recipeArray);
-				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
-				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
+				SecurityInsightUtils.addInsight(project.getProjectId(), insightId, insightName, false, Utility.getApplicationCacheInsight(), layout, recipeArray);
+				SecurityInsightUtils.updateInsightTags(project.getProjectId(), insightId, tags);
+				SecurityInsightUtils.updateInsightDescription(project.getProjectId(), insightId, description);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("Caught exception while adding question.................");

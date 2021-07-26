@@ -65,6 +65,7 @@ import org.openrdf.sail.SailException;
 import com.bigdata.rdf.model.BigdataLiteralImpl;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

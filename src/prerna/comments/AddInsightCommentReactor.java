@@ -14,8 +14,8 @@ public class AddInsightCommentReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = this.insight.getEngineId();
-		String engineName = this.insight.getEngineName();
+		String projectId = this.insight.getProjectId();
+		String projectName = this.insight.getProjectName();
 		String rdbmsId = this.insight.getRdbmsId();
 		String comment = this.keyValue.get(this.keysToGet[0]);
 		if(comment == null || comment.trim().isEmpty()) {
@@ -23,7 +23,7 @@ public class AddInsightCommentReactor extends AbstractReactor {
 		}
 		
 		// after grabbing the input, write it to a file		
-		InsightComment iComment = new InsightComment(engineId, engineName, rdbmsId);
+		InsightComment iComment = new InsightComment(projectId, projectName, rdbmsId);
 		iComment.setComment(comment);
 		iComment.setAction(InsightComment.ADD_ACTION);
 		// add the comment to the chain

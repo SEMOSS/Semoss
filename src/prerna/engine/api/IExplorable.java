@@ -34,28 +34,10 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.engine.impl.rdbms.AuditDatabase;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.om.Insight;
 import prerna.query.interpreters.IQueryInterpreter;
 
 public interface IExplorable {
-	
-	// gets the perspectives for this engine
-	// REFAC: Not sure we need this anymore
-	Vector<String> getPerspectives();
-	
-	// gets the questions for a given perspective
-	// REFAC: Not sure we need this anymore
-	Vector<String> getInsights(String perspective);
-	
-	// get all the insights irrespective of perspective
-	// REFAC: Not sure we need this anymore
-	Vector<String> getInsights();
-
-	// get the insight for a given question description
-	// REFAC: Not sure we need this anymore - we can do this where id is null
-	Vector<Insight> getInsight(String... id);
 	
 	// gets the from neighborhood for a given node
 	Vector<String> getFromNeighbors(String nodeType, int neighborHood);
@@ -127,27 +109,9 @@ public interface IExplorable {
 	Object execOntoSelectQuery(String query);
 	
 	/**
-	 * Get the insight database
-	 * @return
-	 */
-	RDBMSNativeEngine getInsightDatabase();
-	
-	/**
 	 * Generate an audit database
 	 */
 	AuditDatabase generateAudit();
-	
-	/**
-	 * Set the insight database
-	 * @param insightDatabase
-	 */
-	void setInsightDatabase(RDBMSNativeEngine insightDatabase);
-	
-	/**
-	 * Get a string representation of the insights database
-	 * @return
-	 */
-	String getInsightDefinition();
 	
 //	/**
 //	 * Get the physical URI from the conceptual URI

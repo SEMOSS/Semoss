@@ -52,6 +52,7 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.util.FileManager;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

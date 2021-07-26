@@ -17,7 +17,7 @@ public class ListAllJobsReactor extends AbstractReactor {
 	private static final String MY_JOBS = "myJobs";
 
 	public ListAllJobsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.USERNAME.getKey(), MY_JOBS, 
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.USERNAME.getKey(), MY_JOBS, 
 				ReactorKeysEnum.JOB_TAGS.getKey() };
 	}
 
@@ -38,21 +38,21 @@ public class ListAllJobsReactor extends AbstractReactor {
 		Map<String, Map<String, String>> jobMap = null;
 		organizeKeys();
 
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		String userId = this.keyValue.get(this.keysToGet[1]);
 		List<String> jobTags  = getJobTags();
 
-		if (appId == null && userId == null) {
+		if (databaseId == null && userId == null) {
 			// TODO: check if admin if not admin throw permissions error
 			// security utils. isAdmin() to check if user is admin *******
 			// return all jobs
 			jobMap = SchedulerDatabaseUtility.retrieveAllJobs(jobTags);
-		} else if (appId != null && userId == null) {
-			jobMap = SchedulerDatabaseUtility.retrieveJobsForApp(appId, jobTags);
-		} else if (appId == null) {
+		} else if (databaseId != null && userId == null) {
+			jobMap = SchedulerDatabaseUtility.retrieveJobsForApp(databaseId, jobTags);
+		} else if (databaseId == null) {
 			jobMap = SchedulerDatabaseUtility.retrieveUsersJobs(userId, jobTags);
 		} else {
-			jobMap = SchedulerDatabaseUtility.retrieveUsersJobsForApp(appId, userId, jobTags);
+			jobMap = SchedulerDatabaseUtility.retrieveUsersJobsForApp(databaseId, userId, jobTags);
 		}
 
 		return new NounMetadata(jobMap, PixelDataType.MAP, PixelOperationType.LIST_JOB);

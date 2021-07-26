@@ -41,11 +41,11 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 		String targetInsightId = this.keyValue.get(this.keysToGet[3]);
 
 		// must be an editor for both to run this
-		if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), sourceAppId)) {
-			throw new IllegalArgumentException("You do not have edit access to the source app");
+		if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), sourceAppId)) {
+			throw new IllegalArgumentException("You do not have edit access to the source database");
 		}
-		if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), targetAppId)) {
-			throw new IllegalArgumentException("You do not have edit access to the target app");
+		if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), targetAppId)) {
+			throw new IllegalArgumentException("You do not have edit access to the target database");
 		}
 		
 		String sourceInsightName = SecurityQueryUtils.getInsightNameForId(sourceAppId, sourceInsightId);
@@ -67,8 +67,8 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("An error occured copying the insight permissions.  Detailed error: " + e.getMessage());
 		}
 
-		String sourceApp = SecurityQueryUtils.getEngineAliasForId(sourceAppId);
-		String targetApp = SecurityQueryUtils.getEngineAliasForId(targetAppId);
+		String sourceApp = SecurityQueryUtils.getDatabaseAliasForId(sourceAppId);
+		String targetApp = SecurityQueryUtils.getDatabaseAliasForId(targetAppId);
 		
 		return new NounMetadata("Copied permissions from app " + sourceApp  + "__" + sourceAppId 
 				+ " insight \"" + sourceInsightName + "\" to " + targetApp + "__" + targetAppId 

@@ -53,13 +53,13 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String engineId = MasterDatabaseUtility.testEngineIdIfAlias(getDatabase());
+		String engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(getDatabase());
 		List<String> options = getOptions();
 
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!	
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
 		}
@@ -85,7 +85,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 			logger.info("Pulling database logical names for app " + engineId);
 			Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(engineId);
 			if(logicalNames == null) {
-				logicalNames = MasterDatabaseUtility.getEngineLogicalNames(engineId);
+				logicalNames = MasterDatabaseUtility.getDatabaseLogicalNames(engineId);
 				EngineSyncUtility.setMetamodelLogicalNames(engineId, logicalNames);
 			}
 			metamodelObject.put("logicalNames", logicalNames);
@@ -95,7 +95,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 			logger.info("Pulling database descriptions for app " + engineId);
 			Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(engineId);
 			if(descriptions == null) {
-				descriptions = MasterDatabaseUtility.getEngineDescriptions(engineId);
+				descriptions = MasterDatabaseUtility.getDatabaseDescriptions(engineId);
 				EngineSyncUtility.setMetamodelDescriptions(engineId, descriptions);
 			}
 			metamodelObject.put("descriptions", descriptions);

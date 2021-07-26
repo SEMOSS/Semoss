@@ -29,7 +29,6 @@ import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MetamodelVertex;
-import prerna.om.Insight;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -88,26 +87,6 @@ public class MetaHelper implements IExplorable {
 			this.engineName = "Unassigned";
 		if(insightRDBMS != null)
 			this.insightRDBMS = insightRDBMS;
-	}
-
-	@Override
-	public Vector<String> getPerspectives() {
-		return null;
-	}
-
-	@Override
-	public Vector<String> getInsights(String perspective) {
-		return null;
-	}
-
-	@Override
-	public Vector<String> getInsights() {
-		return null;
-	}
-
-	@Override
-	public Vector<Insight> getInsight(String... id) {
-		return null;
 	}
 
 	@Override
@@ -176,16 +155,6 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public String getProperty(String key) {
-		return null;
-	}
-
-	@Override
-	public RDBMSNativeEngine getInsightDatabase() {
-		return null;
-	}
-
-	@Override
-	public String getInsightDefinition() {
 		return null;
 	}
 
@@ -466,11 +435,6 @@ public class MetaHelper implements IExplorable {
 	public File getOwlPositionFile() {
 		// TODO Auto-generated method stub
 		return null;
-	}
-	
-	@Override
-	public void setInsightDatabase(RDBMSNativeEngine insightDatabase) {
-		// TODO Auto-generated method stub
 	}
 
 	@Override

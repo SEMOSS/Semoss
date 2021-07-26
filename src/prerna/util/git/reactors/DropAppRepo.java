@@ -2,7 +2,6 @@ package prerna.util.git.reactors;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -10,28 +9,24 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
-import prerna.util.DIHelper;
 import prerna.util.git.GitRepoUtils;
 
 public class DropAppRepo extends AbstractReactor {
 
 	public DropAppRepo() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Removing remote...");
-		String appId = this.keyValue.get(this.keysToGet[0]);
-		String appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		String databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 		String repository = this.keyValue.get(this.keysToGet[1]);
-		
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
-		GitRepoUtils.removeRemote(appFolder, repository);
+		String databaseFolder = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId);
+		GitRepoUtils.removeRemote(databaseFolder, repository);
 		return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}
 

@@ -35,29 +35,29 @@ import prerna.util.Utility;
 public class DatabaseProfileReactor extends AbstractFrameReactor {
 
 	public DatabaseProfileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPTS.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPTS.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		
-		String engineId = this.keyValue.get(this.keysToGet[1]);
+		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
+			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
+			if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
 			}
 		} else {
-			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
-			if(!MasterDatabaseUtility.getAllEngineIds().contains(engineId)) {
-				throw new IllegalArgumentException("Database " + engineId + " does not exist");
+			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
+			if(!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
 			}
 		}
 
-		IEngine engine = Utility.getEngine(engineId);
-		if(engine == null) {
-			throw new IllegalArgumentException("Could not find database " + engineId);
+		IEngine database = Utility.getEngine(databaseId);
+		if(database == null) {
+			throw new IllegalArgumentException("Could not find database " + databaseId);
 		}
 		
 		// output frame
@@ -87,7 +87,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		List<String> conceptList = getConceptList();
 		// get concept properties from local master
 		for(String concept : conceptList) {
-			List<String> pixelSelectors = MasterDatabaseUtility.getConceptPixelSelectors(concept, engineId);
+			List<String> pixelSelectors = MasterDatabaseUtility.getConceptPixelSelectors(concept, databaseId);
 			// the pixel selectors will already be in TABLE__COLUMN format
 			for(String selector : pixelSelectors) {
 				String semossName = selector;
@@ -97,12 +97,12 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 					semossName = split[1];
 					parentSemossName = split[0];
 				}
-				String dataType = MasterDatabaseUtility.getBasicDataType(engineId, semossName, parentSemossName);
+				String dataType = MasterDatabaseUtility.getBasicDataType(databaseId, semossName, parentSemossName);
 				if (Utility.isNumericType(dataType)) {
-					String[] row = getNumericalProfileData(engine, selector);
+					String[] row = getNumericalProfileData(database, selector);
 					frame.addRow(tableName, headers, row, dataTypes);
 				} else {
-					String[] cells = getStringProfileData(engine, selector);
+					String[] cells = getStringProfileData(database, selector);
 					frame.addRow(tableName, headers, cells, dataTypes);
 				}
 			}
@@ -111,7 +111,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
-	private String[] getStringProfileData(IEngine engine, String selector) {
+	private String[] getStringProfileData(IEngine database, String selector) {
 		String[] retRow = new String[9];
 		if(selector.contains("__")) {
 			String[] split = selector.split("__");
@@ -150,7 +150,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		long blankCount = 0;
 		IRawSelectWrapper blankIt = null;
 		try {
-			blankIt = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			blankIt = WrapperManager.getInstance().getRawWrapper(database, qs2);
 			if (blankIt.hasNext()) {
 				blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
 			}
@@ -164,13 +164,13 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		retRow[2] = blankCount + "";
 
 		// num of unique vals
-		retRow[3] = getValue(engine, selector, QueryFunctionHelper.UNIQUE_COUNT, true) + "";
+		retRow[3] = getValue(database, selector, QueryFunctionHelper.UNIQUE_COUNT, true) + "";
 
 		// get null values count
 		long nullCount = 0;
 		IRawSelectWrapper nullIt;
 		try {
-			nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
+			nullIt = WrapperManager.getInstance().getRawWrapper(database, qs_nulls);
 			if (nullIt.hasNext()) {
 				nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
 			}
@@ -181,7 +181,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		return retRow;
 	}
 
-	private String[] getNumericalProfileData(IEngine engine, String selector) {
+	private String[] getNumericalProfileData(IEngine database, String selector) {
 		String[] retRow = new String[9];
 		if(selector.contains("__")) {
 			String[] split = selector.split("__");
@@ -232,7 +232,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		IRawSelectWrapper it = null;
 		try {
-			it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			it = WrapperManager.getInstance().getRawWrapper(database, qs2);
 			while (it.hasNext()) {
 				IHeadersDataRow iRow = it.next();
 				Object[] values = iRow.getValues();
@@ -282,7 +282,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		long nullCount = 0;
 		IRawSelectWrapper nullIt;
 		try {
-			nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
+			nullIt = WrapperManager.getInstance().getRawWrapper(database, qs_nulls);
 			nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -291,7 +291,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		return retRow;
 	}
 
-	private Object getValue(IEngine engine, String selector, String functionName, boolean distinct) {
+	private Object getValue(IEngine database, String selector, String functionName, boolean distinct) {
 		SelectQueryStruct qs2 = new SelectQueryStruct();
 		{
 			QueryFunctionSelector funSelector = new QueryFunctionSelector();
@@ -304,7 +304,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		IRawSelectWrapper it = null;
 		try {
-			it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			it = WrapperManager.getInstance().getRawWrapper(database, qs2);
 			Object value = it.next().getValues()[0];
 			return value;
 		} catch (Exception e) {

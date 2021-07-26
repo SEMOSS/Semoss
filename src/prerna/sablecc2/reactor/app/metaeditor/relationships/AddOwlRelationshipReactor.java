@@ -25,14 +25,14 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 	 */
 	
 	public AddOwlRelationshipReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), "startT", "endT", "startC", "endC", STORE_VALUES_FRAME};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), "startT", "endT", "startC", "endC", STORE_VALUES_FRAME};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		String appId = getAppInput();
+		String databaseId = getAppInput();
 		// we may have the alias
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 		
 		// get tables
 		List<String> startTList = getValues(this.keysToGet[1], 1);
@@ -47,12 +47,12 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 			throw new IllegalArgumentException("Input values are not the same size");
 		}
 		
-		ClusterUtil.reactorPullOwl(appId);
-		Owler owler = getOWLER(appId);
+		ClusterUtil.reactorPullOwl(databaseId);
+		Owler owler = getOWLER(databaseId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
-		IEngine engine = Utility.getEngine(appId);
-		setOwlerValues(engine, owler);
+		IEngine database = Utility.getEngine(databaseId);
+		setOwlerValues(database, owler);
 		
 		for(int i = 0; i < size; i++) {
 			String startT = startTList.get(i);
@@ -75,8 +75,8 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		// store user inputed values
 		storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "added");

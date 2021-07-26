@@ -24,13 +24,13 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 /**
- * Adds an ID column to a table in an app
+ * Adds an ID column to a table in a database
  */
 public class GenerateIdColumnReactor extends AbstractReactor {
 	protected transient Logger logger;
 
 	public GenerateIdColumnReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.TABLE.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.TABLE.getKey(),
 				ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(),
 				ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
@@ -44,9 +44,9 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 		organizeKeys();
 		this.logger = getLogger(this.getClass().getName());
 		int stepCounter = 1;
-		String appId = this.keyValue.get(this.keysToGet[0]);
-		if(appId == null || appId.isEmpty()) {
-			throw new IllegalArgumentException("Need to add app");
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		if(databaseId == null || databaseId.isEmpty()) {
+			throw new IllegalArgumentException("Need to add " + this.keysToGet[0]);
 		}
 		String tableName = this.keyValue.get(this.keysToGet[1]);
 		if(tableName == null || tableName.isEmpty()) {
@@ -61,13 +61,13 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 		if(newColumn == null || newColumn.isEmpty()) {
 			throw new IllegalArgumentException("Need to add the new id column name");
 		}
-		RDBMSNativeEngine app =  (RDBMSNativeEngine) Utility.getEngine(appId);
-		app.setAutoCommit(false);
-		AbstractSqlQueryUtil queryUtil = app.getQueryUtil();
+		RDBMSNativeEngine database =  (RDBMSNativeEngine) Utility.getEngine(databaseId);
+		database.setAutoCommit(false);
+		AbstractSqlQueryUtil queryUtil = database.getQueryUtil();
 		Connection conn = null;
 		
 		//Step 1 query and grab data to insert into temp table
-		IRawSelectWrapper iterator = getData(app, tableName, columns);
+		IRawSelectWrapper iterator = getData(database, tableName, columns);
 
 		// load data
 		try {
@@ -78,11 +78,11 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 			types.add("VARCHAR(50)");
 			String[] columnNames = columns.toArray(new String[0]);
 			logger.info(stepCounter + ". Creating temp table...");
-			app.insertData(queryUtil.createTable(tempTable, columnNames, types.toArray(new String[0])));
+			database.insertData(queryUtil.createTable(tempTable, columnNames, types.toArray(new String[0])));
 			logger.info(stepCounter + ". Complete...");
 			stepCounter++;
 
-			conn = app.getConnection();
+			conn = database.getConnection();
 			logger.info(stepCounter + ". Loading data in temp table...");
 			PreparedStatement ps = conn.prepareStatement(queryUtil.createInsertPreparedStatementString(tempTable, columnNames));
 			// align headers with types and exclude new id column
@@ -119,16 +119,16 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 			stepCounter++;
 			// delete existing table
 			logger.info(stepCounter + ". Deleting exiting table...");
-			app.insertData(queryUtil.dropTable(tableName));
+			database.insertData(queryUtil.dropTable(tableName));
 			logger.info(stepCounter + ". Complete...");
 			stepCounter++;
 			
 			// rename temp table
 			logger.info(stepCounter + ". Renaming temp table...");
-			app.insertData(queryUtil.alterTableName(tempTable, tableName));
+			database.insertData(queryUtil.alterTableName(tempTable, tableName));
 			logger.info(stepCounter + ". Complete...");
 			stepCounter++;
-			app.commit();
+			database.commit();
 			NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 			noun.addAdditionalReturn(getSuccess("Successfully added id column: " + newColumn + " to " + tableName));
 			return noun;
@@ -142,7 +142,7 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 		}
 	}
 	
-	private IRawSelectWrapper getData(RDBMSNativeEngine app, String tableName, List<String> columns) {
+	private IRawSelectWrapper getData(RDBMSNativeEngine database, String tableName, List<String> columns) {
 		IRawSelectWrapper iterator = null;
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setDistinct(false);
@@ -150,7 +150,7 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 			qs.addSelector(new QueryColumnSelector(tableName + "__" + column));
 		}
 		try {
-			iterator = WrapperManager.getInstance().getRawWrapper(app, qs);
+			iterator = WrapperManager.getInstance().getRawWrapper(database, qs);
 		} catch (Exception e1) {
 			// error occured querying the data
 			e1.printStackTrace();
