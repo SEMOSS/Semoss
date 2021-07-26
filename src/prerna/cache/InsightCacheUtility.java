@@ -58,16 +58,14 @@ public class InsightCacheUtility {
 	
 	public static String getInsightCacheFolderPath(Insight insight) {
 		String rdbmsId = insight.getRdbmsId();
-		String engineId = insight.getEngineId();
-		String engineName = insight.getEngineName();
+		String engineId = insight.getProjectId();
+		String engineName = insight.getProjectName();
 		return getInsightCacheFolderPath(engineId, engineName, rdbmsId);
 	}
 	
-	public static String getInsightCacheFolderPath(String engineId, String engineName, String rdbmsId) {
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		//String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
-		//		+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId + DIR_SEPARATOR + CACHE_FOLDER;
-		String folderDir = AssetUtility.getAppAssetVersionFolder(engineName, engineId) + DIR_SEPARATOR +  rdbmsId + DIR_SEPARATOR + CACHE_FOLDER;
+	public static String getInsightCacheFolderPath(String projectId, String projectName, String rdbmsId) {
+		String folderDir = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) 
+				+ DIR_SEPARATOR +  rdbmsId + DIR_SEPARATOR + CACHE_FOLDER;
 		return folderDir;
 	}
 	
@@ -78,8 +76,8 @@ public class InsightCacheUtility {
 	 */
 	public static File cacheInsight(Insight insight, Set<String> varsToExclude) throws IOException {
 		String rdbmsId = insight.getRdbmsId();
-		String engineId = insight.getEngineId();
-		String engineName = insight.getEngineName();
+		String engineId = insight.getProjectId();
+		String engineName = insight.getProjectName();
 		
 		if(engineId == null || rdbmsId == null || engineName == null) {
 			throw new IOException("Cannot jsonify an insight that is not saved");
@@ -207,8 +205,8 @@ public class InsightCacheUtility {
 	 */
 	public static Map<String, Object> getCachedInsightViewData(Insight insight) throws IOException, JsonSyntaxException {
 		String rdbmsId = insight.getRdbmsId();
-		String engineId = insight.getEngineId();
-		String engineName = insight.getEngineName();
+		String engineId = insight.getProjectId();
+		String engineName = insight.getProjectName();
 		
 		if(engineId == null || rdbmsId == null || engineName == null) {
 			throw new IOException("Cannot jsonify an insight that is not saved");
@@ -255,21 +253,22 @@ public class InsightCacheUtility {
 	
 	/**
 	 * Delete cached files for an insight
-	 * @param engineId
-	 * @param engineName
+	 * @param projectId
+	 * @param projectName
 	 * @param rdbmsId
 	 */
-	public static void deleteCache(String engineId, String engineName, String rdbmsId, boolean pullCloud) {
+	public static void deleteCache(String projectId, String projectName, String rdbmsId, boolean pullCloud) {
 		// this is false on save insight
 		// because i do not want to pull when i save
 		// but i do want to delete the cache in case i am saving 
 		// from an existing insight as the .cache folder gets moved
 
-		String folderDir = getInsightCacheFolderPath(engineId, engineName, rdbmsId);
-		Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId));
+		String folderDir = getInsightCacheFolderPath(projectId, projectName, rdbmsId);
+		Path appFolder = Paths.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR 
+				+ Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId));
 		Path relative = appFolder.relativize( Paths.get(folderDir));
 		if(pullCloud) {
-			ClusterUtil.reactorPullFolder(engineId, folderDir, relative.toString());
+			ClusterUtil.reactorPullProjectFolder(projectId, folderDir, relative.toString());
 		}
 
 		File folder = new File(Utility.normalizePath(folderDir)); 
@@ -282,7 +281,7 @@ public class InsightCacheUtility {
 			ICache.deleteFile(f);
 		}
 		if(pullCloud) {
-			ClusterUtil.reactorPushFolder(engineId, folderDir, relative.toString());
+			ClusterUtil.reactorPushProjectFolder(projectId, folderDir, relative.toString());
 		}
 	}
 	

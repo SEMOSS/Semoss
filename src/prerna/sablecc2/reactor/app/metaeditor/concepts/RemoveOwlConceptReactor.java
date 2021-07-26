@@ -19,31 +19,31 @@ import prerna.util.Utility;
 public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 
 	public RemoveOwlConceptReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if (concept == null || concept.isEmpty()) {
-			throw new IllegalArgumentException("Must define the concept being added to the app metadata");
+			throw new IllegalArgumentException("Must define the concept being added to the database metadata");
 		}
 
 		// since we are deleting the node
 		// i need to delete the properties of this node
 		// and then everything related to this node
-		IEngine engine = Utility.getEngine(appId);
-		ClusterUtil.reactorPullOwl(appId);
-		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
-		String conceptPhysical = engine.getPhysicalUriFromPixelSelector(concept);
-		List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysical);
+		IEngine database = Utility.getEngine(databaseId);
+		ClusterUtil.reactorPullOwl(databaseId);
+		RDFFileSesameEngine owlEngine = database.getBaseDataEngine();
+		String conceptPhysical = database.getPhysicalUriFromPixelSelector(concept);
+		List<String> properties = database.getPropertyUris4PhysicalUri(conceptPhysical);
 		StringBuilder bindings = new StringBuilder();
 		for (String prop : properties) {
 			bindings.append("(<").append(prop).append(">)");
@@ -148,8 +148,8 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove the desired concept", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed concept and all its dependencies", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));

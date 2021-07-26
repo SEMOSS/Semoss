@@ -50,7 +50,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 	public static final String FED_FRAME = "fedFrame";
 
 	public FederationBlend() {
-		this.keysToGet = new String[] { JOIN_TYPE, FRAME_COLUMN, ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ADDITIONAL_COLS, MATCHES, NONMATCHES, FED_FRAME, PROP_MAX };
+		this.keysToGet = new String[] { JOIN_TYPE, FRAME_COLUMN, ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ADDITIONAL_COLS, MATCHES, NONMATCHES, FED_FRAME, PROP_MAX };
 	}
 
 	@Override

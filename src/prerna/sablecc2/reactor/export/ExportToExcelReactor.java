@@ -58,9 +58,6 @@ import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 import org.apache.poi.xssf.usermodel.XSSFDrawing;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTDLbls;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTPieChart;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTScatterChart;
@@ -142,7 +139,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				ReactorKeysEnum.PANEL_ORDER_IDS.getKey(),
 				ReactorKeysEnum.EXPORT_AUDIT.getKey(),
 				ReactorKeysEnum.PLACE_HOLDER_DATA.getKey(),
-				ReactorKeysEnum.APP.getKey()
+				ReactorKeysEnum.PROJECT.getKey()
 			};
 		this.keyRequired = new int[] {0,0,0,0,0,0,0,0,0,0,0,0,0};
 		this.keyMulti = new int[] {0,0,0,0,0,0,1,0,0,0,0,0,0};

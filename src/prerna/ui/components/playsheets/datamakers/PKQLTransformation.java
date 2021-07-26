@@ -7,10 +7,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.sablecc.PKQLRunner;
-import prerna.sablecc.meta.IPkqlMetadata;
-import prerna.sablecc2.PixelRunner;
-
 public class PKQLTransformation extends AbstractTransformation {
 
 	private static final Logger LOGGER = LogManager.getLogger(PKQLTransformation.class.getName());
@@ -18,10 +14,9 @@ public class PKQLTransformation extends AbstractTransformation {
 	public static final String METHOD_NAME = "pkql";
 	public static final String EXPRESSION = "EXPRESSION";
 
-	private PKQLRunner runner;
-	private PixelRunner runner2;
+//	private PKQLRunner runner;
 	private List<String> parsedPkqls = new Vector<String>();
-	private List<IPkqlMetadata> metadataList;
+//	private List<IPkqlMetadata> metadataList;
 
 //	private Map<String, Object> feData = new HashMap<String, Object>();
 //	private Map<String, String> newColumns = new HashMap<String, String>();
@@ -39,9 +34,9 @@ public class PKQLTransformation extends AbstractTransformation {
 		return this.recipeIndex;
 	}
 
-	public List<IPkqlMetadata> getPkqlMetadataList() {
-		return this.metadataList;
-	}
+//	public List<IPkqlMetadata> getPkqlMetadataList() {
+//		return this.metadataList;
+//	}
 	
 	@Override
 	public void setProperties(Map<String, Object> props) {
@@ -72,11 +67,11 @@ public class PKQLTransformation extends AbstractTransformation {
 //			return;
 //		}
 		// check how long runner response array is
-		int numOldCmds = runner.getResults().size();
-		
-		String expression = props.get(EXPRESSION) + "";		
-		runner.runPKQL(expression, (IDataMaker) this.dm);
-				
+//		int numOldCmds = runner.getResults().size();
+//		
+//		String expression = props.get(EXPRESSION) + "";		
+//		runner.runPKQL(expression, (IDataMaker) this.dm);
+//				
 //		this.dm = runner.getDataFrame();
 		
 //		this.feData.putAll(runner.getFeData());
@@ -90,24 +85,24 @@ public class PKQLTransformation extends AbstractTransformation {
 //		this.dm = runner.getDataFrame();
 		
 		// store added responses
-		List<Map> allCmds = runner.getResults();
-		for(int i = numOldCmds ; i < allCmds.size(); i++){
-			String cmd = (String) allCmds.get(i).get("command");
-			if(cmd != null){
-				if(cmd.startsWith("v:") || cmd.startsWith("data.query")) {
-					if(!cmd.contains("user.input")) {
-						this.addToRecipe = false;
-					} else {
-						this.recipeIndex = 0;
-					}
-				} 
-				parsedPkqls.add(cmd);
-			}
-			else {
-				LOGGER.error("this is weird... my runner response doesn't have a PKQL command stored. Skipping for now in terms of adding to recipe");
-			}
-		}
-		
+//		List<Map> allCmds = runner.getResults();
+//		for(int i = numOldCmds ; i < allCmds.size(); i++){
+//			String cmd = (String) allCmds.get(i).get("command");
+//			if(cmd != null){
+//				if(cmd.startsWith("v:") || cmd.startsWith("data.query")) {
+//					if(!cmd.contains("user.input")) {
+//						this.addToRecipe = false;
+//					} else {
+//						this.recipeIndex = 0;
+//					}
+//				} 
+//				parsedPkqls.add(cmd);
+//			}
+//			else {
+//				LOGGER.error("this is weird... my runner response doesn't have a PKQL command stored. Skipping for now in terms of adding to recipe");
+//			}
+//		}
+//		
 		// store the metadata list on the post transformation
 		// this will be consolidated at the insight lvl
 		// but since insight runs all the pkql post transformations at the same 
@@ -115,12 +110,12 @@ public class PKQLTransformation extends AbstractTransformation {
 		// i want to separate each one out since i dont want to have to constantly
 		// loop through everything in order to determine the difference
 		// would be unnecessary operation to perform when doing through create
-		this.metadataList = runner.getMetadataResponse();
-		if(this.metadataList != null) {
-			for(IPkqlMetadata meta : metadataList) {
-				meta.setInvokingPkqlTransformation(this);
-			}
-		}
+//		this.metadataList = runner.getMetadataResponse();
+//		if(this.metadataList != null) {
+//			for(IPkqlMetadata meta : metadataList) {
+//				meta.setInvokingPkqlTransformation(this);
+//			}
+//		}
 	}
 
 	@Override
@@ -161,15 +156,6 @@ public class PKQLTransformation extends AbstractTransformation {
 //	public Map<String, String> getNewColumns() {
 //		return this.newColumns;
 //	}
-	
-	public void setRunner(PKQLRunner runner){
-		this.runner = runner;
-	}
-	
-	public void setRunner(PixelRunner runner) {
-		this.runner2 = runner;
-	}
-	
 	
 	public List<String> getPkql() {
 		return parsedPkqls;

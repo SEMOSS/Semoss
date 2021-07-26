@@ -21,7 +21,7 @@ public class SyncAppOReactor extends AbstractReactor {
 
 	public SyncAppOReactor() {
 		this.keysToGet = new String[]{
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
+				ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
 				ReactorKeysEnum.SYNC_PULL.getKey(), ReactorKeysEnum.SYNC_DATABASE.getKey()};
 	}
@@ -30,7 +30,7 @@ public class SyncAppOReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appName = this.keyValue.get(this.keysToGet[0]);
+		String databaseName = this.keyValue.get(this.keysToGet[0]);
 		String repository = this.keyValue.get(this.keysToGet[1]);
 		String username = this.keyValue.get(this.keysToGet[2]);
 		String password = this.keyValue.get(this.keysToGet[3]);
@@ -54,22 +54,22 @@ public class SyncAppOReactor extends AbstractReactor {
 		if(database) {
 			try {
 				logger.info("Synchronizing Database Now... ");
-				logger.info("Stopping the engine ... ");
-				// remove the app
-				Utility.getEngine(appName).closeDB();
-				DIHelper.getInstance().removeLocalProperty(appName);
-				GitSynchronizer.syncDatabases(appName, repository, username, password, logger);
+				logger.info("Stopping the database ... ");
+				// remove the database
+				Utility.getEngine(databaseName).closeDB();
+				DIHelper.getInstance().removeLocalProperty(databaseName);
+				GitSynchronizer.syncDatabases(databaseName, repository, username, password, logger);
 				logger.info("Synchronize Database Complete");
 			} finally {
 				// open it back up
-				logger.info("Opening the engine again ... ");
-				Utility.getEngine(appName);
+				logger.info("Opening the database again ... ");
+				Utility.getEngine(databaseName);
 			}
 		}
 
 		// if it is null or true dont worry
 		logger.info("Synchronizing Insights Now... ");
-		Map<String, List<String>> filesChanged = GitSynchronizer.synchronize(appName, repository, username, password, dual);
+		Map<String, List<String>> filesChanged = GitSynchronizer.synchronize(databaseName, repository, username, password, dual);
 		logger.info("Synchronize Insights Complete");
 
 		StringBuffer output = new StringBuffer("SUCCESS \r\n ");
@@ -98,7 +98,7 @@ public class SyncAppOReactor extends AbstractReactor {
 			output.append("0");
 		}
 
-		// will update solr and in the engine rdbms insights database
+		// will update solr and in the database rdbms insights database
 		Map<String, List<String>> mosfetFiles = getMosfetFiles(filesChanged);
 		if(!mosfetFiles.isEmpty()) {
 			logger.info("Indexing your insight changes");

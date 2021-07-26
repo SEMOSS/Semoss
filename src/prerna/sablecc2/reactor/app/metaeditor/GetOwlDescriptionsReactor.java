@@ -14,27 +14,27 @@ import prerna.util.Utility;
 public class GetOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 
 	public GetOwlDescriptionsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		String appId = getAppId();
+		String databaseId = getDatabaseId();
 		// we may have an alias
-		appId = testAppId(appId, true);
+		databaseId = testDatabaseId(databaseId, true);
 		
 		String concept = getConcept();
 		String prop = getProperty();
 		
-		IEngine engine = Utility.getEngine(appId);
+		IEngine database = Utility.getEngine(databaseId);
 		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
-			physicalUri = engine.getPhysicalUriFromPixelSelector(concept);
+			physicalUri = database.getPhysicalUriFromPixelSelector(concept);
 		} else {
-			physicalUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + prop);
+			physicalUri = database.getPhysicalUriFromPixelSelector(concept + "__" + prop);
 		}
 		
-		String description = engine.getDescription(physicalUri);
+		String description = database.getDescription(physicalUri);
 		List<String> desList = new Vector<String>();
 		desList.add(description);
 		NounMetadata noun = new NounMetadata(desList, PixelDataType.CONST_STRING, PixelOperationType.ENTITY_DESCRIPTIONS);
@@ -48,12 +48,12 @@ public class GetOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 	///////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////
 
-	private String getAppId() {
+	private String getDatabaseId() {
 		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {
-			String appId = (String) grs.get(0);
-			if (appId != null && !appId.isEmpty()) {
-				return appId;
+			String id = (String) grs.get(0);
+			if (id != null && !id.isEmpty()) {
+				return id;
 			}
 		}
 		throw new IllegalArgumentException("Need to define " + keysToGet[0]);

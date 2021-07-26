@@ -5,14 +5,12 @@ import java.io.File;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 public class MoveUserAssetReactor extends AbstractReactor{
@@ -41,33 +39,29 @@ public class MoveUserAssetReactor extends AbstractReactor{
 			throw new IllegalArgumentException("File does not exist at this location");
 		}
 		
-		String assetEngineID = null;
+		String assetProjectId = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
 			if(user != null){
 				AuthProvider token = user.getPrimaryLogin();
 				if(token != null){
-					assetEngineID = user.getAssetEngineId(token);
-					Utility.getEngine(assetEngineID);
+					assetProjectId = user.getAssetProjectId(token);
+					Utility.getProject(assetProjectId);
 				}
 			}
 		}
 
-		if(assetEngineID == null){
+		if(assetProjectId == null){
 			throw new IllegalArgumentException("Unable to find Asset App ID for user");
 		}
 		
-		String userFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" + DIR_SEPARATOR +
-				WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID + DIR_SEPARATOR + "version" ;
-
+		String userFolderPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, true);
 		File userFolder = new File(userFolderPath);
-
 		if(!userFolder.exists()){
 			throw new IllegalArgumentException("Unable to find user asset app directory");
 		}
 		
 		String newRelativePath = userFolderPath + newFilePath;
-		
 		Boolean moved = currentFile.renameTo(new File(newRelativePath));
 		return new NounMetadata(moved, PixelDataType.BOOLEAN, PixelOperationType.USER_DIR);
 	}

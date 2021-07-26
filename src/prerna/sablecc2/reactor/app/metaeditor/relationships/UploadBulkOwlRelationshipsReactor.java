@@ -51,7 +51,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 	private Logger logger = null;
 	
 	public UploadBulkOwlRelationshipsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), 
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), 
 				ReactorKeysEnum.SPACE.getKey(), SYNC_WITH_LOCALMASTER};
 	}
 	
@@ -60,7 +60,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		logger = getLogger(CLASS_NAME);
 
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		boolean sync = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		File uploadFile = new File(filePath);
@@ -68,13 +68,13 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 			throw new IllegalArgumentException("Could not find the specified file");
 		}
 		
-		ClusterUtil.reactorPullOwl(appId);
+		ClusterUtil.reactorPullOwl(databaseId);
 		
-		Owler owler = getOWLER(appId);
+		Owler owler = getOWLER(databaseId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
-		IEngine engine = Utility.getEngine(appId);
-		setOwlerValues(engine, owler);
+		IEngine database = Utility.getEngine(databaseId);
+		setOwlerValues(database, owler);
 		
 		long start = System.currentTimeMillis();
 		ExcelSheetFileIterator it = null;
@@ -146,17 +146,17 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
-		EngineSyncUtility.clearEngineCache(appId);
-		ClusterUtil.reactorPushOwl(appId);
+		EngineSyncUtility.clearEngineCache(databaseId);
+		ClusterUtil.reactorPushOwl(databaseId);
 		
 		if(sync) {
 			logger.info("Starting to remove exisitng metadata");
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
-			remover.deleteEngineRDBMS(appId);
+			remover.deleteEngineRDBMS(databaseId);
 			logger.info("Finished removing exisitng metadata");
 
 			logger.info("Starting to add metadata");
-			String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
+			String smssFile = (String) DIHelper.getInstance().getDbProperty(databaseId + "_" + Constants.STORE);
 			Properties prop = Utility.loadProperties(smssFile);
 			AddToMasterDB adder = new AddToMasterDB();
 			adder.registerEngineLocal(prop);

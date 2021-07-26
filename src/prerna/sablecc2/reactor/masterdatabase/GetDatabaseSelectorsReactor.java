@@ -26,9 +26,9 @@ public class GetDatabaseSelectorsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Can only define one database within this call");
 		}
 		String engineId = eGrs.get(0).toString();
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
 		
-		Collection<String> conceptsWithinEngineList = MasterDatabaseUtility.getSelectorsWithinEngineRDBMS(engineId);
+		Collection<String> conceptsWithinEngineList = MasterDatabaseUtility.getSelectorsWithinDatabaseRDBMS(engineId);
 		return new NounMetadata(conceptsWithinEngineList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_PIXEL_SELECTORS);
 	}
 

@@ -10,7 +10,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -70,32 +70,26 @@ public class DeleteAssetReactor extends AbstractReactor {
 			GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
 		}
 		
-		//push to the cloud
+		// push to the cloud
 		if(ClusterUtil.IS_CLUSTER) {
-			
 			//is it a user asset  change
 			if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
 				AuthProvider provider = user.getPrimaryLogin();
-				String appId = user.getAssetEngineId(provider);
-				if(appId!=null && !(appId.isEmpty())) {
-					IEngine engine = Utility.getEngine(appId);
-					ClusterUtil.reactorPushFolder(engine, assetFolder);
+				String projectId = user.getAssetProjectId(provider);
+				if(projectId!=null && !(projectId.isEmpty())) {
+					IProject project = Utility.getUserAssetWorkspaceProject(projectId, true);
+					ClusterUtil.reactorPushUserWorkspace(project, true);
 				}
-				//is it an insight asset change
+			// is it an insight asset change
 			} else if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
-				IEngine engine = Utility.getEngine(this.insight.getEngineId());
-				ClusterUtil.reactorPushFolder(engine, assetFolder);
-				
-				//else its app asset change
+				IProject project = Utility.getProject(this.insight.getProjectId());
+				ClusterUtil.reactorPushProjectFolder(project, assetFolder);
+			// this is a project asset. space is the projectId
 			} else {
-				//this is an app asset. Space is the appID
-				//ClusterUtil.reactorPushApp(space);
-				IEngine engine = Utility.getEngine(space);
-				ClusterUtil.reactorPushFolder(engine, assetFolder);
-			}	
+				IProject project = Utility.getProject(space);
+				ClusterUtil.reactorPushProjectFolder(project, assetFolder);
+			}
 		}
-
-		//ClusterUtil.reactorPushFolder(Utility.getEngine(engineId), baseFolder);
 
 		return NounMetadata.getSuccessNounMessage("Success!");
 	}

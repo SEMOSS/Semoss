@@ -272,7 +272,6 @@ public class Pixel {
 		this.removeLayerList = removeLayerList;
 	}
 	
-	
 	/**
 	 * Get the clone map list
 	 * @return

@@ -61,12 +61,10 @@ import prerna.comments.InsightCommentHelper;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.TCPPyTranslator;
-import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
-import prerna.engine.impl.SmssUtilities;
+import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -99,7 +97,6 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class Insight implements Serializable {
 
-	public static Boolean isjavac = null;
 	public static final String DEFAULT_SHEET_ID = "0";
 	public static final String DEFAULT_SHEET_LABEL = "Sheet1";
 
@@ -121,8 +118,8 @@ public class Insight implements Serializable {
 
 	// if this is a saved insight
 	protected String rdbmsId;
-	protected String engineId;
-	protected String engineName;
+	protected String projectId;
+	protected String projectName;
 	protected boolean cacheable = true;
 	protected int count = 0;
 	
@@ -231,14 +228,14 @@ public class Insight implements Serializable {
 
 	/**
 	 * Open a saved insight and determine if it is cacheable
-	 * @param engineId
-	 * @param engineName
+	 * @param projectId
+	 * @param projectName
 	 * @param rdbmsId
 	 * @param cacheable
 	 */
-	public Insight(String engineId, String engineName, String rdbmsId, boolean cacheable, int capacity) {
-		this.engineId = engineId;
-		this.engineName = engineName;
+	public Insight(String projectId, String projectName, String rdbmsId, boolean cacheable, int capacity) {
+		this.projectId = projectId;
+		this.projectName = projectName;
 		this.rdbmsId = rdbmsId;
 		this.cacheable = cacheable;
 		loadDefaultSettings(capacity);
@@ -348,9 +345,9 @@ public class Insight implements Serializable {
 	
 	private SaveInsightIntoWorkspace getWorkspaceCacheThread() {
 		if(this.workspaceCacheThread == null && this.user != null && this.user.isLoggedIn()) {
-			String worksapceId = this.user.getWorkspaceEngineId(this.user.getPrimaryLogin());
+			String worksapceId = this.user.getWorkspaceProjectId(this.user.getPrimaryLogin());
 			if(worksapceId != null) {
-				boolean isCacheOfCache = worksapceId.equals(this.engineId);
+				boolean isCacheOfCache = worksapceId.equals(this.projectId);
 				this.workspaceCacheThread = new SaveInsightIntoWorkspace(worksapceId, this.rdbmsId, this.insightName, isCacheOfCache);
 			}
 		}
@@ -423,7 +420,7 @@ public class Insight implements Serializable {
 	
 	public LinkedList<InsightComment> getInsightComments() {
 		if(this.insightCommentList == null) {
-			this.insightCommentList = InsightCommentHelper.generateInsightCommentList(this.engineId, this.rdbmsId);
+			this.insightCommentList = InsightCommentHelper.generateInsightCommentList(this.projectId, this.rdbmsId);
 		}
 		return this.insightCommentList;
 	}
@@ -454,7 +451,7 @@ public class Insight implements Serializable {
 //						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 //						+ DIR_SEPARATOR + "version"
 //						+ DIR_SEPARATOR + this.rdbmsId;
-				this.insightFolder = AssetUtility.getAppAssetVersionFolder(this.engineName, this.engineId)
+				this.insightFolder = AssetUtility.getProjectAssetVersionFolder(this.projectName, this.projectId)
 						+ DIR_SEPARATOR + this.rdbmsId;
 			}
 		}
@@ -474,7 +471,7 @@ public class Insight implements Serializable {
 			} else {
 				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
 				// need to grab from engine
-				this.appFolder = AssetUtility.getAppAssetFolder(this.engineName, this.engineId);
+				this.appFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId);
 				// if this folder does not exist create it and git init it
 				File file = new File(appFolder);
 				if(!file.exists())
@@ -495,8 +492,8 @@ public class Insight implements Serializable {
 	// gets the user folder as well
 	public String getUserFolder() {
 		AuthProvider provider = user.getPrimaryLogin();
-		String appId = user.getAssetEngineId(provider);
-		this.userFolder = AssetUtility.getAppAssetVersionFolder("Asset", appId);
+		String appId = user.getAssetProjectId(provider);
+		this.userFolder = AssetUtility.getProjectAssetVersionFolder("Asset", appId);
 		return userFolder;
 	}
 	
@@ -528,7 +525,7 @@ public class Insight implements Serializable {
 	}
 	
 	public boolean isSavedInsight() {
-		return this.engineId != null && this.rdbmsId != null;
+		return this.projectId != null && this.rdbmsId != null;
 	}
 	
 	public PixelList getPixelList() {
@@ -593,20 +590,20 @@ public class Insight implements Serializable {
 		this.rdbmsId = rdbmsId;
 	}
 
-	public String getEngineId() {
-		return engineId;
+	public String getProjectId() {
+		return projectId;
 	}
 
-	public void setEngineId(String engineId) {
-		this.engineId = engineId;
+	public void setProjectId(String projectId) {
+		this.projectId = projectId;
 	}
 	
-	public String getEngineName() {
-		return engineName;
+	public String getProjectName() {
+		return projectName;
 	}
 
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
+	public void setProjectName(String projectName) {
+		this.projectName = projectName;
 	}
 
 	public String getInsightName() {
@@ -876,107 +873,107 @@ public class Insight implements Serializable {
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	@Deprecated
-	public Map<String, Object> runPkql(String pkqlString) {
-		PKQLRunner runner = getPkqlRunner();
-		try {
-			logger.info("Running >>> " + pkqlString);
-			// we need to account for the fact that the data.output
-			// will create a completely new insight object
-			// so even though we add the reactors
-			// we end up with a new translation that needs them again
-			if(this.getDataMaker() != null) {
-				runner.runPKQL(pkqlString, this.getDataMaker());
-			} else {
-				// ugh... i dont like having to have a h2frame...
-				// but FE never adds data.frame(grid)
-				runner.runPKQL(pkqlString, new H2Frame());
-			}
-		} catch(Exception e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Error with " + pkqlString + "\n" + e.getMessage());
-		}
-		this.pixelList.addPixel(pkqlString);
-		return collectPkqlResults(runner);
-	}
-
-	// run a new list of pkql routines
-	@Deprecated
-	public Map<String, Object> runPkql(List<String> pqlList) {
-		PKQLRunner runner = getPkqlRunner();
-		int size = pqlList.size();
-		for(int i = 0; i < size; i++) {
-			String pkqlString = pqlList.get(i);
-			try {
-				logger.info("Running >>> " + pkqlString);
-				if(this.getDataMaker() != null) {
-					runner.runPKQL(pkqlString, this.getDataMaker());
-				} else {
-					// ugh... i dont like having to have a h2frame...
-					// but FE never adds data.frame(grid)
-					runner.runPKQL(pkqlString, new H2Frame());
-				}
-			} catch(Exception e) {
-				e.printStackTrace();
-				throw new IllegalArgumentException("Error with " + pkqlString + "\n" + e.getMessage());
-			}
-			this.pixelList.addPixel(pkqlString);
-		}
-		return collectPkqlResults(runner);
-	}
+//	@Deprecated
+//	public Map<String, Object> runPkql(String pkqlString) {
+//		PKQLRunner runner = getPkqlRunner();
+//		try {
+//			logger.info("Running >>> " + pkqlString);
+//			// we need to account for the fact that the data.output
+//			// will create a completely new insight object
+//			// so even though we add the reactors
+//			// we end up with a new translation that needs them again
+//			if(this.getDataMaker() != null) {
+//				runner.runPKQL(pkqlString, this.getDataMaker());
+//			} else {
+//				// ugh... i dont like having to have a h2frame...
+//				// but FE never adds data.frame(grid)
+//				runner.runPKQL(pkqlString, new H2Frame());
+//			}
+//		} catch(Exception e) {
+//			e.printStackTrace();
+//			throw new IllegalArgumentException("Error with " + pkqlString + "\n" + e.getMessage());
+//		}
+//		this.pixelList.addPixel(pkqlString);
+//		return collectPkqlResults(runner);
+//	}
+//
+//	// run a new list of pkql routines
+//	@Deprecated
+//	public Map<String, Object> runPkql(List<String> pqlList) {
+//		PKQLRunner runner = getPkqlRunner();
+//		int size = pqlList.size();
+//		for(int i = 0; i < size; i++) {
+//			String pkqlString = pqlList.get(i);
+//			try {
+//				logger.info("Running >>> " + pkqlString);
+//				if(this.getDataMaker() != null) {
+//					runner.runPKQL(pkqlString, this.getDataMaker());
+//				} else {
+//					// ugh... i dont like having to have a h2frame...
+//					// but FE never adds data.frame(grid)
+//					runner.runPKQL(pkqlString, new H2Frame());
+//				}
+//			} catch(Exception e) {
+//				e.printStackTrace();
+//				throw new IllegalArgumentException("Error with " + pkqlString + "\n" + e.getMessage());
+//			}
+//			this.pixelList.addPixel(pkqlString);
+//		}
+//		return collectPkqlResults(runner);
+//	}
 	
 	/**
 	 * A routine to grab all the random data we need for the previously run insight pixel routines
 	 * @return
 	 */
-	@Deprecated
-	private Map<String, Object> collectPkqlResults(PKQLRunner pkqlRunner) {
-		Map<String, Object> returnObj = new HashMap<String, Object>();
-		
-		// add insight information
-		returnObj.put("insightID", this.insightId);
-		IDataMaker datamaker = pkqlRunner.getDataFrame();
-		if(datamaker != null) {
-			returnObj.put("dataID", datamaker.getDataId());
-			// TODO: just cause i want as many things to be in future state as possible
-			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
-		}
-		
-		// add the pkql data
-		returnObj.put("newColumns", pkqlRunner.getNewColumns());
-		returnObj.put("newInsights", pkqlRunner.getNewInsights());
-		returnObj.put("clear", pkqlRunner.getDataClear());
-		returnObj.put("pkqlData", pkqlRunner.getResults());
-		returnObj.put("feData", pkqlRunner.getFeData());
-		
-		// ... in case this is some dashboard object
-		if(pkqlRunner.getDashboardData() != null) {
-			Map dashboardMap = new HashMap();
-			dashboardMap.putAll((Map)pkqlRunner.getDashboardData());
-			returnObj.put("Dashboard", dashboardMap);
-		}
-		
-		// need to grab the metadata
-		// in case there is a file used that i need to keep track of
-		// if this insight is later saved
-//		parseMetadataResponse(pkqlRunner.getMetadataResponse());
-		
-		// store the varmap after the operation is done
-		this.pkqlVarMap = pkqlRunner.getVarMap();
-		
-		return returnObj;
-	}
+//	@Deprecated
+//	private Map<String, Object> collectPkqlResults(PKQLRunner pkqlRunner) {
+//		Map<String, Object> returnObj = new HashMap<String, Object>();
+//		
+//		// add insight information
+//		returnObj.put("insightID", this.insightId);
+//		IDataMaker datamaker = pkqlRunner.getDataFrame();
+//		if(datamaker != null) {
+//			returnObj.put("dataID", datamaker.getDataId());
+//			// TODO: just cause i want as many things to be in future state as possible
+//			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
+//		}
+//		
+//		// add the pkql data
+//		returnObj.put("newColumns", pkqlRunner.getNewColumns());
+//		returnObj.put("newInsights", pkqlRunner.getNewInsights());
+//		returnObj.put("clear", pkqlRunner.getDataClear());
+//		returnObj.put("pkqlData", pkqlRunner.getResults());
+//		returnObj.put("feData", pkqlRunner.getFeData());
+//		
+//		// ... in case this is some dashboard object
+//		if(pkqlRunner.getDashboardData() != null) {
+//			Map dashboardMap = new HashMap();
+//			dashboardMap.putAll((Map)pkqlRunner.getDashboardData());
+//			returnObj.put("Dashboard", dashboardMap);
+//		}
+//		
+//		// need to grab the metadata
+//		// in case there is a file used that i need to keep track of
+//		// if this insight is later saved
+////		parseMetadataResponse(pkqlRunner.getMetadataResponse());
+//		
+//		// store the varmap after the operation is done
+//		this.pkqlVarMap = pkqlRunner.getVarMap();
+//		
+//		return returnObj;
+//	}
 	
-	@Deprecated
-	public Map<String, Object> reRunInsight() {
-		// just clear the varStore
-		// TODO: need to do better clean up
-		// like actually removing the data makers so we do not 
-		// have too much in memory
-		this.varStore.clear();
-		this.insightPanels.clear();
-		return runPkql(this.pixelList.getPixelRecipe());
-	}
+//	@Deprecated
+//	public Map<String, Object> reRunInsight() {
+//		// just clear the varStore
+//		// TODO: need to do better clean up
+//		// like actually removing the data makers so we do not 
+//		// have too much in memory
+//		this.varStore.clear();
+//		this.insightPanels.clear();
+//		return runPkql(this.pixelList.getPixelRecipe());
+//	}
 	
 	/**
 	 * re-run the optimized version of the pixel recipe
@@ -1104,17 +1101,17 @@ public class Insight implements Serializable {
 		}
 	}
 	
-	/**
-	 * Get a new instance of the pkql runner
-	 * @return
-	 */
-	@Deprecated
-	public PKQLRunner getPkqlRunner() {
-		PKQLRunner runner = new PKQLRunner();
-		runner.setInsightId(this.insightId);
-		runner.setVarMap(this.pkqlVarMap);
-		return runner;
-	}
+//	/**
+//	 * Get a new instance of the pkql runner
+//	 * @return
+//	 */
+//	@Deprecated
+//	public PKQLRunner getPkqlRunner() {
+//		PKQLRunner runner = new PKQLRunner();
+//		runner.setInsightId(this.insightId);
+//		runner.setVarMap(this.pkqlVarMap);
+//		return runner;
+//	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -1143,7 +1140,7 @@ public class Insight implements Serializable {
 		
 		//String cp = getCP();
 		
-		if(isValidJava() && getInsightFolder() != null)
+		if(Utility.isValidJava() && getInsightFolder() != null)
 		{
 			File insightDirectory = new File(insightFolder);
 			// replace the version name to start with
@@ -1202,42 +1199,23 @@ public class Insight implements Serializable {
 			// else try to find it the specific db
 			// loading it inside of version/classes
 			// check with all the engines used
-			if(engineId != null)
+			if(projectId != null)
 			{
-				IEngine engine = Utility.getEngine(engineId);
-				retReac = engine.getReactor(className, null);				
+				IProject project = Utility.getProject(projectId);
+				retReac = project.getReactor(className, null);				
 			}
 			// check all other dbs
 			// first one wins
 			for(int engineIndex = 0;engineIndex < queriedAppIds.size() && retReac == null;engineIndex++)
 			{
 				String thisEngine = queriedAppIds.get(engineIndex);
-				IEngine engine = Utility.getEngine(thisEngine);
+				IProject engine = Utility.getProject(thisEngine);
 				retReac = engine.getReactor(className, null);
-			}			
+			}
 		}				
 		return retReac;
 	}
-	
-	public boolean isValidJava()
-	{
-		if(isjavac == null)
-		{
-			try
-			{
-				Class.forName("com.sun.tools.javac.Main");
-				isjavac = true;
-			}catch(ClassNotFoundException ex)
-			{
-				isjavac = false;
-			}
-		}
-		return isjavac;
 
-	}
-
-	
-	
 	public String getCP()
 	{
 		String envClassPath = null;
@@ -1406,7 +1384,7 @@ public class Insight implements Serializable {
 	
 	public String getInsightURL() {
 		StringBuilder retURL = new StringBuilder(this.baseURL);
-		retURL.append("insight?engine=").append(engineId).append("&").append("id=").append(rdbmsId);
+		retURL.append("insight?engine=").append(projectId).append("&").append("id=").append(rdbmsId);
 		return retURL.toString();
 	}
 
@@ -1441,6 +1419,9 @@ public class Insight implements Serializable {
 		return retOutput;
 	}
 
+	
+	// TODO::::
+	// TODO::::
 	public boolean setContext(String context)
 	{
 		// sets the context space for the user
@@ -1463,7 +1444,7 @@ public class Insight implements Serializable {
 		else
 		{
 			String id = Utility.getEngineData(context);
-			String mountDir = AssetUtility.getAppAssetVersionFolder(context, id);
+			String mountDir = AssetUtility.getProjectAssetVersionFolder(context, id);
 	
 			this.cmdUtil = new CmdExecUtil(context, mountDir);
 			return true;

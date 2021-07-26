@@ -74,7 +74,7 @@ public class ExecQueryReactor extends AbstractReactor {
 
 				// If security is enabled, then check that the user can edit the engine
 				if (AbstractSecurityUtils.securityEnabled()) {
-					if (!SecurityAppUtils.userCanEditEngine(user, engine.getEngineId())) {
+					if (!SecurityAppUtils.userCanEditDatabase(user, engine.getEngineId())) {
 						throw new IllegalArgumentException("User does not have permission to exec query for this app");
 					}
 				}
@@ -137,7 +137,7 @@ public class ExecQueryReactor extends AbstractReactor {
 				}
 			}
 
-			ClusterUtil.reactorPushApp(engine.getEngineId());
+			ClusterUtil.reactorPushDatabase(engine.getEngineId());
 		} else {
 			try {
 				if (frame != null) {

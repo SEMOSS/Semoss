@@ -40,7 +40,7 @@ public class RdfConvertLiteralTypeReactor extends AbstractReactor {
 	private static final String CLASS_NAME = RdfConvertLiteralTypeReactor.class.getName();
 	
 	public RdfConvertLiteralTypeReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), 
+		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), 
 				ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), 
 				ReactorKeysEnum.DATA_TYPE.getKey()
 		};

@@ -32,7 +32,7 @@ public class GitVersion extends AbstractReactor {
 			logger.info("App is already versionable");
 		} else {
 			logger.info("Creating initial version");
-			GitRepoUtils.makeLocalAppGitVersionFolder(appFolder);
+			GitRepoUtils.makeLocalDatabaseGitVersionFolder(appFolder);
 			// we create a version folder
 			String versionFolder = appFolder + "/version";
 			GitPushUtils.addAllFiles(versionFolder, false);

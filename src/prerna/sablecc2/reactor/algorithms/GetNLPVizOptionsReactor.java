@@ -22,7 +22,7 @@ import prerna.util.Utility;
 public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 
 	/**
-	 * Reads in the Columns and App IDs and returns the visualization string, which
+	 * Reads in the Columns and Database IDs and returns the visualization string, which
 	 * is then appended to the NLP search
 	 */
 	
@@ -30,7 +30,7 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 	protected static final String CLASS_NAME = CreateNLPVizReactor.class.getName();
 
 	public GetNLPVizOptionsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.COLUMNS.getKey() , ReactorKeysEnum.FRAME.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.COLUMNS.getKey() , ReactorKeysEnum.FRAME.getKey()};
 	}
 
 	@Override
@@ -38,7 +38,7 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		List<String> cols = getColumns();
 		RDataTable frame = (RDataTable) this.getFrame();
 		String frameName = frame.getName();
@@ -46,9 +46,9 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 		Map<String, String> aliasHash = new HashMap<String, String>();
 		String fileroot = "dataitem";
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
-		String appName = "Multiple";
-		if(!appId.contains("Multiple") && !appId.contains("null")) {
-			appName = MasterDatabaseUtility.getEngineAliasForId(appId).replace(" ", "_");
+		String databaseName = "Multiple";
+		if(!databaseId.contains("Multiple") && !databaseId.contains("null")) {
+			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId).replace(" ", "_");
 		}
 		boolean allStrings = true;
 		
@@ -119,12 +119,12 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 			}
 			
 
-			rsb.append(inputFrame + "[" + rowCounter + ",] <- c(\"" + appId + "$" + appName + "$" + tableName + "$" + colName + "\",");
+			rsb.append(inputFrame + "[" + rowCounter + ",] <- c(\"" + databaseId + "$" + databaseName + "$" + tableName + "$" + colName + "\",");
 			rsb.append("\"" + dataType + "\",");
 			rsb.append(uniqueValues + ");");
 
 			// add column alias hash so we can look up alias later
-			aliasHash.put(colName + "_" + tableName + "_" + appId, col.toString());
+			aliasHash.put(colName + "_" + tableName + "_" + databaseId, col.toString());
 
 			rowCounter++;
 		}
@@ -175,14 +175,14 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 		return (col.contains("UniqueCount_") || col.contains("Count_") || col.contains("Min_") || col.contains("Max_")
 				|| col.contains("Average_") || col.contains("Sum_"));
 	}
-
+	
 	private List<String> getColumns() {
-		List<String> engineFilters = new Vector<String>();
-		GenRowStruct engineGrs = this.store.getNoun(this.keysToGet[1]);
-		for (int i = 0; i < engineGrs.size(); i++) {
-			engineFilters.add(engineGrs.get(i).toString());
+		List<String> columns = new Vector<String>();
+		GenRowStruct columnGRS = this.store.getNoun(this.keysToGet[1]);
+		for (int i = 0; i < columnGRS.size(); i++) {
+			columns.add(columnGRS.get(i).toString());
 		}
 
-		return engineFilters;
+		return columns;
 	}
 }

@@ -384,24 +384,26 @@ public final class OUSDPlaysheetHelper {
 	}
 	
 	public static IPlaySheet getPlaySheetFromName(String insightName, IEngine mainEngine){
-		IEngine qEng = mainEngine.getInsightDatabase();
-		String query = "SELECT ID FROM QUESTION_ID WHERE QUESTION_NAME = '"+insightName+"'";
-		ISelectWrapper it = WrapperManager.getInstance().getSWrapper(qEng, query);
-//		Integer qID = (Integer) frame.getAllData().get(0)[0];
-		String qID = "";
-		if(it.hasNext()) {
-			ISelectStatement val = it.next();
-			qID = val.getValues()[0] + "";
-		}
-		OldInsight in = (OldInsight) mainEngine.getInsight(qID).get(0);
-
-//		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
-//		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
-//		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
-		IPlaySheet activitySheet = in.getPlaySheet();
-		activitySheet.setQuery(in.getDataMakerComponents().get(0).getQuery());
-		activitySheet.setRDFEngine(in.getDataMakerComponents().get(0).getEngine());
+		return null;
 		
-		return activitySheet;
+//		IEngine qEng = mainEngine.getInsightDatabase();
+//		String query = "SELECT ID FROM QUESTION_ID WHERE QUESTION_NAME = '"+insightName+"'";
+//		ISelectWrapper it = WrapperManager.getInstance().getSWrapper(qEng, query);
+////		Integer qID = (Integer) frame.getAllData().get(0)[0];
+//		String qID = "";
+//		if(it.hasNext()) {
+//			ISelectStatement val = it.next();
+//			qID = val.getValues()[0] + "";
+//		}
+//		OldInsight in = (OldInsight) mainEngine.getInsight(qID).get(0);
+//
+////		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+////		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+////		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
+//		IPlaySheet activitySheet = in.getPlaySheet();
+//		activitySheet.setQuery(in.getDataMakerComponents().get(0).getQuery());
+//		activitySheet.setRDFEngine(in.getDataMakerComponents().get(0).getEngine());
+//		
+//		return activitySheet;
 	}
 }

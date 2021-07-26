@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.frame.py;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;

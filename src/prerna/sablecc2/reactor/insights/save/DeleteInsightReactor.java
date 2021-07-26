@@ -16,13 +16,11 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
-import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.MosfetFile;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -30,8 +28,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
@@ -41,7 +37,7 @@ import prerna.util.git.GitUtils;
 public class DeleteInsightReactor extends AbstractReactor {
 
 	public DeleteInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
 	}
 
 	@Override
@@ -54,39 +50,40 @@ public class DeleteInsightReactor extends AbstractReactor {
 		}
 		
 		organizeKeys();
-		GenRowStruct appGrs = this.store.getNoun(this.keysToGet[0]);
-		if(appGrs.isEmpty()) {
-			throw new IllegalArgumentException("Must define the app to delete the insights from");
+		GenRowStruct projectGrs = this.store.getNoun(this.keysToGet[0]);
+		if(projectGrs.isEmpty()) {
+			throw new IllegalArgumentException("Must define the project to delete the insights from");
 		}
-		String appId = appGrs.get(0).toString();
+		String projectId = projectGrs.get(0).toString();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(user, appId);
-			if(!SecurityAppUtils.userCanViewEngine(user, appId)) {
-				throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to database");
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+			if(!SecurityAppUtils.userCanViewDatabase(user, projectId)) {
+				throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to database");
 			}
 			// Get the user's email
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 			email = accessToken.getEmail();
 			author = accessToken.getUsername();
-		} else {
-			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
-			if(!MasterDatabaseUtility.getAllEngineIds().contains(appId)) {
-				throw new IllegalArgumentException("App " + appId + " does not exist");
-			}
-		}
-		IEngine engine = Utility.getEngine(appId);
-		String appName = engine.getEngineName();
+		} 
+//		else {
+//			projectId = MasterDatabaseUtility.testProjectIdIfAlias(projectId);
+//			if(!MasterDatabaseUtility.getAllProjectIds().contains(projectId)) {
+//				throw new IllegalArgumentException("Project " + projectId + " does not exist");
+//			}
+//		}
+		IProject project = Utility.getProject(projectId);
+		String projectName = project.getProjectName();
 		
-		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
-		ClusterUtil.reactorPullInsightsDB(appId);
-		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(appName, appId));
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
+		ClusterUtil.reactorPullInsightsDB(projectId);
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(projectName, projectId));
 
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		int size = grs.size();
 		for (int i = 0; i < size; i++) {
 			String insightId = grs.get(i).toString();
 			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityInsightUtils.userCanEditInsight(user, appId, insightId)) {
+				if(!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
 					throw new IllegalArgumentException("User does not have permission to edit this insight");
 				}
 			}
@@ -99,7 +96,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			}
 			
 			// delete insight folder
-			String insightFolderPath = AssetUtility.getAppAssetVersionFolder(appName, appId)
+			String insightFolderPath = AssetUtility.getProjectAssetVersionFolder(projectName, projectId)
 					+ DIR_SEPARATOR + insightId;
 			File insightFolder = new File(insightFolderPath);
 			Stream<Path> walk = null;
@@ -108,7 +105,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 				File mosfitF = new File(insightFolderPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
 				if(mosfitF.exists() && mosfitF.isFile()) {
 					String insightName = MosfetSyncHelper.getInsightName(mosfitF);
-					String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+					String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 					// grab relative file paths
 					walk = Files.walk(Paths.get(insightFolder.toURI()));
 					List<String> files = walk
@@ -134,11 +131,11 @@ public class DeleteInsightReactor extends AbstractReactor {
 			}
 			
 			// now delete from security db
-			SecurityInsightUtils.deleteInsight(appId, insightId);
+			SecurityInsightUtils.deleteInsight(projectId, insightId);
 		}
 		
-		ClusterUtil.reactorPushInsightDB(appId);
-		ClusterUtil.reactorPushFolder(engine, AssetUtility.getAppAssetVersionFolder(appName, appId));
+		ClusterUtil.reactorPushInsightDB(projectId);
+		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(projectName, projectId));
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_INSIGHT);
 	}
 

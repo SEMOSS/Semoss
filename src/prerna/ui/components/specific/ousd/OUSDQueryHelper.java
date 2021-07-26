@@ -63,7 +63,7 @@ public class OUSDQueryHelper {
 		logger.info("Cost db " + Utility.cleanLogString(costDbName));
 
 		//costDbName = OUSDPlaysheetHelper.getCostDatabase(costDbName);
-		String id = MasterDatabaseUtility.testEngineIdIfAlias(costDbName + "_V4b");
+		String id = MasterDatabaseUtility.testDatabaseIdIfAlias(costDbName + "_V4b");
 		costDb = Utility.getEngine(id);
 
 		boolean costDbExists = costDb!=null;

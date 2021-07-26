@@ -35,7 +35,7 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 	public static final String OUTPUT_FRAME_NAME = "outputFrame";
 	
 	public FederationBestMatches() {
-		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), FRAME_COLUMN, OUTPUT_FRAME_NAME};
+		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), FRAME_COLUMN, OUTPUT_FRAME_NAME};
 	}
 
 	@Override
@@ -50,7 +50,7 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 
 		// for the first iteration we have to build the inputs, second iteration
 		// we already have them
-		String newDb = this.keyValue.get(this.keysToGet[0]);
+		String newDatabase = this.keyValue.get(this.keysToGet[0]);
 		String newTable = this.keyValue.get(this.keysToGet[1]);
 		String newCol = this.keyValue.get(this.keysToGet[2]);
 		String frameCol = this.keyValue.get(this.keysToGet[3]);
@@ -63,14 +63,14 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 		final String rCol2 = matchesFrame + "col2";
 		
 		// accept input info, generate matches table
-		IEngine newColEngine = Utility.getEngine(newDb);
+		IEngine newColDatabase = Utility.getEngine(newDatabase);
 		RDataTable frame = (RDataTable) getFrame();
 		String frameName = frame.getName();
 		String rTable1 = rCol1 + " <- as.character(" + frameName + "$" + frameCol + ");";
 
 		// create script to generate col2 from table to be joined
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.setEngine(newColEngine);
+		qs.setEngine(newColDatabase);
 
 		// we will fill these once we figure out if it is a concept or property
 		QueryColumnSelector selector = null;
@@ -80,15 +80,15 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 		// if i get a valid data type, new col is a property for new table
 		// if i dont, then newtable is a concept with a prim key that i need to use
 		// update - switching logic for different method
-		if(newColEngine.getPhysicalUriFromPixelSelector(newTable + "__" + newCol) == null) {
+		if(newColDatabase.getPhysicalUriFromPixelSelector(newTable + "__" + newCol) == null) {
 			// we couldn't find a parent for this property
 			// this means it is a concept itself
 			// and we should only use table
 			selector = new QueryColumnSelector(newTable);
-			conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, newTable, null);
+			conceptDataType = MasterDatabaseUtility.getBasicDataType(newDatabase, newTable, null);
 		} else {
 			selector = new QueryColumnSelector(newTable + "__" + newCol);
-			conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, newCol, newTable);
+			conceptDataType = MasterDatabaseUtility.getBasicDataType(newDatabase, newCol, newTable);
 		}
 		// add the selector to the qs
 		qs.addSelector(selector);
@@ -103,7 +103,7 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 		File newFile = null;
 		IRawSelectWrapper it2 = null;
 		try {
-			it2 = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
+			it2 = WrapperManager.getInstance().getRawWrapper(newColDatabase, qs);
 			// write to file
 			 newFile = Utility.writeResultToFile(newFileLoc, it2, typesMap, "\t");
 		} catch (Exception e) {

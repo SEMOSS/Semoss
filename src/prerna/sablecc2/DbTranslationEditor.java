@@ -1,36 +1,16 @@
 package prerna.sablecc2;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.InsightAdministrator;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.om.Insight;
-import prerna.om.OldInsight;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.PRoutine;
-import prerna.sablecc2.node.Start;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
-import prerna.test.TestUtilityMethods;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class DbTranslationEditor extends DepthFirstAdapter {

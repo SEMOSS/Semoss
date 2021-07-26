@@ -22,7 +22,7 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 
 	public RdfReplaceDatabaseLoaderSheetUploadReactor() {
 		this.keysToGet = new String[] { 
-				UploadInputUtility.APP, 
+				UploadInputUtility.DATABASE, 
 				UploadInputUtility.FILE_PATH,
 				UploadInputUtility.SPACE,
 				UploadInputUtility.CUSTOM_BASE_URI
@@ -33,16 +33,16 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 	public NounMetadata execute() {
 		/*
 		 * THIS LOGIC IS THE SAME AS THE LOGIC IN THE AbstractUploadFileReactor
-		 * EXCEPT IT CAN ONLY BE FOR OVERRIDING AN EXISTING APP
+		 * EXCEPT IT CAN ONLY BE FOR OVERRIDING AN EXISTING DATABASE
 		 * THE LOGIC IS THE SAME EXCEPT THERE IS AN ADDITIONAL METHOD
-		 * TO REMOVE THE APP DATABASE BEFORE RUNNING THE UPDATE
+		 * TO REMOVE THE DATABASE BEFORE RUNNING THE UPDATE
 		 * 
 		 */
 
 		this.logger = getLogger(this.getClass().getName());
 
 		organizeKeys();
-		String appId = UploadInputUtility.getAppNameOrId(this.store);
+		String databaseId = UploadInputUtility.getDatabaseNameOrId(this.store);
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
@@ -53,7 +53,7 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 		if (security) {
 			user = this.insight.getUser();
 			if (user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update an app", PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -67,37 +67,37 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 
 		if (security) {
 			// check if input is alias since we are adding ot existing
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(user, appId);
+			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseId);
 
 			// throw error is user is not owner
-			if (!SecurityAppUtils.userIsOwner(user, appId)) {
-				NounMetadata noun = new NounMetadata("User must be the owner in order to replace all the data in the app", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			if (!SecurityAppUtils.userIsOwner(user, databaseId)) {
+				NounMetadata noun = new NounMetadata("User must be the owner in order to replace all the data in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		} else {
 			// check if input is alias since we are adding ot existing
-			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
-			if (!MasterDatabaseUtility.getAllEngineIds().contains(appId)) {
-				throw new IllegalArgumentException("Database " + appId + " does not exist");
+			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
+			if (!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseId)) {
+				throw new IllegalArgumentException("Database " + databaseId + " does not exist");
 			}
 		}
 
 		try {
-			this.appId = appId;
-			this.appName = MasterDatabaseUtility.getEngineAliasForId(this.appId);
-			// get existing app
-			this.logger.info("Get existing app");
-			this.engine = Utility.getEngine(appId, true, true);
-			if (this.engine == null) {
-				throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
+			this.databaseId = databaseId;
+			this.databaseName = MasterDatabaseUtility.getDatabaseAliasForId(this.databaseId);
+			// get existing database
+			this.logger.info("Get existing database");
+			this.database = Utility.getEngine(databaseId, true);
+			if (this.database == null) {
+				throw new IllegalArgumentException("Couldn't find the database " + databaseId + " to append data into");
 			}
 			this.logger.info("Done");
-			RdfUploadReactorUtility.deleteAllTriples(this.engine);
-			addToExistingApp(filePath);
+			RdfUploadReactorUtility.deleteAllTriples(this.database);
+			addToExistingDatabase(filePath);
 			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE REPLACE!
-			//			this.logger.info("Process app metadata to allow for traversing across apps");
+			//			this.logger.info("Process database metadata to allow for traversing across databases");
 			//			UploadUtilities.updateMetadata(this.engine.getEngineId());
 			this.logger.info("Complete");
 		} catch (Exception e) {
@@ -122,9 +122,9 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 		// no errors
 		// we can do normal clean up of files
 		// TODO:
-		ClusterUtil.reactorPushApp(this.appId);
+		ClusterUtil.reactorPushDatabase(this.databaseId);
 
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), this.appId);
+		Map<String, Object> retMap = UploadUtilities.getDatabaseReturnData(this.insight.getUser(), this.databaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 

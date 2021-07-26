@@ -2,8 +2,8 @@ package prerna.engine.impl.remotesemoss;
 
 import java.util.Vector;
 
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
-import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -30,11 +30,11 @@ public class RemoteSemossEngine extends AbstractEngine {
 		return null;
 	}
 
-	@Override
-	public Vector<Insight> getInsight(String... questionIDs) {
-		System.out.println("need to implement this in rest");
-		return null;
-	}
+//	@Override
+//	public Vector<Insight> getInsight(String... questionIDs) {
+//		System.out.println("need to implement this in rest");
+//		return null;
+//	}
 	
 	
 	@Override

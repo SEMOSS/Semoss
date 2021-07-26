@@ -131,7 +131,7 @@ public class CONUSMapExporter {
 				JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 				playSheet.setJDesktopPane(pane);
 				
-				OldInsight insight = new OldInsight(null, "", "");
+				OldInsight insight = new OldInsight("", "");
 				insight.setInsightId(id);
 				insight.setPlaySheet(playSheet);
 				InsightStore.getInstance().put(insight);

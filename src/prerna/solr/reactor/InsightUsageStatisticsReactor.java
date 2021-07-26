@@ -5,12 +5,10 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
@@ -34,33 +32,34 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 	}
 	
 	public InsightUsageStatisticsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(), 
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(), 
 				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.PANEL.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		GenRowStruct engineFilterGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct projectGrsFilters = this.store.getNoun(this.keysToGet[0]);
 		List<NounMetadata> warningNouns = new Vector<>();
 		// get list of engineIds if user has access
-		List<String> eFilters = null;
-		if (engineFilterGrs != null && !engineFilterGrs.isEmpty()) {
-			eFilters = new Vector<String>();
-			for (int i = 0; i < engineFilterGrs.size(); i++) {
-				String engineFilter = engineFilterGrs.get(i).toString();
+		List<String> pFilters = null;
+		if (projectGrsFilters != null && !projectGrsFilters.isEmpty()) {
+			pFilters = new Vector<String>();
+			for (int i = 0; i < projectGrsFilters.size(); i++) {
+				String engineFilter = projectGrsFilters.get(i).toString();
 				if (AbstractSecurityUtils.securityEnabled()) {
-					engineFilter = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineFilter);
-					if (SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineFilter)) {
-						eFilters.add(engineFilter);
+					engineFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
+					if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
+						pFilters.add(engineFilter);
 					} else {
 						// store warnings
-						warningNouns.add(NounMetadata.getWarningNounMessage(engineFilter + " does not exist or user does not have access to database."));
+						warningNouns.add(NounMetadata.getWarningNounMessage(engineFilter + " does not exist or user does not have access to project."));
 					}
-				} else {
-					engineFilter = MasterDatabaseUtility.testEngineIdIfAlias(engineFilter);
-					eFilters.add(engineFilter);
-				}
+				} 
+//				else {
+//					engineFilter = MasterDatabaseUtility.testEngineIdIfAlias(engineFilter);
+//					pFilters.add(engineFilter);
+//				}
 			}
 		}
 		String searchTerm = this.keyValue.get(this.keysToGet[1]);
@@ -82,9 +81,9 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 		SelectQueryStruct qs = null;
 		// method handles if filters are null or not
 		if (AbstractSecurityUtils.securityEnabled()) {
-			qs = SecurityInsightUtils.searchUserInsightsUsage(this.insight.getUser(), eFilters, searchTerm, tagFilters);
+			qs = SecurityInsightUtils.searchUserInsightsUsage(this.insight.getUser(), pFilters, searchTerm, tagFilters);
 		} else {
-			qs = SecurityInsightUtils.searchInsightsUsage(eFilters, searchTerm, tagFilters);
+			qs = SecurityInsightUtils.searchInsightsUsage(pFilters, searchTerm, tagFilters);
 		}
 		
 		IEngine securityDb = (IEngine) DIHelper.getInstance().getLocalProp(Constants.SECURITY_DB);

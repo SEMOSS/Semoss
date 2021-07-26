@@ -201,7 +201,7 @@ public class AdminUploadAppPermissionsReactor extends AbstractReactor {
 			
 			
 			// check if the ID already exists
-			if(SecurityAppUtils.checkUserHasAccessToApp(engineId, userId)) {
+			if(SecurityAppUtils.checkUserHasAccessToDatabase(engineId, userId)) {
 				//TODO: update based on user id instead of continue?
 				logger.info("User id = " + userId + " alraedy exists for app = " + engineId + " - skipping record for upload");
 				continue;

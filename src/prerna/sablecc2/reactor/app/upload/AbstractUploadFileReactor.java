@@ -17,21 +17,20 @@ import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.AssetUtility;
 import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 
 public abstract class AbstractUploadFileReactor extends AbstractReactor {
 
 	/**
 	 * Every reactor that extends this needs to define its own inputs
 	 * However, every one needs to have the following in the keysToGet array:
-	 * UploadUtility.APP
+	 * UploadUtility.DATABASE
 	 * UploadInputUtility.FILE_PATH
 	 * UploadInputUtility.ADD_TO_EXISTING
 	 * 
@@ -40,10 +39,11 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 	// we need to define some variables that are stored at the class level
 	// so that we can properly account for cleanup if errors occur
 	protected transient Logger logger;
-	protected transient String appId;
-	protected transient String appName;
-	protected transient IEngine engine;
-	protected transient File appFolder;
+	protected transient String databaseId;
+	protected transient String databaseName;
+	protected transient IEngine database;
+	protected transient IProject project;
+	protected transient File databaseFolder;
 	protected transient File tempSmss;
 	protected transient File smssFile;
 	
@@ -54,7 +54,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		this.logger = getLogger(this.getClass().getName());
 
 		organizeKeys();
-		String appIdOrName = UploadInputUtility.getAppNameOrId(this.store);
+		String databaseIdOrName = UploadInputUtility.getDatabaseNameOrId(this.store);
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
@@ -66,7 +66,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		if (security) {
 			user = this.insight.getUser();
 			if (user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update an app", PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -77,7 +77,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 			
-			// throw error is user doesn't have rights to publish new apps
+			// throw error is user doesn't have rights to publish new databases
 			if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
 				throwUserNotPublisherError();
 			}
@@ -86,38 +86,38 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		if (existing) {
 			if (security) {
 				// check if input is alias since we are adding ot existing
-				appIdOrName = SecurityQueryUtils.testUserEngineIdForAlias(user, appIdOrName);
-				if (!SecurityAppUtils.userCanEditEngine(user, appIdOrName)) {
-					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to create or update an app", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				databaseIdOrName = SecurityQueryUtils.testUserDatabaseIdForAlias(user, databaseIdOrName);
+				if (!SecurityAppUtils.userCanEditDatabase(user, databaseIdOrName)) {
+					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 					SemossPixelException err = new SemossPixelException(noun);
 					err.setContinueThreadOfExecution(false);
 					throw err;
 				}
 			} else {
 				// check if input is alias since we are adding ot existing
-				appIdOrName = MasterDatabaseUtility.testEngineIdIfAlias(appIdOrName);
-				if (!MasterDatabaseUtility.getAllEngineIds().contains(appIdOrName)) {
-					throw new IllegalArgumentException("Database " + appIdOrName + " does not exist");
+				databaseIdOrName = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseIdOrName);
+				if (!MasterDatabaseUtility.getAllDatabaseIds().contains(databaseIdOrName)) {
+					throw new IllegalArgumentException("Database " + databaseIdOrName + " does not exist");
 				}
 			}
 
 			try {
-				this.appId = appIdOrName;
-				this.appName = MasterDatabaseUtility.getEngineAliasForId(this.appId);
-				// get existing app
-				this.logger.info("Get existing app");
-				this.engine = Utility.getEngine(appId);
-				if (this.engine == null) {
-					throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
+				this.databaseId = databaseIdOrName;
+				this.databaseName = MasterDatabaseUtility.getDatabaseAliasForId(this.databaseId);
+				// get existing database
+				this.logger.info("Get existing database");
+				this.database = Utility.getEngine(databaseId);
+				if (this.database == null) {
+					throw new IllegalArgumentException("Couldn't find the database " + databaseId + " to append data into");
 				}
 				this.logger.info("Done");
-				addToExistingApp(filePath);
+				addToExistingDatabase(filePath);
 				// sync metadata
-				this.logger.info("Process app metadata to allow for traversing across apps");
-				UploadUtilities.updateMetadata(this.engine.getEngineId());
+				this.logger.info("Process database metadata to allow for traversing across databases");
+				UploadUtilities.updateMetadata(this.database.getEngineId());
 				this.logger.info("Complete");
 				this.logger.info("Delete OWL position map");
-				File owlF = this.engine.getOwlPositionFile();
+				File owlF = this.database.getOwlPositionFile();
 				if(owlF.exists()) {
 					owlF.delete();
 				}
@@ -142,38 +142,36 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		} else {
 			try {
 				// make a new id
-				this.appId = UUID.randomUUID().toString();
-				this.appName = appIdOrName;
-				// validate app
-				this.logger.info("Start validating app");
-				UploadUtilities.validateApp(user, this.appName, this.appId);
-				this.logger.info("Done validating app");
-				// create app folder
-				this.logger.info("Start generating app folder");
-				this.appFolder = UploadUtilities.generateAppFolder(this.appId, this.appName);
+				this.databaseId = UUID.randomUUID().toString();
+				this.databaseName = databaseIdOrName;
+				// validate database
+				this.logger.info("Start validating database");
+				UploadUtilities.validateDatabase(user, this.databaseName, this.databaseId);
+				this.logger.info("Done validating database");
+				// create database folder
+				this.logger.info("Start generating database folder");
+				this.databaseFolder = UploadUtilities.generateDatabaseFolder(this.databaseId, this.databaseName);
 				this.logger.info("Complete");
-				generateNewApp(user, this.appName, filePath);
+				generateNewDatabase(user, this.databaseName, filePath);
 				// and rename .temp to .smss
 				this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 				FileUtils.copyFile(this.tempSmss, this.smssFile);
 				this.tempSmss.delete();
-				this.engine.setPropFile(this.smssFile.getAbsolutePath());
-				UploadUtilities.updateDIHelper(this.appId, this.appName, this.engine, this.smssFile);
+				this.database.setPropFile(this.smssFile.getAbsolutePath());
+				UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 				// sync metadata
-				this.logger.info("Process app metadata to allow for traversing across apps");
-				UploadUtilities.updateMetadata(this.appId);
+				this.logger.info("Process database metadata to allow for traversing across databases");
+				UploadUtilities.updateMetadata(this.databaseId);
 				
 				// adding all the git here
 				// make a version folder if one doesn't exist
-
-				String versionFolder = 	AssetUtility.getAppAssetVersionFolder(appName, appId);
-
 				/*
-				File file = new File(versionFolder);
-				if(!file.exists())
-					file.mkdir();
-				// I will assume the directory is there now
-				GitRepoUtils.init(versionFolder);
+					String versionFolder = 	AssetUtility.getAppAssetVersionFolder(databaseName, databaseId);
+					File file = new File(versionFolder);
+					if(!file.exists())
+						file.mkdir();
+					// I will assume the directory is there now
+					GitRepoUtils.init(versionFolder);
 				*/
 				
 				this.logger.info("Complete");
@@ -196,11 +194,11 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				}
 			}
 
-			// even if no security, just add user as engine owner
+			// even if no security, just add user as database owner
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(this.appId, user.getAccessToken(ap).getId());
+					SecurityUpdateUtils.addDatabaseOwner(this.databaseId, user.getAccessToken(ap).getId());
 				}
 			}
 		}
@@ -210,9 +208,9 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		// we can do normal clean up of files
 		// TODO:
 
-		ClusterUtil.reactorPushApp(this.appId);
+		ClusterUtil.reactorPushDatabase(this.databaseId);
 
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), this.appId);
+		Map<String, Object> retMap = UploadUtilities.getDatabaseReturnData(this.insight.getUser(), this.databaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
@@ -223,8 +221,8 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		// TODO:clean up DIHelper!
 		try {
 			// close the DB so we can delete it
-			if (this.engine != null) {
-				engine.closeDB();
+			if (this.database != null) {
+				database.closeDB();
 			}
 
 			// delete the .temp file
@@ -235,15 +233,15 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			if (this.smssFile != null && this.smssFile.exists()) {
 				FileUtils.forceDelete(this.smssFile);
 			}
-			// delete the engine folder and all its contents
-			if (this.appFolder != null && this.appFolder.exists()) {
-				File[] files = this.appFolder.listFiles();
+			// delete the database folder and all its contents
+			if (this.databaseFolder != null && this.databaseFolder.exists()) {
+				File[] files = this.databaseFolder.listFiles();
 				if (files != null) { // some JVMs return null for empty dirs
 					for (File f : files) {
 						FileUtils.forceDelete(f);
 					}
 				}
-				FileUtils.forceDelete(this.appFolder);
+				FileUtils.forceDelete(this.databaseFolder);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -257,9 +255,9 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 	 * This will be done by every implementation of the upload file reactors
 	 */
 
-	public abstract void generateNewApp(User user, final String newAppName, final String filePath) throws Exception;
+	public abstract void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception;
 
-	public abstract void addToExistingApp(final String filePath) throws Exception;
+	public abstract void addToExistingDatabase(final String filePath) throws Exception;
 
 	public abstract void closeFileHelpers();
 }

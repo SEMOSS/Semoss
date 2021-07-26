@@ -39,15 +39,15 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 			eFilters = new Vector<String>();
 			String engineFilter = engineFilterGrs.get(0).toString();
 			if(AbstractSecurityUtils.securityEnabled()) {
-				engineFilter = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineFilter);
+				engineFilter = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineFilter);
 			} else {
-				engineFilter = MasterDatabaseUtility.testEngineIdIfAlias(engineFilter);
+				engineFilter = MasterDatabaseUtility.testDatabaseIdIfAlias(engineFilter);
 			}
 			eFilters.add(engineFilter);
 		}
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
-			List<String> appFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			List<String> appFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 			if(eFilters != null) {
 				if(!appFilters.contains(eFilters.get(0))) {
 					throw new IllegalArgumentException("Databases " + eFilters.get(0) + " does not exist or user does not have access");

@@ -80,7 +80,7 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 			if (marginInput != null && !marginInput.isEmpty()) {
 				margin = marginInput;
 			}
-			List<String> enginesWithAccess = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			List<String> enginesWithAccess = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 			// source scripts and run find_db
 			sb.append(RSyntaxHelper.loadPackages(packages));
 			sb.append("setwd(\"" + DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\");");
@@ -114,7 +114,7 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 					access = true;
 					dbName = Utility.getEngine(id).getEngineName();
 					type = Utility.getEngine(id).getEngineType() + "";
-					lmDate = SecurityQueryUtils.getLastModifiedDateForInsightInApp(id);
+					lmDate = SecurityQueryUtils.getLastModifiedDateForInsightInProject(id);
 					//insights = SecurityQueryUtils.getUserInsightsForEngine(this.insight.getUser(), id);
 				}
 				// add all data to a list of maps

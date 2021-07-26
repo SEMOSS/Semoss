@@ -324,7 +324,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 		
 		engine.openDB(null);
 		
-		System.out.println("Perspectives is .... " + engine.getPerspectives());
+//		System.out.println("Perspectives is .... " + engine.getPerspectives());
 		
 		System.out.println("Trying.. ");
 		SesameJenaConstructWrapper sjcw = new SesameJenaConstructWrapper(); //(SesameJenaSelectWrapper) engine.execSelectQuery("SELECT ?S ?P ?O WHERE {{?S ?P ?O}.} LIMIT 1");

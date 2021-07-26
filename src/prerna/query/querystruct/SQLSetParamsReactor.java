@@ -5,7 +5,6 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.SqlParser2;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;

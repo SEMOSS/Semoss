@@ -34,19 +34,17 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 
 public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String STACKTRACE = "StackTrace: ";
 	
 	private Logger logger;
 
-	protected transient String newAppId;
-	protected transient String newAppName;
-	protected transient IEngine engine;
-	protected transient File appFolder;
+	protected transient String newDatabaseId;
+	protected transient String newDatabaseName;
+	protected transient IEngine database;
+	protected transient File databaseFolder;
 	protected transient File tempSmss;
 	protected transient File smssFile;
 	
@@ -72,7 +70,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 				throwAnonymousUserError();
 			}
 			
-			// throw error is user doesn't have rights to publish new apps
+			// throw error is user doesn't have rights to publish new databases
 			if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
 				throwUserNotPublisherError();
 			}
@@ -81,38 +79,38 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		organizeKeys();
 		
 		this.logger = getLogger(this.getClass().getName());
-		this.newAppId = UUID.randomUUID().toString();
-		this.newAppName = this.keyValue.get(ReactorKeysEnum.APP.getKey()).trim().replaceAll("\\s+", "_");
+		this.newDatabaseId = UUID.randomUUID().toString();
+		this.newDatabaseName = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()).trim().replaceAll("\\s+", "_");
 		
 		boolean error = false;
 		try {
-			// this does the app specific load
-			generateNewApp(user);
+			// this does the database specific load
+			generateNewDatabase(user);
 			
 			// this handles the other metadata aspects
-			DIHelper.getInstance().getCoreProp().setProperty(this.newAppId + "_" + Constants.STORE, this.smssFile.getAbsolutePath());
-			Utility.synchronizeEngineMetadata(this.newAppId);
+			DIHelper.getInstance().setDbProperty(this.newDatabaseId + "_" + Constants.STORE, this.smssFile.getAbsolutePath());
+			Utility.synchronizeEngineMetadata(this.newDatabaseId);
 
 			// generate the actual engine
-			this.engine = generateEngine();
+			this.database = generateEngine();
 
 			// only at end do we add to DIHelper
-			DIHelper.getInstance().setLocalProperty(this.newAppId, this.engine);
-			String appNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-			appNames = appNames + ";" + this.newAppId;
-			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, appNames);
+			DIHelper.getInstance().setLocalProperty(this.newDatabaseId, this.database);
+			String databaseNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+			databaseNames = databaseNames + ";" + this.newDatabaseId;
+			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, databaseNames);
 
 			// even if no security, just add user as engine owner
 			if(user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(this.newAppId, user.getAccessToken(ap).getId());
+					SecurityUpdateUtils.addDatabaseOwner(this.newDatabaseId, user.getAccessToken(ap).getId());
 				}
 			}
 			
-			ClusterUtil.reactorPushApp(this.newAppId);
+			ClusterUtil.reactorPushDatabase(this.newDatabaseId);
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			error = true;
 			if (e instanceof SemossPixelException) {
 				throw (SemossPixelException) e;
@@ -129,29 +127,29 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			}
 		}
 
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), newAppId);
+		Map<String, Object> retMap = UploadUtilities.getDatabaseReturnData(this.insight.getUser(), newDatabaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 	
-	private void generateNewApp(User user) throws Exception {
+	private void generateNewDatabase(User user) throws Exception {
 		// start by validation
-		logger.info("Start validating app");
+		logger.info("Start validating database");
 		try {
-			UploadUtilities.validateApp(user, this.newAppName, this.newAppId);
+			UploadUtilities.validateDatabase(user, this.newDatabaseName, this.newDatabaseId);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}
-		logger.info("Done validating app");
+		logger.info("Done validating database");
 
-		logger.info("Starting app creation");
+		logger.info("Starting database creation");
 
-		logger.info("1. Start generating app folder");
-		this.appFolder = UploadUtilities.generateAppFolder(this.newAppId, this.newAppName);
+		logger.info("1. Start generating database folder");
+		this.databaseFolder = UploadUtilities.generateDatabaseFolder(this.newDatabaseId, this.newDatabaseName);
 		logger.info("1. Complete");
 		
-		logger.info("Generate new app database");
+		logger.info("Generate new database");
 		logger.info("2. Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(this.newAppId, this.newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.newDatabaseId, this.newDatabaseName);
 		logger.info("2. Complete");
 
 		////////////////////////////////
@@ -233,9 +231,9 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		this.tempSmss = null;
 		try {
 			this.tempSmss = generateTempSmss(owlFile);
-			DIHelper.getInstance().getCoreProp().setProperty(this.newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			DIHelper.getInstance().setDbProperty(this.newDatabaseId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		logger.info("3. Complete");
@@ -266,43 +264,39 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			owler.commit();
 			owler.export();
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
 			owler.closeOwl();
 		}
 		logger.info("4. Complete");
 
-		logger.info("5. Start generating default app insights");
-		// note, on engine creation, we auto create an insights database + add explore an instance
-		// TODO: should add some new ones...
-		logger.info("5. Complete");
 
-		logger.info("6. Process app metadata to allow for traversing across apps	");
+		logger.info("5. Process database metadata to allow for traversing across databases	");
 		try {
-			UploadUtilities.updateMetadata(this.newAppId);
+			UploadUtilities.updateMetadata(this.newDatabaseId);
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
-		logger.info("6. Complete");
+		logger.info("5. Complete");
 
 		// rename .temp to .smss
 		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 		try {
 			FileUtils.copyFile(this.tempSmss, this.smssFile);
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		this.tempSmss.delete();
 		
 		// adding all the git here
 		// make a version folder if one doesn't exist
-		String versionFolder = 	AssetUtility.getAppAssetVersionFolder(newAppName, newAppId);
 		/*
-		File file = new File(versionFolder);
-		if(!file.exists())
-			file.mkdir();
-		// I will assume the directory is there now
-		GitRepoUtils.init(versionFolder);
+			String versionFolder = 	AssetUtility.getAppAssetVersionFolder(newDatabaseName, newDatabaseId);
+			File file = new File(versionFolder);
+			if(!file.exists())
+				file.mkdir();
+			// I will assume the directory is there now
+			GitRepoUtils.init(versionFolder);
 		*/
 	}
 
@@ -313,8 +307,8 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		// TODO:clean up DIHelper!
 		try {
 			// close the DB so we can delete it
-			if (this.engine != null) {
-				engine.closeDB();
+			if (this.database != null) {
+				database.closeDB();
 			}
 
 			// delete the .temp file
@@ -326,17 +320,17 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 				FileUtils.forceDelete(this.smssFile);
 			}
 			// delete the engine folder and all its contents
-			if (this.appFolder != null && this.appFolder.exists()) {
-				File[] files = this.appFolder.listFiles();
+			if (this.databaseFolder != null && this.databaseFolder.exists()) {
+				File[] files = this.databaseFolder.listFiles();
 				if (files != null) { // some JVMs return null for empty dirs
 					for (File f : files) {
 						FileUtils.forceDelete(f);
 					}
 				}
-				FileUtils.forceDelete(this.appFolder);
+				FileUtils.forceDelete(this.databaseFolder);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 	}
 	

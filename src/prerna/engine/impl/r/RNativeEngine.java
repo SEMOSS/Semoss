@@ -43,6 +43,7 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.r.RIterator;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;

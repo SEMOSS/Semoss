@@ -44,7 +44,7 @@ public class AllAppsReactor extends AbstractReactor {
 		for(int i = 0; i < size; i++) {
 			Map<String, Object> app = appInfo.get(i);
 			String appId = app.get("app_id").toString();
-			SemossDate lmDate = SecurityQueryUtils.getLastModifiedDateForInsightInApp(appId);
+			SemossDate lmDate = SecurityQueryUtils.getLastModifiedDateForInsightInProject(appId);
 			// could be null when there are no insights in an app
 			if(lmDate != null) {
 				app.put("lastModified", lmDate.getFormattedDate());
@@ -60,7 +60,7 @@ public class AllAppsReactor extends AbstractReactor {
 		
 		IRawSelectWrapper wrapper = null;
 		try {
-			wrapper = SecurityAppUtils.getAppMetadataWrapper(index.keySet(), META_KEYS_LIST);
+			wrapper = SecurityAppUtils.getDatabaseMetadataWrapper(index.keySet(), META_KEYS_LIST);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String appId = (String) data[0];
@@ -93,6 +93,6 @@ public class AllAppsReactor extends AbstractReactor {
 			}
 		}
 		
-		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
+		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 }

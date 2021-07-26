@@ -19,14 +19,13 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.PixelList;
+import prerna.project.api.IProject;
 import prerna.query.parsers.ParamStruct;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -48,7 +47,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = SaveInsightReactor.class.getName();
 	
 	public SaveInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), 
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), 
 				ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), 
 				ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), 
 				ReactorKeysEnum.TAGS.getKey(), ReactorKeysEnum.IMAGE.getKey(), ENCODED_KEY};
@@ -61,7 +60,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// need the engine name and id that has the recipe
 		boolean savingThisInsight = false;
 		boolean optimizeRecipe = true;
-		String appId = getApp();
+		String projectId = getProject();
 		User user = this.insight.getUser();
 		String author = null;
 		String email = null;
@@ -72,8 +71,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				throwAnonymousUserError();
 			}
 			
-			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
-				throw new IllegalArgumentException("User does not have permission to add insights in the app");
+			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+				throw new IllegalArgumentException("User does not have permission to add insights in the project");
 			}
 			// Get the user's email
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
@@ -86,7 +85,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to define the insight name");
 		}
 		
-		if(SecurityInsightUtils.insightNameExists(appId, insightName) != null) {
+		if(SecurityInsightUtils.insightNameExists(projectId, insightName) != null) {
 			throw new IllegalArgumentException("Insight name already exists");
 		}
 		
@@ -143,22 +142,15 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String newInsightId = UUID.randomUUID().toString();
 		
 		// pull the insights db again incase someone just saved something 
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
-			// we may have the alias
-			engine = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(appId));
-			if(engine == null) {
-				throw new IllegalArgumentException("Cannot find app = " + appId);
-			}
-		}
-		ClusterUtil.reactorPullInsightsDB(appId);
-		ClusterUtil.reactorPullFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+		IProject project = Utility.getProject(projectId);
+		ClusterUtil.reactorPullInsightsDB(projectId);
+		ClusterUtil.reactorPullProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 		
 		if(insightPixelList != null) {
 			try {
 				// if we are saving a saved insight as another insight
 				// do not delete the file from this insight
-				if(saveFilesInInsight(insightPixelList, appId, newInsightId, !this.insight.isSavedInsight())) {
+				if(saveFilesInInsight(insightPixelList, projectId, newInsightId, !this.insight.isSavedInsight())) {
 					// need to pull the new saved recipe
 					recipeToSave = insightPixelList.getPixelRecipe();
 				}
@@ -180,7 +172,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		int stepCounter = 1;
 		// add the recipe to the insights database
-		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		logger.info(stepCounter + ") Add insight " + insightName + " to rdbms store...");
 		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, recipeToSave, hidden, cacheable);
 		logger.info(stepCounter +") Done...");
@@ -191,7 +183,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		if(!hidden) {
 			logger.info(stepCounter + ") Regsiter insight...");
-			registerInsightAndMetadata(engine, newRdbmsId, insightName, layout, cacheable, recipeToSave, description, tags);
+			registerInsightAndMetadata(project, newRdbmsId, insightName, layout, cacheable, recipeToSave, description, tags);
 			logger.info(stepCounter + ") Done...");
 		} else {
 			logger.info(stepCounter + ") Insight is hidden ... do not add to solr");
@@ -200,7 +192,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// Move assets to new insight folder
 		File tempInsightFolder = new File(this.insight.getInsightFolder());
-		File newInsightFolder = new File(AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), engine.getEngineId()) + DIR_SEPARATOR + newRdbmsId);
+		File newInsightFolder = new File(AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId) + DIR_SEPARATOR + newRdbmsId);
 		if(tempInsightFolder.exists()) {
 			try {
 				logger.info(stepCounter + ") Moving assets...");
@@ -215,13 +207,13 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 	    stepCounter++;
 	    // delete the cache folder for the new insight
-	 	InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), newRdbmsId, false);
+	 	InsightCacheUtility.deleteCache(project.getProjectId(), project.getProjectName(), newRdbmsId, false);
 
 	 	// write recipe to file
 	 	// force = true to delete any existing mosfet files that were pulled from asset folder
 		logger.info(stepCounter + ") Add recipe to file...");
 		try {
-			MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), 
+			MosfetSyncHelper.makeMosfitFile(project.getProjectId(), project.getProjectName(), 
 					newRdbmsId, insightName, layout, recipeToSave, hidden, description, tags, true);
 		} catch (IOException e) {
 			SaveInsightReactor.logger.error(Constants.STACKTRACE, e);
@@ -234,7 +226,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String imageFile = getImage();
 		if(imageFile != null && !imageFile.trim().isEmpty()) {
 			logger.info(stepCounter + ") Storing insight image...");
-			storeImageFromFile(imageFile, newRdbmsId, engine.getEngineId(), engine.getEngineName());
+			storeImageFromFile(imageFile, newRdbmsId, project.getProjectId(), project.getProjectName());
 			logger.info(stepCounter + ") Done...");
 			stepCounter++;
 		}
@@ -242,7 +234,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// adding insight files to git
 		Stream<Path> walk = null;
 		try {
-			String folder = AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId);
+			String folder = AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId);
 			// grab relative file paths
 			walk = Files.walk(Paths.get(newInsightFolder.toURI()));
 			List<String> files = walk
@@ -265,8 +257,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		stepCounter++;
 		
 		// update the workspace cache for the saved insight
-		this.insight.setEngineId(engine.getEngineId());
-		this.insight.setEngineName(engine.getEngineName());
+		this.insight.setProjectId(projectId);
+		this.insight.setProjectName(project.getProjectName());
 		this.insight.setRdbmsId(newRdbmsId);
 		this.insight.setInsightName(insightName);
 		// this is to reset it
@@ -275,17 +267,17 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// add to the users opened insights
 		if(savingThisInsight && this.insight.getUser() != null) {
-			this.insight.getUser().addOpenInsight(engine.getEngineId(), newRdbmsId, this.insight.getInsightId());
+			this.insight.getUser().addOpenInsight(projectId, newRdbmsId, this.insight.getInsightId());
 		}
 		
-		ClusterUtil.reactorPushInsightDB(appId);
-		ClusterUtil.reactorPushFolder(engine, AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId));
+		ClusterUtil.reactorPushInsightDB(projectId);
+		ClusterUtil.reactorPushProjectFolder(project, AssetUtility.getProjectAssetVersionFolder(project.getProjectName(), projectId));
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("app_insight_id", newRdbmsId);
-		returnMap.put("app_name", engine.getEngineName());
-		returnMap.put("app_id", engine.getEngineId());
+		returnMap.put("app_name", project.getProjectName());
+		returnMap.put("app_id", projectId);
 		returnMap.put("recipe", recipeToSave);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
@@ -300,22 +292,22 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param description
 	 * @param tags
 	 */
-	private void registerInsightAndMetadata(IEngine engine, String insightIdToSave, String insightName, String layout, 
+	private void registerInsightAndMetadata(IProject project, String insightIdToSave, String insightName, String layout, 
 			boolean cacheable, List<String> recipe, String description, List<String> tags) {
-		String appId = engine.getEngineId();
+		String projectId = project.getProjectId();
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		SecurityInsightUtils.addInsight(appId, insightIdToSave, insightName, true, cacheable, layout, recipe);
+		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, cacheable, layout, recipe);
 		if(this.insight.getUser() != null) {
-			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), appId, insightIdToSave);
+			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
 		}
-		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if(description != null) {
 			admin.updateInsightDescription(insightIdToSave, description);
-			SecurityInsightUtils.updateInsightDescription(appId, insightIdToSave, description);
+			SecurityInsightUtils.updateInsightDescription(projectId, insightIdToSave, description);
 		}
 		if(tags != null) {
 			admin.updateInsightTags(insightIdToSave, tags);
-			SecurityInsightUtils.updateInsightTags(appId, insightIdToSave, tags);
+			SecurityInsightUtils.updateInsightTags(projectId, insightIdToSave, tags);
 		}
 	}
 }

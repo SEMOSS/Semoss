@@ -40,16 +40,17 @@ import javax.swing.JTextField;
 import javax.swing.JTextPane;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
+import prerna.project.api.IProject;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetRDFMapBasedEnum;
+import prerna.util.Utility;
 
 /**
  * Controls selection of the perspective.
@@ -132,7 +133,8 @@ public class QuestionModSelectorListener implements IChakraListener {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
 			//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
-			Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight(questionId);
+			IProject project = Utility.getProject(engine.getEngineId());
+			Vector<Insight> vectorInsight = project.getInsight(questionId);
 			OldInsight in = null;
 			if(vectorInsight.size() > 1){
 				for(Insight insight: vectorInsight){
@@ -148,7 +150,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 				order = in.getOrder();
 			}
 			
-			List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(engine.getInsightDatabase(), questionId);
+			List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(project.getInsightDatabase(), questionId);
 
 			// empties the vectors so it doesn't duplicate existing elements
 			parameterQueryVector.removeAllElements();
@@ -164,7 +166,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 					
 					if (!paramInfoVector.get(i).getDependVars().isEmpty() && !paramInfoVector.get(i).getDependVars().get(0).equals("None")) {
 						for (int j = 0; j < paramInfoVector.get(i).getDependVars().size(); j++) {
-							List<SEMOSSParam> dps = LegacyInsightDatabaseUtility.getParamsFromParamIds(engine.getInsightDatabase(), paramInfoVector.get(i).getDependVars().toArray(new String[]{}));
+							List<SEMOSSParam> dps = LegacyInsightDatabaseUtility.getParamsFromParamIds(project.getInsightDatabase(), paramInfoVector.get(i).getDependVars().toArray(new String[]{}));
 							for(int k = 0; k < dps.size(); k++) {
 								dependVector.add(paramInfoVector.get(i).getName() + "_DEPEND_-_" + dps.get(k).getName());
 							}

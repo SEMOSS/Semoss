@@ -21,7 +21,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class GetExcelFormReactor extends AbstractReactor {
 
 	public GetExcelFormReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.SHEET_NAME.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.SHEET_NAME.getKey() };
 	}
 
 	@Override
@@ -34,7 +34,8 @@ public class GetExcelFormReactor extends AbstractReactor {
 			e.setContinueThreadOfExecution(false);
 			throw e;
 		}
-		String appName = this.keyValue.get(this.keysToGet[1]);
+		// TODO should pass in databaseId
+		String databaseName = this.keyValue.get(this.keysToGet[1]);
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 		helper.parse(filePath);
 		List<String> sheetNames = new Vector<>();
@@ -50,7 +51,7 @@ public class GetExcelFormReactor extends AbstractReactor {
 		for (String sheet : sheetNames) {
 			Sheet excelSheet = helper.getSheet(sheet);
 			Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(excelSheet, newHeaders);
-			Map<String, Object> form = ExcelDataValidationHelper.createInsertForm(appName, sheet, dataValidationMap, null);
+			Map<String, Object> form = ExcelDataValidationHelper.createInsertForm(databaseName, sheet, dataValidationMap, null);
 			if (!form.isEmpty()) {
 				retMap.put(sheet, form);
 			}

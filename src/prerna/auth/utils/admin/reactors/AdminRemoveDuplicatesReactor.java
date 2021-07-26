@@ -21,7 +21,7 @@ public class AdminRemoveDuplicatesReactor extends AbstractReactor {
 	private static final String DROP_OLD_TABLE = "drop";
 
 	public AdminRemoveDuplicatesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.TABLE.getKey(), DROP_OLD_TABLE};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.TABLE.getKey(), DROP_OLD_TABLE};
 	}
 
 	@Override

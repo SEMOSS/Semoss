@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cache.InsightCacheUtility;
-import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -26,7 +26,7 @@ public class SaveInsightIntoWorkspace {
 	 * into the user workspace app
 	 */
 	
-	private IEngine userWorkspaceEngine;
+	private IProject userWorkspaceProject;
 	private InsightAdministrator insightAdmin;
 	private String workspaceSavedInsightId;
 	
@@ -36,14 +36,14 @@ public class SaveInsightIntoWorkspace {
 	private Thread t;
 	
 	public SaveInsightIntoWorkspace(String userWorkspaceId, String rdbmsId, String insightName, boolean created) {
-		this.userWorkspaceEngine = Utility.getEngine(userWorkspaceId);
-		this.insightAdmin = new InsightAdministrator(this.userWorkspaceEngine.getInsightDatabase());
+		this.userWorkspaceProject = Utility.getProject(userWorkspaceId);
+		this.insightAdmin = new InsightAdministrator(this.userWorkspaceProject.getInsightDatabase());
 		this.workspaceSavedInsightId = UUID.randomUUID().toString();
 		this.queue = new ArrayBlockingQueue<List<String>>(50);
 		this.insightName = insightName;
 		
 		this.cacher = new InsightCacher(this.workspaceSavedInsightId, this.queue, 
-				this.userWorkspaceEngine, this.insightAdmin, 
+				this.userWorkspaceProject, this.insightAdmin, 
 				this.insightName);
 		
 		this.t = new Thread(this.cacher);
@@ -63,7 +63,7 @@ public class SaveInsightIntoWorkspace {
 	 */
 	public void dropWorkspaceCache() {
 		this.insightAdmin.dropInsight(this.workspaceSavedInsightId);
-		SecurityInsightUtils.deleteInsight(this.userWorkspaceEngine.getEngineId(), this.workspaceSavedInsightId);
+		SecurityInsightUtils.deleteInsight(this.userWorkspaceProject.getProjectId(), this.workspaceSavedInsightId);
 	}
 	
 	/**
@@ -103,12 +103,12 @@ class InsightCacher implements Runnable {
 
 	private boolean notKill = true;
 	
-	public InsightCacher(String workspaceSavedInsightId, BlockingQueue<List<String>> queue, IEngine worksapceEngine, InsightAdministrator insightAdmin, String insightName) {
+	public InsightCacher(String workspaceSavedInsightId, BlockingQueue<List<String>> queue, IProject worksapceEngine, InsightAdministrator insightAdmin, String insightName) {
 		this.workspaceSavedInsightId = workspaceSavedInsightId;
 		this.queue = queue;
 		
-		this.workspaceAppId = worksapceEngine.getEngineId();
-		this.workspaceAppName = worksapceEngine.getEngineName();
+		this.workspaceAppId = worksapceEngine.getProjectId();
+		this.workspaceAppName = worksapceEngine.getProjectName();
 		this.insightAdmin = insightAdmin;
 		
 		setInsightName(insightName);

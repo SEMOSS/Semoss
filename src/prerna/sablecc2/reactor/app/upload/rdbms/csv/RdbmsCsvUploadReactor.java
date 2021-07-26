@@ -67,7 +67,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 	public RdbmsCsvUploadReactor() {
 		this.keysToGet = new String[] {
-				UploadInputUtility.APP, 
+				UploadInputUtility.DATABASE, 
 				UploadInputUtility.FILE_PATH, 
 				UploadInputUtility.ADD_TO_EXISTING,
 				UploadInputUtility.DELIMITER, 
@@ -83,19 +83,19 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	}
 
 	@Override
-	public void generateNewApp(User user, final String newAppName, final String filePath) throws Exception {
+	public void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		boolean allowDuplicates = false;
 
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.databaseId, newDatabaseName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.appId, newAppName, owlFile, RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile, RdbmsTypeEnum.H2_DB, null);
+		DIHelper.getInstance().setDbProperty(this.databaseId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -104,29 +104,29 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);;
 
 		/*
-		 * Load data into rdbms engine
+		 * Load data into rdbms database
 		 */
 		logger.info(stepCounter + ". Create database store...");
-		this.engine = new RDBMSNativeEngine();
-		this.engine.setEngineId(this.appId);
-		this.engine.setEngineName(newAppName);
+		this.database = new RDBMSNativeEngine();
+		this.database.setEngineId(this.databaseId);
+		this.database.setEngineName(newDatabaseName);
 		Properties props = Utility.loadProperties(tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
-		this.engine.setProp(props);
-		this.engine.openDB(null);
+		this.database.setProp(props);
+		this.database.openDB(null);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Parsing file metadata...");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
-		Owler owler = new Owler(owlFile.getAbsolutePath(), this.engine.getEngineType());
+		Owler owler = new Owler(owlFile.getAbsolutePath(), this.database.getEngineType());
 		try {
 			// open the csv file
 			// and get the headers
 			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 			String[] headers = (String[]) headerTypesArr[0];
 			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-			queryUtil = SqlQueryUtilFactory.initialize(((RDBMSNativeEngine) this.engine).getDbType());
+			queryUtil = SqlQueryUtilFactory.initialize(((RDBMSNativeEngine) this.database).getDbType());
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 
@@ -142,7 +142,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			// ");
 
 			// processDisplayNames();
-			processData(true, this.engine, helper, sqlDataTypes, Arrays.asList(headers), metamodelProps);
+			processData(true, this.database, helper, sqlDataTypes, Arrays.asList(headers), metamodelProps);
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 			// scriptFile.println("-- ********* completed processing file " +
@@ -157,18 +157,18 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 			clearTables();
 		}
-		cleanUpDBTables(this.engine, allowDuplicates);
+		cleanUpDBTables(this.database, allowDuplicates);
 
 		/*
-		 * Back to normal app flow
+		 * Back to normal database flow
 		 */
-		logger.info(stepCounter + ". Commit app metadata...");
+		logger.info(stepCounter + ". Commit database metadata...");
 		// add the owl metadata
 		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
 		UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
 		owler.export();
-		this.engine.setOWL(owler.getOwlPath());
+		this.database.setOWL(owler.getOwlPath());
 		// if(scriptFile != null) {
 		// scriptFile.println("-- ********* completed load process ********* ");
 		// scriptFile.close();
@@ -177,31 +177,21 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 
-		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(this.appId, newAppName, insightDatabase);
-		UploadUtilities.addInsightUsageStats(this.appId, newAppName, insightDatabase);
-		UploadUtilities.addGridDeltaInsight(this.appId, newAppName, insightDatabase);
-		this.engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
 		logger.info(stepCounter + ". Save csv metamodel prop file");
-		UploadUtilities.createPropFile(this.appId, newAppName, filePath, metamodelProps);
+		UploadUtilities.createPropFile(this.databaseId, newDatabaseName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 	}
 
-	public void addToExistingApp(final String filePath) throws Exception {
-		if (!(this.engine instanceof RDBMSNativeEngine)) {
-			throw new IllegalArgumentException("App must be using a relational database");
+	public void addToExistingDatabase(final String filePath) throws Exception {
+		if (!(this.database instanceof RDBMSNativeEngine)) {
+			throw new IllegalArgumentException("Database must be using a relational database");
 		}
-		queryUtil = SqlQueryUtilFactory.initialize(((RDBMSNativeEngine) this.engine).getDbType());
+		queryUtil = SqlQueryUtilFactory.initialize(((RDBMSNativeEngine) this.database).getDbType());
 		
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Get app upload input...");
+		logger.info(stepCounter + ". Get database upload input...");
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		boolean allowDuplicates = false;
 		final boolean clean = UploadInputUtility.getClean(this.store);
@@ -212,7 +202,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Parsing file metadata...");
-		Owler owler = new Owler(this.engine);
+		Owler owler = new Owler(this.database);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES) );
 		String[] headers = (String[]) headerTypesArr[0];
@@ -222,12 +212,12 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		/*
-		 * Start loading existing data to rdbms app
+		 * Start loading existing data to rdbms database
 		 */
 		logger.info(stepCounter + ". Start loading data..");
 		try {
-			// openScriptFile(appId);
-			findIndexes(this.engine);
+			// openScriptFile(databaseId);
+			findIndexes(this.database);
 			// if(i ==0 ) {
 			// scriptFile.println("-- ********* begin load process *********
 			// ");
@@ -239,7 +229,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 			// processDisplayNames();
 
-			processData(false, this.engine, this.helper, sqlDataTypes, Arrays.asList(headers), metamodelProps);
+			processData(false, this.database, this.helper, sqlDataTypes, Arrays.asList(headers), metamodelProps);
 
 			// scriptFile.println("-- ********* completed processing file "
 			// + fileName + " ********* ");
@@ -259,10 +249,10 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		/*
-		 * Back to normal app flow
+		 * Back to normal database flow
 		 */
 
-		logger.warn(stepCounter + ". Committing app metadata....");
+		logger.warn(stepCounter + ". Committing database metadata....");
 		// add the owl metadata
 		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
 				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
@@ -271,24 +261,19 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 
-		addOriginalIndices(this.engine);
-		cleanUpDBTables(this.engine, allowDuplicates);
-
-		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSEngineCreationHelper.insertNewTablesAsInsights(this.engine, owler, addedTables);
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
+		addOriginalIndices(this.database);
+		cleanUpDBTables(this.database, allowDuplicates);
 
 		logger.info(stepCounter + ". Save csv metamodel prop file");
-		UploadUtilities.createPropFile(this.appId, this.engine.getEngineName(), filePath, metamodelProps);
+		UploadUtilities.createPropFile(this.databaseId, this.database.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 	}
 
-	private void addOriginalIndices(IEngine engine) throws Exception {
+	private void addOriginalIndices(IEngine database) throws Exception {
 		// add back original
 		for (String query : recreateIndexList) {
-			insertData(engine, query);
+			insertData(database, query);
 		}
 	}
 
@@ -528,10 +513,10 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		return sqlDataTypes;
 	}
 
-	private void processData(boolean noExistingData, IEngine engine, CSVFileHelper helper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
+	private void processData(boolean noExistingData, IEngine database, CSVFileHelper helper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
 		// get existing data is present
 		if (!noExistingData) {
-			existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
+			existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(database);
 		} else {
 			existingRDBMSStructure = new Hashtable<String, Map<String, String>>();
 		}
@@ -542,17 +527,17 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			// based on existing structure if present, see if you need to alter
 			// the table
 			if (existingRDBMSStructure.containsKey(cleanConcept.toUpperCase())) {
-				alterTable(engine, concept);
+				alterTable(database, concept);
 			}
 			// table does not exist, easy, just create new one with columns
 			else {
-				createTable(engine, concept);
+				createTable(database, concept);
 			}
 		}
-		processCSVTable(noExistingData, engine, helper, sqlDataTypes, headers, metamodel);
+		processCSVTable(noExistingData, database, helper, sqlDataTypes, headers, metamodel);
 	}
 
-	private void processCSVTable(boolean noExistingData, IEngine engine, CSVFileHelper csvHelper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
+	private void processCSVTable(boolean noExistingData, IEngine database, CSVFileHelper csvHelper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
 		Configurator.setLevel(logger.getName(), Level.INFO);
 //		long start = System.currentTimeMillis();
 
@@ -600,14 +585,14 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					} else {
 						// here we add the logic if we should perform an update
 						// query vs. an insert query
-						sqlQuery = getAlterQuery(engine, concept, values, defaultInsert, sqlDataTypes, headers);
+						sqlQuery = getAlterQuery(database, concept, values, defaultInsert, sqlDataTypes, headers);
 						if (!sqlQuery.isEmpty()) {
-							insertData(engine, sqlQuery);
+							insertData(database, sqlQuery);
 						}
 					}
 				}
 				if (sqlQuery != null && !sqlQuery.isEmpty()) {
-					insertData(engine, sqlQuery);
+					insertData(database, sqlQuery);
 				}
 			}
 			count++;
@@ -615,24 +600,24 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info("Completed " + count + " number of rows");
 		metamodel.put(Constants.END_ROW, count);
 		// delete the indexes created and clear the arrays
-		dropTempIndicies(engine);
+		dropTempIndicies(database);
 		tempIndexDropList.clear();// clear the drop index sql text
 		tempIndexAddedList.clear();// clear the index array text
 	}
 
-	private void dropTempIndicies(IEngine engine) throws Exception {
+	private void dropTempIndicies(IEngine database) throws Exception {
 		// drop all added indices
 		for (String query : tempIndexDropList) {
-			insertData(engine, query);
+			insertData(database, query);
 		}
 	}
 
-	private void insertData(IEngine engine, String sqlQuery) throws Exception {
+	private void insertData(IEngine database, String sqlQuery) throws Exception {
 		if (!sqlQuery.endsWith(";")) {
 			sqlQuery += ";";
 		}
 		// scriptFile.println(sql);
-		engine.insertData(sqlQuery);
+		database.insertData(sqlQuery);
 
 	}
 
@@ -685,7 +670,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		return insertQuery.toString();
 	}
 
-	private String getAlterQuery(IEngine engine, String concept, String[] rowValues, String defaultInsert,
+	private String getAlterQuery(IEngine database, String concept, String[] rowValues, String defaultInsert,
 			String[] sqlDataTypes, List<String> headers) throws Exception {
 		String cleanConcept = RDBMSEngineCreationHelper.cleanTableName(concept);
 
@@ -766,7 +751,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		whereValues.put(cleanConcept, value + "");
 
 		// create indices to speed up querying
-		createIndices(engine, cleanConcept, cleanConcept);
+		createIndices(database, cleanConcept, cleanConcept);
 
 		// here, we execute a query to see if we need to perform an update query
 		// or an insert query
@@ -781,7 +766,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			getRowCountQuery = queryUtil.getDialectSelectRowCountFrom(cleanConcept,
 					whereBuffer.toString() + " AND " + selectClauseWhereBuffer.toString());
 		}
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(database, getRowCountQuery);
 		if (wrapper.hasNext()) {
 			String rowcount = wrapper.next().getValues()[0].toString();
 			if (rowcount.equals("0")) {
@@ -871,7 +856,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
-	private void alterTable(IEngine engine, String concept) throws Exception {
+	private void alterTable(IEngine database, String concept) throws Exception {
 		String cleanConcept = RDBMSEngineCreationHelper.cleanTableName(concept);
 		// need to determine if the existing structure needs to be altered
 		// get the current table structure
@@ -928,7 +913,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			alterSql.append(")");
 
 			logger.info("ALTER TABLE SQL: " + Utility.cleanLogString(alterSql.toString()));
-			insertData(engine, alterSql.toString());
+			insertData(database, alterSql.toString());
 		} else {
 			// see if all the columns are accoutned for in the table
 			if (newRelsForConcept == null) {
@@ -942,7 +927,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
-	private void createTable(IEngine engine, String concept) throws Exception {
+	private void createTable(IEngine database, String concept) throws Exception {
 		Map<String, String> propMap = concepts.get(concept);
 		String cleanConceptName = RDBMSEngineCreationHelper.cleanTableName(concept);
 		String conceptType = propMap.get(concept);
@@ -975,7 +960,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 		sqlBuilder.append(")");
 		logger.info("CREATE TABLE SQL: " + Utility.cleanLogString(sqlBuilder.toString()));
-		insertData(engine, sqlBuilder.toString());
+		insertData(database, sqlBuilder.toString());
 
 		addedTables.add(cleanConceptName.toUpperCase());
 	}
@@ -1125,11 +1110,11 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		return retMap;
 	}
 
-	private void cleanUpDBTables(IEngine engine, boolean allowDuplicates) throws Exception {
+	private void cleanUpDBTables(IEngine database, boolean allowDuplicates) throws Exception {
 		Configurator.setLevel(logger.getName(), Level.INFO);
 		// fill up the availableTables and availableTablesInfo maps
 		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper
-				.getExistingRDBMSStructure(engine);
+				.getExistingRDBMSStructure(database);
 		Set<String> alteredTables = allConcepts.keySet();
 		Set<String> allTables = existingStructure.keySet();
 		for (String tableName : allTables) {
@@ -1166,7 +1151,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					// also make sure you are removing those null values from
 					// the PK column
 					String createTable = queryUtil.removeDuplicatesFromTable(tableName, colsBuilder.toString());
-					insertData(engine, createTable);
+					insertData(database, createTable);
 				}
 
 				// check that the temp table was created before dropping the
@@ -1174,7 +1159,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 				String verifyTable = queryUtil.tableExistsQuery(tableName + "_TEMP", null);
 				// if temp table wasnt successfully created, go to the next
 				// table.
-				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, verifyTable);
+				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(database, verifyTable);
 				if(wrapper.hasNext()) {
 					wrapper.cleanUp();
 				} else {
@@ -1187,13 +1172,13 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					// drop existing table
 					// dropTable = "DROP TABLE " + tableName;
 					String dropTable = queryUtil.dropTable(tableName);//
-					insertData(engine, dropTable);
+					insertData(database, dropTable);
 
 					// rename our temporary table to the new table name
 					// alterTableName = "ALTER TABLE " + tableName + "_TEMP
 					// RENAME TO " + tableName;
 					String alterTableName = queryUtil.alterTableName(tableName + "_TEMP", tableName);
-					insertData(engine, alterTableName);
+					insertData(database, alterTableName);
 				}
 			}
 
@@ -1202,7 +1187,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			if (createIndexes) {
 				logger.info("Creating indexes for " + Utility.cleanLogString(tableName));
 				for (String singleIndex : createIndex) {
-					insertData(engine, singleIndex);
+					insertData(database, singleIndex);
 					logger.info(">>>>>" + Utility.cleanLogString(singleIndex) + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck) / 1000 + " sec");
 				}
 			} else {
@@ -1221,14 +1206,14 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		existingRDBMSStructure.clear();
 	}
 
-	private void createIndices(IEngine engine, String cleanTableKey, String indexStr) throws Exception {
+	private void createIndices(IEngine database, String cleanTableKey, String indexStr) throws Exception {
 		String indexOnTable = cleanTableKey + " ( " + indexStr + " ) ";
 		String indexName = "INDX_" + cleanTableKey + indexUniqueId;
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
 		// "DROP INDEX " + indexName;
 		String dropIndex = queryUtil.dropIndex(indexName, cleanTableKey);
 		if (tempIndexAddedList.size() == 0) {
-			insertData(engine, createIndex);
+			insertData(database, createIndex);
 			tempIndexAddedList.add(indexOnTable);
 			tempIndexDropList.add(dropIndex);
 			indexUniqueId++;
@@ -1244,7 +1229,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 			}
 			if (!indexAlreadyExists) {
-				insertData(engine, createIndex);
+				insertData(database, createIndex);
 				tempIndexDropList.add(dropIndex);
 				tempIndexAddedList.add(indexOnTable);
 				indexUniqueId++;
@@ -1253,12 +1238,12 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	}
 
 	// TODO: THIS DEFINITELY DOESN'T WORK
-	// WILL NOT WORK FOR ANY ENGINE WHERE THE QUERY TO GET THE INDEX
+	// WILL NOT WORK FOR ANY DATABASE WHERE THE QUERY TO GET THE INDEX
 	// REQUIRES THE ACCURATE SCHEMA
-	private void findIndexes(IEngine engine) throws Exception {
+	private void findIndexes(IEngine database) throws Exception {
 		// this gets all the existing tables
-		String query = queryUtil.getIndexList(engine.getEngineId());
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+		String query = queryUtil.getIndexList(database.getEngineId());
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(database, query);
 		while (wrapper.hasNext()) {
 			String tablename = "";
 			String dropCurrentIndexText = "";
@@ -1269,8 +1254,8 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			// only storing off custom indexes, recreating the non custom ones
 			// on the fly on the cleanUpDBTables method
 
-			String indexInfoQry = queryUtil.getIndexDetails(indexName, indexTableName, engine.getEngineId());
-			IRawSelectWrapper indexInfo = WrapperManager.getInstance().getRawWrapper(engine, indexInfoQry);
+			String indexInfoQry = queryUtil.getIndexDetails(indexName, indexTableName, database.getEngineId());
+			IRawSelectWrapper indexInfo = WrapperManager.getInstance().getRawWrapper(database, indexInfoQry);
 			List<String> columnsInIndex = new Vector<String>();
 			String columnName = "";
 			while (indexInfo.hasNext()) {
@@ -1286,7 +1271,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			// drop all indexes, recreate the custom ones, the non custom ones
 			// will be systematically recreated.
 			dropCurrentIndexText = queryUtil.dropIndex(indexName, tablename);
-			insertData(engine, dropCurrentIndexText);
+			insertData(database, dropCurrentIndexText);
 		}
 	}
 
@@ -1302,15 +1287,15 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	 * Open script file that contains all the sql statements run during the
 	 * upload process
 	 * 
-	 * @param engineName
+	 * @param databaseName
 	 *            name of the engine/db
 	 */
-	private void openScriptFile(String engineName) {
+	private void openScriptFile(String databaseName) {
 		// try {
 		// String dbBaseFolder =
 		// DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\",
 		// System.getProperty("file.separator"));
-		// scriptFileName = dbBaseFolder + "/db/" + engineName + "/" +
+		// scriptFileName = dbBaseFolder + "/db/" + databaseName + "/" +
 		// scriptFileName;
 		// if (scriptFile == null) {
 		// scriptFile = new PrintWriter(

@@ -7,11 +7,10 @@ import org.apache.logging.log4j.Logger;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.SmssUtilities;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
+import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -19,9 +18,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.AssetUtility;
-import prerna.util.ChromeDriverUtility;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class ImageCaptureReactor extends AbstractReactor {
@@ -31,7 +27,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public ImageCaptureReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_KEY.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_KEY.getKey() };
 	}
 
 	@Override
@@ -41,20 +37,20 @@ public class ImageCaptureReactor extends AbstractReactor {
 		logger.info("Operation can take up to 10 seconds to complete");
 		
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String feUrl = this.keyValue.get(this.keysToGet[1]);
 		String param = this.keyValue.get(this.keysToGet[2]);
 		String sessionId = ThreadStore.getSessionId();
 		
-		IEngine coreEngine = Utility.getEngine(appId);
+		IProject coreProject = Utility.getProject(projectId);
 		// loop through the insights
-		IEngine insightsEng = coreEngine.getInsightDatabase();
+		IEngine insightsEng = coreProject.getInsightDatabase();
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(insightsEng, "select distinct id from question_id");
 			while(wrapper.hasNext()) {
 				String id = wrapper.next().getValues()[0] + "";
-				runImageCapture(feUrl, appId, id, param, sessionId);
+				runImageCapture(feUrl, projectId, id, param, sessionId);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -64,33 +60,23 @@ public class ImageCaptureReactor extends AbstractReactor {
 			}
 		}
 
-		ClusterUtil.reactorPushApp(appId);
+		ClusterUtil.reactorPushDatabase(projectId);
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	public static void runImageCapture(String feUrl, String appId, String insightId, String params, String sessionId) {
-		IEngine coreEngine = Utility.getEngine(appId);
-		if(coreEngine == null) {
-			// we may have the alias
-			List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(appId);
-			if(appIds.size() == 1) {
-				coreEngine = Utility.getEngine(appIds.get(0));
-			} else if(appIds.size() > 1) {
-				throw new IllegalArgumentException("There are 2 databases with the name " + appId + ". Please pass in the correct id to know which source you want to load from");
-			}
-			
-			if(coreEngine == null) {
-				throw new IllegalArgumentException("Cannot find app = " + appId);
-			}
+	public static void runImageCapture(String feUrl, String projectId, String insightId, String params, String sessionId) {
+		IProject coreProject = Utility.getProject(projectId);
+		if(coreProject == null) {
+			throw new IllegalArgumentException("Cannot find project = " + projectId);
 		}
-		runImageCapture(feUrl, coreEngine, appId, insightId, params, sessionId);
+		runImageCapture(feUrl, coreProject, projectId, insightId, params, sessionId);
 	}
 	
-	public static void runImageCapture(String feUrl, IEngine coreEngine, String appId, String insightId, String params, String sessionId) {
+	public static void runImageCapture(String feUrl, IProject coreProject, String appId, String insightId, String params, String sessionId) {
 		Insight insight = null;
 		try {
-			insight = coreEngine.getInsight(insightId).get(0);
+			insight = coreProject.getInsight(insightId).get(0);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -141,9 +127,9 @@ public class ImageCaptureReactor extends AbstractReactor {
 	private static void runHeadlessChrome(String feUrl, Insight insight, String params, String sessionId) {
 		feUrl = feUrl.trim();
 		String id = insight.getRdbmsId();
-		String engineId = insight.getEngineId();
-		String engineName = insight.getEngineName();
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String projectId = insight.getProjectId();
+		String projectName = insight.getProjectName();
+//		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String imageDirStr = "";
 		if(params == null) {
 //			imageDirStr = baseFolder + 
@@ -151,10 +137,10 @@ public class ImageCaptureReactor extends AbstractReactor {
 //				DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
 //				DIR_SEPARATOR + "version" +
 //				DIR_SEPARATOR + id;
-			imageDirStr = AssetUtility.getAppAssetVersionFolder(engineName, engineId) + DIR_SEPARATOR + id;
+			imageDirStr = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) + DIR_SEPARATOR + id;
 		} else {
 			// params is already encodeed
-			imageDirStr = AssetUtility.getAppAssetVersionFolder(engineName, engineId) +
+			imageDirStr = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) +
 					DIR_SEPARATOR + id + 
 					DIR_SEPARATOR + "params" + 
 					DIR_SEPARATOR + params;
@@ -162,9 +148,9 @@ public class ImageCaptureReactor extends AbstractReactor {
 		
 		String url = null;
 		if(params != null) {
-			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&drop=5000&animation=false";
+			url = feUrl+ "#!/insight?type=multi&engine=" + projectId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&drop=5000&animation=false";
 		} else {
-			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&hideMenu=true&drop=5000&animation=false";
+			url = feUrl+ "#!/insight?type=multi&engine=" + projectId + "&id=" + id + "&hideMenu=true&drop=5000&animation=false";
 		}
 		insight.getChromeDriver().captureImage(feUrl, url, imageDirStr + DIR_SEPARATOR + "image.png", sessionId);
 	}

@@ -49,9 +49,9 @@ public class UpdateNLPHistoryReactor extends AbstractRFrameReactor {
 		// get all id's of a user
 		List<String> allIds = null;
 		if (AbstractSecurityUtils.securityEnabled()) {
-			allIds = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
+			allIds = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
 		} else {
-			allIds = MasterDatabaseUtility.getAllEngineIds();
+			allIds = MasterDatabaseUtility.getAllDatabaseIds();
 		}
 
 		// get matrix of data from local master

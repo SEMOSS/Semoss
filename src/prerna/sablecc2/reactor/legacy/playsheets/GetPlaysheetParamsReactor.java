@@ -14,6 +14,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
+import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -40,16 +41,20 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 					+ "WHERE PARAMETER_ID = '" + PARAMETER_ID_PARAM_KEY + "'";
 
 	public GetPlaysheetParamsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String app = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
+		if(projectId == null) {
+			projectId = this.store.getNoun("app").get(0) + "";
+		}
 		String insightId = this.keyValue.get(this.keysToGet[1]);
-		IEngine engine = Utility.getEngine(app);
-		Insight in = engine.getInsight(insightId).get(0);
+		IProject project = Utility.getProject(projectId);
+		Insight in = project.getInsight(insightId).get(0);
 		Map<String, Object> outputHash = new Hashtable<String, Object>();
 		outputHash.put("result", in.getRdbmsId());
 		if (in.isOldInsight()) {
@@ -61,7 +66,7 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 			for (int paramIndex = 0; paramIndex < paramVector.size(); paramIndex++) {
 				SEMOSSParam param = paramVector.get(paramIndex);
 				if (param.isDepends().equalsIgnoreCase("false")) {
-					List<Object> vals = getParamOptions(engine, param.getParamID());
+					List<Object> vals = getParamOptions(project, param.getParamID());
 					Set<Object> uniqueVals = new HashSet<Object>(vals);
 					optionsHash.put(param.getName(), uniqueVals);
 				} else {
@@ -75,8 +80,11 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 		return new NounMetadata(outputHash, PixelDataType.MAP, PixelOperationType.PLAYSHEET_PARAMS);
 	}
 
-	public List<Object> getParamOptions(IEngine engine, String parameterID) {
-		IEngine insightRDBMS = engine.getInsightDatabase();
+	public List<Object> getParamOptions(IProject project, String parameterID) {
+		IEngine insightRDBMS = project.getInsightDatabase();
+		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
+		IEngine mainEngine = Utility.getEngine(project.getProjectId());
+		
 		String query = GET_INFO_FOR_PARAM.replace(PARAMETER_ID_PARAM_KEY, parameterID);
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
 		String[] names = wrap.getVariables();
@@ -127,7 +135,7 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 				if(paramQuery != null && !paramQuery.isEmpty()) {
 					//TODO: rdbms has type as null... this is confusing given the other comments here....
 					if(type != null && !type.isEmpty()) {
-						if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+						if (mainEngine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
 							if (type.contains(":")) {
 								String[] typeArray = type.split(":");
 								type = typeArray[1];
@@ -140,13 +148,13 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 						paramQuery = Utility.fillParam(paramQuery, paramTable);
 					}
 					if(isDbQuery) {
-						uris = getRawValues(engine, paramQuery);
+						uris = getRawValues(mainEngine, paramQuery);
 					} else {
-						uris = getRawValues(engine.getBaseDataEngine(), paramQuery);
+						uris = getRawValues(mainEngine.getBaseDataEngine(), paramQuery);
 					}
 				} else { 
 					// anything that is get Entity of Type must be on db
-					uris = engine.getEntityOfType(type);
+					uris = mainEngine.getEntityOfType(type);
 				}
 			}
 		}
