@@ -521,10 +521,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "database_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_app_name");
+		fun.setAlias("low_database_name");
 		qs.addSelector(fun);
 		if(dbTypeFilter != null && !dbTypeFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", dbTypeFilter));
@@ -547,7 +551,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		// joins
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
