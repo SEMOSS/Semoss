@@ -413,7 +413,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		fun.setAlias("low_project_name");
 		qs.addSelector(fun);
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 	
