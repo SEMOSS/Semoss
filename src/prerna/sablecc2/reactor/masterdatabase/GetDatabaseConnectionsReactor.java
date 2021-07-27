@@ -27,39 +27,39 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
 		}
 		
-		List<String> appliedAppFilters = new Vector<String>();
+		List<String> appliedDatabaseFilters = new Vector<String>();
 		
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
-		List<String> appFilters = null;
+		List<String> databaseFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
-			if(!appFilters.isEmpty()) {
+			databaseFilters = SecurityQueryUtils.getFullUserDatabaseIds(this.insight.getUser());
+			if(!databaseFilters.isEmpty()) {
 				if(databaseId != null) {
 					// need to make sure it is a valid engine id
-					if(!appFilters.contains(databaseId)) {
+					if(!databaseFilters.contains(databaseId)) {
 						throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 					}
 					// we are good
-					appliedAppFilters.add(databaseId);
+					appliedDatabaseFilters.add(databaseId);
 				} else {
 					// set default as filters
-					appliedAppFilters = appFilters;
+					appliedDatabaseFilters = databaseFilters;
 				}
 			} else {
 				if(databaseId != null) {
-					appliedAppFilters.add(databaseId);
+					appliedDatabaseFilters.add(databaseId);
 				}
 			}
 		} else if(databaseId != null) {
-			appliedAppFilters.add(databaseId);
+			appliedDatabaseFilters.add(databaseId);
 		}
 		
 		List<String> inputColumnValues = getColumns();
 		List<String> localConceptIds = MasterDatabaseUtility.getLocalConceptIdsFromPixelName(inputColumnValues);
 		localConceptIds.addAll(MasterDatabaseUtility.getConceptualIdsWithSimilarLogicalNames(localConceptIds));
 		
-		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(localConceptIds, appliedAppFilters);
+		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(localConceptIds, appliedDatabaseFilters);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
 	}
 	
