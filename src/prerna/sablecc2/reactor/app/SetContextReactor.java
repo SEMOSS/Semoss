@@ -14,8 +14,7 @@ public class SetContextReactor extends AbstractReactor {
 	// I need to accomodate for when I should over ride
 	// for instance a user could have saved a recipe with some mapping and then later, they would like to use a different mapping
 
-	public SetContextReactor()
-	{
+	public SetContextReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.CONTEXT.getKey()};
 		this.keyRequired = new int[]{1};
 	}
@@ -23,20 +22,20 @@ public class SetContextReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		
 		organizeKeys();
-		
 		String context = keyValue.get(keysToGet[0]);
 		
 		// all of this can be moved into the context reactor
-		if(context == null)
+		if(context == null) {
 			return getError("No context is set - please use Context(<mount point>) to set context");
+		}
 		
 		// need to replace the app with the 
 		boolean success = this.insight.setContext(context);
 		// attempt once to directly map it with same name
-		if(!success)
+		if(!success) {
 			return getError("No mount point " + context + " - please use Mount(<mount point>, App Name) to set a mount point");
+		}
 		
 		return new NounMetadata("Successfully set context to '" + context , PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}

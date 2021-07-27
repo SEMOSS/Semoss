@@ -14,38 +14,28 @@ public class MountReactor extends AbstractReactor {
 	// I need to accomodate for when I should over ride
 	// for instance a user could have saved a recipe with some mapping and then later, they would like to use a different mapping
 
-	public MountReactor()
-	{
+	public MountReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.VARIABLE.getKey()};
 		this.keyRequired = new int[]{1,1};
 	}
 	
-	
 	@Override
 	public NounMetadata execute() {
-		
 		organizeKeys();
 		
+		String projectName = keyValue.get(keysToGet[0]);
 		String varName = keyValue.get(keysToGet[1]);
-		String appName = keyValue.get(keysToGet[0]);
 
-		if(varName == null || appName == null)
-		{
+		if(varName == null || projectName == null) {
 			throw new IllegalArgumentException("Var or App Name cannot be null ");			
 		}
 		
-		
-
-		
-		boolean success = insight.getUser().addVarMap(varName, appName);
+		boolean success = insight.getUser().addVarMap(varName, projectName);
 		//String varString = insight.getUser().getVarString(false);
-		
-		
-		if(!success)
-		{
-			throw new IllegalArgumentException("No app with " + appName + " available ");			
+		if(!success) {
+			throw new IllegalArgumentException("No app with " + projectName + " available ");			
 		}
-		return new NounMetadata("Successfully mounted '" + varName + "' to app '" + appName + "'", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return new NounMetadata("Successfully mounted '" + varName + "' to app '" + projectName + "'", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 
 }

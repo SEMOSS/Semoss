@@ -11,7 +11,6 @@ import java.util.StringTokenizer;
 
 import org.apache.commons.io.FileUtils;
 
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -33,8 +32,7 @@ public class CommandReactor extends GitBaseReactor {
 	// I need to accomodate for when I should over ride
 	// for instance a user could have saved a recipe with some mapping and then later, they would like to use a different mapping
 
-	public CommandReactor()
-	{
+	public CommandReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.COMMAND.getKey()};
 		this.keyRequired = new int[]{1};
 	}
@@ -42,22 +40,20 @@ public class CommandReactor extends GitBaseReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		
-		
 		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
 			 if(Boolean.parseBoolean(disable_terminal)) {
 					throw new IllegalArgumentException("Terminal and user code execution has been disbled.");
-			 };
+			 }
 		}
-		organizeKeys();
 		
+		organizeKeys();
 		String command = keyValue.get(keysToGet[0]);
 		CmdExecUtil util = this.insight.getCmdUtil();
 
-		if(util == null)
+		if(util == null) {
 			return getError("No context is set - please use SetContext(<mount point>) to set context");
-
+		}
 		
 		// uncomment this line to see it in action. We want to test it for .. etc. before committing into play.
 		//util = null;
@@ -119,27 +115,25 @@ public class CommandReactor extends GitBaseReactor {
 		
 		// pre process commit
 		// add user name and email
-		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("commit"))
-		{
+		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("commit")) {
 			// add the user name
 			// git config user.name
 			// git confir user.email
 			// and user email
 			String [] userEmail = this.insight.getUser().getUserCredential(AuthProvider.GITHUB);
-			
-			if(userEmail [0] == null)
-				userEmail[0] = userEmail[1].substring(0, userEmail[1].indexOf("@")); // get it from the email
-			
+			if(userEmail [0] == null) {
+				// get it from the email
+				userEmail[0] = userEmail[1].substring(0, userEmail[1].indexOf("@"));
+			}
 			this.insight.getCmdUtil().executeCommand("git config user.name " + userEmail[0]);
 			this.insight.getCmdUtil().executeCommand("git config user.email " + userEmail[1]);
-			
 		}
 		
-		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("config"))
-		{
+		if(git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("config")) {
 			// command should not be allowed.. 
-			if(command.contains("global"))
+			if(command.contains("global")) {
 				return NounMetadata.getErrorNounMessage("Global config cannot be set in this environment");
+			}
 		}
 
 		String output = util.executeCommand(command);
