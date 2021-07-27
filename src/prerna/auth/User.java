@@ -72,9 +72,10 @@ public class User implements Serializable {
 	// shared sessions
 	List<String> sharedSessions = new Vector<>();
 	
-	Map <String, String> engineIdMap = new HashMap<>();
-	Map <String, StringBuffer> appMap = new HashMap<>();
-	Map <String, IStorageEngine> externalMounts = new HashMap<String, IStorageEngine>();
+	private Map<String, String> projectIdMap = new HashMap<>();
+	private Map<String, String> engineIdMap = new HashMap<>();
+	private Map<String, StringBuffer> varMap = new HashMap<>();
+	private Map<String, IStorageEngine> externalMounts = new HashMap<String, IStorageEngine>();
 	
 	private boolean anonymous;
 	private String anonymousId;
@@ -97,7 +98,6 @@ public class User implements Serializable {
 		this.workspaceSyncObject = new Object();
 		// set it in the mgmt utils
 		addUserMemory();
-		
 	}
 	
 	/**
@@ -476,77 +476,91 @@ public class User implements Serializable {
 		return token.getId();
 	}
 	
-	public void setTCPServer(Client nc)
-	{
+	/////////////////////////////////////////////////////
+	
+	public void setTCPServer(Client nc) {
 		this.tcpServer = nc;
 	}
 	
-	public Client getTCPServer()
-	{
-		if(this.tcpServer == null)
+	public Client getTCPServer() {
+		if(this.tcpServer == null) {
 			startTCPServer();
+		}
 		return this.tcpServer;
 	}
 	
-	public void setEngines(List<Map<String, Object>> allEngines)
-	{
+	public void setEngines(List<Map<String, Object>> allEngines) {
 		// I still need to check multiple engines with the same name. why not
-		if(engineIdMap.size() == 0 || (engineIdMap.size() != 0 && Integer.parseInt(engineIdMap.get("COUNT")) != allEngines.size()))
+		if(this.engineIdMap.size() == 0 || 
+				(this.engineIdMap.size() != 0 && Integer.parseInt(this.engineIdMap.get("COUNT")) != allEngines.size()))
 		{
-			engineIdMap = new HashMap<>();
+			this.engineIdMap = new HashMap<>();
 			// need to redo
-			for(int engineIndex = 0;engineIndex < allEngines.size();engineIndex++)
-			{
+			for(int engineIndex = 0;engineIndex < allEngines.size();engineIndex++) {
 				Map <String, Object> engineValues = allEngines.get(engineIndex);
-				String engineName = (String)engineValues.get("app_name");
-				String engineId = (String)engineValues.get("app_id");
-				
+				String engineName = (String)engineValues.get("database_name");
+				String engineId = (String)engineValues.get("database_id");
 			
-				engineIdMap.put(engineName, engineId);
+				this.engineIdMap.put(engineName, engineId);
 			}
-			engineIdMap.put("COUNT", allEngines.size() + "");
+			this.engineIdMap.put("COUNT", allEngines.size() + "");
 		}
 	}
 
-	public boolean addVarMap(String varName, String appName)
-	{
-		return addVarMap(varName, appName, false);
+	public void setProjects(List<Map<String, Object>> allProjects) {
+		// I still need to check multiple engines with the same name. why not
+		if(this.projectIdMap.size() == 0 || 
+				(this.projectIdMap.size() != 0 && Integer.parseInt(this.projectIdMap.get("COUNT")) != allProjects.size()))
+		{
+			this.projectIdMap = new HashMap<>();
+			// need to redo
+			for(int engineIndex = 0;engineIndex < allProjects.size();engineIndex++) {
+				Map <String, Object> engineValues = allProjects.get(engineIndex);
+				String engineName = (String)engineValues.get("project_name");
+				String engineId = (String)engineValues.get("project_id");
+			
+				this.projectIdMap.put(engineName, engineId);
+			}
+			this.projectIdMap.put("COUNT", allProjects.size() + "");
+		}
+	}
+	
+	public boolean addVarMap(String varName, String projectName) {
+		return addVarMap(varName, projectName, false);
 	}
 
-	private boolean addVarMap(String varName, String appName, boolean override)
-	{
+	private boolean addVarMap(String varName, String projectName, boolean override) {
 		// convert the app name to alpha
-		String [] pathTokens = appName.split("/");
+		String [] pathTokens = projectName.split("/");
 		String subFolder = "";
-		if(pathTokens.length > 1)
-		{
-			subFolder = appName.replace(pathTokens[0],"");
-			appName = pathTokens[0];
+		if(pathTokens.length > 1) {
+			subFolder = projectName.replace(pathTokens[0],"");
+			projectName = pathTokens[0];
 		}
 		
-		String semossAppName = appName;
+		String semossProjectName = projectName;
 
 		//String semossAppName = Utility.makeAlphaNumeric(appName);
 
-		String engineId = semossAppName;
+		String engineId = semossProjectName;
 		if(!override)
 		{
-			engineId = engineIdMap.get(semossAppName);
-			appName = appName + "__" + engineId;
+			engineId = engineIdMap.get(semossProjectName);
+			projectName = projectName + "__" + engineId;
 		}
 		else
 			engineId = "";
 		if(engineId == null) // there is a possibility that this is a mount path at this point
 			return false;
 		// giving it the main folder intstead of the version
-		String varValue = AssetUtility.getProjectBaseFolder(semossAppName, engineId) + subFolder;
+		String varValue = AssetUtility.getProjectBaseFolder(semossProjectName, engineId) + subFolder;
 
 
 		varValue = varValue.replace("\\", "/");
 
-		StringBuffer oldValue = appMap.get(varName);
+		StringBuffer oldValue = varMap.get(varName);
 		
-		appMap.put(varName, new StringBuffer(varValue));
+		varMap.put(varName, new StringBuffer(varValue));
 		
 		IEngine engine = Utility.getEngine(engineId);
 		ClusterUtil.reactorPullDatabaseFolder(engine, varValue);
@@ -561,22 +575,23 @@ public class User implements Serializable {
 	
 	public void removeVarString(String varName, StringBuffer oldValue)
 	{
-		StringBuffer retRString = appMap.get("R_VAR_STRING");
-		StringBuffer retPyString = appMap.get("PY_VAR_STRING");
+		StringBuffer retRString = varMap.get("R_VAR_STRING");
+		StringBuffer retPyString = varMap.get("PY_VAR_STRING");
 
 		StringBuffer varValue = oldValue;
-		if(oldValue == null)
-			varValue = appMap.get(varName);
-		if(retRString != null)
-		{
+		if(oldValue == null) {
+			varValue = varMap.get(varName);
+		}
+		if(retRString != null) {
 			StringBuffer remRString = new StringBuffer("").append(varName).append(" <- '").append(varValue).append("';\n");
 			String finalRString = retRString.toString();
 			finalRString = finalRString.replace(remRString.toString(), "");
 			retRString = new StringBuffer(finalRString);
-			if(retRString.length() == 0)
-				appMap.remove("R_VAR_STRING");
-			else
-				appMap.put("R_VAR_STRING", retRString);			
+			if(retRString.length() == 0) {
+				varMap.remove("R_VAR_STRING");
+			} else {
+				varMap.put("R_VAR_STRING", retRString);			
+			}
 		}
 		
 		if(retPyString != null)
@@ -585,44 +600,44 @@ public class User implements Serializable {
 			String finalPyString = retPyString.toString();
 			finalPyString = finalPyString.replace(remPyString.toString(), "");
 			retPyString = new StringBuffer(finalPyString);
-			if(retPyString.length() == 0)
-				appMap.remove("PY_VAR_STRING");
-			else
-				appMap.put("PY_VAR_STRING", retPyString);			
+			if(retPyString.length() == 0) {
+				varMap.remove("PY_VAR_STRING");
+			} else {
+				varMap.put("PY_VAR_STRING", retPyString);
+			}
 		}
 	}
 	
 	
 	private void addVarString(String varName, StringBuffer oldValue) {
-		StringBuffer retRString = appMap.get("R_VAR_STRING");
-		StringBuffer retPyString = appMap.get("PY_VAR_STRING");
+		StringBuffer retRString = varMap.get("R_VAR_STRING");
+		StringBuffer retPyString = varMap.get("PY_VAR_STRING");
 		
 		if(retRString == null)
 			// first time
 			retRString = new StringBuffer("");
 
-		retRString.append(varName).append(" <- '").append(appMap.get(varName)).append("';\n");
-		appMap.put("R_VAR_STRING", retRString);			
-		
+		retRString.append(varName).append(" <- '").append(varMap.get(varName)).append("';\n");
+		varMap.put("R_VAR_STRING", retRString);			
 
 		if(retPyString == null || retPyString.length() == 0)
 			// first time
 			retPyString = new StringBuffer("");
 
-		retPyString.append(varName).append(" = '").append(appMap.get(varName)).append("'\n");
-		appMap.put("PY_VAR_STRING", retPyString);			
+		retPyString.append(varName).append(" = '").append(varMap.get(varName)).append("'\n");
+		varMap.put("PY_VAR_STRING", retPyString);			
 	}
 	
 	private String getVarString(boolean r) {
 		if(r) {
-			return appMap.get("R_VAR_STRING").toString();
+			return varMap.get("R_VAR_STRING").toString();
 		} else {
-			return appMap.get("PY_VAR_STRING").toString();
+			return varMap.get("PY_VAR_STRING").toString();
 		}
 	}
 	
 	public Map<String, StringBuffer> getAppMap() {
-		return this.appMap;
+		return this.varMap;
 	}
 	
 	public void addExternalMount(String name, IStorageEngine mountHelper)
@@ -651,18 +666,15 @@ public class User implements Serializable {
 		// at some point I need to also set a watcher to ferret things back and forth
 	}
 	
-	public Map<String, IStorageEngine> getExternalMounts()
-	{
+	public Map<String, IStorageEngine> getExternalMounts() {
 		return this.externalMounts;
 	}
 
-	public PyTranslator getPyTranslator()
-	{
+	public PyTranslator getPyTranslator() {
 		return getPyTranslator(true);
 	}
 
-	public PyTranslator getPyTranslator(boolean create)
-	{
+	public PyTranslator getPyTranslator(boolean create) {
 		boolean useNettyPy = DIHelper.getInstance().getProperty("NETTY_PYTHON") != null
 				&& DIHelper.getInstance().getProperty("NETTY_PYTHON").equalsIgnoreCase("true");
 		if(!PyUtils.pyEnabled()) {
@@ -721,7 +733,7 @@ public class User implements Serializable {
 	public void setContext(String context) {
 		// sets the context space for the user
 		// also set rhe cmd context right here
-		String mountDir = appMap.get(context) + "";
+		String mountDir = varMap.get(context) + "";
 
 		// remove the last assets
 		mountDir = mountDir.replace("/assets", "");
@@ -854,38 +866,34 @@ public class User implements Serializable {
 		}
 	}
 	
-	public String [] getUserCredential(AuthProvider prov)
-	{
+	public String [] getUserCredential(AuthProvider prov) {
 		// just need some specific one the user is using
-		if(prov != null && accessTokens.containsKey(prov))
-			return (getUserEmail(accessTokens.get(prov)));
-		else
-		{
-			Enumeration <AuthProvider> accessKeys = accessTokens.keys();
-			if(accessKeys.hasMoreElements())
-			{
-				AuthProvider provider = accessKeys.nextElement();
-				AccessToken tok = accessTokens.get(provider);
-				return getUserEmail(tok);
-			}
-			else
-			{
-				return new String[] {"anonymous", "anonymous@not_logged_in.com"};
+		if(prov != null && accessTokens.containsKey(prov)) {
+			String[] creds = getUserEmail(accessTokens.get(prov));
+			if(creds[1] != null) {
+				return creds;
 			}
 		}
+
+		Enumeration <AuthProvider> accessKeys = accessTokens.keys();
+		if(accessKeys.hasMoreElements()) {
+			AuthProvider provider = accessKeys.nextElement();
+			AccessToken tok = accessTokens.get(provider);
+			String[] creds = getUserEmail(tok);
+			if(creds[1] != null) {
+				return creds;
+			}
+		}
+		
+		return new String[] {"anonymous", "anonymous@not_logged_in.com"};
 	}
 	
-	private String[] getUserEmail(AccessToken token)
-	{
+	private String[] getUserEmail(AccessToken token) {
 		String [] userEmail = new String[2];
 		userEmail[0] = token.getUsername();
 		userEmail[1] = token.getEmail();
 	
 		return userEmail;
 	}
-		
-		
-		
-
 	
 }
