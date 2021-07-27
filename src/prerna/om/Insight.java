@@ -1451,12 +1451,12 @@ public class Insight implements Serializable {
 		}
 	}
 	
-	public CmdExecUtil getCmdUtil()
-	{
-		if(this.user != null)
+	public CmdExecUtil getCmdUtil() {
+		if(this.user != null) {
 			return this.user.getCmdUtil();
-		else
+		} else {
 			return this.cmdUtil;
+		}
 	}
 
 	///////////////////////////////////////// PYTHON SPECIFIC METHODS ///////////////////////////////////////////
