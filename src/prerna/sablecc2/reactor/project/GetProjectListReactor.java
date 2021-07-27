@@ -22,7 +22,7 @@ public class GetProjectListReactor extends AbstractReactor {
 		organizeKeys();
 		List<Map<String, Object>> retList = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			retList = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), false);
+			retList = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), null);
 		} else {
 			retList = SecurityProjectUtils.getAllProjectList();
 		}
