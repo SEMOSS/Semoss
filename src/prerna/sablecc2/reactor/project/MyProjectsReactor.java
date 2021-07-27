@@ -46,31 +46,31 @@ public class MyProjectsReactor extends AbstractReactor {
 			sortCol = "name";
 		}
 		
-		List<Map<String, Object>> appInfo = new Vector<>();
+		List<Map<String, Object>> projectInfo = new Vector<>();
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly);
-			this.insight.getUser().setEngines(appInfo);
+			projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), favoritesOnly);
+			this.insight.getUser().setEngines(projectInfo);
 		} else {
-			appInfo = SecurityProjectUtils.getAllProjectList();
+			projectInfo = SecurityProjectUtils.getAllProjectList();
 		}
 
-		int size = appInfo.size();
-		Map<String, Integer> index = new HashMap<>(appInfo.size());
+		int size = projectInfo.size();
+		Map<String, Integer> index = new HashMap<>(projectInfo.size());
 		// now we want to add most executed insights
 		for(int i = 0; i < size; i++) {
-			Map<String, Object> app = appInfo.get(i);
-			String appId = app.get("project_id").toString();
+			Map<String, Object> project = projectInfo.get(i);
+			String appId = project.get("project_id").toString();
 			SemossDate lmDate = SecurityQueryUtils.getLastModifiedDateForInsightInProject(appId);
 			// could be null when there are no insights in an app
 			if(lmDate != null) {
-				app.put("lastModifiedDate", lmDate);
-				app.put("lastModified", lmDate.getFormattedDate());
+				project.put("lastModifiedDate", lmDate);
+				project.put("lastModified", lmDate.getFormattedDate());
 			}
 
 			// just going to init for FE
-			app.put("description", "");
-			app.put("tags", new Vector<String>());
+			project.put("description", "");
+			project.put("tags", new Vector<String>());
 
 			// keep list of app ids to get the index
 			index.put(appId, Integer.valueOf(i));
@@ -81,7 +81,7 @@ public class MyProjectsReactor extends AbstractReactor {
 			wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), META_KEYS_LIST);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
-				String appId = (String) data[0];
+				String projectId = (String) data[0];
 
 				String metaKey = (String) data[1];
 				String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[2]);
@@ -89,8 +89,8 @@ public class MyProjectsReactor extends AbstractReactor {
 					continue;
 				}
 
-				int indexToFind = index.get(appId);
-				Map<String, Object> res = appInfo.get(indexToFind);
+				int indexToFind = index.get(projectId);
+				Map<String, Object> res = projectInfo.get(indexToFind);
 				// right now only handling description + tags
 				if(metaKey.equals("description")) {
 					// we only have 1 description per insight
@@ -113,7 +113,7 @@ public class MyProjectsReactor extends AbstractReactor {
 		
 		// need to go through and sort the values
 		if(sortCol.equalsIgnoreCase("date")) {
-			Collections.sort(appInfo, new Comparator<Map<String, Object>>() {
+			Collections.sort(projectInfo, new Comparator<Map<String, Object>>() {
 
 				// we want descending - not ascending
 				// so values are swapped
@@ -133,7 +133,7 @@ public class MyProjectsReactor extends AbstractReactor {
 				}
 			});
 		} else {
-			Collections.sort(appInfo, new Comparator<Map<String, Object>>() {
+			Collections.sort(projectInfo, new Comparator<Map<String, Object>>() {
 
 				// we want descending - not ascending
 				// so values are swapped
@@ -147,7 +147,7 @@ public class MyProjectsReactor extends AbstractReactor {
 			});
 		}
 
-		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
 	@Override
