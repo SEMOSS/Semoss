@@ -59,8 +59,13 @@ public class MyDatabasesReactor extends AbstractReactor {
 		int size = dbInfo.size();
 		// now we want to add most executed insights
 		for(int i = 0; i < size; i++) {
-			Map<String, Object> app = dbInfo.get(i);
-			String appId = app.get("database_id").toString();
+			Map<String, Object> database = dbInfo.get(i);
+			String appId = database.get("database_id").toString();
+			
+			// just going to init for FE
+			database.put("description", "");
+			database.put("tags", new Vector<String>());
+			
 			// keep list of app ids to get the index
 			index.put(appId, Integer.valueOf(i));
 		}
@@ -70,7 +75,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 			wrapper = SecurityAppUtils.getDatabaseMetadataWrapper(index.keySet(), META_KEYS_LIST);
 			while(wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
-				String appId = (String) data[0];
+				String databaseId = (String) data[0];
 
 				String metaKey = (String) data[1];
 				String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[2]);
@@ -78,7 +83,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 					continue;
 				}
 
-				int indexToFind = index.get(appId);
+				int indexToFind = index.get(databaseId);
 				Map<String, Object> res = dbInfo.get(indexToFind);
 				// right now only handling description + tags
 				if(metaKey.equals("description")) {
@@ -87,7 +92,7 @@ public class MyDatabasesReactor extends AbstractReactor {
 					res.put("description", value);
 				} else if(metaKey.equals("tag")){
 					// multiple tags per insight
-					List<String> tags = (List<String>) res.get("tags");;
+					List<String> tags = (List<String>) res.get("tags");
 					// add to the list
 					tags.add(value);
 				}
