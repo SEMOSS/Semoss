@@ -359,7 +359,7 @@ public class PixelUnit {
 			throws IOException, ClassNotFoundException, SQLException, DatabaseUnitException {
 
 		// First, delete any existing databases with the same alias
-		List<String> existingAppIds = MasterDatabaseUtility.getEngineIdsForAlias(alias);
+		List<String> existingAppIds = MasterDatabaseUtility.getDatabaseIdsForAlias(alias);
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		for (String appId : existingAppIds) {
 
@@ -375,7 +375,7 @@ public class PixelUnit {
 
 				// Else, its just metadata hanging around
 				remover.deleteEngineRDBMS(appId);
-				SecurityUpdateUtils.deleteApp(appId);
+				SecurityUpdateUtils.deleteDatabase(appId);
 			}
 		}
 
