@@ -642,8 +642,8 @@ public class MasterDatabaseUtility {
 
 				// if we passed the above test, add the valid connection
 				Map<String, Object> mapRow = new HashMap<String, Object>();
-				mapRow.put("app_id", engineId);
-				mapRow.put("app_name", engineName);
+				mapRow.put("database_id", engineId);
+				mapRow.put("database_name", engineName);
 				mapRow.put("table", column);
 				mapRow.put("pk", pk);
 				mapRow.put("dataType", type);
@@ -710,8 +710,8 @@ public class MasterDatabaseUtility {
 
 				// if we passed the above test, add the valid connection
 				Map<String, Object> mapRow = new HashMap<>();
-				mapRow.put("app_id", engineId);
-				mapRow.put("app_name", engineName);
+				mapRow.put("database_id", engineId);
+				mapRow.put("database_name", engineName);
 				mapRow.put("table", parent);
 				mapRow.put("column", column);
 				mapRow.put("pk", pk);
@@ -781,8 +781,8 @@ public class MasterDatabaseUtility {
 
 				// if we passed the above test, add the valid connection
 				Map<String, Object> mapRow = new HashMap<>();
-				mapRow.put("app_id", databaseId);
-				mapRow.put("app_name", databaseName);
+				mapRow.put("database_id", databaseId);
+				mapRow.put("database_name", databaseName);
 				if(downstreamParent == null) {
 					mapRow.put("table", downstreamName);
 				} else {
@@ -911,8 +911,8 @@ public class MasterDatabaseUtility {
 
 				// if we passed the above test, add the valid connection
 				Map<String, Object> mapRow = new HashMap<>();
-				mapRow.put("app_id", databaseId);
-				mapRow.put("app_name", databaseName);
+				mapRow.put("database_id", databaseId);
+				mapRow.put("database_name", databaseName);
 				if(upstreamParent == null) {
 					mapRow.put("table", upstreamName);
 				} else {
