@@ -871,7 +871,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserProjectList(User user, Boolean favoritesOnly) {
+	public static List<Map<String, Object>> getUserProjectList(User user, boolean favoritesOnly) {
 		Collection<String> userIds = getUserFiltersQs(user);
 		
 		SelectQueryStruct qs1 = new SelectQueryStruct();
