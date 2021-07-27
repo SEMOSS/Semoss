@@ -3,6 +3,7 @@ package prerna.auth.utils;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -237,6 +238,7 @@ public abstract class AbstractSecurityUtils {
 		
 		// PROJECT
 		// Type and cost are the main questions - 
+		boolean projectExists = queryUtil.tableExists(conn, "PROJECT", schema);
 		colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "TYPE", "COST" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 		if(allowIfExistsTable) {
@@ -265,37 +267,25 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		{
-			// if the project table is empty
-			// init it with the engines since they need to be broken out
-			IRawSelectWrapper wrapper = null;
+		List<String> newProjectsAutoAdded = new ArrayList<>();
+		if(!projectExists) {
+			IRawSelectWrapper wrapper2 = null;
 			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from project");
-				if(wrapper.hasNext()) {
-					int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-					if(numrows == 0) {
-						IRawSelectWrapper wrapper2 = null;
-						try {
-							wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select engineid, enginename, global from engine");
-							while(wrapper2.hasNext()) {
-								Object[] values = wrapper2.next().getValues();
-								// insert into project table
-								securityDb.insertData(queryUtil.insertIntoTable("PROJECT", colNames, types, new Object[]{values[1], values[0], values[2], null, null}));
-							}
-						} catch (Exception e) {
-							e.printStackTrace();
-						} finally {
-							if(wrapper2 != null) {
-								wrapper2.cleanUp();
-							}
-						}
-					}
+				wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select engineid, enginename, global from engine");
+				while(wrapper2.hasNext()) {
+					Object[] values = wrapper2.next().getValues();
+					// insert into project table
+					securityDb.insertData(queryUtil.insertIntoTable("PROJECT", colNames, types, new Object[]{values[1], values[0], values[2], null, null}));
+					
+					// store this so we also move over permissions
+					// this is the engine id which is the same as the project id
+					newProjectsAutoAdded.add(values[0] + "");
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {
-				if(wrapper != null) {
-					wrapper.cleanUp();
+				if(wrapper2 != null) {
+					wrapper2.cleanUp();
 				}
 			}
 		}
@@ -315,6 +305,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// PROJECTPERMISSION
+		boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", schema);
 		colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE" };
 		types = new String[] { "VARCHAR(255)", "INT", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
 		defaultValues = new Object[]{null, null, null, true, false};
@@ -325,6 +316,27 @@ public abstract class AbstractSecurityUtils {
 			if(!queryUtil.tableExists(conn, "PROJECTPERMISSION", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PROJECTPERMISSION", colNames, types));
+			}
+		}
+		
+		if(!projectPermissionExists) {
+			IRawSelectWrapper wrapper2 = null;
+			try {
+				wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb, "select userid, permission, engineid, visibility, favorite from enginepermission");
+				while(wrapper2.hasNext()) {
+					Object[] values = wrapper2.next().getValues();
+					// if the project exists - we will insert it
+					if(newProjectsAutoAdded.contains(values[2])) {
+						// insert into project permission table
+						securityDb.insertData(queryUtil.insertIntoTable("PROJECTPERMISSION", colNames, types, values));
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(wrapper2 != null) {
+					wrapper2.cleanUp();
+				}
 			}
 		}
 
