@@ -1419,30 +1419,30 @@ public class Insight implements Serializable {
 		return retOutput;
 	}
 
-	
-	// TODO::::
-	// TODO::::
-	public boolean setContext(String context)
-	{
+	/**
+	 * Set the current context for the user
+	 * @param context
+	 * @return
+	 */
+	public boolean setContext(String context) {
 		// sets the context space for the user
 		// also set rhe cmd context right here
-		if(this.user != null)
-		{
-			Map <String, StringBuffer> appMap = this.user.getAppMap();
-			if(!appMap.containsKey(context))
-			{
-				// attempt once to directly map it with same name
-				boolean success = this.user.addVarMap(context, context); 
-			}	
-			if(appMap.containsKey(context))
-			{
+		if(this.user != null) {
+			Map <String, StringBuffer> varMap = this.user.getVarMap();
+			if(!varMap.containsKey(context)) {
+				// assume the context is currently the project id
+				// and we will add it and get back the varname that was used
+				// which will then be the actual context that is set
+				context = this.user.addVarMap(context); 
+			}
+			if(varMap.containsKey(context)) {
 				this.user.setContext(context);
 				return true;
 			}
 			return false;
 		}
-		else
-		{
+		// should we allow this if no one is logged in?
+		else {
 			String id = Utility.getEngineData(context);
 			String mountDir = AssetUtility.getProjectAssetVersionFolder(context, id);
 	
