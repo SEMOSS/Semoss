@@ -14,7 +14,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Clob;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,12 +35,10 @@ import org.xeustechnologies.jcl.JarClassLoader;
 
 import com.google.gson.Gson;
 
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.ProjectHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -131,11 +128,11 @@ public class Project implements IProject {
 			this.insightRdbms = ProjectHelper.loadInsightsEngine(this.prop, logger);
 		}
 		
-		// yay! even more updates
-		if(this.insightRdbms != null) {
-			// update explore an instance query!!!
-			updateExploreInstanceQuery(this.insightRdbms);
-		}
+//		// yay! even more updates
+//		if(this.insightRdbms != null) {
+//			// update explore an instance query!!!
+//			updateExploreInstanceQuery(this.insightRdbms);
+//		}
 	}
 	
 	@Override
@@ -413,75 +410,75 @@ public class Project implements IProject {
 	 * Methods that exist only to automate changes to databases
 	 */
 	
-	@Deprecated
-	private void updateExploreInstanceQuery(RDBMSNativeEngine insightRDBMS) {
-		// if solr doesn't have this engine
-		// do not add anything yet
-		// let it get added later
-		if(!SecurityUpdateUtils.containsDatabaseId(this.projectId) 
-				|| this.projectId.equals(Constants.LOCAL_MASTER_DB_NAME)
-				|| this.projectId.equals(Constants.SECURITY_DB)) {
-			return;
-		}
-		boolean tableExists = false;
-		ResultSet rs = null;
-		try {
-			rs = insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
-			if (rs.next()) {
-				  tableExists = true;
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				if(rs != null) {
-					rs.close();
-				}
-			} catch(SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		if(tableExists) {
-			String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
-			File exploreF = new File(exploreLoc);
-			if(!exploreF.exists()) {
-				// ughhh... cant do anything for ya buddy
-				return;
-			}
-			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
-			try {
-				newPixel += new String(Files.readAllBytes(exploreF.toPath())).replaceAll("\n|\r|\t", "").replaceAll("\\s\\s+", "").replace("<<ENGINE>>", this.projectId);
-			} catch (IOException e2) {
-				// can't help ya
-				return;
-			}
-			newPixel += "} </encode>\" ) ;";
-			
-			// for debugging... delete from question_id where question_name = 'New Explore an Instance'
-			InsightAdministrator admin = new InsightAdministrator(insightRDBMS);
-			IRawSelectWrapper it1 = null;
-			String oldId = null;
-			try {
-				it1 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name='Explore an instance of a selected node type'");
-				while(it1.hasNext()) {
-					// drop the old insight
-					oldId = it1.next().getValues()[0].toString();
-				}
-			} catch(Exception e) {
-				// if we have a db that doesn't actually have this table (forms, local master, etc.)
-			} finally {
-				if(it1 != null) {
-					it1.cleanUp();
-				}
-			}
-			
-			if(oldId != null) {
-				// update with the latest explore an instance
-				admin.updateInsight(oldId, "Explore an instance of a selected node type", "Graph", new String[]{newPixel});
-			}
-		}
-	}
+//	@Deprecated
+//	private void updateExploreInstanceQuery(RDBMSNativeEngine insightRDBMS) {
+//		// if solr doesn't have this engine
+//		// do not add anything yet
+//		// let it get added later
+//		if(!SecurityUpdateUtils.containsDatabaseId(this.projectId) 
+//				|| this.projectId.equals(Constants.LOCAL_MASTER_DB_NAME)
+//				|| this.projectId.equals(Constants.SECURITY_DB)) {
+//			return;
+//		}
+//		boolean tableExists = false;
+//		ResultSet rs = null;
+//		try {
+//			rs = insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
+//			if (rs.next()) {
+//				  tableExists = true;
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		} finally {
+//			try {
+//				if(rs != null) {
+//					rs.close();
+//				}
+//			} catch(SQLException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		
+//		if(tableExists) {
+//			String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
+//			File exploreF = new File(exploreLoc);
+//			if(!exploreF.exists()) {
+//				// ughhh... cant do anything for ya buddy
+//				return;
+//			}
+//			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+//			try {
+//				newPixel += new String(Files.readAllBytes(exploreF.toPath())).replaceAll("\n|\r|\t", "").replaceAll("\\s\\s+", "").replace("<<ENGINE>>", this.projectId);
+//			} catch (IOException e2) {
+//				// can't help ya
+//				return;
+//			}
+//			newPixel += "} </encode>\" ) ;";
+//			
+//			// for debugging... delete from question_id where question_name = 'New Explore an Instance'
+//			InsightAdministrator admin = new InsightAdministrator(insightRDBMS);
+//			IRawSelectWrapper it1 = null;
+//			String oldId = null;
+//			try {
+//				it1 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name='Explore an instance of a selected node type'");
+//				while(it1.hasNext()) {
+//					// drop the old insight
+//					oldId = it1.next().getValues()[0].toString();
+//				}
+//			} catch(Exception e) {
+//				// if we have a db that doesn't actually have this table (forms, local master, etc.)
+//			} finally {
+//				if(it1 != null) {
+//					it1.cleanUp();
+//				}
+//			}
+//			
+//			if(oldId != null) {
+//				// update with the latest explore an instance
+//				admin.updateInsight(oldId, "Explore an instance of a selected node type", "Graph", new String[]{newPixel});
+//			}
+//		}
+//	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////// Load project specific reactors //////////////////////////////
