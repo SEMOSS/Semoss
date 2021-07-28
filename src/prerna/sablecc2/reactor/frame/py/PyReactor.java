@@ -67,10 +67,10 @@ public class PyReactor extends AbstractPyFrameReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			if(tokens > 1)
-				output = pyTranslator.runPyAndReturnOutput(insight.getUser().getAppMap(), code) + "";
+				output = pyTranslator.runPyAndReturnOutput(insight.getUser().getVarMap(), code) + "";
 			else
 				//output = pyTranslator.runScript(code) + "";
-			output = pyTranslator.runScript(insight.getUser().getAppMap(), code) + "";
+			output = pyTranslator.runScript(insight.getUser().getVarMap(), code) + "";
 
 		} else {
 			if(tokens > 1)
