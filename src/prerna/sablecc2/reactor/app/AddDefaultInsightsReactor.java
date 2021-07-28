@@ -218,7 +218,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		}
 		
 		// push to the cloud
-		ClusterUtil.reactorPushInsightDB(databaseId);
+		ClusterUtil.reactorPushInsightDB(projectId);
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		if(addedInsight) {
