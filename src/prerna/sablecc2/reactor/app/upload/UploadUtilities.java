@@ -1208,10 +1208,15 @@ public class UploadUtilities {
 	 * Below methods pertain to the insights database
 	 */
 	
-
-	
-	
-	
+	/**
+	 * Get a unique name for this insight
+	 * @param databaseName
+	 * @param baseName
+	 * @return
+	 */
+	public static String getInsightName(String databaseOrProjectName, String baseName) {
+		return databaseOrProjectName + " - " + baseName;
+	}
 	
 
 	/**
@@ -1234,7 +1239,7 @@ public class UploadUtilities {
 				newPixel += "} </encode>\" ) ;";
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
-				String insightName = databaseName + " - " + EXPLORE_INSIGHT_INSIGHT_NAME;
+				String insightName = getInsightName(databaseName, EXPLORE_INSIGHT_INSIGHT_NAME);
 				String insightId = admin.addInsight(insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave);
 				//write recipe to file
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, false);
@@ -1296,7 +1301,7 @@ public class UploadUtilities {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add("META | AddPanel(0); META | Panel(0) | SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + databaseId + "\"}</encode>\");");
-		String insightName = databaseName + " - " + GRID_DELTA_INSIGHT_NAME;
+		String insightName = getInsightName(databaseName, GRID_DELTA_INSIGHT_NAME);
 		String insightId = admin.addInsight(insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave);
 		// write recipe to file
 		try {
@@ -1338,7 +1343,7 @@ public class UploadUtilities {
 				newPixel += "} </encode>\" ) ;";
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
-				String insightName = databaseName + " - " + AUDIT_MODIFICATION_VIEW_INSIGHT_NAME;
+				String insightName = getInsightName(databaseName, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
 				String insightId = admin.addInsight(insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave);
 				//write recipe to file
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, false);
@@ -1379,7 +1384,7 @@ public class UploadUtilities {
 				newPixel += "} </encode>\" ) ;";
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
-				String insightName = databaseName + " - " + AUDIT_TIMELINE_INSIGHT_NAME;
+				String insightName = getInsightName(databaseName, AUDIT_TIMELINE_INSIGHT_NAME);
 				String insightId = admin.addInsight(insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave);
 				// write recipe to file
 				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, false);
@@ -1414,7 +1419,7 @@ public class UploadUtilities {
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(owl);
 		// assuming single sheet
 		String sheetName = metamodel.keySet().iterator().next();
-		String insightName = getInsightFormName(sheetName);
+		String insightName = getInsightFormSheetName(sheetName);
 		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
@@ -1451,7 +1456,7 @@ public class UploadUtilities {
 		Map<String, Map<String, SemossDataType>> metamodel = new HashMap<>();
 		metamodel.put(sheetName, propMap);
 		// assuming single sheet
-		String insightName = getInsightFormName(sheetName);
+		String insightName = getInsightFormSheetName(sheetName);
 		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
@@ -1484,7 +1489,7 @@ public class UploadUtilities {
 	 */
 	public static void addInsertFormInsight(RDBMSNativeEngine insightEngine, String projectId, String projectName, String appId, String appName, String sheetName, Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String insightName = getInsightFormName(sheetName);
+		String insightName = getInsightFormSheetName(sheetName);
 		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
@@ -1513,7 +1518,7 @@ public class UploadUtilities {
 	 * @param sheetName
 	 * @return
 	 */
-	public static String getInsightFormName(String sheetName) {
+	public static String getInsightFormSheetName(String sheetName) {
 		// sheetNames are inserted as tables all caps
 		return "Insert into " + sheetName.toUpperCase() + " Form";
 	}
