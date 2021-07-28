@@ -9,10 +9,12 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.project.api.IProject;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -35,22 +37,15 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 
 
 	public AddDefaultInsightsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), INSIGHT_KEYS};
+		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.DATABASE.getKey(), INSIGHT_KEYS};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-
 		Logger logger = this.getLogger(CLASS_NAME);
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		
 		// security and stuff
 		if(AbstractSecurityUtils.securityEnabled()) {
@@ -58,8 +53,11 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 			
-			if(!SecurityAppUtils.userCanEditDatabase(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException("User does not have permission to add insights in the database");
+			if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+				throw new IllegalArgumentException("User does not have permission to add insights in the project");
+			}
+			if(!SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), databaseId)) {
+				throw new IllegalArgumentException("User does not have permission to view the database");
 			}
 		}
 
@@ -74,14 +72,18 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 		// already have default methods to add
 		
 		logger.info("Retrieving database");
+		IProject project = Utility.getProject(projectId);
+		RDBMSNativeEngine insightEngine = project.getInsightDatabase();
+		String projectName = project.getProjectName();
+		
 		IEngine database = Utility.getEngine(databaseId);
 		String databaseName = database.getEngineName();
-		RDBMSNativeEngine insightEngine = null;
 		ENGINE_TYPE eType = database.getEngineType();
-		ClusterUtil.reactorPullInsightsDB(databaseId);
+		
+		ClusterUtil.reactorPullInsightsDB(projectId);
 		if(addAll) {
 			logger.info("Adding all default insights");
-			Map<String, Object> retMap = UploadUtilities.addExploreInstanceInsight(databaseId, databaseName, insightEngine);
+			Map<String, Object> retMap = UploadUtilities.addExploreInstanceInsight(projectId, projectName, databaseId, databaseName, insightEngine);
 			String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 			List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 			addedInsight = true;
@@ -89,7 +91,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 					UploadUtilities.EXPLORE_INSIGHT_LAYOUT, true, recipe);
 			logger.info("Done adding explore an instance");
 			
-			retMap = UploadUtilities.addInsightUsageStats(databaseId, databaseName, insightEngine);
+			retMap = UploadUtilities.addInsightUsageStats(projectId, projectName, insightEngine);
 			newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 			recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 			addedInsight = true;
@@ -98,7 +100,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			logger.info("Done adding insight usage stats");
 			
 			if(eType == ENGINE_TYPE.RDBMS) {
-				retMap = UploadUtilities.addGridDeltaInsight(databaseId, databaseName, insightEngine);
+				retMap = UploadUtilities.addGridDeltaInsight(projectId, projectName, databaseId, databaseName, insightEngine);
 				newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 				recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 				registerInsightAndMetadata(databaseId, newInsightId, UploadUtilities.GRID_DELTA_INSIGHT_NAME, 
@@ -107,7 +109,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				
 				// add audit insights
 				// there could be an issue with loading the recipes to create
-				retMap = UploadUtilities.addAuditModificationView(databaseId, databaseName, insightEngine);
+				retMap = UploadUtilities.addAuditModificationView(projectId, projectName, databaseId, databaseName, insightEngine);
 				if(retMap != null) {
 					newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 					recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
@@ -122,7 +124,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 					additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
 				}
 				
-				retMap = UploadUtilities.addAuditTimelineView(databaseId, databaseName, insightEngine);
+				retMap = UploadUtilities.addAuditTimelineView(projectId, projectName, databaseId, databaseName, insightEngine);
 				if(retMap != null) {
 					newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 					recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
@@ -141,7 +143,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			}
 		} else {
 			if(insightsToAdd.contains(EXPLORE_INSTANCE)) {
-				Map<String, Object> retMap = UploadUtilities.addExploreInstanceInsight(databaseId, databaseName, insightEngine);
+				Map<String, Object> retMap = UploadUtilities.addExploreInstanceInsight(projectId, projectName, databaseId, databaseName, insightEngine);
 				String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 				List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 				addedInsight = true;
@@ -150,7 +152,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				logger.info("Done adding explore an instance");
 			}
 			if(insightsToAdd.contains(INSIGHT_STATS)) {
-				Map<String, Object> retMap = UploadUtilities.addInsightUsageStats(databaseId, databaseName, insightEngine);
+				Map<String, Object> retMap = UploadUtilities.addInsightUsageStats(projectId, projectName, insightEngine);
 				String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 				List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 				addedInsight = true;
@@ -160,7 +162,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			}
 			if(insightsToAdd.contains(GRID_DELTA_INSTANCE)) {
 				if(eType == ENGINE_TYPE.RDBMS) {
-					Map<String, Object> retMap = UploadUtilities.addGridDeltaInsight(databaseId, databaseName, insightEngine);
+					Map<String, Object> retMap = UploadUtilities.addGridDeltaInsight(projectId, projectName, databaseId, databaseName, insightEngine);
 					String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 					List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
 					addedInsight = true;
@@ -173,7 +175,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			}
 			if(insightsToAdd.contains(AUDIT_MODIFICATION)) {
 				if(eType == ENGINE_TYPE.RDBMS) {
-					Map<String, Object> retMap = UploadUtilities.addAuditModificationView(databaseId, databaseName, insightEngine);
+					Map<String, Object> retMap = UploadUtilities.addAuditModificationView(projectId, projectName, databaseId, databaseName, insightEngine);
 					if(retMap != null) {
 						String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 						List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
@@ -194,7 +196,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			}
 			if(insightsToAdd.contains(AUDIT_TIMELINE)) {
 				if(eType == ENGINE_TYPE.RDBMS) {
-					Map<String, Object> retMap = UploadUtilities.addAuditTimelineView(databaseId, databaseName, insightEngine);
+					Map<String, Object> retMap = UploadUtilities.addAuditTimelineView(projectId, projectName, databaseId, databaseName, insightEngine);
 					if(retMap != null) {
 						String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
 						List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
