@@ -23,19 +23,19 @@ public class MountReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		
-		String projectName = keyValue.get(keysToGet[0]);
+		String projectId = keyValue.get(keysToGet[0]);
 		String varName = keyValue.get(keysToGet[1]);
 
-		if(varName == null || projectName == null) {
+		if(varName == null || projectId == null) {
 			throw new IllegalArgumentException("Var or App Name cannot be null ");			
 		}
 		
-		boolean success = insight.getUser().addVarMap(varName, projectName);
+		boolean success = insight.getUser().addVarMap(varName, projectId);
 		//String varString = insight.getUser().getVarString(false);
 		if(!success) {
-			throw new IllegalArgumentException("No app with " + projectName + " available ");			
+			throw new IllegalArgumentException("No project with " + projectId + " available ");			
 		}
-		return new NounMetadata("Successfully mounted '" + varName + "' to app '" + projectName + "'", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return new NounMetadata("Successfully mounted '" + varName + "' to project '" + projectId + "'", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 
 }
