@@ -1216,11 +1216,11 @@ public class UploadUtilities {
 
 	/**
 	 * Add explore an instance to the insights database
-	 * @param appId
+	 * @param databaseId
 	 * @param insightEngine
 	 * @return 				String containing the new insight id
 	 */
-	public static Map<String, Object> addExploreInstanceInsight(String appId, String appName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addExploreInstanceInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
 		File exploreF = new File(exploreLoc);
@@ -1230,19 +1230,20 @@ public class UploadUtilities {
 				newPixel += new String(Files.readAllBytes(exploreF.toPath()))
 						.replaceAll("\n|\r|\t", "")
 						.replaceAll("\\s\\s+", "")
-						.replace("<<ENGINE>>", appId);
+						.replace("<<ENGINE>>", databaseId);
 				newPixel += "} </encode>\" ) ;";
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
-				String insightId = admin.addInsight(EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave);
+				String insightName = databaseName + " - " + EXPLORE_INSIGHT_INSIGHT_NAME;
+				String insightId = admin.addInsight(insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave);
 				//write recipe to file
-				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, false);
+				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, false);
 				// add the git here
-				String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
+				String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ EXPLORE_INSIGHT_INSIGHT_NAME +" insight on"));
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 				
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put(INSIGHT_ID_KEY, insightId);
@@ -1255,21 +1256,21 @@ public class UploadUtilities {
 		return null;
 	}
 	
-	public static Map<String, Object> addInsightUsageStats(String appId, String appName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addInsightUsageStats(String projectId, String projectName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new Vector<>();
 		pixelRecipeToSave.add("AddPanel(panel = [ 0 ] , sheet = [ \"0\" ] );");
 		pixelRecipeToSave.add("Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] );");
 		pixelRecipeToSave.add("Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;");
-		pixelRecipeToSave.add("useageFrame = InsightUsageStatistics ( app = [ \"" + appId + "\" ] , panel = [ \"0\" ] ) ;");
+		pixelRecipeToSave.add("useageFrame = InsightUsageStatistics ( project = [ \"" + projectId + "\" ] , panel = [ \"0\" ] ) ;");
 		pixelRecipeToSave.add("Frame(useageFrame) | QueryAll() | AutoTaskOptions(panel = [ \"0\" ] , layout = [ \"GRID\" ] ) | Collect(-1);");
 		pixelRecipeToSave.add("SetInsightConfig({\"panels\":{\"0\":{\"config\":{\"type\":\"golden\",\"backgroundColor\":\"\",\"opacity\":100}}},\"sheets\":{\"0\":{\"golden\":{\"content\":[{\"type\":\"row\",\"content\":[{\"type\":\"stack\",\"activeItemIndex\":0,\"width\":100,\"content\":[{\"type\":\"component\",\"componentName\":\"panel\",\"componentState\":{\"panelId\":\"0\"}}]}]}]}}},\"sheet\":\"0\"});");
 		try {
 			String insightId = admin.addInsight(INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave, false, false);
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave, false);
+			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave, false);
 			// add the git here
-			String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
@@ -1287,24 +1288,25 @@ public class UploadUtilities {
 	
 	/**
 	 * Add grid delta to the insights database
-	 * @param appId
+	 * @param databaseId
 	 * @param insightEngine
 	 * @return 				String containing the new insight id
 	 */
-	public static Map<String, Object> addGridDeltaInsight(String appId, String appName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addGridDeltaInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new Vector<>();
-		pixelRecipeToSave.add("META | AddPanel(0); META | Panel(0) | SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + appId + "\"}</encode>\");");
-		String insightId = admin.addInsight(GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pixelRecipeToSave);
+		pixelRecipeToSave.add("META | AddPanel(0); META | Panel(0) | SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + databaseId + "\"}</encode>\");");
+		String insightName = databaseName + " - " + GRID_DELTA_INSIGHT_NAME;
+		String insightId = admin.addInsight(insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave);
 		// write recipe to file
 		try {
-			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pixelRecipeToSave, false);
+			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave, false);
 			// add the insight to git
-			String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
+			String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 			List<String> files = new Vector<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);				
-			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ GRID_DELTA_INSIGHT_NAME +" insight on"));
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 			
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put(INSIGHT_ID_KEY, insightId);
@@ -1319,10 +1321,10 @@ public class UploadUtilities {
 	/**
 	 * Add the insight to check the modifications made to a column from audit db
 	 * 
-	 * @param appId
+	 * @param databaseId
 	 * @param insightEngine
 	 */
-	public static Map<String, Object> addAuditModificationView(String appId, String appName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addAuditModificationView(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditModificationView.json";
 		File jsonFile = new File(jsonLoc);
@@ -1331,20 +1333,21 @@ public class UploadUtilities {
 			try {
 				newPixel += new String(Files.readAllBytes(jsonFile.toPath()))
 						.replaceAll("\n|\r|\t", "")
-						.replace("<<ENGINE>>", appId).
+						.replace("<<ENGINE>>", databaseId).
 						replace("<<INSIGHT_NAME>>", AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
 				newPixel += "} </encode>\" ) ;";
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
-				String insightId = admin.addInsight(AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave);
+				String insightName = databaseName + " - " + AUDIT_MODIFICATION_VIEW_INSIGHT_NAME;
+				String insightId = admin.addInsight(insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave);
 				//write recipe to file
-				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, false);
+				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, false);
 				// add the insight to git
-				String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
+				String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_MODIFICATION_VIEW_INSIGHT_NAME +" insight on"));
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put(INSIGHT_ID_KEY, insightId);
@@ -1360,10 +1363,10 @@ public class UploadUtilities {
 	/**
 	 * Add the insight to check the modifications made to a column over time from audit database
 	 * 
-	 * @param appId
+	 * @param databaseId
 	 * @param insightEngine
 	 */
-	public static Map<String, Object> addAuditTimelineView(String appId, String appName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addAuditTimelineView(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditTimelineView.json";
 		File jsonFile = new File(jsonLoc);
@@ -1371,20 +1374,21 @@ public class UploadUtilities {
 			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
 			try {
 				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
-						.replace("<<ENGINE>>", appId)
+						.replace("<<ENGINE>>", databaseId)
 						.replace("<<INSIGHT_NAME>>", AUDIT_TIMELINE_INSIGHT_NAME);
 				newPixel += "} </encode>\" ) ;";
 				List<String> pixelRecipeToSave = new Vector<>();
 				pixelRecipeToSave.add(newPixel);
-				String insightId = admin.addInsight(AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave);
+				String insightName = databaseName + " - " + AUDIT_TIMELINE_INSIGHT_NAME;
+				String insightId = admin.addInsight(insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave);
 				// write recipe to file
-				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, false);
+				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, false);
 				// add the insight to git
-				String gitFolder = AssetUtility.getProjectAssetVersionFolder(appName, appId);
+				String gitFolder = AssetUtility.getProjectAssetVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_TIMELINE_INSIGHT_NAME +" insight on"));
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put(INSIGHT_ID_KEY, insightId);
@@ -1405,7 +1409,7 @@ public class UploadUtilities {
 	 * @param owl
 	 * @param headers
 	 */
-	public static void addInsertFormInsight(String appId, String appName, RDBMSNativeEngine insightEngine, Owler owl, String[] headers) {
+	public static void addInsertFormInsight(String projectId, String projectName, String appId, String appName, RDBMSNativeEngine insightEngine, Owler owl, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(owl);
 		// assuming single sheet
@@ -1442,7 +1446,7 @@ public class UploadUtilities {
 	 * @param propMap
 	 * @param headers
 	 */
-	public static void addInsertFormInsight(RDBMSNativeEngine insightDatabase, String appId, String appName, String sheetName, Map<String, SemossDataType> propMap, String[] headers) {
+	public static void addInsertFormInsight(RDBMSNativeEngine insightDatabase, String projectId, String projectName, String appId, String appName, String sheetName, Map<String, SemossDataType> propMap, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
 		Map<String, Map<String, SemossDataType>> metamodel = new HashMap<>();
 		metamodel.put(sheetName, propMap);
@@ -1478,7 +1482,7 @@ public class UploadUtilities {
 	 * @param sheetName
 	 * @param dataValidationMap
 	 */
-	public static void addInsertFormInsight(RDBMSNativeEngine insightEngine, String appId, String appName, String sheetName, Map<String, Object> widgetJson) {
+	public static void addInsertFormInsight(RDBMSNativeEngine insightEngine, String projectId, String projectName, String appId, String appName, String sheetName, Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = getInsightFormName(sheetName);
 		String layout = "form-builder";
