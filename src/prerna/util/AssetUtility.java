@@ -8,7 +8,6 @@ import java.nio.file.StandardCopyOption;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
@@ -131,13 +130,13 @@ public class AssetUtility {
 				// check if the user has permission for the app
 				if (AbstractSecurityUtils.securityEnabled()) {
 					if(editRequired) {
-						if(!SecurityAppUtils.userCanEditDatabase(in.getUser(), space)) {
-							throw new IllegalArgumentException("User does not have permission for this database");
+						if(!SecurityProjectUtils.userCanEditProject(in.getUser(), space)) {
+							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					} else {
 						// only read access
-						if(!SecurityAppUtils.userCanViewDatabase(in.getUser(), space)) {
-							throw new IllegalArgumentException("User does not have permission for this database");
+						if(!SecurityProjectUtils.userCanViewProject(in.getUser(), space)) {
+							throw new IllegalArgumentException("User does not have permission for this project");
 						}
 					}
 				}
@@ -224,10 +223,10 @@ public class AssetUtility {
 		String baseProjectFolder = Utility.normalizePath(baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR 
 				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "app_root" );
 
-		File baseAppFolderFile = new File(baseProjectFolder);
-		if(!baseAppFolderFile.exists()) {
-			baseAppFolderFile.mkdir();
-			// if you are creating this.. there is a possibility we need to fix this engine
+		File baseProjectFolderFile = new File(baseProjectFolder);
+		if(!baseProjectFolderFile.exists()) {
+			baseProjectFolderFile.mkdir();
+			// if you are creating this.. there is a possibility we need to fix this project
 			rehomeDB(projectName, projectId, baseProjectFolder);
 		}
 		// try to see if there is a version folder and if so move it into app_root
