@@ -461,10 +461,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_app_name");
+		fun.setAlias("low_database_name");
 		qs.addSelector(fun);
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
 		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
