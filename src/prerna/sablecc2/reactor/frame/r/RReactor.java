@@ -80,7 +80,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		
 		String output = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getAppMap());
+			output = rJavaTranslator.runRAndReturnOutput(code, insight.getUser().getVarMap());
 		} else {
 			output = rJavaTranslator.runRAndReturnOutput(code);
 		}

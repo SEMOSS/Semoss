@@ -21,11 +21,11 @@ import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.CopyObject;
+import prerna.project.api.IProject;
 import prerna.sablecc2.reactor.mgmt.MgmtUtil;
 import prerna.tcp.client.Client;
 import prerna.util.AssetUtility;
@@ -489,6 +489,10 @@ public class User implements Serializable {
 		return this.tcpServer;
 	}
 	
+	/**
+	 * Storing the engine id to engine name
+	 * @param allEngines
+	 */
 	public void setEngines(List<Map<String, Object>> allEngines) {
 		// I still need to check multiple engines with the same name. why not
 		if(this.engineIdMap.size() == 0 || 
@@ -501,12 +505,16 @@ public class User implements Serializable {
 				String engineName = (String)engineValues.get("database_name");
 				String engineId = (String)engineValues.get("database_id");
 			
-				this.engineIdMap.put(engineName, engineId);
+				this.engineIdMap.put(engineId, engineName);
 			}
 			this.engineIdMap.put("COUNT", allEngines.size() + "");
 		}
 	}
 
+	/**
+	 * Storing the project id to project name
+	 * @param allProjects
+	 */
 	public void setProjects(List<Map<String, Object>> allProjects) {
 		// I still need to check multiple engines with the same name. why not
 		if(this.projectIdMap.size() == 0 || 
@@ -516,72 +524,94 @@ public class User implements Serializable {
 			// need to redo
 			for(int engineIndex = 0;engineIndex < allProjects.size();engineIndex++) {
 				Map <String, Object> engineValues = allProjects.get(engineIndex);
-				String engineName = (String)engineValues.get("project_name");
-				String engineId = (String)engineValues.get("project_id");
+				String projectName = (String)engineValues.get("project_name");
+				String projectId = (String)engineValues.get("project_id");
 			
-				this.projectIdMap.put(engineName, engineId);
+				this.projectIdMap.put(projectId, projectName);
 			}
 			this.projectIdMap.put("COUNT", allProjects.size() + "");
 		}
 	}
 	
-	public boolean addVarMap(String varName, String projectName) {
-		return addVarMap(varName, projectName, false);
+	/**
+	 * Add a var using the project id - var name will be cleaned project name
+	 * @param projectId
+	 * @return	String - the clean project name used as the var name
+	 */
+	public String addVarMap(String projectId) {
+		String projectName = this.projectIdMap.get(projectId);
+		if(projectName == null) {
+			return null;
+		}
+		projectName = Utility.makeAlphaNumeric(projectName);
+		if(addVarMap(projectName, projectId, false)) {
+			return projectName;
+		}
+		
+		return null;
+	}
+	
+	public boolean addVarMap(String varName, String projectId) {
+		return addVarMap(varName, projectId, false);
 	}
 
-	private boolean addVarMap(String varName, String projectName, boolean override) {
-		// convert the app name to alpha
-		String [] pathTokens = projectName.split("/");
+	/**
+	 * 
+	 * @param varName
+	 * @param projectId
+	 * @param override
+	 * @return
+	 */
+	private boolean addVarMap(String varName, String projectId, boolean override) {
+		//TODO: what was override supposed to do from an input standpoint???
+		//TODO: what was override supposed to do from an input standpoint???
+		//TODO: what was override supposed to do from an input standpoint???
+		//TODO: what was override supposed to do from an input standpoint???
+		
+		/*
+		 * Previous code would just break when override was set to true...
+		 */
+
+		String [] pathTokens = projectId.split("/");
 		String subFolder = "";
 		if(pathTokens.length > 1) {
-			subFolder = projectName.replace(pathTokens[0],"");
-			projectName = pathTokens[0];
+			subFolder = projectId.replace(pathTokens[0],"");
+			projectId = pathTokens[0];
 		}
 		
-		String semossProjectName = projectName;
-
-		//String semossAppName = Utility.makeAlphaNumeric(appName);
-
-		String engineId = semossProjectName;
-		if(!override)
-		{
-			engineId = engineIdMap.get(semossProjectName);
-			projectName = projectName + "__" + engineId;
-		}
-		else
-			engineId = "";
-		if(engineId == null) // there is a possibility that this is a mount path at this point
+		String projectName = this.projectIdMap.get(projectId);
+		if(projectName == null) {
 			return false;
-		// giving it the main folder intstead of the version
-		String varValue = AssetUtility.getProjectBaseFolder(semossProjectName, engineId) + subFolder;
-
-
+		}
+		
+		// giving it the main folder instead of the version
+		String varValue = AssetUtility.getProjectBaseFolder(projectName, projectId) + subFolder;
 		varValue = varValue.replace("\\", "/");
 
+		// load in the project and pull the latest folder value
+		IProject project = Utility.getProject(projectId);
+		ClusterUtil.reactorPullProjectFolder(project, varValue);
+		
 		StringBuffer oldValue = varMap.get(varName);
-		
-		varMap.put(varName, new StringBuffer(varValue));
-		
-		IEngine engine = Utility.getEngine(engineId);
-		ClusterUtil.reactorPullDatabaseFolder(engine, varValue);
-		
-		
-		if(oldValue != null)
+		if(oldValue != null) {
 			removeVarString(varName, oldValue);
-		addVarString(varName, oldValue);
+		}
 		
+		this.varMap.put(varName, new StringBuffer(varValue));
+		addVarString(varName);
+
 		return true;
 	}
 	
-	public void removeVarString(String varName, StringBuffer oldValue)
-	{
-		StringBuffer retRString = varMap.get("R_VAR_STRING");
-		StringBuffer retPyString = varMap.get("PY_VAR_STRING");
+	public void removeVarString(String varName, StringBuffer oldValue) {
+		StringBuffer retRString = this.varMap.get("R_VAR_STRING");
+		StringBuffer retPyString = this.varMap.get("PY_VAR_STRING");
 
 		StringBuffer varValue = oldValue;
 		if(oldValue == null) {
-			varValue = varMap.get(varName);
+			varValue = this.varMap.get(varName);
 		}
+		
 		if(retRString != null) {
 			StringBuffer remRString = new StringBuffer("").append(varName).append(" <- '").append(varValue).append("';\n");
 			String finalRString = retRString.toString();
@@ -594,8 +624,7 @@ public class User implements Serializable {
 			}
 		}
 		
-		if(retPyString != null)
-		{
+		if(retPyString != null) {
 			StringBuffer remPyString = new StringBuffer("").append(varName).append(" = '").append(varValue).append("'\n");
 			String finalPyString = retPyString.toString();
 			finalPyString = finalPyString.replace(remPyString.toString(), "");
@@ -608,22 +637,21 @@ public class User implements Serializable {
 		}
 	}
 	
-	
-	private void addVarString(String varName, StringBuffer oldValue) {
+	private void addVarString(String varName) {
 		StringBuffer retRString = varMap.get("R_VAR_STRING");
 		StringBuffer retPyString = varMap.get("PY_VAR_STRING");
 		
-		if(retRString == null)
+		if(retRString == null || retRString.length() == 0) {
 			// first time
 			retRString = new StringBuffer("");
-
-		retRString.append(varName).append(" <- '").append(varMap.get(varName)).append("';\n");
-		varMap.put("R_VAR_STRING", retRString);			
-
-		if(retPyString == null || retPyString.length() == 0)
+		}
+		if(retPyString == null || retPyString.length() == 0) {
 			// first time
 			retPyString = new StringBuffer("");
-
+		}
+		
+		retRString.append(varName).append(" <- '").append(varMap.get(varName)).append("';\n");
+		varMap.put("R_VAR_STRING", retRString);			
 		retPyString.append(varName).append(" = '").append(varMap.get(varName)).append("'\n");
 		varMap.put("PY_VAR_STRING", retPyString);			
 	}
@@ -636,7 +664,11 @@ public class User implements Serializable {
 		}
 	}
 	
-	public Map<String, StringBuffer> getAppMap() {
+	/**
+	 * Returns the paths for the asset folders
+	 * @return
+	 */
+	public Map<String, StringBuffer> getVarMap() {
 		return this.varMap;
 	}
 	
@@ -726,18 +758,39 @@ public class User implements Serializable {
 		return this.pyt;
 	}
 	
-	public boolean checkAppAccess(String appName, String appId) {
-		return (engineIdMap.containsKey(appName) && engineIdMap.get(appName).equalsIgnoreCase(appId));	
+	/**
+	 * Check if the user has access to a database
+	 * @param databaseName
+	 * @param databaseId
+	 * @return
+	 */
+	public boolean checkDatabaseAccess(String databaseName, String databaseId) {
+		return this.engineIdMap.containsKey(databaseId) && 
+				this.engineIdMap.get(databaseId).equalsIgnoreCase(databaseName);	
 	}
 	
+	/**
+	 * Check if the user has access
+	 * @param projectName
+	 * @param projectId
+	 * @return
+	 */
+	public boolean checkProjectAccess(String projectName, String projectId) {
+		return this.projectIdMap.containsKey(projectId) && 
+				this.projectIdMap.get(projectId).equalsIgnoreCase(projectName);	
+	}
+	
+	/**
+	 * Set the context for the user based on the path defined in the varMap
+	 * @param context
+	 */
 	public void setContext(String context) {
 		// sets the context space for the user
-		// also set rhe cmd context right here
-		String mountDir = varMap.get(context) + "";
-
+		String mountDir = this.varMap.get(context) + "";
 		// remove the last assets
 		mountDir = mountDir.replace("/assets", "");
 		
+		// also set the cmd context right here
 		this.cmdUtil = new CmdExecUtil(context, mountDir);
 	}
 	
@@ -753,12 +806,11 @@ public class User implements Serializable {
 																			// started it for debug
 			if (port == null) // port has not been forced
 			{
-					port = Utility.findOpenPort();
-					
+				port = Utility.findOpenPort();
 				if(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE")!=null && !DIHelper.getInstance().getProperty("PY_TUPLE_SPACE").isEmpty()) {
 					pyTupleSpace=(DIHelper.getInstance().getProperty("PY_TUPLE_SPACE"));
 				} else {
-				pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+					pyTupleSpace = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 				}
 				pyTupleSpace = PyUtils.getInstance().startTCPServe(this, pyTupleSpace, port);
 			}
