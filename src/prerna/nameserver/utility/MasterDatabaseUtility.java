@@ -413,6 +413,8 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
 		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
