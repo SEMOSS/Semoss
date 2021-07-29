@@ -38,6 +38,7 @@ import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.FileReadReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
+import prerna.sablecc2.reactor.qs.source.JdbcSourceReactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -242,9 +243,10 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 	@Override
 	public void inAOperation(AOperation node) {
 		super.inAOperation(node);
-		
 		if(this.curReactor instanceof DatabaseReactor || this.curReactor instanceof FileReadReactor
-				|| this.curReactor instanceof GoogleFileRetrieverReactor || this.curReactor instanceof FrameReactor) {
+				|| this.curReactor instanceof GoogleFileRetrieverReactor 
+				|| this.curReactor instanceof FrameReactor 
+				|| this.curReactor instanceof JdbcSourceReactor) {
 			this.sourceStr = node.toString().trim();
 		}
 		else if(this.curReactor instanceof ImportReactor || this.curReactor instanceof MergeReactor) {
