@@ -25,8 +25,8 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.project.api.IProject;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -114,12 +114,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			String databaseId = user.getAssetProjectId(user.getPrimaryLogin());
-			String databaseName = "Asset";
-			if (databaseId != null && !(databaseId.isEmpty())) {
-				IEngine assetApp = Utility.getEngine(databaseId);
-				savePath = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPullDatabaseFolder(assetApp, savePath);
+			String projectId = user.getAssetProjectId(user.getPrimaryLogin());
+			String projectName = "Asset";
+			if (projectId != null && !(projectId.isEmpty())) {
+				IProject assetProject = Utility.getProject(projectId);
+				savePath = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPullProjectFolder(assetProject, savePath);
 			}
 		}
 		savePath = savePath.replace("\\", "/");
@@ -186,12 +186,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// push asset app
 		if (AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
-			String databaseId = user.getAssetProjectId(user.getPrimaryLogin());
-			String databaseName = "Asset";
-			if (databaseId != null && !(databaseId.isEmpty())) {
-				IEngine assetDatabase = Utility.getEngine(databaseId);
-				savePath = AssetUtility.getProjectAssetVersionFolder(databaseName, databaseId) + DIR_SEPARATOR + "assets";
-				ClusterUtil.reactorPushDatabaseFolder(assetDatabase, savePath);
+			String projectId = user.getAssetProjectId(user.getPrimaryLogin());
+			String projectName = "Asset";
+			if (projectId != null && !(projectId.isEmpty())) {
+				IProject assetProject = Utility.getProject(projectId);
+				savePath = AssetUtility.getProjectAssetVersionFolder(projectName, projectId) + DIR_SEPARATOR + "assets";
+				ClusterUtil.reactorPushProjectFolder(assetProject, savePath);
 			}
 		}
 
@@ -1164,14 +1164,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						map.put("import_pixel", importPixel);
 						
 						// viz types pixel
-						vizTypesPixel = (frameName + " | GetNLPVizOptions(app=[\"Multiple\"],columns=" + pickedCols + ");");
+						vizTypesPixel = (frameName + " | GetNLPVizOptions(database=[\"Multiple\"],columns=" + pickedCols + ");");
 						map.put("viz_types_pixel", vizTypesPixel);
 						
 						// viz pixel
 						vizPixel += getStartPixel(frameName, panelId);
 						vizPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
 						vizPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-						vizPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "],vizSelection=[<viztype>]);");
+						vizPixel += (frameName + " | PredictViz(database=[\"Multiple\"],columns=" + pickedCols + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "],vizSelection=[<viztype>]);");
 						map.put("viz_pixel", "");
 						
 						// original workflow
@@ -1204,14 +1204,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					map.put("import_pixel", importPixel);
 					
 					// viz types pixel
-					vizTypesPixel = (frameName + " | GetNLPVizOptions(app=[\"Multiple\"],columns=" + pickedCols + ");");
+					vizTypesPixel = (frameName + " | GetNLPVizOptions(database=[\"Multiple\"],columns=" + pickedCols + ");");
 					map.put("viz_types_pixel", vizTypesPixel);
 					
 					// viz pixel
 					vizPixel = getStartPixel(frameName, panelId);
 					vizPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
 					vizPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-					vizPixel += (frameName + " | PredictViz(app=[\"Multiple\"],columns=" + pickedCols + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "],vizSelection=[<viztype>]);");
+					vizPixel += (frameName + " | PredictViz(database=[\"Multiple\"],columns=" + pickedCols + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "],vizSelection=[<viztype>]);");
 					map.put("viz_pixel", vizPixel);
 					
 					// original workflow
