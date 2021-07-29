@@ -413,7 +413,7 @@ public class SmssUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryProjectSmss(String projectId, String projectName) throws IOException {
+	public static File createTemporaryProjectSmss(String projectId, String projectName, RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
 		String projectTempSmssLoc = getProjectTempSmssLoc(projectId, projectName);
 		
 		// i am okay with deleting the .temp if it exists
@@ -439,12 +439,20 @@ public class SmssUtilities {
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
 			bufferedWriter.write(Constants.PROJECT_TYPE + tab + prerna.project.impl.Project.class.getName() + newLine);
-			String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
-			if(rdbmsTypeStr == null) {
-				// default will be h2
-				rdbmsTypeStr = "H2_DB";
+			
+			String rdbmsTypeStr = null;
+			RdbmsTypeEnum rdbmsType = null;
+			if(forceInsightDatabaseType != null) {
+				rdbmsType = forceInsightDatabaseType;
+				rdbmsTypeStr = rdbmsType.getLabel();
+			} else {
+				rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+				if(rdbmsTypeStr == null) {
+					// default will be h2
+					rdbmsTypeStr = "H2_DB";
+				}
+				rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 			}
-			RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 
 			bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
 			bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
@@ -487,7 +495,8 @@ public class SmssUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryAssetAndWorkspaceSmss(String projectId, String projectName, boolean isAsset) throws IOException {
+	public static File createTemporaryAssetAndWorkspaceSmss(String projectId, String projectName, boolean isAsset, 
+			RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if(!baseFolder.endsWith("\\") && !baseFolder.endsWith("/")) {
 			baseFolder += DIR_SEPARATOR;
@@ -518,16 +527,24 @@ public class SmssUtilities {
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
 			bufferedWriter.write(Constants.PROJECT_TYPE + tab + prerna.project.impl.Project.class.getName() + newLine);
-			String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
-			if(rdbmsTypeStr == null) {
-				// default will be h2
-				rdbmsTypeStr = "H2_DB";
+			
+			String rdbmsTypeStr = null;
+			RdbmsTypeEnum rdbmsType = null;
+			if(forceInsightDatabaseType != null) {
+				rdbmsType = forceInsightDatabaseType;
+				rdbmsTypeStr = rdbmsType.getLabel();
+			} else {
+				rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+				if(rdbmsTypeStr == null) {
+					// default will be h2
+					rdbmsTypeStr = "H2_DB";
+				}
+				rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 			}
+			
 			// include if an asset or something else
 			bufferedWriter.write(Constants.IS_ASSET_APP + tab + isAsset + newLine);
-			
-			RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
-
+			// normal output
 			bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
 			bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
 			bufferedWriter.write(Constants.DRIVER + tab +  rdbmsType.getDriver() + newLine);

@@ -89,7 +89,7 @@ public class ProjectHelper {
 		try {
 			logger.info("Creating project workspace");
 			// Add database into DIHelper so that the web watcher doesn't try to load as well
-			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName);
+			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, null);
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 			
 			// Only at end do we add to DIHelper
