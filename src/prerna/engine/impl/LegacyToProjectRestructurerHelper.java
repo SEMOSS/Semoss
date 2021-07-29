@@ -19,7 +19,6 @@ import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 /**
- * ***********WIP************
  * 
  * The intention of this class is to build the new project structure
  * from legacy old db folders. Assumption is that this code just runs 
