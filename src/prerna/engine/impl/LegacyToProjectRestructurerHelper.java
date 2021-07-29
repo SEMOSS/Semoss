@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 
@@ -14,6 +15,8 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 /**
  * ***********WIP************
@@ -106,13 +109,16 @@ public class LegacyToProjectRestructurerHelper {
 				String[] split = folderName.split("__");
 				String appName = split[0];
 				String appId = split[1];
+				
 				if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(appId)) {
 					boolean isAsset = WorkspaceAssetUtils.isAssetProject(appId);
 					System.out.println("\tSTART REFACTORING " + appName + " at " + folderName);
 					userCopyDataToNewFolderStructure(folderName, userDir, dbDir, isAsset);
 					System.out.println("\tDONE REFACTORING " + appName + " at " + folderName);
 				} else {
-					if(AbstractSecurityUtils.ignoreDatabase(appId)) {
+					Properties prop = Utility.loadProperties(dbFolder + "/" + folderName + ".smss");
+					if(Boolean.parseBoolean(prop.getProperty(Constants.IS_ASSET_APP))
+							|| AbstractSecurityUtils.ignoreDatabase(appId)) {
 						System.out.println("\tIGNORE " + folderName);
 						continue;
 					}
@@ -191,15 +197,20 @@ public class LegacyToProjectRestructurerHelper {
 			throw new IllegalArgumentException("No old smss file found for the db - " + dbSmssFileName);
 		}
 		
-		userCreateProjectSmssFile(projectName, projectId, isAsset);
+		userCreateProjectSmssFile(projectName, projectId, isAsset, dbSmssFileName);
 //		modifyOldDBSmss(dbSmssFile, dbSmssFileName);
 	}
 
 	// Create the project smss
-	private void userCreateProjectSmssFile(String projectName, String projectId, boolean isAsset) throws IOException {
-		// TODO: need to create using the original database insight type
-		// since user could have apps that are both h2 and sqlite
-		File tempProjectSmss = SmssUtilities.createTemporaryAssetAndWorkspaceSmss(projectId, projectName, isAsset);
+	private void userCreateProjectSmssFile(String projectName, String projectId, boolean isAsset, String dbSmssFile) throws IOException {
+		RdbmsTypeEnum existingRdbmsType = null;
+		try {
+			Properties prop = Utility.loadProperties(dbSmssFile);
+			existingRdbmsType = RdbmsTypeEnum.valueOf(prop.get(Constants.RDBMS_INSIGHTS_TYPE) + "");
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		File tempProjectSmss = SmssUtilities.createTemporaryAssetAndWorkspaceSmss(projectId, projectName, isAsset, existingRdbmsType);
 		File smssFile = new File(tempProjectSmss.getAbsolutePath().replace(".temp", ".smss"));
 		try {
 			FileUtils.copyFile(tempProjectSmss, smssFile);
@@ -334,15 +345,20 @@ public class LegacyToProjectRestructurerHelper {
 			throw new IllegalArgumentException("No old smss file found for the db - " + dbSmssFileName);
 		}
 		
-		createProjectSmssFile(projectName, projectId);
+		createProjectSmssFile(projectName, projectId, dbSmssFile);
 //		modifyOldDBSmss(dbSmssFile, dbSmssFileName);
 	}
 
 	// Create the project smss
-	private void createProjectSmssFile(String projectName, String projectId) throws IOException {
-		// TODO: need to create using the original database insight type
-		// since user could have apps that are both h2 and sqlite
-		File tempProjectSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName);
+	private void createProjectSmssFile(String projectName, String projectId, String dbSmssFile) throws IOException {
+		RdbmsTypeEnum existingRdbmsType = null;
+		try {
+			Properties prop = Utility.loadProperties(dbSmssFile);
+			existingRdbmsType = RdbmsTypeEnum.valueOf(prop.get(Constants.RDBMS_INSIGHTS_TYPE) + "");
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		File tempProjectSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, existingRdbmsType);
 		File smssFile = new File(tempProjectSmss.getAbsolutePath().replace(".temp", ".smss"));
 		try {
 			FileUtils.copyFile(tempProjectSmss, smssFile);
