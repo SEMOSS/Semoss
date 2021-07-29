@@ -248,7 +248,7 @@ public abstract class CloudClient {
 		return sqlFiles;
 	}
 
-	protected String getInsightDB(IProject project, String projectFolder) {
+	protected String getInsightDB(IProject project, String specificProjectFolder) {
 		RdbmsTypeEnum insightDbType = project.getInsightDatabase().getDbType();
 		String insightDbName = null;
 		if (insightDbType == RdbmsTypeEnum.H2_DB) {
@@ -256,7 +256,7 @@ public abstract class CloudClient {
 		} else {
 			insightDbName = "insights_database.sqlite";
 		}
-		File dir = new File(projectFolder);
+		File dir = new File(specificProjectFolder);
 		for (File file : dir.listFiles()) {
 			if (file.getName().equalsIgnoreCase(insightDbName)){
 				return file.getName();
