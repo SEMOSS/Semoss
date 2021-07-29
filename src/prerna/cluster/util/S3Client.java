@@ -267,6 +267,10 @@ public class S3Client extends CloudClient {
 		}
 
 		String rCloneConfig = null;
+		String alias = project.getProjectName();
+		String aliasProjectId = SmssUtilities.getUniqueName(alias, projectId);
+		String thisProjectFolder = this.projectFolder + FILE_SEPARATOR + aliasProjectId;
+		
 		// synchronize on the app id
 		logger.info("Applying lock for " + projectId + " to pull insights db");
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
@@ -275,9 +279,9 @@ public class S3Client extends CloudClient {
 		try {
 			rCloneConfig = createRcloneConfig(projectId);
 			project.getInsightDatabase().closeDB();
-			logger.info("Pulling insights database for " + projectFolder + " from remote=" + projectId);
-			String insightDB = getInsightDB(project, projectFolder);
-			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+insightDB, projectFolder);
+			logger.info("Pulling insights database for " + thisProjectFolder + " from remote=" + projectId);
+			String insightDB = getInsightDB(project, thisProjectFolder);
+			runRcloneTransferProcess(rCloneConfig, "rclone", "copy", rCloneConfig+RCLONE_PROJECT_PATH+projectId+"/"+insightDB, thisProjectFolder);
 		} finally {
 			try {
 				if (rCloneConfig != null) {
@@ -305,8 +309,9 @@ public class S3Client extends CloudClient {
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
 		}
+		
 		String rCloneConfig = null;
-		String alias = SecurityQueryUtils.getProjectAliasForId(projectId);
+		String alias = project.getProjectName();
 		String aliasProjectId = SmssUtilities.getUniqueName(alias, projectId);
 		String thisProjectFolder = this.projectFolder + FILE_SEPARATOR + aliasProjectId;
 

@@ -334,8 +334,9 @@ public class AZClient extends CloudClient {
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
 		}
+		
 		String appRcloneConfig = null;
-		String alias = SecurityQueryUtils.getProjectAliasForId(projectId);
+		String alias = project.getProjectName();
 		String aliasProjectId = SmssUtilities.getUniqueName(alias, projectId);
 		String thisProjectFolder = this.projectFolder + FILE_SEPARATOR + aliasProjectId;
 
@@ -381,7 +382,7 @@ public class AZClient extends CloudClient {
 			throw new IllegalArgumentException("Project not found...");
 		}
 		String appRcloneConfig = null;
-		String alias = SecurityQueryUtils.getProjectAliasForId(projectId);
+		String alias = project.getProjectName();
 		String aliasProjectId = SmssUtilities.getUniqueName(alias, projectId);
 		String thisProjectFolder = this.projectFolder + FILE_SEPARATOR + aliasProjectId;
 
