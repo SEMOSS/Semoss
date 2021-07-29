@@ -3,7 +3,6 @@ package prerna.forms;
 import java.io.IOException;
 import java.util.Map;
 
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
@@ -25,9 +24,11 @@ public class UpdateFormReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		String userId = null;
 		User user = this.insight.getUser();
-		AccessToken token = user.getAccessToken(AuthProvider.CAC);
-		if(token != null) {
-			userId = token.getName();
+		if(user.getAccessToken(AuthProvider.CAC) != null) {
+			userId = user.getAccessToken(AuthProvider.CAC).getId();
+		} else if(user.getAccessToken(AuthProvider.SAML) != null) {
+			// if not CAC - we are using SMAL
+			userId = user.getAccessToken(AuthProvider.SAML).getId();
 		}
 		if(userId == null) {
 			throw new IllegalArgumentException("Could not identify user");
