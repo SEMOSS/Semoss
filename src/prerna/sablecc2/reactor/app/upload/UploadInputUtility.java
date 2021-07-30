@@ -72,7 +72,7 @@ public class UploadInputUtility {
 		NounMetadata noun = grs.getNoun(0);
 		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
 			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
-			return uploadMap.get("app_id").toString();
+			return uploadMap.get("database_id").toString();
 		}
 		return noun.getValue().toString();
 	}
