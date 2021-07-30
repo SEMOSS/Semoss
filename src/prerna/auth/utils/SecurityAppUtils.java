@@ -784,9 +784,9 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		/*
 		 * Security check to make sure that the user can view the application provided. 
 		 */
-		if (userCanViewDatabase(user, databaseId)) {
+		if (!userCanViewDatabase(user, databaseId)) {
 			throw new IllegalArgumentException("The user does not have access to view this database");
-		}	
+		}
 		
 		/*
 		 * String Query = 
