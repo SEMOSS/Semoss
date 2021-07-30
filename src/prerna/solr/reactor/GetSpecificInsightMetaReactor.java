@@ -7,7 +7,6 @@ import java.util.Vector;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -41,8 +40,6 @@ public class GetSpecificInsightMetaReactor extends AbstractReactor {
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
-		} else {
-			projectId = SecurityQueryUtils.getProjectAliasForId(projectId);
 		}
 		
 		Map<String, Object> retMap = SecurityInsightUtils.getSpecificInsightMetadata(projectId, rdbmsId, META_KEYS_LIST);
