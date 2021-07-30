@@ -118,7 +118,12 @@ public class LegacyToProjectRestructurerHelper {
 					Properties prop = Utility.loadProperties(dbFolder + "/" + folderName + ".smss");
 					if(Boolean.parseBoolean(prop.getProperty(Constants.IS_ASSET_APP))
 							|| AbstractSecurityUtils.ignoreDatabase(appId)) {
-						System.out.println("\tIGNORE " + folderName);
+						System.out.println("\tIS AN ASSET - IGNORE " + folderName);
+						continue;
+					}
+					if(prop.get(Constants.RDBMS_INSIGHTS_TYPE) == null &&
+							prop.get(Constants.RDBMS_INSIGHTS_TYPE) == null) {
+						System.out.println("\tNOT A LEGACY DB - IGNORE " + folderName);
 						continue;
 					}
 					System.out.println("\tSTART REFACTORING " + appName + " at " + folderName);
