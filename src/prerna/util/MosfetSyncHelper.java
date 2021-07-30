@@ -249,8 +249,9 @@ public class MosfetSyncHelper {
 		mosfet.setHidden(hidden);
 
 		String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "project"
+				+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
 				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
+				+ DIR_SEPARATOR + "app_root" 
 				+ DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsId;
 
@@ -310,8 +311,9 @@ public class MosfetSyncHelper {
 		}
 
 		String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "project"
+				+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
 				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
+				+ DIR_SEPARATOR + "app_root" 
 				+ DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsId;
 
