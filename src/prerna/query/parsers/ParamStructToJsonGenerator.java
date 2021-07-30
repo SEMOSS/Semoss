@@ -118,10 +118,10 @@ public class ParamStructToJsonGenerator {
 							// we will generate the model
 							// we will use the information from the first details to generate this
 							ParamStructDetails detailParam = param.getDetailsList().get(0);
-							String appId = detailParam.getAppId();
+							String sourceString = detailParam.getImportSource();
 							String physicalQs = detailParam.getTableName() + "__" + detailParam.getColumnName();
 							
-							paramQ = "(" + infiniteVar + " = Database(\"" + appId + "\") | Select(" + physicalQs + ")"
+							paramQ = "(" + infiniteVar + " = " + sourceString + " | Select(" + physicalQs + ")"
 									+ "| ModifyParamQuery(\"<" + searchParamName + ">\")"
 									+ "| Sort(columns=[" + physicalQs + "], sort=['ASC'])"
 									+ "| Iterate()"
@@ -131,7 +131,15 @@ public class ParamStructToJsonGenerator {
 							// different structure
 							// for sqs or hqs
 							// or pixel / query
-							String base = "(" + infiniteVar + " = Database(\"" + param.getModelAppId() + "\") | ";
+							String base = null;
+							if(param.getModelAppId() != null && !param.getModelAppId().isEmpty()
+									&& !"FAKE_ENGINE".equals(param.getModelAppId())) {
+								base = "(" + infiniteVar + " = Database(\"" + param.getModelAppId() + "\") | ";
+							} else {
+								ParamStructDetails detailParam = param.getDetailsList().get(0);
+								String sourceString = detailParam.getImportSource();
+								base = "(" + infiniteVar + " = " + sourceString + " | ";
+							}
 
 							if(param.getFillType() == FILL_TYPE.PIXEL) {
 								// model query is only select/filter/joins that are not part of search
