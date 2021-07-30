@@ -488,9 +488,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 //		deletes.add("DELETE FROM INSIGHT WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
-		deletes.add("DELETE FROM WORKSPACEENGINE WHERE ENGINEID=?");
-		deletes.add("DELETE FROM ASSETENGINE WHERE ENGINEID=?");
-		// TODO: add the other tables...
+//		deletes.add("DELETE FROM WORKSPACEENGINE WHERE ENGINEID=?");
+//		deletes.add("DELETE FROM ASSETENGINE WHERE ENGINEID=?");
 
 		for(String deleteQuery : deletes) {
 			PreparedStatement ps = null;
