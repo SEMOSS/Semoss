@@ -70,7 +70,8 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 		temporalEngine.setEngineId("FAKE_ENGINE");
 		temporalEngine.setConnection(con);
 		temporalEngine.setBasic(true);
-		
+		temporalEngine.setQueryUtil(queryUtil);
+
 		TemporalEngineHardQueryStruct qs = new TemporalEngineHardQueryStruct();
 		qs.setQsType(QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
 		qs.setConfig(connectionDetails);

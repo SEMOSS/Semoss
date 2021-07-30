@@ -26,6 +26,7 @@ import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
@@ -223,7 +224,8 @@ public class BasicIteratorTask extends AbstractTask {
 	private void generateIterator() throws Exception {
 		// I need a way here to see if this is already done as a iterator and if so take a copy of it
 		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
-		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 			iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), this.qs);
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			iterator = new CsvFileIterator((CsvQueryStruct) this.qs);
