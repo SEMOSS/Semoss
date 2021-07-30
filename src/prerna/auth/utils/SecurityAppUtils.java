@@ -318,7 +318,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static List<Map<String, Object>> getDatabaseUsers(User user, String databaseId) throws IllegalAccessException {
-		if(userCanViewDatabase(user, databaseId)) {
+		if(!userCanViewDatabase(user, databaseId)) {
 			throw new IllegalArgumentException("The user does not have access to view this database");
 		}
 		
@@ -355,7 +355,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException 
 	 */
 	public static void addAppUser(User user, String newUserId, String databaseId, String permission) throws IllegalAccessException {
-		if(userCanEditDatabase(user, databaseId)) {
+		if(!userCanEditDatabase(user, databaseId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
 		}
 		
