@@ -512,7 +512,7 @@ public class ClusterUtil {
 					return images[0];
 				} else {
 					String alias = SecurityQueryUtils.getDatabaseAliasForId(databaseId);
-					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "apps" + DIR_SEPARATOR + databaseId + ".png";
+					imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases" + DIR_SEPARATOR + databaseId + ".png";
 
 					if(alias != null) {
 						TextToGraphic.makeImage(alias, imageFilePath);
