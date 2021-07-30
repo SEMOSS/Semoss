@@ -33,6 +33,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -61,7 +62,6 @@ import prerna.comments.InsightCommentHelper;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.TCPPyTranslator;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -183,7 +183,7 @@ public class Insight implements Serializable {
 	private transient boolean isSchedulerMode = false;
 	private transient boolean isSavedInsightMode = false;
 	
-	private transient List<String> queriedAppIds = new Vector<String>();
+	private transient Set<String> queriedDatabaseIds = new HashSet<String>();
 
 	// old - for pkql
 	@Deprecated
@@ -784,17 +784,17 @@ public class Insight implements Serializable {
 	}
 
 	/**
-	 * Store the app ids that are queried
-	 * @param appId
+	 * Store the database ids that were queried
+	 * @param databaseId
 	 */
-	public void addQueriedEngine(String appId) {
-		if(!this.queriedAppIds.contains(appId)) {
-			this.queriedAppIds.add(appId);
+	public void addQueriedDatabasesese(String databaseId) {
+		if(!this.queriedDatabaseIds.contains(databaseId)) {
+			this.queriedDatabaseIds.add(databaseId);
 		}
 	}
 	
-	public List<String> getQueriedEngines() {
-		return this.queriedAppIds;
+	public Set<String> getQueriedDatabaseIds() {
+		return this.queriedDatabaseIds;
 	}
 	
 	// TODO: methods i have but dont want to keep
@@ -1152,21 +1152,19 @@ public class Insight implements Serializable {
 	//		String insightId = Utility.getInstanceName(insightFolder);
 	//		String db = Utility.getClassName(insightFolder);
 	
-			
 			//String key = db + "." + insightId ;
 			String key = insightId ;
 			int randomNum = 0;
 			//ReactorFactory.compileCache.remove(insightId);
 			
 			// see if I need to compile this again
-			if(!ReactorFactory.compileCache.containsKey(insightId))
-			{
+			if(!ReactorFactory.compileCache.containsKey(insightId)) {
 				int status = Utility.compileJava(insightFolder, getCP());
-				if(status == 0)
-				{
+				if(status == 0) {
 					ReactorFactory.compileCache.put(insightId, Boolean.TRUE);
-					if(ReactorFactory.randomNumberAdder.containsKey(insightId))
-						randomNum = ReactorFactory.randomNumberAdder.get(insightId);				
+					if(ReactorFactory.randomNumberAdder.containsKey(insightId)) {
+						randomNum = ReactorFactory.randomNumberAdder.get(insightId);
+					}
 					randomNum++;
 					ReactorFactory.randomNumberAdder.put(insightId, randomNum);
 					
@@ -1178,8 +1176,7 @@ public class Insight implements Serializable {
 				}
 			}
 			
-			if(insightSpecificHash.size() == 0) 
-			{
+			if(insightSpecificHash.size() == 0) {
 				//compileJava(insightFolder);
 				insightSpecificHash = Utility.loadReactors(insightFolder, key);
 			}
@@ -1191,28 +1188,40 @@ public class Insight implements Serializable {
 					return retReac;
 				}
 			} catch (InstantiationException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 			
 			// else try to find it the specific db
 			// loading it inside of version/classes
 			// check with all the engines used
-			if(projectId != null)
-			{
+			if(projectId != null) {
 				IProject project = Utility.getProject(projectId);
 				retReac = project.getReactor(className, null);				
 			}
-			// check all other dbs
-			// first one wins
-			for(int engineIndex = 0;engineIndex < queriedAppIds.size() && retReac == null;engineIndex++)
-			{
-				String thisEngine = queriedAppIds.get(engineIndex);
-				IProject engine = Utility.getProject(thisEngine);
-				retReac = engine.getReactor(className, null);
-			}
-		}				
+			
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+//			// check all other dbs
+//			// first one wins
+//			for(int engineIndex = 0;engineIndex < queriedDatabaseIds.size() && retReac == null;engineIndex++)
+//			{
+//				String thisEngine = queriedDatabaseIds.get(engineIndex);
+//				IProject engine = Utility.getProject(thisEngine);
+//				retReac = engine.getReactor(className, null);
+//			}
+		}			
 		return retReac;
 	}
 
@@ -1356,24 +1365,6 @@ public class Insight implements Serializable {
 		this.tupleSpace = tupleSpace;
 	}
 	
-	// gets the frame name to be more useful
-	public String predictFrameName() {
-		StringBuilder frameName = new StringBuilder("");
-		for(int engineIndex = 0; engineIndex < queriedAppIds.size(); engineIndex++) {
-			String thisEngine = queriedAppIds.get(engineIndex);
-			IEngine engine = Utility.getEngine(thisEngine);
-			String name = engine.getEngineName();
-			if(frameName.length() != 0 && engineIndex != queriedAppIds.size()) {
-				frameName.append("_");
-			} else if(engineIndex == queriedAppIds.size()) {
-				frameName.append("_and_"); 
-			}
-			frameName.append(name);
-		}
-		
-		return frameName.toString();
-	}
-	
 	public void setBaseURL(String baseURL) {
 		this.baseURL = baseURL;
 	}
@@ -1514,7 +1505,6 @@ public class Insight implements Serializable {
 		return this.jepThread;
 	}
 	
-	
 	public void setNettyClient(Client nc) {
 		if(nc != null) {
 			this.nc = nc;
@@ -1524,22 +1514,18 @@ public class Insight implements Serializable {
 	}
 
 	public void dropPythonTupleSpace() {
-		
 		if(this.tupleSpace != null && nc == null) {
 			try {
 				File closer = new File(tupleSpace + "/alldone.closeall");
 				closer.createNewFile();
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
-		if(this.nc != null)
-		{
+		if(this.nc != null) {
 			//nc.disconnect();
 		}
 	}
-
-
 
 	///////////////////////////////////////// END PYTHON SPECIFIC METHODS ///////////////////////////////////////////
 
