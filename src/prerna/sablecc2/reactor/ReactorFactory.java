@@ -1561,14 +1561,13 @@ public class ReactorFactory {
 		return null;
 	}
 	
-	public static void recompile(String name)
-	{
-		if(name != null)
+	public static void recompile(String name) {
+		if(name != null) {
 			compileCache.remove(name);
+		}
 	}
 	
-	public static void setCompile(String name)
-	{
+	public static void setCompile(String name) {
 		compileCache.put(name, Boolean.TRUE);
 	}
 	
