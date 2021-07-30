@@ -6,8 +6,8 @@ import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -24,28 +24,28 @@ public class GetSpecificInsightMetaReactor extends AbstractReactor {
 	}
 	
 	public GetSpecificInsightMetaReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
 
 		if(AbstractSecurityUtils.securityEnabled()) {
-			databaseId = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), databaseId);
-			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), databaseId, rdbmsId)) {
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
 				NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		} else {
-			databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(databaseId);
+			projectId = SecurityQueryUtils.getProjectAliasForId(projectId);
 		}
 		
-		Map<String, Object> retMap = SecurityInsightUtils.getSpecificInsightMetadata(databaseId, rdbmsId, META_KEYS_LIST);
+		Map<String, Object> retMap = SecurityInsightUtils.getSpecificInsightMetadata(projectId, rdbmsId, META_KEYS_LIST);
 		retMap.putIfAbsent("description", "");
 		retMap.putIfAbsent("tags", new Vector<String>());
 		
