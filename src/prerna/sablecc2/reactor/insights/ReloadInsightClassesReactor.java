@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.insights;
 
-import java.util.List;
-
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -22,16 +20,28 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String engineId = insight.getRdbmsId();
+		String idToRemove = insight.getRdbmsId();
 		if(this.keyValue.get(this.keysToGet[0]) != null) {
-			engineId = this.keyValue.get(this.keysToGet[0]);
+			idToRemove = this.keyValue.get(this.keysToGet[0]);
 		}
 
-		ReactorFactory.recompile(engineId);
-		List<String> queriedEngines = insight.getQueriedEngines();
-		for(int engineIndex = 0; engineIndex < queriedEngines.size(); engineIndex++) {
-			ReactorFactory.recompile(insight.getQueriedEngines().get(engineIndex));
-		}
+		ReactorFactory.recompile(idToRemove);
+		
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+		//TODO:
+//		List<String> queriedEngines = insight.getQueriedDatabaseIds();
+//		for(int engineIndex = 0; engineIndex < queriedEngines.size(); engineIndex++) {
+//			ReactorFactory.recompile(insight.getQueriedDatabaseIds().get(engineIndex));
+//		}
 		
 		return new NounMetadata("Recompile Completed", PixelDataType.CONST_STRING);
 	}
