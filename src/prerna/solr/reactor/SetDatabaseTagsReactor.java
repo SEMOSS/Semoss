@@ -14,9 +14,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 
-public class SetAppTagsReactor extends AbstractReactor {
+public class SetDatabaseTagsReactor extends AbstractReactor {
 	
-	public SetAppTagsReactor() {
+	public SetDatabaseTagsReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.TAGS.getKey()};
 	}
 
