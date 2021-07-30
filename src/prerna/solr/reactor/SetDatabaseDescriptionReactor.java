@@ -10,11 +10,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 
-public class SetAppDescriptionReactor extends AbstractReactor {
+public class SetDatabaseDescriptionReactor extends AbstractReactor {
 	
 	public static final String DESCRIPTIONS = "description";
 
-	public SetAppDescriptionReactor() {
+	public SetDatabaseDescriptionReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.DESCRIPTION.getKey()};
 	}
 
