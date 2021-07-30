@@ -670,7 +670,8 @@ public class InsightUtility {
 		// handle some defaults
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// first, do a basic check
-		if(qsType != QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && qsType != QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+		if(qsType != QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && qsType != QUERY_STRUCT_TYPE.RAW_FRAME_QUERY
+				&& qsType != QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 			// it is not a hard query
 			// we need to make sure there is at least a selector
 			if(qs.getSelectors().isEmpty()) {
