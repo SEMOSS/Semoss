@@ -1560,10 +1560,10 @@ public class AZClient extends CloudClient {
 		try {
 			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
 			logger.debug("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
-			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId);
-			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId + SMSS_POSTFIX);
-			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId);
-			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId + SMSS_POSTFIX);
+			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + DB_CONTAINER_PREFIX + appId);
+			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + DB_CONTAINER_PREFIX +appId + SMSS_POSTFIX);
+			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + DB_CONTAINER_PREFIX +appId);
+			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + DB_CONTAINER_PREFIX +appId + SMSS_POSTFIX);
 			logger.debug("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
@@ -1579,10 +1579,10 @@ public class AZClient extends CloudClient {
 		try {
 			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
 			logger.debug("Deleting container=" + projectId + ", " + projectId + SMSS_POSTFIX);
-			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + projectId);
-			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + projectId + SMSS_POSTFIX);
-			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + projectId);
-			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + projectId + SMSS_POSTFIX);
+			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId);
+			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX);
+			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId);
+			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX);
 			logger.debug("Done deleting container=" + projectId + ", " + projectId + SMSS_POSTFIX);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
