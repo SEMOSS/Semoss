@@ -6,11 +6,9 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -40,23 +38,24 @@ public class GetInsightsReactor extends AbstractReactor {
 		GenRowStruct projectFilterGrs = this.store.getNoun(this.keysToGet[0]);
 		List<NounMetadata> warningNouns = new Vector<>();
 		// get list of engineIds if user has access
-		List<String> eFilters = null;
+		List<String> projectFilters = null;
 		if (projectFilterGrs != null && !projectFilterGrs.isEmpty()) {
-			eFilters = new Vector<String>();
+			projectFilters = new Vector<String>();
 			for (int i = 0; i < projectFilterGrs.size(); i++) {
 				String engineFilter = projectFilterGrs.get(i).toString();
 				if (AbstractSecurityUtils.securityEnabled()) {
-					engineFilter = SecurityQueryUtils.testUserDatabaseIdForAlias(this.insight.getUser(), engineFilter);
-					if (SecurityAppUtils.userCanViewDatabase(this.insight.getUser(), engineFilter)) {
-						eFilters.add(engineFilter);
+					engineFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
+					if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
+						projectFilters.add(engineFilter);
 					} else {
 						// store warnings
-						warningNouns.add(NounMetadata.getWarningNounMessage(engineFilter + " does not exist or user does not have access to database."));
+						warningNouns.add(NounMetadata.getWarningNounMessage(engineFilter + " does not exist or user does not have access to project."));
 					}
-				} else {
-					engineFilter = MasterDatabaseUtility.testDatabaseIdIfAlias(engineFilter);
-					eFilters.add(engineFilter);
-				}
+				} 
+//				else {
+//					engineFilter = MasterDatabaseUtility.testDatabaseIdIfAlias(engineFilter);
+//					eFilters.add(engineFilter);
+//				}
 			}
 		}
 		String searchTerm = this.keyValue.get(this.keysToGet[1]);
@@ -81,10 +80,10 @@ public class GetInsightsReactor extends AbstractReactor {
 		List<Map<String, Object>> results = null;
 		// method handles if filters are null or not
 		if (AbstractSecurityUtils.securityEnabled()) {
-			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, 
+			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), projectFilters, searchTerm, 
 					tagFilters, favoritesOnly, sortBy, limit, offset);
 		} else {
-			results = SecurityInsightUtils.searchInsights(eFilters, searchTerm, tagFilters, sortBy, limit, offset);
+			results = SecurityInsightUtils.searchInsights(projectFilters, searchTerm, tagFilters, sortBy, limit, offset);
 		}
 		
 		// this entire block is to add the additional metadata to the insights
