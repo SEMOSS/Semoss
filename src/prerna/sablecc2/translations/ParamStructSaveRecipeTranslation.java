@@ -133,6 +133,7 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 						
 						String newExpr = sourceStr + "| Query(\"<encode>" + finalQuery + "</encode>\") | " + this.importStr + " ;";
 						this.pixels.add(newExpr);
+						
 					} else {
 						logger.info("Parameterizing pixel select query struct");
 						
@@ -225,6 +226,12 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
 						
 						String newExpr = sourceStr + "|" + QsToPixelConverter.getPixel(this.importQs, false) + " | " + this.importStr + " ;";
 						this.pixels.add(newExpr);
+					}
+					
+					// set the import string into the details
+					// this is so we know if it is Database or FileRead or something else
+					for(ParamStructDetails details : thisImportParams) {
+						details.setImportSource(sourceStr);
 					}
 					
 					// reset

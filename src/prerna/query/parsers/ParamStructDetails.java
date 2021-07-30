@@ -37,6 +37,10 @@ public class ParamStructDetails {
 	// since when we optimize the recipe
 	// the pixel ids get adjusted
 	private transient String optimizedPixelId = null;
+	// also store the import source
+	// since it might not always be a Database 
+	// but might be JdbcSource, FileRead, etc.
+	private String importSource = null;
 	
 	public BASE_QS_TYPE getBaseQsType() {
 		return baseQsType;
@@ -160,6 +164,14 @@ public class ParamStructDetails {
 	public void setQuote(QUOTE quote) {
 		this.quote = quote;
 	}
+	
+	public String getImportSource() {
+		return importSource;
+	}
+
+	public void setImportSource(String importSource) {
+		this.importSource = importSource;
+	}
 
 	public String getParamKey() {
 		return tableName + "_" + columnName + getuOperator() ;
@@ -196,6 +208,7 @@ public class ParamStructDetails {
 	 */
 	public static ParamStructDetails generateParamStructDetails(Map<String, Object> mapInputs) {
 		String appId = (String) mapInputs.get("appId");
+		String importSource = (String) mapInputs.get("importSource");
 		String pixelId = (String) mapInputs.get("pixelId");
 		if(pixelId == null || pixelId.isEmpty()) {
 			throw new IllegalArgumentException("Must define the pixel id for the param struct");
@@ -219,6 +232,7 @@ public class ParamStructDetails {
 
 		ParamStructDetails pStruct = new ParamStructDetails();
 		pStruct.setAppId(appId);
+		pStruct.setImportSource(importSource);
 		pStruct.setPixelId(pixelId);
 		pStruct.setPixelString(pixelString);
 		pStruct.setTableName(tableName);
