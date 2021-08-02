@@ -56,6 +56,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	protected static final String CLASS_NAME = NaturalLanguageSearchReactor.class.getName();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	protected static final String GLOBAL = "global";
+	
+	protected static final String NLDR_DB = "nldr_db";
+	protected static final String NLDR_JOINS = "nldr_joins";
+	protected static final String NLDR_MEMBERSHIP = "nldr_membership";
+	protected static final String IS_GLOBAL = "IS_GLOCAL";
+	
 
 	private static LinkedHashMap<String, String> databaseIdToTypeStore = new LinkedHashMap<>(250);
 	
@@ -151,11 +157,21 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		File nldrDb = new File(nldrPath2);
 		File nldrJoins = new File(nldrPath3);
 		long replaceTime = System.currentTimeMillis() - ((long)1 * 24 * 60 * 60 * 1000);
+		
+		String nldrMembership2 = "exists('" + NLDR_MEMBERSHIP + "');";
+		StringBuilder script = new StringBuilder();
 		if(global) {
 			if(!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists() || nldrMembership.lastModified() < replaceTime ) {
 				logger.info(stepCounter + ". Updating database metadata");
 				stepCounter++;
 				createRdsFiles();
+			} else {
+				boolean nldrExists = this.rJavaTranslator.getBoolean(nldrMembership2);
+				if (!nldrExists) {
+					script.append(NLDR_MEMBERSHIP + " <- readRDS(\"nldr_membership.rds\")");
+					script.append(NLDR_DB + " <- readRDS(\"nldr_db.rds\")");
+					this.rJavaTranslator.runR(script.toString());
+				}
 			}
 		}
 		
@@ -534,8 +550,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		
 		// run the cluster tables function
-		sessionTableBuilder.append("cluster_tables ("+db+","+joins+");");
+		sessionTableBuilder.append(NLDR_MEMBERSHIP + "<- cluster_tables ("+db+","+joins+");");
 		sessionTableBuilder.append("saveRDS ("+db+",\"nldr_db.rds\");");
+		sessionTableBuilder.append(NLDR_DB + " <- " + db + ";");
 		sessionTableBuilder.append("saveRDS ("+joins+",\"nldr_joins.rds\");");
 		
 		this.rJavaTranslator.runR(sessionTableBuilder.toString());
@@ -576,7 +593,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// read in the rds files if global
 		// use the frame columns if not
 		if(global) {
-			rsb.append(rSessionTable + " <- readRDS(\"nldr_db.rds\");");
+			rsb.append(rSessionTable + " <- " + NLDR_DB + ";");
+			//rsb.append(rSessionTable + " <- readRDS(\"nldr_db.rds\");");
 			rsb.append(rSessionJoinTable + " <- readRDS(\"nldr_joins.rds\");");
 			
 			// filter the rds files to the engineFilters
@@ -625,17 +643,18 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			rsb.append(rSessionJoinTable + " <- data.frame(tbl1 = character(0) , tbl2 = character(0) , joinby1 = character(0)"
 					+ ", joinby2 = character(0) , AppID = character(0), stringsAsFactors = FALSE);");
 		}
-		
 		// lets run the function on the filtered apps
-		rsb.append(tempResult + " <- exec_componentized_query(" + rSessionTable + "," + rSessionJoinTable + " , " + query + " );");
-		
+		if (global) {
+			rsb.append(tempResult + " <- exec_componentized_query(" + rSessionTable + "," + rSessionJoinTable + "," + query + "," + NLDR_MEMBERSHIP + ");");
+		} else {
+			rsb.append(tempResult + " <- exec_componentized_query(" + rSessionTable + "," + rSessionJoinTable + "," + query + ");");
+		}
 		// run it
 		this.rJavaTranslator.runR(rsb.toString());
 
 		// get back the data
 		String[] headerOrdering = this.rJavaTranslator.getColumns(tempResult);
 		List<Object[]> list = this.rJavaTranslator.getBulkDataRow(tempResult, headerOrdering);
-
 		// garbage cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + tempResult + gcToAdd + "); gc();");
 
@@ -1280,6 +1299,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 	private String getCleanFrameName(String queryString) {
 		queryString = queryString.replaceAll("<=", "less than or equal to");
+		queryString = queryString.replaceAll("- top", "offset_top");
+		queryString = queryString.replaceAll("- bottom", "offset_bottom");
 		queryString = queryString.replaceAll(">=", "greater than or equal to");
 		queryString = queryString.replaceAll("!=", "not equal to");
 		queryString = queryString.replaceAll("<", "less than");
