@@ -38,6 +38,11 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	// if not, just always return null
 	protected static final String HELP_ON = "helpOn";
 	protected static final String GLOBAL = "global";
+	
+	// R variables to pass through background session
+	protected static final String NLDR_DB = "nldr_db";
+	protected static final String NLDR_JOINS = "nldr_joins";
+	protected static final String NLDR_MEMBERSHIP = "nldr_membership";
 
 	public NLSQueryHelperReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey(), HELP_ON,
@@ -105,7 +110,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			}
 		}
 		savePath = savePath.replace("\\", "/"); 
-		
+
 		// source the proper script
 		StringBuilder sb = new StringBuilder();
 		String wd = "wd" + Utility.getRandomString(5);
@@ -129,9 +134,20 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		File nldrDb = new File(nldrPath2);
 		File nldrJoins = new File(nldrPath3);
 		long replaceTime = System.currentTimeMillis() - ((long)1 * 24 * 60 * 60 * 1000);
+		
+		String nldrDb2 = "exists('" + NLDR_DB + "');";
+		String nldrMembership2 = "exists('" + NLDR_MEMBERSHIP + "');";
+		StringBuilder script = new StringBuilder();
 		if(global) {
 			if(!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists() || nldrMembership.lastModified() < replaceTime ) {
 				createRdsFiles();
+			} else {
+				boolean nldrExists = this.rJavaTranslator.getBoolean(nldrMembership2) && this.rJavaTranslator.getBoolean(nldrDb2);
+				if (!nldrExists) {
+					script.append(NLDR_MEMBERSHIP + " <- readRDS(\"nldr_membership.rds\");")
+						  .append(NLDR_DB + " <- readRDS(\"nldr_db.rds\");");
+					this.rJavaTranslator.runR(script.toString());
+				}
 			}
 		}
 
@@ -173,7 +189,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		
 		if(global) {
 			StringBuilder rsb = new StringBuilder();
-			rsb.append(rSessionTable + " <- readRDS(\"nldr_db.rds\");");
+			rsb.append(rSessionTable + " <- " + NLDR_DB + ";");
 			
 			// filter the rds files to the engineFilters
 			String appFilters = "appFilters" + Utility.getRandomString(8);
@@ -228,7 +244,11 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		Object[] dropdownOptions = null;
 
 		// pass the query table and the new dataframe to the script
-		rsb.append(retList + " <- analyze_request(" + colHeadersAndTypesFrame + "," + queryTable + ")");
+		if (getGlobal()) {
+			rsb.append(retList + " <- analyze_request(" + colHeadersAndTypesFrame + "," + queryTable + "," + NLDR_MEMBERSHIP + ")");
+		} else {
+			rsb.append(retList + " <- analyze_request(" + colHeadersAndTypesFrame + "," + queryTable + ")");
+		}
 		this.rJavaTranslator.runR(rsb.toString());
 
 		// collect the array
