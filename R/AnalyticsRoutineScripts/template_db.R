@@ -1,4 +1,4 @@
-cluster_tables<-function(db,joins,root_fn="nldr"){
+cluster_tables<-function(db,joins){
 # Partitions tables into connected clusters
 # Arguments
 # db - a table of the columns, tables and apps
@@ -22,11 +22,12 @@ cluster_tables<-function(db,joins,root_fn="nldr"){
 		membership<-seq(length(tables))
 		names(membership)<-tables
 	}
-	saveRDS(membership,paste0(root_fn,"_membership.rds"))
+	saveRDS(membership,'nldr_membership.rds')
 	gc()
+	return(membership)
 }
 
-get_feasible_columns<-function(db,cols,root_fn="nldr"){
+get_feasible_columns<-function(db,cols,partition){
 # Identifies clusters and their columns that contain all required columns
 # Arguments
 # cols - a list of columns in the select part
@@ -36,8 +37,9 @@ get_feasible_columns<-function(db,cols,root_fn="nldr"){
 # not a single cluster with all required ones
 	# read partition
 	# Retrieve cluster info
-	partition<-readRDS(paste0(root_fn,"_membership.rds"))
-	clusters<-unique(unname(partition))
+	cur_tbls<-db[db$Column %in% cols,'Table']
+	clusters<-unique(unname(partition[names(partition) %in% cur_tbls]))
+		
 	feas_cols<-vector()
 	if(length(clusters)>0){
 		for(i in 1:length(clusters)){
@@ -57,7 +59,7 @@ get_feasible_columns<-function(db,cols,root_fn="nldr"){
 	return(feas_cols)
 }
 
-analyze_request<-function(db,df,root_fn="nldr"){
+analyze_request<-function(db,df,partition){
 	MISSING_VALUE<-'?'
 	ind<-which(df$Value==MISSING_VALUE)
 	if(length(ind)>0){
@@ -67,7 +69,7 @@ analyze_request<-function(db,df,root_fn="nldr"){
 	}
 	if(nbr>0){
 		# element alternatives
-		choices<-get_element_alternatves(db,df,nbr,root_fn)
+		choices<-get_element_alternatves(db,df,nbr,partition)
 	}else{
 		choices<-get_component_alternatives(df)
 	}
@@ -75,7 +77,7 @@ analyze_request<-function(db,df,root_fn="nldr"){
 	return(choices)
 }
 
-get_element_alternatves<-function(db,df,nbr,root_fn){
+get_element_alternatves<-function(db,df,nbr,partition){
 	OPS<-c('=','<','<=','>','>=','!=','between value and value')
 	OPS_STRING<-c('begins with','contains','ends with','not begins with','not contains','not ends with')
 	OPS_DATE<-c('after','before')
@@ -91,7 +93,7 @@ get_element_alternatves<-function(db,df,nbr,root_fn){
 		if(length(ind)>0){
 			selected_cols<-selected_cols[-ind]
 		}
-		cols<-get_feasible_columns(db,selected_cols,root_fn=root_fn)
+		cols<-get_feasible_columns(db,selected_cols,partition)
 	}else{
 		cols<-db$Column
 		names(cols)<-db$Datatype
@@ -186,12 +188,11 @@ get_single_cols<-function(df){
 	return(single_cols)
 }
 
-get_component_alternatives<-function(df){
-	COMPONENTS<-c('aggregate column','where column is value','top n column','bottom n column','- top n column','- bottom n column',
-	'sort column direction','based on aggregate column','group column','having column is value')	
-	REQUEST_COMPONENTS<-list('1'='select column','2'=c('select column','where column is value'),'3'=c('aggregate column','group column'),
-	'4'=c('select column','aggregate column','group column'),'5'=c('top n column','based on aggregate column'),'6'=c('bottom n column','based on aggregate column'),
-	'7'=c('- top n column','based on aggregate column'),'8'=c('- bottom n column','based on aggregate column'),'9'=c('distribution column','based on aggregate column'))
+get_component_alternatives<-function(df){	
+	COMPONENTS<-c('aggregate','filter by','top','bottom','excluding top','excluding bottom',
+	'sort','based on','group by','filter by aggregate')
+	REQUEST_COMPONENTS<-list('1'='column','2'=c('column','filter by'),'3'=c('column','based on'),'4'=c('top','based on'),
+	'5'=c('bottom','based on'),'6'=c('excluding top','based on'),'7'=c('excluding bottom','based on'),'8'=c('distribution','based on'))
 	if(nrow(df)==0){
 		# for the first run only select components available
 		out<-REQUEST_COMPONENTS
@@ -223,7 +224,7 @@ get_component_alternatives<-function(df){
 	return(out)
 }
 	
-exec_componentized_query<-function(db,joins,request,root_fn="nldr"){
+exec_componentized_query<-function(db,joins,request,partition){
 	COMPONENTS<-c('select','where','group','having','rank','sort')
 	KEYWORDS<-c('fsum','faverage','fcount','fmin','fmax','fstdev','where','fgroup','by','having','sort','position','based','on')
 	
@@ -236,8 +237,9 @@ exec_componentized_query<-function(db,joins,request,root_fn="nldr"){
 		p<-data.table(query=integer(),appid=character(),appid2=character(),part=character(),item1=character(),item2=character(),
 		item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
 		# Identify relevant clusters for join
-		partition<-readRDS(paste0(root_fn,"_membership.rds"))
-		clusters<-unique(unname(partition))
+		cur_tbls<-unique(db[db$Column %in% cols,'Table'])
+		clusters<-unique(unname(partition[names(partition) %in% cur_tbls]))
+		
 		if(length(clusters)>0){
 			k<-1
 			for(l in 1:length(clusters)){
@@ -248,6 +250,8 @@ exec_componentized_query<-function(db,joins,request,root_fn="nldr"){
 					cur_db<-db[db$Table %in% tbls,]
 					cur_joins<-joins[joins$tbl1 %in% tbls & joins$tbl2 %in% tbls,]
 					cluster_joins<-build_joins(cols,cur_joins,cur_db)
+					cluster_joins_tbls<-unique(c(cluster_joins$tbl1,cluster_joins$tbl2))
+					cluster_db<-cur_db[cur_db$Table %in% cluster_joins_tbls,]
 					
 					components<-names(request)
 					unique_components<-intersect(COMPONENTS,components)
@@ -258,24 +262,24 @@ exec_componentized_query<-function(db,joins,request,root_fn="nldr"){
 							for(j in 1:length(ind)){
 								part<-unlist(strsplit(unname(sapply(request[ind[j]],function(x) paste(unlist(strsplit(x,' '))[-1],collapse=' '))),' '))
 								if(unique_components[i]=='select'){
-									p<-process_select(cur_db,part,cols,p,k)
+									p<-process_select(cluster_db,part,cols,p,k)
 									if(j==length(ind)){
 										p<-process_from(cluster_joins,p,k)
 									}
 								}else if(unique_components[i]=='where'){
-									p<-process_where(cur_db,part,cols,p,k)
+									p<-process_where(cluster_db,part,cols,p,k)
 								}else if(unique_components[i]=='group'){
-									p<-process_group(cur_db,part,cols,p,k)
+									p<-process_group(cluster_db,part,cols,p,k)
 								}else if(unique_components[i]=='having'){
-									p<-process_having(cur_db,part,cols,p,k)
+									p<-process_having(cluster_db,part,cols,p,k)
 								}else if(unique_components[i]=='rank'){
 									# ger only current part of p
 									all_cols<-get_all_cols(p[p$query==k,])
-									p<-process_rank(cur_db,part,all_cols,p,k)
+									p<-process_rank(cluster_db,part,all_cols,p,k)
 								}else if(unique_components[i]=='sort'){
 									# ger only current part of p
 									all_cols<-get_all_cols(p[p$query==k,])
-									p<-process_sort(cur_db,part,all_cols,p,k)
+									p<-process_sort(cluster_db,part,all_cols,p,k)
 								}
 							}
 						}

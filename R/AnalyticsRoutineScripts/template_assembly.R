@@ -272,6 +272,7 @@ build_joins<-function(cols,joins,cur_db){
 			if(length(col_tbls)>0){
 				# get tables and labels from node_df
 				col_df<-nodes_df[nodes_df$node %in% col_tbls,]
+				col_df$label<-cols[i]
 				names(col_df)<-c("tbl1","tbl2")
 				edges_df<-rbind(edges_df,col_df)
 				join_cols<-unique(append(join_cols,col_df$tbl2))
@@ -295,39 +296,39 @@ build_joins<-function(cols,joins,cur_db){
 		joins<-rbindlist(list(joins,list(tbls,tbls,"","",items[1],items[1])))
 	}else{
 		g1<-graph_from_edgelist(as.matrix(edges_df),directed=FALSE)
-		cols_id<-which(V(g1)$name %in% join_cols)	
-		stree<-steinertree(type = "RSP",repeattimes=30, optimize = FALSE,terminals = cols_id,graph = g1,color = FALSE, merge = FALSE) 
+		stree<-steinertree(type = "RSP",repeattimes=30, optimize = FALSE,terminals = cols,graph = g1,color = FALSE, merge = FALSE) 
 		if(length(stree)==1){
 			new_joins<-as.data.frame(as_edgelist(stree[[1]],names=TRUE),stringsAsFactors=FALSE)
 			names(new_joins)<-c("tbl1","tbl2")
-			new_joins<- new_joins[!(new_joins$tbl1 %in% join_cols) & !(new_joins$tbl2 %in% join_cols),]
-			# run mst to make sure there are no extra edges!
-			g1<-graph_from_edgelist(as.matrix(new_joins),directed=FALSE)
-			g2<-mst(g1)
-			new_joins<-as.data.frame(as_edgelist(g2,names=TRUE),stringsAsFactors=FALSE)
-			names(new_joins)<-c("tbl1","tbl2")
-			
-			arranged_joins<-joins[0,]
-			for(j in 1:nrow(new_joins)){
-				x<-joins[joins$tbl1==new_joins$tbl1[j] & joins$tbl2==new_joins$tbl2[j],]
-				if(nrow(x)>0){
-					arranged_joins<-rbind(arranged_joins,x)
-				}else{
-					x<-joins[joins$tbl2==new_joins$tbl1[j] & joins$tbl1==new_joins$tbl2[j],]
+			if(length(unique(new_joins$tbl1))==1){
+				tbls<-new_joins$tbl1[1]
+				items<-unlist(strsplit(tbls,"._.",fixed=TRUE))
+				joins<-joins[0,]
+				joins$AppID2<-character()
+				joins<-rbindlist(list(joins,list(tbls,tbls,"","",items[1],items[1])))
+				
+			}else{
+				new_joins<- new_joins[!(new_joins$tbl1 %in% join_cols) & !(new_joins$tbl2 %in% join_cols),]
+				# run mst to make sure there are no extra edges!
+				g1<-graph_from_edgelist(as.matrix(new_joins),directed=FALSE)
+				g2<-mst(g1)
+				new_joins<-as.data.frame(as_edgelist(g2,names=TRUE),stringsAsFactors=FALSE)
+				names(new_joins)<-c("tbl1","tbl2")
+				
+				arranged_joins<-joins[0,]
+				for(j in 1:nrow(new_joins)){
+					x<-joins[joins$tbl1==new_joins$tbl1[j] & joins$tbl2==new_joins$tbl2[j],]
 					if(nrow(x)>0){
 						arranged_joins<-rbind(arranged_joins,x)
+					}else{
+						x<-joins[joins$tbl2==new_joins$tbl1[j] & joins$tbl1==new_joins$tbl2[j],]
+						if(nrow(x)>0){
+							arranged_joins<-rbind(arranged_joins,x)
+						}
 					}
 				}
+				joins<-arranged_joins
 			}
-			new_joins<-arranged_joins
-			# add other columns from original joins!!!
-			tbl1<-unlist(strsplit(new_joins$tbl1,"._.",fixed=TRUE))
-			tbl2<-unlist(strsplit(new_joins$tbl2,"._.",fixed=TRUE))
-			new_joins$joinby1<-tbl1[c(FALSE,TRUE)]
-			new_joins$joinby2<-tbl2[c(FALSE,TRUE)]
-			new_joins$AppID<-tbl1[c(TRUE,FALSE)]
-			new_joins$AppID2<-tbl2[c(TRUE,FALSE)]
-			joins<-new_joins
 		}else{
 			joins<-vector()
 		}
