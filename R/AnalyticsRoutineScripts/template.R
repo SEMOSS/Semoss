@@ -116,8 +116,9 @@ get_component_alternatives<-function(df){
 	COMPONENTS<-c('aggregate column','where column is value','top n column','bottom n column','- top n column','- bottom n column',
 	'sort column direction','based on aggregate column','group column','having column is value')
 	REQUEST_COMPONENTS<-list('1'='select column','2'=c('select column','where column is value'),'3'=c('aggregate column','group column'),
-	'4'=c('select column','aggregate column','group column'),'5'=c('top n column','based on aggregate column'),'6'=c('bottom n column','based on aggregate column'),
-	'7'=c('- top n column','based on aggregate column'),'8'=c('- bottom n column','based on aggregate column'),'9'=c('distribution column','based on aggregate column'))
+	'4'=c('select column','aggregate column','group column'),'5'=c('top n column','based on aggregate column'),
+	'6'=c('bottom n column','based on aggregate column'),'7'=c('- top n column','based on aggregate column'),
+	'8'=c('- bottom n column','based on aggregate column'),'9'=c('distribution column','based on aggregate column'))
 	if(nrow(df)==0){
 		# for the first run only select components available
 		out<-REQUEST_COMPONENTS
