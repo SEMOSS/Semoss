@@ -110,7 +110,7 @@ public class ProjectHelper {
 
 			if (ClusterUtil.IS_CLUSTER) {
 				logger.info("Syncing project for cloud backup");
-				CloudClient.getClient().pushApp(projectId);
+				CloudClient.getClient().pushProject(projectId);
 			}
 			
 			SecurityUpdateUtils.addProject(projectId);
