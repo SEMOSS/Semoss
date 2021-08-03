@@ -1374,7 +1374,7 @@
 		<dependency>
 			<groupId>org.apache.shiro</groupId>
 			<artifactId>shiro-core</artifactId>
-			<version>1.6.0</version>
+			<version>1.7.1</version>
 		</dependency>		
 		<!-- neo4j jdbc driver used for remote neo4j engine -->
 		<dependency>
@@ -1710,6 +1710,12 @@
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-s3</artifactId>
 			<version>1.11.690</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.syncron.amazonaws</groupId>
@@ -1909,6 +1915,12 @@
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
             <version>3.6.2</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
         </dependency>
         <dependency>
 		  <groupId>org.elasticsearch.plugin</groupId>
