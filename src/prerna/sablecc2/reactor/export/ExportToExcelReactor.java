@@ -272,7 +272,13 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Map<String, Object> panelChartMap = new HashMap<>();
 			setChartLayout(panelChartMap, taskOptions, panelId);
 			this.chartPanelLayout.get(sheetId).put(panelId, panelChartMap);
-			writeData(workbook, task, sheetId, panelId, panel.getPanelFormatValues());
+			String plotType = taskOptions.getLayout(panelId);
+			//condition for stack bar chart its expecting different data format for stack
+			if (plotType != null && plotType.equals("Stack")) {
+				writeStackBarChartData(workbook, task, sheetId, panelId, panel.getPanelFormatValues());
+			} else {
+				writeData(workbook, task, sheetId, panelId, panel.getPanelFormatValues());
+			}
 		}
 
 		// now build charts
@@ -498,7 +504,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				insertScatterChart(sheet, dataSheet,options, panel);
 			} else if (plotType.equals("Area")) {
 				insertAreaChart(sheet, dataSheet,options, panel);
-			} else if (plotType.equals("Column")) {
+			} else if (plotType.equals("Column") || plotType.equals("Stack")) {
 				insertBarChart(sheet, dataSheet,options, panel);
 			} else if (plotType.equals("Pie")) {
 				insertPieChart(sheet, dataSheet,options, panel);
@@ -602,8 +608,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			for (; i < size; i++) {
 				curSheetCol = i;
 				Cell cell = headerRow.createCell(curSheetCol);
-				cell.setCellValue(headers[i]);
-				cell.setCellStyle(headerCellStyle);
+				getFormatedCellWithValue(cell, headers[i], SemossDataType.STRING, headerCellStyle);
 				// grab metadata from iterator
 				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
 				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
@@ -622,7 +627,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			}
 
 			// generate the data row
-
 			excelRow = sheet.createRow(excelRowCounter++);
 			Object[] dataRow = row.getValues();
 			i = 0;
@@ -630,35 +634,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				curSheetCol = i;
 				Cell cell = excelRow.createCell(curSheetCol);
 				Object value = dataRow[i];
-				if (Utility.isNullValue(value) || value.toString().length() == 0) {
-					cell.setCellValue("");
-				} else {
-					if (typesArr[i] == SemossDataType.STRING) {
-						cell.setCellValue(value + "");
-					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
-						cell.setCellValue(((Number) value).doubleValue());
-					} else if (typesArr[i] == SemossDataType.DATE) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
-						} else {
-							cell.setCellValue(value + "");
-						}
-					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
-						} else {
-							cell.setCellValue(value + "");
-						}
-					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
-						cell.setCellValue((boolean) value);
-					} else {
-						cell.setCellValue(value + "");
-					}
-					
-					if(stylingArr[i] != null) {
-						cell.setCellStyle(stylingArr[i]);
-					}
-				}
+				getFormatedCellWithValue(cell, value, typesArr[i], stylingArr[i]);
 			}
 		}
 
@@ -672,35 +648,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				curSheetCol = i;
 				Cell cell = excelRow.createCell(curSheetCol);
 				Object value = dataRow[i];
-				if (Utility.isNullValue(value) || value.toString().length() == 0) {
-					cell.setCellValue("");
-				} else {
-					if (typesArr[i] == SemossDataType.STRING) {
-						cell.setCellValue(value + "");
-					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
-						cell.setCellValue(((Number) value).doubleValue());
-					} else if (typesArr[i] == SemossDataType.DATE) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
-						} else {
-							cell.setCellValue(value + "");
-						}
-					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
-						} else {
-							cell.setCellValue(value + "");
-						}
-					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
-						cell.setCellValue((boolean) value);
-					} else {
-						cell.setCellValue(value + "");
-					}
-					
-					if(stylingArr[i] != null) {
-						cell.setCellStyle(stylingArr[i]);
-					}
-				}
+				getFormatedCellWithValue(cell, value, typesArr[i], stylingArr[i]);
 			}
 		}
 		
@@ -779,7 +727,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		// Add X Axis Title
@@ -787,7 +735,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
-				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+				bottomAxis.setTitle(xColumnName.replace("_", " "));
 			}
 		}
 
@@ -804,7 +752,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnNames.get(i));
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFLineChartData.Series chartSeries = (XDDFLineChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnNames.get(i).replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnNames.get(i).replace("_", " "), null);
 			// Standardize markers
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
 			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
@@ -876,14 +824,14 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		if(showXAxisTitle) {
 			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
-				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+				bottomAxis.setTitle(xColumnName.replace("_", " "));
 			}
 		}
 
@@ -897,7 +845,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFScatterChartData.Series chartSeries = (XDDFScatterChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnName.replace("_", " "), null);
 			chartSeries.setSmooth(false);
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
 			CTScatterChart scatterSeries = chart.getCTChart().getPlotArea().getScatterChartArray(0);
@@ -946,6 +894,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
 		AxisCrosses leftAxisCrosses = AxisCrosses.AUTO_ZERO;
 		ChartTypes chartType = ChartTypes.BAR;
+		//get the options data
+		Map<String, Object> optionData	=(Map<String, Object>) options.get(panelId);
 
 		// Parse input data
 		// label is name of column of x vals
@@ -972,15 +922,19 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+				if ("Stack".equals(optionData.get("layout"))) {
+					leftAxis.setTitle(String.join(", ", (List<String>) ((Map) optionData.get("alignment")).get("value")).replace("_",
+							" "));
+				} else {
+				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
-		}
+		}}
 		// Add X Axis Title
 		if(showXAxisTitle) {
 			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
-				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+				bottomAxis.setTitle(xColumnName.replace("_", " "));
 			}
 		}
 
@@ -990,6 +944,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			data.setBarDirection(BarDirection.BAR);
 		} else {
 			data.setBarDirection(BarDirection.COL);
+		}
+		if("Stack".equals(optionData.get("layout"))){
+			toggleStack= !toggleStack;
 		}
 
 		if (toggleStack) {
@@ -1011,7 +968,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
 			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
             chartSeries.setFillProperties(fillProperties);
-			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnName!=null ? yColumnName.toString().replace("_", " "):null, null);
 			yCounter++;
 		}
 
@@ -1076,7 +1033,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		// Add X Axis Title
@@ -1084,7 +1041,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
-				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+				bottomAxis.setTitle(xColumnName.replace("_", " "));
 			}
 		}
 
@@ -1102,7 +1059,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
 			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
 			chartSeries.setFillProperties(fillProperties);
-			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnName.replace("_", " "), null);
 			yCounter++;
 		}
 
@@ -1156,7 +1113,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFPieChartData.Series chartSeries = (XDDFPieChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnName.replace("_", " "), null);
 			chartSeries.setExplosion((long) 0);
 		}
 
@@ -1237,7 +1194,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		// Add X Axis Title
@@ -1245,7 +1202,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
-				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+				bottomAxis.setTitle(xColumnName.replace("_", " "));
 			}
 		}
 
@@ -1259,7 +1216,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Map<String, Object> yColumnMap = (Map<String, Object>) panelMap.get(yColumnName);
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFRadarChartData.Series chartSeries = (XDDFRadarChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnName.replace("_", " "), null);
 		}
 
 		// add the title
@@ -1576,21 +1533,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		return html.toString();
 	}
 
-	/*
-	 * write file to the local for testing purpose
-	 * 
-	 * public static void WriteToFile(String fileContent, String fileName) { try{
-	 * String projectPath = "C:\\workspace"; String tempFile = projectPath +
-	 * File.separator+fileName; File file = new File(tempFile); // if file does
-	 * exists, then delete and create a new file //write to file with
-	 * OutputStreamWriter OutputStream outputStream = new
-	 * FileOutputStream(file.getAbsoluteFile()); Writer writer=new
-	 * OutputStreamWriter(outputStream); writer.write(fileContent); writer.close();}
-	 * catch(Exception e){ System.out.println(e); }
-	 * 
-	 * }
-	 */
-
 	/**
 	 * This method returns the map with color by value rules and the raw values to
 	 * apply color on
@@ -1616,5 +1558,259 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 		return colorByValueMap;
 	}
+	
+	//transform the data for stackbar chart
+	private void writeStackBarChartData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId, Map<String, Map<String, String>> panelFormatting) {
+		CreationHelper createHelper = workbook.getCreationHelper();
+		String sheetName = sheetAlias.get(sheetId);
+		XSSFSheet sheet = workbook.getSheet(sheetName);
+		if (sheet != null) {
+			// create the data sheet as well
+			sheet = workbook.getSheet(sheetName + "_Data");
+		}
+		if (sheet == null) {
+			sheet = getSheet(workbook, sheetName);
+			// also create a data sheet
+			// also hide the sheet
+			// no need to worry about creating template for data sheet
+			sheet = workbook.createSheet(sheetName + "_Data");
+			workbook.setSheetHidden(workbook.getSheetIndex(sheet), true);
+		} 
+		// since we write veriticlaly
+		// shouldn't be doing this anymore
+		// freeze the first row
+		//			sheet.createFreezePane(0, 1);
+
+		int size = 0;
+		// create typesArr as an array for faster searching
+		String[] headers = null;
+		SemossDataType[] typesArr = null;
+		String[] additionalDataTypeArr = null;
+		CellStyle[] stylingArr = null;
+
+		// style dates
+		CellStyle dateCellStyle = workbook.createCellStyle();
+		dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy"));
+		// style timestamps
+		CellStyle timeStampCellStyle = workbook.createCellStyle();
+		timeStampCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy HH:mm:ss"));
+
+		// the excel data row
+		Row excelRow = null;
+		// the task data is being dumped vertically
+		// we need to know where to start putting in data
+		Map<String, Object> sheetMap = this.chartPanelLayout.get(sheetId);
+		int curSheetCol = 0;
+		int endRow = (int) sheetMap.get("rowIndex");
+		int excelRowCounter = endRow;
+
+		Row headerRow = null;
+		List<String> currentHeaderValues = new ArrayList<>();
+		CellStyle headerCellStyle = null;
+		int xAxisIndex = 0;
+		int yAxisIndex = 1;
+		int instanceColumnIndex = 2;
+		// we need to iterate and write the headers during the first time
+		if (task.hasNext()) {
+			IHeadersDataRow row = task.next();
+			List<Map<String, Object>> headerInfo = task.getHeaderInfo();
+
+			// create the header row
+			headerRow = sheet.createRow(excelRowCounter++);
+
+			// create a Font for styling header cells
+			Font headerFont = workbook.createFont();
+			headerFont.setBold(true);
+			// create a CellStyle with the font
+			headerCellStyle = workbook.createCellStyle();
+			headerCellStyle.setFont(headerFont);
+			headerCellStyle.setAlignment(HorizontalAlignment.CENTER);
+			headerCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+
+			// generate the header row
+			// and define constants used throughout like size, and types
+			headers = row.getHeaders();
+			size = headers.length;
+			typesArr = new SemossDataType[size];
+			additionalDataTypeArr = new String[size];
+			stylingArr = new CellStyle[size];
+			for (int i = 0; i < size; i++) {
+				// grab metadata from iterator
+				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
+				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
+				try {
+					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], panelFormatting.get(headers[i])); 
+				} catch(Exception e) {
+					// ignore
+				}
+				if(stylingArr[i] == null) {
+					if(typesArr[i] == SemossDataType.DATE) {
+						stylingArr[i] = dateCellStyle;
+					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
+						stylingArr[i] = timeStampCellStyle;
+					}
+				}
+			}
+			
+			// we are creating our own table
+			// where the data will come as
+			// x-axis, y-axis value, split-for-columns
+			// but we generate
+			// x-axis, split-for-columns 1, split-for-columns 2
+			// and the values will be what we get
+			{
+				currentHeaderValues.add(headers[0]);
+				Cell cell = headerRow.createCell(0);
+				cell.setCellValue(headers[0]);
+				cell.setCellStyle(headerCellStyle);
+			}
+			
+			// generate the data row
+			excelRow = sheet.createRow(excelRowCounter++);
+			Object[] dataRow = row.getValues();
+			// now we transpose this row to put it properly in the excel
+			Object xAxisValue = dataRow[xAxisIndex];
+			Cell cell = excelRow.createCell(0);
+			getFormatedCellWithValue(cell, xAxisValue, typesArr[xAxisIndex],
+					stylingArr[xAxisIndex]);
+			
+			Object instanceValue = dataRow[yAxisIndex];
+			Object instanceColumn = dataRow[instanceColumnIndex];
+			if(!currentHeaderValues.contains(instanceColumn + "")) {
+				currentHeaderValues.add(instanceColumn + "");
+				cell = headerRow.createCell(currentHeaderValues.size()-1);
+				getFormatedCellWithValue(cell, instanceColumn, typesArr[instanceColumnIndex], headerCellStyle);
+			}
+			
+			cell = excelRow.createCell(currentHeaderValues.indexOf(instanceColumn + ""));
+			getFormatedCellWithValue(cell, instanceValue, typesArr[yAxisIndex],
+					stylingArr[yAxisIndex]);
+		}
+
+		// now iterate through all the data
+		while (task.hasNext()) {
+			excelRow = sheet.createRow(excelRowCounter++);
+			IHeadersDataRow row = task.next();
+			Object[] dataRow = row.getValues();
+			
+			Object xAxisValue = dataRow[xAxisIndex];
+			Cell cell = excelRow.createCell(0);
+			getFormatedCellWithValue(cell, xAxisValue, typesArr[xAxisIndex],
+					stylingArr[xAxisIndex]);
+			
+			Object instanceValue = dataRow[yAxisIndex];
+			Object instanceColumn = dataRow[instanceColumnIndex];
+			if(!currentHeaderValues.contains(instanceColumn + "")) {
+				currentHeaderValues.add(instanceColumn + "");
+				cell = headerRow.createCell(currentHeaderValues.size()-1);
+				getFormatedCellWithValue(cell, instanceColumn, typesArr[instanceColumnIndex], headerCellStyle);
+			}
+			
+			cell = excelRow.createCell(currentHeaderValues.indexOf(instanceColumn + ""));
+			getFormatedCellWithValue(cell, instanceValue, typesArr[yAxisIndex],
+					stylingArr[yAxisIndex]);
+		}
+
+		// add an additional empty row at the end
+		// so we have some spacing between
+		excelRow = sheet.createRow(excelRowCounter++);
+
+		// Update col and row bounds for sheet
+		// this keeps track at the sheet level where to add next task
+		sheetMap.put("colIndex", 0);
+		// add the offset of rows
+		sheetMap.put("rowIndex", endRow + (excelRowCounter - endRow));		
+
+		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
+
+		// this map defines the start and end for each column
+		if (headers != null && headers.length > 0) {
+			List<String> headerList = Arrays.asList(headers);
+			for (String header : headers) {
+				Map<String, Object> columnMap = new HashMap<>();
+				columnMap.put("startRow", endRow + 1);
+				// -2 for the extra line break between the data
+				columnMap.put("endRow", excelRowCounter - 2);
+				int headerIndex = headerList.indexOf(header);
+				columnMap.put("startCol", headerIndex);
+				columnMap.put("endCol", headerIndex);
+				panelMap.put(header, columnMap);
+			}
+		}
+
+		// add an additional empty row at the end
+		// so we have some spacing between
+		excelRow = sheet.createRow(excelRowCounter++);
+		// Update col and row bounds for sheet
+		// this keeps track at the sheet level where to add next task
+		sheetMap.put("colIndex", 0);
+		// add the offset of rows
+		sheetMap.put("rowIndex", endRow + (excelRowCounter - endRow));
+		// set x axis and y axis data
+		panelMap.put("x-axis", Arrays.asList(currentHeaderValues.get(0)));
+		panelMap.put("y-axis", currentHeaderValues.subList(1, currentHeaderValues.size()));
+
+		// this map defines the start and end for each column
+		for (String header : currentHeaderValues) {
+			Map<String, Object> columnMap = new HashMap<>();
+			columnMap.put("startRow", endRow + 1);
+			// -2 for the extra line break between the data
+			columnMap.put("endRow", excelRowCounter - 2);
+			int headerIndex = currentHeaderValues.indexOf(header);
+			columnMap.put("startCol", headerIndex);
+			columnMap.put("endCol", headerIndex);
+			panelMap.put(header, columnMap);
+		}
+	}
+
+	// sets the format and value to cell
+	private Cell getFormatedCellWithValue(Cell cell, Object value, SemossDataType dataType, CellStyle cellStyle) {
+		if (value == null || value.toString().length() == 0) {
+			cell.setCellValue("");
+		} else {
+			if (dataType == SemossDataType.STRING || value instanceof String) {
+				cell.setCellValue(value + "");
+			} else if (dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE) {
+				cell.setCellValue(((Number) value).doubleValue());
+			} else if (dataType == SemossDataType.DATE) {
+				if (value instanceof SemossDate) {
+					cell.setCellValue(((SemossDate) value).getDate());
+				} else {
+					cell.setCellValue(value + "");
+				}
+			} else if (dataType == SemossDataType.TIMESTAMP) {
+				if (value instanceof SemossDate) {
+					cell.setCellValue(((SemossDate) value).getDate());
+				} else {
+					cell.setCellValue(value + "");
+				}
+			} else if (dataType == SemossDataType.BOOLEAN) {
+				cell.setCellValue((boolean) value);
+			} else {
+				cell.setCellValue(value + "");
+			}
+
+			if (cellStyle != null) {
+				cell.setCellStyle(cellStyle);
+			}
+		}
+		return cell;
+	}
+	
+	/*
+	 * write file to the local for testing purpose
+	 * 
+	 * public static void WriteToFile(String fileContent, String fileName) { try{
+	 * String projectPath = "C:\\workspace"; String tempFile = projectPath +
+	 * File.separator+fileName; File file = new File(tempFile); // if file does
+	 * exists, then delete and create a new file //write to file with
+	 * OutputStreamWriter OutputStream outputStream = new
+	 * FileOutputStream(file.getAbsoluteFile()); Writer writer=new
+	 * OutputStreamWriter(outputStream); writer.write(fileContent); writer.close();}
+	 * catch(Exception e){ System.out.println(e); }
+	 * 
+	 * }
+	 */
+
 	
 }
