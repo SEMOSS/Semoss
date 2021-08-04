@@ -1271,14 +1271,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				map.put("import_pixel", importPixel);
 				
 				// viz types pixel
-				vizTypesPixel = (frameName + " | GetNLPVizOptions(app=[\"" + appId + "\"],columns=" + getSelectorAliases(qs.getSelectors()) + ");");
+				vizTypesPixel = (frameName + " | GetNLPVizOptions(database=[\"" + appId + "\"],columns=" + getSelectorAliases(qs.getSelectors()) + ");");
 				map.put("viz_types_pixel", vizTypesPixel);
 				
 				// viz pixel
 				vizPixel = getStartPixel(frameName, panelId);
 				vizPixel += "Panel ( "+panelId+" ) | SetPanelLabel(\"" + queryString + "\");";
 				vizPixel += "Panel ( "+panelId+" ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;";
-				vizPixel += (frameName + " | PredictViz(app=[\"" + appId + "\"],columns="
+				vizPixel += (frameName + " | PredictViz(database=[\"" + appId + "\"],columns="
 						+ getSelectorAliases(qs.getSelectors()) + ",sortPixel=[\""+getSortPixel(qs,null,frameName)+"\"],panel=[" + panelId + "],vizSelection=[<viztype>]);");
 				map.put("viz_pixel", vizPixel);
 				
