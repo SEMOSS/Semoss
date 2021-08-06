@@ -3305,6 +3305,20 @@ public class Utility {
 	}
 	
 	/**
+	 * Determine if We need to show Welcome Dialog on Application Load
+	 * @return
+	 */
+	public static boolean getWelcomeBannerOption() {
+		String welcomeDialog = DIHelper.getInstance().getProperty(Constants.SHOW_WELCOME_BANNER);
+		if(welcomeDialog == null) {
+			// default option is true
+			return true;
+		}
+		
+		return Boolean.parseBoolean(welcomeDialog);
+	}
+	
+	/**
 	 * Get the application time zone
 	 * @return
 	 */
