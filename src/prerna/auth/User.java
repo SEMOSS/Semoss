@@ -522,10 +522,10 @@ public class User implements Serializable {
 		{
 			this.projectIdMap = new HashMap<>();
 			// need to redo
-			for(int engineIndex = 0;engineIndex < allProjects.size();engineIndex++) {
-				Map <String, Object> engineValues = allProjects.get(engineIndex);
-				String projectName = (String)engineValues.get("project_name");
-				String projectId = (String)engineValues.get("project_id");
+			for(int projectIndex = 0;projectIndex < allProjects.size();projectIndex++) {
+				Map <String, Object> projectValues = allProjects.get(projectIndex);
+				String projectName = (String) projectValues.get("project_name");
+				String projectId = (String) projectValues.get("project_id");
 			
 				this.projectIdMap.put(projectId, projectName);
 			}
