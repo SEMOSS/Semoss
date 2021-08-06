@@ -279,10 +279,14 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 					this.dataSource = connBuilder.getDataSource();
 					setDataSourceProperties(this.dataSource);
 					this.datasourceConnected = true;
+					this.autoCommit = this.engineConn.getAutoCommit();
+					this.queryUtil.enhanceConnection(this.engineConn);
+					this.engineConn.close();
+				} else {
+					this.autoCommit = this.engineConn.getAutoCommit();
+					this.queryUtil.enhanceConnection(this.engineConn);
 				}
 				this.engineConnected = true;
-				this.autoCommit = this.engineConn.getAutoCommit();
-				this.queryUtil.enhanceConnection(this.engineConn);
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
@@ -343,6 +347,12 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 							conn.close();
 						} catch (SQLException e) {
 							logger.error(Constants.STACKTRACE, e);
+						}
+						try {
+							meta.getConnection().close();
+						} catch (SQLException e) {
+							logger.error(Constants.STACKTRACE, e);
+							e.printStackTrace();
 						}
 					}
 				}
@@ -932,7 +942,7 @@ public class RDBMSNativeEngine extends AbstractEngine implements IRDBMSEngine {
 	@Override
 	public DatabaseMetaData getConnectionMetadata() {
 		try {
-			return this.engineConn.getMetaData();
+			return getConnection().getMetaData();
 		} catch (SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}

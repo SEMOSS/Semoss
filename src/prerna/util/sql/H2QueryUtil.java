@@ -169,15 +169,23 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public void enhanceConnection(Connection con) {
+		Statement stmt = null;
 		try {
-			Statement stmt = con.createStatement();
+			stmt = con.createStatement();
 			stmt.execute("DROP AGGREGATE IF EXISTS MEDIAN");
 			stmt.close();
 			stmt = con.createStatement();
 			stmt.execute("CREATE AGGREGATE IF NOT EXISTS SMSS_MEDIAN FOR \"prerna.ds.rdbms.h2.H2MedianAggregation\";");
-			stmt.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 	
