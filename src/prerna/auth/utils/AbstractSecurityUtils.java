@@ -125,6 +125,45 @@ public abstract class AbstractSecurityUtils {
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		
+		// 2021-08-06
+		// on h2 when you renmae a column it doens't update/change anything on the index name
+		// also had some invalid indexes on certain tables
+		if(allowIfExistsIndexs) {
+			securityDb.removeData(queryUtil.dropIndexIfExists("INSIGHT_ENGINEID_INDEX", "INSIGHT"));
+			securityDb.removeData(queryUtil.dropIndexIfExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT"));
+			securityDb.removeData(queryUtil.dropIndexIfExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA"));
+			securityDb.removeData(queryUtil.dropIndexIfExists("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION"));
+
+			// these are right name - but were added to wrong table
+			// so will do an exists check anyway
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", schema)) {
+				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT"));
+			}
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", schema)) {
+				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT"));
+			}
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(securityDb, "INSIGHT_ENGINEID_INDEX", "INSIGHT", schema)) {
+				securityDb.removeData(queryUtil.dropIndex("INSIGHT_ENGINEID_INDEX", "INSIGHT"));
+			}
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", schema)) {
+				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT"));
+			}
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA", schema)) {
+				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHTMETA"));
+			}
+			if(!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", schema)) {
+				securityDb.removeData(queryUtil.dropIndex("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION"));
+			}
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", schema)) {
+				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT"));
+			}
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", schema)) {
+				securityDb.removeData(queryUtil.dropIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT"));
+			}
+		}
+		
 		// ENGINE
 		colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "TYPE", "COST" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
