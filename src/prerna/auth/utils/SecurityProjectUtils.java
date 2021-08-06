@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -106,6 +107,31 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			return null;
 		}
 		return results.get(0);
+	}
+	
+	/**
+	 * Get user databases + global databases 
+	 * @param userId
+	 * @return
+	 */
+	public static List<String> getFullUserProjectIds(User user) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		List<String> databaseList = QueryExecutionUtility.flushToListString(securityDb, qs);
+		databaseList.addAll(getGlobalProjectIds());
+		return databaseList.stream().distinct().sorted().collect(Collectors.toList());
+	}
+	
+	/**
+	 * Get global databases
+	 * @return
+	 */
+	public static Set<String> getGlobalProjectIds() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+		return QueryExecutionUtility.flushToSetString(securityDb, qs, false);
 	}
 
 	/**
