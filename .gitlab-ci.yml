@@ -120,10 +120,11 @@ build_sonar:
     - pwd
     - apt-get update
     - apt-get install -y openjfx
-    - mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}-SNAPSHOT
+    - mvn $MAVEN_CLI_OPTS verify -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}-SNAPSHOT
     - apt-get install -y openjdk-11-jdk
     - export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
     - export PATH=$PATH:$JAVA_HOME/bin
+    - cp /usr/lib/jvm/zulu8.44.0.13-ca-fx-jdk8.0.242-linux_x64/lib/tools.jar /usr/lib/jvm/java-11-openjdk-amd64/lib/
     - mvn sonar:sonar -Dsonar.projectKey=$PROJECT_KEY -Dsonar.projectVersion=${VERSION}-SNAPSHOT -Dsonar.host.url=$HOST_URL -Dsonar.login=$LOGIN_KEY
     # So that the cache takes up less space
     - rm -rf .m2/repository/org/semoss
