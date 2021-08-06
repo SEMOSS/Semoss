@@ -542,6 +542,8 @@ public class Constants {
 	public static final String DEFAULT_GRID_TYPE = "DEFAULT_GRID_TYPE";
 	// default scripting language
 	public static final String DEFAULT_SCRIPTING_LANGUAGE = "DEFAULT_SCRIPTING_LANGUAGE";
+	// default Welcome Dialog
+	public static final String SHOW_WELCOME_BANNER = "SHOW_WELCOME_BANNER";
 	
 	// h2 frame limit size before going on disk
 	public static final String H2_IN_MEM_SIZE = "H2_IN_MEM_SIZE";
