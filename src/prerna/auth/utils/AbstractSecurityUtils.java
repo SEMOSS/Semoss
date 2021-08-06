@@ -197,7 +197,7 @@ public abstract class AbstractSecurityUtils {
 		// check if column exists
 		// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
 		{
-			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "ENGINEMETA", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEMETA", schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("METAORDER") && !allCols.contains("metaorder")) {
@@ -243,7 +243,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		// TEMPORARY CHECK! - ADDED 03/17/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "ENGINEPERMISSION", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEPERMISSION", schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
@@ -456,7 +456,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
 		{
-			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "WORKSPACEENGINE", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "WORKSPACEENGINE", schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
@@ -491,7 +491,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
 		{
-			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "ASSETENGINE", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "ASSETENGINE", schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
@@ -517,7 +517,7 @@ public abstract class AbstractSecurityUtils {
 		// check if column exists
 		// TEMPORARY CHECK! - not sure when added but todays date is 12/16 
 		{
-			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "INSIGHT", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHT", schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("RECIPE") && !allCols.contains("recipe")) {
@@ -528,7 +528,7 @@ public abstract class AbstractSecurityUtils {
 		
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID
 		{
-			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "INSIGHT", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHT", schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
@@ -571,7 +571,7 @@ public abstract class AbstractSecurityUtils {
 		}
 		// TEMPORARY CHECK! - ADDED 03/17/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "USERINSIGHTPERMISSION", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if(!allCols.contains("FAVORITE") && !allCols.contains("favorite")) {
@@ -585,7 +585,7 @@ public abstract class AbstractSecurityUtils {
 		
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "USERINSIGHTPERMISSION", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
@@ -641,7 +641,7 @@ public abstract class AbstractSecurityUtils {
 		
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		{
-			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "INSIGHTMETA", schema);
+			List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHTMETA", schema);
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
 			if((!allCols.contains("PROJECTID") && !allCols.contains("projectid")) && (allCols.contains("ENGINEID") || allCols.contains("engineid") )) {
@@ -757,7 +757,10 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		
+		// clean up the connection used for this method
+		if(securityDb.isConnectionPooling()) {
+			conn.close();
+		}
 		
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
