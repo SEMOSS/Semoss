@@ -180,6 +180,14 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("ENGINEMETA", colNames, types));
 			}
 		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID"));
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(securityDb, "ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINEMETA_ENGINEID_INDEX", "ENGINEMETA", "ENGINEID"));
+			}
+		}
 		
 		// ENGINEPERMISSION
 		colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE" };
@@ -212,6 +220,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID"));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", schema)) {
@@ -225,6 +234,9 @@ public abstract class AbstractSecurityUtils {
 			}
 			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", "FAVORITE"));
+			}
+			if(!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID"));
 			}
 		}
 
@@ -303,6 +315,14 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("PROJECTMETA", colNames, types));
 			}
 		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTMETA_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(securityDb, "PROJECTMETA_PROJECTID_INDEX", "PROJECTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECTMETA_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
+			}
+		}
 		
 		// PROJECTPERMISSION
 		boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", schema);
@@ -345,6 +365,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION", "VISIBILITY"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION", "PROJECTID"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PERMISSION_INDEX", "PROJECTPERMISSION", schema)) {
@@ -358,6 +379,9 @@ public abstract class AbstractSecurityUtils {
 			}
 			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION", "FAVORITE"));
+			}
+			if(!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID"));
 			}
 		}
 		
@@ -477,6 +501,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
 			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
 		} else {
 			// see if index exists
 			if(!queryUtil.indexExists(securityDb, "INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", schema)) {
@@ -487,6 +512,9 @@ public abstract class AbstractSecurityUtils {
 			}
 			if(!queryUtil.indexExists(securityDb, "INSIGHT_PROJECTID_INDEX", "INSIGHT", schema)) {
 				securityDb.insertData(queryUtil.createIndex("INSIGHT_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
+			}
+			if(!queryUtil.indexExists(securityDb, "INSIGHT_INSIGHTID_INDEX", "INSIGHT", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHT_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
 			}
 		}
 
@@ -559,6 +587,18 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("INSIGHTMETA", colNames, types));
 			}
 		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
+		} else {
+			// see if index exists
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
+			}
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
+			}
+		}
 		
 		//MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 		{
@@ -572,15 +612,15 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		if(allowIfExistsIndexs) {
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
-			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
 		} else {
 			// see if index exists
-			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHT", "PROJECTID"));
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_PROJECTID_INDEX", "INSIGHTMETA", "PROJECTID"));
 			}
-			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", schema)) {
-				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
+			if(!queryUtil.indexExists(securityDb, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHTMETA", "INSIGHTID"));
 			}
 		}
 
