@@ -782,7 +782,37 @@ public class InsightUtility {
 		File baseFolder = new File(baseDir);
 		return baseFolder.listFiles(imageExtensionFilter);
 	}
-
+	
+	/**
+	 * Find an image in the directory with a given name
+	 * 
+	 * @param baseDir
+	 * @param baseName
+	 * @return
+	 */
+	public static File[] findImageFile(String baseDir, String baseName) {
+		FileFilter imageExtensionFilter = new FileFilter() {
+			@Override
+			public boolean accept(File pathname) {
+				String filePath = pathname.getAbsolutePath();
+				if(FilenameUtils.getBaseName(filePath).equals(baseName)) {
+					String ext = FilenameUtils.getExtension(filePath);
+					if(ext.equalsIgnoreCase("png") 
+						|| ext.equalsIgnoreCase("jpeg")
+						|| ext.equalsIgnoreCase("jpg")
+						|| ext.equalsIgnoreCase("gif")
+						|| ext.equalsIgnoreCase("svg") ) {
+						return true;
+					}
+				}
+				
+				return false;
+			}
+		};
+		File baseFolder = new File(baseDir);
+		return baseFolder.listFiles(imageExtensionFilter);
+	}
+	
 	/**
 	 * Find an image in the directory
 	 * 
