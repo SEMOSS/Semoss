@@ -103,6 +103,7 @@ public class DIHelper {
 		if(helper == null)
 		{
 			helper = new DIHelper();
+			helper.coreProp = new Properties();
 			helper.dbProp = new Properties();
 			helper.projectProp = new Properties();
 			

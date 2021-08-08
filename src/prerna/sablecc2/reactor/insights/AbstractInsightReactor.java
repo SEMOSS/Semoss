@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -23,6 +24,8 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.SmssUtilities;
+import prerna.io.connector.couch.CouchException;
+import prerna.io.connector.couch.CouchUtil;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
@@ -307,7 +310,10 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		// set up path to save image to file
 		final String DIR_SEP = java.nio.file.FileSystems.getDefault().getSeparator();
 		final String basePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEP + "project" + DIR_SEP + SmssUtilities.getUniqueName(appName, appId) + DIR_SEP + "version" 
+				+ DIR_SEP + "project" 
+				+ DIR_SEP + SmssUtilities.getUniqueName(appName, appId)
+				+ DIR_SEP + "app_root" 
+				+ DIR_SEP + "version" 
 				+ DIR_SEP + insightId;
 		final String newImageFile = basePath + DIR_SEP + fileName;
 		final File newImage = new File(newImageFile);
@@ -319,6 +325,17 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		
 		final String saveImageFileAs = basePath + DIR_SEP + "image." + FilenameUtils.getExtension(fileName);
 		final File saveImageFile = new File(saveImageFileAs);
+		
+		if(CouchUtil.COUCH_ENABLED) {
+			try {
+				Map<String, String> selectors = new HashMap<>();
+				selectors.put(CouchUtil.INSIGHT, insightId);
+				selectors.put(CouchUtil.PROJECT, appId);
+				CouchUtil.upload(CouchUtil.INSIGHT, selectors, saveImageFile);
+			} catch (CouchException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		File[] oldImages = InsightUtility.findImageFile(basePath);
 		for (File oldI : oldImages) {
@@ -353,7 +370,10 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		// set up path to save image to file
 		final String DIR_SEP = java.nio.file.FileSystems.getDefault().getSeparator();
 		final String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEP + Constants.PROJECT_FOLDER + DIR_SEP + SmssUtilities.getUniqueName(appName, appId) + DIR_SEP + "version" 
+				+ DIR_SEP + Constants.PROJECT_FOLDER 
+				+ DIR_SEP + SmssUtilities.getUniqueName(appName, appId)
+				+ DIR_SEP + "app_root" 
+				+ DIR_SEP + "version" 
 				+ DIR_SEP + insightId + DIR_SEP + "image.png";
 		
 		// decode image and write to file
@@ -426,7 +446,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 						if(space == null || space.isEmpty() || isUserSpace) {
 							File origF = new File(fileLoc);
 							String newFileLoc = BASE + DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR + 
-													SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "app_root" + DIR_SEPARATOR + 
+													SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + 
 													"app_root" + DIR_SEPARATOR + "version" + DIR_SEPARATOR +
 													newInsightId + DIR_SEPARATOR + 
 													"data";
