@@ -19,6 +19,15 @@ public class TextToGraphic {
 	private static Random rand = new Random();
 	
     public static void makeImage(String name, String imageLocation) {
+        BufferedImage img = buildBufferedImage(name);
+        try {
+            ImageIO.write(img, "png", new File(imageLocation));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+    
+    public static BufferedImage buildBufferedImage(String name) {
     	String[] split = TextHelper.formatCompountText(name).split(" ");
     	StringBuilder textBuilder = new StringBuilder();
     	if(split.length == 1) {
@@ -63,11 +72,7 @@ public class TextToGraphic {
         int strHeight = (int) (height - fm.getHeight())/2 + height/2;
         g2d.drawString(text, strWidth, strHeight);
         g2d.dispose();
-        try {
-            ImageIO.write(img, "png", new File(imageLocation));
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
+        return img;
     }
     
     public static Color getRandomColor() {
