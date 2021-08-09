@@ -1516,6 +1516,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PROJECTID", "PROJECTID"));
 		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID", "INSIGHTID"));
 		qs2.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__FAVORITE", "insight_favorite"));
+		if(hasProjectFilters) {
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectFilter));
+		}
 		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__FAVORITE", "==", true, PixelDataType.BOOLEAN));
 		
