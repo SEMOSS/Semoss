@@ -207,7 +207,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 		}
 	}
 	
-	public int getNumRows() {
+	public int getTotalNumRows() {
 		return this.totalNumRows;
 	}
 

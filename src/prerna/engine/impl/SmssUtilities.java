@@ -26,9 +26,9 @@ public class SmssUtilities {
 
 
 	private SmssUtilities() {
-		
+
 	}
-	
+
 	/**
 	 * Get the owl file
 	 * @param prop
@@ -45,7 +45,7 @@ public class SmssUtilities {
 
 		return new File(Utility.normalizePath(owlFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
-	
+
 	/**
 	 * Get the insights rdbms file
 	 * @param prop
@@ -62,7 +62,7 @@ public class SmssUtilities {
 		String rdbmsInsights = Utility.normalizePath(baseFolder) + DIR_SEPARATOR + Utility.normalizePath(prop.getProperty(Constants.RDBMS_INSIGHTS));
 		String engineId = prop.getProperty(Constants.PROJECT);
 		String engineName = prop.getProperty(Constants.PROJECT_ALIAS);
-		
+
 		rdbmsInsights = rdbmsInsights.replace(PROJECT_REPLACEMENT, getUniqueName(engineName, engineId));
 		File rdbms = null;
 		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
@@ -77,7 +77,7 @@ public class SmssUtilities {
 		}
 		return rdbms;
 	}
-	
+
 	/**
 	 * Get the engine properties file
 	 * @param prop
@@ -94,7 +94,7 @@ public class SmssUtilities {
 
 		return new File(Utility.normalizePath(engineProps.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
-	
+
 	/**
 	 * Get the unique name for the engine
 	 * This is the engine id __ engine name
@@ -106,7 +106,7 @@ public class SmssUtilities {
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 		return getUniqueName(engineName, engineId);
 	}
-	
+
 	/**
 	 * Get unique name__id
 	 * @param name
@@ -119,8 +119,8 @@ public class SmssUtilities {
 		}
 		return Utility.normalizePath(name + "__" + id);
 	}
-	
-	
+
+
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
@@ -128,7 +128,7 @@ public class SmssUtilities {
 	/*
 	 * RDF specific methods
 	 */
-	
+
 	/**
 	 * Get the JNL location
 	 * @param prop
@@ -146,7 +146,7 @@ public class SmssUtilities {
 
 		return new File(Utility.normalizePath(jnlLocation.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
-	
+
 	/**
 	 * Get the rdf file location
 	 * @param prop
@@ -171,7 +171,7 @@ public class SmssUtilities {
 	/*
 	 * File specific methods
 	 */
-	
+
 	/**
 	 * Get the data file 
 	 * @param prop
@@ -192,13 +192,13 @@ public class SmssUtilities {
 
 		return new File(Utility.normalizePath(dataFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
@@ -230,7 +230,7 @@ public class SmssUtilities {
 
 		return new File(Utility.normalizePath(tinkerFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
-	
+
 	/**
 	 * Get the data file for an embedded neo4j graph
 	 * @param prop
@@ -254,7 +254,7 @@ public class SmssUtilities {
 
 		return new File(Utility.normalizePath(neo4jFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
-	
+
 	/**
 	 * Get the data file 
 	 * @param prop
@@ -278,7 +278,7 @@ public class SmssUtilities {
 
 		return new File(Utility.normalizePath(janusFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
-	
+
 	/**
 	 * Custom file reader/writer to modify the app name and keep the same order
 	 * of the smss properties. Need to change the engine alias
@@ -292,30 +292,37 @@ public class SmssUtilities {
 		final String newLine = "\n";
 		final String tab = "\t";
 		File f1 = new File(smssFile);
-		FileReader fr = new FileReader(f1);
-		BufferedReader br = new BufferedReader(fr);
+		FileReader fr = null;
+		BufferedReader br = null;
 		String line = null;
-		FileWriter fw = new FileWriter(newSmssFile);
-		BufferedWriter out = new BufferedWriter(fw);
-		while ((line = br.readLine()) != null) {
-			if (line.contains(Constants.ENGINE_ALIAS)) {
-				line = Constants.ENGINE_ALIAS + tab + newAppName;
-			}
-//			if (line.startsWith(Constants.OWL)) {
-//				String owlLocation = "db" + DIR_SEPARATOR + ENGINE_REPLACEMENT + DIR_SEPARATOR + newAppName
-//						+ "_OWL.OWL";
-//				owlLocation = owlLocation.replace('\\', '/');
-//				line = Constants.OWL + tab + owlLocation;
-//			}
-			out.write(line + newLine);
+		FileWriter fw = null;
+		BufferedWriter out = null;
+		try {
+			fr = new FileReader(f1);
+			br = new BufferedReader(fr);
+			fw = new FileWriter(newSmssFile);
+			out = new BufferedWriter(fw);
+			while ((line = br.readLine()) != null) {
+				if (line.contains(Constants.ENGINE_ALIAS)) {
+					line = Constants.ENGINE_ALIAS + tab + newAppName;
+				}
+				//			if (line.startsWith(Constants.OWL)) {
+				//				String owlLocation = "db" + DIR_SEPARATOR + ENGINE_REPLACEMENT + DIR_SEPARATOR + newAppName
+				//						+ "_OWL.OWL";
+				//				owlLocation = owlLocation.replace('\\', '/');
+				//				line = Constants.OWL + tab + owlLocation;
+				//			}
+				out.write(line + newLine);
 
+			}
+		} finally {
+			fr.close();
+			br.close();
+			out.flush();
+			out.close();
 		}
-		fr.close();
-		br.close();
-		out.flush();
-		out.close();
 	}
-	
+
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
@@ -323,7 +330,7 @@ public class SmssUtilities {
 	/*
 	 * project specific methods
 	 */	
-	
+
 	/**
 	 * Generate the project folder and return the folder
 	 * 
@@ -361,7 +368,7 @@ public class SmssUtilities {
 		String tempSmssLoc = baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId) + ".temp";
 		return tempSmssLoc;
 	}
-	
+
 	/**
 	 * Get the smss base url
 	 */
@@ -369,14 +376,14 @@ public class SmssUtilities {
 		String connectionUrl = Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.PROJECT_REPLACEMENT + DIR_SEPARATOR + "insights_database";
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
-		
+
 		// append it on so it looks nicer
 		if(rdbmsTypeStr.equalsIgnoreCase("SQLITE")) {
 			connectionUrl += ".sqlite";
 		}
 		return connectionUrl;
 	}
-	
+
 	/**
 	 * Get the default connection url for the insights database
 	 * NOTE : ONLY ALLOWING FOR H2 OR SQLITE STORAGE OPTIONS AT THE MOMENT
@@ -404,7 +411,7 @@ public class SmssUtilities {
 		connectionUrl = connectionUrl.replace('\\', '/');
 		return connectionUrl;
 	}
-	
+
 	/**
 	 * Generate the SMSS for the project
 	 * 
@@ -415,7 +422,7 @@ public class SmssUtilities {
 	 */
 	public static File createTemporaryProjectSmss(String projectId, String projectName, RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
 		String projectTempSmssLoc = getProjectTempSmssLoc(projectId, projectName);
-		
+
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
 		// and they should be deleted after loading
@@ -424,10 +431,10 @@ public class SmssUtilities {
 		if(projectTempSmss.exists()) {
 			projectTempSmss.delete();
 		}
-		
+
 		final String newLine = "\n";
 		final String tab = "\t";
-		
+
 		// also write the base properties
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
@@ -439,7 +446,7 @@ public class SmssUtilities {
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
 			bufferedWriter.write(Constants.PROJECT_TYPE + tab + prerna.project.impl.Project.class.getName() + newLine);
-			
+
 			String rdbmsTypeStr = null;
 			RdbmsTypeEnum rdbmsType = null;
 			if(forceInsightDatabaseType != null) {
@@ -483,10 +490,10 @@ public class SmssUtilities {
 				e.printStackTrace();
 			}
 		}
-		
+
 		return projectTempSmss;
 	}
-	
+
 	/**
 	 * Generate the SMSS for the project
 	 * 
@@ -512,10 +519,10 @@ public class SmssUtilities {
 		if(projectTempSmss.exists()) {
 			projectTempSmss.delete();
 		}
-		
+
 		final String newLine = "\n";
 		final String tab = "\t";
-		
+
 		// also write the base properties
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
@@ -527,7 +534,7 @@ public class SmssUtilities {
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
 			bufferedWriter.write(Constants.PROJECT_TYPE + tab + prerna.project.impl.Project.class.getName() + newLine);
-			
+
 			String rdbmsTypeStr = null;
 			RdbmsTypeEnum rdbmsType = null;
 			if(forceInsightDatabaseType != null) {
@@ -541,7 +548,7 @@ public class SmssUtilities {
 				}
 				rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 			}
-			
+
 			// include if an asset or something else
 			bufferedWriter.write(Constants.IS_ASSET_APP + tab + isAsset + newLine);
 			// normal output
@@ -574,10 +581,10 @@ public class SmssUtilities {
 				e.printStackTrace();
 			}
 		}
-		
+
 		return projectTempSmss;
 	}
-	
+
 	/**
 	 * Validate the project name
 	 * Does validation that:
@@ -600,7 +607,7 @@ public class SmssUtilities {
 		if(containsProject) {
 			throw new IOException("Project name already exists.  Please provide a unique project name");
 		}
-		
+
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		// need to make sure app folder doesn't already exist
 		String appLocation = baseFolder + Constants.PROJECT_FOLDER +  SmssUtilities.getUniqueName(projectName, projectId);
@@ -610,7 +617,7 @@ public class SmssUtilities {
 					+ "Please delete the existing project folder or provide a unique project name");
 		}
 	}
-	
+
 	/**
 	 * Generate an empty insight database
 	 * 
@@ -625,13 +632,13 @@ public class SmssUtilities {
 			rdbmsTypeStr = "H2_DB";
 		}
 		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
-		
+
 		Properties prop = new Properties();
 
 		/*
 		 * This must be either H2 or SQLite
 		 */
-		
+
 		String connectionUrl = getNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
 		prop.put(Constants.CONNECTION_URL, connectionUrl);
 		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
@@ -651,11 +658,11 @@ public class SmssUtilities {
 		// this way i do not need to write it to disk and then recreate it later
 		insightEngine.openDB(null);
 		insightEngine.setBasic(true);
-		
+
 		runInsightCreateTableQueries(insightEngine);
 		return insightEngine;
 	}
-	
+
 	/**
 	 * Run the create table queries for the insights database
 	 * @param insightEngine
@@ -665,7 +672,7 @@ public class SmssUtilities {
 		AbstractSqlQueryUtil queryUtil = insightEngine.getQueryUtil();
 		String[] columns = null;
 		String[] types = null;
-		
+
 		try {
 			if(!queryUtil.tableExists(insightEngine.getConnection(), "QUESTION_ID", insightEngine.getSchema())) {
 				columns = new String[]{"ID", "QUESTION_NAME", "QUESTION_PERSPECTIVE", "QUESTION_LAYOUT", "QUESTION_ORDER", 
@@ -677,33 +684,33 @@ public class SmssUtilities {
 				if(!queryUtil.allowArrayDatatype()) {
 					types[types.length-1] = "CLOB";
 				}
-				
+
 				insightEngine.insertData(queryUtil.createTable("QUESTION_ID", columns, types));
 			}
-			
+
 			// adding new insight metadata
 			if(!queryUtil.tableExists(insightEngine.getConnection(), "INSIGHTMETA", insightEngine.getSchema())) {
 				columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"};
 				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT"};
 				insightEngine.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
 			}
-			
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
+
 		/*
 		 * NOTE : THESE TABLES ARE LEGACY!!!!
 		 */
-		
+
 		{
 			/*
 			 * Whenever we are finally done / have removed all our playsheet insights
 			 * We can officially delete this portion
 			 */
-			
+
 			// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
-			
+
 			try {
 				if(!queryUtil.tableExists(insightEngine.getConnection(), "PARAMETER_ID", insightEngine.getSchema())) {
 					columns = new String[]{"PARAMETER_ID", "PARAMETER_LABEL", "PARAMETER_TYPE", "PARAMETER_DEPENDENCY", "PARAMETER_QUERY", 
@@ -715,7 +722,7 @@ public class SmssUtilities {
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-			
+
 			try {
 				if(!queryUtil.tableExists(insightEngine.getConnection(), "UI", insightEngine.getSchema())) {
 					columns = new String[]{"QUESTION_ID_FK", "UI_DATA"};
@@ -726,9 +733,9 @@ public class SmssUtilities {
 				e.printStackTrace();
 			}
 		}
-		
-		
+
+
 		insightEngine.commit();
 	}
-	
+
 }
