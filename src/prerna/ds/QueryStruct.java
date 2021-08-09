@@ -591,30 +591,30 @@ public class QueryStruct {
 //		System.out.println(query);
 	}
 
-	private static void loadEngine4Test(){
-		DIHelper.getInstance().loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
-		FileInputStream fileIn = null;
-		try{
-			Properties prop = new Properties();
-			String fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\UpdatedRDBMSMovies.smss";
-			fileIn = new FileInputStream(fileName);
-			prop.load(fileIn);
-			System.err.println("Loading DB " + fileName);
-			Utility.loadEngine(fileName, prop);
-			fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\Movie_DB.smss";
-			fileIn = new FileInputStream(fileName);
-			prop.load(fileIn);
-			System.err.println("Loading DB " + fileName);
-			Utility.loadEngine(fileName, prop);
-		}catch(IOException e){
-			e.printStackTrace();
-		}finally{
-			try{
-				if(fileIn!=null)
-					fileIn.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
+//	private static void loadEngine4Test(){
+//		DIHelper.getInstance().loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
+//		FileInputStream fileIn = null;
+//		try{
+//			Properties prop = new Properties();
+//			String fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\UpdatedRDBMSMovies.smss";
+//			fileIn = new FileInputStream(fileName);
+//			prop.load(fileIn);
+//			System.err.println("Loading DB " + fileName);
+//			Utility.loadEngine(fileName, prop);
+//			fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\Movie_DB.smss";
+//			fileIn = new FileInputStream(fileName);
+//			prop.load(fileIn);
+//			System.err.println("Loading DB " + fileName);
+//			Utility.loadEngine(fileName, prop);
+//		}catch(IOException e){
+//			e.printStackTrace();
+//		}finally{
+//			try{
+//				if(fileIn!=null)
+//					fileIn.close();
+//			}catch(IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//	}
 }
